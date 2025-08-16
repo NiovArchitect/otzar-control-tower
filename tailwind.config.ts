@@ -61,7 +61,41 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				enterprise: {
+					blue: 'hsl(var(--enterprise-blue))',
+					'blue-light': 'hsl(var(--enterprise-blue-light))',
+					'blue-dark': 'hsl(var(--enterprise-blue-dark))',
+					gray: 'hsl(var(--enterprise-gray))',
+					'gray-light': 'hsl(var(--enterprise-gray-light))',
+					'gray-lighter': 'hsl(var(--enterprise-gray-lighter))'
+				},
+				status: {
+					success: 'hsl(var(--status-success))',
+					warning: 'hsl(var(--status-warning))',
+					danger: 'hsl(var(--status-danger))',
+					info: 'hsl(var(--status-info))'
+				},
+				chart: {
+					'1': 'hsl(var(--chart-1))',
+					'2': 'hsl(var(--chart-2))',
+					'3': 'hsl(var(--chart-3))',
+					'4': 'hsl(var(--chart-4))',
+					'5': 'hsl(var(--chart-5))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-success': 'var(--gradient-success)',
+				'gradient-card': 'var(--gradient-card)'
+			},
+			boxShadow: {
+				'card': 'var(--shadow-card)',
+				'elevated': 'var(--shadow-elevated)',
+				'enterprise': 'var(--shadow-enterprise)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
