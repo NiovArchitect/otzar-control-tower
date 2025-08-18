@@ -45,11 +45,11 @@ const departmentUsage = [
 ]
 
 const aiTeammatePerformance = [
-  { name: "Sarah AI", tasksCompleted: 156, accuracy: 94, responseTime: "1.2s", status: "active", satisfaction: 4.7, errorsPrevented: 12 },
-  { name: "DataBot Pro", tasksCompleted: 142, accuracy: 89, responseTime: "0.8s", status: "active", satisfaction: 4.5, errorsPrevented: 8 },
-  { name: "SalesAssist", tasksCompleted: 98, accuracy: 96, responseTime: "2.1s", status: "training", satisfaction: 4.8, errorsPrevented: 15 },
-  { name: "CodeHelper", tasksCompleted: 87, accuracy: 92, responseTime: "1.5s", status: "active", satisfaction: 4.6, errorsPrevented: 9 },
-  { name: "ContentGen", tasksCompleted: 76, accuracy: 88, responseTime: "3.2s", status: "active", satisfaction: 4.3, errorsPrevented: 6 }
+  { name: "Sarah AI", assignedTo: "Sarah Chen", tasksCompleted: 156, accuracy: 94, responseTime: "1.2s", status: "active", satisfaction: 4.7, errorsPrevented: 12 },
+  { name: "DataBot Pro", assignedTo: "Finance Team", tasksCompleted: 142, accuracy: 89, responseTime: "0.8s", status: "active", satisfaction: 4.5, errorsPrevented: 8 },
+  { name: "SalesAssist", assignedTo: "Marcus Johnson", tasksCompleted: 98, accuracy: 96, responseTime: "2.1s", status: "training", satisfaction: 4.8, errorsPrevented: 15 },
+  { name: "CodeHelper", assignedTo: "Dev Team", tasksCompleted: 87, accuracy: 92, responseTime: "1.5s", status: "active", satisfaction: 4.6, errorsPrevented: 9 },
+  { name: "ContentGen", assignedTo: "Marketing Team", tasksCompleted: 76, accuracy: 88, responseTime: "3.2s", status: "active", satisfaction: 4.3, errorsPrevented: 6 }
 ]
 
 const adoptionHeatmap = [
@@ -91,6 +91,7 @@ const userEngagement = [
 
 const aiTeammateColumns = [
   { key: "name", header: "AI Teammate" },
+  { key: "assignedTo", header: "Assigned To" },
   { key: "tasksCompleted", header: "Tasks Completed" },
   { key: "accuracy", header: "Accuracy", cell: (value: number) => `${value}%` },
   { key: "satisfaction", header: "Satisfaction", cell: (value: number) => (
