@@ -10,6 +10,7 @@ import AccessControl from "./pages/AccessControl";
 import Data from "./pages/Data";
 import Security from "./pages/Security";
 import Analytics from "./pages/Analytics";
+import Playground from "./pages/Playground";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +28,7 @@ const App = () => (
           <Route path="/access-control" element={<AccessControl />} />
           <Route path="/data" element={<Data />} />
           <Route path="/security" element={<Security />} />
-          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/playground" element={<Playground />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
