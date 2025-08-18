@@ -16,33 +16,69 @@ import {
   Calendar,
   BarChart3,
   PieChart,
-  LineChart
+  LineChart,
+  Target,
+  Shield,
+  DollarSign,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  Star
 } from "lucide-react"
 
 // Mock data for analytics
 const performanceMetrics = [
-  { name: "Jan", aiRequests: 4000, userSessions: 2400, efficiency: 85 },
-  { name: "Feb", aiRequests: 3000, userSessions: 1398, efficiency: 78 },
-  { name: "Mar", aiRequests: 2000, userSessions: 9800, efficiency: 92 },
-  { name: "Apr", aiRequests: 2780, userSessions: 3908, efficiency: 88 },
-  { name: "May", aiRequests: 1890, userSessions: 4800, efficiency: 95 },
-  { name: "Jun", aiRequests: 2390, userSessions: 3800, efficiency: 90 }
+  { name: "Jan", aiRequests: 4000, userSessions: 2400, efficiency: 85, hoursSaved: 340, errorsPrevented: 23 },
+  { name: "Feb", aiRequests: 3000, userSessions: 1398, efficiency: 78, hoursSaved: 280, errorsPrevented: 18 },
+  { name: "Mar", aiRequests: 2000, userSessions: 9800, efficiency: 92, hoursSaved: 420, errorsPrevented: 31 },
+  { name: "Apr", aiRequests: 2780, userSessions: 3908, efficiency: 88, hoursSaved: 385, errorsPrevented: 27 },
+  { name: "May", aiRequests: 1890, userSessions: 4800, efficiency: 95, hoursSaved: 450, errorsPrevented: 34 },
+  { name: "Jun", aiRequests: 2390, userSessions: 3800, efficiency: 90, hoursSaved: 398, errorsPrevented: 29 }
 ]
 
 const departmentUsage = [
-  { name: "Engineering", value: 35, hours: 420 },
-  { name: "Sales", value: 25, hours: 300 },
-  { name: "Marketing", value: 20, hours: 240 },
-  { name: "Support", value: 15, hours: 180 },
-  { name: "HR", value: 5, hours: 60 }
+  { name: "Engineering", value: 35, hours: 420, adoption: 89, productivity: 156 },
+  { name: "Sales", value: 25, hours: 300, adoption: 76, productivity: 142 },
+  { name: "Marketing", value: 20, hours: 240, adoption: 82, productivity: 128 },
+  { name: "Support", value: 15, hours: 180, adoption: 91, productivity: 167 },
+  { name: "HR", value: 5, hours: 60, adoption: 67, productivity: 98 }
 ]
 
 const aiTeammatePerformance = [
-  { name: "Sarah AI", tasksCompleted: 156, accuracy: 94, responseTime: "1.2s", status: "active" },
-  { name: "DataBot Pro", tasksCompleted: 142, accuracy: 89, responseTime: "0.8s", status: "active" },
-  { name: "SalesAssist", tasksCompleted: 98, accuracy: 96, responseTime: "2.1s", status: "training" },
-  { name: "CodeHelper", tasksCompleted: 87, accuracy: 92, responseTime: "1.5s", status: "active" },
-  { name: "ContentGen", tasksCompleted: 76, accuracy: 88, responseTime: "3.2s", status: "active" }
+  { name: "Sarah AI", tasksCompleted: 156, accuracy: 94, responseTime: "1.2s", status: "active", satisfaction: 4.7, errorsPrevented: 12 },
+  { name: "DataBot Pro", tasksCompleted: 142, accuracy: 89, responseTime: "0.8s", status: "active", satisfaction: 4.5, errorsPrevented: 8 },
+  { name: "SalesAssist", tasksCompleted: 98, accuracy: 96, responseTime: "2.1s", status: "training", satisfaction: 4.8, errorsPrevented: 15 },
+  { name: "CodeHelper", tasksCompleted: 87, accuracy: 92, responseTime: "1.5s", status: "active", satisfaction: 4.6, errorsPrevented: 9 },
+  { name: "ContentGen", tasksCompleted: 76, accuracy: 88, responseTime: "3.2s", status: "active", satisfaction: 4.3, errorsPrevented: 6 }
+]
+
+const adoptionHeatmap = [
+  { department: "Engineering", week1: 45, week2: 52, week3: 67, week4: 78 },
+  { department: "Sales", week1: 32, week2: 38, week3: 45, week4: 51 },
+  { department: "Marketing", week1: 28, week2: 35, week3: 42, week4: 48 },
+  { department: "Support", week1: 55, week2: 61, week3: 69, week4: 75 },
+  { department: "HR", week1: 15, week2: 22, week3: 28, week4: 34 }
+]
+
+const productivityMetrics = [
+  { metric: "Hours Saved", value: 2273, change: "+18%", period: "This month" },
+  { metric: "Tasks Automated", value: 1847, change: "+24%", period: "This month" },
+  { metric: "Workflow Efficiency", value: "92%", change: "+8%", period: "vs baseline" },
+  { metric: "Time to Complete", value: "3.2h", change: "-35%", period: "Average reduction" }
+]
+
+const errorPrevention = [
+  { type: "Data Entry Errors", prevented: 127, severity: "High", trend: "+15%" },
+  { type: "Compliance Violations", prevented: 43, severity: "Critical", trend: "+8%" },
+  { type: "Missed Deadlines", prevented: 89, severity: "Medium", trend: "+22%" },
+  { type: "Security Incidents", prevented: 12, severity: "Critical", trend: "+5%" }
+]
+
+const roiMetrics = [
+  { metric: "Cost Savings", value: "$847,230", period: "YTD", growth: "+32%" },
+  { metric: "Revenue Impact", value: "$1.2M", period: "Projected annual", growth: "+28%" },
+  { metric: "ROI Percentage", value: "340%", period: "12 months", growth: "+45%" },
+  { metric: "Payback Period", value: "3.2 months", period: "Initial investment", growth: "-15%" }
 ]
 
 const userEngagement = [
@@ -57,7 +93,13 @@ const aiTeammateColumns = [
   { key: "name", header: "AI Teammate" },
   { key: "tasksCompleted", header: "Tasks Completed" },
   { key: "accuracy", header: "Accuracy", cell: (value: number) => `${value}%` },
-  { key: "responseTime", header: "Avg Response Time" },
+  { key: "satisfaction", header: "Satisfaction", cell: (value: number) => (
+    <div className="flex items-center gap-1">
+      <Star className="w-4 h-4 fill-current text-yellow-500" />
+      <span>{value}</span>
+    </div>
+  )},
+  { key: "errorsPrevented", header: "Errors Prevented" },
   { 
     key: "status", 
     header: "Status",
@@ -136,73 +178,329 @@ export default function Analytics() {
           />
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+        <Tabs defaultValue="adoption" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="adoption">Adoption</TabsTrigger>
+            <TabsTrigger value="productivity">Productivity</TabsTrigger>
+            <TabsTrigger value="errors">Error Prevention</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="usage">Usage Patterns</TabsTrigger>
+            <TabsTrigger value="roi">ROI</TabsTrigger>
             <TabsTrigger value="teams">AI Teams</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Charts Row */}
+          <TabsContent value="adoption" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Adoption Heatmap
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {adoptionHeatmap.map((dept) => (
+                      <div key={dept.department} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{dept.department}</span>
+                          <span className="text-sm text-muted-foreground">{dept.week4}% adoption</span>
+                        </div>
+                        <div className="flex gap-1">
+                          {[dept.week1, dept.week2, dept.week3, dept.week4].map((value, i) => (
+                            <div
+                              key={i}
+                              className="h-2 flex-1 rounded"
+                              style={{
+                                backgroundColor: `hsl(var(--primary) / ${value / 100})`
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
               <AnalyticsChart
-                title="AI Requests & User Sessions"
-                data={performanceMetrics}
-                type="line"
-                dataKey="aiRequests"
-                height={350}
-              />
-              <AnalyticsChart
-                title="Department Usage Distribution"
+                title="Department Adoption Trends"
                 data={departmentUsage}
-                type="donut"
-                dataKey="value"
+                type="bar"
+                dataKey="adoption"
+                xAxisKey="name"
                 height={350}
               />
             </div>
 
-            {/* Efficiency Metrics */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              <DashboardCard
+                title="Most Active Department"
+                value="Support"
+                change="91% adoption rate"
+                changeType="positive"
+                icon={<Users />}
+              />
+              <DashboardCard
+                title="Top AI Workflow"
+                value="Data Processing"
+                change="67% of all tasks"
+                changeType="positive"
+                icon={<Bot />}
+              />
+              <DashboardCard
+                title="Peak Usage Time"
+                value="10:30 AM"
+                change="Daily average"
+                changeType="neutral"
+                icon={<Clock />}
+              />
+              <DashboardCard
+                title="User Growth"
+                value="+142"
+                change="New users this month"
+                changeType="positive"
+                icon={<TrendingUp />}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="productivity" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AnalyticsChart
+                title="Hours Saved Over Time"
+                data={performanceMetrics}
+                type="line"
+                dataKey="hoursSaved"
+                xAxisKey="name"
+                height={350}
+              />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    Productivity Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {productivityMetrics.map((metric) => (
+                    <div key={metric.metric} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium">{metric.metric}</span>
+                        <p className="text-xs text-muted-foreground">{metric.period}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold">{metric.value}</span>
+                        <p className="text-xs text-status-success">{metric.change}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    Total Hours Saved
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">2,273h</div>
+                  <p className="text-sm text-muted-foreground">+18% from last month</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Tasks Automated
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">1,847</div>
+                  <p className="text-sm text-muted-foreground">+24% from last month</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5" />
-                    Efficiency Score
+                    Efficiency Gain
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-foreground">92%</div>
-                  <p className="text-sm text-muted-foreground">+5% from last week</p>
+                  <p className="text-sm text-muted-foreground">vs baseline workflows</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="errors" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AnalyticsChart
+                title="Errors Prevented Monthly"
+                data={performanceMetrics}
+                type="bar"
+                dataKey="errorsPrevented"
+                xAxisKey="name"
+                height={350}
+              />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Error Prevention Breakdown
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {errorPrevention.map((error) => (
+                    <div key={error.type} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium">{error.type}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant={error.severity === "Critical" ? "destructive" : error.severity === "High" ? "default" : "secondary"}>
+                            {error.severity}
+                          </Badge>
+                          <span className="text-xs text-status-success">{error.trend}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold">{error.prevented}</span>
+                        <p className="text-xs text-muted-foreground">prevented</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              <DashboardCard
+                title="Total Errors Prevented"
+                value="271"
+                change="+15% from last month"
+                changeType="positive"
+                icon={<Shield />}
+              />
+              <DashboardCard
+                title="Critical Incidents Avoided"
+                value="55"
+                change="High severity prevented"
+                changeType="positive"
+                icon={<AlertTriangle />}
+              />
+              <DashboardCard
+                title="Compliance Violations"
+                value="0"
+                change="100% prevention rate"
+                changeType="positive"
+                icon={<CheckCircle />}
+              />
+              <DashboardCard
+                title="Cost of Errors Avoided"
+                value="$89,450"
+                change="Estimated savings"
+                changeType="positive"
+                icon={<DollarSign />}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="roi" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    ROI Metrics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {roiMetrics.map((metric) => (
+                    <div key={metric.metric} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium">{metric.metric}</span>
+                        <p className="text-xs text-muted-foreground">{metric.period}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold">{metric.value}</span>
+                        <p className="text-xs text-status-success">{metric.growth}</p>
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Cost Savings
-                  </CardTitle>
+                  <CardTitle>AI vs Baseline Workflows</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">$45,670</div>
-                  <p className="text-sm text-muted-foreground">This month</p>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Time to Complete</span>
+                      <span className="text-status-success">-65% faster</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div className="bg-status-success h-2 rounded-full" style={{width: '65%'}}></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Error Rate</span>
+                      <span className="text-status-success">-87% reduction</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div className="bg-status-success h-2 rounded-full" style={{width: '87%'}}></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Cost Efficiency</span>
+                      <span className="text-status-success">+340% improvement</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div className="bg-status-success h-2 rounded-full" style={{width: '90%'}}></div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+            </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <LineChart className="w-5 h-5" />
-                    Time Saved
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">1,247h</div>
-                  <p className="text-sm text-muted-foreground">This month</p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              <DashboardCard
+                title="Total ROI"
+                value="340%"
+                change="+45% YoY growth"
+                changeType="positive"
+                icon={<TrendingUp />}
+              />
+              <DashboardCard
+                title="Cost Savings"
+                value="$847K"
+                change="Year to date"
+                changeType="positive"
+                icon={<DollarSign />}
+              />
+              <DashboardCard
+                title="Revenue Impact"
+                value="$1.2M"
+                change="Projected annual"
+                changeType="positive"
+                icon={<BarChart3 />}
+              />
+              <DashboardCard
+                title="Payback Period"
+                value="3.2 mo"
+                change="Initial investment"
+                changeType="positive"
+                icon={<Clock />}
+              />
             </div>
           </TabsContent>
 
