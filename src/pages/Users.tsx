@@ -165,7 +165,7 @@ const userColumns = [
   {
     key: "user",
     header: "User Information",
-    cell: (value: any, row: any) => (
+    cell: (row: any) => (
       <div className="flex items-center space-x-3">
         <Avatar className="h-10 w-10">
           <AvatarImage src={row.avatar} alt={row.name} />
@@ -184,7 +184,7 @@ const userColumns = [
   {
     key: "role",
     header: "Role & Profile", 
-    cell: (value: any, row: any) => (
+    cell: (row: any) => (
       <div>
         <div className="font-medium text-foreground">{row.role}</div>
         <div className="text-xs text-muted-foreground">{row.profile}</div>
@@ -195,21 +195,21 @@ const userColumns = [
   {
     key: "userType",
     header: "User Type",
-    cell: (value: string) => (
+    cell: (row: any) => (
       <Badge 
-        variant={value === "internal" ? "default" : value === "external" ? "secondary" : "outline"}
+        variant={row.userType === "internal" ? "default" : row.userType === "external" ? "secondary" : "outline"}
         className="text-xs"
       >
-        {value.charAt(0).toUpperCase() + value.slice(1)}
+        {row.userType.charAt(0).toUpperCase() + row.userType.slice(1)}
       </Badge>
     ),
   },
   {
     key: "status",
     header: "Status",
-    cell: (value: string) => (
-      <StatusBadge status={value as any}>
-        {value.charAt(0).toUpperCase() + value.slice(1)}
+    cell: (row: any) => (
+      <StatusBadge status={row.status as any}>
+        {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
       </StatusBadge>
     ),
   },
@@ -220,8 +220,8 @@ const userColumns = [
   {
     key: "delegatedAdmin",
     header: "Admin Rights",
-    cell: (value: boolean) => (
-      value ? (
+    cell: (row: any) => (
+      row.delegatedAdmin ? (
         <Badge variant="default" className="text-xs">
           <UserCheck className="w-3 h-3 mr-1" />
           Delegated Admin
