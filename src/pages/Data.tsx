@@ -224,8 +224,10 @@ export default function Data() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="connections" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+        <Tabs defaultValue="governance" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-9">
+            <TabsTrigger value="governance">Governance</TabsTrigger>
+            <TabsTrigger value="knowledge">Knowledge Center</TabsTrigger>
             <TabsTrigger value="connections">Connections</TabsTrigger>
             <TabsTrigger value="import">Data Import</TabsTrigger>
             <TabsTrigger value="databases">Databases</TabsTrigger>
@@ -234,6 +236,616 @@ export default function Data() {
             <TabsTrigger value="retention">Retention</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
+
+          {/* Dataset-level Governance Tab */}
+          <TabsContent value="governance" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Shield className="h-5 w-5 mr-2" />
+                    Security Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Protected Objects</span>
+                    <span className="font-medium">127</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Field-level Rules</span>
+                    <span className="font-medium">2,439</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Access Violations</span>
+                    <span className="font-medium text-red-600">3</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Lock className="h-5 w-5 mr-2" />
+                    Data Silos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">HR Silo</span>
+                    <Badge variant="default">12 datasets</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Finance Silo</span>
+                    <Badge variant="default">8 datasets</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Product Silo</span>
+                    <Badge variant="default">15 datasets</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Data Residency
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">On-premises</span>
+                    <span className="font-medium">45%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Private Cloud</span>
+                    <span className="font-medium">35%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Region-specific</span>
+                    <span className="font-medium">20%</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Object-level and Field-level Permissions */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Object-level Permissions</CardTitle>
+                  <CardDescription>Control access to entire objects across all integrated systems</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { object: "Salesforce Accounts", read: true, create: true, edit: false, delete: false },
+                      { object: "ERP Customer Records", read: true, create: false, edit: false, delete: false },
+                      { object: "HR Employee Data", read: false, create: false, edit: false, delete: false },
+                      { object: "Financial Transactions", read: true, create: false, edit: true, delete: false },
+                    ].map((perm, index) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">{perm.object}</span>
+                          <Button variant="outline" size="sm">Configure</Button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 text-sm">
+                          <div className="flex items-center space-x-1">
+                            <Switch checked={perm.read} />
+                            <span>Read</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Switch checked={perm.create} />
+                            <span>Create</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Switch checked={perm.edit} />
+                            <span>Edit</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Switch checked={perm.delete} />
+                            <span>Delete</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Field-level Security</CardTitle>
+                  <CardDescription>Control access to individual fields within objects</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { field: "Account.Credit_Score__c", visible: false, aiAccess: false, masking: "Full" },
+                      { field: "Contact.SSN__c", visible: false, aiAccess: false, masking: "Full" },
+                      { field: "Transaction.Amount", visible: true, aiAccess: false, masking: "Partial" },
+                      { field: "Employee.Salary", visible: false, aiAccess: false, masking: "Full" },
+                    ].map((field, index) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium text-sm">{field.field}</span>
+                          <Badge variant={field.masking === "Full" ? "destructive" : field.masking === "Partial" ? "secondary" : "default"}>
+                            {field.masking}
+                          </Badge>
+                        </div>
+                        <div className="flex space-x-4 text-sm">
+                          <div className="flex items-center space-x-1">
+                            <Switch checked={field.visible} />
+                            <span>User Visible</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Switch checked={field.aiAccess} />
+                            <span>AI Access</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Record-level Access and Dataset Permissions */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Record-level Access Rules</CardTitle>
+                  <CardDescription>AI-aware sharing rules and restriction rules</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="border rounded-lg p-3">
+                      <h4 className="font-medium mb-2">Ownership-based Access</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Record Owner: Full Access</span>
+                          <Badge variant="default">Active</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Manager Hierarchy: Read/Edit</span>
+                          <Badge variant="default">Active</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Department Team: Read Only</span>
+                          <Badge variant="default">Active</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-lg p-3">
+                      <h4 className="font-medium mb-2">AI Teammate Restrictions</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>AI can only access public records</span>
+                          <Badge variant="default">Enforced</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Confidential data excluded from AI</span>
+                          <Badge variant="default">Enforced</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Dataset Permissions</CardTitle>
+                  <CardDescription>Assign read/write permissions per dataset</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {[
+                      { dataset: "Salesforce CRM", silo: "Sales", users: 24, aiTeammates: 3, permissions: "Read/Write" },
+                      { dataset: "ERP Financial Data", silo: "Finance", users: 8, aiTeammates: 1, permissions: "Read Only" },
+                      { dataset: "HR Employee Records", silo: "HR", users: 5, aiTeammates: 0, permissions: "Restricted" },
+                      { dataset: "Product Documentation", silo: "Product", users: 15, aiTeammates: 2, permissions: "Read/Write" },
+                    ].map((dataset, index) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="font-medium">{dataset.dataset}</span>
+                            <Badge variant="outline" className="ml-2">{dataset.silo}</Badge>
+                          </div>
+                          <Badge variant={
+                            dataset.permissions === "Read/Write" ? "default" :
+                            dataset.permissions === "Read Only" ? "secondary" : "destructive"
+                          }>
+                            {dataset.permissions}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>{dataset.users} users</span>
+                          <span>{dataset.aiTeammates} AI teammates</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Data Residency & Storage Location */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Residency & Storage Configuration</CardTitle>
+                <CardDescription>Choose where your organization's data and embeddings are stored</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { name: "On-premises", description: "Your own infrastructure", icon: Server, selected: true },
+                    { name: "Private Cloud", description: "Dedicated cloud instance", icon: Cloud, selected: false },
+                    { name: "Region-specific", description: "EU/US/APAC regions", icon: MapPin, selected: false },
+                    { name: "Hybrid", description: "Mixed deployment", icon: Plug, selected: false },
+                  ].map((option) => (
+                    <Card key={option.name} className={`cursor-pointer transition-all ${option.selected ? 'ring-2 ring-primary' : 'hover:shadow-md'}`}>
+                      <CardContent className="pt-6">
+                        <div className="flex flex-col items-center text-center space-y-2">
+                          <option.icon className="h-8 w-8 text-primary" />
+                          <h3 className="font-medium">{option.name}</h3>
+                          <p className="text-xs text-muted-foreground">{option.description}</p>
+                          {option.selected && <CheckCircle className="h-4 w-4 text-green-600" />}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="byok">Bring Your Own Keys (BYOK)</Label>
+                    <Switch id="byok" defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="hsm">Hardware Security Module (HSM)</Label>
+                    <Switch id="hsm" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="kms">Key Management Service</Label>
+                    <Input id="kms" placeholder="Enter KMS endpoint..." />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Knowledge Center Management Tab */}
+          <TabsContent value="knowledge" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 mr-2" />
+                    Knowledge Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Total Documents</span>
+                    <span className="font-medium">1,247</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Pending Approval</span>
+                    <span className="font-medium text-orange-600">23</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Redacted Fields</span>
+                    <span className="font-medium">156</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Lock className="h-5 w-5 mr-2" />
+                    Knowledge Silos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Engineering Wiki</span>
+                    <Badge variant="default">234 docs</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Sales Playbooks</span>
+                    <Badge variant="default">89 docs</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">HR Policies</span>
+                    <Badge variant="secondary">45 docs</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <History className="h-5 w-5 mr-2" />
+                    Version Control
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Active Versions</span>
+                    <span className="font-medium">1,247</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Archive Versions</span>
+                    <span className="font-medium">3,891</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Rollbacks (30d)</span>
+                    <span className="font-medium">12</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Knowledge Silos Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Knowledge Silos Management</CardTitle>
+                <CardDescription>Organize documents into isolated knowledge centers with cross-contamination prevention</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    { name: "Engineering", docs: 234, size: "1.2 GB", access: "Engineering Team", aiAccess: true },
+                    { name: "Sales", docs: 89, size: "456 MB", access: "Sales Team", aiAccess: true },
+                    { name: "HR", docs: 45, size: "234 MB", access: "HR Only", aiAccess: false },
+                    { name: "Finance", docs: 67, size: "789 MB", access: "Finance Team", aiAccess: false },
+                    { name: "Product", docs: 156, size: "2.1 GB", access: "Product Team", aiAccess: true },
+                    { name: "Legal", docs: 23, size: "123 MB", access: "Legal Only", aiAccess: false },
+                  ].map((silo) => (
+                    <Card key={silo.name} className="hover:shadow-md transition-shadow">
+                      <CardContent className="pt-6">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <h3 className="font-medium">{silo.name}</h3>
+                            <Badge variant={silo.aiAccess ? "default" : "secondary"}>
+                              {silo.aiAccess ? "AI Enabled" : "AI Restricted"}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <div className="flex justify-between">
+                              <span>Documents:</span>
+                              <span>{silo.docs}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Size:</span>
+                              <span>{silo.size}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Access:</span>
+                              <span>{silo.access}</span>
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm" className="w-full">
+                            Manage Silo
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Versioning and Approvals */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Document Approval Workflow</CardTitle>
+                  <CardDescription>New knowledge ingestion requires approval before AI processing</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { doc: "Q4 Sales Training Video", type: "Video", status: "Pending", submitter: "John Smith", date: "2 hours ago" },
+                      { doc: "Updated Privacy Policy", type: "PDF", status: "Approved", submitter: "Legal Team", date: "1 day ago" },
+                      { doc: "Product Roadmap 2024", type: "Document", status: "Rejected", submitter: "Product Team", date: "3 days ago" },
+                      { doc: "Customer Support SOP", type: "Wiki", status: "Pending", submitter: "Support Team", date: "5 hours ago" },
+                    ].map((doc, index) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="font-medium text-sm">{doc.doc}</span>
+                            <Badge variant="outline" className="ml-2">{doc.type}</Badge>
+                          </div>
+                          <Badge variant={
+                            doc.status === "Approved" ? "default" :
+                            doc.status === "Pending" ? "secondary" : "destructive"
+                          }>
+                            {doc.status}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>By {doc.submitter}</span>
+                          <span>{doc.date}</span>
+                        </div>
+                        {doc.status === "Pending" && (
+                          <div className="flex space-x-2 mt-2">
+                            <Button variant="outline" size="sm" className="flex-1">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Approve
+                            </Button>
+                            <Button variant="destructive" size="sm" className="flex-1">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Version History & Rollback</CardTitle>
+                  <CardDescription>Track changes and rollback to previous states</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { version: "v2.1", doc: "Employee Handbook", change: "Added remote work policy", date: "2 days ago", active: true },
+                      { version: "v2.0", doc: "Employee Handbook", change: "Updated benefits section", date: "1 week ago", active: false },
+                      { version: "v1.9", doc: "Employee Handbook", change: "Compliance updates", date: "2 weeks ago", active: false },
+                      { version: "v1.8", doc: "Employee Handbook", change: "Initial version", date: "1 month ago", active: false },
+                    ].map((version, index) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="font-medium text-sm">{version.version}</span>
+                            {version.active && <Badge variant="default" className="ml-2">Active</Badge>}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{version.date}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{version.change}</p>
+                        {!version.active && (
+                          <Button variant="outline" size="sm">
+                            <History className="h-3 w-3 mr-1" />
+                            Rollback
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sensitive Data Redaction */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Sensitive Data Redaction Rules</CardTitle>
+                <CardDescription>Automatically mask sensitive information before AI processing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Active Redaction Rules</h4>
+                    {[
+                      { pattern: "SSN Pattern", regex: "\\d{3}-\\d{2}-\\d{4}", matches: 247, status: "Active" },
+                      { pattern: "Credit Card", regex: "\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}", matches: 89, status: "Active" },
+                      { pattern: "Bank Account", regex: "\\d{8,17}", matches: 156, status: "Active" },
+                      { pattern: "Email Address", regex: "[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}", matches: 1247, status: "Active" },
+                    ].map((rule, index) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">{rule.pattern}</span>
+                          <Badge variant="default">{rule.status}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2 font-mono">{rule.regex}</p>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">{rule.matches} matches found</span>
+                          <Button variant="outline" size="sm">Edit Rule</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Redaction Preview</h4>
+                    <div className="border rounded-lg p-3 bg-muted/30">
+                      <p className="text-sm mb-2 font-medium">Original Text:</p>
+                      <p className="text-sm mb-4 font-mono">
+                        "Customer John Doe (SSN: 123-45-6789) paid $1,250 using card 4532-1234-5678-9012 to account 987654321."
+                      </p>
+                      <p className="text-sm mb-2 font-medium">AI Sees:</p>
+                      <p className="text-sm font-mono">
+                        "Customer John Doe (SSN: ***-**-****) paid $1,250 using card ****-****-****-**** to account *********."
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="new-pattern">Add New Pattern</Label>
+                      <Input id="new-pattern" placeholder="Enter regex pattern..." />
+                      <Button size="sm" className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Redaction Rule
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Data Retention Simulation */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Retention Policy Playground</CardTitle>
+                <CardDescription>Simulate the effects of retention policies before they go live</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="sim-dataset">Dataset</Label>
+                      <Input id="sim-dataset" placeholder="Select dataset..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sim-retention">Retention Period</Label>
+                      <Input id="sim-retention" placeholder="e.g., 90 days, 7 years" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sim-action">Action</Label>
+                      <Input id="sim-action" placeholder="Anonymize or Purge" />
+                    </div>
+                  </div>
+
+                  <Button className="w-full">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Run Simulation
+                  </Button>
+
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <h4 className="font-medium mb-3">Simulation Results</h4>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Records to be affected:</span>
+                          <span className="font-medium">1,247,892</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Storage reduction:</span>
+                          <span className="font-medium text-green-600">-2.4 GB</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Estimated cost savings:</span>
+                          <span className="font-medium text-green-600">$340/month</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>AI context freshness:</span>
+                          <span className="font-medium text-green-600">+15%</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Compliance risk:</span>
+                          <span className="font-medium text-green-600">-23%</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Query performance:</span>
+                          <span className="font-medium text-green-600">+8%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Database Connections Tab */}
           <TabsContent value="connections" className="space-y-4">
