@@ -11,6 +11,7 @@ import Data from "./pages/Data";
 import Security from "./pages/Security";
 import Analytics from "./pages/Analytics";
 import Playground from "./pages/Playground";
+import Policies from "./pages/Policies";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/data" element={<Data />} />
           <Route path="/security" element={<Security />} />
           <Route path="/playground" element={<Playground />} />
+          <Route path="/policies" element={<Policies />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
