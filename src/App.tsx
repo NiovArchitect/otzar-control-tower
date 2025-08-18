@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Users from "./pages/Users";
 import AITeammates from "./pages/AITeammates";
 import AccessControl from "./pages/AccessControl";
+import Data from "./pages/Data";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/users" element={<Users />} />
           <Route path="/ai-teammates" element={<AITeammates />} />
           <Route path="/access-control" element={<AccessControl />} />
+          <Route path="/data" element={<Data />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
