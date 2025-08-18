@@ -634,23 +634,6 @@ export default function Analytics() {
             </div>
           </TabsContent>
 
-          <TabsContent value="usage" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AnalyticsChart
-                title="Department Usage Hours"
-                data={departmentUsage}
-                type="bar"
-                dataKey="hours"
-                xAxisKey="name"
-                height={350}
-              />
-              <DataTable
-                title="Top User Engagement"
-                data={userEngagement}
-                columns={userEngagementColumns}
-              />
-            </div>
-          </TabsContent>
 
           <TabsContent value="teams" className="space-y-6">
             <DataTable
