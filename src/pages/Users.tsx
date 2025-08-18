@@ -200,7 +200,7 @@ const userColumns = [
         variant={row.userType === "internal" ? "default" : row.userType === "external" ? "secondary" : "outline"}
         className="text-xs"
       >
-        {row.userType.charAt(0).toUpperCase() + row.userType.slice(1)}
+        {row.userType ? row.userType.charAt(0).toUpperCase() + row.userType.slice(1) : 'Unknown'}
       </Badge>
     ),
   },
@@ -209,7 +209,7 @@ const userColumns = [
     header: "Status",
     cell: (row: any) => (
       <StatusBadge status={row.status as any}>
-        {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+        {row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Unknown'}
       </StatusBadge>
     ),
   },
