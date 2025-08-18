@@ -93,20 +93,20 @@ const aiTeammateColumns = [
   { key: "name", header: "AI Teammate" },
   { key: "assignedTo", header: "Assigned To" },
   { key: "tasksCompleted", header: "Tasks Completed" },
-  { key: "accuracy", header: "Accuracy", cell: (value: number) => `${value}%` },
-  { key: "satisfaction", header: "Satisfaction", cell: (value: number) => (
+  { key: "accuracy", header: "Accuracy", cell: (row: any) => `${row.accuracy}%` },
+  { key: "satisfaction", header: "Satisfaction", cell: (row: any) => (
     <div className="flex items-center gap-1">
       <Star className="w-4 h-4 fill-current text-yellow-500" />
-      <span>{value}</span>
+      <span>{row.satisfaction}</span>
     </div>
   )},
   { key: "errorsPrevented", header: "Errors Prevented" },
   { 
     key: "status", 
     header: "Status",
-    cell: (value: string) => (
-      <Badge variant={value === "active" ? "default" : "secondary"}>
-        {value}
+    cell: (row: any) => (
+      <Badge variant={row.status === "active" ? "default" : "secondary"}>
+        {row.status}
       </Badge>
     )
   }
