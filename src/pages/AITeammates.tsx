@@ -81,13 +81,13 @@ const mockTeammates: AITeammate[] = [
   },
   {
     id: "ai_003",
-    name: "Customer Service Agent",
+    name: "Customer Support Agent",
     type: "Service",
     owner: "System",
     department: "Customer Support",
     status: "pending",
-    skillPackages: ["CRM Integration", "Ticket Management", "Knowledge Base"],
-    permissions: ["Customer Data Read", "Ticket Updates", "Email Templates"],
+    skillPackages: ["Customer Support AI", "Help Desk Automation", "Knowledge Base"],
+    permissions: ["Customer Data Read", "Ticket Updates", "Email Templates", "Escalation Rules"],
     lastActive: "1 hour ago",
     tasksCompleted: 89,
     autonomyLevel: "Draft Only",
@@ -129,7 +129,9 @@ const skillPackageLibrary = [
   { name: "ERP Integration", category: "Finance", description: "SAP, Oracle integration for financial data processing and reporting" },
   { name: "Security Monitoring", category: "IT", description: "Real-time threat detection, log analysis, incident response" },
   { name: "HR Management", category: "Human Resources", description: "Employee data management, onboarding workflows, compliance tracking" },
-  { name: "Marketing Automation", category: "Marketing", description: "Campaign management, analytics, content optimization" }
+  { name: "Marketing Automation", category: "Marketing", description: "Campaign management, analytics, content optimization" },
+  { name: "Customer Support AI", category: "Support", description: "Intelligent ticket routing, automated responses, escalation management with Perplexity AI integration" },
+  { name: "Help Desk Automation", category: "IT Support", description: "Ticket classification, knowledge base search, SLA monitoring, first-level resolution" }
 ]
 
 export default function AITeammates() {
