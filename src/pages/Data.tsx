@@ -166,23 +166,23 @@ export default function Data() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 p-4 overflow-x-auto">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Data Management</h1>
-            <p className="text-muted-foreground mt-1">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">Data Management</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               Comprehensive data management, backup, and compliance controls
             </p>
           </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
-              Export Report
+              <span className="truncate">Export Report</span>
             </Button>
-            <Button size="sm">
+            <Button size="sm" className="w-full sm:w-auto">
               <Upload className="h-4 w-4 mr-2" />
-              Import Data
+              <span className="truncate">Import Data</span>
             </Button>
           </div>
         </div>
@@ -225,127 +225,129 @@ export default function Data() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="governance" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-9">
-            <TabsTrigger value="governance">Governance</TabsTrigger>
-            <TabsTrigger value="knowledge">Knowledge Center</TabsTrigger>
-            <TabsTrigger value="connections">Connections</TabsTrigger>
-            <TabsTrigger value="import">Data Import</TabsTrigger>
-            <TabsTrigger value="databases">Databases</TabsTrigger>
-            <TabsTrigger value="pipelines">Pipelines</TabsTrigger>
-            <TabsTrigger value="backup">Backup</TabsTrigger>
-            <TabsTrigger value="retention">Retention</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="grid w-full min-w-max grid-cols-9 mb-4">
+              <TabsTrigger value="governance" className="text-xs sm:text-sm">Governance</TabsTrigger>
+              <TabsTrigger value="knowledge" className="text-xs sm:text-sm">Knowledge Center</TabsTrigger>
+              <TabsTrigger value="connections" className="text-xs sm:text-sm">Connections</TabsTrigger>
+              <TabsTrigger value="import" className="text-xs sm:text-sm">Data Import</TabsTrigger>
+              <TabsTrigger value="databases" className="text-xs sm:text-sm">Databases</TabsTrigger>
+              <TabsTrigger value="pipelines" className="text-xs sm:text-sm">Pipelines</TabsTrigger>
+              <TabsTrigger value="backup" className="text-xs sm:text-sm">Backup</TabsTrigger>
+              <TabsTrigger value="retention" className="text-xs sm:text-sm">Retention</TabsTrigger>
+              <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Dataset-level Governance Tab */}
           <TabsContent value="governance" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Shield className="h-5 w-5 mr-2" />
-                    Security Overview
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-base">
+                    <Shield className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">Security Overview</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Protected Objects</span>
-                    <span className="font-medium">127</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">Protected Objects</span>
+                    <span className="font-medium text-sm">127</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Field-level Rules</span>
-                    <span className="font-medium">2,439</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">Field-level Rules</span>
+                    <span className="font-medium text-sm">2,439</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Access Violations</span>
-                    <span className="font-medium text-red-600">3</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">Access Violations</span>
+                    <span className="font-medium text-sm text-red-600">3</span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Lock className="h-5 w-5 mr-2" />
-                    Data Silos
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-base">
+                    <Lock className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">Data Silos</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">HR Silo</span>
-                    <Badge variant="default">12 datasets</Badge>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">HR Silo</span>
+                    <Badge variant="default" className="text-xs">12 datasets</Badge>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Finance Silo</span>
-                    <Badge variant="default">8 datasets</Badge>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">Finance Silo</span>
+                    <Badge variant="default" className="text-xs">8 datasets</Badge>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Product Silo</span>
-                    <Badge variant="default">15 datasets</Badge>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">Product Silo</span>
+                    <Badge variant="default" className="text-xs">15 datasets</Badge>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <MapPin className="h-5 w-5 mr-2" />
-                    Data Residency
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-base">
+                    <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">Data Residency</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">On-premises</span>
-                    <span className="font-medium">45%</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">On-premises</span>
+                    <span className="font-medium text-sm">45%</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Private Cloud</span>
-                    <span className="font-medium">35%</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">Private Cloud</span>
+                    <span className="font-medium text-sm">35%</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Region-specific</span>
-                    <span className="font-medium">20%</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground truncate">Region-specific</span>
+                    <span className="font-medium text-sm">20%</span>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Object-level and Field-level Permissions */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-2">
               <Card>
-                <CardHeader>
-                  <CardTitle>Object-level Permissions</CardTitle>
-                  <CardDescription>Control access to entire objects across all integrated systems</CardDescription>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Object-level Permissions</CardTitle>
+                  <CardDescription className="text-sm">Control access to entire objects across all integrated systems</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {[
                       { object: "Salesforce Accounts", read: true, create: true, edit: false, delete: false },
                       { object: "ERP Customer Records", read: true, create: false, edit: false, delete: false },
                       { object: "HR Employee Data", read: false, create: false, edit: false, delete: false },
                       { object: "Financial Transactions", read: true, create: false, edit: true, delete: false },
                     ].map((perm, index) => (
-                      <div key={index} className="border rounded-lg p-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{perm.object}</span>
-                          <Button variant="outline" size="sm">Configure</Button>
+                      <div key={index} className="border rounded-lg p-3 space-y-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <span className="font-medium text-sm truncate min-w-0 flex-1">{perm.object}</span>
+                          <Button variant="outline" size="sm" className="text-xs w-full sm:w-auto">Configure</Button>
                         </div>
-                        <div className="grid grid-cols-4 gap-2 text-sm">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
                           <div className="flex items-center space-x-1">
                             <Switch checked={perm.read} />
-                            <span>Read</span>
+                            <span className="truncate">Read</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Switch checked={perm.create} />
-                            <span>Create</span>
+                            <span className="truncate">Create</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Switch checked={perm.edit} />
-                            <span>Edit</span>
+                            <span className="truncate">Edit</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Switch checked={perm.delete} />
-                            <span>Delete</span>
+                            <span className="truncate">Delete</span>
                           </div>
                         </div>
                       </div>
@@ -355,33 +357,33 @@ export default function Data() {
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Field-level Security</CardTitle>
-                  <CardDescription>Control access to individual fields within objects</CardDescription>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Field-level Security</CardTitle>
+                  <CardDescription className="text-sm">Control access to individual fields within objects</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {[
                       { field: "Account.Credit_Score__c", visible: false, aiAccess: false, masking: "Full" },
                       { field: "Contact.SSN__c", visible: false, aiAccess: false, masking: "Full" },
                       { field: "Transaction.Amount", visible: true, aiAccess: false, masking: "Partial" },
                       { field: "Employee.Salary", visible: false, aiAccess: false, masking: "Full" },
                     ].map((field, index) => (
-                      <div key={index} className="border rounded-lg p-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium text-sm">{field.field}</span>
-                          <Badge variant={field.masking === "Full" ? "destructive" : field.masking === "Partial" ? "secondary" : "default"}>
+                      <div key={index} className="border rounded-lg p-3 space-y-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <span className="font-medium text-xs truncate min-w-0 flex-1">{field.field}</span>
+                          <Badge variant={field.masking === "Full" ? "destructive" : field.masking === "Partial" ? "secondary" : "default"} className="text-xs">
                             {field.masking}
                           </Badge>
                         </div>
-                        <div className="flex space-x-4 text-sm">
+                        <div className="flex flex-col sm:flex-row gap-3 text-xs">
                           <div className="flex items-center space-x-1">
                             <Switch checked={field.visible} />
-                            <span>User Visible</span>
+                            <span className="truncate">User Visible</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Switch checked={field.aiAccess} />
-                            <span>AI Access</span>
+                            <span className="truncate">AI Access</span>
                           </div>
                         </div>
                       </div>
