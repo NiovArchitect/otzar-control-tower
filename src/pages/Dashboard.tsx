@@ -41,11 +41,11 @@ const userColumns = [
   { key: "name", header: "User" },
   { key: "role", header: "Role" },
   {
-    key: "status",
+    key: "status", 
     header: "Status",
-    cell: (value: string) => (
-      <StatusBadge status={value as any}>
-        {value.charAt(0).toUpperCase() + value.slice(1)}
+    cell: (row: any) => (
+      <StatusBadge status={row.status as any}>
+        {row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Unknown'}
       </StatusBadge>
     ),
   },
@@ -58,10 +58,10 @@ const aiTeammateColumns = [
   { key: "owner", header: "Owner" },
   {
     key: "status",
-    header: "Status",
-    cell: (value: string) => (
-      <StatusBadge status={value as any}>
-        {value.charAt(0).toUpperCase() + value.slice(1)}
+    header: "Status", 
+    cell: (row: any) => (
+      <StatusBadge status={row.status as any}>
+        {row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Unknown'}
       </StatusBadge>
     ),
   },
