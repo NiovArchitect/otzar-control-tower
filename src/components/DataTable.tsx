@@ -62,7 +62,7 @@ export function DataTable({ title, data, columns, actions, className }: DataTabl
                 <TableRow key={index} className="hover:bg-muted/50">
                   {columns.map((column) => (
                     <TableCell key={column.key}>
-                      {column.cell ? column.cell(row) : row[column.key]}
+                      {column.cell ? column.cell(row[column.key]) : row[column.key]}
                     </TableCell>
                   ))}
                   <TableCell>
