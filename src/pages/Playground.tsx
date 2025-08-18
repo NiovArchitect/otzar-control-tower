@@ -372,10 +372,47 @@ export default function Playground() {
               data={sandboxEnvironments}
               columns={sandboxColumns}
               actions={
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Copy className="h-4 w-4" />
-                  Clone Selected
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Copy className="h-4 w-4" />
+                      Clone Selected
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Clone Environment</DialogTitle>
+                      <DialogDescription>Create a copy of the selected sandbox environment</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>New Environment Name</Label>
+                        <Input placeholder="e.g., Marketing AI Test - Copy" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Clone Options</Label>
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Switch id="clone-data" defaultChecked />
+                            <Label htmlFor="clone-data">Include test data</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Switch id="clone-configs" defaultChecked />
+                            <Label htmlFor="clone-configs">Include configurations</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Switch id="clone-results" />
+                            <Label htmlFor="clone-results">Include test results</Label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline">Cancel</Button>
+                      <Button>Clone Environment</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               }
             />
           </TabsContent>

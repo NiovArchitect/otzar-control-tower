@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { 
   TrendingUp, 
   Users, 
@@ -132,14 +137,102 @@ export default function Analytics() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" size="sm">
-              <Calendar className="w-4 h-4 mr-2" />
-              Date Range
-            </Button>
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Export Report
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Date Range
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Select Date Range</DialogTitle>
+                  <DialogDescription>Choose the time period for analytics data</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Quick Ranges</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm">Last 7 days</Button>
+                      <Button variant="outline" size="sm">Last 30 days</Button>
+                      <Button variant="outline" size="sm">Last 90 days</Button>
+                      <Button variant="outline" size="sm">Last 12 months</Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Custom Range</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label>Start Date</Label>
+                        <Input type="date" />
+                      </div>
+                      <div>
+                        <Label>End Date</Label>
+                        <Input type="date" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button>Apply Range</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Report
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Export Analytics Report</DialogTitle>
+                  <DialogDescription>Generate comprehensive analytics report</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Report Sections</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch id="adoption" defaultChecked />
+                        <Label htmlFor="adoption">Adoption Metrics</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="productivity" defaultChecked />
+                        <Label htmlFor="productivity">Productivity Analysis</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="errors" defaultChecked />
+                        <Label htmlFor="errors">Error Prevention</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="roi" defaultChecked />
+                        <Label htmlFor="roi">ROI Analysis</Label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Export Format</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF Report</SelectItem>
+                        <SelectItem value="excel">Excel Workbook</SelectItem>
+                        <SelectItem value="powerpoint">PowerPoint Presentation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button>Export Report</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 

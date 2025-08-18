@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { 
   Shield, 
   FileText, 
@@ -150,14 +155,101 @@ export default function Policies() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export All
-            </Button>
-            <Button size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Create Policy
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export All
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Export Policies</DialogTitle>
+                  <DialogDescription>Export organization policies and documentation</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Export Format</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF Document</SelectItem>
+                        <SelectItem value="word">Word Document</SelectItem>
+                        <SelectItem value="markdown">Markdown Files</SelectItem>
+                        <SelectItem value="zip">Complete Package (ZIP)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Include Categories</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch id="governance" defaultChecked />
+                        <Label htmlFor="governance">AI Governance</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="compliance-export" defaultChecked />
+                        <Label htmlFor="compliance-export">Compliance</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="security-export" defaultChecked />
+                        <Label htmlFor="security-export">Security</Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button>Export Policies</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Create Policy
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Policy</DialogTitle>
+                  <DialogDescription>Define a new organizational policy or guideline</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Policy Title</Label>
+                    <Input placeholder="Enter policy title" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ai-governance">AI Governance</SelectItem>
+                        <SelectItem value="data-governance">Data Governance</SelectItem>
+                        <SelectItem value="risk-management">Risk Management</SelectItem>
+                        <SelectItem value="compliance">Compliance</SelectItem>
+                        <SelectItem value="security">Security</SelectItem>
+                        <SelectItem value="operations">Operations</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Input placeholder="Brief policy description" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button>Create Policy</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -245,10 +337,46 @@ export default function Policies() {
                       </div>
                       <div className="text-right text-sm text-muted-foreground">
                         <div>Updated: {policy.lastUpdated}</div>
-                        <Button variant="ghost" size="sm" className="mt-1">
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="mt-1">
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>{policy.title}</DialogTitle>
+                              <DialogDescription>Version {policy.version} • Last updated {policy.lastUpdated}</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="font-medium mb-2">Policy Overview</h4>
+                                <p className="text-sm text-muted-foreground">{policy.description}</p>
+                              </div>
+                              <div>
+                                <h4 className="font-medium mb-2">Key Sections</h4>
+                                <div className="space-y-2">
+                                  {policy.sections.map((section, index) => (
+                                    <div key={index} className="text-sm border-l-2 border-primary pl-3">
+                                      {section}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Badge className={`${getStatusColor(policy.status)}`}>
+                                  {policy.status}
+                                </Badge>
+                                <Badge variant="outline">{policy.category}</Badge>
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline">Edit Policy</Button>
+                              <Button>Download PDF</Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                   </CardHeader>

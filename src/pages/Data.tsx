@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { DataTable } from "@/components/DataTable";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Database, 
   Upload, 
@@ -172,14 +174,105 @@ export default function Data() {
           title="Data Management"
           description="Comprehensive data management, backup, and compliance controls"
         >
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
-          <Button size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import Data
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Export Data Report</DialogTitle>
+                <DialogDescription>Generate comprehensive data management report</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Report Format</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF Report</SelectItem>
+                      <SelectItem value="csv">CSV Data Export</SelectItem>
+                      <SelectItem value="excel">Excel Workbook</SelectItem>
+                      <SelectItem value="json">JSON Format</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Include Sections</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="governance" defaultChecked />
+                      <Label htmlFor="governance">Governance Overview</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="databases" defaultChecked />
+                      <Label htmlFor="databases">Database Status</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="pipelines" defaultChecked />
+                      <Label htmlFor="pipelines">Data Pipelines</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="retention" />
+                      <Label htmlFor="retention">Retention Policies</Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline">Cancel</Button>
+                <Button>Export Report</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                Import Data
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Import Data</DialogTitle>
+                <DialogDescription>Upload new data sources or configurations</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Import Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select import type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dataset">Dataset Upload</SelectItem>
+                      <SelectItem value="config">Configuration File</SelectItem>
+                      <SelectItem value="policies">Data Policies</SelectItem>
+                      <SelectItem value="connections">Connection Settings</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>File Upload</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Drag and drop files here, or click to browse
+                    </p>
+                    <Button variant="outline" size="sm" className="mt-2">Browse Files</Button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline">Cancel</Button>
+                <Button>Import Data</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </PageHeader>
 
         {/* Metrics Cards */}

@@ -435,10 +435,67 @@ export default function AITeammates() {
                     </SelectContent>
                   </Select>
 
-                  <Button variant="outline" className="gap-2">
-                    <Settings className="h-4 w-4" />
-                    Advanced Filters
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Settings className="h-4 w-4" />
+                        Advanced Filters
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Advanced Filters</DialogTitle>
+                        <DialogDescription>Filter AI teammates by additional criteria</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Autonomy Level</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select autonomy level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Levels</SelectItem>
+                              <SelectItem value="draft">Draft Only</SelectItem>
+                              <SelectItem value="approval">Approval Required</SelectItem>
+                              <SelectItem value="autonomous">Autonomous</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Swarm Enabled</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Filter by swarm capability" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All</SelectItem>
+                              <SelectItem value="enabled">Swarm Enabled</SelectItem>
+                              <SelectItem value="disabled">Swarm Disabled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Active</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select time range" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1h">Last hour</SelectItem>
+                              <SelectItem value="24h">Last 24 hours</SelectItem>
+                              <SelectItem value="7d">Last 7 days</SelectItem>
+                              <SelectItem value="30d">Last 30 days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline">Reset</Button>
+                        <Button>Apply Filters</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
             </Card>

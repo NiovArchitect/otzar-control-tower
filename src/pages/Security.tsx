@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { DataTable } from "@/components/DataTable";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Shield, 
   AlertTriangle, 
@@ -398,10 +400,67 @@ export default function Security() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Download className="h-4 w-4 mr-2" />
-              <span className="truncate">Export Audit Report</span>
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Download className="h-4 w-4 mr-2" />
+                  <span className="truncate">Export Audit Report</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Export Audit Report</DialogTitle>
+                  <DialogDescription>Generate security audit and compliance report</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Report Type</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select report type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full">Full Audit Report</SelectItem>
+                        <SelectItem value="security">Security Events Only</SelectItem>
+                        <SelectItem value="compliance">Compliance Summary</SelectItem>
+                        <SelectItem value="anomalies">Anomaly Detection Report</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date Range</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select date range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="24h">Last 24 hours</SelectItem>
+                        <SelectItem value="7d">Last 7 days</SelectItem>
+                        <SelectItem value="30d">Last 30 days</SelectItem>
+                        <SelectItem value="90d">Last 90 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Format</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF Report</SelectItem>
+                        <SelectItem value="csv">CSV Export</SelectItem>
+                        <SelectItem value="json">JSON Format</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button>Export Report</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button 
               variant={emergencyMode ? "destructive" : "default"} 
               size="sm" 

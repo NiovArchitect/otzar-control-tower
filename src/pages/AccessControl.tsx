@@ -389,14 +389,96 @@ export default function AccessControl() {
           title="Access Control & Security"
           description="Manage organization-wide defaults, sharing rules, field-level security, and vector ACLs"
         >
-          <Button variant="outline" className="gap-2">
-            <FileText className="h-4 w-4" />
-            Security Report
-          </Button>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Rule
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Security Report
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Security Report</DialogTitle>
+                <DialogDescription>Export comprehensive security analysis</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Report Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select report type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full">Full Security Analysis</SelectItem>
+                      <SelectItem value="compliance">Compliance Summary</SelectItem>
+                      <SelectItem value="vulnerabilities">Vulnerability Assessment</SelectItem>
+                      <SelectItem value="access">Access Control Review</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Date Range</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select date range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7d">Last 7 days</SelectItem>
+                      <SelectItem value="30d">Last 30 days</SelectItem>
+                      <SelectItem value="90d">Last 90 days</SelectItem>
+                      <SelectItem value="custom">Custom range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline">Cancel</Button>
+                <Button>Generate Report</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Rule
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Security Rule</DialogTitle>
+                <DialogDescription>Define new access control or security policy</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Rule Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select rule type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="owd">Organization-Wide Default</SelectItem>
+                      <SelectItem value="sharing">Sharing Rule</SelectItem>
+                      <SelectItem value="field">Field-Level Security</SelectItem>
+                      <SelectItem value="vector">Vector ACL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Rule Name</Label>
+                  <Input placeholder="Enter descriptive rule name" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input placeholder="Describe the rule purpose" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline">Cancel</Button>
+                <Button>Create Rule</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </PageHeader>
 
         {/* Security Overview Cards */}
@@ -491,10 +573,47 @@ export default function AccessControl() {
                       <SelectItem value="controlled">Controlled by Parent</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" className="gap-2">
-                    <Filter className="h-4 w-4" />
-                    Advanced Filters
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Filter className="h-4 w-4" />
+                        Advanced Filters
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Advanced Security Filters</DialogTitle>
+                        <DialogDescription>Filter security settings by specific criteria</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Record Count Range</Label>
+                          <div className="flex gap-2">
+                            <Input placeholder="Min" type="number" />
+                            <Input placeholder="Max" type="number" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Modified</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select time range" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1d">Last 24 hours</SelectItem>
+                              <SelectItem value="7d">Last 7 days</SelectItem>
+                              <SelectItem value="30d">Last 30 days</SelectItem>
+                              <SelectItem value="90d">Last 90 days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline">Reset</Button>
+                        <Button>Apply Filters</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
             </Card>

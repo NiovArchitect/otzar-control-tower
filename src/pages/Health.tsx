@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { 
   Activity, 
   Server, 
@@ -23,7 +26,8 @@ import {
   Network,
   Bot,
   Users,
-  Zap
+  Zap,
+  Settings
 } from "lucide-react"
 
 const systemComponents = [
@@ -118,15 +122,62 @@ export default function Health() {
             <h1 className="text-3xl font-bold text-foreground">System Health</h1>
             <p className="text-muted-foreground">Monitor system status, AI teammates, and infrastructure health</p>
           </div>
-          <Button 
-            onClick={handleRefresh} 
-            disabled={refreshing}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  System Actions
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>System Management Actions</DialogTitle>
+                  <DialogDescription>Perform system-wide health and maintenance operations</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Restart Services
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Run Health Check
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Clear Alerts
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Activity className="h-4 w-4 mr-2" />
+                      Performance Tune
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Maintenance Mode</Label>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="maintenance" />
+                      <Label htmlFor="maintenance">Enable maintenance mode</Label>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button>Execute Actions</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button 
+              onClick={handleRefresh} 
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Overall Health Cards */}
