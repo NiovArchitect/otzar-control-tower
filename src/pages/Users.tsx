@@ -2,6 +2,8 @@ import { Users as UsersIcon, UserPlus, Shield, Settings, Search, MoreHorizontal,
 import { DashboardCard } from "@/components/DashboardCard"
 import { DataTable } from "@/components/DataTable"
 import { StatusBadge } from "@/components/StatusBadge"
+import { PageHeader } from "@/components/PageHeader"
+import { Layout } from "@/components/Layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -242,14 +244,12 @@ const roleData = [
 
 export default function Users() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Users & Identity Management</h1>
-          <p className="text-muted-foreground">Manage user accounts, roles, and AI teammate assignments</p>
-        </div>
-        <div className="flex items-center space-x-3">
+    <Layout>
+      <div className="space-y-6">
+        <PageHeader 
+          title="Users & Identity Management"
+          description="Manage user accounts, roles, and AI teammate assignments"
+        >
           <Button variant="outline">
             <Settings className="h-4 w-4 mr-2" />
             Bulk Actions
@@ -258,10 +258,9 @@ export default function Users() {
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
           </Button>
-        </div>
-      </div>
+        </PageHeader>
 
-      {/* Advanced Management Cards */}
+        {/* Advanced Management Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="shadow-card border-l-4 border-l-primary">
           <CardHeader className="pb-3">
@@ -700,6 +699,7 @@ export default function Users() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Layout } from "@/components/Layout"
+import { PageHeader } from "@/components/PageHeader"
 import { DashboardCard } from "@/components/DashboardCard"
 import { StatusBadge } from "@/components/StatusBadge"
 import { DataTable } from "@/components/DataTable"
@@ -238,14 +239,10 @@ export default function AITeammates() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">AI Teammates</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage AI teammates, skill packages, and collaboration settings
-            </p>
-          </div>
+        <PageHeader 
+          title="AI Teammates"
+          description="Manage AI teammates, skill packages, and collaboration settings"
+        >
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -335,7 +332,7 @@ export default function AITeammates() {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
+        </PageHeader>
 
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

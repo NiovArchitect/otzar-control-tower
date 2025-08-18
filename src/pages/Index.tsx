@@ -1,10 +1,10 @@
 import { Layout } from "@/components/Layout"
-import Dashboard from "./Dashboard"
+import Home from "./Home"
 
 const Index = () => {
   return (
     <Layout>
-      <Dashboard />
+      <Home />
     </Layout>
   );
 };

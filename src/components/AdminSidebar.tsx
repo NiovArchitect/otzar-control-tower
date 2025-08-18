@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const navigationItems = [
-  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Home", url: "/", icon: Home },
   { title: "Users & Identity", url: "/users", icon: Users },
   { title: "AI Teammates", url: "/ai-teammates", icon: Bot },
   { title: "Access Control", url: "/access-control", icon: Shield },

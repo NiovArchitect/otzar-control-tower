@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/Layout";
+import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -167,25 +168,19 @@ export default function Data() {
   return (
     <Layout>
       <div className="space-y-6 p-4 overflow-x-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold truncate">Data Management</h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-              Comprehensive data management, backup, and compliance controls
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Download className="h-4 w-4 mr-2" />
-              <span className="truncate">Export Report</span>
-            </Button>
-            <Button size="sm" className="w-full sm:w-auto">
-              <Upload className="h-4 w-4 mr-2" />
-              <span className="truncate">Import Data</span>
-            </Button>
-          </div>
-        </div>
+        <PageHeader 
+          title="Data Management"
+          description="Comprehensive data management, backup, and compliance controls"
+        >
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </Button>
+          <Button size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            Import Data
+          </Button>
+        </PageHeader>
 
         {/* Metrics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

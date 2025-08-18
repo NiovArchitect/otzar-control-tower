@@ -3,8 +3,10 @@ import { DashboardCard } from "@/components/DashboardCard"
 import { DataTable } from "@/components/DataTable"
 import { StatusBadge } from "@/components/StatusBadge"
 import { AnalyticsChart } from "@/components/AnalyticsChart"
+import { PageHeader } from "@/components/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Link } from "react-router-dom"
 
 // Mock data
 const recentUsers = [
@@ -69,26 +71,27 @@ const aiTeammateColumns = [
   { key: "efficiency", header: "Efficiency" },
 ]
 
-export default function Dashboard() {
+export default function Home() {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Enterprise Dashboard</h1>
-          <p className="text-muted-foreground">Monitor your AI teammates and system performance</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline">
+      <PageHeader 
+        title="Otzar Enterprise Console"
+        description="Monitor your AI teammates and system performance"
+        showBackButton={false}
+      >
+        <Button variant="outline" asChild>
+          <Link to="/health">
             <Activity className="h-4 w-4 mr-2" />
             System Health
-          </Button>
-          <Button variant="enterprise">
+          </Link>
+        </Button>
+        <Button variant="enterprise" asChild>
+          <Link to="/analytics">
             <TrendingUp className="h-4 w-4 mr-2" />
             View Analytics
-          </Button>
-        </div>
-      </div>
+          </Link>
+        </Button>
+      </PageHeader>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -195,8 +198,10 @@ export default function Dashboard() {
           data={recentUsers}
           columns={userColumns}
           actions={
-            <Button variant="default" size="sm">
-              Manage Users
+            <Button variant="default" size="sm" asChild>
+              <Link to="/users">
+                Manage Users
+              </Link>
             </Button>
           }
         />
@@ -205,8 +210,10 @@ export default function Dashboard() {
           data={aiTeammateData}
           columns={aiTeammateColumns}
           actions={
-            <Button variant="default" size="sm">
-              View All
+            <Button variant="default" size="sm" asChild>
+              <Link to="/ai-teammates">
+                View All
+              </Link>
             </Button>
           }
         />

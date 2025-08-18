@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Layout } from "@/components/Layout"
+import { PageHeader } from "@/components/PageHeader"
 import { DashboardCard } from "@/components/DashboardCard"
 import { StatusBadge } from "@/components/StatusBadge"
 import { DataTable } from "@/components/DataTable"
@@ -384,25 +385,19 @@ export default function AccessControl() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Access Control & Security</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage organization-wide defaults, sharing rules, field-level security, and vector ACLs
-            </p>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Security Report
-            </Button>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Rule
-            </Button>
-          </div>
-        </div>
+        <PageHeader 
+          title="Access Control & Security"
+          description="Manage organization-wide defaults, sharing rules, field-level security, and vector ACLs"
+        >
+          <Button variant="outline" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Security Report
+          </Button>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Rule
+          </Button>
+        </PageHeader>
 
         {/* Security Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
