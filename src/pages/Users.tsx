@@ -18,6 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useState } from "react"
 
 // Mock user data with enhanced fields
 const usersData = [
@@ -243,6 +248,17 @@ const roleData = [
 ]
 
 export default function Users() {
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false)
+  const [isAssignPermissionsOpen, setIsAssignPermissionsOpen] = useState(false)
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
+  const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false)
+  const [isProfilesOpen, setIsProfilesOpen] = useState(false)
+  const [isPermissionSetsOpen, setIsPermissionSetsOpen] = useState(false)
+  const [isPoliciesOpen, setIsPoliciesOpen] = useState(false)
+  const [isHierarchyOpen, setIsHierarchyOpen] = useState(false)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -250,14 +266,112 @@ export default function Users() {
           title="Users & Identity Management"
           description="Manage user accounts, roles, and AI teammate assignments"
         >
-          <Button variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            Bulk Actions
-          </Button>
-          <Button variant="enterprise">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
+          <Dialog open={isBulkActionsOpen} onOpenChange={setIsBulkActionsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Bulk Actions
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Bulk Actions</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Button variant="outline" size="sm">
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Activate Users
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Lock className="h-4 w-4 mr-2" />
+                    Deactivate Users
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Assign Permissions
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Key className="h-4 w-4 mr-2" />
+                    Reset Passwords
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+            <DialogTrigger asChild>
+              <Button variant="enterprise">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input id="firstName" placeholder="Enter first name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input id="lastName" placeholder="Enter last name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input id="username" placeholder="Enter username" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="Enter email" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="userType">User Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="internal">Internal Employee</SelectItem>
+                      <SelectItem value="external">External User</SelectItem>
+                      <SelectItem value="guest">Guest Access</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="design">Design</SelectItem>
+                      <SelectItem value="sales">Sales</SelectItem>
+                      <SelectItem value="marketing">Marketing</SelectItem>
+                      <SelectItem value="analytics">Analytics</SelectItem>
+                      <SelectItem value="security">IT Security</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Input id="role" placeholder="Enter job role/title" />
+                </div>
+                <div className="col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="adminRights" />
+                    <Label htmlFor="adminRights">Grant delegated admin privileges</Label>
+                  </div>
+                </div>
+                <div className="col-span-2 flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsCreateUserOpen(false)}>Cancel</Button>
+                  <Button variant="enterprise">Create User</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </PageHeader>
 
         {/* Advanced Management Cards */}
@@ -272,10 +386,54 @@ export default function Users() {
           <CardContent>
             <div className="text-2xl font-bold text-foreground">47</div>
             <p className="text-xs text-muted-foreground">Active permission profiles</p>
-            <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
-              <Settings className="h-3 w-3 mr-1" />
-              Manage Profiles
-            </Button>
+            <Dialog open={isProfilesOpen} onOpenChange={setIsProfilesOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
+                  <Settings className="h-3 w-3 mr-1" />
+                  Manage Profiles
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Profile</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="profileName">Profile Name</Label>
+                    <Input id="profileName" placeholder="Enter profile name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Input id="description" placeholder="Profile description" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Base Permissions</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="readAccess" />
+                        <Label htmlFor="readAccess">Read Access</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="writeAccess" />
+                        <Label htmlFor="writeAccess">Write Access</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="deleteAccess" />
+                        <Label htmlFor="deleteAccess">Delete Access</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="adminAccess" />
+                        <Label htmlFor="adminAccess">Admin Access</Label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsProfilesOpen(false)}>Cancel</Button>
+                    <Button variant="enterprise">Create Profile</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
@@ -289,10 +447,50 @@ export default function Users() {
           <CardContent>
             <div className="text-2xl font-bold text-foreground">12</div>
             <p className="text-xs text-muted-foreground">Department administrators</p>
-            <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
-              <UserCheck className="h-3 w-3 mr-1" />
-              View Admins
-            </Button>
+            <Dialog open={isPermissionSetsOpen} onOpenChange={setIsPermissionSetsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
+                  <UserCheck className="h-3 w-3 mr-1" />
+                  Manage Permission Sets
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Manage Permission Sets</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="setName">Permission Set Name</Label>
+                    <Input id="setName" placeholder="Enter permission set name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Applications</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="salesforce" />
+                        <Label htmlFor="salesforce">Salesforce Access</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="adobe" />
+                        <Label htmlFor="adobe">Adobe Creative Suite</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="erp" />
+                        <Label htmlFor="erp">ERP System</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="analytics" />
+                        <Label htmlFor="analytics">Analytics Tools</Label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsPermissionSetsOpen(false)}>Cancel</Button>
+                    <Button variant="enterprise">Save Permission Set</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
@@ -306,10 +504,50 @@ export default function Users() {
           <CardContent>
             <div className="text-2xl font-bold text-foreground">8</div>
             <p className="text-xs text-muted-foreground">Active security policies</p>
-            <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
-              <Lock className="h-3 w-3 mr-1" />
-              Configure
-            </Button>
+            <Dialog open={isPoliciesOpen} onOpenChange={setIsPoliciesOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
+                  <Lock className="h-3 w-3 mr-1" />
+                  Configure Policies
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Configure Session Policies</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="policyName">Policy Name</Label>
+                    <Input id="policyName" placeholder="Enter policy name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                    <Input id="sessionTimeout" type="number" placeholder="60" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Security Settings</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="mfa" />
+                        <Label htmlFor="mfa">Require Multi-Factor Authentication</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="ipRestriction" />
+                        <Label htmlFor="ipRestriction">IP Address Restrictions</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="deviceTrust" />
+                        <Label htmlFor="deviceTrust">Device Trust Requirements</Label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsPoliciesOpen(false)}>Cancel</Button>
+                    <Button variant="enterprise">Save Policy</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
@@ -323,10 +561,46 @@ export default function Users() {
           <CardContent>
             <div className="text-2xl font-bold text-foreground">5</div>
             <p className="text-xs text-muted-foreground">Organizational levels</p>
-            <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
-              <Settings className="h-3 w-3 mr-1" />
-              View Hierarchy
-            </Button>
+            <Dialog open={isHierarchyOpen} onOpenChange={setIsHierarchyOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
+                  <Settings className="h-3 w-3 mr-1" />
+                  Manage Hierarchy
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Manage Role Hierarchy</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Current Hierarchy Levels</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 border rounded">
+                        <span>L4 - Director</span>
+                        <Button variant="outline" size="sm">Edit</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 border rounded">
+                        <span>L3 - Manager</span>
+                        <Button variant="outline" size="sm">Edit</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 border rounded">
+                        <span>L2 - Individual Contributor</span>
+                        <Button variant="outline" size="sm">Edit</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 border rounded">
+                        <span>L1 - Guest</span>
+                        <Button variant="outline" size="sm">Edit</Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsHierarchyOpen(false)}>Close</Button>
+                    <Button variant="enterprise">Add Level</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>
@@ -341,18 +615,112 @@ export default function Users() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setIsCreateUserOpen(true)}>
               <UserPlus className="h-4 w-4 mr-2" />
               Create New User
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start">
-              <Shield className="h-4 w-4 mr-2" />
-              Assign Permissions
-            </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start">
-              <Key className="h-4 w-4 mr-2" />
-              Reset Password
-            </Button>
+            <Dialog open={isAssignPermissionsOpen} onOpenChange={setIsAssignPermissionsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Assign Permissions
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Assign Permissions</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="selectUser">Select User</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose user to modify" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {usersData.map(user => (
+                          <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Permission Sets</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="crm" />
+                        <Label htmlFor="crm">CRM Access</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="design" />
+                        <Label htmlFor="design">Design Tools</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="analytics" />
+                        <Label htmlFor="analytics">Analytics</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="admin" />
+                        <Label htmlFor="admin">Admin Privileges</Label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsAssignPermissionsOpen(false)}>Cancel</Button>
+                    <Button variant="enterprise">Assign Permissions</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={isResetPasswordOpen} onOpenChange={setIsResetPasswordOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Key className="h-4 w-4 mr-2" />
+                  Reset Password
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Reset User Password</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="resetUser">Select User</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose user for password reset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {usersData.map(user => (
+                          <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Reset Options</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="sendEmail" defaultChecked />
+                        <Label htmlFor="sendEmail">Send reset email to user</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="forceChange" defaultChecked />
+                        <Label htmlFor="forceChange">Require password change on next login</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="revokeSession" />
+                        <Label htmlFor="revokeSession">Revoke all active sessions</Label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsResetPasswordOpen(false)}>Cancel</Button>
+                    <Button variant="enterprise">Reset Password</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
@@ -420,11 +788,82 @@ export default function Users() {
                   className="pl-10 w-80"
                 />
               </div>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Advanced Filters
-              </Button>
-              <Button variant="outline" size="sm">
+              <Dialog open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Advanced Filters
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Advanced User Filters</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="filterDept">Department</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All departments" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="design">Design</SelectItem>
+                            <SelectItem value="sales">Sales</SelectItem>
+                            <SelectItem value="marketing">Marketing</SelectItem>
+                            <SelectItem value="analytics">Analytics</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="filterStatus">Status</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All statuses" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="filterType">User Type</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="internal">Internal</SelectItem>
+                            <SelectItem value="external">External</SelectItem>
+                            <SelectItem value="guest">Guest</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="filterHierarchy">Hierarchy Level</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All levels" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="l4">L4 - Director</SelectItem>
+                            <SelectItem value="l3">L3 - Manager</SelectItem>
+                            <SelectItem value="l2">L2 - Individual Contributor</SelectItem>
+                            <SelectItem value="l1">L1 - Guest</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button variant="outline" onClick={() => setIsFiltersOpen(false)}>Clear Filters</Button>
+                      <Button variant="enterprise">Apply Filters</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button variant="outline" size="sm" onClick={() => setIsBulkActionsOpen(true)}>
                 <Settings className="h-4 w-4 mr-2" />
                 Bulk Actions
               </Button>
