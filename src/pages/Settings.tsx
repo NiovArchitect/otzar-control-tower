@@ -52,8 +52,10 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="organization" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="organization">Organization</TabsTrigger>
+            <TabsTrigger value="interface">Interface</TabsTrigger>
+            <TabsTrigger value="ai-controls">AI Controls</TabsTrigger>
             <TabsTrigger value="ai-models">AI Models</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
@@ -128,6 +130,216 @@ const Settings = () => {
                   </div>
                   <Switch defaultChecked />
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="interface" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SettingsIcon className="h-5 w-5" />
+                  Interface Customization
+                </CardTitle>
+                <CardDescription>
+                  Customize the admin console layout and appearance
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Compact Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Reduce UI density for more screen space
+                    </p>
+                  </div>
+                  <Switch />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Sidebar Auto-collapse</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically collapse sidebar on smaller screens
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label>Dashboard Layout</Label>
+                  <Select defaultValue="default">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Default Layout</SelectItem>
+                      <SelectItem value="compact">Compact Layout</SelectItem>
+                      <SelectItem value="detailed">Detailed Layout</SelectItem>
+                      <SelectItem value="custom">Custom Layout</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Ambient Border Controls</CardTitle>
+                <CardDescription>
+                  Configure visual indicators for AI assistant activity
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Show AI Activity Border</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Display colored border when AI is active
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Border Color (Active)</Label>
+                    <Select defaultValue="blue">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="blue">Corporate Blue</SelectItem>
+                        <SelectItem value="green">Success Green</SelectItem>
+                        <SelectItem value="purple">AI Purple</SelectItem>
+                        <SelectItem value="custom">Custom Color</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Border Opacity</Label>
+                    <Select defaultValue="80">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="40">40%</SelectItem>
+                        <SelectItem value="60">60%</SelectItem>
+                        <SelectItem value="80">80%</SelectItem>
+                        <SelectItem value="100">100%</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Border Pattern</Label>
+                  <Select defaultValue="solid">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="solid">Solid</SelectItem>
+                      <SelectItem value="dashed">Dashed</SelectItem>
+                      <SelectItem value="pulse">Pulsing</SelectItem>
+                      <SelectItem value="gradient">Gradient</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ai-controls" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  AI Assistant Controls
+                </CardTitle>
+                <CardDescription>
+                  Manage AI assistant availability and behavior
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Global AI Assistant</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable/disable AI assistant organization-wide
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>User-level Toggle</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow users to individually disable AI assistant
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Sidebar AI Access</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Keep AI accessible through sidebar in compact mode
+                    </p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="space-y-2">
+                  <Label>AI Availability Hours</Label>
+                  <Select defaultValue="24/7">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="24/7">24/7 Available</SelectItem>
+                      <SelectItem value="business">Business Hours Only</SelectItem>
+                      <SelectItem value="extended">Extended Hours (6am-10pm)</SelectItem>
+                      <SelectItem value="custom">Custom Schedule</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Department Controls</CardTitle>
+                <CardDescription>
+                  Configure AI access by department or role
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span>Engineering Department</span>
+                    <Switch defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Sales Department</span>
+                    <Switch defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Marketing Department</span>
+                    <Switch defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>HR Department</span>
+                    <Switch />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Finance Department</span>
+                    <Switch />
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Department Access
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

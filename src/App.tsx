@@ -14,6 +14,8 @@ import Playground from "./pages/Playground";
 import Policies from "./pages/Policies";
 import Health from "./pages/Health";
 import Settings from "./pages/Settings";
+import Onboarding from "./pages/Onboarding";
+import Documentation from "./pages/Documentation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/policies" element={<Policies />} />
           <Route path="/health" element={<Health />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/documentation" element={<Documentation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
