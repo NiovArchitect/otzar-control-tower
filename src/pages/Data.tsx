@@ -30,7 +30,15 @@ import {
   Archive,
   History,
   Lock,
-  Unlock
+  Unlock,
+  Plus,
+  ExternalLink,
+  Zap,
+  MapPin,
+  Link,
+  Server,
+  Cloud,
+  Plug
 } from "lucide-react";
 import { DashboardCard } from "@/components/DashboardCard";
 
@@ -54,6 +62,21 @@ const mockRetentionPolicies = [
   { id: "2", name: "Transaction Records", retention: "7 years", type: "Compliance", status: "Active", dataSize: "890 MB" },
   { id: "3", name: "Session Data", retention: "30 days", type: "Time-based", status: "Active", dataSize: "145 MB" },
   { id: "4", name: "Audit Trails", retention: "Permanent", type: "Legal", status: "Active", dataSize: "5.4 GB" },
+];
+
+const mockConnections = [
+  { id: "1", name: "Production PostgreSQL", type: "PostgreSQL", status: "Connected", host: "prod-db.company.com", lastSync: "2 mins ago", dataFlow: "Bidirectional" },
+  { id: "2", name: "Analytics Warehouse", type: "BigQuery", status: "Connected", host: "analytics.googleapis.com", lastSync: "5 mins ago", dataFlow: "Inbound" },
+  { id: "3", name: "CRM Integration", type: "Salesforce", status: "Connected", host: "company.salesforce.com", lastSync: "1 hour ago", dataFlow: "Bidirectional" },
+  { id: "4", name: "Archive Storage", type: "S3", status: "Connected", host: "archive.s3.amazonaws.com", lastSync: "3 hours ago", dataFlow: "Outbound" },
+  { id: "5", name: "Legacy MySQL", type: "MySQL", status: "Disconnected", host: "legacy-db.company.com", lastSync: "2 days ago", dataFlow: "Inbound" },
+];
+
+const mockDataSources = [
+  { id: "1", name: "User Registration API", type: "REST API", target: "Production PostgreSQL", status: "Active", records: "1.2K/day" },
+  { id: "2", name: "Transaction Events", type: "Webhook", target: "Analytics Warehouse", status: "Active", records: "8.5K/day" },
+  { id: "3", name: "Customer Support CSV", type: "File Upload", target: "CRM Integration", status: "Pending", records: "0" },
+  { id: "4", name: "Mobile App Analytics", type: "SDK", target: "Analytics Warehouse", status: "Active", records: "45K/day" },
 ];
 
 const databaseColumns = [
@@ -94,6 +117,40 @@ const retentionColumns = [
     <Badge variant="default">{row.status}</Badge>
   )},
   { key: "dataSize", header: "Data Size", sortable: true },
+];
+
+const connectionColumns = [
+  { key: "name", header: "Connection Name", sortable: true },
+  { key: "type", header: "Type", sortable: true, cell: (row: any) => (
+    <div className="flex items-center">
+      {row.type === "PostgreSQL" && <Database className="h-4 w-4 mr-2" />}
+      {row.type === "BigQuery" && <Cloud className="h-4 w-4 mr-2" />}
+      {row.type === "Salesforce" && <ExternalLink className="h-4 w-4 mr-2" />}
+      {row.type === "S3" && <Archive className="h-4 w-4 mr-2" />}
+      {row.type === "MySQL" && <Database className="h-4 w-4 mr-2" />}
+      {row.type}
+    </div>
+  )},
+  { key: "status", header: "Status", sortable: true, cell: (row: any) => (
+    <Badge variant={row.status === "Connected" ? "default" : "destructive"}>
+      {row.status}
+    </Badge>
+  )},
+  { key: "host", header: "Host", sortable: true },
+  { key: "dataFlow", header: "Data Flow", sortable: true },
+  { key: "lastSync", header: "Last Sync", sortable: true },
+];
+
+const dataSourceColumns = [
+  { key: "name", header: "Source Name", sortable: true },
+  { key: "type", header: "Type", sortable: true },
+  { key: "target", header: "Target Database", sortable: true },
+  { key: "status", header: "Status", sortable: true, cell: (row: any) => (
+    <Badge variant={row.status === "Active" ? "default" : "secondary"}>
+      {row.status}
+    </Badge>
+  )},
+  { key: "records", header: "Records/Day", sortable: true },
 ];
 
 export default function Data() {
@@ -167,15 +224,281 @@ export default function Data() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="databases" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="connections" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="connections">Connections</TabsTrigger>
+            <TabsTrigger value="import">Data Import</TabsTrigger>
             <TabsTrigger value="databases">Databases</TabsTrigger>
-            <TabsTrigger value="pipelines">Data Pipelines</TabsTrigger>
-            <TabsTrigger value="backup">Backup & Recovery</TabsTrigger>
-            <TabsTrigger value="retention">Data Retention</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+            <TabsTrigger value="pipelines">Pipelines</TabsTrigger>
+            <TabsTrigger value="backup">Backup</TabsTrigger>
+            <TabsTrigger value="retention">Retention</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
+
+          {/* Database Connections Tab */}
+          <TabsContent value="connections" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Plug className="h-5 w-5 mr-2" />
+                    Connection Health
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Active Connections</span>
+                    <span className="font-medium text-green-600">4</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Failed Connections</span>
+                    <span className="font-medium text-red-600">1</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Avg Response Time</span>
+                    <span className="font-medium">234ms</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Zap className="h-5 w-5 mr-2" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Database Connection
+                  </Button>
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <Cloud className="h-4 w-4 mr-2" />
+                    Connect Cloud Service
+                  </Button>
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Test All Connections
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Data Routing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Auto-routing Rules</span>
+                    <span className="font-medium">12</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Data Transformations</span>
+                    <span className="font-medium">8</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Routing Success Rate</span>
+                    <span className="font-medium text-green-600">99.2%</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <DataTable
+              title="Database Connections"
+              data={mockConnections}
+              columns={connectionColumns}
+              actions={
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Test All
+                  </Button>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Connection
+                  </Button>
+                </div>
+              }
+            />
+
+            {/* Connection Setup Wizard */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Database Connection</CardTitle>
+                <CardDescription>Connect Otzar to external databases and services</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { name: "PostgreSQL", icon: Database, description: "Production-ready relational database" },
+                    { name: "MySQL", icon: Database, description: "Popular open-source database" },
+                    { name: "MongoDB", icon: Server, description: "Document-based NoSQL database" },
+                    { name: "BigQuery", icon: Cloud, description: "Google's data warehouse solution" },
+                    { name: "Snowflake", icon: Cloud, description: "Cloud data platform" },
+                    { name: "Salesforce", icon: ExternalLink, description: "CRM and sales automation" },
+                    { name: "Amazon S3", icon: Archive, description: "Object storage service" },
+                    { name: "Custom API", icon: Link, description: "REST/GraphQL API integration" },
+                  ].map((service) => (
+                    <Card key={service.name} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardContent className="pt-6">
+                        <div className="flex flex-col items-center text-center space-y-2">
+                          <service.icon className="h-8 w-8 text-primary" />
+                          <h3 className="font-medium">{service.name}</h3>
+                          <p className="text-xs text-muted-foreground">{service.description}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Data Import Tab */}
+          <TabsContent value="import" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Manual Data Import</CardTitle>
+                  <CardDescription>Upload files and configure data routing</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Drag and drop files here, or click to browse
+                    </p>
+                    <Button variant="outline" size="sm">
+                      Choose Files
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Supports CSV, JSON, Excel, Parquet files up to 100MB
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="target-db">Target Database</Label>
+                    <Input id="target-db" placeholder="Select destination database..." />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="table-name">Table Name</Label>
+                    <Input id="table-name" placeholder="Enter table name..." />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auto-create">Auto-create table if not exists</Label>
+                    <Switch id="auto-create" defaultChecked />
+                  </div>
+
+                  <Button className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Start Import
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Import History</CardTitle>
+                  <CardDescription>Recent data import operations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {[
+                      { file: "customers.csv", status: "Completed", records: "1,234", time: "2 hours ago", target: "Production PostgreSQL" },
+                      { file: "transactions.json", status: "In Progress", records: "890/2,100", time: "5 mins ago", target: "Analytics Warehouse" },
+                      { file: "products.xlsx", status: "Failed", records: "0", time: "1 day ago", target: "CRM Integration" },
+                      { file: "users.csv", status: "Completed", records: "5,678", time: "2 days ago", target: "Production PostgreSQL" },
+                    ].map((import_item, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 border rounded">
+                        <div className="flex items-center space-x-3">
+                          <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <div className="text-sm font-medium">{import_item.file}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {import_item.target} • {import_item.time}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={
+                            import_item.status === "Completed" ? "default" :
+                            import_item.status === "Failed" ? "destructive" : "secondary"
+                          }>
+                            {import_item.status}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {import_item.records} records
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <DataTable
+              title="Active Data Sources"
+              data={mockDataSources}
+              columns={dataSourceColumns}
+              actions={
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Configure Routing
+                  </Button>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Data Source
+                  </Button>
+                </div>
+              }
+            />
+
+            {/* Data Routing Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Automatic Data Routing Rules</CardTitle>
+                <CardDescription>Configure how incoming data is automatically routed to databases</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { source: "User Registration API", condition: "user_type = 'customer'", target: "Production PostgreSQL", action: "Insert into customers table" },
+                    { source: "Transaction Events", condition: "amount > 1000", target: "Analytics Warehouse", action: "Store for analysis" },
+                    { source: "Support Tickets", condition: "priority = 'high'", target: "CRM Integration", action: "Create case in Salesforce" },
+                  ].map((rule, i) => (
+                    <div key={i} className="p-4 border rounded space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{rule.source}</span>
+                        <Badge variant="outline">Active</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Condition:</strong> {rule.condition}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Target:</strong> {rule.target}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Action:</strong> {rule.action}
+                      </div>
+                    </div>
+                  ))}
+                  <Button variant="outline" className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Routing Rule
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Databases Tab */}
           <TabsContent value="databases" className="space-y-4">
