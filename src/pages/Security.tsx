@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Layout } from "@/components/Layout";
+import { RoleHierarchyTree } from "@/components/RoleHierarchyTree";
+import { PermissionMatrix } from "@/components/PermissionMatrix";
+import { ApprovalWorkflow } from "@/components/ApprovalWorkflow";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -49,22 +52,26 @@ import {
   ShieldAlert,
   Target,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Building2,
+  UserCheck
 } from "lucide-react";
 import { DashboardCard } from "@/components/DashboardCard";
 
-// Mock data for audit logs
+// Enhanced audit logs with hierarchy information
 const mockAuditLogs = [
   { 
     id: "1", 
     timestamp: "2024-01-15 14:23:45", 
-    actor: "AI-Assistant-07", 
+    actor: "VP Engineering AI (Sarah Martinez)", 
     actorType: "AI", 
-    action: "Data Access", 
-    resource: "Customer Database", 
-    context: "Query: customer revenue analysis", 
+    hierarchyLevel: "L4 - VP/Senior Leadership",
+    action: "Division Data Access", 
+    resource: "Engineering Database", 
+    context: "Strategic planning analysis for Q4", 
     result: "Success",
-    riskLevel: "Low"
+    riskLevel: "Medium",
+    authorityScope: "Division-wide operations"
   },
   { 
     id: "2", 

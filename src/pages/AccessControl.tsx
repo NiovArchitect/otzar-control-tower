@@ -4,6 +4,9 @@ import { PageHeader } from "@/components/PageHeader"
 import { DashboardCard } from "@/components/DashboardCard"
 import { StatusBadge } from "@/components/StatusBadge"
 import { DataTable } from "@/components/DataTable"
+import { RoleHierarchyTree } from "@/components/RoleHierarchyTree"
+import { PermissionMatrix } from "@/components/PermissionMatrix"
+import { ApprovalWorkflow } from "@/components/ApprovalWorkflow"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
-import { AlertTriangle, CheckCircle, Eye, EyeOff, Lock, Shield, Users, Database, Globe, MapPin, FileText, Settings, Plus, Search, Filter, Edit, Trash2, Key, User, Network, Layers, Target, Clock } from "lucide-react"
+import { AlertTriangle, CheckCircle, Eye, EyeOff, Lock, Shield, Users, Database, Globe, MapPin, FileText, Settings, Plus, Search, Filter, Edit, Trash2, Key, User, Network, Layers, Target, Clock, Building2, Zap, UserCheck } from "lucide-react"
 
 interface OWDRule {
   id: string
@@ -480,6 +483,94 @@ export default function AccessControl() {
             </DialogContent>
           </Dialog>
         </PageHeader>
+
+        {/* Enhanced Hierarchy Management Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Building2 className="h-5 w-5" />
+                <span>Corporate Access Hierarchy</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">1</div>
+                  <div className="text-xs text-muted-foreground">System Admin</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-1">6</div>
+                  <div className="text-xs text-muted-foreground">C-Level + CEO</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-2">36</div>
+                  <div className="text-xs text-muted-foreground">VPs + Directors</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-3">396</div>
+                  <div className="text-xs text-muted-foreground">Managers + Teams</div>
+                </div>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    View Access Hierarchy
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Corporate Access Hierarchy</DialogTitle>
+                  </DialogHeader>
+                  <RoleHierarchyTree />
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Zap className="h-5 w-5" />
+                <span>Permission Tools</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Permission Matrix
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Tool Permission Matrix by Hierarchy</DialogTitle>
+                    </DialogHeader>
+                    <PermissionMatrix />
+                  </DialogContent>
+                </Dialog>
+                
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Approval Workflows
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Approval Workflow Management</DialogTitle>
+                    </DialogHeader>
+                    <ApprovalWorkflow />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Security Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

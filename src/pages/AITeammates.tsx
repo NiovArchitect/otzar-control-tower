@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/PageHeader"
 import { DashboardCard } from "@/components/DashboardCard"
 import { StatusBadge } from "@/components/StatusBadge"
 import { DataTable } from "@/components/DataTable"
+import { RoleHierarchyTree } from "@/components/RoleHierarchyTree"
+import { PermissionMatrix } from "@/components/PermissionMatrix"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -33,94 +35,171 @@ import {
   UserCheck,
   Activity,
   Database,
-  Link
+  Link,
+  Building2
 } from "lucide-react"
 
 interface AITeammate {
   id: string
   name: string
-  type: "Personal" | "Departmental" | "Service"
+  type: "Personal" | "Departmental" | "Service" | "Executive" | "System"
   owner: string
   department: string
+  division: string
+  hierarchyLevel: string
+  reportingChain: string
   status: "active" | "inactive" | "pending" | "error"
   skillPackages: string[]
   permissions: string[]
+  authorityScope: string
+  crossFunctionalAccess: string
   lastActive: string
   tasksCompleted: number
-  autonomyLevel: "Draft Only" | "Approval Required" | "Autonomous"
+  autonomyLevel: "Draft Only" | "Approval Required" | "Autonomous" | "Executive Override"
   swarmEnabled: boolean
+  securityClearance: "Basic" | "Standard" | "Enhanced" | "Executive" | "System"
 }
 
 const mockTeammates: AITeammate[] = [
   {
     id: "ai_001",
-    name: "Sarah Chen Assistant",
-    type: "Personal",
-    owner: "Sarah Chen",
-    department: "Design",
+    name: "VP Engineering AI",
+    type: "Executive",
+    owner: "Sarah Martinez (VP Engineering)",
+    department: "Engineering",
+    division: "Technology",
+    hierarchyLevel: "L4 - VP/Senior Leadership",
+    reportingChain: "CTO → CEO → System Admin",
     status: "active",
-    skillPackages: ["Adobe Creative Suite", "Figma Automation", "Design Review"],
-    permissions: ["Design Assets Read/Write", "Client Communication", "Project Management"],
+    skillPackages: ["Division Engineering Management", "Strategic Planning", "Budget Authority", "Cross-Department Coordination"],
+    permissions: ["Division-wide technical operations", "Budget approval", "Strategic planning", "Cross-department access"],
+    authorityScope: "Division-wide technical operations & strategy",
+    crossFunctionalAccess: "C-Level approval required for external divisions",
     lastActive: "2 minutes ago",
-    tasksCompleted: 147,
-    autonomyLevel: "Approval Required",
-    swarmEnabled: true
+    tasksCompleted: 347,
+    autonomyLevel: "Executive Override",
+    swarmEnabled: true,
+    securityClearance: "Executive"
   },
   {
     id: "ai_002", 
-    name: "Finance Analytics Bot",
-    type: "Departmental",
-    owner: "Finance Team",
-    department: "Finance",
+    name: "CMO Strategic AI",
+    type: "Executive",
+    owner: "Mark Wilson (CMO)",
+    department: "Marketing",
+    division: "Marketing",
+    hierarchyLevel: "L5 - C-Level Executives",
+    reportingChain: "CEO → System Admin",
     status: "active",
-    skillPackages: ["ERP Integration", "Financial Analytics", "Report Generation"],
-    permissions: ["Financial Data Read", "Report Creation", "Dashboard Management"],
-    lastActive: "5 minutes ago",
-    tasksCompleted: 203,
-    autonomyLevel: "Autonomous",
-    swarmEnabled: false
+    skillPackages: ["Company-wide Marketing", "Brand Authority", "Strategic Planning", "Cross-Division Coordination"],
+    permissions: ["All marketing operations", "Brand management", "Strategic initiatives", "Cross-division marketing"],
+    authorityScope: "All marketing operations & strategy",
+    crossFunctionalAccess: "Full access within marketing domain",
+    lastActive: "1 minute ago",
+    tasksCompleted: 503,
+    autonomyLevel: "Executive Override",
+    swarmEnabled: true,
+    securityClearance: "Executive"
   },
   {
     id: "ai_003",
-    name: "Customer Support Agent",
-    type: "Service",
-    owner: "System",
-    department: "Customer Support",
-    status: "pending",
-    skillPackages: ["Customer Support AI", "Help Desk Automation", "Knowledge Base"],
-    permissions: ["Customer Data Read", "Ticket Updates", "Email Templates", "Escalation Rules"],
-    lastActive: "1 hour ago",
-    tasksCompleted: 89,
-    autonomyLevel: "Draft Only",
-    swarmEnabled: true
+    name: "Director Analytics AI",
+    type: "Departmental",
+    owner: "Angela Chen (Director of Data Analytics)",
+    department: "Data Analytics",
+    division: "Technology",
+    hierarchyLevel: "L3 - Director Level",
+    reportingChain: "VP Engineering → CTO → CEO",
+    status: "active",
+    skillPackages: ["Department Analytics", "Data Governance", "Cross-Department Reporting", "Budget Authority"],
+    permissions: ["Department analytics operations", "Data governance", "Cross-department reporting", "Budget management"],
+    authorityScope: "Department analytics operations",
+    crossFunctionalAccess: "VP approval required",
+    lastActive: "30 minutes ago",
+    tasksCompleted: 289,
+    autonomyLevel: "Autonomous",
+    swarmEnabled: true,
+    securityClearance: "Enhanced"
   },
   {
     id: "ai_004",
-    name: "Marcus Johnson Assistant", 
+    name: "Enterprise Sales AI", 
     type: "Personal",
-    owner: "Marcus Johnson",
-    department: "Sales",
+    owner: "John Doe (Enterprise Account Executive)",
+    department: "Enterprise Sales",
+    division: "Sales",
+    hierarchyLevel: "L0 - Individual Contributors",
+    reportingChain: "Sales Manager → Sales Director → VP Sales → CEO",
     status: "active",
-    skillPackages: ["Salesforce Integration", "Lead Qualification", "Proposal Generation"],
-    permissions: ["CRM Read/Write", "Email Automation", "Calendar Management"],
-    lastActive: "10 minutes ago",
-    tasksCompleted: 178,
+    skillPackages: ["Enterprise CRM", "Large Deal Management", "Executive Engagement"],
+    permissions: ["Personal enterprise accounts", "Deal management", "Customer communication"],
+    authorityScope: "Personal enterprise accounts",
+    crossFunctionalAccess: "Team Lead approval required",
+    lastActive: "5 minutes ago",
+    tasksCompleted: 156,
     autonomyLevel: "Approval Required",
-    swarmEnabled: true
+    swarmEnabled: false,
+    securityClearance: "Standard"
   },
   {
     id: "ai_005",
-    name: "Security Monitor",
-    type: "Service",
-    owner: "System",
-    department: "IT Security",
-    status: "error",
-    skillPackages: ["Security Monitoring", "Threat Detection", "Incident Response"],
-    permissions: ["Security Logs Read", "Alert Generation", "Policy Enforcement"],
-    lastActive: "30 minutes ago",
-    tasksCompleted: 234,
-    autonomyLevel: "Autonomous",
-    swarmEnabled: false
+    name: "System Admin AI",
+    type: "System",
+    owner: "Lisa Park (System Administrator)",
+    department: "IT Infrastructure",
+    division: "Technology",
+    hierarchyLevel: "L7 - System Administrator",
+    reportingChain: "Direct system authority",
+    status: "active",
+    skillPackages: ["Complete System Control", "Emergency Override", "Infrastructure Management", "Security Administration"],
+    permissions: ["Complete system control", "Emergency override", "User management", "Security administration"],
+    authorityScope: "Complete system control & emergency override",
+    crossFunctionalAccess: "Universal override authority",
+    lastActive: "5 minutes ago",
+    tasksCompleted: 891,
+    autonomyLevel: "Executive Override",
+    swarmEnabled: true,
+    securityClearance: "System"
+  },
+  {
+    id: "ai_006",
+    name: "CEO Strategic AI",
+    type: "Executive",
+    owner: "David Kumar (CEO)",
+    department: "Executive",
+    division: "Executive Leadership",
+    hierarchyLevel: "L6 - CEO",
+    reportingChain: "System Admin (technical escalation only)",
+    status: "active",
+    skillPackages: ["Company-wide Strategic Oversight", "Executive Decision Support", "Cross-Division Coordination", "Crisis Management"],
+    permissions: ["Complete business authority", "Strategic oversight", "All data access", "Final escalation authority"],
+    authorityScope: "Complete business authority",
+    crossFunctionalAccess: "Universal business authority",
+    lastActive: "10 minutes ago",
+    tasksCompleted: 1247,
+    autonomyLevel: "Executive Override",
+    swarmEnabled: true,
+    securityClearance: "Executive"
+  },
+  {
+    id: "ai_007",
+    name: "Sales Team Lead AI",
+    type: "Personal",
+    owner: "Emily Rodriguez (Sales Team Lead)",
+    department: "Regional Sales",
+    division: "Sales",
+    hierarchyLevel: "L1 - Team Lead Level",
+    reportingChain: "Sales Manager → Sales Director → VP Sales",
+    status: "active",
+    skillPackages: ["Team Coordination", "Regional Sales Management", "Performance Tracking"],
+    permissions: ["Team coordination", "Regional sales data", "Team performance management"],
+    authorityScope: "Team coordination & support",
+    crossFunctionalAccess: "Manager approval required",
+    lastActive: "15 minutes ago",
+    tasksCompleted: 134,
+    autonomyLevel: "Approval Required",
+    swarmEnabled: false,
+    securityClearance: "Standard"
   }
 ]
 
@@ -162,6 +241,9 @@ export default function AITeammates() {
           <div>
             <div className="font-medium text-foreground">{teammate.name}</div>
             <div className="text-sm text-muted-foreground">{teammate.type}</div>
+            <Badge variant="outline" className="text-xs mt-1">
+              {teammate.hierarchyLevel}
+            </Badge>
           </div>
         </div>
       )
@@ -172,7 +254,8 @@ export default function AITeammates() {
       cell: (teammate: AITeammate) => (
         <div>
           <div className="font-medium text-foreground">{teammate.owner}</div>
-          <div className="text-sm text-muted-foreground">{teammate.department}</div>
+          <div className="text-sm text-muted-foreground">{teammate.department} • {teammate.division}</div>
+          <div className="text-xs text-muted-foreground">{teammate.securityClearance} clearance</div>
         </div>
       )
     },
@@ -333,6 +416,99 @@ export default function AITeammates() {
             </DialogContent>
           </Dialog>
         </PageHeader>
+
+        {/* AI Hierarchy Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Building2 className="h-5 w-5" />
+                <span>AI Teammate Hierarchy</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-destructive">1</div>
+                  <div className="text-xs text-muted-foreground">System AI</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">1</div>
+                  <div className="text-xs text-muted-foreground">CEO AI</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-1">5</div>
+                  <div className="text-xs text-muted-foreground">Executive AIs</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-2">12</div>
+                  <div className="text-xs text-muted-foreground">Department AIs</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-3">396</div>
+                  <div className="text-xs text-muted-foreground">Personal AIs</div>
+                </div>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    View AI Hierarchy
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>AI Teammate Hierarchy & Tethering</DialogTitle>
+                  </DialogHeader>
+                  <RoleHierarchyTree />
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>AI Permissions</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Executive Override</span>
+                  <Badge variant="destructive" className="text-xs">2 AIs</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Autonomous</span>
+                  <Badge variant="default" className="text-xs">18 AIs</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Approval Required</span>
+                  <Badge variant="secondary" className="text-xs">156 AIs</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Draft Only</span>
+                  <Badge variant="outline" className="text-xs">48 AIs</Badge>
+                </div>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full mt-4">
+                    <Shield className="h-4 w-4 mr-2" />
+                    View Permission Matrix
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>AI Tool Permission Matrix</DialogTitle>
+                  </DialogHeader>
+                  <PermissionMatrix />
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
