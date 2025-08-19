@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
 import { useState } from "react"
 
 // Enhanced user data with sophisticated corporate hierarchy
@@ -374,68 +375,134 @@ export default function Users() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="Enter first name" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Enter last name" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input id="username" placeholder="Enter username" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="Enter email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="userType">User Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select user type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="internal">Internal Employee</SelectItem>
-                      <SelectItem value="external">External User</SelectItem>
-                      <SelectItem value="guest">Guest Access</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="design">Design</SelectItem>
-                      <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="analytics">Analytics</SelectItem>
-                      <SelectItem value="security">IT Security</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Input id="role" placeholder="Enter job role/title" />
-                </div>
-                <div className="col-span-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="adminRights" />
-                    <Label htmlFor="adminRights">Grant delegated admin privileges</Label>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input id="firstName" placeholder="Enter first name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input id="lastName" placeholder="Enter last name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input id="username" placeholder="Enter username" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="Enter email" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userType">User Type</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="internal">Internal Employee</SelectItem>
+                        <SelectItem value="external">External User</SelectItem>
+                        <SelectItem value="guest">Guest Access</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <div className="col-span-2 flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsCreateUserOpen(false)}>Cancel</Button>
-                  <Button variant="enterprise">Create User</Button>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hierarchyLevel">Hierarchy Level</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select hierarchy level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="l7">L7 - System Administrator</SelectItem>
+                        <SelectItem value="l6">L6 - CEO</SelectItem>
+                        <SelectItem value="l5">L5 - C-Level Executives</SelectItem>
+                        <SelectItem value="l4">L4 - VP/Senior Leadership</SelectItem>
+                        <SelectItem value="l3">L3 - Director Level</SelectItem>
+                        <SelectItem value="l2">L2 - Manager Level</SelectItem>
+                        <SelectItem value="l1">L1 - Team Lead Level</SelectItem>
+                        <SelectItem value="l0">L0 - Individual Contributors</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="division">Division</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select division" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="executive">Executive Leadership</SelectItem>
+                        <SelectItem value="technology">Technology</SelectItem>
+                        <SelectItem value="sales">Sales</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="people">People</SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="executive">Executive</SelectItem>
+                        <SelectItem value="engineering">Engineering</SelectItem>
+                        <SelectItem value="data-analytics">Data Analytics</SelectItem>
+                        <SelectItem value="enterprise-sales">Enterprise Sales</SelectItem>
+                        <SelectItem value="regional-sales">Regional Sales</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="people-ops">People Operations</SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                        <SelectItem value="it-infrastructure">IT Infrastructure</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="roleTitle">Role/Title</Label>
+                    <Input id="roleTitle" placeholder="Enter job role/title" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reportingManager">Reporting Manager</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reporting manager" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ceo">David Kumar (CEO)</SelectItem>
+                        <SelectItem value="cmo">Mark Wilson (CMO)</SelectItem>
+                        <SelectItem value="vp-eng">Sarah Martinez (VP Engineering)</SelectItem>
+                        <SelectItem value="dir-analytics">Angela Chen (Director Analytics)</SelectItem>
+                        <SelectItem value="sys-admin">Lisa Park (System Admin)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="col-span-2 space-y-4">
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="adminRights" />
+                      <Label htmlFor="adminRights">Grant delegated admin privileges</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="aiTeammate" />
+                      <Label htmlFor="aiTeammate">Create AI teammate automatically</Label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsCreateUserOpen(false)}>Cancel</Button>
+                    <Button variant="enterprise">Create User & AI Teammate</Button>
+                  </div>
                 </div>
               </div>
             </DialogContent>

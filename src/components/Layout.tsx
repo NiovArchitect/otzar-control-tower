@@ -1,8 +1,10 @@
 import { ReactNode } from "react"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AdminSidebar } from "@/components/AdminSidebar"
+import { NotificationCenter } from "@/components/NotificationCenter"
 import { Button } from "@/components/ui/button"
-import { Bell, Settings, User, LogOut } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Settings, User, LogOut, Shield, HelpCircle } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,25 +20,45 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const handleSettingsClick = () => {
+    window.location.href = '/settings'
+  }
+
+  const handleProfileClick = () => {
+    window.location.href = '/users'
+  }
+
+  const handleSecurityClick = () => {
+    window.location.href = '/security'
+  }
+
+  const handleLogout = () => {
+    // In a real app, this would handle logout logic
+    console.log('Logout clicked')
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar />
         
         <div className="flex-1 flex flex-col">
-          {/* Top Navigation */}
+          {/* Enhanced Top Navigation */}
           <header className="h-16 border-b bg-card px-6 flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h2 className="text-xl font-semibold text-foreground">Admin Console</h2>
+              <h2 className="text-xl font-semibold text-foreground">Otzar Admin Console</h2>
+              <Badge variant="outline" className="text-xs">
+                Enterprise
+              </Badge>
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-status-danger rounded-full text-xs text-white flex items-center justify-center">
-                  3
-                </span>
+              {/* Notification Center */}
+              <NotificationCenter />
+              
+              {/* Help/Support */}
+              <Button variant="ghost" size="sm">
+                <HelpCircle className="h-4 w-4" />
               </Button>
 
               {/* User Menu */}
@@ -51,26 +73,33 @@ export function Layout({ children }: LayoutProps) {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-64 bg-background border border-border shadow-lg" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">System Admin</p>
+                      <p className="text-sm font-medium leading-none">System Administrator</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        admin@company.com
+                        admin@otzar.com
                       </p>
+                      <Badge variant="destructive" className="text-xs w-fit mt-1">
+                        L7 - System Administrator
+                      </Badge>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleProfileClick} className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                    <span>Profile & Users</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSettingsClick} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                    <span>System Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSecurityClick} className="cursor-pointer">
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Security Center</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
