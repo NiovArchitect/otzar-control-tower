@@ -40,7 +40,15 @@ const departmentData = [
 ]
 
 const userColumns = [
-  { key: "name", header: "User" },
+  { 
+    key: "name", 
+    header: "User",
+    cell: (row: any) => (
+      <Link to={`/users?search=${row.name}`} className="text-primary hover:underline font-medium">
+        {row.name}
+      </Link>
+    )
+  },
   { key: "role", header: "Role" },
   {
     key: "status", 
@@ -52,12 +60,36 @@ const userColumns = [
     ),
   },
   { key: "lastSeen", header: "Last Seen" },
-  { key: "aiTeammate", header: "AI Teammate" },
+  { 
+    key: "aiTeammate", 
+    header: "AI Teammate",
+    cell: (row: any) => (
+      <Link to={`/ai-teammates?search=${row.aiTeammate}`} className="text-primary hover:underline">
+        {row.aiTeammate}
+      </Link>
+    )
+  },
 ]
 
 const aiTeammateColumns = [
-  { key: "name", header: "AI Teammate" },
-  { key: "owner", header: "Owner" },
+  { 
+    key: "name", 
+    header: "AI Teammate",
+    cell: (row: any) => (
+      <Link to={`/ai-teammates?search=${row.name}`} className="text-primary hover:underline font-medium">
+        {row.name}
+      </Link>
+    )
+  },
+  { 
+    key: "owner", 
+    header: "Owner",
+    cell: (row: any) => (
+      <Link to={`/users?search=${row.owner}`} className="text-primary hover:underline">
+        {row.owner}
+      </Link>
+    )
+  },
   {
     key: "status",
     header: "Status", 
@@ -95,100 +127,120 @@ export default function Home() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardCard
-          title="Active Users"
-          value="1,247"
-          change="+12.5% from last month"
-          changeType="positive"
-          trend="up"
-          icon={<Users />}
-        />
-        <DashboardCard
-          title="AI Teammates"
-          value="89"
-          change="+4 new this week"
-          changeType="positive"
-          trend="up"
-          icon={<Bot />}
-        />
-        <DashboardCard
-          title="Security Score"
-          value="97%"
-          change="Excellent rating"
-          changeType="positive"
-          trend="up"
-          icon={<Shield />}
-        />
-        <DashboardCard
-          title="System Health"
-          value="99.9%"
-          change="All systems operational"
-          changeType="positive"
-          trend="flat"
-          icon={<CheckCircle />}
-        />
+        <Link to="/users" className="block hover:scale-105 transition-transform">
+          <DashboardCard
+            title="Active Users"
+            value="1,247"
+            change="+12.5% from last month"
+            changeType="positive"
+            trend="up"
+            icon={<Users />}
+          />
+        </Link>
+        <Link to="/ai-teammates" className="block hover:scale-105 transition-transform">
+          <DashboardCard
+            title="AI Teammates"
+            value="89"
+            change="+4 new this week"
+            changeType="positive"
+            trend="up"
+            icon={<Bot />}
+          />
+        </Link>
+        <Link to="/security" className="block hover:scale-105 transition-transform">
+          <DashboardCard
+            title="Security Score"
+            value="97%"
+            change="Excellent rating"
+            changeType="positive"
+            trend="up"
+            icon={<Shield />}
+          />
+        </Link>
+        <Link to="/health" className="block hover:scale-105 transition-transform">
+          <DashboardCard
+            title="System Health"
+            value="99.9%"
+            change="All systems operational"
+            changeType="positive"
+            trend="flat"
+            icon={<CheckCircle />}
+          />
+        </Link>
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AnalyticsChart
-          title="AI Usage Trends"
-          data={usageData}
-          type="line"
-          dataKey="usage"
-          xAxisKey="month"
-          height={300}
-        />
-        <AnalyticsChart
-          title="Department Distribution"
-          data={departmentData}
-          type="donut"
-          dataKey="value"
-          xAxisKey="name"
-          height={300}
-        />
+        <Link to="/analytics" className="block hover:scale-105 transition-transform">
+          <AnalyticsChart
+            title="AI Usage Trends"
+            data={usageData}
+            type="line"
+            dataKey="usage"
+            xAxisKey="month"
+            height={300}
+            className="cursor-pointer"
+          />
+        </Link>
+        <Link to="/analytics" className="block hover:scale-105 transition-transform">
+          <AnalyticsChart
+            title="Department Distribution"
+            data={departmentData}
+            type="donut"
+            dataKey="value"
+            xAxisKey="name"
+            height={300}
+            className="cursor-pointer"
+          />
+        </Link>
       </div>
 
       {/* Alert Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-status-warning">
-          <CardHeader className="pb-3">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-status-warning" />
-              <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">3</div>
-            <p className="text-xs text-muted-foreground">AI teammate approvals needed</p>
-          </CardContent>
-        </Card>
+        <Link to="/ai-teammates" className="block hover:scale-105 transition-transform">
+          <Card className="border-l-4 border-l-status-warning cursor-pointer">
+            <CardHeader className="pb-3">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 text-status-warning" />
+                <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">3</div>
+              <p className="text-xs text-muted-foreground">AI teammate approvals needed</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-l-4 border-l-status-success">
-          <CardHeader className="pb-3">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-status-success" />
-              <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">142</div>
-            <p className="text-xs text-muted-foreground">Automated tasks today</p>
-          </CardContent>
-        </Card>
+        <Link to="/analytics" className="block hover:scale-105 transition-transform">
+          <Card className="border-l-4 border-l-status-success cursor-pointer">
+            <CardHeader className="pb-3">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5 text-status-success" />
+                <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">142</div>
+              <p className="text-xs text-muted-foreground">Automated tasks today</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-l-4 border-l-primary">
-          <CardHeader className="pb-3">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm font-medium">Time Saved</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">28.5h</div>
-            <p className="text-xs text-muted-foreground">Employee hours saved today</p>
-          </CardContent>
-        </Card>
+        <Link to="/workflow-automation" className="block hover:scale-105 transition-transform">
+          <Card className="border-l-4 border-l-primary cursor-pointer">
+            <CardHeader className="pb-3">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <CardTitle className="text-sm font-medium">Time Saved</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">28.5h</div>
+              <p className="text-xs text-muted-foreground">Employee hours saved today</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Data Tables */}

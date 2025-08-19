@@ -16,7 +16,9 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  Workflow
 } from "lucide-react"
 
 import {
@@ -40,6 +42,8 @@ const navigationItems = [
   { title: "Data & Knowledge", url: "/data", icon: Database },
   { title: "Security & Audit", url: "/security", icon: Lock },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Conversations", url: "/conversations", icon: MessageSquare },
+  { title: "Workflow Automation", url: "/workflow-automation", icon: Workflow },
   { title: "Playground", url: "/playground", icon: TestTube },
   { title: "Policies", url: "/policies", icon: FileText },
   { title: "System Health", url: "/health", icon: Activity },

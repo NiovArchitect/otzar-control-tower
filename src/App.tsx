@@ -16,6 +16,8 @@ import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import Onboarding from "./pages/Onboarding";
 import Documentation from "./pages/Documentation";
+import Conversations from "./pages/Conversations";
+import WorkflowAutomation from "./pages/WorkflowAutomation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +42,8 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/documentation" element={<Documentation />} />
+          <Route path="/conversations" element={<Conversations />} />
+          <Route path="/workflow-automation" element={<WorkflowAutomation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
