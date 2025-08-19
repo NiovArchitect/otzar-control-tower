@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { AIContextDialog } from "@/components/AIContextDialog"
 
 interface Notification {
   id: string
@@ -207,6 +208,12 @@ export function NotificationCenter() {
                                 {notification.timestamp}
                               </span>
                               <div className="flex items-center space-x-1">
+                                <AIContextDialog 
+                                  notificationId={notification.id}
+                                  notificationType={notification.type}
+                                  notificationTitle={notification.title}
+                                  notificationMessage={notification.message}
+                                />
                                 {!notification.read && (
                                   <Button
                                     variant="ghost"

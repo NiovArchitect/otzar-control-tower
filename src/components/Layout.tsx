@@ -2,6 +2,7 @@ import { ReactNode } from "react"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AdminSidebar } from "@/components/AdminSidebar"
 import { NotificationCenter } from "@/components/NotificationCenter"
+import { AdminAIAssistant } from "@/components/AdminAIAssistant"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Settings, User, LogOut, Shield, HelpCircle } from "lucide-react"
@@ -114,6 +115,7 @@ export function Layout({ children }: LayoutProps) {
           </main>
         </div>
       </div>
+      <AdminAIAssistant />
     </SidebarProvider>
   )
 }
