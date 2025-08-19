@@ -8,35 +8,35 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link } from "react-router-dom"
 
-// Mock data
+// Mock data - Cohesive metrics showing AI teammate value
 const recentUsers = [
   { name: "Sarah Martinez", role: "Design Manager", status: "active", lastSeen: "2 min ago", aiTeammate: "Creative AI-01" },
   { name: "John Doe", role: "Sales Rep", status: "active", lastSeen: "5 min ago", aiTeammate: "Sales AI-12" },
-  { name: "Angela Chen", role: "Data Analyst", status: "inactive", lastSeen: "2 hours ago", aiTeammate: "Analytics AI-03" },
+  { name: "Angela Chen", role: "Data Analyst", status: "active", lastSeen: "8 min ago", aiTeammate: "Analytics AI-03" },
   { name: "Mark Wilson", role: "Marketing Lead", status: "active", lastSeen: "1 min ago", aiTeammate: "Marketing AI-07" },
 ]
 
 const aiTeammateData = [
-  { name: "Sales AI-12", owner: "John Doe", status: "active", tasks: 24, efficiency: "94%" },
-  { name: "Creative AI-01", owner: "Sarah Martinez", status: "active", tasks: 18, efficiency: "97%" },
-  { name: "Analytics AI-03", owner: "Angela Chen", status: "pending", tasks: 12, efficiency: "89%" },
-  { name: "Marketing AI-07", owner: "Mark Wilson", status: "active", tasks: 31, efficiency: "92%" },
+  { name: "Sales AI-12", owner: "John Doe", status: "active", tasks: 47, efficiency: "96%" },
+  { name: "Creative AI-01", owner: "Sarah Martinez", status: "active", tasks: 38, efficiency: "94%" },
+  { name: "Analytics AI-03", owner: "Angela Chen", status: "active", tasks: 52, efficiency: "98%" },
+  { name: "Marketing AI-07", owner: "Mark Wilson", status: "active", tasks: 41, efficiency: "95%" },
 ]
 
 const usageData = [
-  { month: "Jan", usage: 2400 },
-  { month: "Feb", usage: 1398 },
-  { month: "Mar", usage: 9800 },
-  { month: "Apr", usage: 3908 },
-  { month: "May", usage: 4800 },
-  { month: "Jun", usage: 3800 },
+  { month: "Jan", usage: 8200 },
+  { month: "Feb", usage: 12400 },
+  { month: "Mar", usage: 15600 },
+  { month: "Apr", usage: 18900 },
+  { month: "May", usage: 22100 },
+  { month: "Jun", usage: 24800 },
 ]
 
 const departmentData = [
   { name: "Sales", value: 35, color: "hsl(var(--chart-1))" },
-  { name: "Marketing", value: 25, color: "hsl(var(--chart-2))" },
-  { name: "Design", value: 20, color: "hsl(var(--chart-3))" },
-  { name: "Analytics", value: 20, color: "hsl(var(--chart-4))" },
+  { name: "Marketing", value: 28, color: "hsl(var(--chart-2))" },
+  { name: "Engineering", value: 22, color: "hsl(var(--chart-3))" },
+  { name: "Operations", value: 15, color: "hsl(var(--chart-4))" },
 ]
 
 const userColumns = [
@@ -140,8 +140,8 @@ export default function Home() {
         <Link to="/ai-teammates" className="block hover:scale-105 transition-transform">
           <DashboardCard
             title="AI Teammates"
-            value="89"
-            change="+4 new this week"
+            value="387"
+            change="+12 new this week"
             changeType="positive"
             trend="up"
             icon={<Bot />}
@@ -206,7 +206,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">3</div>
+              <div className="text-2xl font-bold text-foreground">8</div>
               <p className="text-xs text-muted-foreground">AI teammate approvals needed</p>
             </CardContent>
           </Card>
@@ -221,7 +221,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">142</div>
+              <div className="text-2xl font-bold text-foreground">1,847</div>
               <p className="text-xs text-muted-foreground">Automated tasks today</p>
             </CardContent>
           </Card>
@@ -236,7 +236,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">28.5h</div>
+              <div className="text-2xl font-bold text-foreground">156.7h</div>
               <p className="text-xs text-muted-foreground">Employee hours saved today</p>
             </CardContent>
           </Card>

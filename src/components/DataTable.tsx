@@ -67,16 +67,16 @@ export function DataTable({ title, data, columns, actions, className }: DataTabl
 
   return (
     <Card className={cn("shadow-card", className)}>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-        <div className="flex items-center space-x-2">
-          <div className="relative">
+        <div className="flex items-center space-x-2 flex-wrap">
+          <div className="relative min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-64"
+              className="pl-9 w-48 md:w-64"
             />
           </div>
           <Button variant="outline" size="sm" onClick={handleExport}>
