@@ -28,209 +28,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { useState } from "react"
 
-// Enhanced user data with sophisticated corporate hierarchy
-const usersData = [
-  {
-    id: "USR-001",
-    name: "Sarah Martinez",
-    username: "smartinez",
-    email: "sarah.martinez@company.com",
-    role: "VP Engineering",
-    title: "Vice President of Engineering",
-    profile: "VP Engineering Profile", 
-    department: "Engineering",
-    division: "Technology",
-    userType: "internal",
-    status: "active",
-    lastLogin: "2 min ago",
-    aiTeammate: "Engineering VP AI-01",
-    permissions: ["Division Engineering", "Technical Leadership", "Budget Authority", "Cross-Department Coordination"],
-    permissionSets: ["VP Engineering Access", "Technical Leadership", "Division Management", "Strategic Planning"],
-    sessionPolicy: "Executive MFA",
-    ipRestrictions: "Executive Network",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: true,
-    hierarchy: "L4 - VP/Senior Leadership",
-    reportingLine: "CTO → CEO → System Admin",
-    authorityScope: "Division-wide technical operations",
-    crossFunctionalAccess: "C-Level approval required"
-  },
-  {
-    id: "USR-002", 
-    name: "John Doe",
-    username: "jdoe",
-    email: "john.doe@company.com",
-    role: "Enterprise Account Executive",
-    title: "Senior Enterprise Account Executive",
-    profile: "Enterprise Sales Profile",
-    department: "Enterprise Sales",
-    division: "Sales",
-    userType: "internal",
-    status: "active",
-    lastLogin: "5 min ago",
-    aiTeammate: "Enterprise Sales AI-12",
-    permissions: ["Enterprise CRM", "Large Deal Management", "Executive Engagement"],
-    permissionSets: ["Enterprise Salesforce Access", "Executive Reporting", "Territory Management"],
-    sessionPolicy: "Standard MFA",
-    ipRestrictions: "Global Access",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: false,
-    hierarchy: "L0 - Individual Contributors",
-    reportingLine: "Sales Manager → Sales Director → VP Sales → CEO",
-    authorityScope: "Personal enterprise accounts",
-    crossFunctionalAccess: "Team Lead approval required"
-  },
-  {
-    id: "USR-003",
-    name: "Angela Chen",
-    username: "achen",
-    email: "angela.chen@company.com", 
-    role: "Director of Data Analytics",
-    title: "Director, Data Analytics & Business Intelligence",
-    profile: "Director Analytics Profile",
-    department: "Data Analytics",
-    division: "Technology",
-    userType: "internal",
-    status: "active",
-    lastLogin: "30 min ago",
-    aiTeammate: "Analytics Director AI-03",
-    permissions: ["Department Analytics", "Data Governance", "Cross-Department Reporting", "Budget Authority"],
-    permissionSets: ["Director Analytics Access", "Data Governance", "BI Platform Administration", "Department Management"],
-    sessionPolicy: "Director Security",
-    ipRestrictions: "Secure Network",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: true,
-    hierarchy: "L3 - Director Level",
-    reportingLine: "VP Engineering → CTO → CEO",
-    authorityScope: "Department analytics operations",
-    crossFunctionalAccess: "VP approval required"
-  },
-  {
-    id: "USR-004",
-    name: "Mark Wilson",
-    username: "mwilson",
-    email: "mark.wilson@company.com",
-    role: "Chief Marketing Officer",
-    title: "Chief Marketing Officer",
-    profile: "CMO Executive Profile",
-    department: "Marketing",
-    division: "Marketing",
-    userType: "internal",
-    status: "active",
-    lastLogin: "1 min ago",
-    aiTeammate: "CMO AI-07",
-    permissions: ["Company-wide Marketing", "Brand Authority", "Strategic Planning", "Cross-Division Access"],
-    permissionSets: ["C-Level Access", "Marketing Leadership", "Strategic Planning", "Executive Reporting"],
-    sessionPolicy: "Executive Security",
-    ipRestrictions: "Executive + Global",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: true,
-    hierarchy: "L5 - C-Level Executives",
-    reportingLine: "CEO → System Admin",
-    authorityScope: "All marketing operations & strategy",
-    crossFunctionalAccess: "Full access within domain"
-  },
-  {
-    id: "USR-005",
-    name: "Lisa Park",
-    username: "lpark",
-    email: "lisa.park@company.com",
-    role: "System Administrator",
-    title: "Senior System Administrator",
-    profile: "System Admin Profile",
-    department: "IT Infrastructure",
-    division: "Technology",
-    userType: "internal",
-    status: "active", 
-    lastLogin: "5 min ago",
-    aiTeammate: "System Admin AI-05",
-    permissions: ["Complete System Control", "Emergency Override", "User Management", "Security Administration"],
-    permissionSets: ["System Administration", "Emergency Protocols", "Infrastructure Management", "Security Oversight"],
-    sessionPolicy: "Maximum Security",
-    ipRestrictions: "Secure Network + MFA + Biometric",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: true,
-    hierarchy: "L7 - System Administrator",
-    reportingLine: "Direct system authority",
-    authorityScope: "Complete system control & emergency override",
-    crossFunctionalAccess: "Universal override authority"
-  },
-  {
-    id: "USR-006",
-    name: "David Kumar",
-    username: "dkumar",
-    email: "david.kumar@company.com",
-    role: "CEO",
-    title: "Chief Executive Officer",
-    profile: "CEO Executive Profile",
-    department: "Executive",
-    division: "Executive Leadership",
-    userType: "internal",
-    status: "active",
-    lastLogin: "10 min ago",
-    aiTeammate: "CEO AI-09",
-    permissions: ["Company-wide Strategic Oversight", "All Data Access", "Final Escalation Authority", "Override Authority"],
-    permissionSets: ["CEO Access", "Strategic Leadership", "Company-wide Authority", "Override Permissions"],
-    sessionPolicy: "CEO Security",
-    ipRestrictions: "Executive + Global + Emergency",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: true,
-    hierarchy: "L6 - CEO",
-    reportingLine: "System Admin (technical escalation only)",
-    authorityScope: "Complete business authority",
-    crossFunctionalAccess: "Universal business authority"
-  },
-  {
-    id: "USR-007",
-    name: "Emily Rodriguez",
-    username: "erodriguez",
-    email: "emily.rodriguez@partner.com",
-    role: "Sales Team Lead",
-    title: "Senior Sales Team Lead",
-    profile: "Team Lead Profile",
-    department: "Regional Sales",
-    division: "Sales",
-    userType: "internal",
-    status: "active",
-    lastLogin: "15 min ago",
-    aiTeammate: "Sales Team Lead AI-11",
-    permissions: ["Team Coordination", "Regional Sales Data", "Team Performance"],
-    permissionSets: ["Team Leadership", "Regional Access", "Performance Management"],
-    sessionPolicy: "Standard Security",
-    ipRestrictions: "Regional + VPN",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: false,
-    hierarchy: "L1 - Team Lead Level",
-    reportingLine: "Sales Manager → Sales Director → VP Sales",
-    authorityScope: "Team coordination & support",
-    crossFunctionalAccess: "Manager approval required"
-  },
-  {
-    id: "USR-008",
-    name: "Michael Foster",
-    username: "mfoster",
-    email: "michael.foster@company.com",
-    role: "External Security Consultant",
-    title: "Senior Security Consultant",
-    profile: "External Consultant Profile",
-    department: "External Consulting",
-    division: "External",
-    userType: "guest",
-    status: "active",
-    lastLogin: "1 hour ago",
-    aiTeammate: "External Security AI-08",
-    permissions: ["Limited Security Review", "Consultation Access", "Temporary Audit"],
-    permissionSets: ["Guest Security Access", "Audit Review"],
-    sessionPolicy: "Guest Security Policy",
-    ipRestrictions: "VPN Required + Time Limited",
-    avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: false,
-    hierarchy: "Guest Access",
-    reportingLine: "N/A (External)",
-    authorityScope: "Limited consultation scope",
-    crossFunctionalAccess: "No access to internal systems"
-  }
-]
+// Import mock data
+import { mockUsersData, sampleUsersData } from "@/data/mockUsers"
+
+// Use sample data for display (performance optimization)
+const usersData = sampleUsersData
 
 const userColumns = [
   {
@@ -1089,12 +891,12 @@ export default function Users() {
       {/* Enhanced Users Table with Tabs */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="all">All Users ({usersData.length})</TabsTrigger>
-          <TabsTrigger value="internal">Internal ({usersData.filter(u => u.userType === "internal").length})</TabsTrigger>
-          <TabsTrigger value="external">External ({usersData.filter(u => u.userType === "external").length})</TabsTrigger>
-          <TabsTrigger value="guest">Guest ({usersData.filter(u => u.userType === "guest").length})</TabsTrigger>
-          <TabsTrigger value="admins">Admins ({usersData.filter(u => u.delegatedAdmin).length})</TabsTrigger>
-          <TabsTrigger value="inactive">Inactive ({usersData.filter(u => u.status === "inactive").length})</TabsTrigger>
+          <TabsTrigger value="all">All Users (1,247)</TabsTrigger>
+          <TabsTrigger value="internal">Internal (1,189)</TabsTrigger>
+          <TabsTrigger value="external">External (47)</TabsTrigger>
+          <TabsTrigger value="guest">Guest (11)</TabsTrigger>
+          <TabsTrigger value="admins">Admins (43)</TabsTrigger>
+          <TabsTrigger value="inactive">Inactive (42)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">

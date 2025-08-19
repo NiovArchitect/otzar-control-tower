@@ -66,10 +66,10 @@ const adoptionHeatmap = [
 ]
 
 const productivityMetrics = [
-  { metric: "Hours Saved", value: 2273, change: "+18%", period: "This month" },
-  { metric: "Tasks Automated", value: 1847, change: "+24%", period: "This month" },
-  { metric: "Workflow Efficiency", value: "92%", change: "+8%", period: "vs baseline" },
-  { metric: "Time to Complete", value: "3.2h", change: "-35%", period: "Average reduction" }
+  { metric: "Hours Saved", value: 8473, change: "+32%", period: "This month" },
+  { metric: "Tasks Automated", value: 14827, change: "+45%", period: "This month" }, 
+  { metric: "Workflow Efficiency", value: "96%", change: "+18%", period: "vs baseline" },
+  { metric: "Time to Complete", value: "1.8h", change: "-52%", period: "Average reduction" }
 ]
 
 const errorPrevention = [
@@ -240,15 +240,15 @@ export default function Analytics() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardCard
             title="Total AI Requests"
-            value="24,567"
-            change="+12.5% from last month"
+            value="847,230"
+            change="+32.5% from last month"
             changeType="positive"
             trend="up"
             icon={<Bot />}
           />
           <DashboardCard
             title="Active Users"
-            value="1,847"
+            value="1,205"
             change="+8.2% from last month"
             changeType="positive"
             trend="up"
@@ -256,8 +256,8 @@ export default function Analytics() {
           />
           <DashboardCard
             title="Avg Response Time"
-            value="1.4s"
-            change="-15% from last month"
+            value="0.9s"
+            change="-25% from last month"
             changeType="positive"
             trend="down"
             icon={<Clock />}
