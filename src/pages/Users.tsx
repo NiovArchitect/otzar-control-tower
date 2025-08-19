@@ -1,9 +1,12 @@
-import { Users as UsersIcon, UserPlus, Shield, Settings, Search, MoreHorizontal, Edit, Trash2, Lock, Eye, Mail, Phone, Key, Globe, Clock, UserCheck, AlertTriangle, Plus, Filter } from "lucide-react"
+import { Users as UsersIcon, UserPlus, Shield, Settings, Search, MoreHorizontal, Edit, Trash2, Lock, Eye, Mail, Phone, Key, Globe, Clock, UserCheck, AlertTriangle, Plus, Filter, Building2, Zap } from "lucide-react"
 import { DashboardCard } from "@/components/DashboardCard"
 import { DataTable } from "@/components/DataTable"
 import { StatusBadge } from "@/components/StatusBadge"
 import { PageHeader } from "@/components/PageHeader"
 import { Layout } from "@/components/Layout"
+import { RoleHierarchyTree } from "@/components/RoleHierarchyTree"
+import { PermissionMatrix } from "@/components/PermissionMatrix"
+import { ApprovalWorkflow } from "@/components/ApprovalWorkflow"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -24,147 +27,207 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState } from "react"
 
-// Mock user data with enhanced fields
+// Enhanced user data with sophisticated corporate hierarchy
 const usersData = [
   {
     id: "USR-001",
     name: "Sarah Martinez",
     username: "smartinez",
     email: "sarah.martinez@company.com",
-    role: "Design Manager",
-    profile: "Design Lead Profile", 
-    department: "Design",
+    role: "VP Engineering",
+    title: "Vice President of Engineering",
+    profile: "VP Engineering Profile", 
+    department: "Engineering",
+    division: "Technology",
     userType: "internal",
     status: "active",
     lastLogin: "2 min ago",
-    aiTeammate: "Creative AI-01",
-    permissions: ["Design Tools", "File Management", "Team Lead"],
-    permissionSets: ["Creative Suite Access", "Team Management"],
-    sessionPolicy: "Standard MFA",
-    ipRestrictions: "Office Network",
+    aiTeammate: "Engineering VP AI-01",
+    permissions: ["Division Engineering", "Technical Leadership", "Budget Authority", "Cross-Department Coordination"],
+    permissionSets: ["VP Engineering Access", "Technical Leadership", "Division Management", "Strategic Planning"],
+    sessionPolicy: "Executive MFA",
+    ipRestrictions: "Executive Network",
     avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: false,
-    hierarchy: "L3 - Manager"
+    delegatedAdmin: true,
+    hierarchy: "L4 - VP/Senior Leadership",
+    reportingLine: "CTO → CEO → System Admin",
+    authorityScope: "Division-wide technical operations",
+    crossFunctionalAccess: "C-Level approval required"
   },
   {
     id: "USR-002", 
     name: "John Doe",
     username: "jdoe",
     email: "john.doe@company.com",
-    role: "Sales Representative",
-    profile: "Sales Rep Profile",
-    department: "Sales",
+    role: "Enterprise Account Executive",
+    title: "Senior Enterprise Account Executive",
+    profile: "Enterprise Sales Profile",
+    department: "Enterprise Sales",
+    division: "Sales",
     userType: "internal",
     status: "active",
     lastLogin: "5 min ago",
-    aiTeammate: "Sales AI-12",
-    permissions: ["CRM Access", "Lead Management"],
-    permissionSets: ["Salesforce Access", "Lead Qualification"],
-    sessionPolicy: "Enhanced Security",
+    aiTeammate: "Enterprise Sales AI-12",
+    permissions: ["Enterprise CRM", "Large Deal Management", "Executive Engagement"],
+    permissionSets: ["Enterprise Salesforce Access", "Executive Reporting", "Territory Management"],
+    sessionPolicy: "Standard MFA",
     ipRestrictions: "Global Access",
     avatar: "/placeholder.svg?height=32&width=32",
     delegatedAdmin: false,
-    hierarchy: "L2 - Individual Contributor"
+    hierarchy: "L0 - Individual Contributors",
+    reportingLine: "Sales Manager → Sales Director → VP Sales → CEO",
+    authorityScope: "Personal enterprise accounts",
+    crossFunctionalAccess: "Team Lead approval required"
   },
   {
     id: "USR-003",
     name: "Angela Chen",
     username: "achen",
     email: "angela.chen@company.com", 
-    role: "Data Analyst",
-    profile: "Analytics Profile",
-    department: "Analytics",
+    role: "Director of Data Analytics",
+    title: "Director, Data Analytics & Business Intelligence",
+    profile: "Director Analytics Profile",
+    department: "Data Analytics",
+    division: "Technology",
     userType: "internal",
-    status: "inactive",
-    lastLogin: "2 hours ago",
-    aiTeammate: "Analytics AI-03",
-    permissions: ["Data Access", "Reporting"],
-    permissionSets: ["BI Tools Access", "Data Export"],
-    sessionPolicy: "Standard",
-    ipRestrictions: "Office Network",
+    status: "active",
+    lastLogin: "30 min ago",
+    aiTeammate: "Analytics Director AI-03",
+    permissions: ["Department Analytics", "Data Governance", "Cross-Department Reporting", "Budget Authority"],
+    permissionSets: ["Director Analytics Access", "Data Governance", "BI Platform Administration", "Department Management"],
+    sessionPolicy: "Director Security",
+    ipRestrictions: "Secure Network",
     avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: false,
-    hierarchy: "L2 - Individual Contributor"
+    delegatedAdmin: true,
+    hierarchy: "L3 - Director Level",
+    reportingLine: "VP Engineering → CTO → CEO",
+    authorityScope: "Department analytics operations",
+    crossFunctionalAccess: "VP approval required"
   },
   {
     id: "USR-004",
     name: "Mark Wilson",
     username: "mwilson",
     email: "mark.wilson@company.com",
-    role: "Marketing Lead", 
-    profile: "Marketing Lead Profile",
+    role: "Chief Marketing Officer",
+    title: "Chief Marketing Officer",
+    profile: "CMO Executive Profile",
     department: "Marketing",
+    division: "Marketing",
     userType: "internal",
     status: "active",
     lastLogin: "1 min ago",
-    aiTeammate: "Marketing AI-07",
-    permissions: ["Marketing Tools", "Campaign Management", "Team Lead"],
-    permissionSets: ["Marketing Automation", "Team Management", "Budget Access"],
-    sessionPolicy: "Standard MFA",
-    ipRestrictions: "Office + VPN",
+    aiTeammate: "CMO AI-07",
+    permissions: ["Company-wide Marketing", "Brand Authority", "Strategic Planning", "Cross-Division Access"],
+    permissionSets: ["C-Level Access", "Marketing Leadership", "Strategic Planning", "Executive Reporting"],
+    sessionPolicy: "Executive Security",
+    ipRestrictions: "Executive + Global",
     avatar: "/placeholder.svg?height=32&width=32",
     delegatedAdmin: true,
-    hierarchy: "L3 - Manager"
+    hierarchy: "L5 - C-Level Executives",
+    reportingLine: "CEO → System Admin",
+    authorityScope: "All marketing operations & strategy",
+    crossFunctionalAccess: "Full access within domain"
   },
   {
     id: "USR-005",
     name: "Lisa Park",
     username: "lpark",
     email: "lisa.park@company.com",
-    role: "Security Admin",
-    profile: "Security Admin Profile",
-    department: "IT Security",
+    role: "System Administrator",
+    title: "Senior System Administrator",
+    profile: "System Admin Profile",
+    department: "IT Infrastructure",
+    division: "Technology",
     userType: "internal",
     status: "active", 
-    lastLogin: "15 min ago",
-    aiTeammate: "Security AI-05",
-    permissions: ["Security Admin", "System Access", "Audit Logs"],
-    permissionSets: ["Full System Access", "Security Management", "Audit Trail"],
-    sessionPolicy: "High Security",
-    ipRestrictions: "Secure Network Only",
+    lastLogin: "5 min ago",
+    aiTeammate: "System Admin AI-05",
+    permissions: ["Complete System Control", "Emergency Override", "User Management", "Security Administration"],
+    permissionSets: ["System Administration", "Emergency Protocols", "Infrastructure Management", "Security Oversight"],
+    sessionPolicy: "Maximum Security",
+    ipRestrictions: "Secure Network + MFA + Biometric",
     avatar: "/placeholder.svg?height=32&width=32",
     delegatedAdmin: true,
-    hierarchy: "L4 - Director"
+    hierarchy: "L7 - System Administrator",
+    reportingLine: "Direct system authority",
+    authorityScope: "Complete system control & emergency override",
+    crossFunctionalAccess: "Universal override authority"
   },
   {
     id: "USR-006",
     name: "David Kumar",
     username: "dkumar",
     email: "david.kumar@company.com",
-    role: "Product Manager",
-    profile: "Product Manager Profile",
-    department: "Product",
-    userType: "external",
-    status: "pending",
-    lastLogin: "Never",
-    aiTeammate: "Product AI-09",
-    permissions: ["Product Planning", "Roadmap Access"],
-    permissionSets: ["Product Suite Access"],
-    sessionPolicy: "Guest Policy",
-    ipRestrictions: "Restricted Access",
+    role: "CEO",
+    title: "Chief Executive Officer",
+    profile: "CEO Executive Profile",
+    department: "Executive",
+    division: "Executive Leadership",
+    userType: "internal",
+    status: "active",
+    lastLogin: "10 min ago",
+    aiTeammate: "CEO AI-09",
+    permissions: ["Company-wide Strategic Oversight", "All Data Access", "Final Escalation Authority", "Override Authority"],
+    permissionSets: ["CEO Access", "Strategic Leadership", "Company-wide Authority", "Override Permissions"],
+    sessionPolicy: "CEO Security",
+    ipRestrictions: "Executive + Global + Emergency",
     avatar: "/placeholder.svg?height=32&width=32",
-    delegatedAdmin: false,
-    hierarchy: "L3 - Manager"
+    delegatedAdmin: true,
+    hierarchy: "L6 - CEO",
+    reportingLine: "System Admin (technical escalation only)",
+    authorityScope: "Complete business authority",
+    crossFunctionalAccess: "Universal business authority"
   },
   {
     id: "USR-007",
     name: "Emily Rodriguez",
     username: "erodriguez",
     email: "emily.rodriguez@partner.com",
-    role: "External Consultant",
-    profile: "External User Profile",
-    department: "Consulting",
-    userType: "guest",
+    role: "Sales Team Lead",
+    title: "Senior Sales Team Lead",
+    profile: "Team Lead Profile",
+    department: "Regional Sales",
+    division: "Sales",
+    userType: "internal",
     status: "active",
-    lastLogin: "30 min ago",
-    aiTeammate: "Consultant AI-11",
-    permissions: ["Limited Access", "Consultation Tools"],
-    permissionSets: ["Guest Access"],
-    sessionPolicy: "Guest Policy",
-    ipRestrictions: "VPN Required",
+    lastLogin: "15 min ago",
+    aiTeammate: "Sales Team Lead AI-11",
+    permissions: ["Team Coordination", "Regional Sales Data", "Team Performance"],
+    permissionSets: ["Team Leadership", "Regional Access", "Performance Management"],
+    sessionPolicy: "Standard Security",
+    ipRestrictions: "Regional + VPN",
     avatar: "/placeholder.svg?height=32&width=32",
     delegatedAdmin: false,
-    hierarchy: "L1 - Guest"
+    hierarchy: "L1 - Team Lead Level",
+    reportingLine: "Sales Manager → Sales Director → VP Sales",
+    authorityScope: "Team coordination & support",
+    crossFunctionalAccess: "Manager approval required"
+  },
+  {
+    id: "USR-008",
+    name: "Michael Foster",
+    username: "mfoster",
+    email: "michael.foster@company.com",
+    role: "External Security Consultant",
+    title: "Senior Security Consultant",
+    profile: "External Consultant Profile",
+    department: "External Consulting",
+    division: "External",
+    userType: "guest",
+    status: "active",
+    lastLogin: "1 hour ago",
+    aiTeammate: "External Security AI-08",
+    permissions: ["Limited Security Review", "Consultation Access", "Temporary Audit"],
+    permissionSets: ["Guest Security Access", "Audit Review"],
+    sessionPolicy: "Guest Security Policy",
+    ipRestrictions: "VPN Required + Time Limited",
+    avatar: "/placeholder.svg?height=32&width=32",
+    delegatedAdmin: false,
+    hierarchy: "Guest Access",
+    reportingLine: "N/A (External)",
+    authorityScope: "Limited consultation scope",
+    crossFunctionalAccess: "No access to internal systems"
   }
 ]
 
@@ -190,12 +253,17 @@ const userColumns = [
   },
   {
     key: "role",
-    header: "Role & Profile", 
+    header: "Role & Hierarchy", 
     cell: (row: any) => (
       <div>
         <div className="font-medium text-foreground">{row.role}</div>
-        <div className="text-xs text-muted-foreground">{row.profile}</div>
-        <div className="text-xs text-muted-foreground">Hierarchy: {row.hierarchy}</div>
+        <div className="text-xs text-muted-foreground">{row.title}</div>
+        <Badge variant="outline" className="text-xs mt-1">
+          {row.hierarchy}
+        </Badge>
+        <div className="text-xs text-muted-foreground mt-1">
+          Division: {row.division}
+        </div>
       </div>
     ),
   },
@@ -373,6 +441,85 @@ export default function Users() {
             </DialogContent>
           </Dialog>
         </PageHeader>
+
+        {/* Enhanced Hierarchy Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Building2 className="h-5 w-5" />
+                <span>Corporate Hierarchy Overview</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">1</div>
+                  <div className="text-xs text-muted-foreground">System Admin</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-1">6</div>
+                  <div className="text-xs text-muted-foreground">C-Level + CEO</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-2">36</div>
+                  <div className="text-xs text-muted-foreground">VPs + Directors</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-3">396</div>
+                  <div className="text-xs text-muted-foreground">Managers + Teams</div>
+                </div>
+              </div>
+              <Dialog open={isHierarchyOpen} onOpenChange={setIsHierarchyOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    View Full Hierarchy
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Corporate Role Hierarchy</DialogTitle>
+                  </DialogHeader>
+                  <RoleHierarchyTree />
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Zap className="h-5 w-5" />
+                <span>Authority Matrix</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">System Override</span>
+                  <Badge variant="destructive" className="text-xs">1 user</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Executive Authority</span>
+                  <Badge variant="default" className="text-xs">6 users</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Division Authority</span>
+                  <Badge variant="secondary" className="text-xs">12 users</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Department Authority</span>
+                  <Badge variant="outline" className="text-xs">24 users</Badge>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="w-full mt-4" onClick={() => setIsPermissionSetsOpen(true)}>
+                <Shield className="h-4 w-4 mr-2" />
+                View Permission Matrix
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Advanced Management Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
