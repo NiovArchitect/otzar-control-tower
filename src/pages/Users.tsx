@@ -135,42 +135,44 @@ const userColumns = [
     key: "actions",
     header: "Actions",
     cell: (row: any) => (
-      <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" className="h-7 text-xs">
-          <Eye className="w-3 h-3 mr-1" />
-          View Details
-        </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs">
-          <Edit className="w-3 h-3 mr-1" />
-          Edit
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-              <MoreHorizontal className="w-3 h-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>
-              <Shield className="w-4 h-4 mr-2" />
-              Manage Permissions
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Brain className="w-4 h-4 mr-2" />
-              Configure AI Teammate
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Key className="w-4 h-4 mr-2" />
-              Reset Password
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Deactivate User
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 px-3">
+            <MoreHorizontal className="w-4 h-4 mr-2" />
+            Actions
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56 bg-background border shadow-lg">
+          <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <Eye className="w-4 h-4 mr-2" />
+            View Details
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Profile
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <Shield className="w-4 h-4 mr-2" />
+            Manage Permissions
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Brain className="w-4 h-4 mr-2" />
+            Configure AI Teammate
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Key className="w-4 h-4 mr-2" />
+            Reset Password
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-destructive">
+            <Trash2 className="w-4 h-4 mr-2" />
+            Deactivate User
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     ),
   },
 ]
