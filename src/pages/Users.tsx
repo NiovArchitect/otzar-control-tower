@@ -1188,10 +1188,20 @@ export default function Users() {
                   <Badge variant="outline" className="text-xs">12 users</Badge>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="w-full justify-start">
-                <Settings className="h-4 w-4 mr-2" />
-                Manage Hierarchy
-              </Button>
+              <Dialog open={isHierarchyOpen} onOpenChange={setIsHierarchyOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default" size="sm" className="w-full justify-start">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Hierarchy
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Role Hierarchy Management</DialogTitle>
+                  </DialogHeader>
+                  <RoleHierarchyManager />
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>
