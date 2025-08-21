@@ -131,50 +131,6 @@ const userColumns = [
       </StatusBadge>
     ),
   },
-  {
-    key: "actions",
-    header: "Actions",
-    cell: (row: any) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 px-3">
-            <MoreHorizontal className="w-4 h-4 mr-2" />
-            Actions
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 bg-background border shadow-lg">
-          <DropdownMenuLabel>User Actions</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <Eye className="w-4 h-4 mr-2" />
-            View Details
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Profile
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <Shield className="w-4 h-4 mr-2" />
-            Manage Permissions
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Brain className="w-4 h-4 mr-2" />
-            Configure AI Teammate
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Key className="w-4 h-4 mr-2" />
-            Reset Password
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive">
-            <Trash2 className="w-4 h-4 mr-2" />
-            Deactivate User
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-  },
 ]
 
 const roleData = [
