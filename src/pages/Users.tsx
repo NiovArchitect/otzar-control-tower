@@ -1,10 +1,11 @@
-import { Users as UsersIcon, UserPlus, Shield, Settings, Search, MoreHorizontal, Edit, Trash2, Lock, Eye, Mail, Phone, Key, Globe, Clock, UserCheck, AlertTriangle, Plus, Filter, Building2, Zap } from "lucide-react"
+import { Users as UsersIcon, UserPlus, Shield, Settings, Search, MoreHorizontal, Edit, Trash2, Lock, Eye, Mail, Phone, Key, Globe, Clock, UserCheck, AlertTriangle, Plus, Filter, Building2, Zap, FileText, Database, FolderOpen, GitBranch, Network, Layers, Target, Brain, Activity, Workflow, BookOpen, Archive, CheckCircle, XCircle, AlertCircle, Crown, Star, Briefcase } from "lucide-react"
 import { DashboardCard } from "@/components/DashboardCard"
 import { DataTable } from "@/components/DataTable"
 import { StatusBadge } from "@/components/StatusBadge"
 import { PageHeader } from "@/components/PageHeader"
 import { Layout } from "@/components/Layout"
 import { RoleHierarchyTree } from "@/components/RoleHierarchyTree"
+import { RoleHierarchyManager } from "@/components/RoleHierarchyManager"
 import { PermissionMatrix } from "@/components/PermissionMatrix"
 import { ApprovalWorkflow } from "@/components/ApprovalWorkflow"
 import { Button } from "@/components/ui/button"
@@ -56,30 +57,69 @@ const userColumns = [
   },
   {
     key: "role",
-    header: "Role & Hierarchy", 
+    header: "Role & Access Matrix", 
     cell: (row: any) => (
       <div>
         <div className="font-medium text-foreground">{row.role}</div>
         <div className="text-xs text-muted-foreground">{row.title}</div>
-        <Badge variant="outline" className="text-xs mt-1">
-          {row.hierarchy}
-        </Badge>
-        <div className="text-xs text-muted-foreground mt-1">
-          Division: {row.division}
+        <div className="flex flex-wrap gap-1 mt-1">
+          <Badge variant="outline" className="text-xs">
+            {row.hierarchy}
+          </Badge>
+          <Badge variant="secondary" className="text-xs">
+            {row.division}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-1 mt-1">
+          <FileText className="w-3 h-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
+            {row.accessLevel || 'Standard'} Access
+          </span>
         </div>
       </div>
     ),
   },
   {
-    key: "userType",
-    header: "User Type",
+    key: "accessControl",
+    header: "RBAC/ABAC Matrix",
     cell: (row: any) => (
-      <Badge 
-        variant={row.userType === "internal" ? "default" : row.userType === "external" ? "secondary" : "outline"}
-        className="text-xs"
-      >
-        {row.userType ? row.userType.charAt(0).toUpperCase() + row.userType.slice(1) : 'Unknown'}
-      </Badge>
+      <div className="space-y-1">
+        <div className="flex items-center gap-1">
+          <Database className="w-3 h-3 text-chart-1" />
+          <span className="text-xs text-muted-foreground">Knowledge: {row.knowledgeAccess || 'Dept'}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <FolderOpen className="w-3 h-3 text-chart-2" />
+          <span className="text-xs text-muted-foreground">Projects: {row.projectAccess || 'Assigned'}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Archive className="w-3 h-3 text-chart-3" />
+          <span className="text-xs text-muted-foreground">Docs: {row.documentAccess || 'Team'}</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "aiTeammate",
+    header: "AI Teammate Status",
+    cell: (row: any) => (
+      <div className="space-y-1">
+        <div className="flex items-center gap-1">
+          <Brain className="w-3 h-3 text-primary" />
+          <span className="text-xs font-medium text-foreground">
+            {row.aiTeammateName || `${row.name.split(' ')[0]} AI`}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Activity className="w-3 h-3 text-green-500" />
+          <span className="text-xs text-muted-foreground">
+            {row.aiStatus || 'Active'} • {row.aiTasksCompleted || '156'} tasks
+          </span>
+        </div>
+        <Badge variant="outline" className="text-xs">
+          {row.aiCapabilities || 'Standard'} Skills
+        </Badge>
+      </div>
     ),
   },
   {
@@ -92,21 +132,45 @@ const userColumns = [
     ),
   },
   {
-    key: "lastLogin", 
-    header: "Last Login",
-  },
-  {
-    key: "delegatedAdmin",
-    header: "Admin Rights",
+    key: "actions",
+    header: "Actions",
     cell: (row: any) => (
-      row.delegatedAdmin ? (
-        <Badge variant="default" className="text-xs">
-          <UserCheck className="w-3 h-3 mr-1" />
-          Delegated Admin
-        </Badge>
-      ) : (
-        <span className="text-xs text-muted-foreground">Standard User</span>
-      )
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" className="h-7 text-xs">
+          <Eye className="w-3 h-3 mr-1" />
+          View Details
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs">
+          <Edit className="w-3 h-3 mr-1" />
+          Edit
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+              <MoreHorizontal className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem>
+              <Shield className="w-4 h-4 mr-2" />
+              Manage Permissions
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Brain className="w-4 h-4 mr-2" />
+              Configure AI Teammate
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Key className="w-4 h-4 mr-2" />
+              Reset Password
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Deactivate User
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     ),
   },
 ]
@@ -343,14 +407,14 @@ export default function Users() {
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="w-full">
                     <Building2 className="h-4 w-4 mr-2" />
-                    View Full Hierarchy
+                    Manage Hierarchy
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Corporate Role Hierarchy</DialogTitle>
+                    <DialogTitle>Role Hierarchy & Access Control Management</DialogTitle>
                   </DialogHeader>
-                  <RoleHierarchyTree />
+                  <RoleHierarchyManager />
                 </DialogContent>
               </Dialog>
             </CardContent>
