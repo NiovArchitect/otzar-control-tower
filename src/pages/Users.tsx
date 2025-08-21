@@ -86,15 +86,36 @@ const userColumns = [
       <div className="space-y-1">
         <div className="flex items-center gap-1">
           <Database className="w-3 h-3 text-chart-1" />
-          <span className="text-xs text-muted-foreground">Knowledge: {row.knowledgeAccess || 'Dept'}</span>
+          <span className="text-xs text-muted-foreground">
+            Knowledge: {row.role === 'VP Engineering' ? 'Engineering + Tech' : 
+                      row.role === 'CEO' ? 'Company-wide' :
+                      row.role === 'Senior Sales Manager' ? 'Sales + Customer' :
+                      row.role === 'Marketing Director' ? 'Marketing + Brand' :
+                      row.role === 'System Administrator' ? 'All Systems' :
+                      'Department'}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <FolderOpen className="w-3 h-3 text-chart-2" />
-          <span className="text-xs text-muted-foreground">Projects: {row.projectAccess || 'Assigned'}</span>
+          <span className="text-xs text-muted-foreground">
+            Projects: {row.role === 'VP Engineering' ? 'All Tech Projects' :
+                      row.role === 'CEO' ? 'Strategic Oversight' :
+                      row.role === 'Senior Sales Manager' ? 'Sales Initiatives' :
+                      row.role === 'Marketing Director' ? 'Marketing Campaigns' :
+                      row.role === 'System Administrator' ? 'Infrastructure' :
+                      'Assigned Only'}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <Archive className="w-3 h-3 text-chart-3" />
-          <span className="text-xs text-muted-foreground">Docs: {row.documentAccess || 'Team'}</span>
+          <span className="text-xs text-muted-foreground">
+            Docs: {row.role === 'VP Engineering' ? 'Tech Specs + Team' :
+                  row.role === 'CEO' ? 'Executive + Board' :
+                  row.role === 'Senior Sales Manager' ? 'Sales + Contracts' :
+                  row.role === 'Marketing Director' ? 'Brand + Creative' :
+                  row.role === 'System Administrator' ? 'System + Security' :
+                  'Team Level'}
+          </span>
         </div>
       </div>
     ),
@@ -129,6 +150,38 @@ const userColumns = [
       <StatusBadge status={row.status as any}>
         {row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Unknown'}
       </StatusBadge>
+    ),
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    cell: (row: any) => (
+      <div className="flex items-center gap-2">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="h-8 text-xs"
+          onClick={() => {
+            // Open user details modal/dialog
+            console.log('View details for user:', row);
+          }}
+        >
+          <Eye className="w-3 h-3 mr-1" />
+          View Details
+        </Button>
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          className="h-8 text-xs"
+          onClick={() => {
+            // Open edit user modal/dialog
+            console.log('Edit user:', row);
+          }}
+        >
+          <Edit className="w-3 h-3 mr-1" />
+          Edit
+        </Button>
+      </div>
     ),
   },
 ]
