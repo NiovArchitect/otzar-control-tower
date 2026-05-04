@@ -50,6 +50,7 @@ import { getCapsuleTypeLabel } from "@/lib/labels/capsule-types";
 import { getAuditEventLabel } from "@/lib/audit/event-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
+  AITeammateListItem,
   AuditEvent,
   Entity,
   EntityMembership,
@@ -348,7 +349,7 @@ export function MemberDetailDrawer({
 
             {/* ── AI Teammates Owned tab ───────────────────────────── */}
             <TabsContent value="teammates" className="pt-4">
-              <DataTable<Entity>
+              <DataTable<AITeammateListItem>
                 columns={teammateColumns}
                 data={aiTeammatesOwned.data ?? undefined}
                 isLoading={aiTeammatesOwned.isLoading}
@@ -452,7 +453,11 @@ const permissionColumns: ColumnDef<Permission>[] = [
   },
 ];
 
-const teammateColumns: ColumnDef<Entity>[] = [
+// 12B.3 Drift 1: AI teammate list response is the slim
+// AITeammateListItem shape (no entity_type, no updated_at). Tab
+// context already implies entity_type=AI_AGENT, so the Type column
+// is dropped; "Last updated" maps to created_at instead.
+const teammateColumns: ColumnDef<AITeammateListItem>[] = [
   {
     id: "display_name",
     header: "Name",
@@ -464,14 +469,9 @@ const teammateColumns: ColumnDef<Entity>[] = [
     accessorKey: "status",
   },
   {
-    id: "type",
-    header: "Type",
-    accessorFn: (row) => getEntityTypeLabel(row.entity_type),
-  },
-  {
-    id: "updated",
-    header: "Last updated",
-    accessorFn: (row) => formatRelativeTime(row.updated_at),
+    id: "created",
+    header: "Created",
+    accessorFn: (row) => formatRelativeTime(row.created_at),
   },
 ];
 

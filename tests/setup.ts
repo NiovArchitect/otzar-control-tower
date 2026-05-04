@@ -21,6 +21,21 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   } as unknown as typeof ResizeObserver;
 }
 
+// 12B.3: jsdom doesn't implement Element.scrollIntoView, but cmdk
+// (the Command primitive used by AssignSkillButton popover and the
+// CreateTwinDialog owner picker) calls it during list rendering.
+// Without this polyfill, any test that mounts a Command/Combobox
+// throws "scrollIntoView is not a function" at commit time.
+if (typeof Element !== "undefined") {
+  type ScrollableElement = Element & {
+    scrollIntoView?: (arg?: boolean | ScrollIntoViewOptions) => void;
+  };
+  const proto = Element.prototype as ScrollableElement;
+  if (typeof proto.scrollIntoView !== "function") {
+    proto.scrollIntoView = function () {};
+  }
+}
+
 // 12B.1: jsdom doesn't implement Element.setPointerCapture /
 // hasPointerCapture / releasePointerCapture, but sonner's
 // onPointerDown handler (and Radix select/dialog) call them. Polyfill

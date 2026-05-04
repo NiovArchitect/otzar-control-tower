@@ -52,7 +52,9 @@ import type {
   AuditEvent,
   AuditEventType,
   OrgHierarchyResponse,
-  TwinConfig,
+  AITeammateListItem,
+  AssignSkillResponse,
+  TwinDetailResponse,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -308,20 +310,33 @@ export class ApiClient {
     },
 
     aiTeammates: {
-      /** GET /api/v1/org/ai-teammates -- list AI_AGENT entities. */
+      /** GET /api/v1/org/ai-teammates -- list AI_AGENT entities.
+       *
+       *  12B.3 (Drift 1): Foundation returns a SLIM row shape
+       *  (entity_id, display_name, status, created_at, config) -- NOT
+       *  a full Entity. Full Entity surfaced via aiTeammates.get(id)
+       *  for the TwinDetailDrawer. List type is
+       *  Paginated<AITeammateListItem>; do NOT change to
+       *  Paginated<Entity>. */
       list: (params: {
         skip?: number;
         take?: number;
-      } = {}): Promise<ApiResult<Paginated<Entity>>> =>
-        this.request<Paginated<Entity>>(
+      } = {}): Promise<ApiResult<Paginated<AITeammateListItem>>> =>
+        this.request<Paginated<AITeammateListItem>>(
           `/org/ai-teammates${qs(params)}`,
         ),
 
-      /** GET /api/v1/org/ai-teammates/:id -- single twin detail. */
-      get: (
-        id: string,
-      ): Promise<ApiResult<Entity & { twin_config: TwinConfig }>> =>
-        this.request<Entity & { twin_config: TwinConfig }>(
+      /** GET /api/v1/org/ai-teammates/:id -- single twin detail.
+       *
+       *  Foundation HEAD ee4dafb (12B-FOUNDATION read endpoint).
+       *  Returns full Entity + TwinConfig + owner attribution +
+       *  hydrated skills. Used by TwinDetailDrawer Overview tab
+       *  (entity + twin_config + owner) and Skills tab (skills with
+       *  package names). No separate /org/skill-packages fetch needed
+       *  in the drawer; the response includes hydrated package per
+       *  skill row. Read-only, so no audit_event_id surfaced. */
+      get: (id: string): Promise<ApiResult<TwinDetailResponse>> =>
+        this.request<TwinDetailResponse>(
           `/org/ai-teammates/${encodeURIComponent(id)}`,
         ),
 
@@ -350,12 +365,19 @@ export class ApiClient {
           `/org/ai-teammates/${encodeURIComponent(id)}/stats`,
         ),
 
-      /** POST /api/v1/org/ai-teammates/:id/skills -- assign one SkillPackage. */
+      /** POST /api/v1/org/ai-teammates/:id/skills -- assign one SkillPackage.
+       *
+       *  Foundation HEAD ca6e982 (12B-FOUNDATION skills audit) surfaces
+       *  audit_event_id on the success arm. Consumed by
+       *  TwinDetailDrawer Skills tab's AssignSkillButton
+       *  (AuditAwareButton) Stage 4 toast for the clickable audit
+       *  chain demo. Failure arms omit audit_event_id per 12B.0
+       *  contract. */
       addSkill: (
         id: string,
         package_id: string,
-      ): Promise<ApiResult<{ ok: true; assigned: true }>> =>
-        this.request<{ ok: true; assigned: true }>(
+      ): Promise<ApiResult<AssignSkillResponse>> =>
+        this.request<AssignSkillResponse>(
           `/org/ai-teammates/${encodeURIComponent(id)}/skills`,
           { method: "POST", body: { package_id } },
         ),

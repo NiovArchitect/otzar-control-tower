@@ -291,12 +291,264 @@ const permissionsHandler = http.get(
   },
 );
 
-const aiTeammatesHandler = http.get(
+// ════════════════════════════════════════════════════════════════
+// 12B.3 additions: AI Teammates screen + TwinDetailDrawer
+// ════════════════════════════════════════════════════════════════
+//
+// Six handlers cover the endpoints that the AI Teammates screen and
+// TwinDetailDrawer consume against a single seeded twin (twinAId).
+// Recorders track which mutations fired and capture POST/PATCH
+// bodies so unit tests can assert audit_event_id surfacing and the
+// 1-call create body shape (no synthetic name/skill_package_id per
+// 12B.0). Reset between tests via tests/setup.ts
+// server.resetHandlers() + resetRecordedTwinCalls().
+
+export interface RecordedTwinCalls {
+  list: boolean;
+  detail: boolean;
+  create: boolean;
+  createBody: Record<string, unknown>;
+  update: boolean;
+  updateBody: Record<string, unknown>;
+  skillPackagesList: boolean;
+  addSkill: boolean;
+  addSkillBody: Record<string, unknown>;
+}
+const recordedTwinCalls: RecordedTwinCalls = {
+  list: false,
+  detail: false,
+  create: false,
+  createBody: {},
+  update: false,
+  updateBody: {},
+  skillPackagesList: false,
+  addSkill: false,
+  addSkillBody: {},
+};
+
+export function getRecordedTwinCalls(): RecordedTwinCalls {
+  return {
+    ...recordedTwinCalls,
+    createBody: { ...recordedTwinCalls.createBody },
+    updateBody: { ...recordedTwinCalls.updateBody },
+    addSkillBody: { ...recordedTwinCalls.addSkillBody },
+  };
+}
+export function resetRecordedTwinCalls(): void {
+  recordedTwinCalls.list = false;
+  recordedTwinCalls.detail = false;
+  recordedTwinCalls.create = false;
+  recordedTwinCalls.createBody = {};
+  recordedTwinCalls.update = false;
+  recordedTwinCalls.updateBody = {};
+  recordedTwinCalls.skillPackagesList = false;
+  recordedTwinCalls.addSkill = false;
+  recordedTwinCalls.addSkillBody = {};
+}
+
+const twinAId = "20000000-aaaa-bbbb-cccc-000000000001";
+const ownerAId = "00000000-aaaa-bbbb-cccc-000000000001";
+const skillPackageAId = "50000000-aaaa-bbbb-cccc-000000000001";
+const skillPackageBId = "50000000-aaaa-bbbb-cccc-000000000002";
+const twinCreateAuditId = "60000000-aaaa-bbbb-cccc-000000000001";
+const twinUpdateAuditId = "60000000-aaaa-bbbb-cccc-000000000002";
+const twinSkillAuditId = "60000000-aaaa-bbbb-cccc-000000000003";
+const twinSkillRowId = "70000000-aaaa-bbbb-cccc-000000000001";
+const twinPermissionBridgeId = "80000000-aaaa-bbbb-cccc-000000000001";
+
+const aiTeammatesListHandler = http.get(
   `${API_BASE}/org/ai-teammates`,
   async () => {
+    recordedTwinCalls.list = true;
     return HttpResponse.json(
-      { ok: true, items: [], total: 0, skip: 0, take: 25 },
+      {
+        ok: true,
+        items: [
+          {
+            entity_id: twinAId,
+            display_name: "Sarah's AI Teammate",
+            status: "ACTIVE",
+            created_at: new Date(Date.now() - 7 * 86_400_000).toISOString(),
+            config: {
+              twin_id: twinAId,
+              autonomy_level: "APPROVAL_REQUIRED",
+              swarm_enabled: false,
+              role_template: "Executive Assistant",
+              is_admin_twin: true,
+              approver_entity_id: ownerAId,
+              updated_at: new Date(Date.now() - 3_600_000).toISOString(),
+            },
+          },
+        ],
+        total: 1,
+        skip: 0,
+        take: 25,
+      },
       { status: 200 },
+    );
+  },
+);
+
+const aiTeammatesGetHandler = http.get(
+  `${API_BASE}/org/ai-teammates/:id`,
+  async ({ params }) => {
+    recordedTwinCalls.detail = true;
+    const id = String(params.id);
+    return HttpResponse.json(
+      {
+        ok: true,
+        entity: {
+          entity_id: id,
+          entity_type: "AI_AGENT",
+          display_name: "Sarah's AI Teammate",
+          email: null,
+          status: "ACTIVE",
+          clearance_level: 6,
+          public_key: "pk_twin_a",
+          failed_auth_attempts: 0,
+          suspended_at: null,
+          created_at: new Date(Date.now() - 7 * 86_400_000).toISOString(),
+          updated_at: new Date(Date.now() - 3_600_000).toISOString(),
+          deleted_at: null,
+        },
+        twin_config: {
+          twin_id: id,
+          autonomy_level: "APPROVAL_REQUIRED",
+          swarm_enabled: false,
+          role_template: "Executive Assistant",
+          is_admin_twin: true,
+          approver_entity_id: ownerAId,
+          updated_at: new Date(Date.now() - 3_600_000).toISOString(),
+        },
+        owner_entity_id: ownerAId,
+        skills: [
+          {
+            id: twinSkillRowId,
+            twin_id: id,
+            package_id: skillPackageAId,
+            assigned_at: new Date(Date.now() - 6 * 86_400_000).toISOString(),
+            package: {
+              package_id: skillPackageAId,
+              name: "Calendar Coordination",
+              category: "PRODUCTIVITY",
+              description: "Schedule meetings on behalf of the owner.",
+              capability_flags: ["calendar:read", "calendar:write"],
+              created_at: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+            },
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const aiTeammatesCreateHandler = http.post(
+  `${API_BASE}/org/ai-teammates`,
+  async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    recordedTwinCalls.create = true;
+    recordedTwinCalls.createBody = body;
+    return HttpResponse.json(
+      {
+        ok: true,
+        entity_id: twinAId,
+        twin_config: {
+          twin_id: twinAId,
+          autonomy_level: "APPROVAL_REQUIRED",
+          swarm_enabled: false,
+          role_template: (body.role_title as string) ?? null,
+          is_admin_twin: Boolean(body.is_admin_invite),
+          approver_entity_id: null,
+          updated_at: new Date().toISOString(),
+        },
+        is_admin_twin: Boolean(body.is_admin_invite),
+        org_permission_bridge_id: null,
+        owner_permission_bridge_id: twinPermissionBridgeId,
+        default_hive_membership_id: null,
+        audit_event_id: twinCreateAuditId,
+      },
+      { status: 201 },
+    );
+  },
+);
+
+const aiTeammatesPatchHandler = http.patch(
+  `${API_BASE}/org/ai-teammates/:id`,
+  async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    recordedTwinCalls.update = true;
+    recordedTwinCalls.updateBody = body;
+    return HttpResponse.json(
+      {
+        ok: true,
+        twin_config: {
+          twin_id: String(params.id),
+          autonomy_level:
+            (body.autonomy_level as string) ?? "APPROVAL_REQUIRED",
+          swarm_enabled: Boolean(body.swarm_enabled ?? false),
+          role_template: (body.role_template as string | null) ?? null,
+          is_admin_twin: true,
+          approver_entity_id:
+            (body.approver_entity_id as string | null) ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        audit_event_id: twinUpdateAuditId,
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const skillPackagesListHandler = http.get(
+  `${API_BASE}/org/skill-packages`,
+  async () => {
+    recordedTwinCalls.skillPackagesList = true;
+    return HttpResponse.json(
+      {
+        ok: true,
+        items: [
+          {
+            package_id: skillPackageAId,
+            name: "Calendar Coordination",
+            category: "PRODUCTIVITY",
+            description: "Schedule meetings on behalf of the owner.",
+            capability_flags: ["calendar:read", "calendar:write"],
+            created_at: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+          },
+          {
+            package_id: skillPackageBId,
+            name: "Inbox Triage",
+            category: "PRODUCTIVITY",
+            description: "Categorize and prioritize incoming mail.",
+            capability_flags: ["mail:read"],
+            created_at: new Date(Date.now() - 14 * 86_400_000).toISOString(),
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const aiTeammatesAddSkillHandler = http.post(
+  `${API_BASE}/org/ai-teammates/:id/skills`,
+  async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    recordedTwinCalls.addSkill = true;
+    recordedTwinCalls.addSkillBody = body;
+    return HttpResponse.json(
+      {
+        ok: true,
+        skill: {
+          id: twinSkillRowId,
+          twin_id: String(params.id),
+          package_id: (body.package_id as string) ?? skillPackageBId,
+          assigned_at: new Date().toISOString(),
+        },
+        audit_event_id: twinSkillAuditId,
+      },
+      { status: 201 },
     );
   },
 );
@@ -314,5 +566,11 @@ export const handlers = [
   analyticsHandler,
   hierarchyHandler,
   permissionsHandler,
-  aiTeammatesHandler,
+  // 12B.3
+  aiTeammatesListHandler,
+  aiTeammatesGetHandler,
+  aiTeammatesCreateHandler,
+  aiTeammatesPatchHandler,
+  skillPackagesListHandler,
+  aiTeammatesAddSkillHandler,
 ];

@@ -320,6 +320,70 @@ export interface SkillPackage {
   created_at: string;
 }
 
+// WHAT: One TwinSkill join row.
+// WHY: Mirror of `model TwinSkill`. Returned by POST
+//      /org/ai-teammates/:id/skills when a SkillPackage is assigned.
+//      Used by TwinDetailDrawer Skills tab to show assigned skills.
+export interface TwinSkill {
+  id: string;
+  twin_id: string;
+  package_id: string;
+  assigned_at: string;
+}
+
+// WHAT: Success response from POST /org/ai-teammates/:id/skills.
+// WHY: Foundation HEAD ca6e982 (skill assignment audit emission) added
+//      audit_event_id to the success arm. Consumed by TwinDetailDrawer
+//      Skills tab's AssignSkillButton (AuditAwareButton) Stage 4 toast
+//      for the clickable audit chain demo. Failure arms (TWIN_NOT_FOUND,
+//      SKILL_PACKAGE_NOT_FOUND, INVALID_REQUEST) intentionally omit
+//      audit_event_id per 12B.0 contract.
+export interface AssignSkillResponse {
+  ok: true;
+  skill: TwinSkill;
+  audit_event_id: string;
+}
+
+// WHAT: TwinSkill row hydrated with its SkillPackage.
+// WHY: Foundation HEAD ee4dafb GET /org/ai-teammates/:id returns
+//      `skills` with `include: { package: true }`, so each row
+//      already carries the full SkillPackage. Hydrating up-front
+//      eliminates the N+1 fetch the Skills tab would otherwise
+//      need against /org/skill-packages to resolve package names.
+export interface TwinSkillWithPackage extends TwinSkill {
+  package: SkillPackage;
+}
+
+// WHAT: Success response from GET /org/ai-teammates/:id.
+// WHY: Foundation HEAD ee4dafb GET /org/ai-teammates/:id contract.
+//      Powers TwinDetailDrawer Overview + Skills tabs honestly. The
+//      hydrated `package` on each skill row eliminates the N+1 fetch
+//      that would otherwise be needed against /org/skill-packages.
+//      Failure arms (TWIN_NOT_FOUND, TWIN_NOT_IN_ORG) return 404 with
+//      no audit_event_id (read endpoints don't surface audit ids per
+//      12B.0 contract).
+export interface TwinDetailResponse {
+  ok: true;
+  entity: Entity;
+  twin_config: TwinConfig;
+  owner_entity_id: string;
+  skills: TwinSkillWithPackage[];
+}
+
+// WHAT: Slim row shape returned by GET /org/ai-teammates list endpoint.
+// WHY: Drift 1 from 12B.3 pre-flight: Foundation's twin list returns
+//      a slim shape { entity_id, display_name, status, created_at,
+//      config: TwinConfig | null } -- NOT a full Entity. Full Entity
+//      surfaced via GET /org/ai-teammates/:id for the detail drawer.
+//      The slim shape is what the AI Teammates table renders from.
+export interface AITeammateListItem {
+  entity_id: string;
+  display_name: string;
+  status: EntityStatus;
+  created_at: string;
+  config: TwinConfig | null;
+}
+
 // WHAT: One Hive row.
 // WHY: Mirror of `model Hive`. Used in AI Teammates Hive Membership
 //      column in 12B.3.
