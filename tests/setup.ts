@@ -8,6 +8,19 @@ import { afterAll, afterEach, beforeAll } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { server } from "./msw/server";
 
+// 12B.2: jsdom doesn't implement ResizeObserver, but Radix's
+// react-use-size hook (loaded by Checkbox, Select, etc.) instantiates
+// one on mount. Without this polyfill, any test that mounts a Radix
+// component depending on size measurement throws "ResizeObserver is
+// not defined" at commit time.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
+}
+
 // 12B.1: jsdom doesn't implement Element.setPointerCapture /
 // hasPointerCapture / releasePointerCapture, but sonner's
 // onPointerDown handler (and Radix select/dialog) call them. Polyfill

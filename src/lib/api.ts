@@ -21,6 +21,7 @@
 //    refused). 4xx and 5xx are NOT retried -- those are real
 //    application states the caller needs to see.
 
+import { generateRandomPassword } from "./auth/random-password";
 import type {
   LoginResponse,
   LoginFailure,
@@ -240,20 +241,37 @@ export class ApiClient {
     },
 
     members: {
-      /** POST /api/v1/org/members -- single create. 12B.0 surfaces audit_event_id. */
+      /** POST /api/v1/org/members -- single create. 12B.0 surfaces audit_event_id.
+       *
+       *  12B.2: injects a random 32-char placeholder password via
+       *  generateRandomPassword() if the caller didn't supply one
+       *  (which they shouldn't -- per decision #21, no UI form
+       *  collects a password). Foundation requires a non-null
+       *  password to mint the row; the invitee's real access path
+       *  is Phase3Result.activation_credential, not this value.
+       */
       create: (input: MemberInput): Promise<ApiResult<MemberCreateResponse>> =>
         this.request<MemberCreateResponse>("/org/members", {
           method: "POST",
-          body: input,
+          body: {
+            ...input,
+            password: input.password ?? generateRandomPassword(),
+          },
         }),
 
-      /** POST /api/v1/org/members/bulk -- batch create. */
+      /** POST /api/v1/org/members/bulk -- batch create. Same
+       *  random-password injection applied per row. */
       bulk: (
         members: MemberInput[],
       ): Promise<ApiResult<MemberBulkResponse>> =>
         this.request<MemberBulkResponse>("/org/members/bulk", {
           method: "POST",
-          body: { members },
+          body: {
+            members: members.map((m) => ({
+              ...m,
+              password: m.password ?? generateRandomPassword(),
+            })),
+          },
         }),
     },
 
@@ -372,7 +390,16 @@ export class ApiClient {
     },
 
     audit: {
-      /** GET /api/v1/org/audit -- paginated audit_events for caller's org. */
+      /** GET /api/v1/org/audit -- paginated audit_events for caller's org.
+       *
+       *  12B.2 contract drift (decision #23): Foundation's handler
+       *  signature only accepts `skip` + `take` -- it silently
+       *  ignores `event_type` and `actor_entity_id` query params.
+       *  This method still accepts them for forward-compat (12D will
+       *  extend Foundation), but callers in 12B.2-12C must filter
+       *  client-side after fetch. Pass `take: 50` and slice / filter
+       *  in JS until the Foundation extension lands.
+       */
       list: (params: {
         skip?: number;
         take?: number;

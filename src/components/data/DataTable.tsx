@@ -46,15 +46,15 @@ interface DataTableProps<T> {
     description: string;
     cta?: React.ReactNode;
   };
-  pageSize?: number;
-  totalCount?: number;
-  searchPlaceholder?: string;
-  filterControls?: React.ReactNode;
-  onRowClick?: (row: T) => void;
+  pageSize?: number | undefined;
+  totalCount?: number | undefined;
+  searchPlaceholder?: string | undefined;
+  filterControls?: React.ReactNode | undefined;
+  onRowClick?: ((row: T) => void) | undefined;
   /** Per correction 3 (12B.1): clean retry path. Pass refetch()
    *  from TanStack Query for clean retry behavior. Defaults to
    *  full page reload if not provided. */
-  onRetry?: () => void;
+  onRetry?: (() => void) | undefined;
 }
 
 const DEFAULT_PAGE_SIZE = 25;

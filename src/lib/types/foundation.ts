@@ -374,11 +374,27 @@ export interface AuditEvent {
 // 12B.1 -- REQUEST / RESPONSE SHAPES
 // ════════════════════════════════════════════════════════════════
 
-// WHAT: Body for POST /api/v1/org/members.
-// WHY: Mirror of MemberInput in apps/api/src/routes/org.routes.ts.
+// WHAT: Body for POST /api/v1/org/members from the FRONTEND
+//        caller's perspective. Foundation's actual MemberInput
+//        requires `password` (non-null) -- but the random-password
+//        injection happens inside `api.org.members.create()` before
+//        the fetch fires, so frontend callers never pass it.
+// WHY: 12B.2 architectural dance per decision #21:
+//      - Foundation requires a placeholder password to mint the row.
+//      - The invitee's real access path is Phase3Result.activation_credential.
+//      - Frontend treats password as optional in this type so no
+//        UI form ever includes a password field. The api method
+//        injects a random 32-char value via generateRandomPassword()
+//        before delegating to the underlying request<T>().
+//      Foundation-side MemberInput still requires password; the
+//        contract is satisfied by api.org.members.create's injection,
+//        not by this type.
 export interface MemberInput {
   email: string;
-  password: string;
+  /** OPTIONAL on the frontend type: api.org.members.create injects
+   *  a random placeholder before the fetch. NEVER pass a real
+   *  password from a UI form (decision #21). */
+  password?: string;
   first_name?: string;
   last_name?: string;
   role_title?: string;
