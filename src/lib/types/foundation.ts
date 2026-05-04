@@ -1,31 +1,24 @@
 // FILE: foundation.ts
 // PURPOSE: TypeScript contracts for every Foundation API response
-//          shape the Control Tower consumes. Single source of truth.
-//          When Foundation evolves an endpoint, the type updates here
-//          and the build breaks at every stale call site -- the
-//          architectural mirror of Foundation's @niov/database type
-//          re-exports.
+//          and request shape the Control Tower consumes. Single
+//          source of truth. When Foundation evolves an endpoint, the
+//          type updates here and the build breaks at every stale
+//          call site -- the architectural mirror of Foundation's
+//          @niov/database type re-exports.
 // CONNECTS TO: src/lib/api.ts (the only HTTP surface), every screen
 //              that reads server data via TanStack Query.
-//
-// SECTION 12A SCOPE: just enough types for the endpoints 12A
-// consumes (POST /auth/login, GET /platform/health, GET
-// /org/analytics for the Pending Approvals badge). 12B-12F extend
-// this file as new endpoints come online.
 
-// WHAT: Foundation's POST /auth/login response shape.
-// INPUT: Used as a return type only.
-// OUTPUT: None.
-// WHY: Mirrors AuthService.LoginResult in apps/api/src/services/auth.service.ts.
-//      The frontend derives `can_admin_org` from
-//      `allowed_operations.includes("admin_org")` per Foundation's
-//      OPERATION_TO_CAPABILITY map (Section 9). Adding the boolean
-//      to the API response would be a Foundation change, deferred.
+// ════════════════════════════════════════════════════════════════
+// AUTH (Section 12A)
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: Foundation's POST /auth/login response shape (success arm).
+// Mirror: AuthService.LoginResult in apps/api/src/services/auth.service.ts.
 export interface LoginResponse {
   ok: true;
   token: string;
   session_id: string;
-  expires_at: string; // ISO 8601
+  expires_at: string;
   allowed_operations: string[];
   clearance_ceiling: number;
 }
@@ -38,11 +31,6 @@ export interface LoginFailure {
 }
 
 // WHAT: GET /platform/health response shape.
-// INPUT: Used as a return type only.
-// OUTPUT: None.
-// WHY: Public unauthenticated endpoint. Used by the
-//      ConnectionStatusIndicator footer dot to surface "Foundation
-//      reachable / not reachable" to the operator at a glance.
 export interface PlatformHealth {
   ok: true;
   version: string;
@@ -50,32 +38,541 @@ export interface PlatformHealth {
   database: "connected" | "disconnected" | "unknown";
 }
 
-// WHAT: GET /org/analytics response shape -- a partial subset.
-// INPUT: Used as a return type only.
-// OUTPUT: None.
-// WHY: 12A consumes only `pending_approvals_count` (drives the
-//      sidebar Approvals badge). 12B-12F will extend this type with
-//      compound_score, capsule_count, etc. as Home + Analytics
-//      screens come online.
+// WHAT: Generic Foundation 4xx/5xx body shape.
+export interface FoundationError {
+  ok: false;
+  code: string;
+  message?: string;
+}
+
+// ════════════════════════════════════════════════════════════════
+// 12B.1 -- ENUMS (mirror Foundation Prisma enums + literal unions)
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: Mirror of Foundation's `enum EntityType` (6 values) from
+//       packages/database/prisma/schema.prisma.
+// WHY: Customer-facing display labels live in
+//      src/lib/labels/entity-types.ts. Never hardcode an
+//      EntityType literal in UI -- always go through the label map.
+export type EntityType =
+  | "PERSON"
+  | "COMPANY"
+  | "AI_AGENT"
+  | "DEVICE"
+  | "APPLICATION"
+  | "GOVERNMENT";
+
+// WHAT: Mirror of Foundation's `enum EntityStatus` (3 values).
+export type EntityStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
+
+// WHAT: Mirror of Foundation's `enum WalletType` (3 values).
+// WHY: Foundation has no AI_AGENT wallet type -- AI agents get
+//      `wallet_type: "PERSONAL"`. The customer-facing
+//      "AI Teammate wallet" is derived from (walletType, entityType)
+//      in WalletProvenanceBadge.
+export type WalletType = "PERSONAL" | "ENTERPRISE" | "DEVICE";
+
+// WHAT: Mirror of Foundation's `enum CapsuleType` (20 values).
+// WHY: Section 11A added 11 to the original 9. Customer-facing
+//      display labels in src/lib/labels/capsule-types.ts.
+export type CapsuleType =
+  | "FOUNDATIONAL"
+  | "PREFERENCE"
+  | "RELATIONSHIP"
+  | "DOMAIN_KNOWLEDGE"
+  | "BEHAVIORAL_PATTERN"
+  | "IDENTITY"
+  | "DEVICE_DATA"
+  | "SESSION_LEARNING"
+  | "COMPLIANCE_RECORD"
+  | "CONVERSATION_LEARNING"
+  | "TASK_LEARNING"
+  | "WORK_PATTERN"
+  | "COMMUNICATION_PREF"
+  | "DECISION_STYLE"
+  | "COMMITMENT"
+  | "BLOCKER"
+  | "RISK"
+  | "HANDOFF"
+  | "DECISION"
+  | "CORRECTION";
+
+// WHAT: Mirror of Foundation's `enum AccessScope` (3 values).
+// WHY: This is the "how MUCH" axis -- how much of a capsule a
+//      grantee can see. Used by Permission.access_scope and by
+//      HiveMembership.contribution_scope/access_scope.
+export type AccessScope = "METADATA_ONLY" | "SUMMARY" | "FULL";
+
+// WHAT: Client-side superset of AccessScope used by the permissions
+//       matrix.
+// WHY: Q1 (12B.1): the matrix needs a fourth state -- "no
+//      Permission row exists for this entity x capsule_type cell".
+//      Foundation has no NONE value in its enum (absence of
+//      Permission row IS the NONE state). The frontend models this
+//      explicitly so MatrixCell can render a neutral cell for NONE.
+export type PermissionLevel = "NONE" | AccessScope;
+
+// WHAT: Mirror of Foundation's `enum DurationType` (6 values).
+export type DurationType =
+  | "TEMPORARY"
+  | "SHORT_TERM"
+  | "LONG_TERM"
+  | "PERMANENT"
+  | "SESSION_ONLY"
+  | "NONE";
+
+// WHAT: Mirror of Foundation's `enum PermissionStatus`.
+export type PermissionStatus = "ACTIVE" | "EXPIRED" | "REVOKED";
+
+// WHAT: Mirror of Foundation's AuditEventType union from
+//       packages/database/src/queries/audit.ts:23-58 (30 literals).
+// WHY: Section 11D added CONVERSATION_STARTED + CONVERSATION_CLOSED.
+//      Customer-facing display labels live in src/lib/audit/event-types.ts.
+//      Audit-aware UI keys off these literals; renaming requires
+//      a Foundation change.
+export type AuditEventType =
+  | "ENTITY_REGISTERED"
+  | "ENTITY_SUSPENDED"
+  | "ENTITY_REACTIVATED"
+  | "LOGIN_SUCCESS"
+  | "LOGIN_FAILED"
+  | "LOGOUT"
+  | "SESSION_CREATED"
+  | "SESSION_EXPIRED"
+  | "SESSION_REVOKED"
+  | "CAPSULE_CREATED"
+  | "CAPSULE_METADATA_READ"
+  | "CAPSULE_CONTENT_READ"
+  | "CAPSULE_UPDATED"
+  | "CAPSULE_DELETED"
+  | "PERMISSION_CREATED"
+  | "PERMISSION_REVOKED"
+  | "PERMISSION_EXPIRED"
+  | "DATA_MONETIZED"
+  | "HIVE_CREATED"
+  | "HIVE_MEMBER_ADDED"
+  | "HIVE_MEMBER_REMOVED"
+  | "HIVE_INTELLIGENCE_READ"
+  | "HIVE_AGGREGATE_BUILT"
+  | "COMPLIANCE_CHECK_PASSED"
+  | "COMPLIANCE_CHECK_FAILED"
+  | "ANOMALY_DETECTED"
+  | "ADMIN_ACTION"
+  | "NEGOTIATE"
+  | "CONVERSATION_STARTED"
+  | "CONVERSATION_CLOSED";
+
+// WHAT: Mirror of Foundation's AuditOutcome enum.
+export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";
+
+// WHAT: Twin autonomy_level value set.
+// WHY: Emphasis 2 (12B.1): Foundation stores autonomy_level as a
+//      String column (NOT a Prisma enum). Validation is enforced at
+//      the route level via TWIN_AUTONOMY_VALUES set in
+//      apps/api/src/routes/org.routes.ts. The frontend mirrors as a
+//      literal union for type safety, but it's a runtime promise --
+//      not a database guarantee. Treat any value not in this union
+//      as a Foundation contract drift; surface in PR review.
+export type TwinAutonomyLevel =
+  | "APPROVAL_REQUIRED"
+  | "EXECUTIVE_OVERRIDE"
+  | "OBSERVE_ONLY";
+
+// ════════════════════════════════════════════════════════════════
+// 12B.1 -- MODELS (mirror Foundation Prisma rows)
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: One Entity row.
+// WHY: Mirror of `model Entity` in schema.prisma. ISO 8601 strings
+//      on the wire; the frontend can wrap in date-fns when needed.
+export interface Entity {
+  entity_id: string;
+  entity_type: EntityType;
+  display_name: string;
+  email: string | null;
+  status: EntityStatus;
+  clearance_level: number;
+  public_key: string;
+  failed_auth_attempts: number;
+  suspended_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// WHAT: Profile fields hung off an Entity (1:1).
+// WHY: Mirror of `model EntityProfile`. Used for Member detail panel
+//      in 12B.2 (display_name + first_name/last_name + job_title).
+export interface EntityProfile {
+  profile_id: string;
+  entity_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  job_title: string | null;
+  username: string | null;
+  phone: string | null;
+  timezone: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  updated_at: string;
+}
+
+// WHAT: One row in the org's hierarchy graph.
+// WHY: Mirror of `model EntityMembership`. Used for hierarchy view
+//      in 12B.2 Member detail and the Phase 2 propagation analysis.
+export interface EntityMembership {
+  membership_id: string;
+  parent_id: string;
+  child_id: string;
+  role_title: string | null;
+  department: string | null;
+  hierarchy_level: number;
+  is_admin: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+// WHAT: One Wallet row.
+// WHY: Mirror of `model Wallet`. WalletProvenanceBadge derives the
+//      customer-facing variant from (walletType, entityType).
+export interface Wallet {
+  wallet_id: string;
+  entity_id: string;
+  wallet_type: WalletType;
+  niov_can_access_contents: boolean;
+  monetization_enabled: boolean;
+  total_capsule_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// WHAT: One MemoryCapsule row.
+// WHY: Mirror of `model MemoryCapsule` (key fields only -- the
+//      content/encryption metadata stays on Foundation).
+export interface MemoryCapsule {
+  capsule_id: string;
+  wallet_id: string;
+  entity_id: string;
+  version: number;
+  capsule_type: CapsuleType;
+  topic_tags: string[];
+  payload_summary: string;
+  payload_size_tokens: number;
+  storage_tier: "HOT" | "WARM" | "COLD";
+  clearance_required: number;
+  access_count: number;
+  monetization_enabled: boolean;
+  created_at: string;
+  last_accessed_at: string | null;
+  last_updated_at: string;
+  expires_at: string | null;
+  deleted_at: string | null;
+}
+
+// WHAT: One Permission row.
+// WHY: Mirror of `model Permission`. The matrix UI renders cells
+//      from groups of Permission rows (aggregated by bridge_id).
+//      Q1 (12B.1) decision: schema-honest 3-tuple
+//      (access_scope, can_share_forward, duration_type) -- no
+//      synthetic 4-level enum.
+export interface Permission {
+  permission_id: string;
+  bridge_id: string;
+  capsule_id: string;
+  grantor_entity_id: string;
+  grantee_entity_id: string;
+  access_scope: AccessScope;
+  duration_type: DurationType;
+  can_share_forward: boolean;
+  monetization_active: boolean;
+  status: PermissionStatus;
+  valid_from: string;
+  expires_at: string | null;
+  conditions: Record<string, unknown>;
+  created_at: string;
+}
+
+// WHAT: One TwinConfig row.
+// WHY: Emphasis 3 (12B.1): is_admin_twin AND autonomy_level surface
+//      INDEPENDENTLY. createTwin sets them correlated but they can
+//      drift via PATCH. EXECUTIVE_OVERRIDE badge keys off
+//      is_admin_twin; "Behavior Policy" column keys off
+//      autonomy_level. Never conflate.
+export interface TwinConfig {
+  twin_id: string;
+  autonomy_level: TwinAutonomyLevel;
+  swarm_enabled: boolean;
+  role_template: string | null;
+  is_admin_twin: boolean;
+  approver_entity_id: string | null;
+  updated_at: string;
+}
+
+// WHAT: One SkillPackage row.
+// WHY: Mirror of `model SkillPackage`. Used by Create Teammate
+//      dialog in 12B.3 for the "skill package" picker.
+export interface SkillPackage {
+  package_id: string;
+  name: string;
+  category: string;
+  description: string;
+  capability_flags: string[];
+  created_at: string;
+}
+
+// WHAT: One Hive row.
+// WHY: Mirror of `model Hive`. Used in AI Teammates Hive Membership
+//      column in 12B.3.
+export interface Hive {
+  hive_id: string;
+  hive_name: string;
+  hive_type: string;
+  governance_terms: Record<string, unknown>;
+  aggregate_capsule_id: string | null;
+  member_count: number;
+  status: string;
+  org_entity_id: string | null;
+  is_default_enterprise: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// WHAT: One HiveMembership row.
+// WHY: Mirror of `model HiveMembership`. Joins entity to hive with
+//      contribution / access scope details.
+export interface HiveMembership {
+  membership_id: string;
+  hive_id: string;
+  entity_id: string;
+  capsule_types_contributed: string[];
+  contribution_scope: AccessScope;
+  capsule_types_accessible: string[];
+  access_scope: AccessScope;
+  joined_at: string;
+  expires_at: string | null;
+  status: string;
+}
+
+// WHAT: One AuditEvent row.
+// WHY: Mirror of `model AuditEvent`. Used by Home Recent Activity
+//      feed (12B.2) and Security & Audit screen (12D).
+export interface AuditEvent {
+  audit_id: string;
+  event_type: AuditEventType;
+  actor_entity_id: string | null;
+  target_entity_id: string | null;
+  target_capsule_id: string | null;
+  session_id: string | null;
+  outcome: AuditOutcome;
+  denial_reason: string | null;
+  details: Record<string, unknown>;
+  ip_address: string | null;
+  timestamp: string;
+}
+
+// ════════════════════════════════════════════════════════════════
+// 12B.1 -- REQUEST / RESPONSE SHAPES
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: Body for POST /api/v1/org/members.
+// WHY: Mirror of MemberInput in apps/api/src/routes/org.routes.ts.
+export interface MemberInput {
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+  role_title?: string;
+  hierarchy_level?: number;
+  is_admin?: boolean;
+}
+
+// WHAT: Success response from POST /api/v1/org/members (single).
+// WHY: 12B.0 contract -- audit_event_id surfaces the audit_id of
+//      the ADMIN_ACTION (action=ORG_MEMBER_ADDED) row.
+export interface MemberCreateResponse {
+  ok: true;
+  entity_id: string;
+  email: string | null;
+  display_name: string;
+  audit_event_id: string;
+}
+
+// WHAT: Success response from POST /api/v1/org/members/bulk.
+export interface MemberBulkResponse {
+  ok: true;
+  created_count: number;
+  failure_count: number;
+  created: Array<{
+    entity_id: string;
+    email: string | null;
+    audit_event_id: string;
+  }>;
+  failures: Array<{ index: number; error: string }>;
+}
+
+// WHAT: One row in Phase 2's propagation_order.
+// WHY: Mirror of PropagationEntry in dandelion.service.ts.
+export interface PropagationEntry {
+  entity_id: string;
+  display_name: string;
+  hierarchy_level: number;
+  is_admin: boolean;
+  reason: string;
+  status: "PENDING" | "ACTIVATED";
+  activated_at: string | null;
+}
+
+// WHAT: POST /api/v1/org/onboarding/start response.
+// WHY: Mirror of Phase2Result in dandelion.service.ts.
+export interface Phase2Result {
+  ok: true;
+  org_entity_id: string;
+  mode: "HIERARCHY" | "INTELLIGENCE";
+  total_users: number;
+  propagation_order: PropagationEntry[];
+}
+
+// WHAT: POST /api/v1/org/onboarding/invite response.
+// WHY: Mirror of Phase3Result. 12B.0 added audit_event_id.
+export interface Phase3Result {
+  ok: true;
+  org_entity_id: string;
+  entity_id: string;
+  twin_id: string;
+  hive_membership_id: string | null;
+  activation_credential: string;
+  audit_event_id: string;
+}
+
+// WHAT: POST /api/v1/org/onboarding/{reorder,status} response.
+// WHY: Mirror of Phase4Status.
+export interface Phase4Status {
+  ok: true;
+  org_entity_id: string;
+  total_users: number;
+  onboarded_count: number;
+  pending_count: number;
+  compound_score: number;
+  propagation_order: PropagationEntry[];
+}
+
+// WHAT: One grant inside a ShareRequest body.
+// WHY: Mirror of capsule_grants[] item in cosmp.routes.ts.
+export interface CapsuleGrant {
+  capsule_id: string;
+  scope: AccessScope;
+  duration_type: DurationType;
+  can_share_forward?: boolean;
+  valid_from?: string;
+  expires_at?: string;
+  conditions?: Record<string, unknown>;
+}
+
+// WHAT: Body for POST /api/v1/cosmp/share.
+export interface ShareRequest {
+  grantee_entity_id: string;
+  capsule_grants: CapsuleGrant[];
+  write_reason?: string;
+}
+
+// WHAT: Success response from POST /api/v1/cosmp/share.
+// WHY: 12B.0 contract -- audit_event_id surfaces PERMISSION_CREATED.
+export interface ShareResponse {
+  ok: true;
+  bridge_id: string;
+  permissions_created: string[];
+  audit_event_id: string;
+}
+
+// WHAT: Success response from DELETE /api/v1/cosmp/share/:bridgeId.
+// WHY: 12B.0 contract -- audit_event_id surfaces PERMISSION_REVOKED.
+export interface RevokeResponse {
+  ok: true;
+  bridge_id: string;
+  revoked_count: number;
+  audit_event_id: string;
+}
+
+// WHAT: Body for POST /api/v1/org/ai-teammates.
+// WHY: Mirror -- create body is minimal (no name, no
+//      skill_package_id, no behavior policy fields). Skills assigned
+//      via the separate POST /org/ai-teammates/:id/skills after
+//      create.
+export interface AITeammateCreateInput {
+  owner_entity_id?: string;
+  role_title?: string;
+  is_admin_invite?: boolean;
+}
+
+// WHAT: Success response from POST /api/v1/org/ai-teammates.
+// WHY: Mirror of CreateTwinResult (12B.0 added audit_event_id).
+export interface AITeammateCreateResponse {
+  ok: true;
+  entity_id: string;
+  twin_config: TwinConfig;
+  is_admin_twin: boolean;
+  org_permission_bridge_id: string | null;
+  owner_permission_bridge_id: string;
+  default_hive_membership_id: string | null;
+  audit_event_id: string;
+}
+
+// WHAT: PATCH /api/v1/org/ai-teammates/:id mutable body shape.
+// WHY: Only 4 fields are writable: autonomy_level, swarm_enabled,
+//      role_template, approver_entity_id. Foundation rejects
+//      anything else with 422 IMMUTABLE_FIELD or INVALID_FIELD.
+export interface AITeammateUpdateInput {
+  autonomy_level?: TwinAutonomyLevel;
+  swarm_enabled?: boolean;
+  role_template?: string | null;
+  approver_entity_id?: string;
+}
+
+// WHAT: Success response from PATCH /api/v1/org/ai-teammates/:id.
+export interface AITeammateUpdateResponse {
+  ok: true;
+  twin_config: TwinConfig;
+  audit_event_id: string;
+}
+
+// WHAT: Org hierarchy response shape.
+// WHY: Returned by GET /api/v1/org/hierarchy. Flat list of all
+//      EntityMembership rows for the caller's org.
+export interface OrgHierarchyResponse {
+  ok: true;
+  memberships: EntityMembership[];
+}
+
+// WHAT: Generic paginated list response.
+// WHY: Most Foundation list endpoints (entities, ai-teammates,
+//      hives, permissions, audit) follow this shape.
+export interface Paginated<T> {
+  ok: true;
+  items: T[];
+  total: number;
+  skip: number;
+  take: number;
+}
+
+// WHAT: GET /api/v1/org/analytics response shape (extended).
+// WHY: 12A used a 4-field subset; 12B.1 extends to the full
+//      CompoundingMetrics surface so Home's Intelligence Summary
+//      cards (12B.2) can read compound_score, decision_count,
+//      pattern_count, vocab_count, completion_rate, etc.
+//
+//      pending_approvals_count is stub-0 throughout 12B (Foundation
+//      TODO Section 14: EscalationRequest table). The badge guard
+//      hides it when count === 0.
 export interface OrgAnalytics {
   ok: true;
   org_entity_id: string;
   pending_approvals_count: number;
   active_twins: number;
-  compound_score: number;
   capsule_count: number;
-  // Other fields land in 12B-12F as they get consumed.
-}
-
-// WHAT: Generic Foundation 4xx/5xx body shape.
-// INPUT: Used as a return type only.
-// OUTPUT: None.
-// WHY: Foundation routes return discriminated-union failures with
-//      `code` + `message`. The api.ts wrapper normalizes every
-//      response to ApiResult; this is what the `ok: false` arm
-//      looks like on the wire.
-export interface FoundationError {
-  ok: false;
-  code: string;
-  message?: string;
+  compound_score: number;
+  decision_count: number;
+  pattern_count: number;
+  vocab_count: number;
+  external_count: number;
+  completion_rate: number;
 }

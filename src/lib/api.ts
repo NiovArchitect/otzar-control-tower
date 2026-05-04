@@ -27,6 +27,31 @@ import type {
   PlatformHealth,
   OrgAnalytics,
   FoundationError,
+  // 12B.1 -- types extension
+  Entity,
+  EntityType,
+  MemberInput,
+  MemberCreateResponse,
+  MemberBulkResponse,
+  Phase2Result,
+  Phase3Result,
+  Phase4Status,
+  PropagationEntry,
+  AITeammateCreateInput,
+  AITeammateCreateResponse,
+  AITeammateUpdateInput,
+  AITeammateUpdateResponse,
+  ShareRequest,
+  ShareResponse,
+  RevokeResponse,
+  Paginated,
+  Permission,
+  Hive,
+  SkillPackage,
+  AuditEvent,
+  AuditEventType,
+  OrgHierarchyResponse,
+  TwinConfig,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -181,12 +206,220 @@ export class ApiClient {
   };
 
   // ──────────────────────────────────────────────────────────────
-  // org.*
+  // org.*  (12A: analytics; 12B.1: full org-identity surface)
   // ──────────────────────────────────────────────────────────────
   org = {
+    /** GET /api/v1/org/analytics -- compound score + counts. */
     analytics: (): Promise<ApiResult<OrgAnalytics>> =>
       this.request<OrgAnalytics>("/org/analytics"),
+
+    entities: {
+      /** GET /api/v1/org/entities -- paginated PERSON+AI_AGENT children. */
+      list: (params: {
+        skip?: number;
+        take?: number;
+        type?: EntityType;
+      } = {}): Promise<ApiResult<Paginated<Entity>>> =>
+        this.request<Paginated<Entity>>(
+          `/org/entities${qs(params)}`,
+        ),
+
+      /** GET /api/v1/org/entities/:id -- single entity detail. */
+      get: (id: string): Promise<ApiResult<Entity>> =>
+        this.request<Entity>(`/org/entities/${encodeURIComponent(id)}`),
+
+      /** PATCH /api/v1/org/entities/:id -- status + EntityProfile fields. */
+      update: (
+        id: string,
+        patch: Partial<Pick<Entity, "status">> & Record<string, unknown>,
+      ): Promise<ApiResult<Entity>> =>
+        this.request<Entity>(`/org/entities/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: patch,
+        }),
+    },
+
+    members: {
+      /** POST /api/v1/org/members -- single create. 12B.0 surfaces audit_event_id. */
+      create: (input: MemberInput): Promise<ApiResult<MemberCreateResponse>> =>
+        this.request<MemberCreateResponse>("/org/members", {
+          method: "POST",
+          body: input,
+        }),
+
+      /** POST /api/v1/org/members/bulk -- batch create. */
+      bulk: (
+        members: MemberInput[],
+      ): Promise<ApiResult<MemberBulkResponse>> =>
+        this.request<MemberBulkResponse>("/org/members/bulk", {
+          method: "POST",
+          body: { members },
+        }),
+    },
+
+    hierarchy: {
+      /** GET /api/v1/org/hierarchy -- flat EntityMembership list. */
+      get: (): Promise<ApiResult<OrgHierarchyResponse>> =>
+        this.request<OrgHierarchyResponse>("/org/hierarchy"),
+    },
+
+    onboarding: {
+      /** POST /api/v1/org/onboarding/start -- Phase 2 analyze. */
+      start: (): Promise<ApiResult<Phase2Result>> =>
+        this.request<Phase2Result>("/org/onboarding/start", { method: "POST" }),
+
+      /** POST /api/v1/org/onboarding/invite -- Phase 3 commit. 12B.0 audit_event_id. */
+      invite: (entity_id: string): Promise<ApiResult<Phase3Result>> =>
+        this.request<Phase3Result>("/org/onboarding/invite", {
+          method: "POST",
+          body: { entity_id },
+        }),
+
+      /** POST /api/v1/org/onboarding/reorder -- Phase 4 reorder propagation queue. */
+      reorder: (
+        propagation_order: PropagationEntry[],
+      ): Promise<ApiResult<Phase4Status>> =>
+        this.request<Phase4Status>("/org/onboarding/reorder", {
+          method: "POST",
+          body: { propagation_order },
+        }),
+
+      /** GET /api/v1/org/onboarding/status -- Phase 4 status read. */
+      status: (): Promise<ApiResult<Phase4Status>> =>
+        this.request<Phase4Status>("/org/onboarding/status"),
+    },
+
+    aiTeammates: {
+      /** GET /api/v1/org/ai-teammates -- list AI_AGENT entities. */
+      list: (params: {
+        skip?: number;
+        take?: number;
+      } = {}): Promise<ApiResult<Paginated<Entity>>> =>
+        this.request<Paginated<Entity>>(
+          `/org/ai-teammates${qs(params)}`,
+        ),
+
+      /** GET /api/v1/org/ai-teammates/:id -- single twin detail. */
+      get: (
+        id: string,
+      ): Promise<ApiResult<Entity & { twin_config: TwinConfig }>> =>
+        this.request<Entity & { twin_config: TwinConfig }>(
+          `/org/ai-teammates/${encodeURIComponent(id)}`,
+        ),
+
+      /** POST /api/v1/org/ai-teammates -- thin wrapper around createTwin. 12B.0 audit_event_id. */
+      create: (
+        input: AITeammateCreateInput,
+      ): Promise<ApiResult<AITeammateCreateResponse>> =>
+        this.request<AITeammateCreateResponse>("/org/ai-teammates", {
+          method: "POST",
+          body: input,
+        }),
+
+      /** PATCH /api/v1/org/ai-teammates/:id -- mutable: autonomy_level, swarm_enabled, role_template, approver_entity_id. 12B.0 audit_event_id. */
+      update: (
+        id: string,
+        patch: AITeammateUpdateInput,
+      ): Promise<ApiResult<AITeammateUpdateResponse>> =>
+        this.request<AITeammateUpdateResponse>(
+          `/org/ai-teammates/${encodeURIComponent(id)}`,
+          { method: "PATCH", body: patch },
+        ),
+
+      /** GET /api/v1/org/ai-teammates/:id/stats -- placeholder stats endpoint. */
+      getStats: (id: string): Promise<ApiResult<Record<string, unknown>>> =>
+        this.request<Record<string, unknown>>(
+          `/org/ai-teammates/${encodeURIComponent(id)}/stats`,
+        ),
+
+      /** POST /api/v1/org/ai-teammates/:id/skills -- assign one SkillPackage. */
+      addSkill: (
+        id: string,
+        package_id: string,
+      ): Promise<ApiResult<{ ok: true; assigned: true }>> =>
+        this.request<{ ok: true; assigned: true }>(
+          `/org/ai-teammates/${encodeURIComponent(id)}/skills`,
+          { method: "POST", body: { package_id } },
+        ),
+    },
+
+    skillPackages: {
+      /** GET /api/v1/org/skill-packages -- global list, no org scope. */
+      list: (): Promise<ApiResult<{ ok: true; items: SkillPackage[] }>> =>
+        this.request<{ ok: true; items: SkillPackage[] }>(
+          "/org/skill-packages",
+        ),
+    },
+
+    hives: {
+      /** GET /api/v1/org/hives -- Hive rows scoped to caller's org. */
+      list: (params: {
+        skip?: number;
+        take?: number;
+      } = {}): Promise<ApiResult<Paginated<Hive>>> =>
+        this.request<Paginated<Hive>>(`/org/hives${qs(params)}`),
+    },
+
+    permissions: {
+      /** GET /api/v1/org/permissions -- paginated Permission rows in org scope. */
+      list: (params: {
+        skip?: number;
+        take?: number;
+      } = {}): Promise<ApiResult<Paginated<Permission>>> =>
+        this.request<Paginated<Permission>>(
+          `/org/permissions${qs(params)}`,
+        ),
+    },
+
+    audit: {
+      /** GET /api/v1/org/audit -- paginated audit_events for caller's org. */
+      list: (params: {
+        skip?: number;
+        take?: number;
+        event_type?: AuditEventType;
+        actor_entity_id?: string;
+      } = {}): Promise<ApiResult<Paginated<AuditEvent>>> =>
+        this.request<Paginated<AuditEvent>>(`/org/audit${qs(params)}`),
+    },
   };
+
+  // ──────────────────────────────────────────────────────────────
+  // cosmp.*  (12B.1: grant + revoke; bridge-aware per CONTEXT.md)
+  // ──────────────────────────────────────────────────────────────
+  cosmp = {
+    /** POST /api/v1/cosmp/share -- grant permission(s) under one bridge. 12B.0 audit_event_id. */
+    share: (input: ShareRequest): Promise<ApiResult<ShareResponse>> =>
+      this.request<ShareResponse>("/cosmp/share", {
+        method: "POST",
+        body: input,
+      }),
+
+    /** DELETE /api/v1/cosmp/share/:bridgeId -- revoke every permission in the bridge. 12B.0 audit_event_id. */
+    revoke: (bridgeId: string): Promise<ApiResult<RevokeResponse>> =>
+      this.request<RevokeResponse>(
+        `/cosmp/share/${encodeURIComponent(bridgeId)}`,
+        { method: "DELETE" },
+      ),
+  };
+}
+
+// WHAT: Build a query string from a partial params object.
+// INPUT: An object whose values are string | number | undefined.
+// OUTPUT: A query-string suffix beginning with "?" if any params were
+//         set, or "" otherwise.
+// WHY: Several 12B.1 list methods take optional pagination + filter
+//      params. Centralized helper avoids ad-hoc string concatenation
+//      at every call site.
+function qs(params: Record<string, string | number | undefined>): string {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null,
+  );
+  if (entries.length === 0) return "";
+  const usp = new URLSearchParams();
+  for (const [k, v] of entries) {
+    usp.set(k, String(v));
+  }
+  return `?${usp.toString()}`;
 }
 
 // WHAT: The default api singleton. Wired with the auth store at
