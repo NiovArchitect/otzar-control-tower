@@ -269,6 +269,29 @@ export interface MemoryCapsule {
   deleted_at: string | null;
 }
 
+// WHAT: Slim row shape returned by GET /api/v1/org/capsules.
+// WHY: Foundation route apps/api/src/routes/org.routes.ts:872-883
+//      SELECTs exactly these 10 fields -- not the full MemoryCapsule
+//      row. Matches the patent's three-wallet portability boundary:
+//      /org/capsules is ORG-WALLET-ONLY (entity_id == COMPANY); cross-
+//      wallet capsules surface only through Security & Audit (12D).
+//      12B.4 Access Control matrix joins these against /org/permissions
+//      to compute the (capsule_type, grantee) heatmap; permissions
+//      referencing capsule_ids NOT in this slice are dropped (cross-
+//      wallet boundary -- see aggregate-matrix.ts JSDoc).
+export interface OrgCapsuleListItem {
+  capsule_id: string;
+  capsule_type: CapsuleType;
+  topic_tags: string[];
+  relevance_score: number;
+  payload_summary: string;
+  payload_size_tokens: number;
+  clearance_required: number;
+  access_count: number;
+  created_at: string;
+  last_accessed_at: string | null;
+}
+
 // WHAT: One Permission row.
 // WHY: Mirror of `model Permission`. The matrix UI renders cells
 //      from groups of Permission rows (aggregated by bridge_id).

@@ -47,6 +47,7 @@ import type {
   RevokeResponse,
   Paginated,
   Permission,
+  OrgCapsuleListItem,
   Hive,
   SkillPackage,
   AuditEvent,
@@ -408,6 +409,30 @@ export class ApiClient {
       } = {}): Promise<ApiResult<Paginated<Permission>>> =>
         this.request<Paginated<Permission>>(
           `/org/permissions${qs(params)}`,
+        ),
+    },
+
+    capsules: {
+      /** GET /api/v1/org/capsules -- ORG-WALLET-ONLY paginated list.
+       *
+       *  12B.4: powers the Access Control matrix's capsule_type
+       *  columns. Foundation handler at apps/api/src/routes/org.routes.ts:838
+       *  resolves the caller's org wallet and lists MemoryCapsule rows
+       *  scoped to that wallet only -- by design, per the patent's
+       *  three-wallet portability boundary. Cross-wallet capsules
+       *  (PERSONAL member capsules, AI_AGENT capsules) require a
+       *  Foundation extension AND member-consent flow, both tracked
+       *  for 12C.0 Foundation batch + 12E Policies. The matrix drops
+       *  Permission rows referencing capsule_ids NOT in this response
+       *  (see aggregate-matrix.ts).
+       *  Returns slim OrgCapsuleListItem rows (10 fields including
+       *  relevance_score), not full MemoryCapsule. */
+      list: (params: {
+        skip?: number;
+        take?: number;
+      } = {}): Promise<ApiResult<Paginated<OrgCapsuleListItem>>> =>
+        this.request<Paginated<OrgCapsuleListItem>>(
+          `/org/capsules${qs(params)}`,
         ),
     },
 
