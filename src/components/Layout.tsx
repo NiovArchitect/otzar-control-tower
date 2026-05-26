@@ -5,7 +5,7 @@
 // CONNECTS TO: AdminSidebar, ConnectionStatusIndicator,
 //              DataSovereigntyBadge, App.tsx routes.
 
-import { Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { LogOut, Menu } from "lucide-react";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
@@ -13,13 +13,23 @@ import { DataSovereigntyBadge } from "@/components/DataSovereigntyBadge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuthStore } from "@/lib/stores/auth";
+import { isEmployee } from "@/lib/auth/capabilities";
+import { api } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 
 export function Layout() {
-  const { entity, logout } = useAuthStore();
+  const { entity, capabilities, logout } = useAuthStore();
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Best-effort server-side session invalidation, then clear the
+  // in-memory store regardless of the result (fail-safe). Token stays
+  // memory-only -- no persistence added.
+  async function handleLogout(): Promise<void> {
+    await api.auth.logout();
+    logout();
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -46,6 +56,11 @@ export function Layout() {
             )}
           </div>
           <div className="flex items-center gap-3 text-sm">
+            {isEmployee(capabilities) && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/app">Open Otzar</Link>
+              </Button>
+            )}
             {entity && (
               <span className="text-muted-foreground" aria-label="Logged in as">
                 {entity.email}
@@ -55,7 +70,7 @@ export function Layout() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={logout}
+              onClick={() => void handleLogout()}
               aria-label="Log out"
             >
               <LogOut className="mr-2 h-4 w-4" />

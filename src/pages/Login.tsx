@@ -18,27 +18,35 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/stores/auth";
+import { landingPathFor } from "@/lib/auth/capabilities";
 import { useToast } from "@/hooks/use-toast";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login, isLoading, loginError, isAuthenticated } = useAuthStore();
+  const { login, isLoading, loginError, isAuthenticated, capabilities } =
+    useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Org admins land in the Control Tower ("/"); product-only employees
+  // land in the Otzar shell ("/app"). landingPathFor encapsulates the
+  // persona routing and never sends a non-admin into the admin area.
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/", { replace: true });
+      navigate(landingPathFor(capabilities), { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, capabilities, navigate]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = await login(email, password);
     if (result.ok) {
       toast.success("Audit event logged: LOGIN_SUCCESS");
-      navigate("/", { replace: true });
+      // Read the freshest capabilities the login just set.
+      navigate(landingPathFor(useAuthStore.getState().capabilities), {
+        replace: true,
+      });
     }
   }
 

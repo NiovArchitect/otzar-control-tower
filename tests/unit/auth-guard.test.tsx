@@ -59,7 +59,13 @@ describe("AuthGuard", () => {
     setStore({
       token: "tok",
       entity: { email: "viewer@example.com" },
-      capabilities: { can_admin_org: false, can_admin_niov: false },
+      capabilities: {
+        can_read_capsules: true,
+        can_write_capsules: false,
+        can_share_capsules: false,
+        can_admin_org: false,
+        can_admin_niov: false,
+      },
       isAuthenticated: true,
     });
 
@@ -80,5 +86,37 @@ describe("AuthGuard", () => {
 
     expect(screen.getByRole("heading", { name: /access denied/i })).toBeInTheDocument();
     expect(screen.queryByText("protected content")).not.toBeInTheDocument();
+  });
+
+  it("still admits an authenticated org admin (Control Tower not weakened)", () => {
+    setStore({
+      token: "tok",
+      entity: { email: "admin@example.com" },
+      capabilities: {
+        can_read_capsules: true,
+        can_write_capsules: true,
+        can_share_capsules: true,
+        can_admin_org: true,
+        can_admin_niov: false,
+      },
+      isAuthenticated: true,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <AuthGuard>
+                <div>protected content</div>
+              </AuthGuard>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("protected content")).toBeInTheDocument();
   });
 });

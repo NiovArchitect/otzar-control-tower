@@ -36,7 +36,17 @@ import { api } from "../api";
 // WHY: Mirrors Foundation's TAR boolean shape; updates here when
 //      Foundation's OPERATION_TO_CAPABILITY map adds entries.
 export interface AuthCapabilities {
+  // Product (employee) capabilities -- mirror Foundation's
+  // OPERATION_TO_CAPABILITY: read->can_read_capsules,
+  // write->can_write_capsules, share->can_share_capsules.
+  can_read_capsules: boolean;
+  can_write_capsules: boolean;
+  can_share_capsules: boolean;
+  // Org-admin capability gating the Control Tower.
   can_admin_org: boolean;
+  // Present for completeness only. NEVER used to gate Otzar PRODUCT
+  // access -- can_admin_niov is Console/NIOV-admin scope (see
+  // src/lib/auth/capabilities.ts).
   can_admin_niov: boolean;
 }
 
@@ -77,6 +87,9 @@ export function deriveCapabilities(
   allowed_operations: string[],
 ): AuthCapabilities {
   return {
+    can_read_capsules: allowed_operations.includes("read"),
+    can_write_capsules: allowed_operations.includes("write"),
+    can_share_capsules: allowed_operations.includes("share"),
     can_admin_org: allowed_operations.includes("admin_org"),
     can_admin_niov: allowed_operations.includes("admin_niov"),
   };

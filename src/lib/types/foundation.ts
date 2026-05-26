@@ -679,3 +679,112 @@ export interface OrgAnalytics {
   external_count: number;
   completion_rate: number;
 }
+
+// ════════════════════════════════════════════════════════════════
+// EMPLOYEE OTZAR MVP -- /otzar/* product surface (Phase 1)
+// ════════════════════════════════════════════════════════════════
+//
+// These mirror the EMPLOYEE-FACING (non-admin) Otzar endpoints, which
+// are Bearer-validated product routes -- NOT org-admin routes. Verified
+// against niov-foundation:
+//   - conversation/message + conversation/close: validateSession("read")
+//     -> require can_read_capsules.
+//   - observe + correction: validateSession("write")
+//     -> require can_write_capsules.
+// None of these responses return audit_event_id (they write audit rows
+// server-side, but the client never sees the id), so the audit-aware
+// 4-stage clickable-audit primitive does NOT apply here -- employee
+// actions use plain mutation UX.
+
+// WHAT: Body for POST /api/v1/otzar/conversation/message.
+// WHY: Mirror of ConductSessionInput in
+//      apps/api/src/services/otzar/otzar.service.ts. conversation_id is
+//      omitted on the first turn (the backend mints one) and echoed back
+//      on subsequent turns. conversation_history is client-held for
+//      Phase 1 -- no durable conversation-list route exists yet.
+export interface ConversationMessageRequest {
+  message: string;
+  conversation_id?: string;
+  conversation_history?: string[];
+  token_budget?: number;
+}
+
+// WHAT: Success response from POST /api/v1/otzar/conversation/message.
+// WHY: Mirror of ConductSessionSuccess. `response` is the assistant
+//      text; `context_used` + `tokens_consumed` are surfaced for
+//      transparency, never as a task/execution claim.
+export interface ConversationMessageResponse {
+  ok: true;
+  response: string;
+  context_used: number;
+  tokens_consumed: number;
+  conversation_id: string;
+}
+
+// WHAT: Body for POST /api/v1/otzar/conversation/close.
+export interface ConversationCloseRequest {
+  conversation_id: string;
+  capsule_ids_used?: string[];
+  conversation_history?: string[];
+}
+
+// WHAT: Success response from POST /api/v1/otzar/conversation/close.
+// WHY: Mirror of CloseConversationSuccess -- closing writes a
+//      conversation-summary capsule and returns its id + topics.
+export interface ConversationCloseResponse {
+  ok: true;
+  capsule_id: string;
+  conversation_id: string;
+  topics: string[];
+}
+
+// WHAT: Body for POST /api/v1/otzar/observe.
+// WHY: Mirror of ObserveInput. event_type is a free string on the
+//      backend; the UI constrains it to a controlled vocabulary.
+export interface ObserveRequest {
+  content: string;
+  event_type: string;
+  org_entity_id?: string;
+}
+
+// WHAT: Per-category extraction counts on a successful observe.
+// WHY: PROVEN backend shape (observation.service.ts ObserveSuccess) is
+//      NUMERIC COUNTS, not string arrays. The UI renders counts.
+export interface ObserveExtractedSummary {
+  decisions: number;
+  commitments: number;
+  work_patterns: number;
+  external_entities: number;
+  vocab_growth: number;
+}
+
+// WHAT: Success arm of POST /api/v1/otzar/observe (content extracted).
+export interface ObserveSuccessResponse {
+  ok: true;
+  skipped?: false;
+  capsule_ids: string[];
+  extracted_summary: ObserveExtractedSummary;
+}
+
+// WHAT: Skipped arm of POST /api/v1/otzar/observe (duplicate content).
+export interface ObserveSkippedResponse {
+  ok: true;
+  skipped: true;
+  reason: "DUPLICATE_CONTENT";
+}
+
+// WHAT: Discriminated union over the observe success/skipped arms.
+export type ObserveResponse = ObserveSuccessResponse | ObserveSkippedResponse;
+
+// WHAT: Body for POST /api/v1/otzar/correction.
+export interface CorrectionRequest {
+  incorrect_description: string;
+  correct_behavior: string;
+  target_capsule_id?: string;
+}
+
+// WHAT: Success response from POST /api/v1/otzar/correction.
+export interface CorrectionResponse {
+  ok: true;
+  correction_capsule_id: string;
+}

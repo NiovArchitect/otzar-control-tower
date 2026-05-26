@@ -838,6 +838,103 @@ const aiTeammatesAddSkillHandler = http.post(
   },
 );
 
+// ════════════════════════════════════════════════════════════════
+// Employee Otzar MVP additions: /otzar/* product routes
+// ════════════════════════════════════════════════════════════════
+//
+// These mirror the EMPLOYEE-FACING product routes. The message handler
+// supports a sentinel ("__force_llm_unavailable__") to exercise the
+// 503 error branch; the observe handler supports a "__duplicate__"
+// marker to exercise the DUPLICATE_CONTENT skipped arm.
+
+const otzarConversationMessageHandler = http.post(
+  `${API_BASE}/otzar/conversation/message`,
+  async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    if (body.message === "__force_llm_unavailable__") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "LLM_UNAVAILABLE",
+          message: "LLM provider unavailable",
+        },
+        { status: 503 },
+      );
+    }
+    const conversationId =
+      typeof body.conversation_id === "string" &&
+      body.conversation_id.length > 0
+        ? body.conversation_id
+        : "conv-msw-0001";
+    return HttpResponse.json(
+      {
+        ok: true,
+        response: `Echo: ${String(body.message ?? "")}`,
+        context_used: 3,
+        tokens_consumed: 128,
+        conversation_id: conversationId,
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const otzarConversationCloseHandler = http.post(
+  `${API_BASE}/otzar/conversation/close`,
+  async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ok: true,
+        capsule_id: "cap-conv-summary-0001",
+        conversation_id: String(body.conversation_id ?? "conv-msw-0001"),
+        topics: ["pricing", "q4-planning"],
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const otzarObserveHandler = http.post(
+  `${API_BASE}/otzar/observe`,
+  async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    if (
+      typeof body.content === "string" &&
+      body.content.includes("__duplicate__")
+    ) {
+      return HttpResponse.json(
+        { ok: true, skipped: true, reason: "DUPLICATE_CONTENT" },
+        { status: 200 },
+      );
+    }
+    return HttpResponse.json(
+      {
+        ok: true,
+        capsule_ids: ["cap-obs-1", "cap-obs-2"],
+        extracted_summary: {
+          decisions: 1,
+          commitments: 2,
+          work_patterns: 0,
+          external_entities: 1,
+          vocab_growth: 0,
+        },
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const otzarCorrectionHandler = http.post(
+  `${API_BASE}/otzar/correction`,
+  async () => {
+    return HttpResponse.json(
+      { ok: true, correction_capsule_id: "cap-correction-0001" },
+      { status: 200 },
+    );
+  },
+);
+
 export const handlers = [
   // 12B.1 / 12B.4 (extended)
   shareHandler,
@@ -861,4 +958,9 @@ export const handlers = [
   aiTeammatesAddSkillHandler,
   // 12B.4
   capsulesHandler,
+  // Employee Otzar MVP
+  otzarConversationMessageHandler,
+  otzarConversationCloseHandler,
+  otzarObserveHandler,
+  otzarCorrectionHandler,
 ];

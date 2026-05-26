@@ -56,6 +56,15 @@ import type {
   AITeammateListItem,
   AssignSkillResponse,
   TwinDetailResponse,
+  // Employee Otzar MVP -- /otzar/* product surface
+  ConversationMessageRequest,
+  ConversationMessageResponse,
+  ConversationCloseRequest,
+  ConversationCloseResponse,
+  ObserveRequest,
+  ObserveResponse,
+  CorrectionRequest,
+  CorrectionResponse,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -474,6 +483,57 @@ export class ApiClient {
         `/cosmp/share/${encodeURIComponent(bridgeId)}`,
         { method: "DELETE" },
       ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // otzar.*  (Employee Otzar MVP -- EMPLOYEE-FACING product routes)
+  //
+  // These are Bearer-validated PRODUCT routes (NOT org-admin, NOT
+  // /console/*). Verified capability bindings:
+  //   - conversation.message / conversation.close ->
+  //     validateSession("read")  (needs can_read_capsules)
+  //   - observe / correction -> validateSession("write")
+  //     (needs can_write_capsules)
+  // None return audit_event_id, so callers use plain mutation UX (no
+  // clickable-audit toast). domain/vocabulary is intentionally NOT
+  // exposed here -- it is can_admin_org/admin-only.
+  // ──────────────────────────────────────────────────────────────
+  otzar = {
+    conversation: {
+      /** POST /api/v1/otzar/conversation/message -- one chat turn with the caller's AI teammate. */
+      message: (
+        input: ConversationMessageRequest,
+      ): Promise<ApiResult<ConversationMessageResponse>> =>
+        this.request<ConversationMessageResponse>(
+          "/otzar/conversation/message",
+          { method: "POST", body: input },
+        ),
+
+      /** POST /api/v1/otzar/conversation/close -- end + summarize a conversation to memory. */
+      close: (
+        input: ConversationCloseRequest,
+      ): Promise<ApiResult<ConversationCloseResponse>> =>
+        this.request<ConversationCloseResponse>(
+          "/otzar/conversation/close",
+          { method: "POST", body: input },
+        ),
+    },
+
+    /** POST /api/v1/otzar/observe -- submit text context for COE extraction. */
+    observe: (input: ObserveRequest): Promise<ApiResult<ObserveResponse>> =>
+      this.request<ObserveResponse>("/otzar/observe", {
+        method: "POST",
+        body: input,
+      }),
+
+    /** POST /api/v1/otzar/correction -- teach/correct the AI within scoped memory. */
+    correction: (
+      input: CorrectionRequest,
+    ): Promise<ApiResult<CorrectionResponse>> =>
+      this.request<CorrectionResponse>("/otzar/correction", {
+        method: "POST",
+        body: input,
+      }),
   };
 }
 

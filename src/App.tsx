@@ -15,6 +15,13 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryClient } from "@/lib/query";
 
+import { EmployeeGuard } from "@/components/employee/EmployeeGuard";
+import { EmployeeLayout } from "@/components/employee/EmployeeLayout";
+import { EmployeeHome } from "@/pages/app/EmployeeHome";
+import { Chat } from "@/pages/app/Chat";
+import { Observe } from "@/pages/app/Observe";
+import { Corrections } from "@/pages/app/Corrections";
+
 import { LoginPage } from "@/pages/Login";
 import { HomePage } from "@/pages/Home";
 import { UsersPage } from "@/pages/Users";
@@ -42,6 +49,29 @@ export function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+
+            {/* Employee Otzar shell -- EmployeeGuard admits product
+                users (can_read_capsules); does NOT require can_admin_org
+                and never consults can_admin_niov. Distinct from the
+                org-admin Control Tower below. */}
+            <Route
+              path="/app"
+              element={
+                <EmployeeGuard>
+                  <EmployeeLayout />
+                </EmployeeGuard>
+              }
+            >
+              <Route index element={<EmployeeHome />} />
+              <Route path="chat" element={<Chat />} />
+              <Route path="observe" element={<Observe />} />
+              <Route path="corrections" element={<Corrections />} />
+              {/* Unknown /app/* paths fall back to the employee home. */}
+              <Route path="*" element={<Navigate to="/app" replace />} />
+            </Route>
+
+            {/* Org-admin Control Tower -- UNCHANGED, still gated on
+                can_admin_org by AuthGuard. */}
             <Route
               element={
                 <AuthGuard>
