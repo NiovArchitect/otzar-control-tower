@@ -8,7 +8,13 @@
 //              /app/chat, /app/observe, /app/corrections.
 
 import { Link } from "react-router-dom";
-import { ArrowRight, Eye, MessageSquare, PencilLine } from "lucide-react";
+import {
+  ArrowRight,
+  ClipboardCheck,
+  Eye,
+  MessageSquare,
+  PencilLine,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -34,13 +40,13 @@ export function EmployeeHome() {
         role="note"
       >
         <span className="font-medium text-foreground">Live today:</span> Chat,
-        Observe, and Corrections talk to your organization's Otzar backend.
-        Everything else below is reserved and not yet active. Otzar answers and
-        learns from governed memory — it does not perform tasks or act in
-        outside tools.
+        Observe, Corrections, and Approvals talk to your organization's Otzar
+        backend. Everything else below is reserved and not yet active. Otzar
+        answers and learns from governed memory — it does not perform tasks or
+        act in outside tools.
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <LiveCard
           to="/app/chat"
           title="Chat"
@@ -58,6 +64,12 @@ export function EmployeeHome() {
           title="Corrections"
           icon={<PencilLine className="h-4 w-4" aria-hidden />}
           description="Teach or correct your AI teammate within scoped memory."
+        />
+        <LiveCard
+          to="/app/approvals"
+          title="Approvals"
+          icon={<ClipboardCheck className="h-4 w-4" aria-hidden />}
+          description="Review approval requests that are waiting on your decision."
         />
       </div>
 

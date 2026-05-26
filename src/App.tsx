@@ -21,6 +21,7 @@ import { EmployeeHome } from "@/pages/app/EmployeeHome";
 import { Chat } from "@/pages/app/Chat";
 import { Observe } from "@/pages/app/Observe";
 import { Corrections } from "@/pages/app/Corrections";
+import { Approvals } from "@/pages/app/Approvals";
 
 import { LoginPage } from "@/pages/Login";
 import { HomePage } from "@/pages/Home";
@@ -66,6 +67,7 @@ export function App() {
               <Route path="chat" element={<Chat />} />
               <Route path="observe" element={<Observe />} />
               <Route path="corrections" element={<Corrections />} />
+              <Route path="approvals" element={<Approvals />} />
               {/* Unknown /app/* paths fall back to the employee home. */}
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>

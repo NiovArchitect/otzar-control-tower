@@ -10,7 +10,13 @@
 // Context) are shown as disabled FutureFeatureCard tiles on Home, NOT
 // as nav entries -- there is no backend contract for them yet.
 
-import { Eye, LayoutDashboard, MessageSquare, PencilLine } from "lucide-react";
+import {
+  ClipboardCheck,
+  Eye,
+  LayoutDashboard,
+  MessageSquare,
+  PencilLine,
+} from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
 export interface EmployeeNavItem {
@@ -44,5 +50,11 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/corrections",
     icon: PencilLine,
     description: "Teach and correct your AI teammate.",
+  },
+  {
+    label: "Approvals",
+    to: "/app/approvals",
+    icon: ClipboardCheck,
+    description: "Approval requests waiting on you.",
   },
 ];

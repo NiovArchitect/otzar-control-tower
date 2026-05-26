@@ -935,6 +935,158 @@ const otzarCorrectionHandler = http.post(
   },
 );
 
+// ════════════════════════════════════════════════════════════════
+// Employee Approvals / Escalations: /escalations/* product routes
+// ════════════════════════════════════════════════════════════════
+//
+// pending returns the caller's own queue. Fixtures include one
+// APPROVABLE row (source !== target) and one SELF-TARGET dual-control
+// row (source === target, non-approvable). approve/reject return the
+// updated row, with sentinel ids for the 403 / 409 error arms.
+
+export const ESC_APPROVABLE_ID = "e1111111-1111-1111-1111-111111111111";
+export const ESC_SELF_TARGET_ID = "e2222222-2222-2222-2222-222222222222";
+export const ESC_FORBIDDEN_ID = "e3333333-3333-3333-3333-333333333333";
+export const ESC_RESOLVED_ID = "e4444444-4444-4444-4444-444444444444";
+
+const ESC_ME_ID = "me-entity-0001";
+const ESC_AGENT_ID = "agent-entity-0001";
+
+function escalationResolveResponse(
+  id: string,
+  status: "APPROVED" | "REJECTED",
+) {
+  if (id === ESC_FORBIDDEN_ID) {
+    return HttpResponse.json(
+      {
+        ok: false,
+        code: "ESCALATION_FORBIDDEN",
+        message:
+          "Caller is not authorized to resolve or view this escalation",
+      },
+      { status: 403 },
+    );
+  }
+  if (id === ESC_RESOLVED_ID) {
+    return HttpResponse.json(
+      {
+        ok: false,
+        code: "ESCALATION_INVALID_TRANSITION",
+        message: "Escalation is not in PENDING state",
+      },
+      { status: 409 },
+    );
+  }
+  const now = new Date().toISOString();
+  return HttpResponse.json(
+    {
+      ok: true,
+      escalation: {
+        escalation_id: id,
+        source_entity_id: ESC_AGENT_ID,
+        target_entity_id: ESC_ME_ID,
+        capsule_id: "cap-ref-0001",
+        escalation_type: "COMPLIANCE_GATE",
+        severity: "HIGH",
+        description:
+          "An AI teammate was denied access to a knowledge item; your review is needed.",
+        status,
+        resolved_by_entity_id: ESC_ME_ID,
+        resolution_metadata: null,
+        created_at: now,
+        resolved_at: now,
+        expires_at: null,
+      },
+    },
+    { status: 200 },
+  );
+}
+
+const escalationsPendingHandler = http.get(
+  `${API_BASE}/escalations/pending`,
+  async () => {
+    const now = new Date().toISOString();
+    return HttpResponse.json(
+      {
+        ok: true,
+        escalations: [
+          {
+            escalation_id: ESC_APPROVABLE_ID,
+            source_entity_id: ESC_AGENT_ID,
+            target_entity_id: ESC_ME_ID,
+            capsule_id: "cap-ref-0001",
+            escalation_type: "COMPLIANCE_GATE",
+            severity: "HIGH",
+            description:
+              "An AI teammate was denied access to a knowledge item; your review is needed.",
+            status: "PENDING",
+            resolved_by_entity_id: null,
+            resolution_metadata: null,
+            created_at: now,
+            resolved_at: null,
+            expires_at: null,
+          },
+          {
+            escalation_id: ESC_SELF_TARGET_ID,
+            source_entity_id: ESC_ME_ID,
+            target_entity_id: ESC_ME_ID,
+            capsule_id: null,
+            escalation_type: "DUAL_CONTROL_REQUIRED",
+            severity: "HIGH",
+            description: "Privileged action pending a second approver.",
+            status: "PENDING",
+            resolved_by_entity_id: null,
+            resolution_metadata: null,
+            created_at: now,
+            resolved_at: null,
+            expires_at: null,
+          },
+        ],
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const escalationsDetailHandler = http.get(
+  `${API_BASE}/escalations/:id`,
+  async ({ params }) => {
+    const id = String(params.id);
+    return HttpResponse.json(
+      {
+        ok: true,
+        escalation: {
+          escalation_id: id,
+          source_entity_id: ESC_AGENT_ID,
+          target_entity_id: ESC_ME_ID,
+          capsule_id: "cap-ref-0001",
+          escalation_type: "COMPLIANCE_GATE",
+          severity: "HIGH",
+          description:
+            "An AI teammate was denied access to a knowledge item; your review is needed.",
+          status: "PENDING",
+          resolved_by_entity_id: null,
+          resolution_metadata: null,
+          created_at: new Date().toISOString(),
+          resolved_at: null,
+          expires_at: null,
+        },
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const escalationsApproveHandler = http.post(
+  `${API_BASE}/escalations/:id/approve`,
+  async ({ params }) => escalationResolveResponse(String(params.id), "APPROVED"),
+);
+
+const escalationsRejectHandler = http.post(
+  `${API_BASE}/escalations/:id/reject`,
+  async ({ params }) => escalationResolveResponse(String(params.id), "REJECTED"),
+);
+
 export const handlers = [
   // 12B.1 / 12B.4 (extended)
   shareHandler,
@@ -963,4 +1115,10 @@ export const handlers = [
   otzarConversationCloseHandler,
   otzarObserveHandler,
   otzarCorrectionHandler,
+  // Employee Approvals / Escalations (pending before :id so the literal
+  // path wins over the :id param matcher).
+  escalationsPendingHandler,
+  escalationsDetailHandler,
+  escalationsApproveHandler,
+  escalationsRejectHandler,
 ];

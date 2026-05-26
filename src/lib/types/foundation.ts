@@ -788,3 +788,73 @@ export interface CorrectionResponse {
   ok: true;
   correction_capsule_id: string;
 }
+
+// ════════════════════════════════════════════════════════════════
+// EMPLOYEE OTZAR -- Approvals / Escalations (/escalations/* product)
+// ════════════════════════════════════════════════════════════════
+//
+// Bearer-validated PRODUCT routes (NOT Console, NOT can_admin_niov):
+//   - GET  /escalations/pending     -> validateSession("read"); the
+//     CALLER'S OWN pending queue (target_entity_id === caller). It is
+//     NOT an org-wide queue, and no org-wide listing endpoint exists.
+//   - GET  /escalations/:id         -> read; party-only (source/target/
+//     resolver), enforced server-side.
+//   - POST /escalations/:id/approve -> write; two-person rule: a caller
+//     who is the source is rejected 403 server-side.
+//   - POST /escalations/:id/reject  -> write; same gate.
+// Responses return the raw EscalationRequest scalar row and carry NO
+// audit_event_id (audit fires server-side) -> plain mutation UX, never
+// the audit-aware clickable-link primitive.
+
+// WHAT: Mirror of Foundation's `enum EscalationType` (7 values).
+export type EscalationType =
+  | "HUMAN_REVIEW_REQUIRED"
+  | "SOVEREIGNTY_VIOLATION"
+  | "THRESHOLD_BREACH"
+  | "POLICY_CONFLICT"
+  | "AUTHORIZATION_FAILURE"
+  | "COMPLIANCE_GATE"
+  | "DUAL_CONTROL_REQUIRED";
+
+// WHAT: Mirror of Foundation's `enum EscalationStatus` (4 values).
+export type EscalationStatus = "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+
+// WHAT: One EscalationRequest scalar row (no relations included).
+// WHY: The /escalations/* routes return this shape directly. Entity-id
+//      fields + capsule_id are references the UI must NOT surface
+//      prominently; the UI renders type/severity/status/description/
+//      timestamps. source_entity_id + target_entity_id power the
+//      client-side approvability rule (source !== target).
+export interface Escalation {
+  escalation_id: string;
+  source_entity_id: string;
+  target_entity_id: string;
+  capsule_id?: string | null;
+  escalation_type: EscalationType;
+  severity: string;
+  description: string;
+  status: EscalationStatus;
+  resolved_by_entity_id?: string | null;
+  resolution_metadata?: Record<string, unknown> | null;
+  created_at: string;
+  resolved_at?: string | null;
+  expires_at?: string | null;
+}
+
+// WHAT: GET /api/v1/escalations/pending response.
+export interface EscalationListResponse {
+  ok: true;
+  escalations: Escalation[];
+}
+
+// WHAT: GET/POST single-escalation response (detail, approve, reject).
+export interface EscalationResponse {
+  ok: true;
+  escalation: Escalation;
+}
+
+// WHAT: Optional body for approve/reject. resolution_metadata is free
+//       JSON on the backend; the UI sends at most an optional { note }.
+export interface EscalationResolveRequest {
+  resolution_metadata?: Record<string, unknown>;
+}

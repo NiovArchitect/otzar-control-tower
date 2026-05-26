@@ -65,6 +65,10 @@ import type {
   ObserveResponse,
   CorrectionRequest,
   CorrectionResponse,
+  // Employee Approvals -- /escalations/* product surface
+  EscalationListResponse,
+  EscalationResponse,
+  EscalationResolveRequest,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -534,6 +538,51 @@ export class ApiClient {
         method: "POST",
         body: input,
       }),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // escalations.*  (Employee Approvals -- /escalations/* product routes)
+  //
+  // Bearer product routes (NOT Console). pending/detail require read;
+  // approve/reject require write. The two-person rule (caller === source
+  // -> 403) is enforced server-side. Responses carry NO audit_event_id
+  // -> plain mutation UX. `pending` returns the CALLER'S OWN queue only;
+  // there is no org-wide listing endpoint.
+  // ──────────────────────────────────────────────────────────────
+  escalations = {
+    /** GET /api/v1/escalations/pending -- the caller's own PENDING approvals. */
+    pending: (
+      params: { limit?: number } = {},
+    ): Promise<ApiResult<EscalationListResponse>> =>
+      this.request<EscalationListResponse>(
+        `/escalations/pending${qs(params)}`,
+      ),
+
+    /** GET /api/v1/escalations/:id -- one approval request (party-only). */
+    detail: (id: string): Promise<ApiResult<EscalationResponse>> =>
+      this.request<EscalationResponse>(
+        `/escalations/${encodeURIComponent(id)}`,
+      ),
+
+    /** POST /api/v1/escalations/:id/approve -- PENDING -> APPROVED. */
+    approve: (
+      id: string,
+      body: EscalationResolveRequest = {},
+    ): Promise<ApiResult<EscalationResponse>> =>
+      this.request<EscalationResponse>(
+        `/escalations/${encodeURIComponent(id)}/approve`,
+        { method: "POST", body },
+      ),
+
+    /** POST /api/v1/escalations/:id/reject -- PENDING -> REJECTED. */
+    reject: (
+      id: string,
+      body: EscalationResolveRequest = {},
+    ): Promise<ApiResult<EscalationResponse>> =>
+      this.request<EscalationResponse>(
+        `/escalations/${encodeURIComponent(id)}/reject`,
+        { method: "POST", body },
+      ),
   };
 }
 
