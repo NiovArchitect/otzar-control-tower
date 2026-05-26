@@ -138,4 +138,61 @@ describe("api.otzar.*", () => {
     });
     expect(url).not.toContain("/console");
   });
+
+  it("myTwin -> GET /otzar/my-twin + Bearer", async () => {
+    const fetchMock: typeof globalThis.fetch = vi.fn(async () =>
+      okJson({ ok: true, twin: {}, has_multiple_twins: false, twin_count: 1 }),
+    );
+    globalThis.fetch = fetchMock;
+
+    const r = await client().otzar.myTwin();
+    expect(r.ok).toBe(true);
+    const { url, init } = lastCall(fetchMock);
+    expect(url).toBe("http://test.local/otzar/my-twin");
+    expect(init.method ?? "GET").toBe("GET");
+    expect((init.headers as Record<string, string>)["Authorization"]).toBe(
+      "Bearer tok-emp-1",
+    );
+    expect(url).not.toContain("/console");
+  });
+
+  it("conversations.list -> GET /otzar/conversations (no query when no params)", async () => {
+    const fetchMock: typeof globalThis.fetch = vi.fn(async () =>
+      okJson({ ok: true, items: [], total: 0, has_more: false }),
+    );
+    globalThis.fetch = fetchMock;
+
+    await client().otzar.conversations.list();
+    const { url } = lastCall(fetchMock);
+    expect(url).toBe("http://test.local/otzar/conversations");
+    expect(url).not.toContain("/console");
+  });
+
+  it("conversations.list -> includes skip/take/status query", async () => {
+    const fetchMock: typeof globalThis.fetch = vi.fn(async () =>
+      okJson({ ok: true, items: [], total: 0, has_more: false }),
+    );
+    globalThis.fetch = fetchMock;
+
+    await client().otzar.conversations.list({
+      skip: 25,
+      take: 50,
+      status: "ACTIVE",
+    });
+    const { url } = lastCall(fetchMock);
+    expect(url).toContain("skip=25");
+    expect(url).toContain("take=50");
+    expect(url).toContain("status=ACTIVE");
+    expect(url).not.toContain("/console");
+  });
+
+  it("exposes no transcript/messages methods on api.otzar", () => {
+    const c = client();
+    const otzar = c.otzar as unknown as Record<string, unknown>;
+    const convos = c.otzar.conversations as unknown as Record<string, unknown>;
+    expect(otzar.messages).toBeUndefined();
+    expect(otzar.transcript).toBeUndefined();
+    expect(convos.messages).toBeUndefined();
+    expect(convos.transcript).toBeUndefined();
+  });
 });

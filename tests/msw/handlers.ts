@@ -1087,6 +1087,87 @@ const escalationsRejectHandler = http.post(
   async ({ params }) => escalationResolveResponse(String(params.id), "REJECTED"),
 );
 
+// ════════════════════════════════════════════════════════════════
+// Employee Otzar: My Twin + Conversations metadata (read-only)
+// ════════════════════════════════════════════════════════════════
+
+const otzarMyTwinHandler = http.get(
+  `${API_BASE}/otzar/my-twin`,
+  async () => {
+    const now = new Date().toISOString();
+    return HttpResponse.json(
+      {
+        ok: true,
+        twin: {
+          twin_id: "twin-self-0001",
+          display_name: "Your AI Teammate",
+          role_title: "Executive Assistant",
+          autonomy_mode: "APPROVAL_REQUIRED",
+          swarm_enabled: false,
+          role_template: "executive-assistant",
+          is_admin_twin: false,
+          status: "ACTIVE",
+          skills: [
+            { name: "Calendar Coordination", category: "PRODUCTIVITY" },
+            { name: "Inbox Triage", category: "PRODUCTIVITY" },
+          ],
+          approver: { entity_id: "mgr-0001", display_name: "Dana Manager" },
+          created_at: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+          updated_at: now,
+        },
+        has_multiple_twins: false,
+        twin_count: 1,
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const otzarConversationsHandler = http.get(
+  `${API_BASE}/otzar/conversations`,
+  async ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status");
+    if (status !== null && status !== "ACTIVE" && status !== "CLOSED") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "INVALID_STATUS",
+          message: "status must be ACTIVE or CLOSED",
+        },
+        { status: 400 },
+      );
+    }
+    const now = Date.now();
+    const all = [
+      {
+        conversation_id: "conv-active-0001",
+        twin_id: "twin-self-0001",
+        source_type: "CHAT",
+        status: "ACTIVE",
+        message_count: 4,
+        started_at: new Date(now - 3_600_000).toISOString(),
+        closed_at: null,
+      },
+      {
+        conversation_id: "conv-closed-0001",
+        twin_id: "twin-self-0001",
+        source_type: "CHAT",
+        status: "CLOSED",
+        message_count: 9,
+        started_at: new Date(now - 2 * 86_400_000).toISOString(),
+        closed_at: new Date(now - 2 * 86_400_000 + 1_800_000).toISOString(),
+      },
+    ];
+    const items =
+      status === null ? all : all.filter((c) => c.status === status);
+    return HttpResponse.json(
+      { ok: true, items, total: items.length, has_more: false },
+      { status: 200 },
+    );
+  },
+);
+
 export const handlers = [
   // 12B.1 / 12B.4 (extended)
   shareHandler,
@@ -1121,4 +1202,7 @@ export const handlers = [
   escalationsDetailHandler,
   escalationsApproveHandler,
   escalationsRejectHandler,
+  // Employee My Twin + Conversations metadata
+  otzarMyTwinHandler,
+  otzarConversationsHandler,
 ];

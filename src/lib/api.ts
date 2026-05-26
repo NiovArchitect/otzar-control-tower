@@ -65,6 +65,10 @@ import type {
   ObserveResponse,
   CorrectionRequest,
   CorrectionResponse,
+  // My Twin + Conversations metadata (read-only)
+  MyTwinResponse,
+  ConversationListResponse,
+  ConversationListParams,
   // Employee Approvals -- /escalations/* product surface
   EscalationListResponse,
   EscalationResponse,
@@ -538,6 +542,28 @@ export class ApiClient {
         method: "POST",
         body: input,
       }),
+
+    /** GET /api/v1/otzar/my-twin -- the caller's OWN aligned twin identity (read).
+     *  Self-scoped; product-safe projection (no template body / capability
+     *  flags / bridge ids / memory). 404 TWIN_NOT_FOUND when none assigned. */
+    myTwin: (): Promise<ApiResult<MyTwinResponse>> =>
+      this.request<MyTwinResponse>("/otzar/my-twin"),
+
+    /** GET /api/v1/otzar/conversations -- the caller's OWN conversation
+     *  session METADATA (read). No transcripts / message bodies. Optional
+     *  status filter (ACTIVE|CLOSED) + skip/take pagination. */
+    conversations: {
+      list: (
+        params: ConversationListParams = {},
+      ): Promise<ApiResult<ConversationListResponse>> =>
+        this.request<ConversationListResponse>(
+          `/otzar/conversations${qs({
+            skip: params.skip,
+            take: params.take,
+            status: params.status,
+          })}`,
+        ),
+    },
   };
 
   // ──────────────────────────────────────────────────────────────

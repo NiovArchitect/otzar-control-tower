@@ -10,9 +10,11 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
+  Bot,
   ClipboardCheck,
   Eye,
   MessageSquare,
+  MessagesSquare,
   PencilLine,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,13 +42,13 @@ export function EmployeeHome() {
         role="note"
       >
         <span className="font-medium text-foreground">Live today:</span> Chat,
-        Observe, Corrections, and Approvals talk to your organization's Otzar
-        backend. Everything else below is reserved and not yet active. Otzar
-        answers and learns from governed memory — it does not perform tasks or
-        act in outside tools.
+        Observe, Corrections, Approvals, My Twin, and Conversations talk to your
+        organization's Otzar backend. Everything else below is reserved and not
+        yet active. Otzar answers and learns from governed memory — it does not
+        perform tasks or act in outside tools.
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <LiveCard
           to="/app/chat"
           title="Chat"
@@ -71,16 +73,23 @@ export function EmployeeHome() {
           icon={<ClipboardCheck className="h-4 w-4" aria-hidden />}
           description="Review approval requests that are waiting on your decision."
         />
+        <LiveCard
+          to="/app/my-twin"
+          title="My Twin"
+          icon={<Bot className="h-4 w-4" aria-hidden />}
+          description="View your aligned AI teammate's identity and skills."
+        />
+        <LiveCard
+          to="/app/conversations"
+          title="Conversations"
+          icon={<MessagesSquare className="h-4 w-4" aria-hidden />}
+          description="Review your ambient console session metadata."
+        />
       </div>
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Coming later</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <FutureFeatureCard
-            title="My Twin"
-            description="Inspect and tune your own AI teammate. A product read route for your twin is not yet available."
-            status="Requires backend contract"
-          />
           <FutureFeatureCard
             title="Teams"
             description="Collaborate with teammates in shared team spaces. Not yet active in the employee app."
@@ -88,7 +97,12 @@ export function EmployeeHome() {
           />
           <FutureFeatureCard
             title="Context"
-            description="See the working set Otzar assembles for you. Not yet active."
+            description="See the project context Otzar assembles for you. Not yet active."
+            status="Not yet active"
+          />
+          <FutureFeatureCard
+            title="Agent Playground"
+            description="Stage and rehearse multi-step Otzar runs. Not yet active."
             status="Not yet active"
           />
         </div>

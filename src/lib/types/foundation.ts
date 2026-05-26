@@ -858,3 +858,81 @@ export interface EscalationResponse {
 export interface EscalationResolveRequest {
   resolution_metadata?: Record<string, unknown>;
 }
+
+// ════════════════════════════════════════════════════════════════
+// EMPLOYEE OTZAR -- My Twin + Conversations metadata (read-only)
+// ════════════════════════════════════════════════════════════════
+//
+// Bearer-validated PRODUCT reads (validateSession("read"); NOT admin,
+// NOT can_admin_niov). Self-scoped to the caller. The backend enforces
+// a product-safe projection -- it never returns role-template body,
+// capability flags, permission bridge ids, or memory/capsule/vector
+// data. /otzar/conversations is METADATA ONLY (no transcripts/message
+// bodies); transcript retrieval is a future, governed capability.
+
+// WHAT: One skill on the caller's twin (product-safe; name + category).
+export interface MyTwinSkill {
+  name: string;
+  category: string;
+}
+
+// WHAT: The human approver for the caller's twin, if one is set.
+export interface MyTwinApprover {
+  entity_id: string;
+  display_name: string;
+}
+
+// WHAT: The caller's own aligned digital-twin identity (projection).
+// WHY: twin_id + role_template are part of the contract but the UI does
+//      NOT surface them prominently (raw id / internal template).
+export interface MyTwinView {
+  twin_id: string;
+  display_name: string;
+  role_title: string | null;
+  autonomy_mode: string;
+  swarm_enabled: boolean;
+  role_template: string | null;
+  is_admin_twin: boolean;
+  status: string;
+  skills: MyTwinSkill[];
+  approver: MyTwinApprover | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// WHAT: GET /api/v1/otzar/my-twin success response.
+export interface MyTwinResponse {
+  ok: true;
+  twin: MyTwinView;
+  has_multiple_twins: boolean;
+  twin_count: number;
+}
+
+// WHAT: Conversation status filter / item status (product enum).
+export type ConversationStatus = "ACTIVE" | "CLOSED";
+
+// WHAT: One conversation-session metadata row (NO transcript / bodies).
+export interface ConversationListItem {
+  conversation_id: string;
+  twin_id: string;
+  source_type: string;
+  status: string;
+  message_count: number;
+  started_at: string;
+  closed_at: string | null;
+}
+
+// WHAT: GET /api/v1/otzar/conversations success response (paginated).
+export interface ConversationListResponse {
+  ok: true;
+  items: ConversationListItem[];
+  total: number;
+  has_more: boolean;
+}
+
+// WHAT: Query params for the conversations metadata feed.
+export interface ConversationListParams {
+  skip?: number;
+  take?: number;
+  status?: ConversationStatus;
+}

@@ -11,10 +11,12 @@
 // as nav entries -- there is no backend contract for them yet.
 
 import {
+  Bot,
   ClipboardCheck,
   Eye,
   LayoutDashboard,
   MessageSquare,
+  MessagesSquare,
   PencilLine,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
@@ -56,5 +58,17 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/approvals",
     icon: ClipboardCheck,
     description: "Approval requests waiting on you.",
+  },
+  {
+    label: "My Twin",
+    to: "/app/my-twin",
+    icon: Bot,
+    description: "Your aligned AI teammate.",
+  },
+  {
+    label: "Conversations",
+    to: "/app/conversations",
+    icon: MessagesSquare,
+    description: "Your ambient console sessions.",
   },
 ];
