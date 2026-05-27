@@ -5,7 +5,7 @@
 // CONNECTS TO: src/pages/app/Chat.tsx, tests/msw/handlers.ts.
 
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
@@ -44,18 +44,35 @@ describe("Chat (employee Otzar)", () => {
     expect(summary).not.toHaveTextContent(/capsule/i);
   });
 
-  it("renders the transparency panel after a successful response", async () => {
+  it("keeps transparency quiet by default and reveals it on demand", async () => {
     const user = userEvent.setup();
     render(<Chat />);
 
     await user.type(screen.getByLabelText("Message"), "hello");
     await user.click(screen.getByRole("button", { name: /send/i }));
+    await screen.findByText(/Echo: hello/);
 
+    // Default experience: calm. A small optional control, NOT the full
+    // panel, and copy that reads as confidence, not surveillance.
+    const toggle = await screen.findByTestId("transparency-toggle");
+    expect(toggle).toHaveTextContent(/Why this answer\?/i);
+    expect(screen.queryByTestId("transparency-panel")).not.toBeInTheDocument();
+
+    // On demand: reveal the panel.
+    await user.click(toggle);
     const panel = await screen.findByTestId("transparency-panel");
     expect(panel).toHaveTextContent(/How Otzar answered/i);
     expect(panel).toHaveTextContent(/Q4 pricing decision/);
     expect(screen.getByTestId("access-limited")).toHaveTextContent(
       /access rules/i,
+    );
+
+    // Collapsible again.
+    await user.click(screen.getByTestId("transparency-toggle"));
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("transparency-panel"),
+      ).not.toBeInTheDocument(),
     );
   });
 
@@ -86,7 +103,13 @@ describe("Chat (employee Otzar)", () => {
 
     expect(await screen.findByText(/Echo: hi/)).toBeInTheDocument();
     expect(screen.getByTestId("chat-meta")).toBeInTheDocument();
-    // The panel renders its graceful fallback rather than breaking.
-    expect(screen.getByTestId("transparency-empty")).toBeInTheDocument();
+    // Quiet by default: the optional control is present, the panel is not.
+    expect(screen.getByTestId("transparency-toggle")).toBeInTheDocument();
+    expect(screen.queryByTestId("transparency-panel")).not.toBeInTheDocument();
+    // Revealing on demand shows the graceful fallback, not a broken panel.
+    await user.click(screen.getByTestId("transparency-toggle"));
+    expect(
+      await screen.findByTestId("transparency-empty"),
+    ).toBeInTheDocument();
   });
 });
