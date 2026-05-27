@@ -1150,6 +1150,57 @@ const otzarMyTwinHandler = http.get(
           approver: { entity_id: "mgr-0001", display_name: "Dana Manager" },
           created_at: new Date(Date.now() - 30 * 86_400_000).toISOString(),
           updated_at: now,
+          // ADR-0053 Wave 2A: additive, self-scoped role-scope profile
+          // (friendly labels + counts only; no envelopes / bridge ids /
+          // capability flags).
+          role_scope_profile: {
+            identity: {
+              twin_id: "twin-self-0001",
+              display_name: "Your AI Teammate",
+              status: "ACTIVE",
+            },
+            role: {
+              role_title: "Executive Assistant",
+              job_title: "Operations Lead",
+              department: "Operations",
+              hierarchy_level: 2,
+              is_admin_twin: false,
+            },
+            scope_summary: {
+              scope_label: "Role-scoped enterprise context",
+              membership_count: 1,
+              active_membership_count: 1,
+              department_count: 1,
+              has_department_scope: true,
+              has_multiple_memberships: false,
+              permission_posture:
+                "Governed by role and organization access rules",
+              approval_posture: "Approval required for sensitive actions",
+            },
+            assistance_profile: {
+              autonomy_mode: "APPROVAL_REQUIRED",
+              swarm_enabled: false,
+              role_template_status: "CONFIGURED",
+              skills_status: "AVAILABLE",
+              current_assistance_boundaries: [
+                "Operates within your role and organization access scope",
+                "Sensitive actions require permission, policy, or approval",
+                "Observes permissioned work context to reduce drift and keep your work aligned",
+              ],
+            },
+            governance: {
+              approver_configured: true,
+              approver: { entity_id: "mgr-0001", display_name: "Dana Manager" },
+              sensitive_actions_require: "PERMISSION_POLICY_OR_APPROVAL",
+              observation_mode: "PERMISSIONED_WORK_CONTEXT_NOT_SURVEILLANCE",
+            },
+            continuity: {
+              recent_conversation_count: 3,
+              recent_correction_count: 1,
+              recent_learning_summary_count: 2,
+              alignment_signals_available: true,
+            },
+          },
         },
         has_multiple_twins: false,
         twin_count: 1,
