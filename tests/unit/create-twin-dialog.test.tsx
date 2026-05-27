@@ -111,10 +111,9 @@ describe("CreateTwinDialog", () => {
     expect(body).not.toHaveProperty("behavior_policy");
 
     // ─── Stage 4 toast surfaces the real audit_event_id (truncated
-    //     form) -- verifies AssignSkillResponse-equivalent flow for
-    //     the create endpoint per AITeammateCreateResponse.
-    const truncated = `AUDIT_ID_${EXPECTED_AUDIT_ID.slice(0, 8)}…`;
-    await screen.findByText(truncated);
+    //     form) as informational proof -- "Audit recorded: AUDIT_ID_<8>…".
+    const truncated = `AUDIT_ID_${EXPECTED_AUDIT_ID.slice(0, 8)}`;
+    await screen.findByText(new RegExp(`Audit recorded: ${truncated}`));
 
     consoleError.mockRestore();
   });

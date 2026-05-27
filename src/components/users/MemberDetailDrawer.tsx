@@ -271,17 +271,12 @@ export function MemberDetailDrawer({
                     await queryClient.invalidateQueries({
                       queryKey: ["org", "entities"],
                     });
-                    // Foundation's PATCH route for entity profile
-                    // doesn't surface an audit_event_id today; this
-                    // is the documented gap for the audit-aware UI
-                    // path in 12B.2 -- the AuditAwareForm needs a
-                    // string here, so we synthesize a placeholder
-                    // value the toast renders without breaking the
-                    // contract. 12C/12D will extend Foundation to
-                    // surface this.
+                    // Foundation now returns the real audit_event_id for
+                    // this PATCH (ADMIN_ACTION action=ORG_ENTITY_UPDATE),
+                    // retiring the former placeholder sentinel.
                     return {
                       ok: true,
-                      audit_event_id: "pending-foundation-extension",
+                      audit_event_id: r.data.audit_event_id,
                     };
                   }}
                 >

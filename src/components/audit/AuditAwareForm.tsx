@@ -10,7 +10,9 @@
 //   Stage 1 -- form rendered with AuditEventTooltip subtext
 //   Stage 2 -- optional confirmation dialog before submit
 //   Stage 3 -- submit in-flight (button disabled + spinner)
-//   Stage 4 -- success toast w/ audit_event_id link or error toast
+//   Stage 4 -- success toast confirming the action with the real audit
+//              id as informational text (NO clickable link -- no audit
+//              viewer exists yet) or error toast
 
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -22,7 +24,6 @@ import {
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z, ZodType } from "zod";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AuditEventTooltip } from "@/components/audit/AuditEventTooltip";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,6 @@ export function AuditAwareForm<TSchema extends ZodType<FieldValues>>({
   submitLabel,
   children,
 }: AuditAwareFormProps<TSchema>) {
-  const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("idle");
   const [pendingValues, setPendingValues] = useState<z.infer<TSchema> | null>(
     null,
@@ -102,12 +102,7 @@ export function AuditAwareForm<TSchema extends ZodType<FieldValues>>({
       const result = await onSubmit(values);
       if (result.ok) {
         toast.success("Action complete.", {
-          description: shortenAuditId(result.audit_event_id),
-          action: {
-            label: "View audit",
-            onClick: () =>
-              navigate(`/security-audit?audit_id=${result.audit_event_id}`),
-          },
+          description: `Audit recorded: ${shortenAuditId(result.audit_event_id)}`,
         });
         form.reset(defaultValues);
       } else {

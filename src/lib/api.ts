@@ -31,6 +31,7 @@ import type {
   // 12B.1 -- types extension
   Entity,
   EntityType,
+  EntityUpdateResponse,
   MemberInput,
   MemberCreateResponse,
   MemberBulkResponse,
@@ -249,15 +250,20 @@ export class ApiClient {
       get: (id: string): Promise<ApiResult<Entity>> =>
         this.request<Entity>(`/org/entities/${encodeURIComponent(id)}`),
 
-      /** PATCH /api/v1/org/entities/:id -- status + EntityProfile fields. */
+      /** PATCH /api/v1/org/entities/:id -- status + EntityProfile fields.
+       *  Foundation returns { ok, audit_event_id } (ADMIN_ACTION
+       *  action=ORG_ENTITY_UPDATE); callers surface the REAL audit id. */
       update: (
         id: string,
         patch: Partial<Pick<Entity, "status">> & Record<string, unknown>,
-      ): Promise<ApiResult<Entity>> =>
-        this.request<Entity>(`/org/entities/${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          body: patch,
-        }),
+      ): Promise<ApiResult<EntityUpdateResponse>> =>
+        this.request<EntityUpdateResponse>(
+          `/org/entities/${encodeURIComponent(id)}`,
+          {
+            method: "PATCH",
+            body: patch,
+          },
+        ),
     },
 
     members: {

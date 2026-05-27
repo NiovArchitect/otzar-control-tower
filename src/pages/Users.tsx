@@ -167,13 +167,8 @@ export function UsersPage() {
           return { ok: false, error: r.message };
         }
         await queryClient.invalidateQueries({ queryKey: ["org", "entities"] });
-        // Foundation's PATCH /org/entities/:id doesn't return
-        // audit_event_id today (out of 12B.0 scope). Document and
-        // surface a sentinel value for the toast contract.
-        return {
-          ok: true,
-          audit_event_id: "pending-foundation-extension",
-        };
+        // Foundation now returns the real audit_event_id for this PATCH.
+        return { ok: true, audit_event_id: r.data.audit_event_id };
       },
     },
     {
@@ -190,10 +185,8 @@ export function UsersPage() {
           return { ok: false, error: r.message };
         }
         await queryClient.invalidateQueries({ queryKey: ["org", "entities"] });
-        return {
-          ok: true,
-          audit_event_id: "pending-foundation-extension",
-        };
+        // Foundation now returns the real audit_event_id for this PATCH.
+        return { ok: true, audit_event_id: r.data.audit_event_id };
       },
     },
   ];

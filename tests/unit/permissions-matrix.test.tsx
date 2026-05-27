@@ -64,6 +64,13 @@ describe("PermissionsMatrix", () => {
       expect(screen.getByRole("table")).toBeInTheDocument();
     });
 
+    // ─── Trust-chain disclosure: the 1 dropped cross-wallet permission
+    //     is surfaced honestly (not silently omitted), so the matrix
+    //     never implies complete governance coverage.
+    expect(
+      screen.getByTestId("dropped-permissions-notice"),
+    ).toHaveTextContent(/Hidden from this matrix: 1 permission/i);
+
     // ─── Assertion (a): the table header includes the capsule_types
     //     present in the JOIN — DECISION (2 rows), HANDOFF (1 row),
     //     RISK (1 row). Top-N cap is MATRIX_TOP_CAPSULE_TYPES (8) so
