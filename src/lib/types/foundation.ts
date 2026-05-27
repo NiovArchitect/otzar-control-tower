@@ -940,6 +940,75 @@ export interface MyTwinView {
   approver: MyTwinApprover | null;
   created_at: string;
   updated_at: string;
+  // ADR-0053 Wave 2A: additive, optional, self-scoped role-scope profile.
+  // Existing fields above are unchanged (backward-compatible).
+  role_scope_profile?: MyTwinRoleScopeProfile;
+}
+
+// ════════════════════════════════════════════════════════════════
+// MY TWIN -- role-scope profile (ADR-0053 Wave 2A; additive, self-scoped)
+// ════════════════════════════════════════════════════════════════
+//
+// A product-safe, self-scoped projection mirroring the Foundation
+// MyTwinRoleScopeProfile. Friendly labels + counts only -- NEVER raw
+// RBAC/ABAC rows, clearance, capability flags, permission envelopes,
+// bridge ids, raw memory/capsule/vector data, or AgentTemplate body.
+// observation_mode is a fixed anti-surveillance literal.
+
+export interface RoleScopeIdentity {
+  twin_id: string;
+  display_name: string;
+  status: string;
+}
+
+export interface RoleScopeRole {
+  role_title: string | null;
+  job_title: string | null;
+  department: string | null;
+  hierarchy_level: number | null;
+  is_admin_twin: boolean;
+}
+
+export interface RoleScopeSummary {
+  scope_label: string;
+  membership_count: number;
+  active_membership_count: number;
+  department_count: number;
+  has_department_scope: boolean;
+  has_multiple_memberships: boolean;
+  permission_posture: string;
+  approval_posture: string;
+}
+
+export interface RoleScopeAssistanceProfile {
+  autonomy_mode: string;
+  swarm_enabled: boolean;
+  role_template_status: "CONFIGURED" | "NOT_CONFIGURED";
+  skills_status: "AVAILABLE" | "NOT_CONFIGURED";
+  current_assistance_boundaries: string[];
+}
+
+export interface RoleScopeGovernance {
+  approver_configured: boolean;
+  approver: MyTwinApprover | null;
+  sensitive_actions_require: "PERMISSION_POLICY_OR_APPROVAL";
+  observation_mode: "PERMISSIONED_WORK_CONTEXT_NOT_SURVEILLANCE";
+}
+
+export interface RoleScopeContinuity {
+  recent_conversation_count: number;
+  recent_correction_count: number;
+  recent_learning_summary_count: number;
+  alignment_signals_available: boolean;
+}
+
+export interface MyTwinRoleScopeProfile {
+  identity: RoleScopeIdentity;
+  role: RoleScopeRole;
+  scope_summary: RoleScopeSummary;
+  assistance_profile: RoleScopeAssistanceProfile;
+  governance: RoleScopeGovernance;
+  continuity: RoleScopeContinuity;
 }
 
 // WHAT: GET /api/v1/otzar/my-twin success response.

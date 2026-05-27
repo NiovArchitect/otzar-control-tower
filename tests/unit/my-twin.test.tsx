@@ -6,7 +6,7 @@
 // CONNECTS TO: src/pages/app/MyTwin.tsx, tests/msw/handlers.ts.
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
@@ -44,13 +44,78 @@ beforeEach(() => setAuth());
 describe("MyTwin (employee Otzar)", () => {
   it("renders the twin identity, skills, and approver safely", async () => {
     renderMyTwin();
-    expect(await screen.findByText("Your AI Teammate")).toBeInTheDocument();
-    expect(screen.getByText(/Executive Assistant/)).toBeInTheDocument();
-    expect(screen.getByText(/Approval required/i)).toBeInTheDocument();
+    // Scope identity assertions to the main card -- the role-scope panel
+    // legitimately repeats some of these (role title, approver, behavior
+    // mode), so global getByText would match multiple.
+    const card = await screen.findByTestId("my-twin-card");
+    expect(within(card).getByText("Your AI Teammate")).toBeInTheDocument();
+    expect(within(card).getByText(/Executive Assistant/)).toBeInTheDocument();
+    expect(within(card).getByText(/Approval required/i)).toBeInTheDocument();
     expect(screen.getByTestId("my-twin-skills")).toHaveTextContent(
       /Calendar Coordination/,
     );
-    expect(screen.getByText(/Dana Manager/)).toBeInTheDocument();
+    expect(within(card).getByText(/Dana Manager/)).toBeInTheDocument();
+  });
+
+  it("renders the role-scope profile safely with anti-surveillance framing", async () => {
+    renderMyTwin();
+    const panel = await screen.findByTestId("role-scope-panel");
+    expect(panel).toHaveTextContent(/within your role and access/i);
+    expect(panel).toHaveTextContent(/Role-scoped enterprise context/);
+    expect(panel).toHaveTextContent(
+      /Governed by role and organization access rules/,
+    );
+    // Permissioned work context is rendered as NOT surveillance.
+    expect(within(panel).getByTestId("observation-mode")).toHaveTextContent(
+      /Permissioned work context, not surveillance\./i,
+    );
+    expect(panel).toHaveTextContent(/prevent drift/i);
+    expect(panel).toHaveTextContent(
+      /Sensitive actions still require permission, policy, or approval/i,
+    );
+    // No surveillance / monitoring / policing framing, and no raw ids.
+    expect(panel).not.toHaveTextContent(
+      /monitoring|policing|spy|tracking employees|judging/i,
+    );
+    const text = panel.textContent ?? "";
+    expect(text).not.toContain("twin-self-0001"); // raw id not surfaced
+    expect(text).not.toMatch(
+      /capability_flags|permission envelope|bridge_id|raw memory|vector|embedding/i,
+    );
+  });
+
+  it("remains backward-compatible when role_scope_profile is absent", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-twin`, async () =>
+        HttpResponse.json(
+          {
+            ok: true,
+            twin: {
+              twin_id: "twin-self-0001",
+              display_name: "Your AI Teammate",
+              role_title: "Executive Assistant",
+              autonomy_mode: "APPROVAL_REQUIRED",
+              swarm_enabled: false,
+              role_template: null,
+              is_admin_twin: false,
+              status: "ACTIVE",
+              skills: [],
+              approver: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            has_multiple_twins: false,
+            twin_count: 1,
+          },
+          { status: 200 },
+        ),
+      ),
+    );
+    renderMyTwin();
+    // Identity still renders; the role-scope panel shows its fallback.
+    expect(await screen.findByTestId("my-twin-card")).toBeInTheDocument();
+    expect(screen.getByTestId("role-scope-empty")).toBeInTheDocument();
+    expect(screen.queryByTestId("role-scope-panel")).not.toBeInTheDocument();
   });
 
   it("does not expose raw twin_id, role-template body, or substrate internals", async () => {

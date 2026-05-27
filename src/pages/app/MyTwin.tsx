@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RoleScopeProfilePanel } from "@/components/employee/RoleScopeProfilePanel";
 import { api } from "@/lib/api";
 import type { ApiResult } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -113,7 +114,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
         </div>
       )}
 
-      <Card>
+      <Card data-testid="my-twin-card">
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="text-lg">{t.display_name}</CardTitle>
@@ -165,6 +166,8 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
           </div>
         </CardContent>
       </Card>
+
+      <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
     </div>
   );
 }
