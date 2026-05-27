@@ -186,6 +186,40 @@ describe("api.otzar.*", () => {
     expect(url).not.toContain("/console");
   });
 
+  it("conversations.detail -> GET /otzar/conversations/:id (id encoded)", async () => {
+    const fetchMock: typeof globalThis.fetch = vi.fn(async () =>
+      okJson({
+        ok: true,
+        conversation: {
+          conversation_id: "conv-closed-0001",
+          twin_id: "twin-self-0001",
+          source_type: "CHAT",
+          status: "CLOSED",
+          started_at: new Date().toISOString(),
+          closed_at: new Date().toISOString(),
+          message_count: 9,
+          summary: "summary",
+          topics: ["pricing"],
+          summary_available: true,
+          summary_capsule_id: "cap-summary-0001",
+          detail_availability: "SUMMARY_AVAILABLE",
+          transparency_available: false,
+          continuity_note: "note",
+        },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    // A path-unsafe id proves encodeURIComponent is applied.
+    await client().otzar.conversations.detail("conv closed/0001");
+    const { url, init } = lastCall(fetchMock);
+    expect(url).toBe(
+      "http://test.local/otzar/conversations/conv%20closed%2F0001",
+    );
+    expect(init.method ?? "GET").toBe("GET");
+    expect(url).not.toContain("/console");
+  });
+
   it("exposes no transcript/messages methods on api.otzar", () => {
     const c = client();
     const otzar = c.otzar as unknown as Record<string, unknown>;

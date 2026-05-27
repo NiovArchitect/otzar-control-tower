@@ -70,6 +70,7 @@ import type {
   MyTwinResponse,
   ConversationListResponse,
   ConversationListParams,
+  ConversationDetailResponse,
   // Employee Approvals -- /escalations/* product surface
   EscalationListResponse,
   EscalationResponse,
@@ -568,6 +569,16 @@ export class ApiClient {
             take: params.take,
             status: params.status,
           })}`,
+        ),
+      /** GET /api/v1/otzar/conversations/:id -- one self-scoped look-back
+       *  detail (metadata + optional close SUMMARY + topics). No
+       *  transcripts / message bodies / raw context. summary_capsule_id is
+       *  in the contract but the UI does NOT render it. */
+      detail: (
+        conversationId: string,
+      ): Promise<ApiResult<ConversationDetailResponse>> =>
+        this.request<ConversationDetailResponse>(
+          `/otzar/conversations/${encodeURIComponent(conversationId)}`,
         ),
     },
   };

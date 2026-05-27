@@ -1255,6 +1255,126 @@ const otzarConversationsHandler = http.get(
   },
 );
 
+// GET /otzar/conversations/:id -- Wave 2B look-back detail (ADR-0054).
+// Fixture ids exercise every detail_availability + error branch. The
+// SUMMARY_AVAILABLE fixture carries a summary_capsule_id on purpose: the
+// contract includes it, and the UI must NOT render it (raw id boundary).
+const otzarConversationDetailHandler = http.get(
+  `${API_BASE}/otzar/conversations/:id`,
+  async ({ params }) => {
+    const id = String(params.id);
+    const now = Date.now();
+    const CONTINUITY_NOTE =
+      "Per-conversation correction and transparency signals are not " +
+      "retained in Wave 2B; this is a metadata and close-summary view, " +
+      "not a transcript.";
+
+    if (id === "conv-forbidden-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "NOT_CONVERSATION_OWNER",
+          message: "You do not own this conversation",
+        },
+        { status: 403 },
+      );
+    }
+    if (id === "conv-missing-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "CONVERSATION_NOT_FOUND",
+          message: "Conversation not found",
+        },
+        { status: 404 },
+      );
+    }
+    if (id === "conv-error-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "INTERNAL_ERROR",
+          message: "Something went wrong",
+        },
+        { status: 500 },
+      );
+    }
+
+    const base = {
+      conversation_id: id,
+      twin_id: "twin-self-0001",
+      source_type: "CHAT",
+      transparency_available: false,
+      continuity_note: CONTINUITY_NOTE,
+    };
+
+    if (id === "conv-active-0001") {
+      return HttpResponse.json(
+        {
+          ok: true,
+          conversation: {
+            ...base,
+            status: "ACTIVE",
+            started_at: new Date(now - 3_600_000).toISOString(),
+            closed_at: null,
+            message_count: 4,
+            summary: null,
+            topics: [],
+            summary_available: false,
+            summary_capsule_id: null,
+            detail_availability: "ACTIVE_NOT_CLOSED",
+          },
+        },
+        { status: 200 },
+      );
+    }
+
+    if (id === "conv-no-summary-0001") {
+      return HttpResponse.json(
+        {
+          ok: true,
+          conversation: {
+            ...base,
+            status: "CLOSED",
+            started_at: new Date(now - 3 * 86_400_000).toISOString(),
+            closed_at: new Date(now - 3 * 86_400_000 + 600_000).toISOString(),
+            message_count: 2,
+            summary: null,
+            topics: [],
+            summary_available: false,
+            summary_capsule_id: null,
+            detail_availability: "NO_SUMMARY_YET",
+          },
+        },
+        { status: 200 },
+      );
+    }
+
+    // Default + conv-closed-0001 -> SUMMARY_AVAILABLE.
+    return HttpResponse.json(
+      {
+        ok: true,
+        conversation: {
+          ...base,
+          status: "CLOSED",
+          started_at: new Date(now - 2 * 86_400_000).toISOString(),
+          closed_at: new Date(now - 2 * 86_400_000 + 1_800_000).toISOString(),
+          message_count: 9,
+          summary:
+            "Reviewed Q4 pricing options and aligned on the enterprise " +
+            "tier discount. Action: send the revised proposal to the " +
+            "client by Friday.",
+          topics: ["pricing", "q4-planning", "enterprise-tier"],
+          summary_available: true,
+          summary_capsule_id: "cap-summary-0001",
+          detail_availability: "SUMMARY_AVAILABLE",
+        },
+      },
+      { status: 200 },
+    );
+  },
+);
+
 export const handlers = [
   // 12B.1 / 12B.4 (extended)
   shareHandler,
@@ -1289,7 +1409,9 @@ export const handlers = [
   escalationsDetailHandler,
   escalationsApproveHandler,
   escalationsRejectHandler,
-  // Employee My Twin + Conversations metadata
+  // Employee My Twin + Conversations metadata (list before :id so the
+  // literal path wins over the :id param matcher).
   otzarMyTwinHandler,
   otzarConversationsHandler,
+  otzarConversationDetailHandler,
 ];

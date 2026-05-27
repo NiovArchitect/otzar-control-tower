@@ -1058,3 +1058,45 @@ export interface ConversationListParams {
   take?: number;
   status?: ConversationStatus;
 }
+
+// ════════════════════════════════════════════════════════════════
+// MY CONVERSATIONS -- single look-back detail (ADR-0054 Wave 2B)
+// ════════════════════════════════════════════════════════════════
+//
+// GET /api/v1/otzar/conversations/:id -- a SAFE, self-scoped look-back
+// projection: metadata + an optional close SUMMARY + topics only. It
+// never returns transcripts, message bodies, raw context, vectors, or
+// capsule internals. transparency_available is always false (live
+// transparency is surfaced during answers, not stored as history).
+// summary_capsule_id is part of the contract but the UI does NOT render
+// it (raw id).
+
+// WHAT: Whether a close summary is available for the conversation.
+export type ConversationDetailAvailability =
+  | "SUMMARY_AVAILABLE"
+  | "NO_SUMMARY_YET"
+  | "ACTIVE_NOT_CLOSED";
+
+// WHAT: One conversation look-back detail (safe projection).
+export interface ConversationDetail {
+  conversation_id: string;
+  twin_id: string;
+  source_type: string;
+  status: string;
+  started_at: string;
+  closed_at: string | null;
+  message_count: number;
+  summary: string | null;
+  topics: string[];
+  summary_available: boolean;
+  summary_capsule_id: string | null;
+  detail_availability: ConversationDetailAvailability;
+  transparency_available: false;
+  continuity_note: string;
+}
+
+// WHAT: GET /api/v1/otzar/conversations/:id success response.
+export interface ConversationDetailResponse {
+  ok: true;
+  conversation: ConversationDetail;
+}
