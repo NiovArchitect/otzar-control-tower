@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConversationDetailDrawer } from "@/components/employee/ConversationDetailDrawer";
 import { api } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import {
@@ -42,6 +43,9 @@ const FILTERS: ReadonlyArray<{ key: Filter; label: string }> = [
 export function Conversations() {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [pages, setPages] = useState(1);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
 
   const query = useQuery({
     queryKey: ["otzar", "conversations", filter, pages],
@@ -138,30 +142,33 @@ export function Conversations() {
       {res && res.ok && items.length > 0 && (
         <ul className="space-y-2" data-testid="conversations-list">
           {items.map((c) => (
-            <li
-              key={c.conversation_id}
-              className="flex items-start justify-between gap-3 rounded-md border border-border bg-card px-4 py-3"
-            >
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">
-                    {labelConversationSource(c.source_type)}
-                  </span>
-                  <Badge
-                    variant={c.status === "ACTIVE" ? "default" : "secondary"}
-                  >
-                    {labelConversationStatus(c.status)}
-                  </Badge>
+            <li key={c.conversation_id}>
+              <button
+                type="button"
+                onClick={() => setSelectedConversationId(c.conversation_id)}
+                className="flex w-full items-start justify-between gap-3 rounded-md border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">
+                      {labelConversationSource(c.source_type)}
+                    </span>
+                    <Badge
+                      variant={c.status === "ACTIVE" ? "default" : "secondary"}
+                    >
+                      {labelConversationStatus(c.status)}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {c.message_count} message
+                    {c.message_count === 1 ? "" : "s"} · started{" "}
+                    {formatRelativeTime(c.started_at)}
+                    {c.closed_at
+                      ? ` · closed ${formatRelativeTime(c.closed_at)}`
+                      : ""}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {c.message_count} message
-                  {c.message_count === 1 ? "" : "s"} · started{" "}
-                  {formatRelativeTime(c.started_at)}
-                  {c.closed_at
-                    ? ` · closed ${formatRelativeTime(c.closed_at)}`
-                    : ""}
-                </p>
-              </div>
+              </button>
             </li>
           ))}
         </ul>
@@ -178,6 +185,14 @@ export function Conversations() {
           {query.isFetching ? "Loading…" : "Load more"}
         </Button>
       )}
+
+      <ConversationDetailDrawer
+        conversationId={selectedConversationId}
+        open={selectedConversationId !== null}
+        onOpenChange={(next) => {
+          if (!next) setSelectedConversationId(null);
+        }}
+      />
     </div>
   );
 }

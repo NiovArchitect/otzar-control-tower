@@ -96,6 +96,31 @@ describe("Conversations (employee Otzar)", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens the look-back drawer from a row and shows the close summary (no raw ids)", async () => {
+    const user = userEvent.setup();
+    renderConversations();
+    const list = await screen.findByTestId("conversations-list");
+
+    // The closed row is the only row whose accessible name mentions
+    // "closed"; clicking it opens the detail drawer for conv-closed-0001
+    // (SUMMARY_AVAILABLE fixture).
+    await user.click(within(list).getByRole("button", { name: /closed/i }));
+
+    const drawer = await screen.findByTestId("conversation-detail-drawer");
+    expect(await within(drawer).findByTestId("detail-summary")).toHaveTextContent(
+      /Reviewed Q4 pricing/i,
+    );
+    expect(within(drawer).getByText("pricing")).toBeInTheDocument();
+    expect(
+      within(drawer).getByTestId("lookback-boundary-note"),
+    ).toHaveTextContent(/This is not a transcript/i);
+
+    // The contract's summary_capsule_id and raw twin_id never surface.
+    const text = drawer.textContent ?? "";
+    expect(text).not.toContain("cap-summary-0001");
+    expect(text).not.toContain("twin-self-0001");
+  });
+
   it("renders Load more when has_more is true", async () => {
     server.use(
       http.get(`${API_BASE}/otzar/conversations`, async () =>
