@@ -20,7 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import type { ConversationMessageRequest } from "@/lib/types/foundation";
+import { TransparencyPanel } from "@/components/employee/TransparencyPanel";
+import type {
+  ChatTransparency,
+  ContextProvenanceItem,
+  ConversationMessageRequest,
+} from "@/lib/types/foundation";
 
 interface ChatTurn {
   role: "you" | "teammate";
@@ -56,6 +61,10 @@ export function Chat() {
   const [sending, setSending] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeSummary, setCloseSummary] = useState<CloseSummary | null>(null);
+  const [transparency, setTransparency] = useState<ChatTransparency | null>(
+    null,
+  );
+  const [provenance, setProvenance] = useState<ContextProvenanceItem[]>([]);
 
   async function send(): Promise<void> {
     const message = input.trim();
@@ -84,6 +93,8 @@ export function Chat() {
       context_used: result.data.context_used,
       tokens_consumed: result.data.tokens_consumed,
     });
+    setTransparency(result.data.transparency ?? null);
+    setProvenance(result.data.context_provenance ?? []);
     setTurns((prev) => [...prev, { role: "teammate", text: result.data.response }]);
   }
 
@@ -104,6 +115,8 @@ export function Chat() {
     // Start fresh: a new message begins a new conversation.
     setConversationId(null);
     setMeta(null);
+    setTransparency(null);
+    setProvenance([]);
     setTurns([]);
   }
 
@@ -178,6 +191,10 @@ export function Chat() {
           Context items used: {meta.context_used} · tokens: {meta.tokens_consumed}
           {conversationId ? ` · conversation ${conversationId}` : ""}
         </p>
+      )}
+
+      {meta && (
+        <TransparencyPanel transparency={transparency} provenance={provenance} />
       )}
 
       {error && (
