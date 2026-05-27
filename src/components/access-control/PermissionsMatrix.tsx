@@ -218,13 +218,33 @@ export function PermissionsMatrix({
     );
   }
 
+  // Honest cross-wallet disclosure: aggregateMatrix drops permissions
+  // whose capsule_id is not in the org-wallet slice (PERSONAL member /
+  // AI-teammate wallets). Surfacing the count avoids implying the matrix
+  // is a complete view of governance.
+  const droppedNotice =
+    aggregated.droppedCount > 0 ? (
+      <p
+        className="text-xs text-muted-foreground"
+        data-testid="dropped-permissions-notice"
+      >
+        Some permissions are not shown in this matrix because they live in
+        personal or AI-teammate wallets. Hidden from this matrix:{" "}
+        {aggregated.droppedCount} permission
+        {aggregated.droppedCount === 1 ? "" : "s"}.
+      </p>
+    ) : null;
+
   if (aggregated.rows.length === 0) {
     return (
-      <div className="rounded-md border border-border p-8 text-center">
-        <h3 className="text-base font-semibold">No active permissions yet</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Use "Grant Permission" above to issue your first bridge.
-        </p>
+      <div className="space-y-3">
+        {droppedNotice}
+        <div className="rounded-md border border-border p-8 text-center">
+          <h3 className="text-base font-semibold">No active permissions yet</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Use "Grant Permission" above to issue your first bridge.
+          </p>
+        </div>
       </div>
     );
   }
@@ -239,6 +259,7 @@ export function PermissionsMatrix({
 
   return (
     <div className="overflow-x-auto rounded-md border">
+      {droppedNotice ? <div className="px-4 pt-2">{droppedNotice}</div> : null}
       <table role="table" className="w-full text-sm">
         <thead className="border-b bg-muted/30">
           <tr role="row">

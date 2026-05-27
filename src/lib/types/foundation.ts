@@ -500,6 +500,17 @@ export interface MemberCreateResponse {
   audit_event_id: string;
 }
 
+// WHAT: Success response from PATCH /api/v1/org/entities/:id.
+// WHY: Foundation now returns { ok, audit_event_id } for the entity
+//      status + EntityProfile update (the audit_id of the ADMIN_ACTION
+//      action=ORG_ENTITY_UPDATE row). Consuming the REAL id retires the
+//      former "pending-foundation-extension" sentinel. The route does
+//      not return the Entity body; no caller relies on it.
+export interface EntityUpdateResponse {
+  ok: true;
+  audit_event_id: string;
+}
+
 // WHAT: Success response from POST /api/v1/org/members/bulk.
 export interface MemberBulkResponse {
   ok: true;

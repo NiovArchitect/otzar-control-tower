@@ -36,5 +36,10 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/unit/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["tests/e2e/**", "node_modules/**"],
+    // Radix-heavy component tests (e.g. grant-permission-dialog) chain
+    // many userEvent + waitFor steps and can cross the 5s default under
+    // full-suite parallel load. 15s removes the load-induced flake
+    // without weakening any assertion.
+    testTimeout: 15000,
   },
 });

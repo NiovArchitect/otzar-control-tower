@@ -59,7 +59,7 @@ afterEach(() => {
 });
 
 describe("AuditAwareButton", () => {
-  it("renders 4-stage state machine (subtext → optional confirm → in-flight → success toast w/ audit link)", async () => {
+  it("renders 4-stage state machine (subtext → optional confirm → in-flight → informational success toast, NO dead-end audit link)", async () => {
     const user = userEvent.setup();
 
     // ─── Scenario A: requireConfirmation=false -- subtext, in-flight,
@@ -93,19 +93,16 @@ describe("AuditAwareButton", () => {
       expect(onConfirmA).toHaveBeenCalledTimes(1);
     });
 
-    // Stage 4: success toast surfaces truncated id; clicking
-    // "View audit" navigates to /security-audit?audit_id=<full>.
-    const truncated = `AUDIT_ID_${auditId.slice(0, 8)}…`;
-    await screen.findByText(truncated);
-    const viewAudit = await screen.findByRole("button", {
-      name: /View audit/i,
-    });
-    await user.click(viewAudit);
-    await waitFor(() => {
-      expect(screen.getByTestId("current-path").textContent).toContain(
-        `/security-audit?audit_id=${auditId}`,
-      );
-    });
+    // Stage 4: success toast surfaces the truncated id as INFORMATIONAL
+    // proof only ("Audit recorded: AUDIT_ID_<8>…"). There is NO clickable
+    // "View audit" link (no audit viewer exists yet) and NO navigation
+    // to the /security-audit placeholder.
+    const truncated = `AUDIT_ID_${auditId.slice(0, 8)}`;
+    await screen.findByText(new RegExp(`Audit recorded: ${truncated}`));
+    expect(
+      screen.queryByRole("button", { name: /View audit/i }),
+    ).toBeNull();
+    expect(screen.getByTestId("current-path").textContent).toBe("/");
 
     unmount();
 

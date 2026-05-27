@@ -1,0 +1,41 @@
+name: CI
+
+# Control Tower frontend CI. Runs the existing package.json scripts
+# (typecheck, lint, test, build) on pushes to main and on every pull
+# request. No Playwright e2e here (needs browser install + a running
+# dev server); no new dependencies are added.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build

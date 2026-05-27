@@ -17,7 +17,6 @@
 
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AuditEventTooltip } from "@/components/audit/AuditEventTooltip";
 import { Button } from "@/components/ui/button";
@@ -81,7 +80,6 @@ export function BulkActionsBar<TId>({
   actions,
   renderItemLabel,
 }: BulkActionsBarProps<TId>) {
-  const navigate = useNavigate();
   const [pendingAction, setPendingAction] = useState<BulkAction<TId> | null>(
     null,
   );
@@ -133,19 +131,15 @@ export function BulkActionsBar<TId>({
         `${action.label} complete (${successCount} of ${ids.length}).`,
       );
       // Surface one representative audit_event_id from the first
-      // successful row when available -- gives the operator a click
-      // target to inspect the bulk run via Security & Audit.
+      // successful row when available -- informational proof only. No
+      // clickable link: a Security & Audit detail viewer does not exist
+      // yet, so there is no dead-end navigation to a placeholder.
       const firstSuccess = (results.find(
         (r) => r.status === "fulfilled" && r.value.ok,
       ) as PromiseFulfilledResult<BulkActionItemResult> | undefined)?.value;
       if (firstSuccess?.audit_event_id) {
-        toast.success("View audit", {
+        toast.success("Audit recorded", {
           description: `AUDIT_ID_${firstSuccess.audit_event_id.slice(0, 8)}…`,
-          action: {
-            label: "View audit",
-            onClick: () =>
-              navigate(`/security-audit?audit_id=${firstSuccess.audit_event_id}`),
-          },
         });
       }
       onClearSelection();

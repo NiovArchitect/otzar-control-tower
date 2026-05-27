@@ -18,14 +18,15 @@
 //              literal, Cancel + Confirm buttons.
 //   Stage 3 -- In-flight: button disabled, spinner inside,
 //              "Logging audit event..." text.
-//   Stage 4 -- Post-action: success → toast with clickable
-//              "Audit logged: AUDIT_ID_<truncated>" link to
-//              /security-audit?audit_id={full}; failure → error
-//              toast (no audit link, per 12B.0 contract).
+//   Stage 4 -- Post-action: success → toast confirming the action with
+//              the real audit id as informational proof text ("Audit
+//              recorded: AUDIT_ID_<truncated>"). NO clickable link --
+//              a Security & Audit detail viewer does not exist yet, so
+//              there is no dead-end navigation to a placeholder.
+//              Failure → error toast (no audit id, per 12B.0 contract).
 
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AuditEventTooltip } from "@/components/audit/AuditEventTooltip";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,6 @@ export function AuditAwareButton({
   onConfirm,
   children,
 }: AuditAwareButtonProps) {
-  const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("idle");
   const buttonVariant = variant === "destructive" ? "destructive" : "default";
 
@@ -88,12 +88,7 @@ export function AuditAwareButton({
       const result = await onConfirm();
       if (result.ok) {
         toast.success("Action complete.", {
-          description: shortenAuditId(result.audit_event_id),
-          action: {
-            label: "View audit",
-            onClick: () =>
-              navigate(`/security-audit?audit_id=${result.audit_event_id}`),
-          },
+          description: `Audit recorded: ${shortenAuditId(result.audit_event_id)}`,
         });
       } else {
         toast.error(`Action failed: ${result.error}`);
