@@ -5,9 +5,13 @@
 // CONNECTS TO: src/pages/app/Chat.tsx, tests/msw/handlers.ts.
 
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { server } from "../msw/server";
 import { Chat } from "@/pages/app/Chat";
+
+const API_BASE = "http://localhost:3000/api/v1";
 
 describe("Chat (employee Otzar)", () => {
   it("sends a message and renders the assistant response + transparency meta", async () => {
@@ -38,5 +42,74 @@ describe("Chat (employee Otzar)", () => {
     expect(summary).toHaveTextContent(/pricing/);
     // Product-safe copy: no raw substrate id / "capsule" wording surfaced.
     expect(summary).not.toHaveTextContent(/capsule/i);
+  });
+
+  it("keeps transparency quiet by default and reveals it on demand", async () => {
+    const user = userEvent.setup();
+    render(<Chat />);
+
+    await user.type(screen.getByLabelText("Message"), "hello");
+    await user.click(screen.getByRole("button", { name: /send/i }));
+    await screen.findByText(/Echo: hello/);
+
+    // Default experience: calm. A small optional control, NOT the full
+    // panel, and copy that reads as confidence, not surveillance.
+    const toggle = await screen.findByTestId("transparency-toggle");
+    expect(toggle).toHaveTextContent(/Why this answer\?/i);
+    expect(screen.queryByTestId("transparency-panel")).not.toBeInTheDocument();
+
+    // On demand: reveal the panel.
+    await user.click(toggle);
+    const panel = await screen.findByTestId("transparency-panel");
+    expect(panel).toHaveTextContent(/How Otzar answered/i);
+    expect(panel).toHaveTextContent(/Q4 pricing decision/);
+    expect(screen.getByTestId("access-limited")).toHaveTextContent(
+      /access rules/i,
+    );
+
+    // Collapsible again.
+    await user.click(screen.getByTestId("transparency-toggle"));
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("transparency-panel"),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("remains backward-compatible when transparency fields are missing", async () => {
+    server.use(
+      http.post(
+        `${API_BASE}/otzar/conversation/message`,
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(
+            {
+              ok: true,
+              response: `Echo: ${String(body.message ?? "")}`,
+              context_used: 0,
+              tokens_consumed: 10,
+              conversation_id: "conv-bc-0001",
+            },
+            { status: 200 },
+          );
+        },
+      ),
+    );
+
+    const user = userEvent.setup();
+    render(<Chat />);
+    await user.type(screen.getByLabelText("Message"), "hi");
+    await user.click(screen.getByRole("button", { name: /send/i }));
+
+    expect(await screen.findByText(/Echo: hi/)).toBeInTheDocument();
+    expect(screen.getByTestId("chat-meta")).toBeInTheDocument();
+    // Quiet by default: the optional control is present, the panel is not.
+    expect(screen.getByTestId("transparency-toggle")).toBeInTheDocument();
+    expect(screen.queryByTestId("transparency-panel")).not.toBeInTheDocument();
+    // Revealing on demand shows the graceful fallback, not a broken panel.
+    await user.click(screen.getByTestId("transparency-toggle"));
+    expect(
+      await screen.findByTestId("transparency-empty"),
+    ).toBeInTheDocument();
   });
 });

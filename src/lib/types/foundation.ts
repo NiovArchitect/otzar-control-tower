@@ -713,12 +713,54 @@ export interface ConversationMessageRequest {
 // WHY: Mirror of ConductSessionSuccess. `response` is the assistant
 //      text; `context_used` + `tokens_consumed` are surfaced for
 //      transparency, never as a task/execution claim.
+// WHAT: One governed context-provenance entry (ADR-0051, Wave 1). A
+//       product-safe projection produced by COE.assembleContext -- NEVER
+//       raw content. content_available marks whether the underlying item
+//       was readable under the caller's scope. context_id is an opaque
+//       reference used only as a render key, never surfaced prominently.
+export interface ContextProvenanceItem {
+  context_id: string;
+  title: string | null;
+  source_type: string;
+  scope: "PERSONAL" | "ENTERPRISE" | "UNKNOWN";
+  content_available: boolean;
+  reason: string;
+  tokens_used?: number;
+  created_at?: string;
+}
+
+// WHAT: COE-governed transparency summary for one chat turn (ADR-0051,
+//       Wave 1). All fields are pre-sanitized by Foundation: counts +
+//       friendly statuses only. access_limited replaces the raw denied-
+//       permission count (boolean only). tool_calls is always empty in
+//       Wave 1; verification_status is always NOT_ACTIVE.
+export interface ChatTransparency {
+  context_items_used: number;
+  items_skipped_low_relevance: number;
+  items_skipped_budget: number;
+  access_limited: boolean;
+  retrieval_status: "USED" | "NO_MATCHES" | "DEGRADED" | "SKIPPED";
+  retrieval_source: "COE_ASSEMBLE_CONTEXT";
+  retrieval_reason: string;
+  memory_updated: boolean;
+  tool_calls: unknown[];
+  approval_required: boolean;
+  verification_status: "NOT_ACTIVE";
+}
+
+// WHAT: Success response from POST /api/v1/otzar/conversation/message.
+// WHY: ADR-0051 Wave 1 adds OPTIONAL transparency + context_provenance
+//      fields. The original fields are unchanged; the new fields are
+//      optional so the UI stays backward-compatible if Foundation omits
+//      them.
 export interface ConversationMessageResponse {
   ok: true;
   response: string;
   context_used: number;
   tokens_consumed: number;
   conversation_id: string;
+  transparency?: ChatTransparency;
+  context_provenance?: ContextProvenanceItem[];
 }
 
 // WHAT: Body for POST /api/v1/otzar/conversation/close.

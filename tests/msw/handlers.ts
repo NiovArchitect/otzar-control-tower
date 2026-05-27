@@ -873,6 +873,42 @@ const otzarConversationMessageHandler = http.post(
         context_used: 3,
         tokens_consumed: 128,
         conversation_id: conversationId,
+        // ADR-0051 Wave 1 transparency (pre-sanitized projection only --
+        // no raw content, no raw denied counts).
+        transparency: {
+          context_items_used: 2,
+          items_skipped_low_relevance: 1,
+          items_skipped_budget: 0,
+          access_limited: true,
+          retrieval_status: "USED",
+          retrieval_source: "COE_ASSEMBLE_CONTEXT",
+          retrieval_reason:
+            "Matched recent decisions and commitments relevant to your message.",
+          memory_updated: false,
+          tool_calls: [],
+          approval_required: false,
+          verification_status: "NOT_ACTIVE",
+        },
+        context_provenance: [
+          {
+            context_id: "ctx-0001",
+            title: "Q4 pricing decision",
+            source_type: "DECISION",
+            scope: "ENTERPRISE",
+            content_available: true,
+            reason: "High relevance to your question.",
+            tokens_used: 120,
+            created_at: new Date().toISOString(),
+          },
+          {
+            context_id: "ctx-0002",
+            title: null,
+            source_type: "COE_ASSEMBLE_CONTEXT",
+            scope: "UNKNOWN",
+            content_available: false,
+            reason: "Summarized for focus.",
+          },
+        ],
       },
       { status: 200 },
     );
