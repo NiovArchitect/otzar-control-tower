@@ -71,6 +71,7 @@ import type {
   ConversationListResponse,
   ConversationListParams,
   ConversationDetailResponse,
+  ConversationCorrectionsResponse,
   // Employee Approvals -- /escalations/* product surface
   EscalationListResponse,
   EscalationResponse,
@@ -579,6 +580,19 @@ export class ApiClient {
       ): Promise<ApiResult<ConversationDetailResponse>> =>
         this.request<ConversationDetailResponse>(
           `/otzar/conversations/${encodeURIComponent(conversationId)}`,
+        ),
+      /** GET /api/v1/otzar/conversations/:id/corrections -- safe,
+       *  self-scoped per-conversation correction signals (ADR-0055 Wave
+       *  2C). FLAT response (fields at top level, NOT nested under
+       *  `conversation`). Counts + last-seen freshness + locked notes
+       *  only; never raw correction payloads / target_capsule_id /
+       *  correction_capsule_id / drift score / employee score / manager
+       *  visibility. */
+      corrections: (
+        conversationId: string,
+      ): Promise<ApiResult<ConversationCorrectionsResponse>> =>
+        this.request<ConversationCorrectionsResponse>(
+          `/otzar/conversations/${encodeURIComponent(conversationId)}/corrections`,
         ),
     },
   };

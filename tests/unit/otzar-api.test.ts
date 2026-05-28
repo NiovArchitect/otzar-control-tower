@@ -118,7 +118,7 @@ describe("api.otzar.*", () => {
     expect(url).not.toContain("/console");
   });
 
-  it("correction -> POST /otzar/correction with the feedback body", async () => {
+  it("correction -> POST /otzar/correction with the feedback body (no conversation_id when omitted)", async () => {
     const fetchMock: typeof globalThis.fetch = vi.fn(async () =>
       okJson({ ok: true, correction_capsule_id: "cc1" }),
     );
@@ -132,10 +132,56 @@ describe("api.otzar.*", () => {
     const { url, init } = lastCall(fetchMock);
     expect(url).toBe("http://test.local/otzar/correction");
     expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toMatchObject({
+    const body = JSON.parse(String(init.body));
+    expect(body).toMatchObject({
       incorrect_description: "wrong",
       correct_behavior: "right",
     });
+    // Backward-compatible: when omitted, the field must NOT be on the wire.
+    expect(body).not.toHaveProperty("conversation_id");
+    expect(url).not.toContain("/console");
+  });
+
+  it("correction -> POST /otzar/correction includes conversation_id when provided (ADR-0055 Wave 2C)", async () => {
+    const fetchMock: typeof globalThis.fetch = vi.fn(async () =>
+      okJson({ ok: true, correction_capsule_id: "cc2" }),
+    );
+    globalThis.fetch = fetchMock;
+
+    await client().otzar.correction({
+      incorrect_description: "wrong",
+      correct_behavior: "right",
+      conversation_id: "conv-closed-0001",
+    });
+    const { init } = lastCall(fetchMock);
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      incorrect_description: "wrong",
+      correct_behavior: "right",
+      conversation_id: "conv-closed-0001",
+    });
+  });
+
+  it("conversations.corrections -> GET /otzar/conversations/:id/corrections (id encoded)", async () => {
+    const fetchMock: typeof globalThis.fetch = vi.fn(async () =>
+      okJson({
+        ok: true,
+        conversation_id: "conv-closed-0001",
+        corrections_count: 3,
+        has_corrections: true,
+        last_correction_at: new Date().toISOString(),
+        drift_prevention_note: "note-a",
+        continuity_note: "note-b",
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    // Path-unsafe id proves encodeURIComponent is applied.
+    await client().otzar.conversations.corrections("conv closed/0001");
+    const { url, init } = lastCall(fetchMock);
+    expect(url).toBe(
+      "http://test.local/otzar/conversations/conv%20closed%2F0001/corrections",
+    );
+    expect(init.method ?? "GET").toBe("GET");
     expect(url).not.toContain("/console");
   });
 

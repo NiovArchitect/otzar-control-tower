@@ -961,11 +961,152 @@ const otzarObserveHandler = http.post(
   },
 );
 
+// WHAT: Recorder for POST /otzar/correction calls (Wave 2C). Tests use
+//        getRecordedCorrectionCalls() to assert the body shape (e.g. that
+//        the inline Chat correction passes conversation_id while the
+//        standalone Corrections.tsx omits it).
+interface RecordedCorrectionCalls {
+  count: number;
+  lastBody: Record<string, unknown> | null;
+  allBodies: Record<string, unknown>[];
+}
+const recordedCorrectionCalls: RecordedCorrectionCalls = {
+  count: 0,
+  lastBody: null,
+  allBodies: [],
+};
+export function getRecordedCorrectionCalls(): RecordedCorrectionCalls {
+  return {
+    count: recordedCorrectionCalls.count,
+    lastBody: recordedCorrectionCalls.lastBody,
+    allBodies: [...recordedCorrectionCalls.allBodies],
+  };
+}
+export function resetRecordedCorrectionCalls(): void {
+  recordedCorrectionCalls.count = 0;
+  recordedCorrectionCalls.lastBody = null;
+  recordedCorrectionCalls.allBodies = [];
+}
+
+// POST /otzar/correction -- Wave 2C extension: accepts optional
+// conversation_id. Forbidden/missing fixture ids exercise the
+// self-scope validation codes Foundation will emit.
 const otzarCorrectionHandler = http.post(
   `${API_BASE}/otzar/correction`,
-  async () => {
+  async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    recordedCorrectionCalls.count += 1;
+    recordedCorrectionCalls.lastBody = body;
+    recordedCorrectionCalls.allBodies.push(body);
+
+    const conversationId =
+      typeof body.conversation_id === "string" ? body.conversation_id : null;
+    if (conversationId === "conv-forbidden-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "NOT_CONVERSATION_OWNER",
+          message: "You do not own this conversation",
+        },
+        { status: 403 },
+      );
+    }
+    if (conversationId === "conv-missing-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "CONVERSATION_NOT_FOUND",
+          message: "Conversation not found",
+        },
+        { status: 404 },
+      );
+    }
     return HttpResponse.json(
       { ok: true, correction_capsule_id: "cap-correction-0001" },
+      { status: 200 },
+    );
+  },
+);
+
+// GET /otzar/conversations/:id/corrections -- Wave 2C look-back signals.
+// Fixture ids exercise has_corrections / zero state / 403 / 404 / 500.
+// Notes mirror Foundation's CORRECTION_DRIFT_PREVENTION_NOTE +
+// CORRECTION_CONTINUITY_NOTE verbatim so the consumer renders the
+// real product copy (which already contains the two required
+// anti-overclaim phrases).
+const DRIFT_PREVENTION_NOTE =
+  "Correction signals help your Twin prioritize future context within " +
+  "scope. This does not expose raw messages. This is not an employee score.";
+const CORRECTIONS_CONTINUITY_NOTE =
+  "Corrections are scoped signals attached to your own wallet; they " +
+  "improve future context priority within scope and are not a transcript " +
+  "or replay of raw messages.";
+
+const otzarConversationCorrectionsHandler = http.get(
+  `${API_BASE}/otzar/conversations/:id/corrections`,
+  async ({ params }) => {
+    const id = String(params.id);
+    const now = Date.now();
+
+    if (id === "conv-forbidden-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "NOT_CONVERSATION_OWNER",
+          message: "You do not own this conversation",
+        },
+        { status: 403 },
+      );
+    }
+    if (id === "conv-missing-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "CONVERSATION_NOT_FOUND",
+          message: "Conversation not found",
+        },
+        { status: 404 },
+      );
+    }
+    if (id === "conv-error-0001") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "INTERNAL_ERROR",
+          message: "Something went wrong",
+        },
+        { status: 500 },
+      );
+    }
+
+    // Zero-state fixtures (active conversation, or a closed one with no
+    // linked corrections).
+    if (id === "conv-active-0001" || id === "conv-no-corrections-0001") {
+      return HttpResponse.json(
+        {
+          ok: true,
+          conversation_id: id,
+          corrections_count: 0,
+          has_corrections: false,
+          last_correction_at: null,
+          drift_prevention_note: DRIFT_PREVENTION_NOTE,
+          continuity_note: CORRECTIONS_CONTINUITY_NOTE,
+        },
+        { status: 200 },
+      );
+    }
+
+    // Default + conv-closed-0001 -> has_corrections.
+    return HttpResponse.json(
+      {
+        ok: true,
+        conversation_id: id,
+        corrections_count: 3,
+        has_corrections: true,
+        last_correction_at: new Date(now - 6 * 3_600_000).toISOString(),
+        drift_prevention_note: DRIFT_PREVENTION_NOTE,
+        continuity_note: CORRECTIONS_CONTINUITY_NOTE,
+      },
       { status: 200 },
     );
   },
@@ -1414,4 +1555,5 @@ export const handlers = [
   otzarMyTwinHandler,
   otzarConversationsHandler,
   otzarConversationDetailHandler,
+  otzarConversationCorrectionsHandler,
 ];

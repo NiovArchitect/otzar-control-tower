@@ -18,6 +18,8 @@ import { Loader2, Send } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { TransparencyPanel } from "@/components/employee/TransparencyPanel";
@@ -25,6 +27,7 @@ import type {
   ChatTransparency,
   ContextProvenanceItem,
   ConversationMessageRequest,
+  CorrectionRequest,
 } from "@/lib/types/foundation";
 
 interface ChatTurn {
@@ -70,6 +73,17 @@ export function Chat() {
   // out of the way until the employee asks for it.
   const [showTransparencyDetails, setShowTransparencyDetails] =
     useState(false);
+  // Wave 2C: inline "Correct this conversation" affordance. Visible only
+  // while a conversationId is active so the correction can be linked to
+  // the right conversation. Distinct from the standalone Corrections page
+  // (which has no conversation context and continues to omit
+  // conversation_id).
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [correctionIncorrect, setCorrectionIncorrect] = useState("");
+  const [correctionCorrect, setCorrectionCorrect] = useState("");
+  const [correctionSubmitting, setCorrectionSubmitting] = useState(false);
+  const [correctionError, setCorrectionError] = useState<string | null>(null);
+  const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
 
   async function send(): Promise<void> {
     const message = input.trim();
@@ -125,6 +139,49 @@ export function Chat() {
     setProvenance([]);
     setShowTransparencyDetails(false);
     setTurns([]);
+    // Tear down the inline correction affordance too — a new conversation
+    // starts a fresh correction context.
+    setCorrectionOpen(false);
+    setCorrectionIncorrect("");
+    setCorrectionCorrect("");
+    setCorrectionError(null);
+    setCorrectionSubmitted(false);
+  }
+
+  // WHAT: Map a non-ok correction-submit result to safe customer copy.
+  function correctionSubmitErrorCopy(code: string, status: number): string {
+    if (status === 403 || code === "NOT_CONVERSATION_OWNER") {
+      return "This correction is not available under your current access.";
+    }
+    if (status === 404 || code === "CONVERSATION_NOT_FOUND") {
+      return "Conversation not found.";
+    }
+    return "Could not submit correction.";
+  }
+
+  async function submitCorrection(): Promise<void> {
+    if (correctionSubmitting) return;
+    if (conversationId === null) return;
+    const incorrect = correctionIncorrect.trim();
+    const correct = correctionCorrect.trim();
+    if (incorrect.length === 0 || correct.length === 0) return;
+    setCorrectionError(null);
+    setCorrectionSubmitted(false);
+    setCorrectionSubmitting(true);
+    const body: CorrectionRequest = {
+      incorrect_description: incorrect,
+      correct_behavior: correct,
+      conversation_id: conversationId,
+    };
+    const r = await api.otzar.correction(body);
+    setCorrectionSubmitting(false);
+    if (!r.ok) {
+      setCorrectionError(correctionSubmitErrorCopy(r.code, r.status));
+      return;
+    }
+    setCorrectionSubmitted(true);
+    setCorrectionIncorrect("");
+    setCorrectionCorrect("");
   }
 
   return (
@@ -214,6 +271,98 @@ export function Chat() {
 
       {meta && showTransparencyDetails && (
         <TransparencyPanel transparency={transparency} provenance={provenance} />
+      )}
+
+      {/* Wave 2C: inline "Correct this conversation" affordance. Visible
+          only while a conversationId is active so the correction is
+          linked to the right conversation. Unobtrusive by default —
+          collapsed toggle button, no dashboard surface. */}
+      {conversationId !== null && (
+        <div className="space-y-2" data-testid="chat-correction-affordance">
+          <button
+            type="button"
+            onClick={() => {
+              setCorrectionOpen((v) => !v);
+              setCorrectionSubmitted(false);
+              setCorrectionError(null);
+            }}
+            aria-expanded={correctionOpen}
+            data-testid="chat-correction-toggle"
+            className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            {correctionOpen ? "Hide correction form" : "Correct this conversation"}
+          </button>
+          {correctionOpen && (
+            <form
+              className="space-y-3 rounded-md border border-border bg-muted/20 px-4 py-3"
+              data-testid="chat-correction-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submitCorrection();
+              }}
+            >
+              <div className="space-y-1">
+                <Label htmlFor="chat-correction-incorrect">
+                  What was wrong
+                </Label>
+                <Textarea
+                  id="chat-correction-incorrect"
+                  value={correctionIncorrect}
+                  onChange={(e) => setCorrectionIncorrect(e.target.value)}
+                  placeholder="Describe the incorrect understanding or behavior…"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="chat-correction-correct">
+                  The correct behavior
+                </Label>
+                <Textarea
+                  id="chat-correction-correct"
+                  value={correctionCorrect}
+                  onChange={(e) => setCorrectionCorrect(e.target.value)}
+                  placeholder="Describe what Otzar should do or understand instead…"
+                  rows={2}
+                />
+              </div>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={
+                  correctionSubmitting ||
+                  correctionIncorrect.trim().length === 0 ||
+                  correctionCorrect.trim().length === 0
+                }
+              >
+                {correctionSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                    Submitting…
+                  </>
+                ) : (
+                  "Submit correction"
+                )}
+              </Button>
+              {correctionError && (
+                <p
+                  role="alert"
+                  className="text-sm text-destructive"
+                  data-testid="chat-correction-error"
+                >
+                  {correctionError}
+                </p>
+              )}
+              {correctionSubmitted && (
+                <p
+                  className="text-sm text-muted-foreground"
+                  data-testid="chat-correction-success"
+                >
+                  Correction signal submitted for this conversation.
+                </p>
+              )}
+            </form>
+          )}
+        </div>
       )}
 
       {error && (

@@ -830,16 +830,49 @@ export interface ObserveSkippedResponse {
 export type ObserveResponse = ObserveSuccessResponse | ObserveSkippedResponse;
 
 // WHAT: Body for POST /api/v1/otzar/correction.
+// ADR-0055 Wave 2C adds an OPTIONAL conversation_id. Omitted = backward-
+// compatible (capsule persists with conversation_id null). Present + valid
+// + caller-owned = the CORRECTION capsule is linked to the conversation
+// and surfaces in GET /otzar/conversations/:id/corrections.
 export interface CorrectionRequest {
   incorrect_description: string;
   correct_behavior: string;
   target_capsule_id?: string;
+  conversation_id?: string;
 }
 
 // WHAT: Success response from POST /api/v1/otzar/correction.
 export interface CorrectionResponse {
   ok: true;
   correction_capsule_id: string;
+}
+
+// ════════════════════════════════════════════════════════════════
+// MY CONVERSATIONS -- per-conversation correction signals
+// (ADR-0055 Wave 2C)
+// ════════════════════════════════════════════════════════════════
+//
+// GET /api/v1/otzar/conversations/:id/corrections -- safe, self-scoped,
+// FLAT response (fields at the top level per ADR-0055 §Decision 5,
+// distinct from Wave 2B's nested `{ conversation }` envelope). Carries
+// counts + last-seen freshness + locked anti-overclaim notes only.
+// NEVER carries raw correction payloads (payload_summary /
+// payload_content), target_capsule_id, correction_capsule_id, vectors,
+// embeddings, storage_location, content_hash, permission internals,
+// bridge IDs, capability flags, drift score, employee score,
+// best-practice-learned status, manager-visibility fields, or org-wide
+// aggregation. drift_prevention_note + continuity_note are LOCKED at
+// the Foundation mapper.
+
+// WHAT: GET /api/v1/otzar/conversations/:id/corrections success response.
+export interface ConversationCorrectionsResponse {
+  ok: true;
+  conversation_id: string;
+  corrections_count: number;
+  has_corrections: boolean;
+  last_correction_at: string | null;
+  drift_prevention_note: string;
+  continuity_note: string;
 }
 
 // ════════════════════════════════════════════════════════════════
