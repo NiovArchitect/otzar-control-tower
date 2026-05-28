@@ -2,23 +2,35 @@
 // PURPOSE: Single-purpose Sheet (side="right", no tabs) showing ONE
 //          conversation look-back detail for the employee Otzar shell
 //          (Wave 2B, ADR-0054). Read-only: it consumes
-//          GET /api/v1/otzar/conversations/:id and renders metadata + an
-//          optional CLOSE SUMMARY + topics. There are NO mutations here,
-//          and /otzar/* returns no audit_event_id, so there is no
+//          GET /api/v1/otzar/conversations/:id and (ADR-0055 Wave 2C)
+//          GET /api/v1/otzar/conversations/:id/corrections. Renders
+//          metadata + an optional CLOSE SUMMARY + topics + per-
+//          conversation correction-signal counts. There are NO mutations
+//          here, and /otzar/* returns no audit_event_id, so there is no
 //          audit-aware primitive.
 // CONNECTS TO: src/pages/app/Conversations.tsx (mounts this),
-//              api.otzar.conversations.detail, conversation label helpers.
+//              api.otzar.conversations.{detail,corrections},
+//              conversation label helpers.
 //
 // ANTI-OVERCLAIM (ADR-0054): this is a close-summary look-back, NOT a
 // transcript and NOT retrospective transparency. Live transparency is a
 // response-time signal that is not persisted per conversation, so the
 // drawer states that plainly and never fabricates a transparency view.
 //
+// ANTI-OVERCLAIM (ADR-0055): correction signals are scoped Twin context
+// priority — never a drift score, employee score, manager-visibility
+// signal, or org-wide aggregation. The render path emits only counts +
+// last-seen + the locked backend notes (which already contain the two
+// required anti-overclaim phrases). The corrections fetch is independent
+// of the detail fetch: if it fails, the look-back still renders.
+//
 // PRIVACY: renders status / source / timestamps / message_count / the
-// close summary / topics / the honest continuity note only. Raw ids
-// (conversation_id, twin_id, summary_capsule_id) are NEVER surfaced —
-// summary_capsule_id is part of the contract but is deliberately not
-// rendered.
+// close summary / topics / correction counts / honest notes only. Raw ids
+// (conversation_id, twin_id, summary_capsule_id, correction_capsule_id,
+// target_capsule_id) are NEVER surfaced. summary_capsule_id is part of
+// the Wave 2B contract but deliberately not rendered; the Wave 2C
+// corrections contract itself omits raw correction payloads at the
+// Foundation mapper.
 
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -62,6 +74,20 @@ function detailErrorCopy(
   return message || "Couldn't load this conversation. Please try again.";
 }
 
+// WHAT: Map a non-ok corrections-fetch result to safe customer copy.
+// WHY:  Independent of the detail fetch — if corrections fails alone we
+//       still show the rest of the drawer. 401/network/500 collapse into
+//       a single neutral line.
+function correctionsErrorCopy(code: string, status: number): string {
+  if (status === 403 || code === "NOT_CONVERSATION_OWNER") {
+    return "Correction signals are not available under your current access.";
+  }
+  if (status === 404 || code === "CONVERSATION_NOT_FOUND") {
+    return "Conversation not found.";
+  }
+  return "Could not load correction signals.";
+}
+
 export function ConversationDetailDrawer({
   conversationId,
   open,
@@ -78,7 +104,21 @@ export function ConversationDetailDrawer({
     },
   });
 
+  // Wave 2C: per-conversation correction signals. Runs in parallel with
+  // the detail fetch — corrections failures must not blank the drawer.
+  const correctionsQuery = useQuery({
+    queryKey: ["otzar", "conversation-corrections", conversationId],
+    enabled: open && conversationId !== null,
+    queryFn: () => {
+      if (conversationId === null) {
+        throw new Error("no conversation selected");
+      }
+      return api.otzar.conversations.corrections(conversationId);
+    },
+  });
+
   const res = query.data;
+  const correctionsRes = correctionsQuery.data;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -197,6 +237,68 @@ export function ConversationDetailDrawer({
                   This conversation closed without a stored summary.
                 </p>
               )}
+
+              {/* ─── Correction signals (ADR-0055 Wave 2C) ───────────
+                  Independent fetch — if corrections fails alone, the
+                  rest of the drawer still renders. Renders counts +
+                  last-seen + the locked backend notes (which already
+                  contain the two required anti-overclaim phrases). */}
+              <div className="space-y-2" data-testid="correction-signals">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Correction signals
+                </p>
+                {correctionsQuery.isLoading && (
+                  <Skeleton className="h-10 w-full" aria-busy="true" />
+                )}
+                {correctionsRes && !correctionsRes.ok && (
+                  <p
+                    role="alert"
+                    className="text-sm text-destructive"
+                    data-testid="corrections-error"
+                  >
+                    {correctionsErrorCopy(
+                      correctionsRes.code,
+                      correctionsRes.status,
+                    )}
+                  </p>
+                )}
+                {correctionsRes && correctionsRes.ok && (
+                  <>
+                    {correctionsRes.data.has_corrections ? (
+                      <div
+                        className="space-y-1"
+                        data-testid="corrections-present"
+                      >
+                        <p className="text-sm">
+                          Corrections linked to this conversation
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {correctionsRes.data.corrections_count} correction
+                          {correctionsRes.data.corrections_count === 1
+                            ? ""
+                            : "s"}
+                          {correctionsRes.data.last_correction_at !== null
+                            ? ` · last ${formatRelativeTime(
+                                correctionsRes.data.last_correction_at,
+                              )}`
+                            : ""}
+                        </p>
+                      </div>
+                    ) : (
+                      <p
+                        className="text-sm text-muted-foreground"
+                        data-testid="corrections-zero"
+                      >
+                        Not enough correction history yet.
+                      </p>
+                    )}
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p>{correctionsRes.data.drift_prevention_note}</p>
+                      <p>{correctionsRes.data.continuity_note}</p>
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* ─── Anti-overclaim boundary (ADR-0054) ───────────── */}
               <div
