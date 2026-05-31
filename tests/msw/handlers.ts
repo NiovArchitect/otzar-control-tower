@@ -1516,7 +1516,478 @@ const otzarConversationDetailHandler = http.get(
   },
 );
 
+// ════════════════════════════════════════════════════════════════
+// Section 5 Agent Playground -- Wave 10 (ADR-0077) handlers.
+// Mock the 6 Foundation Agent Playground routes consumed by
+// /agent-playground. In-memory scenario store so tests can exercise
+// create -> list -> get -> archive. Wave 5/6/7/8/9 return
+// closed-vocab fixtures matching Foundation public success interfaces.
+// ════════════════════════════════════════════════════════════════
+
+interface PlaygroundScenarioRow {
+  scenario_id: string;
+  owner_entity_id: string;
+  org_entity_id: string | null;
+  title: string;
+  description: string | null;
+  goal_summary: string | null;
+  status: "DRAFT" | "READY" | "IN_REVIEW" | "ARCHIVED";
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+const playgroundScenarios = new Map<string, PlaygroundScenarioRow>();
+
+export function resetPlaygroundScenarios(): void {
+  playgroundScenarios.clear();
+}
+
+export function seedPlaygroundScenario(
+  partial: Partial<PlaygroundScenarioRow> & { title: string },
+): PlaygroundScenarioRow {
+  const now = new Date().toISOString();
+  const row: PlaygroundScenarioRow = {
+    scenario_id: partial.scenario_id ?? `scn-${playgroundScenarios.size + 1}`,
+    owner_entity_id: partial.owner_entity_id ?? "owner-self",
+    org_entity_id: partial.org_entity_id ?? "org-self",
+    title: partial.title,
+    description: partial.description ?? null,
+    goal_summary: partial.goal_summary ?? null,
+    status: partial.status ?? "DRAFT",
+    created_at: partial.created_at ?? now,
+    updated_at: partial.updated_at ?? now,
+    archived_at: partial.archived_at ?? null,
+  };
+  playgroundScenarios.set(row.scenario_id, row);
+  return row;
+}
+
+const playgroundListScenariosHandler = http.get(
+  `${API_BASE}/playground/scenarios`,
+  () =>
+    HttpResponse.json(
+      { ok: true, scenarios: [...playgroundScenarios.values()] },
+      { status: 200 },
+    ),
+);
+
+const playgroundCreateScenarioHandler = http.post(
+  `${API_BASE}/playground/scenarios`,
+  async ({ request }) => {
+    const body = (await request.json()) as {
+      title?: string;
+      description?: string;
+      goal_summary?: string;
+      status?: PlaygroundScenarioRow["status"];
+    };
+    if (typeof body.title !== "string" || body.title.length === 0) {
+      return HttpResponse.json(
+        { ok: false, code: "INVALID_REQUEST", message: "title is required" },
+        { status: 422 },
+      );
+    }
+    const row = seedPlaygroundScenario({
+      title: body.title,
+      description: body.description ?? null,
+      goal_summary: body.goal_summary ?? null,
+      status: body.status ?? "DRAFT",
+    });
+    return HttpResponse.json(
+      { ok: true, scenario: row, audit_event_id: `aud-${row.scenario_id}` },
+      { status: 201 },
+    );
+  },
+);
+
+const playgroundGetScenarioHandler = http.get(
+  `${API_BASE}/playground/scenarios/:id`,
+  ({ params }) => {
+    const row = playgroundScenarios.get(String(params.id));
+    if (row === undefined) {
+      return HttpResponse.json(
+        { ok: false, code: "SCENARIO_NOT_FOUND", message: "Scenario not found" },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({ ok: true, scenario: row }, { status: 200 });
+  },
+);
+
+const playgroundDeleteScenarioHandler = http.delete(
+  `${API_BASE}/playground/scenarios/:id`,
+  ({ params }) => {
+    const row = playgroundScenarios.get(String(params.id));
+    if (row === undefined) {
+      return HttpResponse.json(
+        { ok: false, code: "SCENARIO_NOT_FOUND", message: "Scenario not found" },
+        { status: 404 },
+      );
+    }
+    const now = new Date().toISOString();
+    const archived = {
+      ...row,
+      status: "ARCHIVED" as const,
+      archived_at: now,
+      updated_at: now,
+    };
+    playgroundScenarios.set(row.scenario_id, archived);
+    return HttpResponse.json(
+      { ok: true, scenario: archived, audit_event_id: `aud-arch-${row.scenario_id}` },
+      { status: 200 },
+    );
+  },
+);
+
+const playgroundCandidatesHandler = http.post(
+  `${API_BASE}/playground/scenarios/:id/candidates`,
+  ({ params }) =>
+    HttpResponse.json(
+      {
+        ok: true,
+        scenario_id: String(params.id),
+        generated_at: new Date().toISOString(),
+        candidates: [
+          {
+            candidate_key: "candkey-status-quo-0001",
+            candidate_type: "STATUS_QUO",
+            candidate_title: "Maintain current state",
+            candidate_summary:
+              "No change at this time. Preserves operational stability while review continues.",
+            assumptions: ["No new dependencies", "Current policy holds"],
+            required_inputs: ["Current scenario context"],
+            expected_benefits: ["Operational stability"],
+            known_risks: ["Possible competitive lag"],
+            dependencies: ["NO_BLOCKING_DEPENDENCY_IDENTIFIED"],
+            governance_findings: ["HUMAN_REVIEW_REQUIRED", "POLICY_REVIEW_REQUIRED"],
+            required_approvals: ["HUMAN_OWNER_REVIEW"],
+            evidence_refs: [],
+            blocked_by_policy: false,
+            action_runtime_transition_hint: "NO_ACTION",
+            confidence_label: "MEDIUM",
+            honest_note: "This candidate is advisory only and not a final decision.",
+          },
+          {
+            candidate_key: "candkey-low-risk-0002",
+            candidate_type: "LOW_RISK_INCREMENTAL",
+            candidate_title: "Incremental low-risk step",
+            candidate_summary:
+              "Move forward with a low-risk incremental step under existing governance.",
+            assumptions: ["Existing policy supports the path"],
+            required_inputs: ["Same-org permission scope"],
+            expected_benefits: ["Reversible progress"],
+            known_risks: ["Limited speed"],
+            dependencies: ["NO_BLOCKING_DEPENDENCY_IDENTIFIED"],
+            governance_findings: ["HUMAN_REVIEW_REQUIRED"],
+            required_approvals: ["POLICY_OWNER_REVIEW"],
+            evidence_refs: [],
+            blocked_by_policy: false,
+            action_runtime_transition_hint: "MAY_PROPOSE_ACTION_LATER",
+            confidence_label: "HIGH",
+            honest_note: "This candidate is advisory only and not a final decision.",
+          },
+        ],
+        audit_event_id: `aud-cand-${params.id}`,
+      },
+      { status: 200 },
+    ),
+);
+
+const playgroundComparisonHandler = http.post(
+  `${API_BASE}/playground/scenarios/:id/outcome-comparisons`,
+  ({ params }) =>
+    HttpResponse.json(
+      {
+        ok: true,
+        scenario_id: String(params.id),
+        compared_at: new Date().toISOString(),
+        comparison_mode: "DETERMINISTIC_RUBRIC",
+        candidate_count: 2,
+        comparison_matrix: [
+          {
+            candidate_key: "candkey-status-quo-0001",
+            candidate_type: "STATUS_QUO",
+            candidate_title: "Maintain current state",
+            comparison_summary:
+              "Status quo preserves stability but produces no movement.",
+            outcome_dimensions: [
+              { dimension: "GOVERNANCE_ALIGNMENT", rating: "FAVORABLE" },
+              { dimension: "EXECUTION_COMPLEXITY", rating: "FAVORABLE" },
+              { dimension: "OPERATIONAL_RISK", rating: "MIXED" },
+            ],
+            risk_findings: ["NO_NOTABLE_RISK"],
+            dependency_findings: ["NO_BLOCKING_DEPENDENCY_IDENTIFIED"],
+            required_reviews: ["HUMAN_OWNER_REVIEW"],
+            governance_findings: ["HUMAN_REVIEW_REQUIRED"],
+            blocked_by_policy: false,
+            action_runtime_transition_hint: "NO_ACTION",
+            confidence_label: "MEDIUM",
+            honest_note: "Comparison is advisory only and not a winner selection.",
+          },
+          {
+            candidate_key: "candkey-low-risk-0002",
+            candidate_type: "LOW_RISK_INCREMENTAL",
+            candidate_title: "Incremental low-risk step",
+            comparison_summary:
+              "Low-risk incremental step balances movement with reversibility.",
+            outcome_dimensions: [
+              { dimension: "GOVERNANCE_ALIGNMENT", rating: "FAVORABLE" },
+              { dimension: "REVERSIBILITY", rating: "FAVORABLE" },
+              { dimension: "EXECUTION_COMPLEXITY", rating: "FAVORABLE" },
+            ],
+            risk_findings: ["NO_NOTABLE_RISK"],
+            dependency_findings: ["NO_BLOCKING_DEPENDENCY_IDENTIFIED"],
+            required_reviews: ["POLICY_OWNER_REVIEW"],
+            governance_findings: ["HUMAN_REVIEW_REQUIRED"],
+            blocked_by_policy: false,
+            action_runtime_transition_hint: "MAY_PROPOSE_ACTION_LATER",
+            confidence_label: "HIGH",
+            honest_note: "Comparison is advisory only and not a winner selection.",
+          },
+        ],
+        tradeoff_summary: {
+          fewest_blocking_findings: ["candkey-low-risk-0002"],
+          strongest_governance_alignment: [
+            "candkey-status-quo-0001",
+            "candkey-low-risk-0002",
+          ],
+          lowest_review_burden: ["candkey-status-quo-0001"],
+          strongest_resilience: ["candkey-low-risk-0002"],
+        },
+        blocked_candidates_count: 0,
+        review_required_count: 2,
+        honest_note: "Comparison is advisory only and not a winner selection.",
+        audit_event_id: `aud-cmp-${params.id}`,
+      },
+      { status: 200 },
+    ),
+);
+
+const playgroundRecommendationHandler = http.post(
+  `${API_BASE}/playground/scenarios/:id/best-path-recommendations`,
+  ({ params }) =>
+    HttpResponse.json(
+      {
+        ok: true,
+        scenario_id: String(params.id),
+        recommended_at: new Date().toISOString(),
+        recommendation_mode: "DETERMINISTIC_POLICY_FIRST",
+        recommended_candidate_key: "candkey-low-risk-0002",
+        recommended_candidate_type: "LOW_RISK_INCREMENTAL",
+        recommended_candidate_title: "Incremental low-risk step",
+        recommendation_summary:
+          "Low-risk incremental step is recommended for human review.",
+        recommendation_reasons: [
+          "FEWEST_BLOCKING_FINDINGS",
+          "STRONGEST_GOVERNANCE_ALIGNMENT",
+        ],
+        evidence_refs: [
+          "COMPARISON_MODE:DETERMINISTIC_RUBRIC",
+          "RECOMMENDATION_MODE:DETERMINISTIC_POLICY_FIRST",
+        ],
+        governance_findings: ["HUMAN_REVIEW_REQUIRED"],
+        required_reviews: ["POLICY_OWNER_REVIEW"],
+        risk_findings: ["NO_NOTABLE_RISK"],
+        dependency_findings: ["NO_BLOCKING_DEPENDENCY_IDENTIFIED"],
+        blocked_by_policy: false,
+        action_runtime_transition_hint: "MAY_PROPOSE_ACTION_LATER",
+        action_transition_readiness: "REQUIRES_POLICY_REVIEW",
+        alternatives_considered: [
+          {
+            candidate_key: "candkey-status-quo-0001",
+            candidate_type: "STATUS_QUO",
+            candidate_title: "Maintain current state",
+            reason_not_recommended: "NOT_SELECTED_THIS_ROUND",
+            blocking_findings: [],
+            review_findings: ["HUMAN_OWNER_REVIEW"],
+            confidence_label: "MEDIUM",
+          },
+        ],
+        not_recommended_reasons: ["NOT_SELECTED_THIS_ROUND"],
+        confidence_label: "HIGH",
+        human_decision_required: true,
+        honest_note: "Recommendation is advisory only and not a final decision.",
+        audit_event_id: `aud-rec-${params.id}`,
+      },
+      { status: 200 },
+    ),
+);
+
+const playgroundSimulationHandler = http.post(
+  `${API_BASE}/playground/scenarios/:id/simulations`,
+  async ({ params, request }) => {
+    const body = (await request.json()) as { caller_confirmation?: unknown };
+    if (body.caller_confirmation !== true) {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "INVALID_REQUEST",
+          message: "caller_confirmation must be true",
+          invalid_fields: ["caller_confirmation"],
+        },
+        { status: 422 },
+      );
+    }
+    return HttpResponse.json(
+      {
+        ok: true,
+        scenario_id: String(params.id),
+        simulated_at: new Date().toISOString(),
+        orchestration_mode: "DETERMINISTIC_BRANCH_ENUMERATION",
+        branch_count: 2,
+        branches: [
+          {
+            branch_id: "branch-0001",
+            branch_definition: "POLICY_FIRST_BRANCH",
+            agent_role: "OPERATIONS_AGENT",
+            assumed_constraints: [
+              "OWNER_COSMP_SCOPE_ONLY",
+              "WAVE_8_TRANSITION_REQUIRED_BEFORE_ACTION",
+            ],
+            expected_outcomes: ["WAVE_7_RECOMMENDATION_PRODUCED"],
+            governance_conflicts: ["NO_NOTABLE_CONFLICT"],
+            branch_summary:
+              "Operations-feasibility lens surfaces LOW_RISK_INCREMENTAL as recommended.",
+            branch_recommended_candidate_key: "candkey-low-risk-0002",
+            branch_recommended_candidate_type: "LOW_RISK_INCREMENTAL",
+            confidence_label: "HIGH",
+          },
+          {
+            branch_id: "branch-0002",
+            branch_definition: "GOVERNANCE_FIRST_BRANCH",
+            agent_role: "COMPLIANCE_AGENT",
+            assumed_constraints: [
+              "OWNER_COSMP_SCOPE_ONLY",
+              "LEGAL_COMPLIANCE_REVIEW_WHERE_APPLICABLE",
+            ],
+            expected_outcomes: [
+              "WAVE_7_RECOMMENDATION_PRODUCED",
+              "COMPLIANCE_REVIEW_RECOMMENDED",
+            ],
+            governance_conflicts: ["BRANCH_REQUIRES_COMPLIANCE_REVIEW"],
+            branch_summary:
+              "Compliance lens surfaces LOW_RISK_INCREMENTAL with compliance review.",
+            branch_recommended_candidate_key: "candkey-low-risk-0002",
+            branch_recommended_candidate_type: "LOW_RISK_INCREMENTAL",
+            confidence_label: "MEDIUM",
+          },
+        ],
+        convergence_summary: {
+          candidate_keys_agreed_upon: ["candkey-low-risk-0002"],
+          governance_findings_all_branches_share: ["HUMAN_REVIEW_REQUIRED"],
+          required_reviews_all_branches_share: [],
+        },
+        disagreement_summary: {
+          candidate_types_diverged: ["LOW_RISK_INCREMENTAL"],
+          recommendation_modes_diverged: [
+            "DETERMINISTIC_POLICY_FIRST",
+            "DETERMINISTIC_GOVERNANCE_FIRST",
+          ],
+          unresolved_branches: ["branch-0002"],
+        },
+        unresolved_questions: ["WHETHER_GOVERNANCE_REVIEW_IS_SUFFICIENT"],
+        recommended_next_review: {
+          next_review_label: "COMPLIANCE_REVIEW",
+          rationale_summary:
+            "At least one branch surfaced BRANCH_REQUIRES_COMPLIANCE_REVIEW; compliance review is recommended.",
+          applies_to_branch_ids: ["branch-0002"],
+        },
+        enterprise_decision_posture: {
+          primary_recommended_branch_id: "branch-0001",
+          primary_recommendation_reasons: [
+            "STRONGEST_GOVERNANCE_ALIGNMENT",
+            "FEWEST_BLOCKING_FINDINGS",
+          ],
+          viable_alternative_branch_ids: ["branch-0002"],
+          evidence_posture: [
+            "AUDIT_HISTORY_SUPPORTS_PATH",
+            "POLICY_SUPPORTS_PATH",
+            "COMPLIANCE_REVIEW_REQUIRED",
+          ],
+          blockers_before_action: ["MISSING_COMPLIANCE_REVIEW"],
+          safe_next_step: "REQUEST_COMPLIANCE_REVIEW",
+        },
+        human_decision_required: true,
+        honest_note:
+          "This simulation is advisory only. Not autonomous agent debate.",
+        simulation_audit_event_id: `aud-sim-${params.id}`,
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const playgroundTransitionHandler = http.post(
+  `${API_BASE}/playground/scenarios/:id/governed-transitions`,
+  async ({ params, request }) => {
+    const body = (await request.json()) as {
+      caller_confirmation?: unknown;
+      idempotency_key?: unknown;
+    };
+    if (body.caller_confirmation !== true) {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "INVALID_REQUEST",
+          message: "caller_confirmation must be true",
+          invalid_fields: ["caller_confirmation"],
+        },
+        { status: 422 },
+      );
+    }
+    if (
+      typeof body.idempotency_key !== "string" ||
+      body.idempotency_key.length === 0
+    ) {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "INVALID_REQUEST",
+          message: "idempotency_key is required",
+          invalid_fields: ["idempotency_key"],
+        },
+        { status: 422 },
+      );
+    }
+    return HttpResponse.json(
+      {
+        ok: true,
+        scenario_id: String(params.id),
+        transitioned_at: new Date().toISOString(),
+        transition_outcome: "ACTION_PROPOSED",
+        recommended_candidate_key: "candkey-low-risk-0002",
+        recommended_candidate_type: "LOW_RISK_INCREMENTAL",
+        recommendation_summary:
+          "Low-risk incremental step recommended for human review.",
+        action_id: "act-0001",
+        action_status: "PROPOSED",
+        action_type: "SEND_INTERNAL_NOTIFICATION",
+        action_risk_tier: "LOW",
+        action_decision: "REQUIRE_DUAL_CONTROL",
+        escalation_id: null,
+        required_approvals: [],
+        required_reviews: ["POLICY_OWNER_REVIEW"],
+        human_decision_required: true,
+        honest_note:
+          "Action is in PROPOSED status only -- not executed by Wave 8.",
+        playground_audit_event_id: `aud-trans-${params.id}`,
+      },
+      { status: 200 },
+    );
+  },
+);
+
 export const handlers = [
+  // Section 5 Agent Playground Wave 10 (ADR-0077)
+  playgroundListScenariosHandler,
+  playgroundCreateScenarioHandler,
+  playgroundGetScenarioHandler,
+  playgroundDeleteScenarioHandler,
+  playgroundCandidatesHandler,
+  playgroundComparisonHandler,
+  playgroundRecommendationHandler,
+  playgroundSimulationHandler,
+  playgroundTransitionHandler,
   // 12B.1 / 12B.4 (extended)
   shareHandler,
   revokeHandler,

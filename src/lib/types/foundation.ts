@@ -1133,3 +1133,578 @@ export interface ConversationDetailResponse {
   ok: true;
   conversation: ConversationDetail;
 }
+
+// ════════════════════════════════════════════════════════════════
+// Section 5 Agent Playground — Wave 4 / 5 / 6 / 7 / 8 / 9
+// Type mirrors of Foundation success interfaces consumed by the
+// `/agent-playground` cockpit per ADR-0077. Closed-vocab unions
+// preserved verbatim from Foundation's public service interfaces;
+// never reshape divergently. Bidirectional citations: ADR-0072
+// (Wave 5 candidates), ADR-0073 (Wave 6 outcome comparison),
+// ADR-0074 (Wave 7 best-path), ADR-0075 (Wave 8 governed
+// transition), ADR-0076 (Wave 9 multi-agent simulation),
+// ADR-0077 (Wave 10 Control Tower consumer contract).
+// ════════════════════════════════════════════════════════════════
+
+// ─── Wave 4: PlaygroundScenario ───────────────────────────────────
+
+export type PlaygroundScenarioStatus =
+  | "DRAFT"
+  | "READY"
+  | "IN_REVIEW"
+  | "ARCHIVED";
+
+export interface PlaygroundScenario {
+  scenario_id: string;
+  owner_entity_id: string;
+  org_entity_id: string | null;
+  title: string;
+  description: string | null;
+  goal_summary: string | null;
+  status: PlaygroundScenarioStatus;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+export interface CreateScenarioInput {
+  title: string;
+  description?: string;
+  goal_summary?: string;
+  status?: PlaygroundScenarioStatus;
+}
+
+export interface UpdateScenarioInput {
+  title?: string;
+  description?: string;
+  goal_summary?: string;
+  status?: PlaygroundScenarioStatus;
+}
+
+export interface CreateScenarioSuccess {
+  ok: true;
+  scenario: PlaygroundScenario;
+  audit_event_id: string;
+}
+
+export interface ListScenariosSuccess {
+  ok: true;
+  scenarios: readonly PlaygroundScenario[];
+}
+
+export interface GetScenarioSuccess {
+  ok: true;
+  scenario: PlaygroundScenario;
+}
+
+export interface UpdateScenarioSuccess {
+  ok: true;
+  scenario: PlaygroundScenario;
+  audit_event_id: string;
+}
+
+export interface ArchiveScenarioSuccess {
+  ok: true;
+  scenario: PlaygroundScenario;
+  audit_event_id: string;
+}
+
+// ─── Wave 5: PlaygroundCandidateView ──────────────────────────────
+
+export type PlaygroundCandidateType =
+  | "STATUS_QUO"
+  | "LOW_RISK_INCREMENTAL"
+  | "SPEED_OPTIMIZED"
+  | "COST_OPTIMIZED"
+  | "COMPLIANCE_FIRST"
+  | "CUSTOMER_IMPACT_FIRST"
+  | "OPERATIONAL_RESILIENCE"
+  | "HUMAN_REVIEW_REQUIRED"
+  | "DO_NOT_PROCEED";
+
+export type PlaygroundConfidenceLabel =
+  | "HIGH"
+  | "MEDIUM"
+  | "LOW"
+  | "INSUFFICIENT_DATA";
+
+export type PlaygroundGovernanceFinding =
+  | "POLICY_REVIEW_REQUIRED"
+  | "DUAL_CONTROL_REQUIRED"
+  | "COMPLIANCE_REVIEW_RECOMMENDED"
+  | "LEGAL_REVIEW_RECOMMENDED"
+  | "HUMAN_REVIEW_REQUIRED"
+  | "PRIVILEGED_ENDPOINT"
+  | "ESCALATION_LIKELY"
+  | "BREAK_GLASS_INVOCATION_BLOCKED_AT_PLAYGROUND"
+  | "CROSS_ORG_BOUNDARY_BLOCKED"
+  | "AI_AGENT_CEILING_ENGAGED"
+  | "NO_NOTABLE_FINDING";
+
+export type PlaygroundTransitionHint =
+  | "NO_ACTION"
+  | "MAY_PROPOSE_ACTION_LATER"
+  | "REQUIRES_APPROVAL_CHAIN"
+  | "REQUIRES_POLICY_REVIEW"
+  | "REQUIRES_CONNECTOR_CAPABILITY"
+  | "REQUIRES_HUMAN_DECISION"
+  | "BLOCKED";
+
+export interface PlaygroundCandidateView {
+  candidate_key: string;
+  candidate_type: PlaygroundCandidateType;
+  candidate_title: string;
+  candidate_summary: string;
+  assumptions: readonly string[];
+  required_inputs: readonly string[];
+  expected_benefits: readonly string[];
+  known_risks: readonly string[];
+  dependencies: readonly string[];
+  governance_findings: readonly PlaygroundGovernanceFinding[];
+  required_approvals: readonly string[];
+  evidence_refs: readonly string[];
+  blocked_by_policy: boolean;
+  action_runtime_transition_hint: PlaygroundTransitionHint;
+  confidence_label: PlaygroundConfidenceLabel;
+  honest_note: string;
+}
+
+export interface GenerateCandidatesInput {
+  candidate_types?: readonly PlaygroundCandidateType[];
+  max_candidates?: number;
+  generation_mode?: "DETERMINISTIC_TEMPLATE";
+}
+
+export interface GenerateCandidatesSuccess {
+  ok: true;
+  scenario_id: string;
+  candidates: readonly PlaygroundCandidateView[];
+  generated_at: string;
+  audit_event_id: string;
+}
+
+// ─── Wave 6: PlaygroundOutcomeComparison ──────────────────────────
+
+export type PlaygroundComparisonMode =
+  | "DETERMINISTIC_RUBRIC"
+  | "CANDIDATE_FIELD_PROJECTION";
+
+export type PlaygroundOutcomeDimension =
+  | "GOVERNANCE_ALIGNMENT"
+  | "POLICY_REVIEW_BURDEN"
+  | "LEGAL_COMPLIANCE_REVIEW_NEED"
+  | "EXECUTION_COMPLEXITY"
+  | "OPERATIONAL_RISK"
+  | "RESILIENCE_IMPACT"
+  | "REVERSIBILITY"
+  | "CUSTOMER_IMPACT"
+  | "TIMING_TO_VALUE"
+  | "COST_PROFILE"
+  | "DATA_SCOPE_READINESS"
+  | "CONNECTOR_READINESS";
+
+export type PlaygroundDimensionRating =
+  | "FAVORABLE"
+  | "MIXED"
+  | "UNFAVORABLE"
+  | "INSUFFICIENT_DATA";
+
+export interface PlaygroundDimensionEntry {
+  dimension: PlaygroundOutcomeDimension;
+  rating: PlaygroundDimensionRating;
+}
+
+export type PlaygroundRiskFinding =
+  | "POLICY_VIOLATION_POSSIBLE"
+  | "COMPLIANCE_GAP_POSSIBLE"
+  | "LEGAL_EXPOSURE_POSSIBLE"
+  | "DATA_SCOPE_AMBIGUITY"
+  | "CROSS_ORG_LEAK_POSSIBLE"
+  | "CONNECTOR_RELIABILITY_RISK"
+  | "OPERATIONAL_OUTAGE_RISK"
+  | "REVERSIBILITY_RISK"
+  | "ESCALATION_LIKELY"
+  | "HUMAN_REVIEWER_UNAVAILABLE"
+  | "INSUFFICIENT_DATA_RISK"
+  | "NO_NOTABLE_RISK";
+
+export type PlaygroundDependencyFinding =
+  | "POLICY_APPROVAL_REQUIRED"
+  | "DUAL_CONTROL_APPROVER_REQUIRED"
+  | "BREAK_GLASS_GRANT_REQUIRED"
+  | "CONNECTOR_CAPABILITY_REQUIRED"
+  | "MEMBERSHIP_GRANT_REQUIRED"
+  | "DATA_RETENTION_GRANT_REQUIRED"
+  | "REGULATOR_LAWFUL_BASIS_REQUIRED"
+  | "JURISDICTIONAL_SCOPE_CHECK_REQUIRED"
+  | "EXTERNAL_TEAM_HANDOFF_REQUIRED"
+  | "ANALYTICS_AGGREGATE_AVAILABILITY_REQUIRED"
+  | "AUDIT_TRAIL_CAPACITY_VERIFIED"
+  | "NO_BLOCKING_DEPENDENCY_IDENTIFIED";
+
+export type PlaygroundRequiredReview =
+  | "POLICY_OWNER_REVIEW"
+  | "DUAL_CONTROL_REVIEW"
+  | "COMPLIANCE_REVIEW"
+  | "LEGAL_REVIEW"
+  | "HUMAN_OWNER_REVIEW"
+  | "CONNECTOR_ADMIN_REVIEW"
+  | "ESCALATION_REVIEW"
+  | "REGULATOR_REVIEW"
+  | "NO_ADDITIONAL_REVIEW_IDENTIFIED";
+
+export interface PlaygroundComparisonMatrixItem {
+  candidate_key: string;
+  candidate_type: PlaygroundCandidateType;
+  candidate_title: string;
+  comparison_summary: string;
+  outcome_dimensions: readonly PlaygroundDimensionEntry[];
+  risk_findings: readonly PlaygroundRiskFinding[];
+  dependency_findings: readonly PlaygroundDependencyFinding[];
+  required_reviews: readonly PlaygroundRequiredReview[];
+  governance_findings: readonly PlaygroundGovernanceFinding[];
+  blocked_by_policy: boolean;
+  action_runtime_transition_hint: PlaygroundTransitionHint;
+  confidence_label: PlaygroundConfidenceLabel;
+  honest_note: string;
+}
+
+export interface PlaygroundTradeoffSummary {
+  fewest_blocking_findings: readonly string[];
+  strongest_governance_alignment: readonly string[];
+  lowest_review_burden: readonly string[];
+  strongest_resilience: readonly string[];
+}
+
+export interface CompareOutcomesInput {
+  candidate_types?: readonly PlaygroundCandidateType[];
+  max_candidates?: number;
+  comparison_mode?: PlaygroundComparisonMode;
+}
+
+export interface CompareOutcomesSuccess {
+  ok: true;
+  scenario_id: string;
+  compared_at: string;
+  comparison_mode: PlaygroundComparisonMode;
+  candidate_count: number;
+  comparison_matrix: readonly PlaygroundComparisonMatrixItem[];
+  tradeoff_summary: PlaygroundTradeoffSummary;
+  blocked_candidates_count: number;
+  review_required_count: number;
+  honest_note: string;
+  audit_event_id: string;
+}
+
+// ─── Wave 7: PlaygroundBestPathRecommendation ─────────────────────
+
+export type PlaygroundRecommendationMode =
+  | "DETERMINISTIC_POLICY_FIRST"
+  | "DETERMINISTIC_GOVERNANCE_FIRST"
+  | "DETERMINISTIC_RESILIENCE_FIRST"
+  | "DETERMINISTIC_HUMAN_REVIEW_FIRST";
+
+export type PlaygroundRecommendationReason =
+  | "FEWEST_BLOCKING_FINDINGS"
+  | "STRONGEST_GOVERNANCE_ALIGNMENT"
+  | "LOWEST_REVIEW_BURDEN"
+  | "STRONGEST_RESILIENCE_POSTURE"
+  | "LOWEST_EXECUTION_COMPLEXITY"
+  | "HIGHEST_DATA_SCOPE_READINESS"
+  | "HIGHEST_CONNECTOR_READINESS"
+  | "CLEAREST_HUMAN_REVIEW_PATH"
+  | "SAFEST_INCREMENTAL_PATH"
+  | "DO_NOT_PROCEED_SELECTED_FOR_SAFETY"
+  | "INSUFFICIENT_DATA_RECOMMENDS_HUMAN_REVIEW";
+
+export type PlaygroundActionTransitionReadiness =
+  | "NOT_READY"
+  | "MAY_PROPOSE_ACTION_LATER"
+  | "REQUIRES_HUMAN_DECISION"
+  | "REQUIRES_POLICY_REVIEW"
+  | "REQUIRES_APPROVAL_CHAIN"
+  | "REQUIRES_LEGAL_OR_COMPLIANCE_REVIEW"
+  | "REQUIRES_CONNECTOR_CAPABILITY"
+  | "BLOCKED";
+
+export type PlaygroundReasonNotRecommended =
+  | "MORE_BLOCKING_FINDINGS"
+  | "MORE_REQUIRED_REVIEWS"
+  | "LOWER_GOVERNANCE_ALIGNMENT"
+  | "HIGHER_OPERATIONAL_RISK"
+  | "LOWER_DATA_SCOPE_READINESS"
+  | "LOWER_CONNECTOR_READINESS"
+  | "LESS_RESILIENT"
+  | "LESS_REVERSIBLE"
+  | "INSUFFICIENT_DATA"
+  | "NOT_SELECTED_THIS_ROUND";
+
+export interface PlaygroundAlternativeConsidered {
+  candidate_key: string;
+  candidate_type: PlaygroundCandidateType;
+  candidate_title: string;
+  reason_not_recommended: PlaygroundReasonNotRecommended;
+  blocking_findings: readonly (
+    | PlaygroundRiskFinding
+    | PlaygroundDependencyFinding
+  )[];
+  review_findings: readonly PlaygroundRequiredReview[];
+  confidence_label: PlaygroundConfidenceLabel;
+}
+
+export interface RecommendBestPathInput {
+  candidate_types?: readonly PlaygroundCandidateType[];
+  max_candidates?: number;
+  comparison_mode?: PlaygroundComparisonMode;
+  recommendation_mode?: PlaygroundRecommendationMode;
+}
+
+export interface RecommendBestPathSuccess {
+  ok: true;
+  scenario_id: string;
+  recommended_at: string;
+  recommendation_mode: PlaygroundRecommendationMode;
+  recommended_candidate_key: string;
+  recommended_candidate_type: PlaygroundCandidateType;
+  recommended_candidate_title: string;
+  recommendation_summary: string;
+  recommendation_reasons: readonly PlaygroundRecommendationReason[];
+  evidence_refs: readonly string[];
+  governance_findings: readonly PlaygroundGovernanceFinding[];
+  required_reviews: readonly PlaygroundRequiredReview[];
+  risk_findings: readonly PlaygroundRiskFinding[];
+  dependency_findings: readonly PlaygroundDependencyFinding[];
+  blocked_by_policy: boolean;
+  action_runtime_transition_hint: PlaygroundTransitionHint;
+  action_transition_readiness: PlaygroundActionTransitionReadiness;
+  alternatives_considered: readonly PlaygroundAlternativeConsidered[];
+  not_recommended_reasons: readonly PlaygroundReasonNotRecommended[];
+  confidence_label: PlaygroundConfidenceLabel;
+  human_decision_required: boolean;
+  honest_note: string;
+  audit_event_id: string;
+}
+
+// ─── Wave 8: PlaygroundGovernedTransition ─────────────────────────
+
+export type PlaygroundTransitionOutcome =
+  | "ACTION_PROPOSED"
+  | "NO_ACTION_PROPOSED";
+
+export type PlaygroundReasonNotProposed =
+  | "STATUS_QUO_NOT_TRANSITIONABLE"
+  | "DO_NOT_PROCEED_BLOCKED"
+  | "BLOCKED_BY_POLICY_OR_GOVERNANCE"
+  | "BLOCKED_BY_ACTION_RUNTIME_TRANSITION_HINT";
+
+export interface ProposeGovernedTransitionInput {
+  caller_confirmation: true;
+  idempotency_key: string;
+  intended_action_type?: "SEND_INTERNAL_NOTIFICATION";
+  candidate_types?: readonly PlaygroundCandidateType[];
+  max_candidates?: number;
+  comparison_mode?: PlaygroundComparisonMode;
+  recommendation_mode?: PlaygroundRecommendationMode;
+}
+
+export interface ProposeGovernedTransitionSuccess {
+  ok: true;
+  scenario_id: string;
+  transitioned_at: string;
+  transition_outcome: PlaygroundTransitionOutcome;
+  recommended_candidate_key: string;
+  recommended_candidate_type: PlaygroundCandidateType;
+  recommendation_summary: string;
+  action_id?: string;
+  action_status?: string;
+  action_type?: string;
+  action_risk_tier?: string;
+  action_decision?: string;
+  escalation_id?: string | null;
+  reason_not_proposed?: PlaygroundReasonNotProposed;
+  required_approvals: readonly string[];
+  required_reviews: readonly string[];
+  human_decision_required: boolean;
+  honest_note: string;
+  playground_audit_event_id: string;
+  action_audit_event_id?: string;
+}
+
+// ─── Wave 9: PlaygroundSimulation ─────────────────────────────────
+
+export type PlaygroundOrchestrationMode =
+  | "DETERMINISTIC_BRANCH_ENUMERATION"
+  | "DETERMINISTIC_CONSTRAINT_VARIATION"
+  | "DETERMINISTIC_GOVERNANCE_SCOPE_VARIATION";
+
+export type PlaygroundBranchDefinition =
+  | "BASELINE"
+  | "POLICY_FIRST_BRANCH"
+  | "GOVERNANCE_FIRST_BRANCH"
+  | "RESILIENCE_FIRST_BRANCH"
+  | "HUMAN_REVIEW_FIRST_BRANCH";
+
+export type PlaygroundAgentRole =
+  | "OPERATIONS_AGENT"
+  | "COMPLIANCE_AGENT"
+  | "RISK_AGENT"
+  | "CUSTOMER_AGENT"
+  | "RESILIENCE_AGENT"
+  | "HUMAN_REVIEW_AGENT";
+
+export type PlaygroundAssumedConstraint =
+  | "OWNER_COSMP_SCOPE_ONLY"
+  | "SAME_ORG_ONLY"
+  | "NO_EXTERNAL_PROVIDERS"
+  | "NO_CONNECTOR_INVOCATION"
+  | "NO_RAW_MEMORY_ACCESS"
+  | "NO_AUTONOMOUS_EXECUTION"
+  | "WAVE_8_TRANSITION_REQUIRED_BEFORE_ACTION"
+  | "HUMAN_REVIEW_BEFORE_FINAL_DECISION"
+  | "LEGAL_COMPLIANCE_REVIEW_WHERE_APPLICABLE"
+  | "BLOCKED_CANDIDATES_NEVER_TRANSITIONABLE";
+
+export type PlaygroundExpectedOutcome =
+  | "WAVE_7_RECOMMENDATION_PRODUCED"
+  | "WAVE_7_RECOMMENDATION_BLOCKED"
+  | "WAVE_7_RECOMMENDATION_REQUIRES_HUMAN_DECISION"
+  | "WAVE_8_TRANSITION_POSSIBLE_AFTER_REVIEW"
+  | "WAVE_8_TRANSITION_DECLINED_BY_POLICY"
+  | "INSUFFICIENT_DATA_REQUIRES_REVIEW"
+  | "COMPLIANCE_REVIEW_RECOMMENDED"
+  | "OPERATIONAL_RESILIENCE_FAVORABLE";
+
+export type PlaygroundGovernanceConflict =
+  | "BRANCH_RECOMMENDS_DIFFERENT_CANDIDATE_TYPE"
+  | "BRANCH_BLOCKED_BY_POLICY"
+  | "BRANCH_REQUIRES_DUAL_CONTROL"
+  | "BRANCH_REQUIRES_LEGAL_REVIEW"
+  | "BRANCH_REQUIRES_COMPLIANCE_REVIEW"
+  | "BRANCH_INSUFFICIENT_DATA"
+  | "BRANCH_HUMAN_DECISION_REQUIRED"
+  | "BRANCH_ACTION_RUNTIME_REQUIRED"
+  | "BRANCH_NO_TRANSITION_POSSIBLE"
+  | "NO_NOTABLE_CONFLICT";
+
+export type PlaygroundUnresolvedQuestion =
+  | "WHICH_CANDIDATE_TYPE_TO_RECOMMEND"
+  | "WHETHER_TO_PROCEED_GIVEN_INSUFFICIENT_DATA"
+  | "WHETHER_GOVERNANCE_REVIEW_IS_SUFFICIENT"
+  | "WHETHER_LEGAL_REVIEW_IS_REQUIRED"
+  | "WHETHER_DUAL_CONTROL_IS_REQUIRED"
+  | "WHETHER_TO_BLOCK_OR_PROCEED"
+  | "WHETHER_HUMAN_REVIEWER_IS_AVAILABLE"
+  | "NO_UNRESOLVED_QUESTIONS_IDENTIFIED";
+
+export type PlaygroundNextReviewLabel =
+  | "HUMAN_GOVERNANCE_REVIEW"
+  | "POLICY_OWNER_REVIEW"
+  | "COMPLIANCE_REVIEW"
+  | "LEGAL_REVIEW"
+  | "OPERATIONAL_RESILIENCE_REVIEW"
+  | "DATA_GOVERNANCE_REVIEW"
+  | "RERUN_WITH_DIFFERENT_RECOMMENDATION_MODE"
+  | "NO_FURTHER_REVIEW_IDENTIFIED";
+
+export type PlaygroundEvidencePosture =
+  | "HIERARCHY_SUPPORTS_PATH"
+  | "POLICY_SUPPORTS_PATH"
+  | "PRIOR_ACTION_HISTORY_SUPPORTS_PATH"
+  | "CONVERSATION_CONTEXT_SUPPORTS_PATH"
+  | "ANALYTICS_SUPPORTS_PATH"
+  | "CONNECTOR_READINESS_SUPPORTS_PATH"
+  | "AUDIT_HISTORY_SUPPORTS_PATH"
+  | "COMPLIANCE_REVIEW_REQUIRED"
+  | "LEGAL_REVIEW_REQUIRED"
+  | "INSUFFICIENT_CONTEXT"
+  | "CONFLICTING_SIGNALS"
+  | "AUTHORITY_CHAIN_UNCLEAR";
+
+export type PlaygroundBlockerBeforeAction =
+  | "POLICY_BLOCKS_ACTION"
+  | "MISSING_COMPLIANCE_REVIEW"
+  | "MISSING_LEGAL_REVIEW"
+  | "MISSING_DUAL_CONTROL_APPROVAL"
+  | "MISSING_HUMAN_DECISION"
+  | "INSUFFICIENT_DATA"
+  | "CONNECTOR_UNAVAILABLE"
+  | "AUTHORITY_CHAIN_UNCLEAR"
+  | "NO_TRANSITION_POSSIBLE"
+  | "NO_KNOWN_BLOCKER";
+
+export type PlaygroundSafeNextStep =
+  | "PROCEED_TO_HUMAN_REVIEW"
+  | "REQUEST_MISSING_CONTEXT"
+  | "REQUEST_APPROVAL_CHAIN"
+  | "REQUEST_COMPLIANCE_REVIEW"
+  | "REQUEST_LEGAL_REVIEW"
+  | "PROPOSE_GOVERNED_ACTION"
+  | "DO_NOT_PROCEED";
+
+export interface PlaygroundSimulationBranch {
+  branch_id: string;
+  branch_definition: PlaygroundBranchDefinition;
+  agent_role: PlaygroundAgentRole;
+  assumed_constraints: readonly PlaygroundAssumedConstraint[];
+  expected_outcomes: readonly PlaygroundExpectedOutcome[];
+  governance_conflicts: readonly PlaygroundGovernanceConflict[];
+  branch_summary: string;
+  branch_recommended_candidate_key: string;
+  branch_recommended_candidate_type: PlaygroundCandidateType;
+  confidence_label: PlaygroundConfidenceLabel;
+}
+
+export interface PlaygroundConvergenceSummary {
+  candidate_keys_agreed_upon: readonly string[];
+  governance_findings_all_branches_share: readonly PlaygroundGovernanceFinding[];
+  required_reviews_all_branches_share: readonly PlaygroundRequiredReview[];
+}
+
+export interface PlaygroundDisagreementSummary {
+  candidate_types_diverged: readonly PlaygroundCandidateType[];
+  recommendation_modes_diverged: readonly PlaygroundRecommendationMode[];
+  unresolved_branches: readonly string[];
+}
+
+export interface PlaygroundRecommendedNextReview {
+  next_review_label: PlaygroundNextReviewLabel;
+  rationale_summary: string;
+  applies_to_branch_ids: readonly string[];
+}
+
+export interface PlaygroundEnterpriseDecisionPosture {
+  primary_recommended_branch_id: string;
+  primary_recommendation_reasons: readonly PlaygroundRecommendationReason[];
+  viable_alternative_branch_ids: readonly string[];
+  evidence_posture: readonly PlaygroundEvidencePosture[];
+  blockers_before_action: readonly PlaygroundBlockerBeforeAction[];
+  safe_next_step: PlaygroundSafeNextStep;
+}
+
+export interface SimulateInput {
+  caller_confirmation: true;
+  orchestration_mode?: PlaygroundOrchestrationMode;
+  branch_definitions?: readonly PlaygroundBranchDefinition[];
+  agent_roles?: readonly PlaygroundAgentRole[];
+  candidate_types?: readonly PlaygroundCandidateType[];
+  max_branches?: number;
+  comparison_mode?: PlaygroundComparisonMode;
+  recommendation_mode?: PlaygroundRecommendationMode;
+}
+
+export interface SimulationSuccess {
+  ok: true;
+  scenario_id: string;
+  simulated_at: string;
+  orchestration_mode: PlaygroundOrchestrationMode;
+  branch_count: number;
+  branches: readonly PlaygroundSimulationBranch[];
+  convergence_summary: PlaygroundConvergenceSummary;
+  disagreement_summary: PlaygroundDisagreementSummary;
+  unresolved_questions: readonly PlaygroundUnresolvedQuestion[];
+  recommended_next_review: PlaygroundRecommendedNextReview;
+  enterprise_decision_posture: PlaygroundEnterpriseDecisionPosture;
+  human_decision_required: boolean;
+  honest_note: string;
+  simulation_audit_event_id: string;
+}

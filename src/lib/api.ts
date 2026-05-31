@@ -76,6 +76,24 @@ import type {
   EscalationListResponse,
   EscalationResponse,
   EscalationResolveRequest,
+  // Section 5 Agent Playground -- Wave 4/5/6/7/8/9 (ADR-0077)
+  CreateScenarioInput,
+  CreateScenarioSuccess,
+  ListScenariosSuccess,
+  GetScenarioSuccess,
+  UpdateScenarioInput,
+  UpdateScenarioSuccess,
+  ArchiveScenarioSuccess,
+  GenerateCandidatesInput,
+  GenerateCandidatesSuccess,
+  CompareOutcomesInput,
+  CompareOutcomesSuccess,
+  RecommendBestPathInput,
+  RecommendBestPathSuccess,
+  ProposeGovernedTransitionInput,
+  ProposeGovernedTransitionSuccess,
+  SimulateInput,
+  SimulationSuccess,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -95,7 +113,7 @@ interface ApiClientOptions {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   retries?: number;
 }
@@ -639,6 +657,127 @@ export class ApiClient {
       this.request<EscalationResponse>(
         `/escalations/${encodeURIComponent(id)}/reject`,
         { method: "POST", body },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // playground.*  (Section 5 Agent Playground -- Wave 10 consumer
+  // experience per ADR-0077; consumes the 6 Foundation Agent
+  // Playground routes verbatim:
+  //   Wave 4: scenarios CRUD
+  //   Wave 5: candidates
+  //   Wave 6: outcome comparisons
+  //   Wave 7: best-path recommendations
+  //   Wave 8: governed transitions (creates Section 2 Action rows)
+  //   Wave 9: multi-agent simulation orchestration
+  // Wave 10 NEVER bypasses Wave 8 / Section 2 -- there is no
+  // execution method; Section 2 retains all execution authority
+  // per ADR-0057. POST methods do NOT auto-retry (Wave 8
+  // idempotency_key handles dedup; Wave 5/6/7/9 are computed-on-
+  // read but auto-retry would still risk duplicate audit emission,
+  // so the UI surfaces explicit retry instead).
+  // ──────────────────────────────────────────────────────────────
+  playground = {
+    /** GET /api/v1/playground/scenarios -- owner-scoped list. */
+    listScenarios: (): Promise<ApiResult<ListScenariosSuccess>> =>
+      this.request<ListScenariosSuccess>("/playground/scenarios"),
+
+    /** POST /api/v1/playground/scenarios -- create scenario. */
+    createScenario: (
+      body: CreateScenarioInput,
+    ): Promise<ApiResult<CreateScenarioSuccess>> =>
+      this.request<CreateScenarioSuccess>("/playground/scenarios", {
+        method: "POST",
+        body,
+        retries: 0,
+      }),
+
+    /** GET /api/v1/playground/scenarios/:id -- single scenario. */
+    getScenario: (id: string): Promise<ApiResult<GetScenarioSuccess>> =>
+      this.request<GetScenarioSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}`,
+      ),
+
+    /** PUT /api/v1/playground/scenarios/:id -- update safe fields. */
+    updateScenario: (
+      id: string,
+      body: UpdateScenarioInput,
+    ): Promise<ApiResult<UpdateScenarioSuccess>> =>
+      this.request<UpdateScenarioSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}`,
+        { method: "PUT", body, retries: 0 },
+      ),
+
+    /** DELETE /api/v1/playground/scenarios/:id -- soft-archive. */
+    archiveScenario: (
+      id: string,
+    ): Promise<ApiResult<ArchiveScenarioSuccess>> =>
+      this.request<ArchiveScenarioSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}`,
+        { method: "DELETE", retries: 0 },
+      ),
+
+    /** POST /api/v1/playground/scenarios/:id/candidates -- Wave 5. */
+    generateCandidates: (
+      id: string,
+      body: GenerateCandidatesInput = {},
+    ): Promise<ApiResult<GenerateCandidatesSuccess>> =>
+      this.request<GenerateCandidatesSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}/candidates`,
+        { method: "POST", body, retries: 0 },
+      ),
+
+    /** POST /api/v1/playground/scenarios/:id/outcome-comparisons -- Wave 6. */
+    compareOutcomes: (
+      id: string,
+      body: CompareOutcomesInput = {},
+    ): Promise<ApiResult<CompareOutcomesSuccess>> =>
+      this.request<CompareOutcomesSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}/outcome-comparisons`,
+        { method: "POST", body, retries: 0 },
+      ),
+
+    /** POST /api/v1/playground/scenarios/:id/best-path-recommendations -- Wave 7. */
+    recommendBestPath: (
+      id: string,
+      body: RecommendBestPathInput = {},
+    ): Promise<ApiResult<RecommendBestPathSuccess>> =>
+      this.request<RecommendBestPathSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}/best-path-recommendations`,
+        { method: "POST", body, retries: 0 },
+      ),
+
+    /** POST /api/v1/playground/scenarios/:id/governed-transitions -- Wave 8.
+     *
+     * REQUIRES explicit caller_confirmation: true AND a fresh
+     * idempotency_key per submit attempt. Returns a Section 2
+     * Action in PROPOSED status only -- Wave 10 NEVER executes;
+     * Section 2 retains all execution authority per ADR-0057.
+     */
+    proposeGovernedTransition: (
+      id: string,
+      body: ProposeGovernedTransitionInput,
+    ): Promise<ApiResult<ProposeGovernedTransitionSuccess>> =>
+      this.request<ProposeGovernedTransitionSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}/governed-transitions`,
+        { method: "POST", body, retries: 0 },
+      ),
+
+    /** POST /api/v1/playground/scenarios/:id/simulations -- Wave 9.
+     *
+     * Multi-agent simulation orchestration over (branch_definition
+     * × agent_role) combinations capped at 24. Branches are
+     * independent Wave 7 sub-invocations projected through closed-
+     * vocab agent_role lenses -- NEVER agent-to-agent message-
+     * passing, NEVER raw chain-of-thought, NEVER LLM personas.
+     */
+    runSimulation: (
+      id: string,
+      body: SimulateInput,
+    ): Promise<ApiResult<SimulationSuccess>> =>
+      this.request<SimulationSuccess>(
+        `/playground/scenarios/${encodeURIComponent(id)}/simulations`,
+        { method: "POST", body, retries: 0 },
       ),
   };
 }
