@@ -33,6 +33,7 @@ import {
   KeyRound,
   LayoutDashboard,
   MessagesSquare,
+  Network,
   ScrollText,
   Settings as SettingsIcon,
   Shield,
@@ -116,6 +117,12 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/playground",
     icon: FlaskConical,
     description: "Stage a NEGOTIATE end to end -- the patent claims, made tangible for buyers.",
+  },
+  {
+    label: "Agent Playground",
+    to: "/agent-playground",
+    icon: Network,
+    description: "Enterprise decision cockpit -- scenario, candidates, comparison, recommendation, governed transition, and role-perspective simulation.",
   },
   {
     label: "Policies",

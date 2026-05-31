@@ -36,6 +36,7 @@ import { AnalyticsPage } from "@/pages/Analytics";
 import { ConversationsPage } from "@/pages/Conversations";
 import { WorkflowsPage } from "@/pages/Workflows";
 import { PlaygroundPage } from "@/pages/Playground";
+import { AgentPlaygroundPage } from "@/pages/AgentPlayground";
 import { PoliciesPage } from "@/pages/Policies";
 import { SystemHealthPage } from "@/pages/SystemHealth";
 import { SettingsPage } from "@/pages/Settings";
@@ -96,6 +97,10 @@ export function App() {
               <Route path="conversations" element={<ConversationsPage />} />
               <Route path="workflows" element={<WorkflowsPage />} />
               <Route path="playground" element={<PlaygroundPage />} />
+              <Route
+                path="agent-playground"
+                element={<AgentPlaygroundPage />}
+              />
               <Route path="policies" element={<PoliciesPage />} />
               <Route path="system-health" element={<SystemHealthPage />} />
               <Route path="settings" element={<SettingsPage />} />
