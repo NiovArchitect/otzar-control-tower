@@ -2414,6 +2414,71 @@ const auditVerifyChainHandler = http.get(
   },
 );
 
+const auditEventsExportHandler = http.get(
+  `${API_BASE}/audit/events/export`,
+  ({ request }) => {
+    const url = new URL(request.url);
+    const format = url.searchParams.get("format") ?? "ndjson";
+    const scope = url.searchParams.get("scope") ?? "self";
+    const eventTypeFilter = url.searchParams.get("event_type");
+    const outcomeFilter = url.searchParams.get("outcome");
+    if (format !== "ndjson" && format !== "csv") {
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "INVALID_FIELD",
+          invalid_fields: ["format"],
+        },
+        { status: 422 },
+      );
+    }
+    const filtered = section7EventFixtures.filter((e) => {
+      if (
+        eventTypeFilter !== null &&
+        eventTypeFilter !== "" &&
+        e.event_type !== eventTypeFilter
+      ) {
+        return false;
+      }
+      if (
+        outcomeFilter !== null &&
+        outcomeFilter !== "" &&
+        e.outcome !== outcomeFilter
+      ) {
+        return false;
+      }
+      return true;
+    });
+    let body: string;
+    let contentType: string;
+    if (format === "csv") {
+      const header =
+        "audit_id,event_type,outcome,timestamp,event_hash\n";
+      const rows = filtered
+        .map(
+          (e) =>
+            `${e.audit_id},${e.event_type},${e.outcome},${e.timestamp},${e.event_hash}`,
+        )
+        .join("\r\n");
+      body = header + rows;
+      contentType = "text/csv; charset=utf-8";
+    } else {
+      body = filtered.map((e) => JSON.stringify(e)).join("\n");
+      contentType = "application/x-ndjson; charset=utf-8";
+    }
+    return new HttpResponse(body, {
+      status: 200,
+      headers: {
+        "content-type": contentType,
+        "x-audit-row-count": String(filtered.length),
+        "x-audit-truncated": "false",
+        "x-audit-scope": scope,
+        "x-audit-format": format,
+      },
+    });
+  },
+);
+
 export const handlers = [
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
@@ -2421,6 +2486,7 @@ export const handlers = [
   auditEventsListHandler,
   auditEventDetailHandler,
   auditVerifyChainHandler,
+  auditEventsExportHandler,
   // Section 5 Agent Playground Wave 10 (ADR-0077)
   playgroundListScenariosHandler,
   playgroundCreateScenarioHandler,
