@@ -316,6 +316,134 @@ describe("Connectors — register form", () => {
   });
 });
 
+describe("Connectors — GOOGLE_WORKSPACE_READ C3 admin path", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("renders the GOOGLE_WORKSPACE_READ type in the registry card", async () => {
+    renderConnectors();
+    expect(
+      await screen.findByTestId("type-GOOGLE_WORKSPACE_READ"),
+    ).toBeInTheDocument();
+  });
+
+  it("describes the C3 read-only scope (Calendar + Drive metadata + Gmail IDs)", async () => {
+    renderConnectors();
+    const tile = await screen.findByTestId("type-GOOGLE_WORKSPACE_READ");
+    expect(within(tile).getByText(/Google Workspace/i)).toBeInTheDocument();
+    expect(within(tile).getByText(/Calendar/i)).toBeInTheDocument();
+    expect(within(tile).getByText(/Drive/i)).toBeInTheDocument();
+    expect(within(tile).getByText(/Gmail/i)).toBeInTheDocument();
+  });
+
+  it("posts a GOOGLE_WORKSPACE_READ binding with workspace_domain config + access-token secret_ref", async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/connectors`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            ok: true,
+            binding: {
+              binding_id: "new-google-binding",
+              org_entity_id: "org-1",
+              type: "GOOGLE_WORKSPACE_READ",
+              display_name: "niov-dev-google",
+              config: { use_real: false, workspace_domain: "niov-dev-google" },
+              secret_ref: "GOOGLE_ACCESS_TOKEN_DEV",
+              enabled: true,
+              created_by_entity_id: "user-1",
+              created_at: "2026-06-01T00:00:00.000Z",
+              updated_at: "2026-06-01T00:00:00.000Z",
+            },
+            audit_event_id: "ae-google-1",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    // Switch the type selector to Google Workspace
+    const select = await screen.findByTestId("connector-type-select");
+    await user.click(select);
+    await user.click(
+      await screen.findByRole("option", { name: /Google Workspace/i }),
+    );
+    await user.type(
+      screen.getByTestId("display-name-input"),
+      "niov-dev-google",
+    );
+    await user.type(
+      screen.getByTestId("secret-ref-input"),
+      "GOOGLE_ACCESS_TOKEN_DEV",
+    );
+    await user.click(screen.getByTestId("register-submit"));
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).toMatchObject({
+      type: "GOOGLE_WORKSPACE_READ",
+      display_name: "niov-dev-google",
+      secret_ref: "GOOGLE_ACCESS_TOKEN_DEV",
+      config: {
+        use_real: false,
+        workspace_domain: "niov-dev-google",
+      },
+    });
+  });
+});
+
+describe("Connectors — GOOGLE_WORKSPACE_READ binding render", () => {
+  const googleBinding = {
+    binding_id: "00000000-0000-0000-0000-00000000000g",
+    org_entity_id: "11111111-1111-1111-1111-111111111111",
+    type: "GOOGLE_WORKSPACE_READ",
+    display_name: "niov-prod-google",
+    config: { use_real: false, workspace_domain: "niov.io" },
+    secret_ref: "GOOGLE_ACCESS_TOKEN_PROD",
+    enabled: true,
+    created_by_entity_id: "22222222-2222-2222-2222-222222222222",
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [googleBinding] }),
+      ),
+    );
+  });
+
+  it("renders the Google binding by testid with C3 read-first badge", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${googleBinding.binding_id}`);
+    expect(within(card).getByText("niov-prod-google")).toBeInTheDocument();
+    expect(
+      within(card).getByText(/Read-first \(no writes at C3\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the GOOGLE_ACCESS_TOKEN env-var NAME but NEVER a concrete ya29.* token", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${googleBinding.binding_id}`);
+    expect(within(card).getByText("GOOGLE_ACCESS_TOKEN_PROD")).toBeInTheDocument();
+    // A concrete Google OAuth access token starts with ya29.* per
+    // Google docs; the page renders the env-var NAME only.
+    const docBody = (await screen.findByText(/niov-prod-google/)).ownerDocument
+      .body.textContent ?? "";
+    expect(docBody).not.toMatch(/ya29\.[A-Za-z0-9_-]{8,}/);
+    // Service-account private-key JSON snippet must NEVER appear
+    expect(docBody).not.toMatch(/-----BEGIN PRIVATE KEY-----/);
+    expect(docBody).not.toMatch(/"private_key":/);
+    expect(docBody.toLowerCase()).not.toContain("bearer ");
+  });
+});
+
 describe("Connectors — forbidden UI copy guard", () => {
   beforeEach(() => {
     server.use(
