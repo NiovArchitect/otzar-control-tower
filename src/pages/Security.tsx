@@ -57,6 +57,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/lib/stores/auth";
 import type {
   SafeAuditEventView,
   SafeAuditEventDetailView,
@@ -91,6 +92,15 @@ interface AuditListFilters {
   target_capsule_id: string;
   start_time: string;
   end_time: string;
+  // CT D5 — scope toggle. "self" is the default + always
+  // available. "org" requires can_admin_org on caller TAR;
+  // "platform" requires can_admin_niov. "regulator" is
+  // intentionally EXCLUDED at this slice (requires the
+  // ADR-0036 LawfulBasis 9-condition flow which CT does not
+  // yet surface; export endpoint does not accept regulator
+  // either; regulator scope is a separate Founder-authorized
+  // slice).
+  scope: "self" | "org" | "platform";
 }
 
 const DEFAULT_FILTERS: AuditListFilters = {
@@ -100,6 +110,7 @@ const DEFAULT_FILTERS: AuditListFilters = {
   target_capsule_id: "",
   start_time: "",
   end_time: "",
+  scope: "self",
 };
 
 // Loose UUID v1-v8 regex; matches Foundation `UUID_RE` (case-
@@ -455,12 +466,16 @@ function EventDetailPanel({
 // evidence_note + honest_note). NEVER renders raw event bodies
 // or chain data. Manual click-to-run only — never auto-runs.
 // ════════════════════════════════════════════════════════════════
-function VerifyChainPanel() {
+function VerifyChainPanel({
+  scope,
+}: {
+  scope: "self" | "org" | "platform";
+}) {
   const [hasRun, setHasRun] = useState(false);
   const verifyQuery = useQuery({
-    queryKey: ["audit", "verify-chain", "self"],
+    queryKey: ["audit", "verify-chain", scope],
     queryFn: () =>
-      api.audit.verifyChain({ scope: "self" }).then((r) => {
+      api.audit.verifyChain({ scope }).then((r) => {
         if (r.ok) return r.data;
         throw new Error(r.code);
       }),
@@ -474,9 +489,10 @@ function VerifyChainPanel() {
           className="text-sm text-muted-foreground"
           data-testid="verify-chain-idle"
         >
-          Click <strong>Verify chain</strong> to run a self-scope
-          chain-integrity check against your own audit history.
-          Self-scope only at this version.
+          Click <strong>Verify chain</strong> to run a
+          chain-integrity check at the currently selected scope
+          ({scope}). Regulator-scope verification requires a
+          lawful basis and is reserved for a later version.
         </p>
       );
     }
@@ -583,12 +599,15 @@ function VerifyChainPanel() {
     <Card data-testid="verify-chain-card">
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div>
-          <CardTitle className="text-base">Chain integrity</CardTitle>
+          <CardTitle className="text-base">
+            Chain integrity ({scope})
+          </CardTitle>
           <CardDescription className="text-xs">
-            Self-scope chain-integrity verification — confirms
-            every checked row's hash recomputes to its stored
-            event_hash and every previous-event-hash links to its
-            predecessor. Closed-vocab failure surface only.
+            Chain-integrity verification at the currently
+            selected scope — confirms every checked row's hash
+            recomputes to its stored event_hash and every
+            previous-event-hash links to its predecessor.
+            Closed-vocab failure surface only.
           </CardDescription>
         </div>
         <Button
@@ -645,6 +664,11 @@ function ExportActionBar({
     setLastError(null);
     try {
       const input: ExportAuditEventsInput = { format };
+      // CT D5 — forward scope (export accepts self/org/platform;
+      // regulator is intentionally not exposed at this slice).
+      if (filters.scope !== "self") {
+        input.scope = filters.scope;
+      }
       if (filters.event_type !== "all") {
         input.event_type = filters.event_type;
       }
@@ -760,8 +784,8 @@ function ExportActionBar({
           {isExporting ? "Exporting…" : "Download export"}
         </Button>
         <p className="text-[11px] text-muted-foreground">
-          Self-scope only. Hard-capped at 10 000 rows; active
-          filters apply.
+          Exports at the currently selected scope; hard-capped
+          at 10 000 rows; active filters apply.
         </p>
       </div>
       {lastError !== null && (
@@ -795,13 +819,23 @@ export function SecurityPage() {
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<AuditListFilters>(DEFAULT_FILTERS);
+  // CT D5 — capability gates pulled from the auth store so the
+  // scope toggle only surfaces options the caller can actually
+  // exercise. Foundation enforces the same gates server-side
+  // (403 ORG_SCOPE_FORBIDDEN / PLATFORM_SCOPE_FORBIDDEN) — the
+  // CT gate is a UI nicety, not a security boundary.
+  const capabilities = useAuthStore((s) => s.capabilities);
+  const canScopeOrg = capabilities?.can_admin_org === true;
+  const canScopePlatform = capabilities?.can_admin_niov === true;
+
   const filtersAreDefault =
     filters.event_type === DEFAULT_FILTERS.event_type &&
     filters.outcome === DEFAULT_FILTERS.outcome &&
     filters.target_entity_id === "" &&
     filters.target_capsule_id === "" &&
     filters.start_time === "" &&
-    filters.end_time === "";
+    filters.end_time === "" &&
+    filters.scope === DEFAULT_FILTERS.scope;
 
   // ID validity surfaces inline-warning hints AND blocks the
   // value from being forwarded to the wire (matches Foundation
@@ -842,6 +876,7 @@ export function SecurityPage() {
       "audit",
       "list",
       page,
+      filters.scope,
       filters.event_type,
       filters.outcome,
       entityIdValid ? filters.target_entity_id : "",
@@ -854,6 +889,11 @@ export function SecurityPage() {
         page,
         page_size: PAGE_SIZE,
       };
+      // CT D5 — only forward scope when it's not the server-side
+      // default so the wire stays terse for the common case.
+      if (filters.scope !== "self") {
+        args.scope = filters.scope;
+      }
       if (filters.event_type !== "all") {
         args.event_type = filters.event_type;
       }
@@ -893,23 +933,60 @@ export function SecurityPage() {
         title="Security & Audit"
         description="Immutable record of every action that touched data, scoped to your own activity. Safe metadata only — no raw payloads."
       />
-      <VerifyChainPanel />
+      <VerifyChainPanel scope={filters.scope} />
       <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
         <Card data-testid="audit-list-card">
           <CardHeader>
             <CardTitle className="text-base">Audit events</CardTitle>
             <CardDescription>
-              Self-scope only at this version. Org-wide review,
-              regulator-tier evidence packages, NDJSON / CSV export, and
-              chain-integrity verification are reserved for later
-              versions.
+              Pick a scope to read your own activity, your org's
+              audit log (admin only), or the platform audit log
+              (NIOV admin only). Regulator-tier evidence packages
+              require a lawful basis and are reserved for a
+              later version.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div
-              className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+              className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
               data-testid="audit-filter-bar"
             >
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-filter-scope"
+                  className="text-xs"
+                >
+                  Scope
+                </Label>
+                <Select
+                  value={filters.scope}
+                  onValueChange={(value) =>
+                    applyFilters({
+                      ...filters,
+                      scope: value as AuditListFilters["scope"],
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    id="audit-filter-scope"
+                    data-testid="audit-filter-scope"
+                    className="h-9"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="self">Self (your activity)</SelectItem>
+                    {canScopeOrg && (
+                      <SelectItem value="org">Org (admin)</SelectItem>
+                    )}
+                    {canScopePlatform && (
+                      <SelectItem value="platform">
+                        Platform (NIOV admin)
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1">
                 <Label
                   htmlFor="audit-filter-event-type"

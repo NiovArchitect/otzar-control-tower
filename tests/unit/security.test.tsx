@@ -479,7 +479,7 @@ describe("Section 7 Security & Audit — verify-chain panel (D2.2)", () => {
             last_event_hash:
               "0000000000000000000000000000000000000000000000000000000000000002",
             broken_at_event_id: "aud-7-002",
-            failure_reason: "CHAIN_HASH_MISMATCH",
+            failure_reason: "HASH_MISMATCH",
             lawful_basis_id: null,
             evidence_note: "Chain broken at second event.",
             honest_note: "Self-scope verification.",
@@ -494,7 +494,7 @@ describe("Section 7 Security & Audit — verify-chain panel (D2.2)", () => {
     await user.click(screen.getByTestId("verify-chain-run"));
     const failure = await screen.findByTestId("verify-chain-failure");
     expect(within(failure).getByText(/aud-7-002/)).toBeInTheDocument();
-    expect(within(failure).getByText(/CHAIN_HASH_MISMATCH/)).toBeInTheDocument();
+    expect(within(failure).getByText(/HASH_MISMATCH/)).toBeInTheDocument();
     expect(
       screen.getByText(/Verification failed/i),
     ).toBeInTheDocument();
@@ -516,6 +516,173 @@ describe("Section 7 Security & Audit — verify-chain panel (D2.2)", () => {
     const err = await screen.findByTestId("verify-chain-error");
     expect(err).toHaveTextContent(/Chain verification could not run/i);
     expect(err).toHaveTextContent(/INTERNAL_ERROR/);
+  });
+});
+
+describe("Section 7 Security & Audit — scope toggle (D5)", () => {
+  function setAuthAllCapabilities() {
+    useAuthStore.setState({
+      token: "tok",
+      entity: { email: "admin@example.com" },
+      isAuthenticated: true,
+      capabilities: {
+        can_read_capsules: true,
+        can_write_capsules: true,
+        can_share_capsules: true,
+        can_admin_org: true,
+        can_admin_niov: true,
+      },
+    } as never);
+  }
+
+  it("renders the scope Select with all 3 options when caller has all capabilities", async () => {
+    setAuthAllCapabilities();
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list");
+    expect(screen.getByTestId("audit-filter-scope")).toBeInTheDocument();
+    // Default value is self.
+    expect(screen.getByTestId("audit-filter-scope")).toHaveTextContent(
+      /Self/i,
+    );
+    // Open and inspect options.
+    await user.click(screen.getByTestId("audit-filter-scope"));
+    expect(
+      await screen.findByRole("option", { name: /Self/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Org \(admin\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Platform \(NIOV admin\)/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("hides Org + Platform options when caller lacks the capabilities", async () => {
+    // Override auth store for this test only — non-admin caller.
+    useAuthStore.setState({
+      token: "tok",
+      entity: { email: "user@example.com" },
+      isAuthenticated: true,
+      capabilities: {
+        can_read_capsules: true,
+        can_write_capsules: true,
+        can_share_capsules: true,
+        can_admin_org: false,
+        can_admin_niov: false,
+      },
+    } as never);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list");
+    await user.click(screen.getByTestId("audit-filter-scope"));
+    expect(
+      await screen.findByRole("option", { name: /Self/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Org \(admin\)/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Platform \(NIOV admin\)/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("scope change serializes via the wire and refetches the list", async () => {
+    let lastListUrl: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/audit/events`, ({ request }) => {
+        lastListUrl = request.url;
+        return HttpResponse.json(
+          { ok: true, page: 1, page_size: 25, total: 0, events: [] },
+          { status: 200 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list-empty");
+    await user.click(screen.getByTestId("audit-filter-scope"));
+    await user.click(await screen.findByRole("option", { name: /Org/i }));
+    await screen.findByTestId("audit-list-empty");
+    expect(lastListUrl).not.toBeNull();
+    expect(lastListUrl!).toContain("scope=org");
+  });
+
+  it("ORG_SCOPE_FORBIDDEN renders safely as an error block with code", async () => {
+    // Stateful handler: returns the default 3-event fixture
+    // chain for scope=self, returns 403 ORG_SCOPE_FORBIDDEN
+    // for scope=org. Mirrors how Foundation actually behaves
+    // when a caller without can_admin_org TRIES to switch
+    // scope mid-session.
+    server.use(
+      http.get(`${API_BASE}/audit/events`, ({ request }) => {
+        const url = new URL(request.url);
+        const scope = url.searchParams.get("scope") ?? "self";
+        if (scope === "org") {
+          return HttpResponse.json(
+            {
+              ok: false,
+              code: "ORG_SCOPE_FORBIDDEN",
+              message:
+                "scope=org requires can_admin_org on the caller's TAR.",
+            },
+            { status: 403 },
+          );
+        }
+        return HttpResponse.json(
+          {
+            ok: true,
+            page: 1,
+            page_size: 25,
+            total: 1,
+            events: [
+              {
+                audit_id: "aud-self-1",
+                event_type: "LOGIN_SUCCESS",
+                actor_entity_id: "ent-self",
+                target_entity_id: "ent-self",
+                target_capsule_id: null,
+                session_id: "ses-001",
+                outcome: "SUCCESS",
+                denial_reason: null,
+                details: { action: "LOGIN" },
+                ip_address: "10.0.0.1",
+                timestamp: "2026-05-31T18:30:00.000Z",
+                previous_event_hash: null,
+                event_hash:
+                  "0000000000000000000000000000000000000000000000000000000000000001",
+                lawful_basis_id: null,
+                lawful_basis_chain_hash: null,
+                jurisdiction: null,
+              },
+            ],
+          },
+          { status: 200 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list");
+    await user.click(screen.getByTestId("audit-filter-scope"));
+    await user.click(await screen.findByRole("option", { name: /Org/i }));
+    const err = await screen.findByTestId("audit-list-error");
+    expect(err).toHaveTextContent(/ORG_SCOPE_FORBIDDEN/);
+  });
+
+  it("Reset restores scope to self", async () => {
+    setAuthAllCapabilities();
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list");
+    await user.click(screen.getByTestId("audit-filter-scope"));
+    await user.click(await screen.findByRole("option", { name: /Platform/i }));
+    expect(screen.getByTestId("audit-filter-reset")).not.toBeDisabled();
+    await user.click(screen.getByTestId("audit-filter-reset"));
+    expect(screen.getByTestId("audit-filter-scope")).toHaveTextContent(
+      /Self/i,
+    );
+    expect(screen.getByTestId("audit-filter-reset")).toBeDisabled();
   });
 });
 
