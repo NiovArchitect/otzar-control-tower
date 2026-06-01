@@ -619,6 +619,48 @@ export interface VerifyChainInput {
 }
 
 // ════════════════════════════════════════════════════════════════
+// Section 7 — audit-events export (Foundation LIVE since
+// Hardening Wave A per ADR-0071 §closure). The endpoint streams
+// a bounded NDJSON or CSV export of the same SafeAuditEventView
+// projection the list endpoint returns. Self-scope only at CT
+// Wave 1; org / platform scopes are forward-substrate.
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: Closed-vocab export format.
+export type AuditExportFormat = "ndjson" | "csv";
+
+// WHAT: Inputs accepted by the export endpoint. All optional;
+//        `scope` defaults to `self` server-side; `format`
+//        defaults to `ndjson`; `max_rows` is clamped to
+//        [1, 10_000] at Foundation per
+//        EXPORT_AUDIT_EVENTS_MAX_ROWS.
+export interface ExportAuditEventsInput {
+  format?: AuditExportFormat;
+  scope?: AuditViewScope;
+  event_type?: AuditEventType;
+  target_entity_id?: string;
+  target_capsule_id?: string;
+  outcome?: AuditOutcome;
+  start_time?: string;
+  end_time?: string;
+  max_rows?: number;
+}
+
+// WHAT: SAFE projection returned by the CT export client. The
+//        body is the raw NDJSON / CSV text Foundation streams.
+//        Metadata is parsed from the `x-audit-*` response
+//        headers — `row_count` is the number of SafeAuditEventView
+//        rows in the body, `truncated` indicates whether
+//        Foundation hit the max_rows cap.
+export interface ExportAuditEventsSuccess {
+  format: AuditExportFormat;
+  scope: AuditViewScope;
+  row_count: number;
+  truncated: boolean;
+  body: string;
+}
+
+// ════════════════════════════════════════════════════════════════
 // 12B.1 -- REQUEST / RESPONSE SHAPES
 // ════════════════════════════════════════════════════════════════
 

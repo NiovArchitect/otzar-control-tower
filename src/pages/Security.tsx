@@ -64,6 +64,8 @@ import type {
   AuditOutcome,
   AuditEventType,
   VerifyChainView,
+  AuditExportFormat,
+  ExportAuditEventsInput,
 } from "@/lib/types/foundation";
 import { getAuditEventLabel, AUDIT_EVENT_TYPE_LABELS } from "@/lib/audit/event-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -93,6 +95,27 @@ const OUTCOME_OPTIONS: readonly { value: AuditOutcome; label: string }[] = [
   { value: "SUCCESS", label: "Success" },
   { value: "DENIED", label: "Denied" },
   { value: "FAILURE", label: "Failure" },
+];
+
+// WHAT: Closed-vocab export format options.
+const EXPORT_FORMAT_OPTIONS: readonly {
+  value: AuditExportFormat;
+  label: string;
+  extension: string;
+  mime: string;
+}[] = [
+  {
+    value: "ndjson",
+    label: "NDJSON",
+    extension: "ndjson",
+    mime: "application/x-ndjson",
+  },
+  {
+    value: "csv",
+    label: "CSV",
+    extension: "csv",
+    mime: "text/csv",
+  },
 ];
 
 // WHAT: Closed-vocab Badge variant for the audit outcome.
@@ -577,6 +600,148 @@ function VerifyChainPanel() {
   );
 }
 
+// ════════════════════════════════════════════════════════════════
+// ExportActionBar (CT D2.3 audit export). Consumes
+// `GET /api/v1/audit/events/export?format=ndjson|csv&...` per
+// Foundation Section 7 Hardening Wave A. Bounded by Foundation
+// EXPORT_AUDIT_EVENTS_MAX_ROWS (10 000) hard cap; respects the
+// active list filters so the download matches the on-screen
+// view. Self-scope only at this CT slice. NEVER renders raw
+// payload — body is the Foundation-emitted SafeAuditEventView
+// stream, identical safety surface to the list endpoint.
+// ════════════════════════════════════════════════════════════════
+function ExportActionBar({
+  filters,
+}: {
+  filters: AuditListFilters;
+}) {
+  const [format, setFormat] = useState<AuditExportFormat>("ndjson");
+  const [isExporting, setIsExporting] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [lastSummary, setLastSummary] = useState<{
+    rowCount: number;
+    truncated: boolean;
+    format: AuditExportFormat;
+  } | null>(null);
+
+  async function handleExport() {
+    setIsExporting(true);
+    setLastError(null);
+    try {
+      const input: ExportAuditEventsInput = { format };
+      if (filters.event_type !== "all") {
+        input.event_type = filters.event_type;
+      }
+      if (filters.outcome !== "all") {
+        input.outcome = filters.outcome;
+      }
+      const result = await api.audit.export(input);
+      if (!result.ok) {
+        setLastError(result.code);
+        return;
+      }
+      const ext =
+        EXPORT_FORMAT_OPTIONS.find((o) => o.value === result.data.format)
+          ?.extension ?? "txt";
+      const mime =
+        EXPORT_FORMAT_OPTIONS.find((o) => o.value === result.data.format)
+          ?.mime ?? "text/plain";
+      const blob = new Blob([result.data.body], {
+        type: `${mime}; charset=utf-8`,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      a.download = `audit-events-${result.data.scope}-${ts}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setLastSummary({
+        rowCount: result.data.row_count,
+        truncated: result.data.truncated,
+        format: result.data.format,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  return (
+    <div
+      className="rounded-md border border-border bg-muted/30 p-3"
+      data-testid="audit-export-bar"
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="audit-export-format" className="text-xs">
+            Export format
+          </Label>
+          <Select
+            value={format}
+            onValueChange={(value) =>
+              setFormat(value as AuditExportFormat)
+            }
+          >
+            <SelectTrigger
+              id="audit-export-format"
+              data-testid="audit-export-format"
+              className="h-9 w-36"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXPORT_FORMAT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={handleExport}
+          disabled={isExporting}
+          data-testid="audit-export-download"
+        >
+          {isExporting ? "Exporting…" : "Download export"}
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Self-scope only. Hard-capped at 10 000 rows; active
+          filters apply.
+        </p>
+      </div>
+      {lastError !== null && (
+        <p
+          className="mt-2 text-xs text-destructive"
+          data-testid="audit-export-error"
+        >
+          Export failed. Code:{" "}
+          <span className="font-mono">{lastError}</span>.
+        </p>
+      )}
+      {lastSummary !== null && lastError === null && (
+        <p
+          className="mt-2 text-xs text-muted-foreground"
+          data-testid="audit-export-summary"
+        >
+          Last export: {lastSummary.rowCount} row
+          {lastSummary.rowCount === 1 ? "" : "s"} ·{" "}
+          {lastSummary.format.toUpperCase()}
+          {lastSummary.truncated
+            ? " · truncated at the 10 000-row cap"
+            : ""}
+          .
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function SecurityPage() {
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -737,6 +902,7 @@ export function SecurityPage() {
                 </Button>
               </div>
             </div>
+            <ExportActionBar filters={filters} />
             {listQuery.isLoading && (
               <ul className="space-y-2" data-testid="audit-list-loading">
                 {Array.from({ length: 6 }).map((_, i) => (

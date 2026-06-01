@@ -103,6 +103,9 @@ import type {
   AuditViewScope,
   VerifyChainInput,
   VerifyChainView,
+  AuditExportFormat,
+  ExportAuditEventsInput,
+  ExportAuditEventsSuccess,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -878,6 +881,108 @@ export class ApiClient {
         max_events: input.max_events,
       });
       return this.request<VerifyChainView>(`/audit/verify-chain${query}`);
+    },
+
+    /**
+     * GET /api/v1/audit/events/export — bounded NDJSON / CSV
+     * export of the same SafeAuditEventView projection the list
+     * endpoint returns. Bypasses the JSON-parsing `request`
+     * helper because the response body is raw NDJSON / CSV
+     * text, not JSON. Self-scope only at this CT slice.
+     * Metadata is parsed from the `x-audit-*` response headers.
+     */
+    export: async (
+      input: ExportAuditEventsInput = {},
+    ): Promise<ApiResult<ExportAuditEventsSuccess>> => {
+      const query = qs({
+        format: input.format,
+        scope: input.scope,
+        event_type: input.event_type,
+        target_entity_id: input.target_entity_id,
+        target_capsule_id: input.target_capsule_id,
+        outcome: input.outcome,
+        start_time: input.start_time,
+        end_time: input.end_time,
+        max_rows: input.max_rows,
+      });
+      const url =
+        this.options.baseUrl.replace(/\/$/, "") +
+        `/audit/events/export${query}`;
+      const headers: Record<string, string> = {};
+      const token = this.options.getToken();
+      if (token !== null && token.length > 0) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      try {
+        const response = await fetch(url, { method: "GET", headers });
+        if (response.status === 401) {
+          this.options.onUnauthorized();
+          return {
+            ok: false,
+            code: "SESSION_INVALID",
+            message: "Authentication required",
+            status: 401,
+          };
+        }
+        const text = await response.text();
+        if (!response.ok) {
+          // Foundation returns JSON for 4xx / 5xx on the export
+          // route per audit.routes.ts. Parse defensively.
+          let parsed: { code?: unknown; message?: unknown } = {};
+          try {
+            parsed = JSON.parse(text) as typeof parsed;
+          } catch {
+            // empty / non-JSON body — fall through.
+          }
+          return {
+            ok: false,
+            code:
+              typeof parsed.code === "string"
+                ? parsed.code
+                : "EXPORT_FAILED",
+            message:
+              typeof parsed.message === "string"
+                ? parsed.message
+                : `Export failed (status ${response.status})`,
+            status: response.status,
+          };
+        }
+        const rowCountHeader = response.headers.get("x-audit-row-count");
+        const truncatedHeader = response.headers.get("x-audit-truncated");
+        const scopeHeader = response.headers.get("x-audit-scope");
+        const formatHeader = response.headers.get("x-audit-format");
+        const rowCount = rowCountHeader === null ? 0 : Number(rowCountHeader);
+        const truncated = truncatedHeader === "true";
+        const scope: AuditViewScope =
+          scopeHeader === "org" ||
+          scopeHeader === "platform" ||
+          scopeHeader === "regulator"
+            ? scopeHeader
+            : "self";
+        const format: AuditExportFormat =
+          formatHeader === "csv" ? "csv" : "ndjson";
+        return {
+          ok: true,
+          data: {
+            format,
+            scope,
+            row_count: Number.isFinite(rowCount) ? rowCount : 0,
+            truncated,
+            body: text,
+          },
+          status: response.status,
+        };
+      } catch (err) {
+        return {
+          ok: false,
+          code: "NETWORK_ERROR",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Network error during audit export",
+          status: 0,
+        };
+      }
     },
   };
 }

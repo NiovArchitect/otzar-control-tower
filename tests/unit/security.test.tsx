@@ -519,6 +519,127 @@ describe("Section 7 Security & Audit — verify-chain panel (D2.2)", () => {
   });
 });
 
+describe("Section 7 Security & Audit — audit export (D3)", () => {
+  it("renders the export bar + format Select + Download button", async () => {
+    renderPage();
+    await screen.findByTestId("audit-list");
+    expect(screen.getByTestId("audit-export-bar")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("audit-export-format"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("audit-export-download"),
+    ).toBeInTheDocument();
+  });
+
+  it("download click hits the export endpoint with format=ndjson and writes summary", async () => {
+    let lastExportUrl: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/audit/events/export`, ({ request }) => {
+        lastExportUrl = request.url;
+        const url = new URL(request.url);
+        const format = url.searchParams.get("format") ?? "ndjson";
+        const body = '{"audit_id":"aud-7-001"}\n{"audit_id":"aud-7-002"}';
+        return new HttpResponse(body, {
+          status: 200,
+          headers: {
+            "content-type": "application/x-ndjson; charset=utf-8",
+            "x-audit-row-count": "2",
+            "x-audit-truncated": "false",
+            "x-audit-scope": "self",
+            "x-audit-format": format,
+          },
+        });
+      }),
+    );
+    // jsdom doesn't ship URL.createObjectURL; stub it for the test.
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = () => "blob:mock-url";
+    URL.revokeObjectURL = () => undefined;
+    try {
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByTestId("audit-list");
+      await user.click(screen.getByTestId("audit-export-download"));
+      const summary = await screen.findByTestId("audit-export-summary");
+      expect(summary).toHaveTextContent(/Last export: 2 rows · NDJSON/i);
+      expect(lastExportUrl).not.toBeNull();
+      expect(lastExportUrl!).toContain("format=ndjson");
+    } finally {
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  it("download forwards CSV format when selected", async () => {
+    let lastExportUrl: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/audit/events/export`, ({ request }) => {
+        lastExportUrl = request.url;
+        return new HttpResponse(
+          "audit_id,event_type\naud-7-001,LOGIN_SUCCESS",
+          {
+            status: 200,
+            headers: {
+              "content-type": "text/csv; charset=utf-8",
+              "x-audit-row-count": "1",
+              "x-audit-truncated": "false",
+              "x-audit-scope": "self",
+              "x-audit-format": "csv",
+            },
+          },
+        );
+      }),
+    );
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = () => "blob:mock-url";
+    URL.revokeObjectURL = () => undefined;
+    try {
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByTestId("audit-list");
+      // Switch format to CSV.
+      await user.click(screen.getByTestId("audit-export-format"));
+      await user.click(
+        await screen.findByRole("option", { name: "CSV" }),
+      );
+      await user.click(screen.getByTestId("audit-export-download"));
+      const summary = await screen.findByTestId("audit-export-summary");
+      expect(summary).toHaveTextContent(/Last export: 1 row · CSV/i);
+      expect(lastExportUrl).not.toBeNull();
+      expect(lastExportUrl!).toContain("format=csv");
+    } finally {
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  it("export error renders safe error message with code", async () => {
+    server.use(
+      http.get(`${API_BASE}/audit/events/export`, () =>
+        HttpResponse.json(
+          { ok: false, code: "INTERNAL_ERROR" },
+          { status: 500 },
+        ),
+      ),
+    );
+    const originalCreate = URL.createObjectURL;
+    URL.createObjectURL = () => "blob:mock-url";
+    try {
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByTestId("audit-list");
+      await user.click(screen.getByTestId("audit-export-download"));
+      const err = await screen.findByTestId("audit-export-error");
+      expect(err).toHaveTextContent(/INTERNAL_ERROR/);
+    } finally {
+      URL.createObjectURL = originalCreate;
+    }
+  });
+});
+
 describe("Section 7 Security & Audit — forbidden-copy + no-leak guards", () => {
   it("never displays any forbidden ADR-0077-family UI copy", async () => {
     const user = userEvent.setup();
