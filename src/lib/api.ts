@@ -121,6 +121,10 @@ import type {
   DeleteConnectorBindingSuccess,
 } from "./connectors/types";
 
+import type {
+  CtActivationResult,
+} from "./dandelion-activation/types";
+
 // WHAT: Discriminated-union result every api.* method returns.
 // INPUT: Used as a return type.
 // OUTPUT: None.
@@ -1087,6 +1091,45 @@ export class ApiClient {
         `/org/connectors/${encodeURIComponent(bindingId)}`,
         { method: "DELETE", retries: 0 },
       ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // dandelionActivation.*  (Section 4 / Dandelion Stage F — D6
+  // starter-pilot activation runtime per Foundation PR #196). This
+  // namespace consumes the single LIVE route:
+  //
+  //   POST   /api/v1/org/dandelion/activate
+  //
+  // can_admin_org-gated at the Foundation route tier. The route
+  // walks the docs/dandelion-activation/starter-pilot-activation.json
+  // catalog (6 steps) and emits one ADMIN_ACTION audit event per
+  // step. The response carries the per-step audit_event_id list
+  // (the activation lineage) + the final activation_audit_event_id.
+  // The CT page renders this lineage as a 6-step timeline with the
+  // customer-admin labels from src/lib/dandelion-activation/labels.ts;
+  // no audit row content is fetched here (the page links into the
+  // existing audit viewer for that).
+  // ──────────────────────────────────────────────────────────────
+  dandelionActivation = {
+    /**
+     * POST /api/v1/org/dandelion/activate — run the starter-pilot
+     * ActivationPlan for the caller's org. The Foundation route
+     * returns the discriminated ActivationResult shape verbatim;
+     * the request adapter normalizes both ok:true and ok:false
+     * branches into the ApiResult envelope so the UI branches on
+     * `.ok` first then on the nested `result.ok`.
+     *
+     * Note: the route returns 4xx/5xx (with body `{ ok: false, ... }`)
+     * for auth + catalog failures. The CT request() helper surfaces
+     * the body as `{ ok: false }` ApiResult, so the consumer should
+     * inspect `result.data` only when `result.ok === true`.
+     */
+    activateStarterPilot: (): Promise<ApiResult<CtActivationResult>> =>
+      this.request<CtActivationResult>("/org/dandelion/activate", {
+        method: "POST",
+        body: {},
+        retries: 0,
+      }),
   };
 }
 

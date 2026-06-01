@@ -29,6 +29,8 @@
 //              types.ts, src/components/PageHeader.tsx, ui/* primitives.
 // FOUNDATION SOURCE: docs/ootb-catalog/* (PR #166 HEAD 86b1a4b).
 
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -37,8 +39,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/PageHeader";
+import { api } from "@/lib/api";
+import { getStepLabel } from "@/lib/dandelion-activation/labels";
+import type {
+  CtActivationResult,
+  CtActivationStepResult,
+} from "@/lib/dandelion-activation/types";
 import { OOTB_CATALOG_MIRROR } from "@/lib/ootb-catalog/data";
 import type {
   CollaborationMap,
@@ -922,6 +931,164 @@ function GovernedEnvelopePanel() {
   );
 }
 
+// ────────────────────────────────────────────────────────────────
+// D6 Dandelion Stage F starter-pilot activation admin walk surface.
+// Consumes Foundation POST /api/v1/org/dandelion/activate (PR #196).
+// The button is the smallest possible runtime authorization
+// surface: one POST → one ActivationResult → 6 steps rendered.
+//
+// Privacy invariant inherited from Foundation:
+// - Foundation NEVER includes resolved secret values or other
+//   forbidden tokens in the result; we render audit_event_id +
+//   step_id + audit_literal label only.
+// - No raw audit row content is fetched here; the audit viewer
+//   surface is the canonical place for that.
+// ────────────────────────────────────────────────────────────────
+
+const ACTIVATION_DOCTRINE_LINE =
+  "Run the smallest viable starter-pilot envelope. Every step is audit-logged and reversible. Foundation governance authorizes activation — Dandelion suggests, Foundation governs.";
+
+const ACTIVATION_OUT_OF_SCOPE_LINE =
+  "This action records the activation lineage at the audit tier. Live connectors, live workflow execution, and the team / business / enterprise envelopes follow in later product slices.";
+
+function failureMessage(result: CtActivationResult): string {
+  if (result.ok) return "";
+  switch (result.code) {
+    case "NOT_ADMIN":
+      return "Your session does not have org-admin capability. Ask your administrator to grant access.";
+    case "CALLER_ENTITY_NOT_FOUND":
+      return "Your session does not resolve to a known entity. Sign out and sign back in.";
+    case "CALLER_NOT_IN_ORG":
+      return "Your session is not associated with an organization yet. Run the org onboarding flow first.";
+    case "ARCHETYPE_UNKNOWN":
+      return "The requested envelope archetype is not yet supported.";
+    case "CATALOG_NOT_FOUND":
+    case "CATALOG_MALFORMED":
+      return "The activation catalog is unavailable. Contact support.";
+    case "AUDIT_WRITE_FAILED":
+      return "The audit trail could not be written. The activation was rolled back. Try again.";
+    default:
+      return "Activation failed. Try again in a moment.";
+  }
+}
+
+function ActivationStepCard({
+  step,
+}: {
+  step: CtActivationStepResult;
+}) {
+  const label = getStepLabel(step.audit_literal);
+  return (
+    <div
+      className="rounded border p-3"
+      data-testid={`activation-step-${step.step_order}`}
+    >
+      <div className="flex items-baseline gap-2">
+        <Badge variant="outline">Step {step.step_order}</Badge>
+        <div className="font-medium">{label.title}</div>
+      </div>
+      <div className="text-sm text-muted-foreground mt-1">{label.summary}</div>
+      <div className="text-xs text-muted-foreground mt-2 font-mono">
+        audit_event_id {step.audit_event_id.slice(0, 8)}…
+      </div>
+    </div>
+  );
+}
+
+function DandelionActivationCard() {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<CtActivationResult | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => api.dandelionActivation.activateStarterPilot(),
+    onSuccess: (apiResult) => {
+      if (apiResult.ok) {
+        setResult(apiResult.data);
+        setErrorMessage(
+          apiResult.data.ok ? null : failureMessage(apiResult.data),
+        );
+      } else {
+        setResult(null);
+        setErrorMessage(
+          apiResult.message.length > 0
+            ? apiResult.message
+            : "Activation request failed.",
+        );
+      }
+    },
+    onError: (err) => {
+      setResult(null);
+      setErrorMessage(
+        err instanceof Error ? err.message : "Network error.",
+      );
+    },
+  });
+
+  const success = result !== null && result.ok ? result : null;
+
+  return (
+    <Card data-testid="dandelion-activation-card">
+      <CardHeader>
+        <CardTitle>Activate the starter-pilot envelope</CardTitle>
+        <CardDescription>{ACTIVATION_DOCTRINE_LINE}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p className="text-xs text-muted-foreground">
+          {ACTIVATION_OUT_OF_SCOPE_LINE}
+        </p>
+        <Button
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+          data-testid="activate-starter-pilot-button"
+        >
+          {mutation.isPending
+            ? "Activating…"
+            : success !== null
+              ? "Activate again"
+              : "Activate starter-pilot envelope"}
+        </Button>
+        {errorMessage !== null ? (
+          <p
+            className="text-xs text-destructive"
+            data-testid="activation-error"
+          >
+            {errorMessage}
+          </p>
+        ) : null}
+        {success !== null ? (
+          <div className="space-y-2" data-testid="activation-success">
+            <Separator />
+            <div className="flex flex-wrap gap-1">
+              <Badge variant="secondary">Activated</Badge>
+              <Badge variant="outline">archetype: {success.archetype}</Badge>
+              <Badge variant="outline">
+                plan_id: {success.plan_id}
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Final audit_event_id{" "}
+              {success.activation_audit_event_id.slice(0, 8)}…
+            </div>
+            <div className="space-y-2">
+              {success.steps.map((step) => (
+                <ActivationStepCard
+                  key={step.step_order}
+                  step={step}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Every step above appended one row to the Foundation
+              audit trail. Open Security &amp; Audit to read the rows
+              by audit_event_id.
+            </p>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function OnboardingPage() {
   // Defensive: if the mirror is empty / malformed for any reason, render a
   // safe empty state instead of crashing the screen.
@@ -953,6 +1120,7 @@ export function OnboardingPage() {
         description={PREVIEW_DOCTRINE_LINE}
       />
       <DoctrineCard />
+      <DandelionActivationCard />
       <CatalogCountsCard />
       <RoleBrowser roles={CATALOG.role_summaries} />
       <RoleDepthRoadmapPanel roadmap={CATALOG.role_depth_roadmap} />

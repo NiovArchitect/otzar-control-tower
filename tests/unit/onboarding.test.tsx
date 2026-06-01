@@ -18,11 +18,22 @@
 
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OnboardingPage } from "@/pages/Onboarding";
 import { NAV } from "@/lib/nav";
 
+// The OnboardingPage now hosts a D6 admin walk card that uses
+// useMutation, which requires a QueryClientProvider ancestor. Wrap
+// every render in a fresh per-test client so tests stay isolated.
 function renderPage() {
-  return render(<OnboardingPage />);
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={qc}>
+      <OnboardingPage />
+    </QueryClientProvider>,
+  );
 }
 
 // ────────────────────────────────────────────────────────────────
