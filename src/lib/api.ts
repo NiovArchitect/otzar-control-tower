@@ -94,6 +94,8 @@ import type {
   ProposeGovernedTransitionSuccess,
   SimulateInput,
   SimulationSuccess,
+  // Section 2 Action Runtime read surface (ADR-0057 §9 + §10)
+  ActionDetailResponse,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -657,6 +659,36 @@ export class ApiClient {
       this.request<EscalationResponse>(
         `/escalations/${encodeURIComponent(id)}/reject`,
         { method: "POST", body },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // actions.*  (Section 2 Action Runtime READ surface for Wave 10
+  // Agent Playground cockpit lifecycle integration per ADR-0057 §9.
+  //
+  // GET /api/v1/actions/:id is the canonical read surface; bearer
+  // + "read" scope; self-scope OR can_admin_org-over-same-org at
+  // the service tier; enumeration-safe 404 ACTION_NOT_FOUND for
+  // unknown / cross-org / soft-deleted. Returns SafeActionDetailView
+  // per ADR-0057 §10 allowlist — payload_summary / payload_redacted
+  // / policy_envelope / source_entity_id / org_entity_id /
+  // target_entity_id / deleted_at / raw errors / stack traces are
+  // NEVER in the response by Foundation's construction-by-allowlist
+  // projection.
+  //
+  // This namespace is READ-ONLY. It NEVER executes / approves /
+  // cancels / retries Actions; Section 2 retains all execution
+  // authority. The Wave 10 cockpit uses it solely to honestly
+  // distinguish the three-state lifecycle (simulation / proposed /
+  // executed) per ADR-0077 §8.4 execution-boundary honesty.
+  // ──────────────────────────────────────────────────────────────
+  actions = {
+    /** GET /api/v1/actions/:id -- safe Action lifecycle detail. */
+    getAction: (
+      actionId: string,
+    ): Promise<ApiResult<ActionDetailResponse>> =>
+      this.request<ActionDetailResponse>(
+        `/actions/${encodeURIComponent(actionId)}`,
       ),
   };
 

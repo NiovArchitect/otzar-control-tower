@@ -92,11 +92,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type {
+  ActionStatus,
   CompareOutcomesSuccess,
   GenerateCandidatesSuccess,
   PlaygroundScenario,
   ProposeGovernedTransitionSuccess,
   RecommendBestPathSuccess,
+  SafeActionDetailView,
   SimulationSuccess,
 } from "@/lib/types/foundation";
 
@@ -1802,17 +1804,266 @@ function TransitionResultCard({
             ))}
           </div>
         )}
+        {result.action_id !== undefined && (
+          <>
+            <Separator />
+            <ActionLifecyclePanel
+              actionId={result.action_id}
+              proposedStatus={result.action_status}
+            />
+          </>
+        )}
         <Separator />
         <p className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           <FileSearch className="mr-1 inline h-3 w-3 align-text-bottom" />
-          Section 2 retains all execution authority per ADR-0057. Execution
-          state beyond <strong>PROPOSED</strong> is not surfaced in this
-          version.
+          Section 2 retains all execution authority per ADR-0057. Use the
+          lifecycle panel above to read the current Section 2 status; Wave
+          10 never approves, executes, retries, or cancels an Action.
         </p>
         <HonestNote text={result.honest_note} />
       </CardContent>
     </Card>
   );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ActionLifecyclePanel — Section 2 read-surface integration per
+// ADR-0057 §9 + §10 + ADR-0077 §8.4 three-state lifecycle honesty.
+//
+// Renders the current Section 2 Action lifecycle state for an
+// `action_id` returned by Wave 8 governed transition. READ-ONLY —
+// NEVER approves / executes / cancels / retries / invokes
+// connectors. Consumes Foundation's existing
+// `GET /api/v1/actions/:id` surface via `api.actions.getAction`.
+//
+// The panel surfaces an explicit "Refresh action status" button
+// (NEVER polls aggressively) and renders the lifecycle status
+// derived directly from Foundation's `ActionStatus` closed-vocab
+// enum. NO Execute button. NO Approve button. NO Cancel button.
+// NO Retry button. Forbidden UI copy guard preserved.
+// ════════════════════════════════════════════════════════════════
+
+function ActionLifecyclePanel({
+  actionId,
+  proposedStatus,
+}: {
+  actionId: string;
+  proposedStatus: string | undefined;
+}) {
+  const query = useQuery({
+    queryKey: ["actions", "detail", actionId],
+    queryFn: () => api.actions.getAction(actionId),
+    // Lazy: do NOT auto-fire on mount — the operator clicks
+    // "Refresh action status" to read Section 2's current view.
+    // Prevents aggressive polling per Founder paste discipline.
+    enabled: false,
+  });
+
+  const lastResult = query.data;
+  const detail: SafeActionDetailView | null =
+    lastResult !== undefined && lastResult.ok === true
+      ? lastResult.data.action
+      : null;
+  const errorCopy =
+    lastResult !== undefined && lastResult.ok === false
+      ? genericActionErrorCopy(lastResult.code, lastResult.message)
+      : null;
+
+  // The status surfaced depends on whether we've fetched from
+  // Section 2 yet. Before fetch, render the Wave 8 PROPOSED state
+  // honestly ("Action proposed (not executed)"). After fetch,
+  // render the live Section 2 status.
+  const displayedStatus: string = detail !== null
+    ? detail.status
+    : proposedStatus ?? "PROPOSED";
+
+  return (
+    <div
+      className="space-y-2 rounded-md border border-border p-3"
+      data-testid="agent-playground-lifecycle-panel"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Section 2 Action lifecycle (read-only)
+          </h4>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Action: <span className="font-mono">{actionId}</span>
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={query.isFetching}
+          onClick={() => void query.refetch()}
+          data-testid="agent-playground-refresh-action-status"
+        >
+          {query.isFetching ? "Refreshing..." : "Refresh action status"}
+        </Button>
+      </div>
+
+      <ActionLifecycleStatusLine
+        status={displayedStatus}
+        verifiedBySection2={detail !== null}
+      />
+
+      {detail !== null && (
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <div>
+            <span>Type:</span>{" "}
+            <span className="text-foreground">{detail.action_type}</span>
+          </div>
+          <div>
+            <span>Risk tier:</span>{" "}
+            <span className="text-foreground">{detail.risk_tier}</span>
+          </div>
+          <div>
+            <span>Attempts:</span>{" "}
+            <span className="text-foreground">{detail.attempt_count}</span>
+          </div>
+          {detail.decision_reason !== undefined && (
+            <div>
+              <span>Decision reason:</span>{" "}
+              <span className="text-foreground">{detail.decision_reason}</span>
+            </div>
+          )}
+          {detail.escalation_id !== undefined && (
+            <div>
+              <span>Escalation:</span>{" "}
+              <span className="font-mono text-foreground">
+                {detail.escalation_id}
+              </span>
+            </div>
+          )}
+          {detail.last_result_summary !== null &&
+            detail.last_result_summary.length > 0 && (
+              <div>
+                <span>Last result summary:</span>{" "}
+                <span className="text-foreground">
+                  {detail.last_result_summary}
+                </span>
+              </div>
+            )}
+        </div>
+      )}
+
+      {errorCopy !== null && (
+        <ErrorBlock message={errorCopy} />
+      )}
+
+      <p className="text-[11px] text-muted-foreground">
+        This Action detail is a read-only lifecycle view. It does not
+        approve, execute, retry, or cancel the Action. Execution authority
+        remains with the Section 2 Action Runtime per ADR-0057.
+      </p>
+    </div>
+  );
+}
+
+// WHAT: Render the lifecycle status line with closed-vocab copy
+//        derived from Section 2's ActionStatus enum.
+// INPUT: status string + whether Section 2 verified the status
+//        via the read endpoint.
+// OUTPUT: A status badge + human-readable closed-vocab summary.
+// WHY: Three-state lifecycle honesty per ADR-0077 §8.4:
+//      simulation / proposed / executed must be visibly
+//      distinguishable. Before fetch, render PROPOSED as "Action
+//      proposed (not executed)". After fetch, render the live
+//      Section 2 status verbatim with closed-vocab summary copy.
+//      NEVER imply execution from PROPOSED alone.
+function ActionLifecycleStatusLine({
+  status,
+  verifiedBySection2,
+}: {
+  status: string;
+  verifiedBySection2: boolean;
+}) {
+  const summary = actionLifecycleSummary(status, verifiedBySection2);
+  return (
+    <div
+      className="flex flex-wrap items-center gap-2"
+      data-testid="agent-playground-lifecycle-status"
+    >
+      <Badge variant="outline" className="text-[10px]">
+        {status}
+      </Badge>
+      <span className="text-xs text-foreground">{summary}</span>
+    </div>
+  );
+}
+
+// WHAT: Translate a Section 2 ActionStatus → closed-vocab summary
+//        copy per ADR-0077 §8.4 + Founder paste lifecycle
+//        guidance.
+// INPUT: ActionStatus value (or any string Foundation may return)
+//        + whether the read endpoint has been queried.
+// OUTPUT: Closed-vocab human-readable copy.
+// WHY: Before fetch, PROPOSED renders "Action proposed (not
+//      executed)" to preserve Wave 10 v1 framing. After fetch,
+//      each Section 2 status maps to its honest lifecycle copy.
+//      Closed-vocab only — NEVER "AI decided" / "Final decision"
+//      / "Winner" / "Auto-approved" framing.
+function actionLifecycleSummary(
+  status: string,
+  verifiedBySection2: boolean,
+): string {
+  if (!verifiedBySection2) {
+    // Pre-fetch: preserve Wave 10 v1 framing.
+    return "Action proposed (not executed). Click 'Refresh action status' to read Section 2's current view.";
+  }
+  switch (status as ActionStatus) {
+    case "PROPOSED":
+      return "Action proposed (not executed).";
+    case "APPROVED":
+      return "Action approved by Section 2; scheduled for execution by the Section 2 Action Runtime.";
+    case "SCHEDULED":
+      return "Action scheduled by Section 2.";
+    case "RUNNING":
+      return "Action currently running in the Section 2 Action Runtime.";
+    case "SUCCEEDED":
+      return "Action completed by Section 2.";
+    case "FAILED":
+      return "Action failed in Section 2.";
+    case "CANCELLED":
+      return "Action cancelled in Section 2.";
+    case "REJECTED":
+      return "Action rejected by Section 2 (governance review denied).";
+    case "TIMED_OUT":
+      return "Action timed out in Section 2.";
+    case "EXPIRED":
+      return "Action expired in Section 2 (approval window elapsed).";
+    default:
+      // Defensive: Foundation may extend the enum in the future.
+      // Render the raw closed-vocab value; the forbidden-UI-copy
+      // guard prevents anything dangerous from leaking through.
+      return `Section 2 status: ${status}.`;
+  }
+}
+
+// WHAT: Translate Foundation Action read errors → safe UI copy.
+// INPUT: Foundation error code + message.
+// OUTPUT: Generic enumeration-safe copy.
+// WHY: ACTION_NOT_FOUND collapses unknown / cross-org / soft-
+//      deleted per ADR-0057 §9 + RULE 0; the UI surfaces that
+//      generically. SESSION_* → re-login. Anything else → the
+//      Foundation message (already safe per ADR-0057 §10).
+function genericActionErrorCopy(code: string, message: string): string {
+  switch (code) {
+    case "SESSION_INVALID":
+    case "SESSION_EXPIRED":
+    case "SESSION_REVOKED":
+    case "SESSION_INVALIDATED":
+      return "Your session has ended. Please sign in again.";
+    case "ACTION_NOT_FOUND":
+      return "Action not found.";
+    case "INVALID_ACTION_ID":
+      return "Action identifier is malformed.";
+    case "NETWORK_ERROR":
+      return "Network unavailable. Check your connection and retry.";
+    default:
+      return message;
+  }
 }
 
 // ════════════════════════════════════════════════════════════════

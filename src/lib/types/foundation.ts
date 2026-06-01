@@ -1720,3 +1720,70 @@ export interface SimulationSuccess {
   honest_note: string;
   simulation_audit_event_id: string;
 }
+
+// ════════════════════════════════════════════════════════════════
+// Section 2 Action Runtime — read surface for Wave 10 Agent
+// Playground cockpit lifecycle integration per ADR-0057 §9 +
+// §10. Foundation route GET /api/v1/actions/:id is LIVE; this
+// type mirror reflects its public response shape verbatim.
+// SafeActionView per §10 allowlist; SafeActionDetailView adds
+// attempt_count + last_result_summary aggregates. Forbidden
+// fields (payload_summary / payload_redacted / policy_envelope
+// / policy_envelope_hash / source_entity_id / org_entity_id /
+// target_entity_id / deleted_at / raw errors / stack traces)
+// NEVER appear and MUST NEVER be added to this mirror.
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: Section 2 Action lifecycle status enum mirror.
+// INPUT: Used as a return type narrowing source.
+// OUTPUT: None.
+// WHY: Closed-vocab union from Foundation Prisma's ActionStatus.
+//      Mirror verbatim per ADR-0057 §9.
+export type ActionStatus =
+  | "PROPOSED"
+  | "APPROVED"
+  | "REJECTED"
+  | "SCHEDULED"
+  | "RUNNING"
+  | "SUCCEEDED"
+  | "FAILED"
+  | "CANCELLED"
+  | "TIMED_OUT"
+  | "EXPIRED";
+
+// WHAT: SAFE Action view returned by Foundation per ADR-0057
+//        §10 allowlist.
+// INPUT: Used as a return type at api.actions.getAction.
+// OUTPUT: None.
+// WHY: Constructed-by-allowlist at Foundation; this mirror
+//      preserves the contract at the type level so callers
+//      cannot reach into forbidden fields.
+export interface SafeActionView {
+  action_id: string;
+  status: ActionStatus;
+  action_type: string;
+  risk_tier: string;
+  requires_approval: boolean;
+  escalation_id?: string;
+  decision_reason?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// WHAT: SAFE Action detail view returned by GET
+//        /api/v1/actions/:id per ADR-0057 §9. Extends
+//        SafeActionView with read-side aggregates.
+export interface SafeActionDetailView extends SafeActionView {
+  attempt_count: number;
+  last_result_summary: string | null;
+}
+
+// WHAT: GET /api/v1/actions/:id success response.
+// INPUT: Used as a return type at api.actions.getAction.
+// OUTPUT: None.
+// WHY: Mirrors the route handler's exact response body shape
+//      at apps/api/src/routes/actions.routes.ts.
+export interface ActionDetailResponse {
+  ok: true;
+  action: SafeActionDetailView;
+}
