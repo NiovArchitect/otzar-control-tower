@@ -42,6 +42,7 @@ import { SystemHealthPage } from "@/pages/SystemHealth";
 import { SettingsPage } from "@/pages/Settings";
 import { OnboardingPage } from "@/pages/Onboarding";
 import { BillingPreviewPage } from "@/pages/BillingPreview";
+import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
 import { DocumentationPage } from "@/pages/Documentation";
 import { IntelligencePage } from "@/pages/Intelligence";
 import { ApprovalsPage } from "@/pages/Approvals";
@@ -107,6 +108,7 @@ export function App() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="onboarding" element={<OnboardingPage />} />
               <Route path="billing" element={<BillingPreviewPage />} />
+              <Route path="connectors" element={<ConnectorsAdminPage />} />
               <Route path="documentation" element={<DocumentationPage />} />
               <Route path="intelligence" element={<IntelligencePage />} />
               {/* Side-section: badge-driven Pending Approvals */}
