@@ -21,7 +21,11 @@
 //              mirror), src/lib/api.ts (api.connectors namespace),
 //              src/pages/ConnectorsAdmin.tsx.
 
-export type CtConnectorType = "OUTBOUND_WEBHOOK" | "FIXTURE_ECHO" | "SLACK_READ";
+export type CtConnectorType =
+  | "OUTBOUND_WEBHOOK"
+  | "FIXTURE_ECHO"
+  | "SLACK_READ"
+  | "GOOGLE_WORKSPACE_READ";
 
 export interface ConnectorBindingView {
   binding_id: string;

@@ -91,7 +91,10 @@ function BindingCard({
             {binding.enabled ? "Enabled" : "Disabled"}
           </Badge>
           <Badge variant="outline">Type: {binding.type}</Badge>
-          <Badge variant="outline">Read-first (no writes at C2)</Badge>
+          <Badge variant="outline">
+            Read-first (no writes at{" "}
+            {binding.type === "GOOGLE_WORKSPACE_READ" ? "C3" : "C2"})
+          </Badge>
         </div>
         <div>
           <div className="font-medium">Secret env-var name</div>
@@ -154,6 +157,9 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       if (type === "SLACK_READ") {
         config["use_real"] = false;
         config["workspace_id"] = displayName.trim() || "pending";
+      } else if (type === "GOOGLE_WORKSPACE_READ") {
+        config["use_real"] = false;
+        config["workspace_domain"] = displayName.trim() || "pending";
       } else if (type === "OUTBOUND_WEBHOOK") {
         config["url"] = "";
       }
@@ -226,7 +232,11 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
             id="display-name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="e.g. niov-prod-slack"
+            placeholder={
+              type === "GOOGLE_WORKSPACE_READ"
+                ? "e.g. niov-prod-google"
+                : "e.g. niov-prod-slack"
+            }
             data-testid="display-name-input"
           />
         </div>
@@ -237,7 +247,11 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               id="secret-ref"
               value={secretRef}
               onChange={(e) => setSecretRef(e.target.value)}
-              placeholder="e.g. SLACK_BOT_TOKEN_PROD"
+              placeholder={
+                type === "GOOGLE_WORKSPACE_READ"
+                  ? "e.g. GOOGLE_ACCESS_TOKEN_PROD"
+                  : "e.g. SLACK_BOT_TOKEN_PROD"
+              }
               data-testid="secret-ref-input"
             />
             <p className="text-xs text-muted-foreground" data-testid="privacy-notice">
@@ -287,8 +301,9 @@ function DoctrineCard() {
           <div>
             <p className="font-medium">This page cannot</p>
             <ul className="list-disc list-inside text-muted-foreground">
-              <li>Display the resolved bot token / signing secret</li>
+              <li>Display the resolved bot token / OAuth access token / signing secret</li>
               <li>Invoke connector writes (deferred to ≥C6)</li>
+              <li>Download Drive file contents or read Gmail message bodies (deferred to ≥C5)</li>
               <li>Bypass Foundation governance</li>
               <li>Act outside the caller's org boundary</li>
             </ul>
@@ -305,7 +320,7 @@ function TypeRegistryCard() {
       <CardHeader>
         <CardTitle>Available connector types</CardTitle>
         <CardDescription>
-          Mirror of Foundation CONNECTOR_REGISTRY at PR #185.
+          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
@@ -366,7 +381,7 @@ export function ConnectorsAdminPage() {
     <div className="space-y-6">
       <PageHeader
         title="Connectors"
-        description="Register and manage governed ConnectorBindings. Section 4 Slack is RUNTIME_READY at Foundation."
+        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2) and Google Workspace (C3) are RUNTIME_READY at Foundation."
       />
       <DoctrineCard />
       <TypeRegistryCard />

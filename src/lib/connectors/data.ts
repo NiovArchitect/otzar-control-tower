@@ -42,6 +42,17 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
       "Reads only at C2. The secret_ref field is the env-var NAME on the deployment host that resolves to a bot token (xoxb-*); never paste the resolved token here.",
   },
   {
+    type: "GOOGLE_WORKSPACE_READ",
+    display_name: "Google Workspace (read-first)",
+    short_description:
+      "OAuth-2.0 access-token read access to Calendar (events.list), Drive (files.list metadata only), and Gmail (messages.list IDs only). C3 RUNTIME_READY.",
+    secret_ref_required: true,
+    hidden_from_admin_selection: false,
+    required_config_keys: ["use_real", "workspace_domain"],
+    governance_note:
+      "Reads only at C3. The secret_ref field is the env-var NAME on the deployment host that resolves to a Google OAuth access token (ya29.*); never paste the resolved token here. Drive content download + Gmail body read are deferred to ≥C5; writes are deferred to ≥C6.",
+  },
+  {
     type: "OUTBOUND_WEBHOOK",
     display_name: "Outbound Webhook",
     short_description:
