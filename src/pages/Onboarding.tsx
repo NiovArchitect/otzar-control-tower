@@ -43,6 +43,7 @@ import { OOTB_CATALOG_MIRROR } from "@/lib/ootb-catalog/data";
 import type {
   CollaborationMap,
   ConnectorPresetSummary,
+  ConnectorPriorityMatrix,
   DmwEducation,
   ExecutiveAssistantSpotlight,
   RoleDepthStatusRow,
@@ -532,6 +533,97 @@ function ConnectorPresetPreview({
   );
 }
 
+function ConnectorPriorityRankingPanel({
+  matrix,
+}: {
+  matrix: ConnectorPriorityMatrix;
+}) {
+  return (
+    <Card data-testid="connector-priority-ranking-panel">
+      <CardHeader>
+        <CardTitle className="text-base">
+          Suggested first-connector ranking (Wave 6)
+        </CardTitle>
+        <CardDescription data-testid="connector-priority-suggest-only-notice">
+          Suggest-only — derived deterministically from the static catalog.
+          The first real connector requires Founder authorization plus a
+          research arc. Nothing is connected from this page.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Matrix version{" "}
+          <span className="font-mono">{matrix.matrix_version}</span> ·
+          generated{" "}
+          <span className="font-mono">{matrix.generated_at}</span>
+        </p>
+        <section data-testid="priority-forward-substrate-inputs">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Forward-substrate inputs (not yet derivable)
+          </h3>
+          <ul className="ml-4 mt-1 list-disc text-xs text-muted-foreground">
+            {matrix.forward_substrate_inputs_not_yet_available.map((input) => (
+              <li key={input}>{input}</li>
+            ))}
+          </ul>
+        </section>
+        <ol
+          className="divide-y rounded-md border"
+          data-testid="priority-ranking-list"
+        >
+          {matrix.rows.map((row) => (
+            <li
+              key={row.preset_id}
+              className="flex flex-col gap-1 p-3 sm:flex-row sm:items-start sm:justify-between"
+              data-testid={`priority-row-${row.preset_id}`}
+            >
+              <div className="flex flex-1 items-start gap-3">
+                <span
+                  className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold"
+                  data-testid={`priority-rank-${row.preset_id}`}
+                >
+                  {row.rank}
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{row.preset_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Underlying tools: {row.tool_count} · most-roles using:{" "}
+                    {row.role_count_max}
+                  </p>
+                  <p className="text-xs font-mono text-muted-foreground">
+                    tier {row.tier_score_avg} · api{" "}
+                    {row.api_maturity_score_avg} · adoption{" "}
+                    {row.adoption_signal_score_avg} · auth{" "}
+                    {row.auth_readiness_score_avg} ·{" "}
+                    sensitivity-penalty {row.sensitivity_penalty_avg} ·
+                    complexity-penalty {row.complexity_penalty_avg}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col items-start sm:items-end">
+                <Badge
+                  variant={row.rank <= 3 ? "secondary" : "outline"}
+                  data-testid={`priority-score-${row.preset_id}`}
+                >
+                  Score {row.total_score}
+                </Badge>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <Separator />
+        <p className="text-xs italic text-muted-foreground">
+          Higher score = higher derivable priority for first-connector
+          implementation given current catalog data. A high score does not
+          mean a connector should be activated; it means the catalog
+          evidence collectively favors this preset as a candidate. Section 4
+          first-real-connector decision remains Founder-decision-gated.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DandelionFlowPreview() {
   const flow = CATALOG.dandelion_flow_summary;
   return (
@@ -871,6 +963,9 @@ export function OnboardingPage() {
       <ToolProfileBrowser tools={CATALOG.tool_summaries} />
       <WorkflowBrowser workflows={CATALOG.workflow_summaries} />
       <ConnectorPresetPreview presets={CATALOG.connector_preset_summaries} />
+      <ConnectorPriorityRankingPanel
+        matrix={CATALOG.connector_priority_matrix}
+      />
       <DandelionFlowPreview />
       <DmwEducationPanel dmw={CATALOG.dmw_education} />
       <GovernedEnvelopePanel />
