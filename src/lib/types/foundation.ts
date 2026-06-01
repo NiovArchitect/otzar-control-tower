@@ -1537,20 +1537,32 @@ export type PlaygroundOrchestrationMode =
   | "DETERMINISTIC_CONSTRAINT_VARIATION"
   | "DETERMINISTIC_GOVERNANCE_SCOPE_VARIATION";
 
+// vNext closed vocab per ADR-0076 §4.2 + §5.2 Amendment 1.
+// LIVE in Foundation Wave 9 since PR #152 `7593e6f`
+// 2026-05-31 under
+// `[FOUNDER-SECTION-5-WAVE-9-VNEXT-IMPLEMENTATION-AUTH]`.
+// v1 vocab (BASELINE / POLICY_FIRST_BRANCH /
+// OPERATIONS_AGENT / etc.) was the LIVE runtime through PR
+// #151 `401fdee` and is now retired by clean replacement.
 export type PlaygroundBranchDefinition =
-  | "BASELINE"
-  | "POLICY_FIRST_BRANCH"
-  | "GOVERNANCE_FIRST_BRANCH"
-  | "RESILIENCE_FIRST_BRANCH"
-  | "HUMAN_REVIEW_FIRST_BRANCH";
+  | "RECOMMENDED_PATH"
+  | "LOW_RISK_PATH"
+  | "COMPLIANCE_FIRST_PATH"
+  | "RESILIENCE_FIRST_PATH"
+  | "HUMAN_REVIEW_PATH"
+  | "DO_NOT_PROCEED_PATH";
 
 export type PlaygroundAgentRole =
-  | "OPERATIONS_AGENT"
-  | "COMPLIANCE_AGENT"
-  | "RISK_AGENT"
-  | "CUSTOMER_AGENT"
-  | "RESILIENCE_AGENT"
-  | "HUMAN_REVIEW_AGENT";
+  | "OWNER_OPERATOR"
+  | "POLICY_REVIEWER"
+  | "COMPLIANCE_REVIEWER"
+  | "SECURITY_REVIEWER"
+  | "DATA_GOVERNANCE_REVIEWER"
+  | "CONNECTOR_ADMIN"
+  | "ACTION_APPROVER"
+  | "CUSTOMER_OR_STAKEHOLDER_ADVOCATE"
+  | "OPERATIONS_LEAD"
+  | "RESILIENCE_REVIEWER";
 
 export type PlaygroundAssumedConstraint =
   | "OWNER_COSMP_SCOPE_ONLY"

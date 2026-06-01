@@ -1838,8 +1838,8 @@ const playgroundSimulationHandler = http.post(
         branches: [
           {
             branch_id: "branch-0001",
-            branch_definition: "POLICY_FIRST_BRANCH",
-            agent_role: "OPERATIONS_AGENT",
+            branch_definition: "RECOMMENDED_PATH",
+            agent_role: "OWNER_OPERATOR",
             assumed_constraints: [
               "OWNER_COSMP_SCOPE_ONLY",
               "WAVE_8_TRANSITION_REQUIRED_BEFORE_ACTION",
@@ -1847,15 +1847,15 @@ const playgroundSimulationHandler = http.post(
             expected_outcomes: ["WAVE_7_RECOMMENDATION_PRODUCED"],
             governance_conflicts: ["NO_NOTABLE_CONFLICT"],
             branch_summary:
-              "Operations-feasibility lens surfaces LOW_RISK_INCREMENTAL as recommended.",
+              "Branch RECOMMENDED_PATH viewed through the decision-owner / accountable-party lens surfaced LOW_RISK_INCREMENTAL as the recommended candidate.",
             branch_recommended_candidate_key: "candkey-low-risk-0002",
             branch_recommended_candidate_type: "LOW_RISK_INCREMENTAL",
             confidence_label: "HIGH",
           },
           {
             branch_id: "branch-0002",
-            branch_definition: "GOVERNANCE_FIRST_BRANCH",
-            agent_role: "COMPLIANCE_AGENT",
+            branch_definition: "COMPLIANCE_FIRST_PATH",
+            agent_role: "COMPLIANCE_REVIEWER",
             assumed_constraints: [
               "OWNER_COSMP_SCOPE_ONLY",
               "LEGAL_COMPLIANCE_REVIEW_WHERE_APPLICABLE",
@@ -1866,7 +1866,7 @@ const playgroundSimulationHandler = http.post(
             ],
             governance_conflicts: ["BRANCH_REQUIRES_COMPLIANCE_REVIEW"],
             branch_summary:
-              "Compliance lens surfaces LOW_RISK_INCREMENTAL with compliance review.",
+              "Branch COMPLIANCE_FIRST_PATH viewed through the compliance-review lens surfaced LOW_RISK_INCREMENTAL with compliance review recommended.",
             branch_recommended_candidate_key: "candkey-low-risk-0002",
             branch_recommended_candidate_type: "LOW_RISK_INCREMENTAL",
             confidence_label: "MEDIUM",
