@@ -608,6 +608,64 @@ export interface VerifyChainView {
   honest_note: string;
 }
 
+// ════════════════════════════════════════════════════════════════
+// Section 9 — Compliance frameworks + live posture (Foundation
+// LIVE per ComplianceService at apps/api/src/services/compliance/
+// compliance.service.ts). Read-only at this CT slice.
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: One row from `GET /api/v1/compliance/frameworks` — the
+//        canonical catalog of compliance frameworks Foundation
+//        evaluates. Mirrors `model ComplianceFramework` at
+//        packages/database/prisma/schema.prisma:659. `rules` is
+//        an opaque Json blob; CT NEVER renders it raw.
+export interface ComplianceFramework {
+  framework_id: string;
+  framework_name: string;
+  jurisdiction: readonly string[];
+  applicable_entity_sectors: readonly string[];
+  applicable_capsule_types: readonly string[];
+  required_audit_events: readonly string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// WHAT: Per-framework verdict from `GET /api/v1/compliance/state`.
+//        Mirrors Foundation `FrameworkComplianceState` at
+//        compliance.service.ts:64. `compliant` flips on the
+//        presence of any COMPLIANCE_CHECK_FAILED row within the
+//        configured window (default 24h). `since` names the most
+//        recent PASSED event; `last_check` is the freshest event
+//        of either kind.
+export interface FrameworkComplianceState {
+  framework_name: string;
+  compliant: boolean;
+  since: string | null;
+  last_check: string | null;
+  sample_failure_count_24h: number;
+}
+
+// WHAT: Full response from `GET /api/v1/compliance/state`. The
+//        posture is ORG-LEVEL per DRIFT 15 (looks up
+//        EntityComplianceProfile by org_entity_id, not
+//        aggregated across per-member profiles).
+export interface ComplianceStateReport {
+  org_entity_id: string;
+  frameworks: readonly FrameworkComplianceState[];
+  evaluated_at: string;
+}
+
+export interface ListComplianceFrameworksSuccess {
+  ok: true;
+  frameworks: readonly ComplianceFramework[];
+}
+
+export interface GetComplianceStateSuccess {
+  ok: true;
+  state: ComplianceStateReport;
+}
+
 // WHAT: Inputs accepted by the verify-chain endpoint. All
 //        optional except `scope` which defaults to `self`
 //        server-side. `lawful_basis_id` is required at

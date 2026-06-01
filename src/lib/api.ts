@@ -106,6 +106,10 @@ import type {
   AuditExportFormat,
   ExportAuditEventsInput,
   ExportAuditEventsSuccess,
+  // Section 9 — Compliance frameworks + live posture (LIVE in
+  // Foundation per ComplianceService)
+  ListComplianceFrameworksSuccess,
+  GetComplianceStateSuccess,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -670,6 +674,26 @@ export class ApiClient {
         `/escalations/${encodeURIComponent(id)}/reject`,
         { method: "POST", body },
       ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Section 9 — compliance.* (Foundation ComplianceService LIVE
+  // per CAR Sub-box 7 + ADR-0061 alignment). Read-only at this
+  // CT slice — mutations (compliance check) are intentionally
+  // not exposed.
+  // ──────────────────────────────────────────────────────────────
+  compliance = {
+    /** GET /api/v1/compliance/frameworks -- canonical catalog. */
+    listFrameworks: (): Promise<
+      ApiResult<ListComplianceFrameworksSuccess>
+    > =>
+      this.request<ListComplianceFrameworksSuccess>(
+        "/compliance/frameworks",
+      ),
+
+    /** GET /api/v1/compliance/state -- caller-org live posture. */
+    getState: (): Promise<ApiResult<GetComplianceStateSuccess>> =>
+      this.request<GetComplianceStateSuccess>("/compliance/state"),
   };
 
   // ──────────────────────────────────────────────────────────────

@@ -2519,6 +2519,87 @@ const auditEventsExportHandler = http.get(
   },
 );
 
+// ════════════════════════════════════════════════════════════════
+// Section 9 — Compliance frameworks + live posture (Foundation
+// ComplianceService LIVE). Read-only fixtures for the CT
+// Policies page.
+// ════════════════════════════════════════════════════════════════
+const complianceFrameworksFixture = [
+  {
+    framework_id: "f1111111-1111-1111-1111-111111111111",
+    framework_name: "HIPAA",
+    jurisdiction: ["US"],
+    applicable_entity_sectors: ["HEALTHCARE"],
+    applicable_capsule_types: ["IDENTITY", "DOMAIN_KNOWLEDGE"],
+    required_audit_events: [],
+    is_active: true,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-05-31T00:00:00.000Z",
+  },
+  {
+    framework_id: "f2222222-2222-2222-2222-222222222222",
+    framework_name: "FERPA",
+    jurisdiction: ["US"],
+    applicable_entity_sectors: ["EDUCATION"],
+    applicable_capsule_types: ["IDENTITY"],
+    required_audit_events: [],
+    is_active: true,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-05-31T00:00:00.000Z",
+  },
+  {
+    framework_id: "f3333333-3333-3333-3333-333333333333",
+    framework_name: "FedRAMP",
+    jurisdiction: ["US"],
+    applicable_entity_sectors: ["GOVERNMENT"],
+    applicable_capsule_types: [],
+    required_audit_events: [],
+    is_active: true,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-05-31T00:00:00.000Z",
+  },
+] as const;
+
+const complianceFrameworksHandler = http.get(
+  `${API_BASE}/compliance/frameworks`,
+  () =>
+    HttpResponse.json(
+      { ok: true, frameworks: complianceFrameworksFixture },
+      { status: 200 },
+    ),
+);
+
+const complianceStateHandler = http.get(
+  `${API_BASE}/compliance/state`,
+  () =>
+    HttpResponse.json(
+      {
+        ok: true,
+        state: {
+          org_entity_id: "org-entity-0001",
+          frameworks: [
+            {
+              framework_name: "HIPAA",
+              compliant: true,
+              since: "2026-05-30T18:00:00.000Z",
+              last_check: "2026-05-31T22:00:00.000Z",
+              sample_failure_count_24h: 0,
+            },
+            {
+              framework_name: "FERPA",
+              compliant: false,
+              since: null,
+              last_check: "2026-05-31T22:00:00.000Z",
+              sample_failure_count_24h: 2,
+            },
+          ],
+          evaluated_at: "2026-05-31T22:30:00.000Z",
+        },
+      },
+      { status: 200 },
+    ),
+);
+
 export const handlers = [
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
@@ -2527,6 +2608,9 @@ export const handlers = [
   auditEventDetailHandler,
   auditVerifyChainHandler,
   auditEventsExportHandler,
+  // Section 9 Compliance (ComplianceService LIVE)
+  complianceFrameworksHandler,
+  complianceStateHandler,
   // Section 5 Agent Playground Wave 10 (ADR-0077)
   playgroundListScenariosHandler,
   playgroundCreateScenarioHandler,
