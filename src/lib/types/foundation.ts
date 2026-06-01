@@ -458,6 +458,110 @@ export interface AuditEvent {
 }
 
 // ════════════════════════════════════════════════════════════════
+// Section 7 — full audit viewer (Foundation Wave 1+ LIVE per
+// ADR-0071 + earlier Section 7 waves). The new
+// `GET /api/v1/audit/events` + `GET /api/v1/audit/events/:id`
+// routes return chain-augmented SAFE projections. Distinct from
+// the legacy `/org/audit` shape mirrored in `AuditEvent` above
+// (kept verbatim for Home Recent Activity / 12B.2 consumers).
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: SAFE projection of one audit event row from the Section 7
+//        list endpoint. Mirrors Foundation's `SafeAuditEventView`
+//        at `apps/api/src/services/audit/audit-view.service.ts`
+//        (~line 115). Adds 5 chain + provenance fields beyond the
+//        legacy `AuditEvent` shape.
+// WHY: The list view at `/audit/events` needs the chain fields
+//        so future hover / drilldown surfaces can render hash
+//        lineage. Foundation safe-projects `details` at write-
+//        time via `writeAuditEvent`; no raw PII / payload /
+//        secret_ref / connector_payload / chain-of-thought ever
+//        appears in this shape per ADR-0071 §3 + the no-leak
+//        guard at `tests/unit/no-leak-guard.test.ts`.
+export interface SafeAuditEventView {
+  audit_id: string;
+  event_type: AuditEventType;
+  actor_entity_id: string | null;
+  target_entity_id: string | null;
+  target_capsule_id: string | null;
+  session_id: string | null;
+  outcome: AuditOutcome;
+  denial_reason: string | null;
+  details: Record<string, unknown>;
+  ip_address: string | null;
+  timestamp: string;
+  previous_event_hash: string | null;
+  event_hash: string;
+  lawful_basis_id: string | null;
+  lawful_basis_chain_hash: string | null;
+  jurisdiction: string | null;
+}
+
+// WHAT: Compact chain reference for prev/next pointers on the
+//        detail view. NEVER carries the full neighbour body.
+export interface AuditEventChainRef {
+  audit_id: string;
+  event_hash: string;
+  timestamp: string;
+}
+
+// WHAT: SAFE projection of a single audit-event detail view from
+//        `GET /api/v1/audit/events/:id`. Extends the list view
+//        with neighbour chain refs.
+export interface SafeAuditEventDetailView extends SafeAuditEventView {
+  previous_event: AuditEventChainRef | null;
+  next_event: AuditEventChainRef | null;
+}
+
+// WHAT: Closed-vocab scope discriminator on the Section 7
+//        endpoints. Wave 1 is `self` only at this slice; org /
+//        platform / regulator scopes are forward-substrate.
+export type AuditViewScope = "self" | "org" | "platform" | "regulator";
+
+// WHAT: List-endpoint response envelope. Pagination is
+//        page / page_size / total (NOT cursor) per Foundation
+//        routes/audit.routes.ts.
+export interface ListAuditEventsSuccess {
+  ok: true;
+  page: number;
+  page_size: number;
+  total: number;
+  events: readonly SafeAuditEventView[];
+}
+
+// WHAT: Detail-endpoint response envelope.
+export interface GetAuditEventSuccess {
+  ok: true;
+  event: SafeAuditEventDetailView;
+}
+
+// WHAT: Common failure envelope for the Section 7 reads.
+//        Foundation uses enumeration-safe 404 for cross-actor /
+//        cross-org / unknown / soft-deleted at the detail
+//        endpoint (single code `AUDIT_EVENT_NOT_FOUND`).
+export interface AuditViewFailure {
+  ok: false;
+  code: string;
+  message?: string;
+  invalid_fields?: readonly string[];
+}
+
+// WHAT: Inputs accepted by the list endpoint. All optional;
+//        `scope` defaults to `self` server-side. Wave 1 only
+//        consumes `self` at the CT register.
+export interface ListAuditEventsInput {
+  page?: number;
+  page_size?: number;
+  event_type?: AuditEventType;
+  target_entity_id?: string;
+  target_capsule_id?: string;
+  outcome?: AuditOutcome;
+  start_time?: string;
+  end_time?: string;
+  scope?: AuditViewScope;
+}
+
+// ════════════════════════════════════════════════════════════════
 // 12B.1 -- REQUEST / RESPONSE SHAPES
 // ════════════════════════════════════════════════════════════════
 

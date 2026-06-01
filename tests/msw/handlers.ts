@@ -2203,9 +2203,160 @@ const actionDetailHandler = http.get(
   },
 );
 
+// ════════════════════════════════════════════════════════════════
+// Section 7 — full audit viewer fixtures. Foundation routes LIVE
+// since ADR-0071 + earlier Section 7 waves:
+//   GET /api/v1/audit/events
+//   GET /api/v1/audit/events/:id
+// Self-scope only at this slice (default when caller omits the
+// scope param). The fixtures emit safe metadata only: no raw
+// payload, no chain-of-thought, no secret_ref, no
+// connector_payload, no embeddings. Mirrors Foundation
+// SafeAuditEventView / SafeAuditEventDetailView verbatim.
+// ════════════════════════════════════════════════════════════════
+const SECTION_7_EVENT_FIXTURE_IDS = [
+  "aud-7-001",
+  "aud-7-002",
+  "aud-7-003",
+] as const;
+
+const section7EventFixtures = [
+  {
+    audit_id: "aud-7-001",
+    event_type: "LOGIN_SUCCESS",
+    actor_entity_id: "ent-self",
+    target_entity_id: "ent-self",
+    target_capsule_id: null,
+    session_id: "ses-001",
+    outcome: "SUCCESS",
+    denial_reason: null,
+    details: { action: "LOGIN" },
+    ip_address: "10.0.0.1",
+    timestamp: "2026-05-31T18:30:00.000Z",
+    previous_event_hash: null,
+    event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    lawful_basis_id: null,
+    lawful_basis_chain_hash: null,
+    jurisdiction: null,
+  },
+  {
+    audit_id: "aud-7-002",
+    event_type: "CAPSULE_CREATED",
+    actor_entity_id: "ent-self",
+    target_entity_id: "ent-self",
+    target_capsule_id: "cap-9001",
+    session_id: "ses-001",
+    outcome: "SUCCESS",
+    denial_reason: null,
+    details: { action: "CAPSULE_CREATED", capsule_type: "PREFERENCE" },
+    ip_address: "10.0.0.1",
+    timestamp: "2026-05-31T18:31:00.000Z",
+    previous_event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000002",
+    lawful_basis_id: null,
+    lawful_basis_chain_hash: null,
+    jurisdiction: null,
+  },
+  {
+    audit_id: "aud-7-003",
+    event_type: "ADMIN_ACTION",
+    actor_entity_id: "ent-self",
+    target_entity_id: "ent-self",
+    target_capsule_id: null,
+    session_id: "ses-001",
+    outcome: "SUCCESS",
+    denial_reason: null,
+    details: {
+      action: "PLAYGROUND_BEST_PATH_RECOMMENDED",
+      scenario_id: "scn-1",
+      conversation_context_signals_count: 1,
+      conversation_context_signal_sources: ["ACTION_HISTORY"],
+    },
+    ip_address: "10.0.0.1",
+    timestamp: "2026-05-31T18:32:00.000Z",
+    previous_event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000002",
+    event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000003",
+    lawful_basis_id: null,
+    lawful_basis_chain_hash: null,
+    jurisdiction: null,
+  },
+] as const;
+
+const auditEventsListHandler = http.get(
+  `${API_BASE}/audit/events`,
+  ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page") ?? "1");
+    const pageSize = Number(url.searchParams.get("page_size") ?? "25");
+    return HttpResponse.json(
+      {
+        ok: true,
+        page,
+        page_size: pageSize,
+        total: section7EventFixtures.length,
+        events: section7EventFixtures,
+      },
+      { status: 200 },
+    );
+  },
+);
+
+const auditEventDetailHandler = http.get(
+  `${API_BASE}/audit/events/:id`,
+  ({ params }) => {
+    const id = String(params.id);
+    const idx = (SECTION_7_EVENT_FIXTURE_IDS as readonly string[]).indexOf(id);
+    if (idx === -1) {
+      return HttpResponse.json(
+        { ok: false, code: "AUDIT_EVENT_NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+    const base = section7EventFixtures[idx]!;
+    const prev = idx > 0 ? section7EventFixtures[idx - 1]! : null;
+    const next =
+      idx < section7EventFixtures.length - 1
+        ? section7EventFixtures[idx + 1]!
+        : null;
+    return HttpResponse.json(
+      {
+        ok: true,
+        event: {
+          ...base,
+          previous_event:
+            prev === null
+              ? null
+              : {
+                  audit_id: prev.audit_id,
+                  event_hash: prev.event_hash,
+                  timestamp: prev.timestamp,
+                },
+          next_event:
+            next === null
+              ? null
+              : {
+                  audit_id: next.audit_id,
+                  event_hash: next.event_hash,
+                  timestamp: next.timestamp,
+                },
+        },
+      },
+      { status: 200 },
+    );
+  },
+);
+
 export const handlers = [
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
+  // Section 7 Full Audit Viewer (ADR-0071 + earlier Section 7 waves)
+  auditEventsListHandler,
+  auditEventDetailHandler,
   // Section 5 Agent Playground Wave 10 (ADR-0077)
   playgroundListScenariosHandler,
   playgroundCreateScenarioHandler,
