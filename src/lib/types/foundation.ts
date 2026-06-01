@@ -572,9 +572,13 @@ export interface ListAuditEventsInput {
 
 // WHAT: Closed-vocab failure reasons returned when `verified`
 //        is false. Mirrors Foundation `VerifyChainFailureReason`
-//        at audit-view.service.ts ~line 383.
+//        at audit-view.service.ts:383-387 VERBATIM. RULE 13
+//        substrate-honest correction landed at CT D5: the
+//        original CT D2.2 mirror had "CHAIN_HASH_MISMATCH"
+//        which does not exist on Foundation — actual emitted
+//        value is "HASH_MISMATCH" (no CHAIN_ prefix).
 export type VerifyChainFailureReason =
-  | "CHAIN_HASH_MISMATCH"
+  | "HASH_MISMATCH"
   | "PREVIOUS_LINK_MISMATCH"
   | "MISSING_PREVIOUS_EVENT"
   | "CANONICAL_RECORD_DRIFT";

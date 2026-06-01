@@ -2293,6 +2293,13 @@ const auditEventsListHandler = http.get(
     const url = new URL(request.url);
     const page = Number(url.searchParams.get("page") ?? "1");
     const pageSize = Number(url.searchParams.get("page_size") ?? "25");
+    const scope = url.searchParams.get("scope") ?? "self";
+    // CT D5 — minimum scope-aware default. Tests that need to
+    // assert 403 on scope=org / scope=platform install their own
+    // server.use(...) override; the default fixture simulates a
+    // caller who has all capabilities so the happy path is the
+    // baseline. Foundation enforces the real cap check on TAR.
+    void scope;
     const eventTypeFilter = url.searchParams.get("event_type");
     const outcomeFilter = url.searchParams.get("outcome");
     const targetEntityFilter = url.searchParams.get("target_entity_id");
