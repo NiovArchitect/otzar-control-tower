@@ -1,18 +1,501 @@
 // FILE: Security.tsx
-// PURPOSE: Customer-facing "Security & Audit" screen -- the immutable
-//          audit log plus session-level security events. Wraps
-//          Foundation's audit_events + sessions primitives. Real
-//          screen lands in 12D.
-// CONNECTS TO: src/components/Placeholder.tsx.
+// PURPOSE: Section 7 (Full Audit Viewer) consumer surface — replaces
+//          the Placeholder with the customer-facing Security & Audit
+//          screen. Consumes Foundation Wave 1 self-scope reads only
+//          at this slice:
+//            GET /api/v1/audit/events       (SafeAuditEventView[])
+//            GET /api/v1/audit/events/:id   (SafeAuditEventDetailView)
+//          Renders an immutable, paginated audit log for the signed-
+//          in caller's own actions plus a side panel surfacing the
+//          single-event drilldown with previous / next chain refs.
+//
+//          Org / platform / regulator scopes + bounded NDJSON / CSV
+//          export + verify-chain panel + filtering UI are forward-
+//          substrate — each is its own bounded follow-on slice
+//          consuming already-LIVE Foundation routes.
+//
+//          NO raw payload, NO raw prompt, NO chain-of-thought, NO
+//          secret_ref, NO connector_payload, NO embeddings: the
+//          Foundation `SafeAuditEventView` projection is safe-by-
+//          construction per ADR-0071 §3 + the write-time no-leak
+//          guard at Foundation; this page additionally guards
+//          against rendering forbidden enum values or surveillance
+//          copy at the test tier.
+//
+//          Self-scope only — never asks for `scope=org` /
+//          `scope=platform` / `scope=regulator`. The Foundation
+//          service tier defaults to self when the param is absent.
+// CONNECTS TO: src/lib/api.ts (api.audit.list / api.audit.detail);
+//              src/lib/types/foundation.ts (SafeAuditEventView /
+//              SafeAuditEventDetailView / AuditEventChainRef);
+//              src/lib/audit/event-types.ts (getAuditEventLabel);
+//              src/lib/utils/relative-time.ts (formatRelativeTime);
+//              src/components/PageHeader.tsx;
+//              src/components/ui/card.tsx, badge.tsx, button.tsx,
+//              skeleton.tsx, separator.tsx.
 
-import { Placeholder } from "./Placeholder";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/PageHeader";
+import { api } from "@/lib/api";
+import type {
+  SafeAuditEventView,
+  SafeAuditEventDetailView,
+  AuditEventChainRef,
+  AuditOutcome,
+} from "@/lib/types/foundation";
+import { getAuditEventLabel } from "@/lib/audit/event-types";
+import { formatRelativeTime } from "@/lib/utils/relative-time";
+
+const PAGE_SIZE = 25;
+
+// WHAT: Closed-vocab Badge variant for the audit outcome.
+function outcomeBadge(outcome: AuditOutcome): {
+  variant: "default" | "secondary" | "outline" | "destructive";
+  label: string;
+} {
+  switch (outcome) {
+    case "SUCCESS":
+      return { variant: "secondary", label: "Success" };
+    case "DENIED":
+      return { variant: "destructive", label: "Denied" };
+    default:
+      return { variant: "outline", label: outcome };
+  }
+}
+
+// WHAT: Compact, deterministic timestamp formatter for the table.
+//        Reuses formatRelativeTime for the muted secondary line.
+function fullTimestamp(iso: string): string {
+  try {
+    return new Date(iso).toISOString().replace("T", " ").replace(/\.\d+Z$/, "Z");
+  } catch {
+    return iso;
+  }
+}
+
+// WHAT: Closed-vocab detail-row helper. Renders a labelled scalar
+//        as a one-line key/value pair.
+function DetailRow({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: string | null;
+  testId?: string;
+}) {
+  return (
+    <div className="grid grid-cols-[160px_1fr] items-baseline gap-x-3 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className="break-all font-mono text-foreground"
+        {...(testId !== undefined ? { "data-testid": testId } : {})}
+      >
+        {value ?? "—"}
+      </span>
+    </div>
+  );
+}
+
+function ChainRefRow({
+  label,
+  chainRef,
+}: {
+  label: string;
+  chainRef: AuditEventChainRef | null | undefined;
+}) {
+  // NOTE: prop intentionally named `chainRef` (NOT `ref`) — React
+  // reserves the literal `ref` prop name for ref-forwarding, so a
+  // function component receives `undefined` when callers pass
+  // `ref={...}` directly instead of via React.forwardRef.
+  if (chainRef === null || chainRef === undefined) {
+    return (
+      <div className="grid grid-cols-[160px_1fr] items-baseline gap-x-3 text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="text-muted-foreground">—</span>
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-[160px_1fr] items-baseline gap-x-3 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <div className="space-y-1">
+        <span className="block break-all font-mono text-foreground">
+          {chainRef.audit_id}
+        </span>
+        <span className="block text-[10px] text-muted-foreground">
+          {formatRelativeTime(chainRef.timestamp)} · hash{" "}
+          {chainRef.event_hash.slice(0, 12)}…
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function EventListRow({
+  event,
+  selected,
+  onSelect,
+}: {
+  event: SafeAuditEventView;
+  selected: boolean;
+  onSelect: (auditId: string) => void;
+}) {
+  const outcome = outcomeBadge(event.outcome);
+  const actionLabel =
+    typeof event.details["action"] === "string"
+      ? (event.details["action"] as string)
+      : null;
+  return (
+    <li
+      className={`rounded-md border p-3 transition-colors ${
+        selected
+          ? "border-primary bg-primary/5"
+          : "border-border hover:bg-muted/40"
+      }`}
+      data-testid="audit-row"
+      data-audit-id={event.audit_id}
+    >
+      <button
+        type="button"
+        className="w-full text-left"
+        onClick={() => onSelect(event.audit_id)}
+        data-testid={`audit-row-button-${event.audit_id}`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">
+                {getAuditEventLabel(event.event_type)}
+              </span>
+              <Badge variant={outcome.variant} className="text-[10px]">
+                {outcome.label}
+              </Badge>
+              {actionLabel !== null && (
+                <Badge variant="outline" className="text-[10px]">
+                  {actionLabel}
+                </Badge>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {formatRelativeTime(event.timestamp)} ·{" "}
+              <span className="font-mono">{event.event_hash.slice(0, 12)}…</span>
+            </p>
+          </div>
+          <span className="text-[10px] text-muted-foreground font-mono">
+            {fullTimestamp(event.timestamp)}
+          </span>
+        </div>
+      </button>
+    </li>
+  );
+}
+
+function EventDetailPanel({
+  auditId,
+}: {
+  auditId: string | null;
+}) {
+  const detailQuery = useQuery({
+    queryKey: ["audit", "detail", auditId],
+    queryFn: () =>
+      api.audit.detail(auditId as string).then((r) => {
+        if (r.ok) return r.data;
+        throw new Error(r.code);
+      }),
+    enabled: auditId !== null,
+  });
+
+  if (auditId === null) {
+    return (
+      <Card data-testid="audit-detail-empty">
+        <CardHeader>
+          <CardTitle className="text-base">Event detail</CardTitle>
+          <CardDescription>
+            Select an event from the list to see its safe metadata and
+            chain references. No raw payloads are ever displayed.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (detailQuery.isLoading || detailQuery.isFetching) {
+    return (
+      <Card data-testid="audit-detail-loading">
+        <CardHeader>
+          <CardTitle className="text-base">Event detail</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-2/3" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (detailQuery.isError || detailQuery.data === undefined) {
+    const code =
+      detailQuery.error instanceof Error
+        ? detailQuery.error.message
+        : "UNKNOWN_ERROR";
+    return (
+      <Card data-testid="audit-detail-error">
+        <CardHeader>
+          <CardTitle className="text-base">Event detail unavailable</CardTitle>
+          <CardDescription>
+            The selected event could not be loaded. Code:{" "}
+            <span className="font-mono">{code}</span>. This may indicate
+            the event was not visible at your access scope.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  const event: SafeAuditEventDetailView = detailQuery.data.event;
+  const outcome = outcomeBadge(event.outcome);
+  const actionLabel =
+    typeof event.details["action"] === "string"
+      ? (event.details["action"] as string)
+      : null;
+
+  return (
+    <Card data-testid="audit-detail-panel">
+      <CardHeader>
+        <CardTitle className="text-base">Event detail</CardTitle>
+        <CardDescription className="text-xs">
+          Safe metadata only. No raw payload, no message body, no
+          secret references.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">
+              {getAuditEventLabel(event.event_type)}
+            </span>
+            <Badge variant={outcome.variant} className="text-[10px]">
+              {outcome.label}
+            </Badge>
+            {actionLabel !== null && (
+              <Badge variant="outline" className="text-[10px]">
+                {actionLabel}
+              </Badge>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {fullTimestamp(event.timestamp)}
+          </p>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <DetailRow
+            label="Audit id"
+            value={event.audit_id}
+            testId="detail-audit-id"
+          />
+          <DetailRow label="Event type" value={event.event_type} />
+          <DetailRow label="Outcome" value={event.outcome} />
+          {event.denial_reason !== null && (
+            <DetailRow
+              label="Denial reason"
+              value={event.denial_reason}
+            />
+          )}
+          <DetailRow label="Actor" value={event.actor_entity_id} />
+          <DetailRow label="Target entity" value={event.target_entity_id} />
+          <DetailRow label="Target capsule" value={event.target_capsule_id} />
+          <DetailRow label="Session" value={event.session_id} />
+          <DetailRow label="Jurisdiction" value={event.jurisdiction} />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Chain integrity
+          </h4>
+          <DetailRow
+            label="Event hash"
+            value={event.event_hash}
+            testId="detail-event-hash"
+          />
+          <DetailRow
+            label="Previous hash"
+            value={event.previous_event_hash}
+          />
+          <ChainRefRow
+            label="Previous event"
+            chainRef={event.previous_event}
+          />
+          <ChainRefRow label="Next event" chainRef={event.next_event} />
+        </div>
+
+        {(event.lawful_basis_id !== null ||
+          event.lawful_basis_chain_hash !== null) && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Lawful basis
+              </h4>
+              <DetailRow
+                label="Basis id"
+                value={event.lawful_basis_id}
+              />
+              <DetailRow
+                label="Basis chain hash"
+                value={event.lawful_basis_chain_hash}
+              />
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function SecurityPage() {
+  const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const listQuery = useQuery({
+    queryKey: ["audit", "list", page],
+    queryFn: () =>
+      api.audit.list({ page, page_size: PAGE_SIZE }).then((r) => {
+        if (r.ok) return r.data;
+        throw new Error(r.code);
+      }),
+  });
+
+  const events = useMemo<readonly SafeAuditEventView[]>(
+    () => listQuery.data?.events ?? [],
+    [listQuery.data],
+  );
+  const total = listQuery.data?.total ?? 0;
+  const pageSize = listQuery.data?.page_size ?? PAGE_SIZE;
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+
   return (
-    <Placeholder
-      title="Security & Audit"
-      description="Immutable record of every action that touched data, plus session-level security events -- newest first, end to end auditable."
-      arrivingIn="Section 12D"
-    />
+    <div className="space-y-6" data-testid="security-audit-page">
+      <PageHeader
+        title="Security & Audit"
+        description="Immutable record of every action that touched data, scoped to your own activity. Safe metadata only — no raw payloads."
+      />
+      <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
+        <Card data-testid="audit-list-card">
+          <CardHeader>
+            <CardTitle className="text-base">Audit events</CardTitle>
+            <CardDescription>
+              Self-scope only at this version. Org-wide review,
+              regulator-tier evidence packages, NDJSON / CSV export, and
+              chain-integrity verification are reserved for later
+              versions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {listQuery.isLoading && (
+              <ul className="space-y-2" data-testid="audit-list-loading">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <li key={i}>
+                    <Skeleton className="h-16 w-full" />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {listQuery.isError && (
+              <div
+                className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+                data-testid="audit-list-error"
+              >
+                Failed to load audit events. Code:{" "}
+                <span className="font-mono">
+                  {listQuery.error instanceof Error
+                    ? listQuery.error.message
+                    : "UNKNOWN_ERROR"}
+                </span>
+                .
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-2"
+                  onClick={() => listQuery.refetch()}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+            {!listQuery.isLoading &&
+              !listQuery.isError &&
+              events.length === 0 && (
+                <p
+                  className="text-sm text-muted-foreground"
+                  data-testid="audit-list-empty"
+                >
+                  No audit events recorded yet. Your audit log will
+                  appear here as your governed actions occur.
+                </p>
+              )}
+            {events.length > 0 && (
+              <ul className="space-y-2" data-testid="audit-list">
+                {events.map((event) => (
+                  <EventListRow
+                    key={event.audit_id}
+                    event={event}
+                    selected={selectedId === event.audit_id}
+                    onSelect={setSelectedId}
+                  />
+                ))}
+              </ul>
+            )}
+            {total > 0 && (
+              <div
+                className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs text-muted-foreground"
+                data-testid="audit-pager"
+              >
+                <span>
+                  Page {page} of {lastPage} · {total} event
+                  {total === 1 ? "" : "s"}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page <= 1 || listQuery.isFetching}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page >= lastPage || listQuery.isFetching}
+                    onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <EventDetailPanel auditId={selectedId} />
+      </div>
+    </div>
   );
 }

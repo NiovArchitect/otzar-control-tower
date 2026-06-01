@@ -96,6 +96,11 @@ import type {
   SimulationSuccess,
   // Section 2 Action Runtime read surface (ADR-0057 §9 + §10)
   ActionDetailResponse,
+  // Section 7 Full Audit Viewer (Foundation Wave 1+ per ADR-0071)
+  ListAuditEventsInput,
+  ListAuditEventsSuccess,
+  GetAuditEventSuccess,
+  AuditViewScope,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -811,6 +816,48 @@ export class ApiClient {
         `/playground/scenarios/${encodeURIComponent(id)}/simulations`,
         { method: "POST", body, retries: 0 },
       ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Section 7 — full audit viewer namespace. Consumes Foundation
+  // routes LIVE since ADR-0071 + earlier Section 7 waves:
+  //   GET /api/v1/audit/events[?page&page_size&event_type&...&scope]
+  //   GET /api/v1/audit/events/:id[?scope]
+  // CT D2 wires the self-scope reads only at this slice; org /
+  // platform / regulator scopes + export (NDJSON/CSV) +
+  // verify-chain panel are forward-substrate and consume the
+  // already-LIVE Foundation routes from separate CT slices.
+  // GETs auto-retry per the request defaults (idempotent).
+  // ──────────────────────────────────────────────────────────────
+  audit = {
+    /** GET /api/v1/audit/events -- paginated SAFE audit list. */
+    list: (
+      input: ListAuditEventsInput = {},
+    ): Promise<ApiResult<ListAuditEventsSuccess>> => {
+      const query = qs({
+        page: input.page,
+        page_size: input.page_size,
+        event_type: input.event_type,
+        target_entity_id: input.target_entity_id,
+        target_capsule_id: input.target_capsule_id,
+        outcome: input.outcome,
+        start_time: input.start_time,
+        end_time: input.end_time,
+        scope: input.scope,
+      });
+      return this.request<ListAuditEventsSuccess>(`/audit/events${query}`);
+    },
+
+    /** GET /api/v1/audit/events/:id -- single audit detail with prev/next chain refs. */
+    detail: (
+      id: string,
+      scope?: AuditViewScope,
+    ): Promise<ApiResult<GetAuditEventSuccess>> => {
+      const query = qs({ scope });
+      return this.request<GetAuditEventSuccess>(
+        `/audit/events/${encodeURIComponent(id)}${query}`,
+      );
+    },
   };
 }
 
