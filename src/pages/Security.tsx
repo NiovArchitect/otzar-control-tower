@@ -63,6 +63,7 @@ import type {
   AuditEventChainRef,
   AuditOutcome,
   AuditEventType,
+  VerifyChainView,
 } from "@/lib/types/foundation";
 import { getAuditEventLabel, AUDIT_EVENT_TYPE_LABELS } from "@/lib/audit/event-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -405,6 +406,177 @@ function EventDetailPanel({
   );
 }
 
+// ════════════════════════════════════════════════════════════════
+// Verify-chain panel (CT D2.2). Consumes
+// `GET /api/v1/audit/verify-chain?scope=self` per ADR-0071 §3.
+// Self-scope only at this CT slice. Renders the closed-vocab
+// SAFE outcome (verified flag + checked_event_count +
+// chain_algorithm + window + first/last event refs + optional
+// broken_at + closed-vocab failure_reason + Foundation
+// evidence_note + honest_note). NEVER renders raw event bodies
+// or chain data. Manual click-to-run only — never auto-runs.
+// ════════════════════════════════════════════════════════════════
+function VerifyChainPanel() {
+  const [hasRun, setHasRun] = useState(false);
+  const verifyQuery = useQuery({
+    queryKey: ["audit", "verify-chain", "self"],
+    queryFn: () =>
+      api.audit.verifyChain({ scope: "self" }).then((r) => {
+        if (r.ok) return r.data;
+        throw new Error(r.code);
+      }),
+    enabled: hasRun,
+  });
+
+  function renderBody() {
+    if (!hasRun) {
+      return (
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="verify-chain-idle"
+        >
+          Click <strong>Verify chain</strong> to run a self-scope
+          chain-integrity check against your own audit history.
+          Self-scope only at this version.
+        </p>
+      );
+    }
+    if (verifyQuery.isLoading || verifyQuery.isFetching) {
+      return (
+        <div className="space-y-2" data-testid="verify-chain-loading">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      );
+    }
+    if (verifyQuery.isError || verifyQuery.data === undefined) {
+      const code =
+        verifyQuery.error instanceof Error
+          ? verifyQuery.error.message
+          : "UNKNOWN_ERROR";
+      return (
+        <div
+          className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+          data-testid="verify-chain-error"
+        >
+          Chain verification could not run. Code:{" "}
+          <span className="font-mono">{code}</span>. This may
+          indicate the chain was not visible at your access scope.
+        </div>
+      );
+    }
+    const view: VerifyChainView = verifyQuery.data;
+    return (
+      <div className="space-y-3" data-testid="verify-chain-result">
+        <div className="flex flex-wrap items-center gap-2">
+          {view.verified ? (
+            <Badge variant="secondary" className="text-[10px]">
+              Verified
+            </Badge>
+          ) : (
+            <Badge variant="destructive" className="text-[10px]">
+              Verification failed
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-[10px]">
+            Scope: {view.scope}
+          </Badge>
+          <Badge variant="outline" className="text-[10px]">
+            {view.checked_event_count} event
+            {view.checked_event_count === 1 ? "" : "s"} checked
+          </Badge>
+          <Badge variant="outline" className="text-[10px]">
+            Algorithm: {view.chain_algorithm}
+          </Badge>
+        </div>
+        <Separator />
+        <div className="space-y-2">
+          <DetailRow label="Window start" value={view.window_start} />
+          <DetailRow label="Window end" value={view.window_end} />
+          <DetailRow label="First event id" value={view.first_event_id} />
+          <DetailRow label="Last event id" value={view.last_event_id} />
+          <DetailRow
+            label="First event hash"
+            value={view.first_event_hash}
+          />
+          <DetailRow
+            label="Last event hash"
+            value={view.last_event_hash}
+          />
+          {view.lawful_basis_id !== null && (
+            <DetailRow
+              label="Lawful basis id"
+              value={view.lawful_basis_id}
+            />
+          )}
+        </div>
+        {!view.verified && (
+          <>
+            <Separator />
+            <div className="space-y-2" data-testid="verify-chain-failure">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-destructive">
+                Chain break
+              </h4>
+              <DetailRow
+                label="Broken at event id"
+                value={view.broken_at_event_id}
+              />
+              <DetailRow
+                label="Failure reason"
+                value={view.failure_reason}
+              />
+            </div>
+          </>
+        )}
+        <Separator />
+        <p className="text-[11px] text-muted-foreground">
+          {view.evidence_note}
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          {view.honest_note}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <Card data-testid="verify-chain-card">
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+        <div>
+          <CardTitle className="text-base">Chain integrity</CardTitle>
+          <CardDescription className="text-xs">
+            Self-scope chain-integrity verification — confirms
+            every checked row's hash recomputes to its stored
+            event_hash and every previous-event-hash links to its
+            predecessor. Closed-vocab failure surface only.
+          </CardDescription>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setHasRun(true);
+            if (hasRun) {
+              void verifyQuery.refetch();
+            }
+          }}
+          disabled={verifyQuery.isFetching}
+          data-testid="verify-chain-run"
+        >
+          {verifyQuery.isFetching
+            ? "Verifying…"
+            : hasRun
+              ? "Re-verify chain"
+              : "Verify chain"}
+        </Button>
+      </CardHeader>
+      <CardContent>{renderBody()}</CardContent>
+    </Card>
+  );
+}
+
 export function SecurityPage() {
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -464,6 +636,7 @@ export function SecurityPage() {
         title="Security & Audit"
         description="Immutable record of every action that touched data, scoped to your own activity. Safe metadata only — no raw payloads."
       />
+      <VerifyChainPanel />
       <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
         <Card data-testid="audit-list-card">
           <CardHeader>

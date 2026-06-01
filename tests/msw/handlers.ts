@@ -2370,12 +2370,57 @@ const auditEventDetailHandler = http.get(
   },
 );
 
+const auditVerifyChainHandler = http.get(
+  `${API_BASE}/audit/verify-chain`,
+  ({ request }) => {
+    const url = new URL(request.url);
+    const scope = url.searchParams.get("scope") ?? "self";
+    if (
+      scope !== "self" &&
+      scope !== "org" &&
+      scope !== "platform" &&
+      scope !== "regulator"
+    ) {
+      return HttpResponse.json(
+        { ok: false, code: "INVALID_SCOPE" },
+        { status: 400 },
+      );
+    }
+    const first = section7EventFixtures[0]!;
+    const last = section7EventFixtures[section7EventFixtures.length - 1]!;
+    return HttpResponse.json(
+      {
+        ok: true,
+        scope,
+        verified: true,
+        checked_event_count: section7EventFixtures.length,
+        chain_algorithm: "SHA-256/14-field-canonical-record",
+        window_start: first.timestamp,
+        window_end: last.timestamp,
+        first_event_id: first.audit_id,
+        last_event_id: last.audit_id,
+        first_event_hash: first.event_hash,
+        last_event_hash: last.event_hash,
+        broken_at_event_id: null,
+        failure_reason: null,
+        lawful_basis_id: null,
+        evidence_note:
+          "verified=true means every checked row's hash recomputes to the stored event_hash and every previous_event_hash links to its predecessor. Empty windows return verified=true with checked_event_count=0 (vacuously). Failure reasons follow a closed vocabulary.",
+        honest_note:
+          "Self-scope verification: walks the caller's own audit chain only.",
+      },
+      { status: 200 },
+    );
+  },
+);
+
 export const handlers = [
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
   // Section 7 Full Audit Viewer (ADR-0071 + earlier Section 7 waves)
   auditEventsListHandler,
   auditEventDetailHandler,
+  auditVerifyChainHandler,
   // Section 5 Agent Playground Wave 10 (ADR-0077)
   playgroundListScenariosHandler,
   playgroundCreateScenarioHandler,
