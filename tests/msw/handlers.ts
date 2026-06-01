@@ -1808,6 +1808,58 @@ const playgroundRecommendationHandler = http.post(
         human_decision_required: true,
         honest_note: "Recommendation is advisory only and not a final decision.",
         audit_event_id: `aud-rec-${params.id}`,
+        // ADR-0078 Stage 2 — approved-source signals fixture.
+        // Two signals exercise distinct sources + the §6C.12
+        // additive field surface; no raw transcript text /
+        // raw payload / forbidden enum values.
+        conversation_context_signals: [
+          {
+            signal_type: "APPROVAL_DEPENDENCY_IDENTIFIED",
+            signal_confidence_label: "MEDIUM",
+            signal_source_type: "ACTION_HISTORY",
+            signal_scope: "ACTION_SCOPED",
+            related_scenario_id: String(params.id),
+            detected_at: new Date().toISOString(),
+            evidence_label: "APPROVAL_NEED",
+            safe_summary:
+              "Action history indicates a prior governed action awaiting approval. Review approval posture before any transition.",
+            requires_human_review: true,
+            retention_class: "ACTION_CONTEXT_RETAINED",
+            honest_note:
+              "Advisory context signal only. Not a final decision, not legal or compliance certainty, not surveillance, not employee scoring. Derived from approved Foundation sources under governance.",
+            conversation_relevance_class: "WORK_RELEVANT",
+            capture_eligibility: "CAPTURE_ALLOWED",
+            agent_playground_use: "ALLOWED_FOR_SIGNALS",
+            redaction_applied: false,
+            business_purpose_label: "APPROVAL_RELATED",
+            scope_binding_type: "ACTION_SCOPED",
+            review_required: true,
+            personal_content_suppressed: false,
+          },
+          {
+            signal_type: "PRIOR_DECISION_REFERENCED",
+            signal_confidence_label: "LOW",
+            signal_source_type: "CORRECTION_SIGNAL",
+            signal_scope: "SELF_ONLY",
+            related_scenario_id: String(params.id),
+            detected_at: new Date().toISOString(),
+            evidence_label: "PRIOR_DECISION",
+            safe_summary:
+              "A prior correction signal exists in the caller's scope. Consider whether the recommendation aligns with prior correction posture before proceeding.",
+            requires_human_review: false,
+            retention_class: "AUDIT_SAFE_METADATA_ONLY",
+            honest_note:
+              "Advisory context signal only. Not a final decision, not legal or compliance certainty, not surveillance, not employee scoring. Derived from approved Foundation sources under governance.",
+            conversation_relevance_class: "WORK_RELEVANT",
+            capture_eligibility: "CAPTURE_ALLOWED",
+            agent_playground_use: "ALLOWED_FOR_SIGNALS",
+            redaction_applied: false,
+            business_purpose_label: "PROJECT_CONTEXT",
+            scope_binding_type: "SCENARIO_SCOPED",
+            review_required: false,
+            personal_content_suppressed: false,
+          },
+        ],
       },
       { status: 200 },
     ),
@@ -1906,6 +1958,57 @@ const playgroundSimulationHandler = http.post(
           ],
           blockers_before_action: ["MISSING_COMPLIANCE_REVIEW"],
           safe_next_step: "REQUEST_COMPLIANCE_REVIEW",
+          // ADR-0078 Stage 2 — scenario-wide sidecar at the
+          // EnterpriseDecisionPosture per ADR-0078 §9 (NOT
+          // per-branch — preserves ADR-0076 §11 budgets).
+          conversation_context_signals: [
+            {
+              signal_type: "APPROVAL_DEPENDENCY_IDENTIFIED",
+              signal_confidence_label: "MEDIUM",
+              signal_source_type: "ACTION_HISTORY",
+              signal_scope: "ACTION_SCOPED",
+              related_scenario_id: String(params.id),
+              detected_at: new Date().toISOString(),
+              evidence_label: "APPROVAL_NEED",
+              safe_summary:
+                "Action history indicates a prior governed action awaiting approval. Review approval posture before any transition.",
+              requires_human_review: true,
+              retention_class: "ACTION_CONTEXT_RETAINED",
+              honest_note:
+                "Advisory context signal only. Not a final decision, not legal or compliance certainty, not surveillance, not employee scoring. Derived from approved Foundation sources under governance.",
+              conversation_relevance_class: "WORK_RELEVANT",
+              capture_eligibility: "CAPTURE_ALLOWED",
+              agent_playground_use: "ALLOWED_FOR_SIGNALS",
+              redaction_applied: false,
+              business_purpose_label: "APPROVAL_RELATED",
+              scope_binding_type: "ACTION_SCOPED",
+              review_required: true,
+              personal_content_suppressed: false,
+            },
+            {
+              signal_type: "CONTEXT_INSUFFICIENT_FOR_RECOMMENDATION",
+              signal_confidence_label: "LOW",
+              signal_source_type: "MANUAL_USER_INPUT",
+              signal_scope: "SELF_ONLY",
+              related_scenario_id: String(params.id),
+              detected_at: new Date().toISOString(),
+              evidence_label: "INSUFFICIENT_CONTEXT",
+              safe_summary:
+                "Manual scenario context is incomplete. A goal summary is missing; review and complete scenario context before action.",
+              requires_human_review: true,
+              retention_class: "SCENARIO_CONTEXT_RETAINED",
+              honest_note:
+                "Advisory context signal only. Not a final decision, not legal or compliance certainty, not surveillance, not employee scoring. Derived from approved Foundation sources under governance.",
+              conversation_relevance_class: "WORK_RELEVANT",
+              capture_eligibility: "CAPTURE_ALLOWED",
+              agent_playground_use: "ALLOWED_FOR_SIGNALS",
+              redaction_applied: false,
+              business_purpose_label: "PROJECT_CONTEXT",
+              scope_binding_type: "SCENARIO_SCOPED",
+              review_required: true,
+              personal_content_suppressed: false,
+            },
+          ],
         },
         human_decision_required: true,
         honest_note:
