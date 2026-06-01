@@ -30,7 +30,9 @@ export type CtActivationFailureCode =
   | "AUDIT_WRITE_FAILED"
   // D6 team-archetype additions (Foundation PR #198)
   | "INVALID_SLACK_BINDING_INPUT"
-  | "CONNECTOR_BINDING_FAILED";
+  | "CONNECTOR_BINDING_FAILED"
+  // D6 business-archetype additions (Foundation PR #200)
+  | "INVALID_GOOGLE_BINDING_INPUT";
 
 // D6 team-archetype input mirror of Foundation's TeamActivationInput.
 // secret_ref carries the env-var NAME on the deployment host (e.g.
@@ -42,6 +44,21 @@ export interface CtTeamActivationInput {
   slack_display_name: string;
   slack_secret_ref: string;
   slack_workspace_id?: string;
+}
+
+// D6 business-archetype input mirror of Foundation's
+// BusinessActivationInput. Both Slack + Google secret_refs carry
+// env-var NAMEs on the deployment host; resolved env-var VALUEs
+// never cross the API boundary. The CT form prompts the admin for
+// NAMEs only and asserts no concrete-token regex (xoxb-* / ya29.*
+// / -----BEGIN PRIVATE KEY-----) appears in the rendered output.
+export interface CtBusinessActivationInput {
+  slack_display_name: string;
+  slack_secret_ref: string;
+  slack_workspace_id?: string;
+  google_display_name: string;
+  google_secret_ref: string;
+  google_workspace_domain?: string;
 }
 
 export interface CtActivationStepResult {
