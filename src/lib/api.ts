@@ -101,6 +101,8 @@ import type {
   ListAuditEventsSuccess,
   GetAuditEventSuccess,
   AuditViewScope,
+  VerifyChainInput,
+  VerifyChainView,
 } from "./types/foundation";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -857,6 +859,25 @@ export class ApiClient {
       return this.request<GetAuditEventSuccess>(
         `/audit/events/${encodeURIComponent(id)}${query}`,
       );
+    },
+
+    /**
+     * GET /api/v1/audit/verify-chain — chain-integrity check.
+     * Self-scope only at this CT slice (regulator scope requires
+     * lawful_basis_id flow which is forward-substrate).
+     */
+    verifyChain: (
+      input: VerifyChainInput = {},
+    ): Promise<ApiResult<VerifyChainView>> => {
+      const query = qs({
+        scope: input.scope,
+        subject_entity_id: input.subject_entity_id,
+        lawful_basis_id: input.lawful_basis_id,
+        from: input.from,
+        to: input.to,
+        max_events: input.max_events,
+      });
+      return this.request<VerifyChainView>(`/audit/verify-chain${query}`);
     },
   };
 }

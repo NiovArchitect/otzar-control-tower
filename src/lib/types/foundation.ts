@@ -562,6 +562,63 @@ export interface ListAuditEventsInput {
 }
 
 // ════════════════════════════════════════════════════════════════
+// Section 7 — verify-chain (Foundation LIVE since ADR-0071 / PR
+// #133). The endpoint walks the caller's audit chain and asserts
+// chain-integrity invariants (event_hash recompute + previous-
+// event-hash link + canonical-record byte-equivalence). Self-
+// scope only at this CT slice; org / platform / regulator scopes
+// + lawful_basis_id flow are forward-substrate.
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: Closed-vocab failure reasons returned when `verified`
+//        is false. Mirrors Foundation `VerifyChainFailureReason`
+//        at audit-view.service.ts ~line 383.
+export type VerifyChainFailureReason =
+  | "CHAIN_HASH_MISMATCH"
+  | "PREVIOUS_LINK_MISMATCH"
+  | "MISSING_PREVIOUS_EVENT"
+  | "CANONICAL_RECORD_DRIFT";
+
+// WHAT: SAFE projection of the verify-chain result. Mirrors
+//        Foundation `VerifyChainView` at audit-view.service.ts
+//        ~line 389. Carries closed-vocab outcomes + boundary
+//        hashes + the canonical 14-field chain algorithm
+//        identifier + an honest_note. NEVER carries raw event
+//        bodies, raw chain data, raw PII, secret refs.
+export interface VerifyChainView {
+  ok: true;
+  scope: AuditViewScope;
+  verified: boolean;
+  checked_event_count: number;
+  chain_algorithm: "SHA-256/14-field-canonical-record";
+  window_start: string | null;
+  window_end: string | null;
+  first_event_id: string | null;
+  last_event_id: string | null;
+  first_event_hash: string | null;
+  last_event_hash: string | null;
+  broken_at_event_id: string | null;
+  failure_reason: VerifyChainFailureReason | null;
+  lawful_basis_id: string | null;
+  evidence_note: string;
+  honest_note: string;
+}
+
+// WHAT: Inputs accepted by the verify-chain endpoint. All
+//        optional except `scope` which defaults to `self`
+//        server-side. `lawful_basis_id` is required at
+//        Foundation when scope === "regulator"; CT slice
+//        does not yet expose regulator scope at the UI tier.
+export interface VerifyChainInput {
+  scope?: AuditViewScope;
+  subject_entity_id?: string;
+  lawful_basis_id?: string;
+  from?: string;
+  to?: string;
+  max_events?: number;
+}
+
+// ════════════════════════════════════════════════════════════════
 // 12B.1 -- REQUEST / RESPONSE SHAPES
 // ════════════════════════════════════════════════════════════════
 

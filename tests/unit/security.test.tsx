@@ -434,6 +434,91 @@ const section7EventsForReset = [
   },
 ];
 
+describe("Section 7 Security & Audit — verify-chain panel (D2.2)", () => {
+  it("renders the verify-chain card with an idle Run button", async () => {
+    renderPage();
+    await screen.findByTestId("verify-chain-card");
+    expect(screen.getByTestId("verify-chain-idle")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Verify chain/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("runs verify-chain on Run click and renders verified state + boundary hashes", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("verify-chain-card");
+    await user.click(screen.getByTestId("verify-chain-run"));
+    const result = await screen.findByTestId("verify-chain-result");
+    expect(within(result).getByText(/^Verified$/)).toBeInTheDocument();
+    expect(within(result).getByText(/Scope: self/i)).toBeInTheDocument();
+    expect(within(result).getByText(/3 events checked/i)).toBeInTheDocument();
+    expect(
+      within(result).getByText(/SHA-256\/14-field-canonical-record/),
+    ).toBeInTheDocument();
+    expect(within(result).getByText(/aud-7-001/)).toBeInTheDocument();
+    expect(within(result).getByText(/aud-7-003/)).toBeInTheDocument();
+  });
+
+  it("renders failure surface with broken_at_event_id + failure_reason when verified=false", async () => {
+    server.use(
+      http.get(`${API_BASE}/audit/verify-chain`, () =>
+        HttpResponse.json(
+          {
+            ok: true,
+            scope: "self",
+            verified: false,
+            checked_event_count: 2,
+            chain_algorithm: "SHA-256/14-field-canonical-record",
+            window_start: "2026-05-31T18:30:00.000Z",
+            window_end: "2026-05-31T18:31:00.000Z",
+            first_event_id: "aud-7-001",
+            last_event_id: "aud-7-002",
+            first_event_hash:
+              "0000000000000000000000000000000000000000000000000000000000000001",
+            last_event_hash:
+              "0000000000000000000000000000000000000000000000000000000000000002",
+            broken_at_event_id: "aud-7-002",
+            failure_reason: "CHAIN_HASH_MISMATCH",
+            lawful_basis_id: null,
+            evidence_note: "Chain broken at second event.",
+            honest_note: "Self-scope verification.",
+          },
+          { status: 200 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("verify-chain-card");
+    await user.click(screen.getByTestId("verify-chain-run"));
+    const failure = await screen.findByTestId("verify-chain-failure");
+    expect(within(failure).getByText(/aud-7-002/)).toBeInTheDocument();
+    expect(within(failure).getByText(/CHAIN_HASH_MISMATCH/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Verification failed/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders safe error block when the verify-chain endpoint fails", async () => {
+    server.use(
+      http.get(`${API_BASE}/audit/verify-chain`, () =>
+        HttpResponse.json(
+          { ok: false, code: "INTERNAL_ERROR" },
+          { status: 500 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("verify-chain-card");
+    await user.click(screen.getByTestId("verify-chain-run"));
+    const err = await screen.findByTestId("verify-chain-error");
+    expect(err).toHaveTextContent(/Chain verification could not run/i);
+    expect(err).toHaveTextContent(/INTERNAL_ERROR/);
+  });
+});
+
 describe("Section 7 Security & Audit — forbidden-copy + no-leak guards", () => {
   it("never displays any forbidden ADR-0077-family UI copy", async () => {
     const user = userEvent.setup();
