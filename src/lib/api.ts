@@ -123,6 +123,7 @@ import type {
 
 import type {
   CtActivationResult,
+  CtTeamActivationInput,
 } from "./dandelion-activation/types";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -1128,6 +1129,24 @@ export class ApiClient {
       this.request<CtActivationResult>("/org/dandelion/activate", {
         method: "POST",
         body: {},
+        retries: 0,
+      }),
+
+    /**
+     * POST /api/v1/org/dandelion/activate/team — run the team-
+     * archetype ActivationPlan (8 steps) for the caller's org.
+     * Step 5 registers a real SLACK_READ ConnectorBinding via the
+     * existing C2 OPERATING substrate. The admin supplies
+     * slack_display_name + slack_secret_ref env-var-NAME (the
+     * resolved env-var VALUE never crosses the API boundary;
+     * admins must NEVER paste a raw bot token in slack_secret_ref).
+     */
+    activateTeam: (
+      input: CtTeamActivationInput,
+    ): Promise<ApiResult<CtActivationResult>> =>
+      this.request<CtActivationResult>("/org/dandelion/activate/team", {
+        method: "POST",
+        body: input,
         retries: 0,
       }),
   };

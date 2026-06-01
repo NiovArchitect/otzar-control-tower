@@ -27,7 +27,22 @@ export type CtActivationFailureCode =
   | "ARCHETYPE_UNKNOWN"
   | "CATALOG_NOT_FOUND"
   | "CATALOG_MALFORMED"
-  | "AUDIT_WRITE_FAILED";
+  | "AUDIT_WRITE_FAILED"
+  // D6 team-archetype additions (Foundation PR #198)
+  | "INVALID_SLACK_BINDING_INPUT"
+  | "CONNECTOR_BINDING_FAILED";
+
+// D6 team-archetype input mirror of Foundation's TeamActivationInput.
+// secret_ref carries the env-var NAME on the deployment host (e.g.
+// "SLACK_BOT_TOKEN_PROD"); the resolved env-var VALUE never crosses
+// the API boundary. The CT form prompts the admin for the NAME only
+// and asserts no concrete-token regex (xoxb-*) appears in the
+// rendered output.
+export interface CtTeamActivationInput {
+  slack_display_name: string;
+  slack_secret_ref: string;
+  slack_workspace_id?: string;
+}
 
 export interface CtActivationStepResult {
   step_order: number;

@@ -34,10 +34,20 @@ const KNOWN_STEP_LABELS: Readonly<Record<string, StepLabel>> = Object.freeze({
     summary:
       "Activated the baseline memory wallet for your organization. Always included at the base tier.",
   },
+  "ADMIN_ACTION:DMW_TEAM_SCOPE_GRANTED": {
+    title: "Extended memory to the team scope",
+    summary:
+      "Added a team-scoped memory extension on top of the baseline. Self-scoped + team-scoped only at this tier.",
+  },
   "ADMIN_ACTION:ROLE_TEMPLATE_ASSIGNED": {
     title: "Assigned starter role templates",
     summary:
       "Registered the admin + standard twin role templates scoped to the pilot department.",
+  },
+  "ADMIN_ACTION:CONNECTOR_BINDING_REGISTERED": {
+    title: "Registered the Slack read-first binding",
+    summary:
+      "Saved the SLACK_READ binding scoped to your organization. The env-var NAME is stored; the resolved bot token never crosses the API boundary.",
   },
   "ADMIN_ACTION:WORKFLOW_TEMPLATE_REGISTERED": {
     title: "Registered Stage 1 workflow templates",
