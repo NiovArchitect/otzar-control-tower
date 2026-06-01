@@ -38,7 +38,9 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { api } from "@/lib/api";
 import { NAV } from "@/lib/nav";
 import {
+  resetActionLifecycleStore,
   resetPlaygroundScenarios,
+  seedActionLifecycle,
   seedPlaygroundScenario,
 } from "../msw/handlers";
 
@@ -470,9 +472,14 @@ describe("Section 5 Wave 10 -- Wave 8 governed transition + execution boundary",
     expect(typeof idKey).toBe("string");
     expect((idKey as string).length).toBeGreaterThan(0);
 
-    expect(
-      await screen.findByText(/Action proposed \(not executed\)/i),
-    ).toBeInTheDocument();
+    // "Action proposed (not executed)" now appears in both the
+    // StateChip and the ActionLifecyclePanel pre-fetch summary;
+    // both surfaces are required to honestly distinguish proposed
+    // vs executed lifecycle states.
+    const matches = await screen.findAllByText(
+      /Action proposed \(not executed\)/i,
+    );
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -663,6 +670,311 @@ describe("Section 5 Wave 10 -- not-executed default state", () => {
       await screen.findByTestId("agent-playground-scenario-scn-not-exec"),
     );
     expect(screen.getByText(/Not executed/i)).toBeInTheDocument();
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+// Section 2 Action Read Surface integration (ADR-0057 §9 + §10;
+// authorized at `[FOUNDER-SECTION-2-ACTION-READ-SURFACE-FOR-WAVE-10-CT-AUTH]`
+// 2026-05-31). Wave 10 cockpit consumes Foundation's existing
+// GET /api/v1/actions/:id read endpoint to surface the three-state
+// lifecycle (simulation / proposed / executed) honestly. READ-ONLY
+// — NEVER approves / executes / cancels / retries Actions; Section 2
+// retains all execution authority per ADR-0057.
+// ════════════════════════════════════════════════════════════════
+
+beforeEach(() => {
+  resetActionLifecycleStore();
+});
+
+// WHAT: Drive a Wave 8 governed transition to ACTION_PROPOSED so
+//        the lifecycle panel renders. Returns the action_id so
+//        tests can stage a specific Section 2 lifecycle state.
+async function driveToActionProposed(opts: {
+  scenarioId: string;
+  actionId: string;
+  scenarioTitle: string;
+}): Promise<{ user: ReturnType<typeof userEvent.setup> }> {
+  seedPlaygroundScenario({
+    scenario_id: opts.scenarioId,
+    title: opts.scenarioTitle,
+  });
+  // Stub the governed-transition endpoint to return the staged
+  // action_id so the lifecycle panel anchors to it.
+  server.use(
+    http.post(
+      `${API_BASE}/playground/scenarios/${opts.scenarioId}/governed-transitions`,
+      () =>
+        HttpResponse.json(
+          {
+            ok: true,
+            scenario_id: opts.scenarioId,
+            transitioned_at: new Date().toISOString(),
+            transition_outcome: "ACTION_PROPOSED",
+            recommended_candidate_key: "candkey-low-risk-0002",
+            recommended_candidate_type: "LOW_RISK_INCREMENTAL",
+            recommendation_summary: "Low-risk step proposed.",
+            action_id: opts.actionId,
+            action_status: "PROPOSED",
+            action_type: "SEND_INTERNAL_NOTIFICATION",
+            action_risk_tier: "LOW",
+            action_decision: "REQUIRE_DUAL_CONTROL",
+            escalation_id: null,
+            required_approvals: [],
+            required_reviews: ["POLICY_OWNER_REVIEW"],
+            human_decision_required: true,
+            honest_note: "Advisory only.",
+            playground_audit_event_id: `aud-trans-${opts.actionId}`,
+          },
+          { status: 200 },
+        ),
+    ),
+  );
+
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(
+    await screen.findByTestId(
+      `agent-playground-scenario-${opts.scenarioId}`,
+    ),
+  );
+  await user.click(screen.getByTestId("agent-playground-stage-transition"));
+  await user.click(screen.getByTestId("agent-playground-acknowledge"));
+  await user.click(
+    screen.getByTestId("agent-playground-propose-transition"),
+  );
+  await user.click(
+    screen.getByTestId("agent-playground-confirm-transition"),
+  );
+  await screen.findByTestId("agent-playground-lifecycle-panel");
+  return { user };
+}
+
+describe("Section 2 Action Read Surface -- api.actions.getAction", () => {
+  it("exposes api.actions.getAction as a function", () => {
+    expect(typeof api.actions.getAction).toBe("function");
+  });
+});
+
+describe("Section 2 Action Read Surface -- lifecycle panel renders pre-fetch", () => {
+  it("renders the lifecycle panel with 'Action proposed (not executed)' framing before refresh", async () => {
+    await driveToActionProposed({
+      scenarioId: "scn-lc-pre",
+      actionId: "act-lc-pre",
+      scenarioTitle: "Lifecycle pre-fetch",
+    });
+    const panel = screen.getByTestId("agent-playground-lifecycle-panel");
+    expect(
+      within(panel).getByText(/Action proposed \(not executed\)/i),
+    ).toBeInTheDocument();
+    expect(
+      within(panel).getByText(/Section 2 Action lifecycle/i),
+    ).toBeInTheDocument();
+    // The refresh button is present and not disabled before the
+    // first fetch.
+    expect(
+      within(panel).getByTestId("agent-playground-refresh-action-status"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Section 2 Action Read Surface -- Refresh action status flow", () => {
+  it("clicking Refresh fetches the lifecycle and renders PROPOSED → still proposed", async () => {
+    const { user } = await driveToActionProposed({
+      scenarioId: "scn-lc-refresh",
+      actionId: "act-lc-refresh",
+      scenarioTitle: "Lifecycle refresh",
+    });
+    // Default action_id starting with "act-" → MSW handler
+    // returns PROPOSED. Refresh should keep the framing.
+    await user.click(
+      screen.getByTestId("agent-playground-refresh-action-status"),
+    );
+    await waitFor(() => {
+      const statusLine = screen.getByTestId(
+        "agent-playground-lifecycle-status",
+      );
+      expect(statusLine.textContent).toMatch(/PROPOSED/);
+    });
+  });
+
+  it("renders 'Action completed by Section 2' when status is SUCCEEDED", async () => {
+    seedActionLifecycle({
+      action_id: "act-lc-succeeded",
+      status: "SUCCEEDED",
+      last_result_summary: "Notification delivered.",
+      attempt_count: 1,
+    });
+    const { user } = await driveToActionProposed({
+      scenarioId: "scn-lc-succeeded",
+      actionId: "act-lc-succeeded",
+      scenarioTitle: "Lifecycle succeeded",
+    });
+    await user.click(
+      screen.getByTestId("agent-playground-refresh-action-status"),
+    );
+    expect(
+      await screen.findByText(/Action completed by Section 2/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders 'Action failed in Section 2' when status is FAILED", async () => {
+    seedActionLifecycle({
+      action_id: "act-lc-failed",
+      status: "FAILED",
+      attempt_count: 1,
+    });
+    const { user } = await driveToActionProposed({
+      scenarioId: "scn-lc-failed",
+      actionId: "act-lc-failed",
+      scenarioTitle: "Lifecycle failed",
+    });
+    await user.click(
+      screen.getByTestId("agent-playground-refresh-action-status"),
+    );
+    expect(
+      await screen.findByText(/Action failed in Section 2/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders 'Action cancelled in Section 2' when status is CANCELLED", async () => {
+    seedActionLifecycle({
+      action_id: "act-lc-cancelled",
+      status: "CANCELLED",
+    });
+    const { user } = await driveToActionProposed({
+      scenarioId: "scn-lc-cancelled",
+      actionId: "act-lc-cancelled",
+      scenarioTitle: "Lifecycle cancelled",
+    });
+    await user.click(
+      screen.getByTestId("agent-playground-refresh-action-status"),
+    );
+    expect(
+      await screen.findByText(/Action cancelled in Section 2/i),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    { status: "RUNNING" as const, expected: /currently running/i },
+    { status: "SCHEDULED" as const, expected: /scheduled by Section 2/i },
+    { status: "APPROVED" as const, expected: /approved by Section 2/i },
+    { status: "REJECTED" as const, expected: /rejected by Section 2/i },
+    { status: "TIMED_OUT" as const, expected: /timed out in Section 2/i },
+    { status: "EXPIRED" as const, expected: /expired in Section 2/i },
+  ])(
+    "renders honest lifecycle copy for $status",
+    async ({ status, expected }) => {
+      const actionId = `act-lc-${status.toLowerCase()}`;
+      seedActionLifecycle({ action_id: actionId, status });
+      const { user } = await driveToActionProposed({
+        scenarioId: `scn-lc-${status.toLowerCase()}`,
+        actionId,
+        scenarioTitle: `Lifecycle ${status}`,
+      });
+      await user.click(
+        screen.getByTestId("agent-playground-refresh-action-status"),
+      );
+      expect(await screen.findByText(expected)).toBeInTheDocument();
+    },
+  );
+});
+
+describe("Section 2 Action Read Surface -- no-execute-or-approve discipline", () => {
+  it("never renders Execute or Approve or Cancel or Retry button labels", async () => {
+    seedActionLifecycle({
+      action_id: "act-lc-discipline",
+      status: "APPROVED",
+    });
+    const { user } = await driveToActionProposed({
+      scenarioId: "scn-lc-discipline",
+      actionId: "act-lc-discipline",
+      scenarioTitle: "Lifecycle discipline",
+    });
+    await user.click(
+      screen.getByTestId("agent-playground-refresh-action-status"),
+    );
+    const panel = await screen.findByTestId(
+      "agent-playground-lifecycle-panel",
+    );
+    const buttons = panel.querySelectorAll("button");
+    for (const btn of buttons) {
+      const label = (btn.textContent ?? "").trim().toLowerCase();
+      expect(label).not.toBe("execute");
+      expect(label).not.toBe("approve");
+      expect(label).not.toBe("cancel");
+      expect(label).not.toBe("retry");
+      expect(label).not.toContain("auto-execute");
+      expect(label).not.toContain("auto-approve");
+    }
+    // The only button rendered by the lifecycle panel is the
+    // refresh button.
+    const refreshButtons = within(panel).getAllByTestId(
+      "agent-playground-refresh-action-status",
+    );
+    expect(refreshButtons.length).toBe(1);
+  });
+
+  it("preserves 'Section 2 retains all execution authority' boilerplate", async () => {
+    await driveToActionProposed({
+      scenarioId: "scn-lc-boilerplate",
+      actionId: "act-lc-boilerplate",
+      scenarioTitle: "Lifecycle boilerplate",
+    });
+    // Boilerplate appears in both the Governed Transition intro
+    // ("Propose a Section 2 Action in PROPOSED status. Section 2
+    // retains all execution authority") and the TransitionResultCard
+    // footer above the lifecycle panel; both are required.
+    expect(
+      screen.getAllByText(/Section 2 retains all execution authority/i)
+        .length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("Section 2 Action Read Surface -- forbidden-UI-copy + no-leak preserved", () => {
+  it("does not display any forbidden UI strings even after fetching a SUCCEEDED action", async () => {
+    seedActionLifecycle({
+      action_id: "act-lc-noleak",
+      status: "SUCCEEDED",
+      last_result_summary: "Notification delivered.",
+      attempt_count: 1,
+    });
+    const { user } = await driveToActionProposed({
+      scenarioId: "scn-lc-noleak",
+      actionId: "act-lc-noleak",
+      scenarioTitle: "Lifecycle no-leak",
+    });
+    const { container } = { container: document.body };
+    await user.click(
+      screen.getByTestId("agent-playground-refresh-action-status"),
+    );
+    await screen.findByText(/Action completed by Section 2/i);
+    const text = (container.textContent ?? "").toLowerCase();
+    for (const forbidden of FORBIDDEN_UI_COPY) {
+      expect(text).not.toContain(forbidden);
+    }
+    for (const tok of FORBIDDEN_RAW_TOKENS) {
+      expect(text).not.toContain(tok);
+    }
+  });
+});
+
+describe("Section 2 Action Read Surface -- error rendering", () => {
+  it("renders ACTION_NOT_FOUND as 'Action not found'", async () => {
+    // Use an action_id that does NOT start with "act-" so the
+    // MSW handler returns the 404 path.
+    const { user } = await driveToActionProposed({
+      scenarioId: "scn-lc-error",
+      actionId: "different-id-not-found",
+      scenarioTitle: "Lifecycle error",
+    });
+    await user.click(
+      screen.getByTestId("agent-playground-refresh-action-status"),
+    );
+    expect(
+      await screen.findByText(/Action not found/i),
+    ).toBeInTheDocument();
   });
 });
 

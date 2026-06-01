@@ -1977,7 +1977,132 @@ const playgroundTransitionHandler = http.post(
   },
 );
 
+// ════════════════════════════════════════════════════════════════
+// Section 2 Action Runtime — READ surface for Wave 10 cockpit
+// lifecycle integration per ADR-0057 §9 + §10. In-memory store
+// lets tests stage specific lifecycle states by action_id, then
+// assert that the Agent Playground panel renders the closed-vocab
+// summary correctly. Default fixture returns PROPOSED so tests
+// that don't stage anything still get a useful default.
+// ════════════════════════════════════════════════════════════════
+
+interface ActionLifecycleRow {
+  action_id: string;
+  status:
+    | "PROPOSED"
+    | "APPROVED"
+    | "REJECTED"
+    | "SCHEDULED"
+    | "RUNNING"
+    | "SUCCEEDED"
+    | "FAILED"
+    | "CANCELLED"
+    | "TIMED_OUT"
+    | "EXPIRED";
+  action_type: string;
+  risk_tier: string;
+  attempt_count: number;
+  last_result_summary: string | null;
+  decision_reason?: string;
+  escalation_id?: string;
+}
+
+const actionLifecycleStore = new Map<string, ActionLifecycleRow>();
+
+export function resetActionLifecycleStore(): void {
+  actionLifecycleStore.clear();
+}
+
+export function seedActionLifecycle(
+  row: Partial<ActionLifecycleRow> & { action_id: string },
+): ActionLifecycleRow {
+  const full: ActionLifecycleRow = {
+    action_id: row.action_id,
+    status: row.status ?? "PROPOSED",
+    action_type: row.action_type ?? "SEND_INTERNAL_NOTIFICATION",
+    risk_tier: row.risk_tier ?? "LOW",
+    attempt_count: row.attempt_count ?? 0,
+    last_result_summary: row.last_result_summary ?? null,
+    ...(row.decision_reason !== undefined
+      ? { decision_reason: row.decision_reason }
+      : {}),
+    ...(row.escalation_id !== undefined
+      ? { escalation_id: row.escalation_id }
+      : {}),
+  };
+  actionLifecycleStore.set(full.action_id, full);
+  return full;
+}
+
+const actionDetailHandler = http.get(
+  `${API_BASE}/actions/:id`,
+  ({ params }) => {
+    const id = String(params.id);
+    const row = actionLifecycleStore.get(id);
+    if (row === undefined) {
+      // Default for un-seeded ids returned by the playground
+      // transition fixture: render a PROPOSED row so the panel
+      // can exercise the "proposed → refresh → still proposed"
+      // path without each test having to seed.
+      if (id.startsWith("act-")) {
+        const now = new Date().toISOString();
+        return HttpResponse.json(
+          {
+            ok: true,
+            action: {
+              action_id: id,
+              status: "PROPOSED",
+              action_type: "SEND_INTERNAL_NOTIFICATION",
+              risk_tier: "LOW",
+              requires_approval: true,
+              created_at: now,
+              updated_at: now,
+              attempt_count: 0,
+              last_result_summary: null,
+            },
+          },
+          { status: 200 },
+        );
+      }
+      return HttpResponse.json(
+        {
+          ok: false,
+          code: "ACTION_NOT_FOUND",
+          message: "Action not found",
+        },
+        { status: 404 },
+      );
+    }
+    const now = new Date().toISOString();
+    return HttpResponse.json(
+      {
+        ok: true,
+        action: {
+          action_id: row.action_id,
+          status: row.status,
+          action_type: row.action_type,
+          risk_tier: row.risk_tier,
+          requires_approval: row.status === "PROPOSED",
+          ...(row.escalation_id !== undefined
+            ? { escalation_id: row.escalation_id }
+            : {}),
+          ...(row.decision_reason !== undefined
+            ? { decision_reason: row.decision_reason }
+            : {}),
+          created_at: now,
+          updated_at: now,
+          attempt_count: row.attempt_count,
+          last_result_summary: row.last_result_summary,
+        },
+      },
+      { status: 200 },
+    );
+  },
+);
+
 export const handlers = [
+  // Section 2 Action read surface (ADR-0057 §9 + §10)
+  actionDetailHandler,
   // Section 5 Agent Playground Wave 10 (ADR-0077)
   playgroundListScenariosHandler,
   playgroundCreateScenarioHandler,
