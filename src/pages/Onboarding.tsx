@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
@@ -47,6 +49,7 @@ import { getStepLabel } from "@/lib/dandelion-activation/labels";
 import type {
   CtActivationResult,
   CtActivationStepResult,
+  CtTeamActivationInput,
 } from "@/lib/dandelion-activation/types";
 import { OOTB_CATALOG_MIRROR } from "@/lib/ootb-catalog/data";
 import type {
@@ -967,6 +970,10 @@ function failureMessage(result: CtActivationResult): string {
       return "The activation catalog is unavailable. Contact support.";
     case "AUDIT_WRITE_FAILED":
       return "The audit trail could not be written. The activation was rolled back. Try again.";
+    case "INVALID_SLACK_BINDING_INPUT":
+      return "Please provide both the Slack binding name and the env-var NAME for the bot token. The env-var NAME is the variable name on the deployment host — never paste the resolved bot token here.";
+    case "CONNECTOR_BINDING_FAILED":
+      return "The Slack binding could not be registered. Check that the binding name is unique for this organization and that the env-var name is UPPER_SNAKE_CASE.";
     default:
       return "Activation failed. Try again in a moment.";
   }
@@ -978,14 +985,27 @@ function ActivationStepCard({
   step: CtActivationStepResult;
 }) {
   const label = getStepLabel(step.audit_literal);
+  const isSlackBindingStep =
+    step.step_id === "step.connector.slack-binding-register";
   return (
     <div
-      className="rounded border p-3"
+      className={
+        isSlackBindingStep
+          ? "rounded border-2 border-primary p-3"
+          : "rounded border p-3"
+      }
       data-testid={`activation-step-${step.step_order}`}
     >
       <div className="flex items-baseline gap-2">
-        <Badge variant="outline">Step {step.step_order}</Badge>
+        <Badge variant={isSlackBindingStep ? "default" : "outline"}>
+          Step {step.step_order}
+        </Badge>
         <div className="font-medium">{label.title}</div>
+        {isSlackBindingStep ? (
+          <Badge variant="secondary" data-testid="slack-binding-highlight">
+            Slack binding
+          </Badge>
+        ) : null}
       </div>
       <div className="text-sm text-muted-foreground mt-1">{label.summary}</div>
       <div className="text-xs text-muted-foreground mt-2 font-mono">
@@ -1089,6 +1109,174 @@ function DandelionActivationCard() {
   );
 }
 
+// ────────────────────────────────────────────────────────────────
+// D6 Dandelion Stage F team-archetype activation admin walk surface.
+// Consumes Foundation POST /api/v1/org/dandelion/activate/team
+// (PR #198). Collects slack_display_name + slack_secret_ref +
+// slack_workspace_id from the admin via form fields and POSTs.
+//
+// Privacy invariant:
+// - slack_secret_ref is the env-var NAME on the deployment host;
+//   the resolved env-var VALUE never crosses the API boundary.
+// - Test suite asserts no concrete xoxb-* token regex appears in
+//   the rendered output anywhere.
+// ────────────────────────────────────────────────────────────────
+
+const TEAM_ACTIVATION_DOCTRINE_LINE =
+  "Activate the team envelope. Step 5 registers a real Slack read-first binding from the env-var NAME on your deployment host. Live API access stays disabled until a separate Founder-authorized deployment flip.";
+
+const TEAM_ACTIVATION_PRIVACY_LINE =
+  "The Slack env-var NAME field is the variable name on the deployment host (e.g. SLACK_BOT_TOKEN_PROD). Never paste the resolved bot token here. The resolved value never crosses the API boundary.";
+
+function TeamActivationCard() {
+  const [displayName, setDisplayName] = useState("");
+  const [secretRef, setSecretRef] = useState("");
+  const [workspaceId, setWorkspaceId] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<CtActivationResult | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => {
+      const input: CtTeamActivationInput = {
+        slack_display_name: displayName.trim(),
+        slack_secret_ref: secretRef.trim(),
+      };
+      if (workspaceId.trim().length > 0) {
+        input.slack_workspace_id = workspaceId.trim();
+      }
+      return api.dandelionActivation.activateTeam(input);
+    },
+    onSuccess: (apiResult) => {
+      if (apiResult.ok) {
+        setResult(apiResult.data);
+        setErrorMessage(
+          apiResult.data.ok ? null : failureMessage(apiResult.data),
+        );
+      } else {
+        setResult(null);
+        setErrorMessage(
+          apiResult.message.length > 0
+            ? apiResult.message
+            : "Activation request failed.",
+        );
+      }
+    },
+    onError: (err) => {
+      setResult(null);
+      setErrorMessage(
+        err instanceof Error ? err.message : "Network error.",
+      );
+    },
+  });
+
+  const success = result !== null && result.ok ? result : null;
+  const submitDisabled =
+    mutation.isPending ||
+    displayName.trim().length === 0 ||
+    secretRef.trim().length === 0;
+
+  return (
+    <Card data-testid="dandelion-team-activation-card">
+      <CardHeader>
+        <CardTitle>Activate the team envelope</CardTitle>
+        <CardDescription>{TEAM_ACTIVATION_DOCTRINE_LINE}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div className="space-y-1">
+          <Label htmlFor="team-slack-display-name">
+            Slack binding name
+          </Label>
+          <Input
+            id="team-slack-display-name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="e.g. niov-prod-slack"
+            data-testid="team-slack-display-name-input"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="team-slack-secret-ref">
+            Slack env-var NAME
+          </Label>
+          <Input
+            id="team-slack-secret-ref"
+            value={secretRef}
+            onChange={(e) => setSecretRef(e.target.value)}
+            placeholder="e.g. SLACK_BOT_TOKEN_PROD"
+            data-testid="team-slack-secret-ref-input"
+          />
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid="team-privacy-notice"
+          >
+            {TEAM_ACTIVATION_PRIVACY_LINE}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="team-slack-workspace-id">
+            Slack workspace (optional)
+          </Label>
+          <Input
+            id="team-slack-workspace-id"
+            value={workspaceId}
+            onChange={(e) => setWorkspaceId(e.target.value)}
+            placeholder="e.g. T01234ABCDE"
+            data-testid="team-slack-workspace-id-input"
+          />
+        </div>
+        <Button
+          onClick={() => mutation.mutate()}
+          disabled={submitDisabled}
+          data-testid="activate-team-button"
+        >
+          {mutation.isPending
+            ? "Activating…"
+            : success !== null
+              ? "Activate again"
+              : "Activate team envelope"}
+        </Button>
+        {errorMessage !== null ? (
+          <p
+            className="text-xs text-destructive"
+            data-testid="team-activation-error"
+          >
+            {errorMessage}
+          </p>
+        ) : null}
+        {success !== null ? (
+          <div className="space-y-2" data-testid="team-activation-success">
+            <Separator />
+            <div className="flex flex-wrap gap-1">
+              <Badge variant="secondary">Activated</Badge>
+              <Badge variant="outline">archetype: {success.archetype}</Badge>
+              <Badge variant="outline">
+                plan_id: {success.plan_id}
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Final audit_event_id{" "}
+              {success.activation_audit_event_id.slice(0, 8)}…
+            </div>
+            <div className="space-y-2">
+              {success.steps.map((step) => (
+                <ActivationStepCard
+                  key={step.step_order}
+                  step={step}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Step 5 created a real Slack read-first binding. Open
+              Connectors to see the new binding, or Security &amp; Audit
+              to read the full lineage by audit_event_id.
+            </p>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function OnboardingPage() {
   // Defensive: if the mirror is empty / malformed for any reason, render a
   // safe empty state instead of crashing the screen.
@@ -1121,6 +1309,7 @@ export function OnboardingPage() {
       />
       <DoctrineCard />
       <DandelionActivationCard />
+      <TeamActivationCard />
       <CatalogCountsCard />
       <RoleBrowser roles={CATALOG.role_summaries} />
       <RoleDepthRoadmapPanel roadmap={CATALOG.role_depth_roadmap} />
