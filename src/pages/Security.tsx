@@ -45,6 +45,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
@@ -54,11 +62,37 @@ import type {
   SafeAuditEventDetailView,
   AuditEventChainRef,
   AuditOutcome,
+  AuditEventType,
 } from "@/lib/types/foundation";
-import { getAuditEventLabel } from "@/lib/audit/event-types";
+import { getAuditEventLabel, AUDIT_EVENT_TYPE_LABELS } from "@/lib/audit/event-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 
 const PAGE_SIZE = 25;
+
+// WHAT: Closed-vocab filter state for the audit-events list.
+//        Mirrors the Foundation route query-string contract at
+//        `apps/api/src/routes/audit.routes.ts` Section 7 Wave 1:
+//        `event_type` + `outcome` + `target_entity_id` +
+//        `target_capsule_id` + `start_time` + `end_time`. This
+//        slice wires the two highest-value filters (event_type +
+//        outcome); ID search + date range pickers are forward-
+//        substrate behind separate follow-on slices.
+interface AuditListFilters {
+  event_type: AuditEventType | "all";
+  outcome: AuditOutcome | "all";
+}
+
+const DEFAULT_FILTERS: AuditListFilters = {
+  event_type: "all",
+  outcome: "all",
+};
+
+// WHAT: Closed-vocab outcome options.
+const OUTCOME_OPTIONS: readonly { value: AuditOutcome; label: string }[] = [
+  { value: "SUCCESS", label: "Success" },
+  { value: "DENIED", label: "Denied" },
+  { value: "FAILURE", label: "Failure" },
+];
 
 // WHAT: Closed-vocab Badge variant for the audit outcome.
 function outcomeBadge(outcome: AuditOutcome): {
@@ -374,13 +408,46 @@ function EventDetailPanel({
 export function SecurityPage() {
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<AuditListFilters>(DEFAULT_FILTERS);
+  const filtersAreDefault =
+    filters.event_type === DEFAULT_FILTERS.event_type &&
+    filters.outcome === DEFAULT_FILTERS.outcome;
+
+  // Reset to page 1 whenever filters change so the pager is
+  // always coherent with the active filter set.
+  function applyFilters(next: AuditListFilters) {
+    setFilters(next);
+    setPage(1);
+    setSelectedId(null);
+  }
+  function resetFilters() {
+    applyFilters(DEFAULT_FILTERS);
+  }
+
   const listQuery = useQuery({
-    queryKey: ["audit", "list", page],
-    queryFn: () =>
-      api.audit.list({ page, page_size: PAGE_SIZE }).then((r) => {
+    queryKey: [
+      "audit",
+      "list",
+      page,
+      filters.event_type,
+      filters.outcome,
+    ],
+    queryFn: () => {
+      const args: Parameters<typeof api.audit.list>[0] = {
+        page,
+        page_size: PAGE_SIZE,
+      };
+      if (filters.event_type !== "all") {
+        args.event_type = filters.event_type;
+      }
+      if (filters.outcome !== "all") {
+        args.outcome = filters.outcome;
+      }
+      return api.audit.list(args).then((r) => {
         if (r.ok) return r.data;
         throw new Error(r.code);
-      }),
+      });
+    },
   });
 
   const events = useMemo<readonly SafeAuditEventView[]>(
@@ -409,6 +476,94 @@ export function SecurityPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div
+              className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+              data-testid="audit-filter-bar"
+            >
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-filter-event-type"
+                  className="text-xs"
+                >
+                  Event type
+                </Label>
+                <Select
+                  value={filters.event_type}
+                  onValueChange={(value) =>
+                    applyFilters({
+                      ...filters,
+                      event_type: value as AuditListFilters["event_type"],
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    id="audit-filter-event-type"
+                    data-testid="audit-filter-event-type"
+                    className="h-9"
+                  >
+                    <SelectValue placeholder="All event types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All event types</SelectItem>
+                    {(
+                      Object.entries(AUDIT_EVENT_TYPE_LABELS) as readonly [
+                        AuditEventType,
+                        string,
+                      ][]
+                    ).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-filter-outcome"
+                  className="text-xs"
+                >
+                  Outcome
+                </Label>
+                <Select
+                  value={filters.outcome}
+                  onValueChange={(value) =>
+                    applyFilters({
+                      ...filters,
+                      outcome: value as AuditListFilters["outcome"],
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    id="audit-filter-outcome"
+                    data-testid="audit-filter-outcome"
+                    className="h-9"
+                  >
+                    <SelectValue placeholder="All outcomes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All outcomes</SelectItem>
+                    {OUTCOME_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={filtersAreDefault}
+                  onClick={resetFilters}
+                  data-testid="audit-filter-reset"
+                >
+                  Reset filters
+                </Button>
+              </div>
+            </div>
             {listQuery.isLoading && (
               <ul className="space-y-2" data-testid="audit-list-loading">
                 {Array.from({ length: 6 }).map((_, i) => (

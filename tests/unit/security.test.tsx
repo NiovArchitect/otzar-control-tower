@@ -260,6 +260,180 @@ describe("Section 7 Security & Audit — detail panel", () => {
   });
 });
 
+describe("Section 7 Security & Audit — filter UI (D2.1)", () => {
+  it("renders filter controls + reset button", async () => {
+    renderPage();
+    await screen.findByTestId("audit-list");
+    expect(screen.getByTestId("audit-filter-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("audit-filter-event-type")).toBeInTheDocument();
+    expect(screen.getByTestId("audit-filter-outcome")).toBeInTheDocument();
+    expect(screen.getByTestId("audit-filter-reset")).toBeInTheDocument();
+  });
+
+  it("reset button is disabled when filters are at default", async () => {
+    renderPage();
+    await screen.findByTestId("audit-list");
+    expect(screen.getByTestId("audit-filter-reset")).toBeDisabled();
+  });
+
+  it("applies event_type filter and narrows the list to matching events", async () => {
+    let lastListUrl: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/audit/events`, ({ request }) => {
+        lastListUrl = request.url;
+        const url = new URL(request.url);
+        const filter = url.searchParams.get("event_type");
+        const events =
+          filter === "ADMIN_ACTION"
+            ? [
+                {
+                  audit_id: "aud-admin-only",
+                  event_type: "ADMIN_ACTION",
+                  actor_entity_id: "ent-self",
+                  target_entity_id: "ent-self",
+                  target_capsule_id: null,
+                  session_id: "ses-001",
+                  outcome: "SUCCESS",
+                  denial_reason: null,
+                  details: { action: "TEST_FILTER" },
+                  ip_address: "10.0.0.1",
+                  timestamp: "2026-05-31T18:32:00.000Z",
+                  previous_event_hash: null,
+                  event_hash:
+                    "0000000000000000000000000000000000000000000000000000000000000003",
+                  lawful_basis_id: null,
+                  lawful_basis_chain_hash: null,
+                  jurisdiction: null,
+                },
+              ]
+            : [];
+        return HttpResponse.json(
+          {
+            ok: true,
+            page: 1,
+            page_size: 25,
+            total: events.length,
+            events,
+          },
+          { status: 200 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list-empty");
+    // Open the Select trigger and pick ADMIN_ACTION.
+    await user.click(screen.getByTestId("audit-filter-event-type"));
+    await user.click(
+      await screen.findByRole("option", { name: /Admin Action/i }),
+    );
+    const list = await screen.findByTestId("audit-list");
+    expect(within(list).getAllByTestId("audit-row").length).toBe(1);
+    expect(lastListUrl).not.toBeNull();
+    expect(lastListUrl!).toContain("event_type=ADMIN_ACTION");
+  });
+
+  it("Reset button restores defaults + re-enables the All view", async () => {
+    server.use(
+      http.get(`${API_BASE}/audit/events`, ({ request }) => {
+        const url = new URL(request.url);
+        const filter = url.searchParams.get("event_type");
+        const events =
+          filter === "ADMIN_ACTION"
+            ? [
+                {
+                  audit_id: "aud-admin-only",
+                  event_type: "ADMIN_ACTION",
+                  actor_entity_id: "ent-self",
+                  target_entity_id: "ent-self",
+                  target_capsule_id: null,
+                  session_id: "ses-001",
+                  outcome: "SUCCESS",
+                  denial_reason: null,
+                  details: { action: "TEST_FILTER" },
+                  ip_address: "10.0.0.1",
+                  timestamp: "2026-05-31T18:32:00.000Z",
+                  previous_event_hash: null,
+                  event_hash:
+                    "0000000000000000000000000000000000000000000000000000000000000003",
+                  lawful_basis_id: null,
+                  lawful_basis_chain_hash: null,
+                  jurisdiction: null,
+                },
+              ]
+            : section7EventsForReset;
+        return HttpResponse.json(
+          {
+            ok: true,
+            page: 1,
+            page_size: 25,
+            total: events.length,
+            events,
+          },
+          { status: 200 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list");
+    // Apply filter.
+    await user.click(screen.getByTestId("audit-filter-event-type"));
+    await user.click(
+      await screen.findByRole("option", { name: /Admin Action/i }),
+    );
+    await screen.findByTestId("audit-list");
+    expect(screen.getByTestId("audit-filter-reset")).not.toBeDisabled();
+    // Reset.
+    await user.click(screen.getByTestId("audit-filter-reset"));
+    expect(screen.getByTestId("audit-filter-reset")).toBeDisabled();
+  });
+});
+
+// 3-event fixture for the reset test (matches MSW default
+// fixture chain but lives here for isolation).
+const section7EventsForReset = [
+  {
+    audit_id: "aud-7-001",
+    event_type: "LOGIN_SUCCESS",
+    actor_entity_id: "ent-self",
+    target_entity_id: "ent-self",
+    target_capsule_id: null,
+    session_id: "ses-001",
+    outcome: "SUCCESS",
+    denial_reason: null,
+    details: { action: "LOGIN" },
+    ip_address: "10.0.0.1",
+    timestamp: "2026-05-31T18:30:00.000Z",
+    previous_event_hash: null,
+    event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    lawful_basis_id: null,
+    lawful_basis_chain_hash: null,
+    jurisdiction: null,
+  },
+  {
+    audit_id: "aud-7-002",
+    event_type: "CAPSULE_CREATED",
+    actor_entity_id: "ent-self",
+    target_entity_id: "ent-self",
+    target_capsule_id: "cap-9001",
+    session_id: "ses-001",
+    outcome: "SUCCESS",
+    denial_reason: null,
+    details: { action: "CAPSULE_CREATED", capsule_type: "PREFERENCE" },
+    ip_address: "10.0.0.1",
+    timestamp: "2026-05-31T18:31:00.000Z",
+    previous_event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    event_hash:
+      "0000000000000000000000000000000000000000000000000000000000000002",
+    lawful_basis_id: null,
+    lawful_basis_chain_hash: null,
+    jurisdiction: null,
+  },
+];
+
 describe("Section 7 Security & Audit — forbidden-copy + no-leak guards", () => {
   it("never displays any forbidden ADR-0077-family UI copy", async () => {
     const user = userEvent.setup();
