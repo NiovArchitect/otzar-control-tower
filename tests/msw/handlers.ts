@@ -2293,13 +2293,32 @@ const auditEventsListHandler = http.get(
     const url = new URL(request.url);
     const page = Number(url.searchParams.get("page") ?? "1");
     const pageSize = Number(url.searchParams.get("page_size") ?? "25");
+    const eventTypeFilter = url.searchParams.get("event_type");
+    const outcomeFilter = url.searchParams.get("outcome");
+    const filtered = section7EventFixtures.filter((e) => {
+      if (
+        eventTypeFilter !== null &&
+        eventTypeFilter !== "" &&
+        e.event_type !== eventTypeFilter
+      ) {
+        return false;
+      }
+      if (
+        outcomeFilter !== null &&
+        outcomeFilter !== "" &&
+        e.outcome !== outcomeFilter
+      ) {
+        return false;
+      }
+      return true;
+    });
     return HttpResponse.json(
       {
         ok: true,
         page,
         page_size: pageSize,
-        total: section7EventFixtures.length,
-        events: section7EventFixtures,
+        total: filtered.length,
+        events: filtered,
       },
       { status: 200 },
     );
