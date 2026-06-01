@@ -111,6 +111,15 @@ import type {
   ListComplianceFrameworksSuccess,
   GetComplianceStateSuccess,
 } from "./types/foundation";
+import type {
+  ListConnectorBindingsSuccess,
+  GetConnectorBindingSuccess,
+  RegisterConnectorBindingInput,
+  RegisterConnectorBindingSuccess,
+  UpdateConnectorBindingInput,
+  UpdateConnectorBindingSuccess,
+  DeleteConnectorBindingSuccess,
+} from "./connectors/types";
 
 // WHAT: Discriminated-union result every api.* method returns.
 // INPUT: Used as a return type.
@@ -1008,6 +1017,76 @@ export class ApiClient {
         };
       }
     },
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // connectors.*  (Section 4 ConnectorBinding admin surface per
+  // PR #185 — C2 Slack read-first runtime is LIVE at Foundation.
+  // This namespace consumes the 5 LIVE admin routes:
+  //
+  //   POST   /api/v1/org/connectors        — register
+  //   GET    /api/v1/org/connectors        — list
+  //   GET    /api/v1/org/connectors/:id    — single
+  //   PATCH  /api/v1/org/connectors/:id    — update/enable/disable
+  //   DELETE /api/v1/org/connectors/:id    — soft-delete (RULE 10)
+  //
+  // can_admin_org-gated at the Foundation route tier via the
+  // requireAdminCapability preHandler. ConnectorBindingView at the
+  // Foundation tier is construction-by-allowlist: secret_ref carries
+  // the env-var NAME (e.g. "SLACK_BOT_TOKEN_PROD"), never the
+  // resolved env-var VALUE; resolved values stay inside the
+  // provider implementation (e.g. SlackReadProvider). This CT
+  // namespace inherits that invariant by passing the view through
+  // unchanged; the admin page never attempts to display or decode
+  // the resolved value.
+  // ──────────────────────────────────────────────────────────────
+  connectors = {
+    /** GET /api/v1/org/connectors -- list bindings (optionally filter by enabled). */
+    list: (
+      enabled?: boolean,
+    ): Promise<ApiResult<ListConnectorBindingsSuccess>> =>
+      this.request<ListConnectorBindingsSuccess>(
+        enabled === undefined
+          ? "/org/connectors"
+          : `/org/connectors?enabled=${enabled ? "true" : "false"}`,
+      ),
+
+    /** GET /api/v1/org/connectors/:id -- single binding view. */
+    get: (
+      bindingId: string,
+    ): Promise<ApiResult<GetConnectorBindingSuccess>> =>
+      this.request<GetConnectorBindingSuccess>(
+        `/org/connectors/${encodeURIComponent(bindingId)}`,
+      ),
+
+    /** POST /api/v1/org/connectors -- register a new binding. */
+    register: (
+      body: RegisterConnectorBindingInput,
+    ): Promise<ApiResult<RegisterConnectorBindingSuccess>> =>
+      this.request<RegisterConnectorBindingSuccess>("/org/connectors", {
+        method: "POST",
+        body,
+        retries: 0,
+      }),
+
+    /** PATCH /api/v1/org/connectors/:id -- update + enable/disable. */
+    update: (
+      bindingId: string,
+      body: UpdateConnectorBindingInput,
+    ): Promise<ApiResult<UpdateConnectorBindingSuccess>> =>
+      this.request<UpdateConnectorBindingSuccess>(
+        `/org/connectors/${encodeURIComponent(bindingId)}`,
+        { method: "PATCH", body, retries: 0 },
+      ),
+
+    /** DELETE /api/v1/org/connectors/:id -- soft-delete (RULE 10). */
+    delete: (
+      bindingId: string,
+    ): Promise<ApiResult<DeleteConnectorBindingSuccess>> =>
+      this.request<DeleteConnectorBindingSuccess>(
+        `/org/connectors/${encodeURIComponent(bindingId)}`,
+        { method: "DELETE", retries: 0 },
+      ),
   };
 }
 

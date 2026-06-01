@@ -1,0 +1,354 @@
+// FILE: tests/unit/connectors-admin.test.tsx
+// PURPOSE: Page tests for the Section 4 ConnectorBinding admin
+//          surface at /connectors. Verifies:
+//          - /connectors registers in the main nav
+//          - shell + doctrine + privacy notice render
+//          - empty bindings list renders the empty-state CTA
+//          - one binding rendered with enable/disable + soft-delete
+//            controls bound to the API client
+//          - secret_ref env-var NAME is rendered; resolved bot token
+//            (xoxb-*) is NEVER rendered
+//          - "Read-first" badge appears on every binding
+//          - register form validates display_name + secret_ref
+//          - forbidden UI copy guard (no surveillance / scoring /
+//            guaranteed-compliance / regulator-approved / etc.)
+// CONNECTS TO: src/pages/ConnectorsAdmin.tsx,
+//              src/lib/connectors/{types,data}.ts,
+//              src/lib/api.ts (api.connectors namespace),
+//              src/lib/nav.ts.
+
+import { describe, expect, it, beforeEach } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { http, HttpResponse } from "msw";
+import { server } from "../msw/server";
+import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
+import { NAV } from "@/lib/nav";
+import { useAuthStore } from "@/lib/stores/auth";
+
+const API_BASE = "http://localhost:3000/api/v1";
+
+function setAuth() {
+  useAuthStore.setState({
+    token: "tok",
+    entity: { email: "admin@example.com" },
+    isAuthenticated: true,
+    capabilities: {
+      can_read_capsules: true,
+      can_write_capsules: true,
+      can_share_capsules: true,
+      can_admin_org: true,
+      can_admin_niov: false,
+    },
+  });
+}
+
+function renderConnectors() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <ConnectorsAdminPage />
+    </QueryClientProvider>,
+  );
+}
+
+beforeEach(() => setAuth());
+
+// ────────────────────────────────────────────────────────────────
+// Forbidden UI copy guard. Each phrase must NEVER appear as a
+// positive claim on the page. Matches substring at lower-case.
+// ────────────────────────────────────────────────────────────────
+const FORBIDDEN_UI_COPY = [
+  "subscription active",
+  "payment method required",
+  "invoice generated",
+  "feature enabled",
+  "permission granted",
+  "connector activated",
+  "workflow execution enabled",
+  "guaranteed compliant",
+  "regulator approved",
+  "no fine risk",
+  "employee score",
+  "manager surveillance",
+  "psychological profile",
+  "unrestricted write access",
+  "auto-approved",
+];
+
+describe("Connectors — nav", () => {
+  it("registers /connectors in the main nav", () => {
+    const entry = NAV.find((n) => n.to === "/connectors");
+    expect(entry).toBeDefined();
+    expect(entry?.label).toBe("Connectors");
+  });
+});
+
+describe("Connectors — page shell", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("renders the Connectors page title", async () => {
+    renderConnectors();
+    expect(
+      screen.getByRole("heading", { name: /Connectors/i, level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the privacy notice about env-var NAME vs resolved value", async () => {
+    renderConnectors();
+    expect(
+      screen.getAllByText(
+        /env-var NAME on the deployment host\. The resolved env-var value/i,
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("renders the canonical Founder doctrine line", async () => {
+    renderConnectors();
+    expect(
+      screen.getAllByText(
+        /Billing entitles availability; Foundation governance authorizes activation/i,
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("renders the SLACK_READ type in the registry card", async () => {
+    renderConnectors();
+    expect(screen.getByTestId("type-SLACK_READ")).toBeInTheDocument();
+    expect(screen.getByTestId("type-OUTBOUND_WEBHOOK")).toBeInTheDocument();
+  });
+});
+
+describe("Connectors — empty state", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("renders the empty-state CTA when no bindings exist", async () => {
+    renderConnectors();
+    expect(await screen.findByTestId("empty-state")).toHaveTextContent(
+      /No bindings registered yet/i,
+    );
+  });
+});
+
+describe("Connectors — one binding rendered", () => {
+  const binding = {
+    binding_id: "00000000-0000-0000-0000-000000000001",
+    org_entity_id: "11111111-1111-1111-1111-111111111111",
+    type: "SLACK_READ",
+    display_name: "niov-prod-slack",
+    config: { use_real: false, workspace_id: "T_TEST" },
+    secret_ref: "SLACK_BOT_TOKEN_PROD",
+    enabled: true,
+    created_by_entity_id: "22222222-2222-2222-2222-222222222222",
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [binding] }),
+      ),
+    );
+  });
+
+  it("renders the binding by testid", async () => {
+    renderConnectors();
+    expect(
+      await screen.findByTestId(`binding-${binding.binding_id}`),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the secret env-var NAME and the never-displayed disclaimer", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${binding.binding_id}`);
+    // env-var NAME is the only thing the API returns + page shows
+    expect(within(card).getByText("SLACK_BOT_TOKEN_PROD")).toBeInTheDocument();
+    expect(
+      within(card).getByText(/env-var NAME only; resolved value never displayed/i),
+    ).toBeInTheDocument();
+    // A concrete resolved bot-token value would match
+    // /xoxb-\d+-\d+-[a-z0-9]+/i. The page renders OAuth-model
+    // documentation ("Bot-token (xoxb-*)") which is education, not
+    // a leak. We assert NO concrete bot-token pattern is present.
+    const allText =
+      (await screen.findByText(/niov-prod-slack/)).ownerDocument.body
+        .textContent ?? "";
+    expect(allText).not.toMatch(/xoxb-[A-Za-z0-9]{4,}-[A-Za-z0-9]{4,}/);
+    expect(allText.toLowerCase()).not.toContain("bearer ");
+  });
+
+  it("shows the read-first badge on every binding", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${binding.binding_id}`);
+    expect(
+      within(card).getByText(/Read-first \(no writes at C2\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("offers an enable/disable toggle and a soft-delete control", async () => {
+    renderConnectors();
+    expect(
+      await screen.findByTestId(`toggle-${binding.binding_id}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`delete-${binding.binding_id}`),
+    ).toBeInTheDocument();
+  });
+
+  it("invokes PATCH on the toggle and refreshes the list", async () => {
+    let patched = false;
+    server.use(
+      http.patch(
+        `${API_BASE}/org/connectors/${binding.binding_id}`,
+        async ({ request }) => {
+          const body = (await request.json()) as { enabled?: boolean };
+          patched = body.enabled === false;
+          return HttpResponse.json({
+            ok: true,
+            binding: { ...binding, enabled: false },
+            audit_event_id: "ae-1",
+          });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    const toggle = await screen.findByTestId(`toggle-${binding.binding_id}`);
+    await user.click(toggle);
+    await waitFor(() => expect(patched).toBe(true));
+  });
+
+  it("invokes DELETE on the soft-delete control", async () => {
+    let deleted = false;
+    server.use(
+      http.delete(
+        `${API_BASE}/org/connectors/${binding.binding_id}`,
+        () => {
+          deleted = true;
+          return HttpResponse.json({
+            ok: true,
+            binding_id: binding.binding_id,
+            audit_event_id: "ae-2",
+          });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    const del = await screen.findByTestId(`delete-${binding.binding_id}`);
+    await user.click(del);
+    await waitFor(() => expect(deleted).toBe(true));
+  });
+});
+
+describe("Connectors — register form", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("submit is disabled until display_name + secret_ref are filled", async () => {
+    renderConnectors();
+    const submit = await screen.findByTestId("register-submit");
+    expect(submit).toBeDisabled();
+  });
+
+  it("posts to the register endpoint when fields are valid", async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/connectors`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            ok: true,
+            binding: {
+              binding_id: "new-binding-id",
+              org_entity_id: "org-1",
+              type: "SLACK_READ",
+              display_name: "niov-dev-slack",
+              config: { use_real: false, workspace_id: "niov-dev-slack" },
+              secret_ref: "SLACK_BOT_TOKEN_DEV",
+              enabled: true,
+              created_by_entity_id: "user-1",
+              created_at: "2026-06-01T00:00:00.000Z",
+              updated_at: "2026-06-01T00:00:00.000Z",
+            },
+            audit_event_id: "ae-3",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    await user.type(
+      await screen.findByTestId("display-name-input"),
+      "niov-dev-slack",
+    );
+    await user.type(
+      screen.getByTestId("secret-ref-input"),
+      "SLACK_BOT_TOKEN_DEV",
+    );
+    await user.click(screen.getByTestId("register-submit"));
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).toMatchObject({
+      type: "SLACK_READ",
+      display_name: "niov-dev-slack",
+      secret_ref: "SLACK_BOT_TOKEN_DEV",
+    });
+  });
+});
+
+describe("Connectors — forbidden UI copy guard", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({
+          ok: true,
+          bindings: [
+            {
+              binding_id: "bind-1",
+              org_entity_id: "org-1",
+              type: "SLACK_READ",
+              display_name: "demo",
+              config: {},
+              secret_ref: "SLACK_BOT_TOKEN_DEMO",
+              enabled: true,
+              created_by_entity_id: "u-1",
+              created_at: "2026-06-01T00:00:00.000Z",
+              updated_at: "2026-06-01T00:00:00.000Z",
+            },
+          ],
+        }),
+      ),
+    );
+  });
+
+  it.each(FORBIDDEN_UI_COPY)(
+    "does NOT contain the forbidden phrase %s as a positive claim",
+    async (phrase) => {
+      const { container } = renderConnectors();
+      // Wait for the list to render
+      await screen.findByTestId("bindings-section");
+      const text = (container.textContent ?? "").toLowerCase();
+      expect(text).not.toContain(phrase.toLowerCase());
+    },
+  );
+});

@@ -30,6 +30,7 @@ import {
   Compass,
   CreditCard,
   Database,
+  PlugZap,
   FlaskConical,
   KeyRound,
   LayoutDashboard,
@@ -154,6 +155,12 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/billing",
     icon: CreditCard,
     description: "Billing & Entitlements Preview -- read-only browse of the Section 8 B2 plans, seats, packs, connector families, governance rules, and downgrade policies.",
+  },
+  {
+    label: "Connectors",
+    to: "/connectors",
+    icon: PlugZap,
+    description: "Section 4 ConnectorBinding admin surface -- register, list, enable / disable, and soft-delete bindings for SLACK_READ and OUTBOUND_WEBHOOK connector types. C2 Slack runtime is LIVE.",
   },
   {
     label: "Documentation",
