@@ -1,0 +1,1048 @@
+// FILE: data.ts
+// PURPOSE: Compact derived mirror of the ADR-0080 Wave 2 static OOTB
+//          catalog for the Control Tower /onboarding Dandelion Preview
+//          (read-only). All content is derived verbatim from Foundation
+//          docs/ootb-catalog/*.json (Foundation PR #166 HEAD 86b1a4b).
+//          NEVER live permissions. NEVER live connectors. NEVER
+//          activates anything.
+//
+// CANONICAL DOCTRINE (preserved verbatim):
+//   "Dandelion suggests the starter shape; Foundation governance
+//    authorizes what may actually run."
+//   "Templates describe useful defaults. Governed envelopes define
+//    how those defaults may be used."
+//   "JSON is not the moat — the governed context envelope is."
+//   "Catalog entries are not permissions."
+//   "Connector presets are not live connectors."
+//
+// CONNECTS TO: src/pages/Onboarding.tsx, src/lib/ootb-catalog/types.ts.
+// FOUNDATION SOURCE: docs/ootb-catalog/{roles,departments,company-
+//   variants,tools,workflows,connector-presets,dandelion-flow-
+//   templates}.json + catalog.schema.json + README.md.
+
+import type { OotbCatalogMirror } from "./types";
+
+export const OOTB_CATALOG_MIRROR: OotbCatalogMirror = {
+  source_doctrine: [
+    "Dandelion suggests the starter shape; Foundation governance authorizes what may actually run.",
+    "Templates describe useful defaults. Governed envelopes define how those defaults may be used.",
+    "JSON is not the moat — the governed context envelope is.",
+    "Catalog entries are not permissions.",
+    "Connector presets are not live connectors.",
+    "This preview does not activate tools, users, permissions, workflows, or Digital Twin profiles.",
+  ],
+  envelope_defaults_summary: {
+    object_type: "CatalogItem",
+    human_readable_summary:
+      "Every Foundation OOTB catalog file carries an envelope_defaults block stamping each item with governed envelope metadata. Per-item overrides take precedence.",
+    model_usage_notes:
+      "Treat catalog entries as SUGGESTIONS. Defer permissions to PermissionBundle + DelegatedAuthorityProfile + Foundation governance. Defer connector activation to a future RULE 21 research-arc implementation.",
+    scope_defaults: [
+      "TENANT_SCOPED",
+      "ENTITY_SCOPED_AT_DANDELION_ATTACHMENT",
+      "ROLE_SCOPED",
+    ],
+    permission_defaults: [
+      "READ_FIRST",
+      "WRITE_DISABLED_UNTIL_DELEGATED",
+      "RISKY_PERMISSIONS_ALWAYS_APPROVAL_GATED",
+    ],
+    audit_expectations: [
+      "Every connector action audited via existing ADMIN_ACTION + INVOKE_CONNECTOR lineage; NO new audit literal at this wave.",
+    ],
+    policy_purpose: "CATALOG_REFERENCE_ONLY",
+    allowed_consumers: [
+      "DANDELION_SUGGESTION_ENGINE",
+      "CONTROL_TOWER_ADMIN_REVIEW",
+      "FOUNDATION_GOVERNANCE_TIER",
+    ],
+    forbidden_consumers: [
+      "AGENT_TWIN_CROSS_TENANT",
+      "AGENT_TWIN_UNAPPROVED_WRITE",
+      "EXTERNAL_THIRD_PARTY_UNAUTHORIZED",
+    ],
+    sensitivity_level: "HIGH",
+  },
+  counts: {
+    roles: 15,
+    departments: 10,
+    company_variants: 15,
+    tools: 95,
+    workflows: 30,
+    connector_presets: 14,
+    dandelion_flows: 1,
+    total_items: 187,
+  },
+  role_summaries: [
+    {
+      id: "role.executive-assistant.v1",
+      role_name: "Executive Assistant",
+      role_family: "Executive Support",
+      department: "Executive Office",
+      seniority_level: "IC",
+      is_deepest_example: true,
+    },
+    {
+      id: "role.ceo.v1",
+      role_name: "CEO / Founder",
+      role_family: "Executive",
+      department: "Executive Office",
+      seniority_level: "C-Suite",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.coo.v1",
+      role_name: "COO",
+      role_family: "Executive",
+      department: "Executive Office",
+      seniority_level: "C-Suite",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.cfo.v1",
+      role_name: "CFO",
+      role_family: "Executive",
+      department: "Finance",
+      seniority_level: "C-Suite",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.chro.v1",
+      role_name: "CHRO / Head of People",
+      role_family: "Executive",
+      department: "People / HR",
+      seniority_level: "C-Suite",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.general-counsel.v1",
+      role_name: "General Counsel / Legal Lead",
+      role_family: "Legal / Compliance",
+      department: "Legal / Compliance",
+      seniority_level: "C-Suite",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.product-manager.v1",
+      role_name: "Product Manager / Product Owner",
+      role_family: "Product",
+      department: "Product",
+      seniority_level: "Manager",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.project-manager.v1",
+      role_name: "Project Manager / Program Manager",
+      role_family: "Product / Program",
+      department: "Product",
+      seniority_level: "Manager",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.account-executive.v1",
+      role_name: "Sales Rep / Account Executive",
+      role_family: "Sales / Revenue",
+      department: "Sales",
+      seniority_level: "IC / Senior IC",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.customer-success-manager.v1",
+      role_name: "Customer Success Manager",
+      role_family: "Customer",
+      department: "Customer Success",
+      seniority_level: "IC / Senior IC",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.software-engineer.v1",
+      role_name: "Software Engineer",
+      role_family: "Engineering",
+      department: "Engineering",
+      seniority_level: "IC",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.engineering-manager.v1",
+      role_name: "Engineering Manager",
+      role_family: "Engineering",
+      department: "Engineering",
+      seniority_level: "Manager",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.it-admin.v1",
+      role_name: "IT Admin / Security Admin",
+      role_family: "Engineering / IT / Security",
+      department: "IT / Security",
+      seniority_level: "IC / Senior IC",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.compliance-officer.v1",
+      role_name: "Compliance Officer / GRC Manager",
+      role_family: "Legal / Compliance",
+      department: "Legal / Compliance",
+      seniority_level: "IC / Manager",
+      is_deepest_example: false,
+    },
+    {
+      id: "role.board-member.v1",
+      role_name: "Board Member",
+      role_family: "Board / Governance",
+      department: "Board / Governance",
+      seniority_level: "Board",
+      is_deepest_example: false,
+    },
+  ],
+  executive_assistant_spotlight: {
+    id: "role.executive-assistant.v1",
+    role_name: "Executive Assistant",
+    likely_reports_to: [
+      "CEO",
+      "Founder",
+      "COO",
+      "CFO",
+      "CTO",
+      "CHRO",
+      "General Counsel",
+      "Board Chair",
+      "Executive team member",
+    ],
+    possible_direct_reports: [
+      "none",
+      "Administrative Assistant",
+      "Office Coordinator",
+      "Travel Coordinator",
+      "Receptionist",
+      "Event Coordinator",
+    ],
+    common_workflows: [
+      "Calendar management",
+      "Meeting scheduling / rescheduling",
+      "Travel booking",
+      "Hotel booking",
+      "Ground transport",
+      "Itinerary management",
+      "Receipt capture",
+      "Expense report preparation",
+      "Tomorrow's executive brief",
+      "Board meeting coordination",
+      "Agenda preparation",
+      "Follow-up drafting",
+      "Executive commitment tracking",
+      "Visitor / vendor coordination",
+      "Focus-time protection",
+    ],
+    common_tools: [
+      "Google Calendar",
+      "Outlook Calendar",
+      "Gmail",
+      "Outlook",
+      "Slack",
+      "Microsoft Teams",
+      "Zoom",
+      "Google Drive",
+      "Microsoft 365",
+      "DocuSign",
+      "SAP Concur",
+      "Expensify",
+      "Ramp",
+      "Brex",
+      "Navan / TripActions",
+      "TravelPerk",
+      "Notion",
+      "1Password",
+    ],
+    permission_bundles: [
+      { name: "Calendar Delegate", default_state: "ENABLED" },
+      { name: "Email Draft / Triage", default_state: "ENABLED" },
+      { name: "Travel Coordinator", default_state: "DISABLED_UNTIL_APPROVED" },
+      { name: "Expense Assistant", default_state: "DISABLED_UNTIL_APPROVED" },
+      {
+        name: "Board Packet Coordinator",
+        default_state: "DISABLED_UNTIL_APPROVED",
+      },
+      { name: "Focus Time Protector", default_state: "ENABLED" },
+      { name: "Visitor / Vendor Coordinator", default_state: "ENABLED" },
+    ],
+    aha_moments: [
+      "Tomorrow's Executive Brief",
+      "Travel Booking + Expense Shell",
+      "Executive Commitment Follow-Up Draft",
+      "Board Meeting Prep Packet",
+      "Focus Time Protection",
+    ],
+    safe_fallback_tiers: [
+      {
+        tier: "No connectors",
+        description:
+          "Draft checklist, itinerary shell, meeting prep outline, receipt checklist, brief template.",
+      },
+      {
+        tier: "Read-only connectors",
+        description:
+          "With calendar / email / chat connected read-only: prepare schedule brief + draft reschedule suggestions. With Concur / travel / expense connected read-only: check policy + prepare draft expense shell.",
+      },
+      {
+        tier: "Delegated write (only after approval)",
+        description:
+          "Only act within explicit delegated authority and policy thresholds. Approval-gated for spend and executive email send.",
+      },
+    ],
+    forbidden_inferences: [
+      "Executive private / family matters",
+      "Protected-attribute inference about anyone",
+      "Psychological inference about executive",
+      "Workforce scoring",
+      "Workforce monitoring framing",
+    ],
+    preview_only_notice:
+      "Preview only — no calendar, inbox, travel, or expense system is connected here.",
+  },
+  tool_summaries: [
+    // Representative cross-category sample drawn from the 95-tool catalog.
+    // Source: docs/ootb-catalog/tools.json.
+    {
+      id: "tool.slack.v1",
+      tool_name: "Slack",
+      category: "COMMUNICATION",
+      connector_priority_tier: "TIER_1_CRITICAL",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["channels:read", "users:read"],
+      risky_permissions: ["chat:write", "channels:join", "im:read", "files:write"],
+    },
+    {
+      id: "tool.gmail.v1",
+      tool_name: "Gmail",
+      category: "COMMUNICATION",
+      connector_priority_tier: "TIER_1_CRITICAL",
+      data_sensitivity: "CRITICAL",
+      safe_default_permissions: ["gmail.readonly (delegated mailboxes only)", "gmail.compose"],
+      risky_permissions: ["gmail.send", "gmail.modify", "gmail.full_access"],
+    },
+    {
+      id: "tool.google-calendar.v1",
+      tool_name: "Google Calendar",
+      category: "CALENDAR",
+      connector_priority_tier: "TIER_1_CRITICAL",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["calendar.readonly"],
+      risky_permissions: ["calendar.events.write", "calendar.acls"],
+    },
+    {
+      id: "tool.google-drive.v1",
+      tool_name: "Google Drive",
+      category: "DOCUMENTS",
+      connector_priority_tier: "TIER_1_CRITICAL",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["drive.readonly (caller-scoped)"],
+      risky_permissions: ["drive.file (broad write)", "drive (full)"],
+    },
+    {
+      id: "tool.jira.v1",
+      tool_name: "Jira",
+      category: "PROJECT",
+      connector_priority_tier: "TIER_1_CRITICAL",
+      data_sensitivity: "MEDIUM",
+      safe_default_permissions: ["read:jira-work"],
+      risky_permissions: ["write:jira-work", "manage:jira-project"],
+    },
+    {
+      id: "tool.salesforce.v1",
+      tool_name: "Salesforce",
+      category: "CRM",
+      connector_priority_tier: "TIER_1_CRITICAL",
+      data_sensitivity: "CRITICAL",
+      safe_default_permissions: ["api (read profile)"],
+      risky_permissions: ["api (full)", "modify_all_data"],
+    },
+    {
+      id: "tool.workday.v1",
+      tool_name: "Workday",
+      category: "HR",
+      connector_priority_tier: "TIER_2_HIGH",
+      data_sensitivity: "CRITICAL",
+      safe_default_permissions: ["Worker_Data_Public_Worker_Reports"],
+      risky_permissions: ["Worker_Data_Personal", "Worker_Data_Compensation"],
+    },
+    {
+      id: "tool.sap-concur.v1",
+      tool_name: "SAP Concur",
+      category: "FINANCE",
+      connector_priority_tier: "TIER_1_CRITICAL",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["TRAVEL.READONLY", "EXPENSE.READONLY"],
+      risky_permissions: ["EXPENSE.APPROVE", "TRAVEL.BOOK", "EXPENSE.WRITE"],
+    },
+    {
+      id: "tool.ramp.v1",
+      tool_name: "Ramp",
+      category: "FINANCE",
+      connector_priority_tier: "TIER_2_HIGH",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["transactions:read"],
+      risky_permissions: ["transactions:write", "spend_programs:write"],
+    },
+    {
+      id: "tool.zendesk.v1",
+      tool_name: "Zendesk",
+      category: "SUPPORT",
+      connector_priority_tier: "TIER_2_HIGH",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["read"],
+      risky_permissions: ["write", "modify_ticket"],
+    },
+    {
+      id: "tool.github.v1",
+      tool_name: "GitHub",
+      category: "DEV",
+      connector_priority_tier: "TIER_2_HIGH",
+      data_sensitivity: "CRITICAL",
+      safe_default_permissions: ["repo:status", "read:org"],
+      risky_permissions: ["repo (full)", "admin:org", "delete_repo"],
+    },
+    {
+      id: "tool.docusign.v1",
+      tool_name: "DocuSign",
+      category: "LEGAL",
+      connector_priority_tier: "TIER_2_HIGH",
+      data_sensitivity: "CRITICAL",
+      safe_default_permissions: ["signature:read"],
+      risky_permissions: ["signature (send, void)"],
+    },
+    {
+      id: "tool.vanta.v1",
+      tool_name: "Vanta",
+      category: "SECURITY",
+      connector_priority_tier: "TIER_2_HIGH",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["read"],
+      risky_permissions: ["write"],
+    },
+    {
+      id: "tool.okta.v1",
+      tool_name: "Okta",
+      category: "IDENTITY_SSO",
+      connector_priority_tier: "TIER_2_HIGH",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["directory:read"],
+      risky_permissions: ["users:write", "groups:write", "apps:assign"],
+    },
+    {
+      id: "tool.figma.v1",
+      tool_name: "Figma",
+      category: "DESIGN",
+      connector_priority_tier: "TIER_4_LOWER",
+      data_sensitivity: "MEDIUM",
+      safe_default_permissions: ["file_content:read"],
+      risky_permissions: ["file_content:write"],
+    },
+    {
+      id: "tool.tableau.v1",
+      tool_name: "Tableau",
+      category: "BI",
+      connector_priority_tier: "TIER_4_LOWER",
+      data_sensitivity: "HIGH",
+      safe_default_permissions: ["read"],
+      risky_permissions: ["write"],
+    },
+  ],
+  workflow_summaries: [
+    {
+      id: "workflow.tomorrows-executive-brief.v1",
+      workflow_name: "Tomorrow's Executive Brief",
+      triggering_role_families: ["Executive Support"],
+      required_tools: ["Google Calendar", "Outlook Calendar", "Gmail", "Outlook"],
+      risk_level: "LOW",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["NONE"],
+      safe_fallback:
+        "Without connectors: draft briefing template + checklist for EA to fill manually.",
+    },
+    {
+      id: "workflow.travel-booking-expense-shell.v1",
+      workflow_name: "Travel Booking + Expense Shell",
+      triggering_role_families: ["Executive Support"],
+      required_tools: ["SAP Concur", "Navan", "Expensify", "Ramp", "Brex"],
+      risk_level: "MEDIUM",
+      automation_level: "HUMAN_CONFIRMED",
+      approvals_required: ["APPROVAL_REQUIRED"],
+      safe_fallback:
+        "Without Concur: draft travel checklist + itinerary outline + receipt checklist.",
+    },
+    {
+      id: "workflow.executive-commitment-followup-draft.v1",
+      workflow_name: "Executive Commitment Follow-Up Draft",
+      triggering_role_families: ["Executive Support"],
+      required_tools: ["Google Calendar", "Gmail", "Outlook"],
+      risk_level: "MEDIUM",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["NONE"],
+      safe_fallback:
+        "Without meeting context: draft template based on user-provided commitments.",
+    },
+    {
+      id: "workflow.board-meeting-prep-packet.v1",
+      workflow_name: "Board Meeting Prep Packet",
+      triggering_role_families: ["Executive Support"],
+      required_tools: ["Google Drive", "Google Slides", "Microsoft 365", "SharePoint"],
+      risk_level: "HIGH",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["APPROVAL_REQUIRED"],
+      safe_fallback:
+        "Without document connectors: prepare packet checklist + logistics outline.",
+    },
+    {
+      id: "workflow.focus-time-protection.v1",
+      workflow_name: "Focus Time Protection",
+      triggering_role_families: ["Executive Support"],
+      required_tools: ["Google Calendar", "Outlook Calendar"],
+      risk_level: "LOW",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["NONE"],
+      safe_fallback:
+        "Without calendar: surface focus-time discipline checklist.",
+    },
+    {
+      id: "workflow.spend-approval-review.v1",
+      workflow_name: "Spend Approval Review",
+      triggering_role_families: ["Executive"],
+      required_tools: ["Ramp", "Brex", "SAP Concur", "NetSuite"],
+      risk_level: "HIGH",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["DUAL_CONTROL"],
+      safe_fallback:
+        "Without finance system: prompt for manual review queue.",
+    },
+    {
+      id: "workflow.account-brief.v1",
+      workflow_name: "Account Brief",
+      triggering_role_families: ["Sales / Revenue"],
+      required_tools: ["Salesforce", "HubSpot"],
+      risk_level: "LOW",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["NONE"],
+      safe_fallback:
+        "Without CRM: prompt for manual account input.",
+    },
+    {
+      id: "workflow.customer-health-brief.v1",
+      workflow_name: "Customer Health Brief",
+      triggering_role_families: ["Customer"],
+      required_tools: ["Gainsight", "Zendesk"],
+      risk_level: "LOW",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["NONE"],
+      safe_fallback:
+        "Without health platform: prompt for manual signal input.",
+    },
+    {
+      id: "workflow.pr-issue-status-summary.v1",
+      workflow_name: "PR / Issue Status Summary",
+      triggering_role_families: ["Engineering"],
+      required_tools: ["GitHub", "Jira"],
+      risk_level: "LOW",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["NONE"],
+      safe_fallback: "Without dev tools: prompt for manual status.",
+    },
+    {
+      id: "workflow.contract-review-queue.v1",
+      workflow_name: "Contract Review Queue",
+      triggering_role_families: ["Legal / Compliance"],
+      required_tools: ["Ironclad", "DocuSign"],
+      risk_level: "MEDIUM",
+      automation_level: "SUGGEST_ONLY",
+      approvals_required: ["NONE"],
+      safe_fallback: "Without contract system: prompt for manual queue.",
+    },
+  ],
+  connector_preset_summaries: [
+    {
+      id: "preset.google-workspace-read-first.v1",
+      connector_name: "Google Workspace (Read-First)",
+      tool_category: "COMMUNICATION_CALENDAR_DOCUMENTS",
+      read_capabilities: [
+        "calendar.read",
+        "mail.metadata.read",
+        "drive.read",
+        "docs.read",
+        "sheets.read",
+      ],
+      risky_write_actions_disabled_by_default: [
+        "mail.send.all",
+        "drive.permissions.update",
+        "drive.delete",
+      ],
+      audit_requirements_summary:
+        "Every connector action audited via existing ADMIN_ACTION + INVOKE_CONNECTOR lineage.",
+      no_leak_rules_summary:
+        "Never expose email body in default surfaces. Never expose document content. Never expose refresh tokens.",
+      production_enablement_checklist: [
+        "OAuth app reviewed by Founder",
+        "scope set minimized to safe_default + explicit user-approved",
+        "secret_ref env-var-NAMEs registered in ConnectorBinding",
+        "audit emission verified end-to-end",
+        "no-leak guard passes with adapter traffic",
+      ],
+    },
+    {
+      id: "preset.microsoft-365-read-first.v1",
+      connector_name: "Microsoft 365 (Read-First)",
+      tool_category: "COMMUNICATION_CALENDAR_DOCUMENTS",
+      read_capabilities: [
+        "Calendars.Read",
+        "Mail.Read",
+        "Files.Read.All",
+        "Sites.Read.All",
+      ],
+      risky_write_actions_disabled_by_default: [
+        "Mail.Send.Shared",
+        "Sites.FullControl.All",
+      ],
+      audit_requirements_summary:
+        "Every connector action audited via existing ADMIN_ACTION + INVOKE_CONNECTOR lineage.",
+      no_leak_rules_summary:
+        "Never expose email body in default surfaces. Never expose document content. Never expose refresh tokens.",
+      production_enablement_checklist: [
+        "Tenant admin consent reviewed",
+        "scope set minimized to safe_default + explicit user-approved",
+        "secret_ref env-var-NAMEs registered",
+        "audit emission verified",
+        "no-leak guard passes",
+      ],
+    },
+    {
+      id: "preset.slack-read-first.v1",
+      connector_name: "Slack (Read-First)",
+      tool_category: "COMMUNICATION",
+      read_capabilities: ["channels:read", "users:read", "users:read.email"],
+      risky_write_actions_disabled_by_default: [
+        "files:write",
+        "channels:join (private)",
+        "admin:*",
+      ],
+      audit_requirements_summary:
+        "Every connector action audited via existing ADMIN_ACTION + INVOKE_CONNECTOR lineage.",
+      no_leak_rules_summary:
+        "Never expose raw DM content. Never expose bot token. Never expose protected-attribute content.",
+      production_enablement_checklist: [
+        "Slack app reviewed",
+        "scope minimized",
+        "secret_ref env-var-NAMEs registered",
+        "audit emission verified",
+        "no-leak guard passes",
+      ],
+    },
+    {
+      id: "preset.salesforce-hubspot-crm-read-first.v1",
+      connector_name: "CRM (Read-First)",
+      tool_category: "CRM",
+      read_capabilities: ["api (read profile)", "crm.objects.contacts.read"],
+      risky_write_actions_disabled_by_default: [
+        "modify_all_data",
+        "manage_users",
+      ],
+      audit_requirements_summary:
+        "Every connector action audited via existing ADMIN_ACTION + INVOKE_CONNECTOR lineage.",
+      no_leak_rules_summary:
+        "Never expose customer PII in default surfaces. Never bypass sharing rules.",
+      production_enablement_checklist: [
+        "OAuth + connected app reviewed",
+        "scope minimized to caller-scope",
+        "sharing-rule respect verified",
+        "audit emission verified",
+        "no-leak guard passes",
+      ],
+    },
+    {
+      id: "preset.travel-expense-read-first.v1",
+      connector_name: "Travel + Expense (Read-First)",
+      tool_category: "FINANCE",
+      read_capabilities: [
+        "TRAVEL.READONLY",
+        "EXPENSE.READONLY",
+        "transactions:read",
+        "expenses.read",
+      ],
+      risky_write_actions_disabled_by_default: [
+        "EXPENSE.WRITE.all",
+        "TRAVEL.BOOK.outside-policy",
+      ],
+      audit_requirements_summary:
+        "Every connector action audited via existing ADMIN_ACTION + INVOKE_CONNECTOR lineage.",
+      no_leak_rules_summary:
+        "Never expose card numbers. Never bypass policy thresholds.",
+      production_enablement_checklist: [
+        "Concur partner integration reviewed",
+        "policy threshold logic verified end-to-end",
+        "secret_ref env-var-NAMEs registered",
+        "audit emission verified",
+        "no-leak guard passes",
+      ],
+    },
+    {
+      id: "preset.github-read-first.v1",
+      connector_name: "GitHub (Read-First)",
+      tool_category: "DEV",
+      read_capabilities: ["repo:status", "read:org"],
+      risky_write_actions_disabled_by_default: [
+        "repo (full)",
+        "admin:org",
+        "delete_repo",
+      ],
+      audit_requirements_summary:
+        "Every connector action audited via existing ADMIN_ACTION + INVOKE_CONNECTOR lineage.",
+      no_leak_rules_summary:
+        "Never expose source code in default surfaces. Never expose secrets.",
+      production_enablement_checklist: [
+        "OAuth app reviewed",
+        "scope minimized",
+        "secret-scanning + push-protection enabled on target repos",
+        "audit emission verified",
+        "no-leak guard passes",
+      ],
+    },
+  ],
+  dandelion_flow_summary: {
+    id: "dandelionFlow.company-department-user-activation.v1",
+    flow_name: "Company / Department / User Activation Flow",
+    tiers: [
+      {
+        tier_name: "Company-level Dandelion",
+        example_questions: [
+          "What industry are you in?",
+          "What is your company size?",
+          "What compliance requirements apply?",
+          "Which identity provider do you use?",
+          "Which communication tools do you use?",
+          "Which email / calendar suite?",
+          "Which finance / expense / travel system?",
+          "What is your approval hierarchy?",
+          "What is your delegation-of-authority matrix?",
+          "Which systems are most sensitive?",
+          "Which tools should be read-only-first?",
+          "Which tools are not approved for Otzar yet?",
+        ],
+        expected_outputs: [
+          "CompanyTemplate selection",
+          "DepartmentTemplate suggestions",
+          "Connector priority map (suggestion, not activation)",
+          "Governance defaults",
+          "Compliance defaults",
+          "Safe rollout plan",
+        ],
+      },
+      {
+        tier_name: "Department-level Dandelion",
+        example_questions: [
+          "Which department is this?",
+          "Which roles are in this department?",
+          "Which tools does the department use daily?",
+          "Which workflows recur?",
+          "Which approvals are required at department level?",
+          "What are the top blockers right now?",
+          "Which KPIs does the department track?",
+          "Which documents are canonical for this department?",
+          "Which data is sensitive within department scope?",
+          "Which other departments does this department depend on most?",
+        ],
+        expected_outputs: [
+          "DepartmentTemplate selection",
+          "Workflow catalog (read-first)",
+          "Connector recommendations (suggestion)",
+          "Risk map",
+          "Memory scopes",
+          "Department aha moments",
+        ],
+      },
+      {
+        tier_name: "User-level Dandelion",
+        example_questions: [
+          "What is your title?",
+          "Which department are you in?",
+          "Who is your manager?",
+          "Do you have direct reports?",
+          "Do you have dotted-line relationships?",
+          "Which executive(s) do you support?",
+          "Who do you collaborate with most?",
+          "Which tools do you use daily?",
+          "Which first workflows do you want your Twin to support?",
+          "What read / write boundaries should apply by default?",
+          "What approval boundaries should apply?",
+          "Which areas should your Twin never touch?",
+          "What is your first 'wow' task?",
+        ],
+        expected_outputs: [
+          "RoleTemplate selection",
+          "PermissionBundle suggestions (suggest-only)",
+          "ToolProfile enable-set (read-first)",
+          "WorkflowTemplate enable-set",
+          "AhaMomentPack selection",
+          "SafeFallbackMode resolution",
+          "Onboarding questions remaining",
+          "DigitalTwinStarterProfile (composed at governance review)",
+        ],
+      },
+    ],
+    governance_review_points: [
+      "Org admin reviews permission bundle suggestions before any DISABLED_UNTIL_APPROVED bundle activates.",
+      "Org admin reviews ConnectorPreset enable list before any connector connects.",
+      "Compliance / General Counsel review of any RoleTemplate that touches privileged / regulated / sensitive scope.",
+      "Any sensitive-question answer triggers explicit org-admin review before storage.",
+      "Every adaptation applied via governed signals logs an event.",
+    ],
+  },
+  // Substrate-honest role-depth roadmap per Founder addendum
+  // [FOUNDER-ADR-0080-WAVE-3-ADDENDUM-DEEP-ROLE-EXAMPLES-AND-COLLABORATION-MAPS].
+  // Current Wave 2 catalog: 1 role DEEP (EA) + 14 STARTER + 13+ NOT_YET_MODELED.
+  // Wave 2.1 role-depth expansion is the recommended next slice before Wave 4
+  // onboarding recommendation engine.
+  role_depth_roadmap: [
+    // DEEP (1)
+    {
+      role_label: "Executive Assistant",
+      status: "DEEP",
+      catalog_id: "role.executive-assistant.v1",
+      note: "Full expansion: 9 likely_reports_to, 21 workflows, 28 tools, 7 PermissionBundles, full DelegatedAuthorityProfile, OnboardingQuestionSet, 5 aha moments, SafeFallbackMode tiers, forbidden_inferences.",
+    },
+    // STARTER (14)
+    {
+      role_label: "CEO / Founder",
+      status: "STARTER",
+      catalog_id: "role.ceo.v1",
+      note: "Starter depth: basic fields populated; PermissionBundles empty; 1 aha moment. Founder treated as CEO subtype in Wave 2.",
+    },
+    {
+      role_label: "COO",
+      status: "STARTER",
+      catalog_id: "role.coo.v1",
+    },
+    {
+      role_label: "CFO",
+      status: "STARTER",
+      catalog_id: "role.cfo.v1",
+    },
+    {
+      role_label: "CHRO / Head of People",
+      status: "STARTER",
+      catalog_id: "role.chro.v1",
+    },
+    {
+      role_label: "General Counsel / Legal Lead",
+      status: "STARTER",
+      catalog_id: "role.general-counsel.v1",
+    },
+    {
+      role_label: "Product Manager",
+      status: "STARTER",
+      catalog_id: "role.product-manager.v1",
+    },
+    {
+      role_label: "Project Manager / Program Manager",
+      status: "STARTER",
+      catalog_id: "role.project-manager.v1",
+    },
+    {
+      role_label: "Account Executive",
+      status: "STARTER",
+      catalog_id: "role.account-executive.v1",
+    },
+    {
+      role_label: "Customer Success Manager",
+      status: "STARTER",
+      catalog_id: "role.customer-success-manager.v1",
+    },
+    {
+      role_label: "Software Engineer / Developer",
+      status: "STARTER",
+      catalog_id: "role.software-engineer.v1",
+      note: "Software Developer treated as Software Engineer in Wave 2.",
+    },
+    {
+      role_label: "Engineering Manager",
+      status: "STARTER",
+      catalog_id: "role.engineering-manager.v1",
+    },
+    {
+      role_label: "IT Admin / Security Admin",
+      status: "STARTER",
+      catalog_id: "role.it-admin.v1",
+    },
+    {
+      role_label: "Compliance Officer / GRC Manager",
+      status: "STARTER",
+      catalog_id: "role.compliance-officer.v1",
+    },
+    {
+      role_label: "Board Member",
+      status: "STARTER",
+      catalog_id: "role.board-member.v1",
+      note: "Board Chair currently subsumed under Board Member in Wave 2.",
+    },
+    // NOT YET MODELED (per Founder addendum priorities)
+    {
+      role_label: "CTO",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 priority — distinct from Engineering Manager; needs architecture decision authority + security/infrastructure risk surface + AI/ML oversight.",
+    },
+    {
+      role_label: "CMO / Marketing Lead",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 priority — distinct from Sales; needs campaign + launch comms + brand risk + pipeline influence surface.",
+    },
+    {
+      role_label: "Sales Manager",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — separate from Account Executive; needs pipeline coaching + forecast + discount approval gating.",
+    },
+    {
+      role_label: "Public Relations / Communications Lead",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 priority — press brief + crisis response + media triage + executive talking points; legal/CEO approval-gated.",
+    },
+    {
+      role_label: "AI Engineer",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — model risk + evaluation + dataset lineage + safety/privacy review prep; no deployment without approval.",
+    },
+    {
+      role_label: "ML Engineer",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — paired with AI Engineer; experiment tracking + provenance.",
+    },
+    {
+      role_label: "Researcher / Research Scientist",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — research-to-product translation; safety review.",
+    },
+    {
+      role_label: "Data Scientist",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — analytics + experiment design; warehouse-scoped.",
+    },
+    {
+      role_label: "UX Researcher",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — research synthesis; participant privacy-scoped.",
+    },
+    {
+      role_label: "Support Lead",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — distinct from CSM; escalation triage + team coaching.",
+    },
+    {
+      role_label: "Operations Manager",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — operating cadence + vendor + facility coordination.",
+    },
+    {
+      role_label: "General Employee / Individual Contributor",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 priority — self-scoped, no manager-monitoring framing; my-workday brief + my-commitments + meeting follow-up draft.",
+    },
+    {
+      role_label: "Board Chair",
+      status: "SUBSUMED",
+      subsumed_under: "role.board-member.v1",
+      note: "Wave 2.1 may split out for chair-specific agenda + committee oversight authority.",
+    },
+    {
+      role_label: "Investor / Observer",
+      status: "NOT_YET_MODELED",
+      note: "Wave 2.1 — distinct from Board Member; read-only, purpose-bound, audited.",
+    },
+    {
+      role_label: "Founder (operator role distinct from CEO)",
+      status: "SUBSUMED",
+      subsumed_under: "role.ceo.v1",
+      note: "Wave 2.1 may split out for early-stage founder operating patterns.",
+    },
+  ],
+  ea_collaboration_map: {
+    role_id: "role.executive-assistant.v1",
+    role_name: "Executive Assistant",
+    entries: [
+      {
+        direction: "upward",
+        description:
+          "Supports executive(s) directly; daily 1:1 cadence; calendar / inbox triage / commitment tracking.",
+        partner_roles: [
+          "CEO",
+          "Founder",
+          "COO",
+          "CFO",
+          "CTO",
+          "CHRO",
+          "General Counsel",
+          "Board Chair",
+        ],
+      },
+      {
+        direction: "peer",
+        description:
+          "Coordinates with other executive assistants for cross-executive scheduling and board logistics.",
+        partner_roles: ["Other EAs across the executive team"],
+      },
+      {
+        direction: "cross_functional",
+        description:
+          "Coordinates with Finance (expense), Travel/Procurement, IT (executive devices), Legal (board materials logistics), HR (executive onboarding logistics).",
+        partner_roles: [
+          "CFO",
+          "Finance team",
+          "IT Admin",
+          "General Counsel",
+          "CHRO",
+        ],
+      },
+      {
+        direction: "downward",
+        description:
+          "May coordinate with administrative assistants / office coordinators / travel coordinators / event coordinators if direct reports exist.",
+        partner_roles: [
+          "Administrative Assistant",
+          "Office Coordinator",
+          "Travel Coordinator",
+          "Event Coordinator",
+        ],
+      },
+      {
+        direction: "external",
+        description:
+          "Vendor and visitor coordination under delegated authority. Never represents the executive externally without explicit delegation.",
+        partner_roles: ["Vendors", "Visitors", "External counterparties"],
+      },
+      {
+        direction: "approval_path",
+        description:
+          "Spend exceptions route to CFO. Travel exceptions route to executive + Finance. Board content access routes to CEO + General Counsel.",
+        partner_roles: ["CFO", "CEO", "General Counsel"],
+      },
+      {
+        direction: "escalation_path",
+        description:
+          "Conflicts / blockers escalate to the supported executive; legal / privacy concerns escalate to General Counsel.",
+        partner_roles: ["Supported executive", "General Counsel"],
+      },
+    ],
+  },
+  dmw_education: {
+    user_facing_line: "Your Memory Wallet is how Otzar remembers safely.",
+    architecture_line:
+      "Dandelion shapes the starter profile; the DMW scopes memory; Foundation governance authorizes use.",
+    bullet_points: [
+      "The DMW (Decentralized Memory Wallet) is provisioned automatically when an entity is added. No crypto setup is required.",
+      "Some memory is self-scoped (your work context).",
+      "Some memory is team / hive-scoped (department coordination).",
+      "Some memory is project / action / client-scoped.",
+      "Some memory requires Legal / Compliance scope (regulated content).",
+      "Some content must never become enterprise intelligence (executive private matters, protected-attribute content, sensitive personal).",
+      "Some memory may be shared with another Twin only with explicit governed authorization.",
+      "Some memory is temporary or delegated (out-of-office, vacation delegate).",
+      "Some memory is retained only as safe metadata (audit chain) — never as raw payload.",
+      "Memory shapes Twin aha moments under governed envelopes — never via private profiling.",
+    ],
+  },
+};

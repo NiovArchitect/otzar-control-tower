@@ -146,7 +146,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     label: "Onboarding",
     to: "/onboarding",
     icon: Compass,
-    description: "Guided setup for new org admins -- invite, register, govern, transact.",
+    description: "Dandelion Preview -- read-only browse of the ADR-0080 Wave 2 OOTB role/tool/workflow catalog.",
   },
   {
     label: "Documentation",
