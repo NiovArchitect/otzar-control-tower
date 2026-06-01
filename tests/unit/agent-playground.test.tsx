@@ -333,6 +333,20 @@ describe("Section 5 Wave 10 -- Wave 9 simulation + enterprise posture", () => {
     expect(
       screen.getByTestId("simulation-branch-branch-0002"),
     ).toBeInTheDocument();
+    // vNext closed-vocab labels surface (ADR-0076 §4.2 + §5.2
+    // post-PR #152 migration; v1 labels would be a regression).
+    expect(
+      screen.getAllByText(/RECOMMENDED_PATH/).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/COMPLIANCE_FIRST_PATH/).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/OWNER_OPERATOR/).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/COMPLIANCE_REVIEWER/).length,
+    ).toBeGreaterThan(0);
     // Evidence posture closed-vocab labels
     expect(
       screen.getAllByText(/Evidence posture/i).length,
