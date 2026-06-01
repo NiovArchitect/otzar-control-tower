@@ -2295,6 +2295,18 @@ const auditEventsListHandler = http.get(
     const pageSize = Number(url.searchParams.get("page_size") ?? "25");
     const eventTypeFilter = url.searchParams.get("event_type");
     const outcomeFilter = url.searchParams.get("outcome");
+    const targetEntityFilter = url.searchParams.get("target_entity_id");
+    const targetCapsuleFilter = url.searchParams.get("target_capsule_id");
+    const startTimeFilter = url.searchParams.get("start_time");
+    const endTimeFilter = url.searchParams.get("end_time");
+    const startMs =
+      startTimeFilter === null || startTimeFilter === ""
+        ? null
+        : Date.parse(startTimeFilter);
+    const endMs =
+      endTimeFilter === null || endTimeFilter === ""
+        ? null
+        : Date.parse(endTimeFilter);
     const filtered = section7EventFixtures.filter((e) => {
       if (
         eventTypeFilter !== null &&
@@ -2308,6 +2320,27 @@ const auditEventsListHandler = http.get(
         outcomeFilter !== "" &&
         e.outcome !== outcomeFilter
       ) {
+        return false;
+      }
+      if (
+        targetEntityFilter !== null &&
+        targetEntityFilter !== "" &&
+        e.target_entity_id !== targetEntityFilter
+      ) {
+        return false;
+      }
+      if (
+        targetCapsuleFilter !== null &&
+        targetCapsuleFilter !== "" &&
+        e.target_capsule_id !== targetCapsuleFilter
+      ) {
+        return false;
+      }
+      const eventMs = Date.parse(e.timestamp);
+      if (startMs !== null && Number.isFinite(startMs) && eventMs < startMs) {
+        return false;
+      }
+      if (endMs !== null && Number.isFinite(endMs) && eventMs > endMs) {
         return false;
       }
       return true;

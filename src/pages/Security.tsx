@@ -72,23 +72,39 @@ import { formatRelativeTime } from "@/lib/utils/relative-time";
 
 const PAGE_SIZE = 25;
 
-// WHAT: Closed-vocab filter state for the audit-events list.
-//        Mirrors the Foundation route query-string contract at
-//        `apps/api/src/routes/audit.routes.ts` Section 7 Wave 1:
-//        `event_type` + `outcome` + `target_entity_id` +
-//        `target_capsule_id` + `start_time` + `end_time`. This
-//        slice wires the two highest-value filters (event_type +
-//        outcome); ID search + date range pickers are forward-
-//        substrate behind separate follow-on slices.
+// WHAT: Closed-vocab + ID + date-range filter state for the
+//        audit-events list. Mirrors the Foundation route query-
+//        string contract at `apps/api/src/routes/audit.routes.ts`
+//        Section 7 Wave 1: `event_type` + `outcome` +
+//        `target_entity_id` + `target_capsule_id` + `start_time`
+//        + `end_time`. CT D2.1 wired event_type + outcome; CT D4
+//        adds the remaining 4 filters. All ID values are
+//        validated as UUIDs at the input register (matches
+//        Foundation's UUID_RE check); invalid IDs are NOT
+//        forwarded to the wire. Date values are HTML5 datetime-
+//        local strings normalized to ISO-8601 before reaching
+//        the wire.
 interface AuditListFilters {
   event_type: AuditEventType | "all";
   outcome: AuditOutcome | "all";
+  target_entity_id: string;
+  target_capsule_id: string;
+  start_time: string;
+  end_time: string;
 }
 
 const DEFAULT_FILTERS: AuditListFilters = {
   event_type: "all",
   outcome: "all",
+  target_entity_id: "",
+  target_capsule_id: "",
+  start_time: "",
+  end_time: "",
 };
+
+// Loose UUID v1-v8 regex; matches Foundation `UUID_RE` (case-
+// insensitive 8-4-4-4-12 hex).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // WHAT: Closed-vocab outcome options.
 const OUTCOME_OPTIONS: readonly { value: AuditOutcome; label: string }[] = [
@@ -635,6 +651,39 @@ function ExportActionBar({
       if (filters.outcome !== "all") {
         input.outcome = filters.outcome;
       }
+      // CT D4 — thread the text + date filters into the export
+      // request so the downloaded artifact matches the on-screen
+      // view. Same UUID + date normalization as the list query
+      // (invalid IDs + unparseable dates are NEVER forwarded to
+      // the wire).
+      if (
+        filters.target_entity_id !== "" &&
+        UUID_RE.test(filters.target_entity_id)
+      ) {
+        input.target_entity_id = filters.target_entity_id;
+      }
+      if (
+        filters.target_capsule_id !== "" &&
+        UUID_RE.test(filters.target_capsule_id)
+      ) {
+        input.target_capsule_id = filters.target_capsule_id;
+      }
+      const startIso =
+        filters.start_time === ""
+          ? ""
+          : (() => {
+              const d = new Date(filters.start_time);
+              return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+            })();
+      const endIso =
+        filters.end_time === ""
+          ? ""
+          : (() => {
+              const d = new Date(filters.end_time);
+              return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+            })();
+      if (startIso !== "") input.start_time = startIso;
+      if (endIso !== "") input.end_time = endIso;
       const result = await api.audit.export(input);
       if (!result.ok) {
         setLastError(result.code);
@@ -748,7 +797,31 @@ export function SecurityPage() {
   const [filters, setFilters] = useState<AuditListFilters>(DEFAULT_FILTERS);
   const filtersAreDefault =
     filters.event_type === DEFAULT_FILTERS.event_type &&
-    filters.outcome === DEFAULT_FILTERS.outcome;
+    filters.outcome === DEFAULT_FILTERS.outcome &&
+    filters.target_entity_id === "" &&
+    filters.target_capsule_id === "" &&
+    filters.start_time === "" &&
+    filters.end_time === "";
+
+  // ID validity surfaces inline-warning hints AND blocks the
+  // value from being forwarded to the wire (matches Foundation
+  // UUID validation discipline). Empty strings are treated as
+  // "filter unset" and NEVER serialized.
+  const entityIdValid =
+    filters.target_entity_id === "" || UUID_RE.test(filters.target_entity_id);
+  const capsuleIdValid =
+    filters.target_capsule_id === "" || UUID_RE.test(filters.target_capsule_id);
+
+  // Date inputs are HTML5 datetime-local strings ("YYYY-MM-DDTHH:mm"
+  // in the user's local zone). Foundation accepts any ISO-8601
+  // parseable string; we convert to ISO at the boundary so
+  // upstream timezones agree.
+  function toIsoOrEmpty(local: string): string {
+    if (local === "") return "";
+    const d = new Date(local);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString();
+  }
 
   // Reset to page 1 whenever filters change so the pager is
   // always coherent with the active filter set.
@@ -761,6 +834,9 @@ export function SecurityPage() {
     applyFilters(DEFAULT_FILTERS);
   }
 
+  const startIso = toIsoOrEmpty(filters.start_time);
+  const endIso = toIsoOrEmpty(filters.end_time);
+
   const listQuery = useQuery({
     queryKey: [
       "audit",
@@ -768,6 +844,10 @@ export function SecurityPage() {
       page,
       filters.event_type,
       filters.outcome,
+      entityIdValid ? filters.target_entity_id : "",
+      capsuleIdValid ? filters.target_capsule_id : "",
+      startIso,
+      endIso,
     ],
     queryFn: () => {
       const args: Parameters<typeof api.audit.list>[0] = {
@@ -779,6 +859,18 @@ export function SecurityPage() {
       }
       if (filters.outcome !== "all") {
         args.outcome = filters.outcome;
+      }
+      if (entityIdValid && filters.target_entity_id !== "") {
+        args.target_entity_id = filters.target_entity_id;
+      }
+      if (capsuleIdValid && filters.target_capsule_id !== "") {
+        args.target_capsule_id = filters.target_capsule_id;
+      }
+      if (startIso !== "") {
+        args.start_time = startIso;
+      }
+      if (endIso !== "") {
+        args.end_time = endIso;
       }
       return api.audit.list(args).then((r) => {
         if (r.ok) return r.data;
@@ -900,6 +992,113 @@ export function SecurityPage() {
                 >
                   Reset filters
                 </Button>
+              </div>
+            </div>
+            <div
+              className="grid gap-3 sm:grid-cols-2"
+              data-testid="audit-filter-bar-text-date"
+            >
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-filter-target-entity"
+                  className="text-xs"
+                >
+                  Target entity id (UUID)
+                </Label>
+                <input
+                  id="audit-filter-target-entity"
+                  data-testid="audit-filter-target-entity"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs font-mono shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  type="text"
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                  value={filters.target_entity_id}
+                  onChange={(e) =>
+                    applyFilters({
+                      ...filters,
+                      target_entity_id: e.target.value,
+                    })
+                  }
+                />
+                {filters.target_entity_id !== "" && !entityIdValid && (
+                  <p
+                    className="text-[10px] text-destructive"
+                    data-testid="audit-filter-target-entity-invalid"
+                  >
+                    Not a valid UUID — filter ignored until corrected.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-filter-target-capsule"
+                  className="text-xs"
+                >
+                  Target capsule id (UUID)
+                </Label>
+                <input
+                  id="audit-filter-target-capsule"
+                  data-testid="audit-filter-target-capsule"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs font-mono shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  type="text"
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                  value={filters.target_capsule_id}
+                  onChange={(e) =>
+                    applyFilters({
+                      ...filters,
+                      target_capsule_id: e.target.value,
+                    })
+                  }
+                />
+                {filters.target_capsule_id !== "" && !capsuleIdValid && (
+                  <p
+                    className="text-[10px] text-destructive"
+                    data-testid="audit-filter-target-capsule-invalid"
+                  >
+                    Not a valid UUID — filter ignored until corrected.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-filter-start-time"
+                  className="text-xs"
+                >
+                  From (local time)
+                </Label>
+                <input
+                  id="audit-filter-start-time"
+                  data-testid="audit-filter-start-time"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  type="datetime-local"
+                  value={filters.start_time}
+                  onChange={(e) =>
+                    applyFilters({
+                      ...filters,
+                      start_time: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-filter-end-time"
+                  className="text-xs"
+                >
+                  To (local time)
+                </Label>
+                <input
+                  id="audit-filter-end-time"
+                  data-testid="audit-filter-end-time"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  type="datetime-local"
+                  value={filters.end_time}
+                  onChange={(e) =>
+                    applyFilters({
+                      ...filters,
+                      end_time: e.target.value,
+                    })
+                  }
+                />
               </div>
             </div>
             <ExportActionBar filters={filters} />
