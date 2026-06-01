@@ -355,6 +355,62 @@ describe("ADR-0080 Wave 3 Dandelion Preview -- DMW education (Founder addendum)"
   });
 });
 
+describe("ADR-0080 Wave 6 connector-priority ranking panel", () => {
+  it("renders the Suggested first-connector ranking panel with the suggest-only notice", () => {
+    renderPage();
+    const panel = screen.getByTestId("connector-priority-ranking-panel");
+    expect(panel).toBeInTheDocument();
+    expect(
+      screen.getByTestId("connector-priority-suggest-only-notice"),
+    ).toHaveTextContent(
+      "Suggest-only — derived deterministically from the static catalog",
+    );
+    expect(
+      screen.getByTestId("connector-priority-suggest-only-notice"),
+    ).toHaveTextContent("Nothing is connected from this page.");
+  });
+
+  it("renders all 14 ConnectorPreset rows ranked", () => {
+    renderPage();
+    const list = screen.getByTestId("priority-ranking-list");
+    const rows = within(list).getAllByTestId(/^priority-row-preset\./);
+    expect(rows.length).toBe(14);
+  });
+
+  it("ranks Slack #1 (Founder-doctrine alignment with Section 10 audit)", () => {
+    renderPage();
+    const slackRow = screen.getByTestId(
+      "priority-row-preset.slack-read-first.v1",
+    );
+    expect(
+      within(slackRow).getByTestId(
+        "priority-rank-preset.slack-read-first.v1",
+      ),
+    ).toHaveTextContent("1");
+    expect(
+      within(slackRow).getByTestId(
+        "priority-score-preset.slack-read-first.v1",
+      ),
+    ).toHaveTextContent("16");
+  });
+
+  it("surfaces the 4 forward-substrate inputs declared by the matrix", () => {
+    renderPage();
+    const fwd = screen.getByTestId("priority-forward-substrate-inputs");
+    expect(fwd).toHaveTextContent("Dandelion_collected_demand");
+    expect(fwd).toHaveTextContent("customer_demand");
+    expect(fwd).toHaveTextContent("launch_necessity");
+    expect(fwd).toHaveTextContent("demo_impact");
+  });
+
+  it("shows the matrix version", () => {
+    renderPage();
+    expect(
+      screen.getByTestId("connector-priority-ranking-panel"),
+    ).toHaveTextContent("wave-6-v1.0.0");
+  });
+});
+
 describe("ADR-0080 Wave 3 Dandelion Preview -- forbidden UI copy guard", () => {
   it("does not contain any of the forbidden phrases", () => {
     renderPage();

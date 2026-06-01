@@ -148,6 +148,30 @@ export interface DmwEducation {
   bullet_points: string[];
 }
 
+export interface ConnectorPriorityMatrixRow {
+  rank: number;
+  preset_id: string;
+  preset_name: string;
+  tool_count: number;
+  total_score: number;
+  tier_score_avg: number;
+  api_maturity_score_avg: number;
+  adoption_signal_score_avg: number;
+  auth_readiness_score_avg: number;
+  role_count_max: number;
+  sensitivity_penalty_avg: number;
+  complexity_penalty_avg: number;
+}
+
+export interface ConnectorPriorityMatrix {
+  matrix_version: string;
+  generated_at: string;
+  derivation_kind: "PURE_FROM_STATIC_CATALOG";
+  forward_substrate_inputs_not_yet_available: string[];
+  notice: string;
+  rows: ConnectorPriorityMatrixRow[];
+}
+
 export interface OotbCatalogMirror {
   source_doctrine: string[];
   envelope_defaults_summary: EnvelopeDefaults;
@@ -162,4 +186,6 @@ export interface OotbCatalogMirror {
   role_depth_roadmap: RoleDepthStatusRow[];
   ea_collaboration_map: CollaborationMap;
   dmw_education: DmwEducation;
+  // Per Wave 6 [FOUNDATION-ADR-0080-WAVE-6-CONNECTOR-PRIORITY-MATRIX] Foundation PR #169:
+  connector_priority_matrix: ConnectorPriorityMatrix;
 }
