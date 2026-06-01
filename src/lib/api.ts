@@ -124,6 +124,7 @@ import type {
 import type {
   CtActivationResult,
   CtTeamActivationInput,
+  CtBusinessActivationInput,
 } from "./dandelion-activation/types";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -1145,6 +1146,27 @@ export class ApiClient {
       input: CtTeamActivationInput,
     ): Promise<ApiResult<CtActivationResult>> =>
       this.request<CtActivationResult>("/org/dandelion/activate/team", {
+        method: "POST",
+        body: input,
+        retries: 0,
+      }),
+
+    /**
+     * POST /api/v1/org/dandelion/activate/business — run the
+     * business-archetype ActivationPlan (11 steps) for the caller's
+     * org. Step 6 registers a real SLACK_READ ConnectorBinding +
+     * step 7 registers a real GOOGLE_WORKSPACE_READ ConnectorBinding
+     * via the existing C2 + C3 substrates. Step 5 (delegated
+     * authority) + step 9 (advanced audit tier) emit audit-only at
+     * this slice. Both env-var NAMEs only; resolved env-var VALUEs
+     * NEVER cross the API boundary (admins must NEVER paste a raw
+     * xoxb-* bot token or ya29.* OAuth access token in the
+     * secret_ref fields).
+     */
+    activateBusiness: (
+      input: CtBusinessActivationInput,
+    ): Promise<ApiResult<CtActivationResult>> =>
+      this.request<CtActivationResult>("/org/dandelion/activate/business", {
         method: "POST",
         body: input,
         retries: 0,

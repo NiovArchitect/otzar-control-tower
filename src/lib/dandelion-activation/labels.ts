@@ -39,6 +39,21 @@ const KNOWN_STEP_LABELS: Readonly<Record<string, StepLabel>> = Object.freeze({
     summary:
       "Added a team-scoped memory extension on top of the baseline. Self-scoped + team-scoped only at this tier.",
   },
+  "ADMIN_ACTION:DMW_PROJECT_CUSTOMER_SCOPE_GRANTED": {
+    title: "Extended memory to project + customer scopes",
+    summary:
+      "Added project-scoped and customer-scoped memory extensions on top of the baseline. Available at the Business plan tier.",
+  },
+  "ADMIN_ACTION:DELEGATED_AUTHORITY_REGISTERED": {
+    title: "Registered delegated authority profiles",
+    summary:
+      "Recorded the delegated authority profiles in the audit trail. Ceiling enforcement: delegated authority never exceeds the human ceiling (RULE 0).",
+  },
+  "ADMIN_ACTION:ADVANCED_AUDIT_TIER_ENABLED": {
+    title: "Enabled the advanced audit tier",
+    summary:
+      "Recorded the advanced audit tier in the audit trail. The baseline audit chain stays on; the advanced tier extends it (never weakens it).",
+  },
   "ADMIN_ACTION:ROLE_TEMPLATE_ASSIGNED": {
     title: "Assigned starter role templates",
     summary:

@@ -47,9 +47,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
 import { getStepLabel } from "@/lib/dandelion-activation/labels";
 import type {
+  CtActivationFailureCode,
   CtActivationResult,
   CtActivationStepResult,
   CtTeamActivationInput,
+  CtBusinessActivationInput,
 } from "@/lib/dandelion-activation/types";
 import { OOTB_CATALOG_MIRROR } from "@/lib/ootb-catalog/data";
 import type {
@@ -972,8 +974,10 @@ function failureMessage(result: CtActivationResult): string {
       return "The audit trail could not be written. The activation was rolled back. Try again.";
     case "INVALID_SLACK_BINDING_INPUT":
       return "Please provide both the Slack binding name and the env-var NAME for the bot token. The env-var NAME is the variable name on the deployment host — never paste the resolved bot token here.";
+    case "INVALID_GOOGLE_BINDING_INPUT":
+      return "Please provide both the Google Workspace binding name and the env-var NAME for the OAuth access token. The env-var NAME is the variable name on the deployment host — never paste the resolved OAuth access token here.";
     case "CONNECTOR_BINDING_FAILED":
-      return "The Slack binding could not be registered. Check that the binding name is unique for this organization and that the env-var name is UPPER_SNAKE_CASE.";
+      return "The connector binding could not be registered. Check that the binding name is unique for this organization and that the env-var name is UPPER_SNAKE_CASE.";
     default:
       return "Activation failed. Try again in a moment.";
   }
@@ -987,23 +991,31 @@ function ActivationStepCard({
   const label = getStepLabel(step.audit_literal);
   const isSlackBindingStep =
     step.step_id === "step.connector.slack-binding-register";
+  const isGoogleBindingStep =
+    step.step_id === "step.connector.google-workspace-binding-register";
+  const isBindingStep = isSlackBindingStep || isGoogleBindingStep;
   return (
     <div
       className={
-        isSlackBindingStep
+        isBindingStep
           ? "rounded border-2 border-primary p-3"
           : "rounded border p-3"
       }
       data-testid={`activation-step-${step.step_order}`}
     >
       <div className="flex items-baseline gap-2">
-        <Badge variant={isSlackBindingStep ? "default" : "outline"}>
+        <Badge variant={isBindingStep ? "default" : "outline"}>
           Step {step.step_order}
         </Badge>
         <div className="font-medium">{label.title}</div>
         {isSlackBindingStep ? (
           <Badge variant="secondary" data-testid="slack-binding-highlight">
             Slack binding
+          </Badge>
+        ) : null}
+        {isGoogleBindingStep ? (
+          <Badge variant="secondary" data-testid="google-binding-highlight">
+            Google binding
           </Badge>
         ) : null}
       </div>
@@ -1277,6 +1289,234 @@ function TeamActivationCard() {
   );
 }
 
+// ────────────────────────────────────────────────────────────────
+// D6 Dandelion Stage F business-archetype activation admin walk
+// surface. Consumes Foundation POST /api/v1/org/dandelion/activate/
+// business (PR #200). Collects Slack + Google env-var NAMEs from
+// the admin via form fields and POSTs. Renders 11-step audit
+// lineage with both binding steps (6 + 7) highlighted.
+//
+// Privacy invariant:
+// - slack_secret_ref + google_secret_ref are env-var NAMEs on the
+//   deployment host; the resolved env-var VALUEs never cross the
+//   API boundary.
+// - Test suite asserts no concrete xoxb-* / ya29.* / private-key
+//   JSON / Bearer regex appears in the rendered success panel.
+// ────────────────────────────────────────────────────────────────
+
+const BUSINESS_ACTIVATION_DOCTRINE_LINE =
+  "Activate the business envelope. Steps 6 + 7 register real Slack + Google Workspace read-first bindings from the env-var NAMEs on your deployment host. Live API access stays disabled until a separate Founder-authorized deployment flip.";
+
+const BUSINESS_ACTIVATION_PRIVACY_LINE =
+  "Both Slack and Google env-var NAME fields are variable names on the deployment host (e.g. SLACK_BOT_TOKEN_PROD + GOOGLE_ACCESS_TOKEN_PROD). Never paste the resolved bot token or OAuth access token here. The resolved values never cross the API boundary.";
+
+function BusinessActivationCard() {
+  const [slackDisplayName, setSlackDisplayName] = useState("");
+  const [slackSecretRef, setSlackSecretRef] = useState("");
+  const [slackWorkspaceId, setSlackWorkspaceId] = useState("");
+  const [googleDisplayName, setGoogleDisplayName] = useState("");
+  const [googleSecretRef, setGoogleSecretRef] = useState("");
+  const [googleWorkspaceDomain, setGoogleWorkspaceDomain] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<CtActivationResult | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => {
+      const input: CtBusinessActivationInput = {
+        slack_display_name: slackDisplayName.trim(),
+        slack_secret_ref: slackSecretRef.trim(),
+        google_display_name: googleDisplayName.trim(),
+        google_secret_ref: googleSecretRef.trim(),
+      };
+      if (slackWorkspaceId.trim().length > 0) {
+        input.slack_workspace_id = slackWorkspaceId.trim();
+      }
+      if (googleWorkspaceDomain.trim().length > 0) {
+        input.google_workspace_domain = googleWorkspaceDomain.trim();
+      }
+      return api.dandelionActivation.activateBusiness(input);
+    },
+    onSuccess: (apiResult) => {
+      if (apiResult.ok) {
+        setResult(apiResult.data);
+        setErrorMessage(
+          apiResult.data.ok ? null : failureMessage(apiResult.data),
+        );
+      } else {
+        setResult(null);
+        // The API client lifts the upstream body's `code` field into
+        // apiResult.code on non-2xx responses; if it matches a known
+        // closed-vocab failure code, render the customer-admin
+        // message instead of the raw Foundation message. This keeps
+        // the customer-admin vocabulary discipline consistent across
+        // both 200+ok:false and 4xx response paths.
+        const synthetic = {
+          ok: false as const,
+          code: apiResult.code as CtActivationFailureCode,
+          message: apiResult.message,
+        };
+        setErrorMessage(failureMessage(synthetic));
+      }
+    },
+    onError: (err) => {
+      setResult(null);
+      setErrorMessage(
+        err instanceof Error ? err.message : "Network error.",
+      );
+    },
+  });
+
+  const success = result !== null && result.ok ? result : null;
+  const submitDisabled =
+    mutation.isPending ||
+    slackDisplayName.trim().length === 0 ||
+    slackSecretRef.trim().length === 0 ||
+    googleDisplayName.trim().length === 0 ||
+    googleSecretRef.trim().length === 0;
+
+  return (
+    <Card data-testid="dandelion-business-activation-card">
+      <CardHeader>
+        <CardTitle>Activate the business envelope</CardTitle>
+        <CardDescription>
+          {BUSINESS_ACTIVATION_DOCTRINE_LINE}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div className="space-y-1">
+          <div className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
+            Slack
+          </div>
+          <Label htmlFor="business-slack-display-name">
+            Slack binding name
+          </Label>
+          <Input
+            id="business-slack-display-name"
+            value={slackDisplayName}
+            onChange={(e) => setSlackDisplayName(e.target.value)}
+            placeholder="e.g. niov-prod-slack"
+            data-testid="business-slack-display-name-input"
+          />
+          <Label htmlFor="business-slack-secret-ref">
+            Slack env-var NAME
+          </Label>
+          <Input
+            id="business-slack-secret-ref"
+            value={slackSecretRef}
+            onChange={(e) => setSlackSecretRef(e.target.value)}
+            placeholder="e.g. SLACK_BOT_TOKEN_PROD"
+            data-testid="business-slack-secret-ref-input"
+          />
+          <Label htmlFor="business-slack-workspace-id">
+            Slack workspace (optional)
+          </Label>
+          <Input
+            id="business-slack-workspace-id"
+            value={slackWorkspaceId}
+            onChange={(e) => setSlackWorkspaceId(e.target.value)}
+            placeholder="e.g. T01234ABCDE"
+            data-testid="business-slack-workspace-id-input"
+          />
+        </div>
+        <Separator />
+        <div className="space-y-1">
+          <div className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
+            Google Workspace
+          </div>
+          <Label htmlFor="business-google-display-name">
+            Google binding name
+          </Label>
+          <Input
+            id="business-google-display-name"
+            value={googleDisplayName}
+            onChange={(e) => setGoogleDisplayName(e.target.value)}
+            placeholder="e.g. niov-prod-google"
+            data-testid="business-google-display-name-input"
+          />
+          <Label htmlFor="business-google-secret-ref">
+            Google env-var NAME
+          </Label>
+          <Input
+            id="business-google-secret-ref"
+            value={googleSecretRef}
+            onChange={(e) => setGoogleSecretRef(e.target.value)}
+            placeholder="e.g. GOOGLE_ACCESS_TOKEN_PROD"
+            data-testid="business-google-secret-ref-input"
+          />
+          <Label htmlFor="business-google-workspace-domain">
+            Google workspace domain (optional)
+          </Label>
+          <Input
+            id="business-google-workspace-domain"
+            value={googleWorkspaceDomain}
+            onChange={(e) => setGoogleWorkspaceDomain(e.target.value)}
+            placeholder="e.g. niov.io"
+            data-testid="business-google-workspace-domain-input"
+          />
+        </div>
+        <p
+          className="text-xs text-muted-foreground"
+          data-testid="business-privacy-notice"
+        >
+          {BUSINESS_ACTIVATION_PRIVACY_LINE}
+        </p>
+        <Button
+          onClick={() => mutation.mutate()}
+          disabled={submitDisabled}
+          data-testid="activate-business-button"
+        >
+          {mutation.isPending
+            ? "Activating…"
+            : success !== null
+              ? "Activate again"
+              : "Activate business envelope"}
+        </Button>
+        {errorMessage !== null ? (
+          <p
+            className="text-xs text-destructive"
+            data-testid="business-activation-error"
+          >
+            {errorMessage}
+          </p>
+        ) : null}
+        {success !== null ? (
+          <div
+            className="space-y-2"
+            data-testid="business-activation-success"
+          >
+            <Separator />
+            <div className="flex flex-wrap gap-1">
+              <Badge variant="secondary">Activated</Badge>
+              <Badge variant="outline">archetype: {success.archetype}</Badge>
+              <Badge variant="outline">
+                plan_id: {success.plan_id}
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Final audit_event_id{" "}
+              {success.activation_audit_event_id.slice(0, 8)}…
+            </div>
+            <div className="space-y-2">
+              {success.steps.map((step) => (
+                <ActivationStepCard
+                  key={step.step_order}
+                  step={step}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Steps 6 + 7 created real Slack and Google Workspace
+              read-first bindings. Open Connectors to see the new
+              bindings, or Security &amp; Audit to read the full
+              lineage by audit_event_id.
+            </p>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function OnboardingPage() {
   // Defensive: if the mirror is empty / malformed for any reason, render a
   // safe empty state instead of crashing the screen.
@@ -1310,6 +1550,7 @@ export function OnboardingPage() {
       <DoctrineCard />
       <DandelionActivationCard />
       <TeamActivationCard />
+      <BusinessActivationCard />
       <CatalogCountsCard />
       <RoleBrowser roles={CATALOG.role_summaries} />
       <RoleDepthRoadmapPanel roadmap={CATALOG.role_depth_roadmap} />
