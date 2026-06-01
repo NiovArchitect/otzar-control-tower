@@ -519,6 +519,132 @@ describe("Section 7 Security & Audit — verify-chain panel (D2.2)", () => {
   });
 });
 
+describe("Section 7 Security & Audit — text/date filters (D4)", () => {
+  it("renders the text + date filter row + 4 new controls", async () => {
+    renderPage();
+    await screen.findByTestId("audit-list");
+    expect(
+      screen.getByTestId("audit-filter-bar-text-date"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("audit-filter-target-entity"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("audit-filter-target-capsule"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("audit-filter-start-time"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("audit-filter-end-time"),
+    ).toBeInTheDocument();
+  });
+
+  it("invalid UUID surfaces inline warning AND is NOT forwarded to the wire", async () => {
+    let lastListUrl: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/audit/events`, ({ request }) => {
+        lastListUrl = request.url;
+        return HttpResponse.json(
+          { ok: true, page: 1, page_size: 25, total: 0, events: [] },
+          { status: 200 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    // The override handler returns zero events, so the list
+    // surface renders the empty-state testid (not audit-list).
+    await screen.findByTestId("audit-list-empty");
+    await user.type(
+      screen.getByTestId("audit-filter-target-entity"),
+      "not-a-uuid",
+    );
+    expect(
+      await screen.findByTestId("audit-filter-target-entity-invalid"),
+    ).toBeInTheDocument();
+    expect(lastListUrl).not.toBeNull();
+    expect(lastListUrl!).not.toContain("target_entity_id=not-a-uuid");
+  });
+
+  it("valid target_entity_id UUID is forwarded as a query param and narrows the list", async () => {
+    let lastListUrl: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/audit/events`, ({ request }) => {
+        lastListUrl = request.url;
+        const url = new URL(request.url);
+        const target = url.searchParams.get("target_entity_id");
+        const events =
+          target === "11111111-2222-3333-4444-555555555555"
+            ? [
+                {
+                  audit_id: "aud-targeted-001",
+                  event_type: "ADMIN_ACTION",
+                  actor_entity_id: "ent-self",
+                  target_entity_id: target,
+                  target_capsule_id: null,
+                  session_id: "ses-001",
+                  outcome: "SUCCESS",
+                  denial_reason: null,
+                  details: { action: "TEST_TARGETED" },
+                  ip_address: "10.0.0.1",
+                  timestamp: "2026-05-31T18:33:00.000Z",
+                  previous_event_hash: null,
+                  event_hash:
+                    "0000000000000000000000000000000000000000000000000000000000000010",
+                  lawful_basis_id: null,
+                  lawful_basis_chain_hash: null,
+                  jurisdiction: null,
+                },
+              ]
+            : [];
+        return HttpResponse.json(
+          {
+            ok: true,
+            page: 1,
+            page_size: 25,
+            total: events.length,
+            events,
+          },
+          { status: 200 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list-empty");
+    await user.type(
+      screen.getByTestId("audit-filter-target-entity"),
+      "11111111-2222-3333-4444-555555555555",
+    );
+    const list = await screen.findByTestId("audit-list");
+    expect(within(list).getAllByTestId("audit-row").length).toBe(1);
+    expect(lastListUrl).not.toBeNull();
+    expect(lastListUrl!).toContain(
+      "target_entity_id=11111111-2222-3333-4444-555555555555",
+    );
+  });
+
+  it("Reset clears text + date filters in addition to event_type + outcome", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("audit-list");
+    await user.type(
+      screen.getByTestId("audit-filter-target-entity"),
+      "11111111-2222-3333-4444-555555555555",
+    );
+    await user.type(
+      screen.getByTestId("audit-filter-target-capsule"),
+      "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    );
+    expect(screen.getByTestId("audit-filter-reset")).not.toBeDisabled();
+    await user.click(screen.getByTestId("audit-filter-reset"));
+    expect(screen.getByTestId("audit-filter-target-entity")).toHaveValue("");
+    expect(screen.getByTestId("audit-filter-target-capsule")).toHaveValue("");
+    expect(screen.getByTestId("audit-filter-reset")).toBeDisabled();
+  });
+});
+
 describe("Section 7 Security & Audit — audit export (D3)", () => {
   it("renders the export bar + format Select + Download button", async () => {
     renderPage();
