@@ -1459,6 +1459,188 @@ export interface RecommendBestPathInput {
   recommendation_mode?: PlaygroundRecommendationMode;
 }
 
+// ════════════════════════════════════════════════════════════════
+// ADR-0078 Stage 2 — approved-source projection of safe
+// conversation_context_signals[] (Foundation PR #157 `45c0de6`
+// 2026-06-01). The sidecar lives on Wave 7
+// RecommendBestPathSuccess top-level (per ADR-0078 §8) and on
+// Wave 9 PlaygroundEnterpriseDecisionPosture (per ADR-0078 §9
+// — scenario-wide single sidecar; NOT per-branch — preserves
+// ADR-0076 §11 budgets). related_transcript_ref is OMITTED at
+// Stage 2 (no Layer 1 ingest yet). Bounded ≤ 8 per ADR-0078
+// §8 line 1129. Every emitted signal carries the 15 §2 base
+// fields + 8 §6C.12 additive fields exhaustively. ADR-0079 §27
+// enforcement applied by construction at the Foundation
+// projection service register — NON_WORK_PERSONAL /
+// SENSITIVE_PERSONAL / UNKNOWN_REQUIRES_REVIEW /
+// UNKNOWN_BUSINESS_PURPOSE / BLOCKED_FROM_AGENT_PLAYGROUND /
+// REQUIRES_HUMAN_REVIEW can never appear on the wire.
+// ════════════════════════════════════════════════════════════════
+
+// ADR-0078 §3.1 signal_type (17 closed-vocab values).
+export type ConversationContextSignalType =
+  | "PRIOR_COMMITMENT_IDENTIFIED"
+  | "STAKEHOLDER_CONCERN_IDENTIFIED"
+  | "APPROVAL_DEPENDENCY_IDENTIFIED"
+  | "CONFLICTING_DIRECTION_IDENTIFIED"
+  | "MISSING_STAKEHOLDER_INPUT"
+  | "MEETING_CONTEXT_SUPPORTS_PATH"
+  | "HUMAN_OBJECTION_REQUIRES_REVIEW"
+  | "DECISION_OWNER_UNCLEAR"
+  | "ACTION_ITEM_DEPENDENCY_IDENTIFIED"
+  | "RISK_RAISED_BY_STAKEHOLDER"
+  | "DEADLINE_OR_TIMING_CONSTRAINT_IDENTIFIED"
+  | "CUSTOMER_OR_CLIENT_IMPACT_RAISED"
+  | "POLICY_OR_COMPLIANCE_CONCERN_RAISED"
+  | "SECURITY_OR_DATA_SCOPE_CONCERN_RAISED"
+  | "PRIOR_DECISION_REFERENCED"
+  | "UNRESOLVED_QUESTION_IDENTIFIED"
+  | "CONTEXT_INSUFFICIENT_FOR_RECOMMENDATION";
+
+// ADR-0078 §3.2 signal_confidence_label (4 values).
+export type SignalConfidenceLabel =
+  | "LOW"
+  | "MEDIUM"
+  | "HIGH"
+  | "INSUFFICIENT_DATA";
+
+// ADR-0078 §3.3 signal_source_type (8 values; only 4 LIVE at
+// Stage 2 — CORRECTION_SIGNAL / ACTION_HISTORY / HIVE_CONTEXT
+// preserved-enum-zero-output / MANUAL_USER_INPUT).
+export type SignalSourceType =
+  | "MEETING_SUMMARY"
+  | "APPROVED_NOTE"
+  | "GOVERNED_LISTENER_OUTPUT"
+  | "CORRECTION_SIGNAL"
+  | "ACTION_HISTORY"
+  | "HIVE_CONTEXT"
+  | "MANUAL_USER_INPUT"
+  | "IMPORTED_APPROVED_RECORD";
+
+// ADR-0078 §3.4 signal_scope (6 values).
+export type SignalScope =
+  | "SELF_ONLY"
+  | "SAME_ORG"
+  | "HIVE_SCOPED"
+  | "PROJECT_SCOPED"
+  | "ACTION_SCOPED"
+  | "COMPLIANCE_REVIEW_SCOPED";
+
+// ADR-0078 §3.6 evidence_label (13 values).
+export type EvidenceLabel =
+  | "HUMAN_COMMITMENT"
+  | "HUMAN_CONCERN"
+  | "HUMAN_OBJECTION"
+  | "APPROVAL_NEED"
+  | "MISSING_CONTEXT"
+  | "PRIOR_DECISION"
+  | "TIMING_CONSTRAINT"
+  | "CUSTOMER_IMPACT"
+  | "POLICY_CONCERN"
+  | "SECURITY_CONCERN"
+  | "DATA_SCOPE_CONCERN"
+  | "CONFLICTING_CONTEXT"
+  | "INSUFFICIENT_CONTEXT";
+
+// ADR-0078 §3.7 retention_class (5 values).
+export type RetentionClass =
+  | "EPHEMERAL_REVIEW_ONLY"
+  | "SCENARIO_CONTEXT_RETAINED"
+  | "ACTION_CONTEXT_RETAINED"
+  | "AUDIT_SAFE_METADATA_ONLY"
+  | "DEPERSONALIZED_IMPROVEMENT_SIGNAL";
+
+// ADR-0078 §6C.6 business_purpose_label (11 values).
+// UNKNOWN_BUSINESS_PURPOSE never appears on the wire (filtered
+// by Foundation projection service per ADR-0079 §27); CT MUST
+// still type-permit it so the closed-vocab projection stays
+// stable across the wire.
+export type BusinessPurposeLabel =
+  | "PROJECT_CONTEXT"
+  | "CLIENT_OR_CUSTOMER_WORK"
+  | "ACTION_RELATED"
+  | "APPROVAL_RELATED"
+  | "COMPLIANCE_REVIEW"
+  | "LEGAL_HOLD"
+  | "INCIDENT_REVIEW"
+  | "HIVE_OR_TEAM_COORDINATION"
+  | "SALES_OR_ACCOUNT_WORK"
+  | "SUPPORT_CASE"
+  | "UNKNOWN_BUSINESS_PURPOSE";
+
+// ADR-0078 §6C.9.a conversation_relevance_class (5 values).
+// NON_WORK_PERSONAL / SENSITIVE_PERSONAL / UNKNOWN_REQUIRES_REVIEW
+// can never appear on the wire (filtered by Foundation per
+// ADR-0079 §27); type-permitted for vocab stability.
+export type ConversationRelevanceClass =
+  | "WORK_RELEVANT"
+  | "MIXED_WORK_PERSONAL"
+  | "NON_WORK_PERSONAL"
+  | "SENSITIVE_PERSONAL"
+  | "UNKNOWN_REQUIRES_REVIEW";
+
+// ADR-0078 §6C.9.b capture_eligibility (7 values).
+export type CaptureEligibility =
+  | "CAPTURE_ALLOWED"
+  | "CAPTURE_ALLOWED_WITH_REDACTION"
+  | "CAPTURE_BLOCKED_PERSONAL"
+  | "CAPTURE_BLOCKED_POLICY"
+  | "CAPTURE_BLOCKED_NO_BUSINESS_PURPOSE"
+  | "CAPTURE_REQUIRES_REVIEW"
+  | "CAPTURE_REQUIRED_BY_LEGAL_HOLD";
+
+// ADR-0078 §6C.9.c agent_playground_use (5 values).
+// BLOCKED_FROM_AGENT_PLAYGROUND / REQUIRES_HUMAN_REVIEW /
+// LEGAL_COMPLIANCE_ONLY can never appear on the wire at Stage 2;
+// type-permitted for vocab stability.
+export type AgentPlaygroundUse =
+  | "ALLOWED_FOR_SIGNALS"
+  | "ALLOWED_AFTER_REDACTION"
+  | "BLOCKED_FROM_AGENT_PLAYGROUND"
+  | "REQUIRES_HUMAN_REVIEW"
+  | "LEGAL_COMPLIANCE_ONLY";
+
+// ADR-0078 §6C.10 scope_binding_type (9 values; MUST never be
+// null at the wire per ADR-0079 §27).
+export type ScopeBindingType =
+  | "SCENARIO_SCOPED"
+  | "PROJECT_SCOPED"
+  | "MATTER_SCOPED"
+  | "CLIENT_SCOPED"
+  | "ACTION_SCOPED"
+  | "HIVE_SCOPED"
+  | "ORG_SCOPED"
+  | "LEGAL_HOLD_SCOPED"
+  | "COMPLIANCE_REVIEW_SCOPED";
+
+// ADR-0078 §2 + §6C.12 — canonical Stage 2 signal shape. 15
+// base + 8 additive = 23 fields. related_transcript_ref OMITTED
+// at Stage 2 per §7 line 1088 (no Layer 1 ingest yet).
+export interface ConversationContextSignal {
+  readonly signal_type: ConversationContextSignalType;
+  readonly signal_confidence_label: SignalConfidenceLabel;
+  readonly signal_source_type: SignalSourceType;
+  readonly signal_scope: SignalScope;
+  readonly related_scenario_id?: string;
+  readonly related_candidate_key?: string;
+  readonly related_branch_id?: string;
+  readonly related_action_id?: string;
+  readonly detected_at: string;
+  readonly evidence_label: EvidenceLabel;
+  readonly safe_summary: string;
+  readonly requires_human_review: boolean;
+  readonly retention_class: RetentionClass;
+  readonly honest_note: string;
+  readonly conversation_relevance_class: ConversationRelevanceClass;
+  readonly capture_eligibility: CaptureEligibility;
+  readonly agent_playground_use: AgentPlaygroundUse;
+  readonly redaction_applied: boolean;
+  readonly business_purpose_label: BusinessPurposeLabel;
+  readonly scope_binding_type: ScopeBindingType;
+  readonly review_required: boolean;
+  readonly personal_content_suppressed: boolean;
+}
+
 export interface RecommendBestPathSuccess {
   ok: true;
   scenario_id: string;
@@ -1483,6 +1665,10 @@ export interface RecommendBestPathSuccess {
   human_decision_required: boolean;
   honest_note: string;
   audit_event_id: string;
+  // ADR-0078 Stage 2 additive sidecar (Foundation PR #157
+  // `45c0de6` 2026-06-01). Always present; empty array when no
+  // approved-source signals exist; bounded ≤ 8.
+  conversation_context_signals: readonly ConversationContextSignal[];
 }
 
 // ─── Wave 8: PlaygroundGovernedTransition ─────────────────────────
@@ -1691,6 +1877,12 @@ export interface PlaygroundEnterpriseDecisionPosture {
   evidence_posture: readonly PlaygroundEvidencePosture[];
   blockers_before_action: readonly PlaygroundBlockerBeforeAction[];
   safe_next_step: PlaygroundSafeNextStep;
+  // ADR-0078 Stage 2 additive sidecar attached at the scenario-
+  // wide EnterpriseDecisionPosture per §9 (NOT per-branch —
+  // preserves ADR-0076 §11 budgets). Foundation PR #157.
+  // Always present; empty array when no approved-source signals
+  // exist; bounded ≤ 8.
+  conversation_context_signals: readonly ConversationContextSignal[];
 }
 
 export interface SimulateInput {

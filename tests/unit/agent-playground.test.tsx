@@ -78,11 +78,25 @@ beforeEach(() => {
 });
 
 // ────────────────────────────────────────────────────────────────
-// FORBIDDEN UI COPY GUARD per ADR-0077 §4
+// FORBIDDEN UI COPY GUARD per ADR-0077 §4. Forbidden phrases are
+// matched at positive-claim form — NOT at disclaimer form. The
+// canonical honest_note Foundation emits across Wave 7 +
+// ADR-0078 Stage 2 conversation_context_signals[] literally
+// contains "not a final decision" as the allowed disclaimer per
+// ADR-0074 §16 + ADR-0078 §11 + ADR-0070 §9. A bare "final
+// decision" substring would create a false-positive against the
+// canonical disclaimer; we match the positive-claim form
+// ("is a final decision" / "this final decision" /
+// "the final decision is") to catch winner-declaration framing
+// without breaking the disclaimer. Mirrors Foundation Wave 7's
+// FORBIDDEN_RECOMMENDATION_LANGUAGE discipline at
+// tests/integration/playground-best-path-recommendations.test.ts.
 // ────────────────────────────────────────────────────────────────
 const FORBIDDEN_UI_COPY = [
   "ai agents decided",
-  "final decision",
+  "is a final decision",
+  "this final decision",
+  "the final decision is",
   "guaranteed compliant",
   "regulator approved",
   "no fine risk",
@@ -369,7 +383,7 @@ describe("Section 5 Wave 10 -- Wave 9 simulation + enterprise posture", () => {
     expect(safeNext.textContent?.toLowerCase()).toContain("request compliance review");
   });
 
-  it("surfaces the conversation-context honesty posture", async () => {
+  it("renders Stage 2 approved-source conversation context signals on Wave 9 (replaces ADR-0077 §8.2 placeholder)", async () => {
     seedPlaygroundScenario({
       scenario_id: "scn-sim-ctx",
       title: "Scenario for context honesty",
@@ -383,9 +397,209 @@ describe("Section 5 Wave 10 -- Wave 9 simulation + enterprise posture", () => {
       screen.getByTestId("agent-playground-stage-simulation"),
     );
     await user.click(screen.getByTestId("agent-playground-simulate"));
+    // Stage 2 LIVE — the placeholder is replaced with a real
+    // signals panel populated from approved Foundation sources.
+    const panel = await screen.findByTestId(
+      "conversation-context-signals-simulation-review",
+    );
+    expect(panel).toBeInTheDocument();
+    // Honest empty/full-state copy — appears in both the
+    // CardDescription and inside each signal's honest_note,
+    // so use getAllByText.
     expect(
-      await screen.findByText(/Conversation context signals not available in this version/i),
+      within(panel).getAllByText(/Derived from approved Foundation sources/i)
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(panel).getByText(/No raw transcript shown/i),
     ).toBeInTheDocument();
+    // MSW fixture emits 2 signals on the Wave 9 sidecar.
+    expect(within(panel).getAllByTestId(/^signal-\d+$/).length).toBe(2);
+    // §6C.12 additive fields surfaced as closed-vocab badges
+    // on every signal — each label appears once per signal.
+    expect(within(panel).getAllByText(/binding:/i).length).toBe(2);
+    expect(within(panel).getAllByText(/purpose:/i).length).toBe(2);
+    expect(within(panel).getAllByText(/relevance:/i).length).toBe(2);
+    expect(within(panel).getAllByText(/use:/i).length).toBe(2);
+    // Placeholder copy from the old §8.2 surface MUST NOT
+    // appear anywhere on the page.
+    expect(
+      screen.queryByText(/not available in this version/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders Stage 2 approved-source conversation context signals on Wave 7 recommendation surface", async () => {
+    seedPlaygroundScenario({
+      scenario_id: "scn-rec-ctx",
+      title: "Scenario for Wave 7 signals",
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(
+      await screen.findByTestId("agent-playground-scenario-scn-rec-ctx"),
+    );
+    await user.click(
+      screen.getByTestId("agent-playground-stage-recommendation"),
+    );
+    await user.click(screen.getByTestId("agent-playground-recommend"));
+    const panel = await screen.findByTestId(
+      "conversation-context-signals-recommendation-review",
+    );
+    expect(panel).toBeInTheDocument();
+    // MSW Wave 7 fixture emits 2 signals.
+    expect(within(panel).getAllByTestId(/^signal-\d+$/).length).toBe(2);
+  });
+
+  it("renders honest empty-state copy when no approved-source signals exist on Wave 9", async () => {
+    seedPlaygroundScenario({
+      scenario_id: "scn-sim-empty-ctx",
+      title: "Empty signals scenario",
+    });
+    server.use(
+      http.post(
+        `${API_BASE}/playground/scenarios/scn-sim-empty-ctx/simulations`,
+        () =>
+          HttpResponse.json(
+            {
+              ok: true,
+              scenario_id: "scn-sim-empty-ctx",
+              simulated_at: new Date().toISOString(),
+              orchestration_mode: "DETERMINISTIC_BRANCH_ENUMERATION",
+              branch_count: 1,
+              branches: [
+                {
+                  branch_id: "branch-empty",
+                  branch_definition: "RECOMMENDED_PATH",
+                  agent_role: "OWNER_OPERATOR",
+                  assumed_constraints: ["OWNER_COSMP_SCOPE_ONLY"],
+                  expected_outcomes: ["WAVE_7_RECOMMENDATION_PRODUCED"],
+                  governance_conflicts: ["NO_NOTABLE_CONFLICT"],
+                  branch_summary: "Branch summary.",
+                  branch_recommended_candidate_key: "candkey-x",
+                  branch_recommended_candidate_type: "STATUS_QUO",
+                  confidence_label: "MEDIUM",
+                },
+              ],
+              convergence_summary: {
+                candidate_keys_agreed_upon: ["candkey-x"],
+                governance_findings_all_branches_share: [],
+                required_reviews_all_branches_share: [],
+              },
+              disagreement_summary: {
+                candidate_types_diverged: [],
+                recommendation_modes_diverged: [],
+                unresolved_branches: [],
+              },
+              unresolved_questions: [],
+              recommended_next_review: {
+                next_review_label: "OWNER_REVIEW",
+                rationale_summary: "Owner review recommended.",
+                applies_to_branch_ids: ["branch-empty"],
+              },
+              enterprise_decision_posture: {
+                primary_recommended_branch_id: "branch-empty",
+                primary_recommendation_reasons: [],
+                viable_alternative_branch_ids: [],
+                evidence_posture: ["INSUFFICIENT_CONTEXT"],
+                blockers_before_action: ["INSUFFICIENT_DATA"],
+                safe_next_step: "REQUEST_MISSING_CONTEXT",
+                // Stage 2 empty-state — empty array (NOT null).
+                conversation_context_signals: [],
+              },
+              human_decision_required: true,
+              honest_note: "Advisory only.",
+              simulation_audit_event_id: "aud-sim-empty-ctx",
+            },
+            { status: 200 },
+          ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(
+      await screen.findByTestId("agent-playground-scenario-scn-sim-empty-ctx"),
+    );
+    await user.click(
+      screen.getByTestId("agent-playground-stage-simulation"),
+    );
+    await user.click(screen.getByTestId("agent-playground-simulate"));
+    const panel = await screen.findByTestId(
+      "conversation-context-signals-simulation-review",
+    );
+    expect(panel).toBeInTheDocument();
+    // Empty state copy describes why; never claims "not
+    // available" anymore (that placeholder is retired).
+    expect(
+      within(panel).getByText(/No approved-source signals/i),
+    ).toBeInTheDocument();
+    expect(
+      within(panel).queryAllByTestId(/^signal-\d+$/).length,
+    ).toBe(0);
+  });
+
+  it("Stage 2 signals panel honors ADR-0077 §13 + ADR-0078 §11 / §5.2 no-leak guards (no raw text / quotes / chain-of-thought)", async () => {
+    seedPlaygroundScenario({
+      scenario_id: "scn-sim-noleak",
+      title: "No-leak scenario",
+    });
+    const user = userEvent.setup();
+    const { container } = renderPage();
+    await user.click(
+      await screen.findByTestId("agent-playground-scenario-scn-sim-noleak"),
+    );
+    await user.click(
+      screen.getByTestId("agent-playground-stage-simulation"),
+    );
+    await user.click(screen.getByTestId("agent-playground-simulate"));
+    const panel = await screen.findByTestId(
+      "conversation-context-signals-simulation-review",
+    );
+    expect(panel).toBeInTheDocument();
+    // Stage-2-specific forbidden tokens that MUST never appear
+    // on this surface. The page-level FORBIDDEN_RAW_TOKENS guard
+    // in another test catches the broader set; this one locks
+    // the signal-surface vocab.
+    const stage2Forbidden = [
+      "raw_text",
+      "message_body",
+      "speaker_quote",
+      "private_note",
+      "raw_audio",
+      "raw_video",
+      "raw_screen_capture",
+      "emotion_score",
+      "sentiment_score",
+      "employee_score",
+      "manager_score",
+      "psychological_profile",
+      "compliance_certification",
+      "legal_conclusion",
+      "regulator_approval",
+      "related_transcript_ref",
+      "transcript_id",
+      "transcript_hash",
+      "transcript_text_encrypted",
+    ];
+    const rendered = container.textContent ?? "";
+    for (const tok of stage2Forbidden) {
+      expect(rendered.toLowerCase()).not.toContain(tok);
+    }
+    // ADR-0079 §27 blocked enum values MUST never reach the wire
+    // (Foundation projection service filters by construction);
+    // verify CT also never renders them.
+    const blockedEnums = [
+      "NON_WORK_PERSONAL",
+      "SENSITIVE_PERSONAL",
+      "UNKNOWN_REQUIRES_REVIEW",
+      "UNKNOWN_BUSINESS_PURPOSE",
+      "BLOCKED_FROM_AGENT_PLAYGROUND",
+    ];
+    for (const v of blockedEnums) {
+      expect(rendered).not.toContain(v);
+      expect(rendered.toLowerCase()).not.toContain(
+        v.replace(/_/g, " ").toLowerCase(),
+      );
+    }
   });
 });
 

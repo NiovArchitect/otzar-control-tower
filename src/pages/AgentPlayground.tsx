@@ -94,6 +94,7 @@ import { cn } from "@/lib/utils";
 import type {
   ActionStatus,
   CompareOutcomesSuccess,
+  ConversationContextSignal,
   GenerateCandidatesSuccess,
   PlaygroundScenario,
   ProposeGovernedTransitionSuccess,
@@ -1130,6 +1131,159 @@ function ComparisonPanel({
 // Recommendation panel (Wave 7)
 // ════════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════
+// Conversation context signals panel (ADR-0078 Stage 2).
+// Renders the approved-source `conversation_context_signals[]`
+// sidecar Foundation PR #157 emits on Wave 7
+// RecommendBestPathSuccess (top-level) and Wave 9
+// EnterpriseDecisionPosture (scenario-wide; NOT per-branch —
+// preserves ADR-0076 §11 budgets).
+//
+// Rendering discipline:
+//  * Closed-vocab badges only — every signal field rendered is
+//    a discriminator the Foundation projection service produced.
+//  * No raw transcript text, no quotes/excerpts, no chain-of-
+//    thought, no Layer 4 drilldown affordance (Stage 1 / Layer 4
+//    are forward-substrate; CT can wire that affordance once
+//    Foundation Stage 1 read service lands).
+//  * Allowed copy per ADR-0077 §4 + Founder copy lock at this
+//    slice: "Conversation context signals", "Approved-source
+//    signal", "Derived from approved Foundation sources", "No
+//    raw transcript shown", "Advisory context only", "Review
+//    required", "Not an execution decision", "Not legal/
+//    compliance certainty".
+//  * Forbidden copy enforced by the page-level test guard
+//    (FORBIDDEN_UI_COPY at tests/unit/agent-playground.test.tsx).
+//  * Empty array → safe empty-state copy; honest about the
+//    Stage 1 / Layer 4 boundary that has not yet shipped.
+function ConversationContextSignalsPanel({
+  signals,
+  policyPurposeLabel,
+}: {
+  signals: readonly ConversationContextSignal[];
+  policyPurposeLabel: "recommendation-review" | "simulation-review";
+}) {
+  return (
+    <Card data-testid={`conversation-context-signals-${policyPurposeLabel}`}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">
+          Conversation context signals
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Derived from approved Foundation sources. Advisory
+          context only. No raw transcript shown.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {signals.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No approved-source signals for this scenario. Foundation
+            surfaces a signal only when an approved source (action
+            history, correction signals, hive context, or manual
+            scenario input) has scope-bound context for this
+            recommendation. Permissioned evidence drilldown is not
+            available in this version.
+          </p>
+        ) : (
+          <ul className="space-y-3" data-testid="signals-list">
+            {signals.map((s, i) => (
+              <li
+                key={`${s.signal_source_type}-${s.signal_type}-${i}`}
+                className="rounded-md border border-border bg-muted/30 p-3"
+                data-testid={`signal-${i}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Badge variant="outline" className="text-[10px]">
+                      Approved-source signal
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      Source: {s.signal_source_type
+                        .replace(/_/g, " ")
+                        .toLowerCase()}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {s.signal_type.replace(/_/g, " ").toLowerCase()}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Badge variant="outline" className="text-[10px]">
+                      Confidence: {s.signal_confidence_label
+                        .replace(/_/g, " ")
+                        .toLowerCase()}
+                    </Badge>
+                    {s.review_required && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Review required
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-foreground">
+                  {s.safe_summary}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1">
+                  <Badge variant="outline" className="text-[10px]">
+                    Scope: {s.signal_scope.replace(/_/g, " ").toLowerCase()}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Binding: {s.scope_binding_type
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Purpose: {s.business_purpose_label
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Evidence: {s.evidence_label
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Retention: {s.retention_class
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Relevance: {s.conversation_relevance_class
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Use: {s.agent_playground_use
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Capture: {s.capture_eligibility
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </Badge>
+                  {s.redaction_applied && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Redaction applied
+                    </Badge>
+                  )}
+                  {s.personal_content_suppressed && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Personal content suppressed
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  {s.honest_note}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function RecommendationPanel({
   data,
   isFetching,
@@ -1270,6 +1424,10 @@ function RecommendationPanel({
                 )}
               </CardContent>
             </Card>
+            <ConversationContextSignalsPanel
+              signals={data.conversation_context_signals}
+              policyPurposeLabel="recommendation-review"
+            />
             <HonestNote text={data.honest_note} />
           </div>
         )}
@@ -1492,19 +1650,12 @@ function SimulationContent({ data }: { data: SimulationSuccess }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Conversation context</CardTitle>
-          <CardDescription className="text-xs">
-            Reserved for governed conversation-listener substrate.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground">
-            Conversation context signals not available in this version.
-          </p>
-        </CardContent>
-      </Card>
+      <ConversationContextSignalsPanel
+        signals={
+          data.enterprise_decision_posture.conversation_context_signals
+        }
+        policyPurposeLabel="simulation-review"
+      />
 
       <HonestNote text={data.honest_note} />
     </div>
