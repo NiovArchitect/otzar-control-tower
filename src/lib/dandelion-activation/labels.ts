@@ -68,7 +68,11 @@ export function getStepLabel(auditLiteral: string): StepLabel {
   const title = subString
     .toLowerCase()
     .split("_")
-    .map((w) => (w.length === 0 ? "" : w[0].toUpperCase() + w.slice(1)))
+    .map((w) => {
+      if (w.length === 0) return "";
+      const first = w.charAt(0);
+      return first.toUpperCase() + w.slice(1);
+    })
     .join(" ");
   return {
     title,
