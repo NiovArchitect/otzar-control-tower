@@ -28,6 +28,7 @@ import {
   BookOpen,
   ClipboardCheck,
   Compass,
+  CreditCard,
   Database,
   FlaskConical,
   KeyRound,
@@ -147,6 +148,12 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/onboarding",
     icon: Compass,
     description: "Dandelion Preview -- read-only browse of the ADR-0080 Wave 2 OOTB role/tool/workflow catalog.",
+  },
+  {
+    label: "Billing",
+    to: "/billing",
+    icon: CreditCard,
+    description: "Billing & Entitlements Preview -- read-only browse of the Section 8 B2 plans, seats, packs, connector families, governance rules, and downgrade policies.",
   },
   {
     label: "Documentation",
