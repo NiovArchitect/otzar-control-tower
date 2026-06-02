@@ -27,7 +27,8 @@ export type CtConnectorType =
   | "SLACK_READ"
   | "GOOGLE_WORKSPACE_READ"
   | "JIRA_CLOUD_READ"
-  | "LINEAR_READ";
+  | "LINEAR_READ"
+  | "GITHUB_READ";
 
 export interface ConnectorBindingView {
   binding_id: string;

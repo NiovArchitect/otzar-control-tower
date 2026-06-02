@@ -75,6 +75,17 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
       "Reads only at C4-B. The secret_ref field is the env-var NAME on the deployment host that resolves to a Linear OAuth 2.0 access token; never paste the resolved token here. Linear OAuth tokens are workspace-bound by construction at install time, so no per-tenant cloud_id / workspace_domain is required. Team keys (TEAM-NNN), issue identifiers, titles, descriptions, assignee identity, reporter identity, and comments are NEVER traversed by the connector. Cycle / roadmap / label / project reads are deferred; personal-API-key fallback is intentionally excluded for workspace-tier auditability; writes are deferred to ≥C6.",
   },
   {
+    type: "GITHUB_READ",
+    display_name: "GitHub (read-first)",
+    short_description:
+      "OAuth-2.0 access-token OR Personal Access Token read access to GitHub REST v3 via user + repos.list + issues.search (X-GitHub-Api-Version 2022-11-28 pinned). Counts + state aggregates only (open / closed_completed / closed_not_planned grouped from GitHub state + state_reason). C-GitHub RUNTIME_READY.",
+    secret_ref_required: true,
+    hidden_from_admin_selection: false,
+    required_config_keys: ["use_real"],
+    governance_note:
+      "Reads only at C-GitHub. The secret_ref field is the env-var NAME on the deployment host that resolves to a GitHub OAuth 2.0 access token or Personal Access Token (PAT); never paste the resolved token here. GitHub access tokens are global to the authenticated caller or GitHub App installation, so no per-tenant cloud_id / workspace_id is required. Repository names, owner logins, branch names, issue identifiers, titles, bodies, assignee email, reporter login, and comments are NEVER traversed by the connector. PR / commit / branch / file-content reads are deferred; webhook ingestion is deferred to ≥C7; GraphQL v4 surface is deferred (REST v3 only at C-GitHub); writes are deferred to ≥C6.",
+  },
+  {
     type: "OUTBOUND_WEBHOOK",
     display_name: "Outbound Webhook",
     short_description:
