@@ -28,7 +28,8 @@ export type CtConnectorType =
   | "GOOGLE_WORKSPACE_READ"
   | "JIRA_CLOUD_READ"
   | "LINEAR_READ"
-  | "GITHUB_READ";
+  | "GITHUB_READ"
+  | "MICROSOFT_365_READ";
 
 export interface ConnectorBindingView {
   binding_id: string;

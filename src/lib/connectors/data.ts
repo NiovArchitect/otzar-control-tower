@@ -86,6 +86,17 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
       "Reads only at C-GitHub. The secret_ref field is the env-var NAME on the deployment host that resolves to a GitHub OAuth 2.0 access token or Personal Access Token (PAT); never paste the resolved token here. GitHub access tokens are global to the authenticated caller or GitHub App installation, so no per-tenant cloud_id / workspace_id is required. Repository names, owner logins, branch names, issue identifiers, titles, bodies, assignee email, reporter login, and comments are NEVER traversed by the connector. PR / commit / branch / file-content reads are deferred; webhook ingestion is deferred to ≥C7; GraphQL v4 surface is deferred (REST v3 only at C-GitHub); writes are deferred to ≥C6.",
   },
   {
+    type: "MICROSOFT_365_READ",
+    display_name: "Microsoft 365 (read-first)",
+    short_description:
+      "OAuth-2.0 access-token read access to Microsoft Graph v1.0 via calendar.events.list + drive.items.list + mail.messages.list ($select query parameter restricts response field set at the request boundary). Counts + aggregates only (recurring_events_count + folders_count). C5 RUNTIME_READY. Closes the 6/6 connector matrix at RUNTIME_READY or higher.",
+    secret_ref_required: true,
+    hidden_from_admin_selection: false,
+    required_config_keys: ["use_real", "tenant_id"],
+    governance_note:
+      "Reads only at C5. The secret_ref field is the env-var NAME on the deployment host that resolves to a Microsoft 365 OAuth 2.0 access token issued by Azure Active Directory; never paste the resolved token (JWT format eyJ...) here. The tenant_id field carries the Azure AD tenant identifier (GUID format) and is analogous to the Google Workspace workspace_domain. Event subjects, attendee email PII, body content, file names, folder paths, mail subject lines, sender and recipient email addresses, and attachment names are NEVER traversed by the connector. OneDrive content download, Outlook mail body read, Teams read, webhook subscriptions, SharePoint, OneNote, Planner, and Bookings reads are deferred; writes are deferred to ≥C6.",
+  },
+  {
     type: "OUTBOUND_WEBHOOK",
     display_name: "Outbound Webhook",
     short_description:

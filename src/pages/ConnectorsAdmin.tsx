@@ -93,15 +93,17 @@ function BindingCard({
           <Badge variant="outline">Type: {binding.type}</Badge>
           <Badge variant="outline">
             Read-first (no writes at{" "}
-            {binding.type === "GITHUB_READ"
-              ? "C-GitHub"
-              : binding.type === "LINEAR_READ"
-                ? "C4-B"
-                : binding.type === "JIRA_CLOUD_READ"
-                  ? "C4-A"
-                  : binding.type === "GOOGLE_WORKSPACE_READ"
-                    ? "C3"
-                    : "C2"})
+            {binding.type === "MICROSOFT_365_READ"
+              ? "C5"
+              : binding.type === "GITHUB_READ"
+                ? "C-GitHub"
+                : binding.type === "LINEAR_READ"
+                  ? "C4-B"
+                  : binding.type === "JIRA_CLOUD_READ"
+                    ? "C4-A"
+                    : binding.type === "GOOGLE_WORKSPACE_READ"
+                      ? "C3"
+                      : "C2"})
           </Badge>
         </div>
         <div>
@@ -194,6 +196,18 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         // cloud_id / workspace_id is required. The config shape
         // is the minimal {use_real} pair; no display-name
         // stand-in is needed.
+      } else if (type === "MICROSOFT_365_READ") {
+        config["use_real"] = false;
+        // C5 Microsoft 365 carries the Azure AD tenant identifier
+        // in `tenant_id` — analogous role to C3 workspace_domain
+        // or C4-A cloud_id. At registration tier we let the
+        // operator paste the tenant_id in the display_name field
+        // as a stand-in until a dedicated tenant_id form input
+        // lands in a later CT slice; the operator can refine via
+        // the admin update route once the binding exists. The
+        // displayName.trim() fallback mirrors the JIRA_CLOUD_READ
+        // pattern.
+        config["tenant_id"] = displayName.trim() || "pending";
       } else if (type === "OUTBOUND_WEBHOOK") {
         config["url"] = "";
       }
@@ -267,15 +281,17 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder={
-              type === "GITHUB_READ"
-                ? "e.g. niov-prod-github"
-                : type === "LINEAR_READ"
-                  ? "e.g. niov-prod-linear"
-                  : type === "JIRA_CLOUD_READ"
-                    ? "e.g. niov-prod-jira"
-                    : type === "GOOGLE_WORKSPACE_READ"
-                      ? "e.g. niov-prod-google"
-                      : "e.g. niov-prod-slack"
+              type === "MICROSOFT_365_READ"
+                ? "e.g. niov-prod-m365"
+                : type === "GITHUB_READ"
+                  ? "e.g. niov-prod-github"
+                  : type === "LINEAR_READ"
+                    ? "e.g. niov-prod-linear"
+                    : type === "JIRA_CLOUD_READ"
+                      ? "e.g. niov-prod-jira"
+                      : type === "GOOGLE_WORKSPACE_READ"
+                        ? "e.g. niov-prod-google"
+                        : "e.g. niov-prod-slack"
             }
             data-testid="display-name-input"
           />
@@ -288,15 +304,17 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               value={secretRef}
               onChange={(e) => setSecretRef(e.target.value)}
               placeholder={
-                type === "GITHUB_READ"
-                  ? "e.g. GITHUB_ACCESS_TOKEN_PROD"
-                  : type === "LINEAR_READ"
-                    ? "e.g. LINEAR_ACCESS_TOKEN_PROD"
-                    : type === "JIRA_CLOUD_READ"
-                      ? "e.g. JIRA_ACCESS_TOKEN_PROD"
-                      : type === "GOOGLE_WORKSPACE_READ"
-                        ? "e.g. GOOGLE_ACCESS_TOKEN_PROD"
-                        : "e.g. SLACK_BOT_TOKEN_PROD"
+                type === "MICROSOFT_365_READ"
+                  ? "e.g. MS365_ACCESS_TOKEN_PROD"
+                  : type === "GITHUB_READ"
+                    ? "e.g. GITHUB_ACCESS_TOKEN_PROD"
+                    : type === "LINEAR_READ"
+                      ? "e.g. LINEAR_ACCESS_TOKEN_PROD"
+                      : type === "JIRA_CLOUD_READ"
+                        ? "e.g. JIRA_ACCESS_TOKEN_PROD"
+                        : type === "GOOGLE_WORKSPACE_READ"
+                          ? "e.g. GOOGLE_ACCESS_TOKEN_PROD"
+                          : "e.g. SLACK_BOT_TOKEN_PROD"
               }
               data-testid="secret-ref-input"
             />
@@ -366,7 +384,7 @@ function TypeRegistryCard() {
       <CardHeader>
         <CardTitle>Available connector types</CardTitle>
         <CardDescription>
-          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3 + PR #207 Jira Cloud C4-A + PR #209 Linear C4-B + PR #216 GitHub C-GitHub).
+          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3 + PR #207 Jira Cloud C4-A + PR #209 Linear C4-B + PR #216 GitHub C-GitHub + PR #218 Microsoft 365 C5 — 6/6 connector matrix at RUNTIME_READY).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
@@ -427,7 +445,7 @@ export function ConnectorsAdminPage() {
     <div className="space-y-6">
       <PageHeader
         title="Connectors"
-        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2), Google Workspace (C3), Jira Cloud (C4-A), Linear (C4-B), and GitHub (C-GitHub) are RUNTIME_READY at Foundation."
+        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2), Google Workspace (C3), Jira Cloud (C4-A), Linear (C4-B), GitHub (C-GitHub), and Microsoft 365 (C5) are RUNTIME_READY at Foundation — 6/6 connector matrix complete."
       />
       <DoctrineCard />
       <TypeRegistryCard />
