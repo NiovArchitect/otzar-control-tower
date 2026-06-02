@@ -47,6 +47,7 @@ import { DocumentationPage } from "@/pages/Documentation";
 import { IntelligencePage } from "@/pages/Intelligence";
 import { ApprovalsPage } from "@/pages/Approvals";
 import { NotFoundPage } from "@/pages/NotFound";
+import { VoiceTwinPage } from "@/pages/VoiceTwin";
 
 export function App() {
   return (
@@ -109,6 +110,7 @@ export function App() {
               <Route path="onboarding" element={<OnboardingPage />} />
               <Route path="billing" element={<BillingPreviewPage />} />
               <Route path="connectors" element={<ConnectorsAdminPage />} />
+              <Route path="voice" element={<VoiceTwinPage />} />
               <Route path="documentation" element={<DocumentationPage />} />
               <Route path="intelligence" element={<IntelligencePage />} />
               {/* Side-section: badge-driven Pending Approvals */}

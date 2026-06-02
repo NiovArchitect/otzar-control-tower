@@ -127,6 +127,10 @@ import type {
   CtBusinessActivationInput,
   CtEnterpriseActivationInput,
 } from "./dandelion-activation/types";
+import type {
+  CtVoiceIntentSubmitInput,
+  CtVoiceIntentSubmitResult,
+} from "./voice/types";
 
 // WHAT: Discriminated-union result every api.* method returns.
 // INPUT: Used as a return type.
@@ -1188,6 +1192,42 @@ export class ApiClient {
       input: CtEnterpriseActivationInput,
     ): Promise<ApiResult<CtActivationResult>> =>
       this.request<CtActivationResult>("/org/dandelion/activate/enterprise", {
+        method: "POST",
+        body: input,
+        retries: 0,
+      }),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // voice.*  (ADR-0085 §8 VF.4 — voice-first runtime). The single
+  // route this namespace consumes:
+  //
+  //   POST   /api/v1/voice/intents
+  //
+  // Bearer-auth-gated at the Foundation route tier. The route
+  // accepts a typed transcript + source surface + risk tier and
+  // returns the SAFE envelope projection (per Foundation
+  // apps/api/src/routes/voice.routes.ts VF.4a). The CT page
+  // renders the typed transcript locally (the operator typed
+  // it) — the Foundation response only confirms construction +
+  // audit. Privacy invariant: this namespace + the Foundation
+  // route never carry transcript_text, raw audio, Bearer
+  // headers, or any caller identifier in the response.
+  // ──────────────────────────────────────────────────────────────
+  voice = {
+    /**
+     * POST /api/v1/voice/intents — submit a voice intent envelope.
+     * The Foundation route constructs the envelope + emits the
+     * VOICE_INTENT_RECEIVED audit event before delivery (RULE 4).
+     * Risk-tier discrimination per ADR-0085 §3:
+     *   LOW    → confirmation NOT_NEEDED + approval NONE
+     *   MEDIUM → confirmation PENDING + approval NONE
+     *   HIGH   → confirmation PENDING + approval PENDING
+     */
+    submitIntent: (
+      input: CtVoiceIntentSubmitInput,
+    ): Promise<ApiResult<CtVoiceIntentSubmitResult>> =>
+      this.request<CtVoiceIntentSubmitResult>("/voice/intents", {
         method: "POST",
         body: input,
         retries: 0,

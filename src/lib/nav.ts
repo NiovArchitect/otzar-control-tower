@@ -37,6 +37,7 @@ import {
   MessagesSquare,
   Network,
   ScrollText,
+  Mic,
   Settings as SettingsIcon,
   Shield,
   Sparkles,
@@ -161,6 +162,12 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/connectors",
     icon: PlugZap,
     description: "Section 4 ConnectorBinding admin surface -- register, list, enable / disable, and soft-delete bindings for SLACK_READ and OUTBOUND_WEBHOOK connector types. C2 Slack runtime is LIVE.",
+  },
+  {
+    label: "Voice",
+    to: "/voice",
+    icon: Mic,
+    description: "Voice-first talk surface per ADR-0085 -- text-only voice intent envelopes governed by Foundation. Voice is an interface layer, not a bypass.",
   },
   {
     label: "Documentation",
