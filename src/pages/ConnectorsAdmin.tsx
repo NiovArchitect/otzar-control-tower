@@ -93,11 +93,13 @@ function BindingCard({
           <Badge variant="outline">Type: {binding.type}</Badge>
           <Badge variant="outline">
             Read-first (no writes at{" "}
-            {binding.type === "JIRA_CLOUD_READ"
-              ? "C4-A"
-              : binding.type === "GOOGLE_WORKSPACE_READ"
-                ? "C3"
-                : "C2"})
+            {binding.type === "LINEAR_READ"
+              ? "C4-B"
+              : binding.type === "JIRA_CLOUD_READ"
+                ? "C4-A"
+                : binding.type === "GOOGLE_WORKSPACE_READ"
+                  ? "C3"
+                  : "C2"})
           </Badge>
         </div>
         <div>
@@ -175,6 +177,13 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         // the binding exists. The displayName.trim() fallback
         // mirrors the SLACK_READ + GOOGLE_WORKSPACE_READ pattern.
         config["cloud_id"] = displayName.trim() || "pending";
+      } else if (type === "LINEAR_READ") {
+        config["use_real"] = false;
+        // C4-B Linear OAuth tokens are workspace-bound by
+        // construction at install time, so no per-tenant
+        // cloud_id / workspace_domain is required. The config
+        // shape is the minimal {use_real} pair; no display-name
+        // stand-in is needed.
       } else if (type === "OUTBOUND_WEBHOOK") {
         config["url"] = "";
       }
@@ -248,11 +257,13 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder={
-              type === "JIRA_CLOUD_READ"
-                ? "e.g. niov-prod-jira"
-                : type === "GOOGLE_WORKSPACE_READ"
-                  ? "e.g. niov-prod-google"
-                  : "e.g. niov-prod-slack"
+              type === "LINEAR_READ"
+                ? "e.g. niov-prod-linear"
+                : type === "JIRA_CLOUD_READ"
+                  ? "e.g. niov-prod-jira"
+                  : type === "GOOGLE_WORKSPACE_READ"
+                    ? "e.g. niov-prod-google"
+                    : "e.g. niov-prod-slack"
             }
             data-testid="display-name-input"
           />
@@ -265,11 +276,13 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               value={secretRef}
               onChange={(e) => setSecretRef(e.target.value)}
               placeholder={
-                type === "JIRA_CLOUD_READ"
-                  ? "e.g. JIRA_ACCESS_TOKEN_PROD"
-                  : type === "GOOGLE_WORKSPACE_READ"
-                    ? "e.g. GOOGLE_ACCESS_TOKEN_PROD"
-                    : "e.g. SLACK_BOT_TOKEN_PROD"
+                type === "LINEAR_READ"
+                  ? "e.g. LINEAR_ACCESS_TOKEN_PROD"
+                  : type === "JIRA_CLOUD_READ"
+                    ? "e.g. JIRA_ACCESS_TOKEN_PROD"
+                    : type === "GOOGLE_WORKSPACE_READ"
+                      ? "e.g. GOOGLE_ACCESS_TOKEN_PROD"
+                      : "e.g. SLACK_BOT_TOKEN_PROD"
               }
               data-testid="secret-ref-input"
             />
@@ -339,7 +352,7 @@ function TypeRegistryCard() {
       <CardHeader>
         <CardTitle>Available connector types</CardTitle>
         <CardDescription>
-          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3 + PR #207 Jira Cloud C4-A).
+          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3 + PR #207 Jira Cloud C4-A + PR #209 Linear C4-B).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
@@ -400,7 +413,7 @@ export function ConnectorsAdminPage() {
     <div className="space-y-6">
       <PageHeader
         title="Connectors"
-        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2), Google Workspace (C3), and Jira Cloud (C4-A) are RUNTIME_READY at Foundation."
+        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2), Google Workspace (C3), Jira Cloud (C4-A), and Linear (C4-B) are RUNTIME_READY at Foundation."
       />
       <DoctrineCard />
       <TypeRegistryCard />
