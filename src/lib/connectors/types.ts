@@ -25,7 +25,8 @@ export type CtConnectorType =
   | "OUTBOUND_WEBHOOK"
   | "FIXTURE_ECHO"
   | "SLACK_READ"
-  | "GOOGLE_WORKSPACE_READ";
+  | "GOOGLE_WORKSPACE_READ"
+  | "JIRA_CLOUD_READ";
 
 export interface ConnectorBindingView {
   binding_id: string;
