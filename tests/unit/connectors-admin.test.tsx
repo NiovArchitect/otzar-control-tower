@@ -944,3 +944,156 @@ describe("Connectors — GITHUB_READ binding render", () => {
     expect(docBody.toLowerCase()).not.toContain("bearer ");
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// CT C5 — Microsoft 365 admin path tests. Mirrors C2 Slack +
+// C3 Google + C4-A Jira + C4-B Linear + C-GitHub admin path
+// tests verbatim. The Foundation runtime is LIVE at PR #218
+// (RECOMMENDATION_READY → RUNTIME_READY); these tests verify
+// the CT path graduates the operator-facing surface so admins
+// can self-serve MICROSOFT_365_READ binding registration.
+// Closes the 6/6 connector matrix at OPERATING parity.
+// ────────────────────────────────────────────────────────────────
+
+describe("Connectors — MICROSOFT_365_READ C5 admin path", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("renders the MICROSOFT_365_READ type in the registry card", async () => {
+    renderConnectors();
+    expect(
+      await screen.findByTestId("type-MICROSOFT_365_READ"),
+    ).toBeInTheDocument();
+  });
+
+  it("describes the C5 read-only scope (calendar + drive + mail via Microsoft Graph)", async () => {
+    renderConnectors();
+    const tile = await screen.findByTestId("type-MICROSOFT_365_READ");
+    expect(within(tile).getAllByText(/Microsoft 365/i).length).toBeGreaterThan(0);
+    expect(within(tile).getByText(/calendar\.events\.list/)).toBeInTheDocument();
+    expect(within(tile).getByText(/drive\.items\.list/)).toBeInTheDocument();
+    expect(within(tile).getByText(/mail\.messages\.list/)).toBeInTheDocument();
+    // The catalog short description must surface the
+    // $select-restricted-at-request-boundary discipline so
+    // operators understand the privacy posture.
+    expect(within(tile).getByText(/\$select/)).toBeInTheDocument();
+  });
+
+  it("posts a MICROSOFT_365_READ binding with tenant_id config + access-token secret_ref", async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/connectors`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            ok: true,
+            binding: {
+              binding_id: "new-m365-binding",
+              org_entity_id: "org-1",
+              type: "MICROSOFT_365_READ",
+              display_name: "niov-dev-m365",
+              config: { use_real: false, tenant_id: "niov-dev-m365" },
+              secret_ref: "MS365_ACCESS_TOKEN_DEV",
+              enabled: true,
+              created_by_entity_id: "user-1",
+              created_at: "2026-06-01T00:00:00.000Z",
+              updated_at: "2026-06-01T00:00:00.000Z",
+            },
+            audit_event_id: "ae-m365-1",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    const select = await screen.findByTestId("connector-type-select");
+    await user.click(select);
+    await user.click(
+      await screen.findByRole("option", { name: /Microsoft 365/i }),
+    );
+    await user.type(
+      screen.getByTestId("display-name-input"),
+      "niov-dev-m365",
+    );
+    await user.type(
+      screen.getByTestId("secret-ref-input"),
+      "MS365_ACCESS_TOKEN_DEV",
+    );
+    await user.click(screen.getByTestId("register-submit"));
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).toMatchObject({
+      type: "MICROSOFT_365_READ",
+      display_name: "niov-dev-m365",
+      secret_ref: "MS365_ACCESS_TOKEN_DEV",
+      config: {
+        use_real: false,
+        tenant_id: "niov-dev-m365",
+      },
+    });
+  });
+});
+
+describe("Connectors — MICROSOFT_365_READ binding render", () => {
+  const m365Binding = {
+    binding_id: "00000000-0000-0000-0000-00000000000m",
+    org_entity_id: "11111111-1111-1111-1111-111111111111",
+    type: "MICROSOFT_365_READ",
+    display_name: "niov-prod-m365",
+    config: {
+      use_real: false,
+      tenant_id: "00000000-1111-2222-3333-444444444444",
+    },
+    secret_ref: "MS365_ACCESS_TOKEN_PROD",
+    enabled: true,
+    created_by_entity_id: "22222222-2222-2222-2222-222222222222",
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [m365Binding] }),
+      ),
+    );
+  });
+
+  it("renders the Microsoft 365 binding by testid with C5 read-first badge", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${m365Binding.binding_id}`);
+    expect(within(card).getByText("niov-prod-m365")).toBeInTheDocument();
+    expect(
+      within(card).getByText(/Read-first \(no writes at C5\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the MS365_ACCESS_TOKEN env-var NAME but NEVER a concrete Azure AD JWT / Bearer header / mail subject / Outlook PII", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${m365Binding.binding_id}`);
+    expect(
+      within(card).getByText("MS365_ACCESS_TOKEN_PROD"),
+    ).toBeInTheDocument();
+    const docBody = (await screen.findByText(/niov-prod-m365/)).ownerDocument
+      .body.textContent ?? "";
+    // Generic JWT prefix (eyJ followed by base64url chars) must
+    // NEVER appear on the page. The constraint is "at least 20
+    // chars after eyJ" to avoid false positives on natural
+    // English words that happen to start with eyJ; in practice
+    // no English text has 20 base64url chars after that prefix.
+    expect(docBody).not.toMatch(/eyJ[a-zA-Z0-9_-]{20,}/);
+    // Outlook / Microsoft 365 PII markers must NEVER appear
+    // on the rendered page.
+    expect(docBody).not.toMatch(/@outlook\.com/i);
+    expect(docBody).not.toMatch(/@onmicrosoft\.com/i);
+    // Service-account private-key JSON snippet must NEVER appear.
+    expect(docBody).not.toMatch(/-----BEGIN PRIVATE KEY-----/);
+    expect(docBody).not.toMatch(/"private_key":/);
+    expect(docBody.toLowerCase()).not.toContain("bearer ");
+  });
+});
