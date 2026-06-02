@@ -93,7 +93,11 @@ function BindingCard({
           <Badge variant="outline">Type: {binding.type}</Badge>
           <Badge variant="outline">
             Read-first (no writes at{" "}
-            {binding.type === "GOOGLE_WORKSPACE_READ" ? "C3" : "C2"})
+            {binding.type === "JIRA_CLOUD_READ"
+              ? "C4-A"
+              : binding.type === "GOOGLE_WORKSPACE_READ"
+                ? "C3"
+                : "C2"})
           </Badge>
         </div>
         <div>
@@ -160,6 +164,17 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       } else if (type === "GOOGLE_WORKSPACE_READ") {
         config["use_real"] = false;
         config["workspace_domain"] = displayName.trim() || "pending";
+      } else if (type === "JIRA_CLOUD_READ") {
+        config["use_real"] = false;
+        // C4-A uses the per-tenant cloud_id (the Atlassian-side
+        // UUID returned by accessible-resources at OAuth install).
+        // At registration tier we let the operator paste the
+        // cloud_id in the display_name field as a stand-in until a
+        // dedicated cloud_id form input lands in a later CT slice;
+        // the operator can refine via the admin update route once
+        // the binding exists. The displayName.trim() fallback
+        // mirrors the SLACK_READ + GOOGLE_WORKSPACE_READ pattern.
+        config["cloud_id"] = displayName.trim() || "pending";
       } else if (type === "OUTBOUND_WEBHOOK") {
         config["url"] = "";
       }
@@ -233,9 +248,11 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder={
-              type === "GOOGLE_WORKSPACE_READ"
-                ? "e.g. niov-prod-google"
-                : "e.g. niov-prod-slack"
+              type === "JIRA_CLOUD_READ"
+                ? "e.g. niov-prod-jira"
+                : type === "GOOGLE_WORKSPACE_READ"
+                  ? "e.g. niov-prod-google"
+                  : "e.g. niov-prod-slack"
             }
             data-testid="display-name-input"
           />
@@ -248,9 +265,11 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               value={secretRef}
               onChange={(e) => setSecretRef(e.target.value)}
               placeholder={
-                type === "GOOGLE_WORKSPACE_READ"
-                  ? "e.g. GOOGLE_ACCESS_TOKEN_PROD"
-                  : "e.g. SLACK_BOT_TOKEN_PROD"
+                type === "JIRA_CLOUD_READ"
+                  ? "e.g. JIRA_ACCESS_TOKEN_PROD"
+                  : type === "GOOGLE_WORKSPACE_READ"
+                    ? "e.g. GOOGLE_ACCESS_TOKEN_PROD"
+                    : "e.g. SLACK_BOT_TOKEN_PROD"
               }
               data-testid="secret-ref-input"
             />
@@ -320,7 +339,7 @@ function TypeRegistryCard() {
       <CardHeader>
         <CardTitle>Available connector types</CardTitle>
         <CardDescription>
-          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3).
+          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3 + PR #207 Jira Cloud C4-A).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
@@ -381,7 +400,7 @@ export function ConnectorsAdminPage() {
     <div className="space-y-6">
       <PageHeader
         title="Connectors"
-        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2) and Google Workspace (C3) are RUNTIME_READY at Foundation."
+        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2), Google Workspace (C3), and Jira Cloud (C4-A) are RUNTIME_READY at Foundation."
       />
       <DoctrineCard />
       <TypeRegistryCard />

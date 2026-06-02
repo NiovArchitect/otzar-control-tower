@@ -480,3 +480,157 @@ describe("Connectors — forbidden UI copy guard", () => {
     },
   );
 });
+
+// ────────────────────────────────────────────────────────────────
+// CT C4-A — Jira Cloud admin path tests. Mirrors the C3 Google
+// Workspace + C2 Slack admin path tests verbatim. The Foundation
+// runtime is LIVE at PR #207 (RECOMMENDATION_READY → RUNTIME_READY);
+// these tests verify the CT path graduates the operator-facing
+// surface so admins can self-serve JIRA_CLOUD_READ binding
+// registration.
+// ────────────────────────────────────────────────────────────────
+
+describe("Connectors — JIRA_CLOUD_READ C4-A admin path", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("renders the JIRA_CLOUD_READ type in the registry card", async () => {
+    renderConnectors();
+    expect(
+      await screen.findByTestId("type-JIRA_CLOUD_READ"),
+    ).toBeInTheDocument();
+  });
+
+  it("describes the C4-A read-only scope (myself + project.search + issue.search)", async () => {
+    renderConnectors();
+    const tile = await screen.findByTestId("type-JIRA_CLOUD_READ");
+    // "Jira Cloud" appears in both the title and description; assert
+    // at least one match rather than uniqueness.
+    expect(within(tile).getAllByText(/Jira Cloud/i).length).toBeGreaterThan(0);
+    expect(within(tile).getByText(/myself/)).toBeInTheDocument();
+    expect(within(tile).getByText(/project\.search/)).toBeInTheDocument();
+    expect(within(tile).getByText(/issue\.search/)).toBeInTheDocument();
+    // The catalog short description must surface the
+    // status-category-aggregates-only framing to keep operators
+    // honest about what the connector returns.
+    expect(within(tile).getByText(/status-category/i)).toBeInTheDocument();
+  });
+
+  it("posts a JIRA_CLOUD_READ binding with cloud_id config + access-token secret_ref", async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/connectors`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            ok: true,
+            binding: {
+              binding_id: "new-jira-binding",
+              org_entity_id: "org-1",
+              type: "JIRA_CLOUD_READ",
+              display_name: "niov-dev-jira",
+              config: { use_real: false, cloud_id: "niov-dev-jira" },
+              secret_ref: "JIRA_ACCESS_TOKEN_DEV",
+              enabled: true,
+              created_by_entity_id: "user-1",
+              created_at: "2026-06-01T00:00:00.000Z",
+              updated_at: "2026-06-01T00:00:00.000Z",
+            },
+            audit_event_id: "ae-jira-1",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    // Switch the type selector to Jira Cloud
+    const select = await screen.findByTestId("connector-type-select");
+    await user.click(select);
+    await user.click(
+      await screen.findByRole("option", { name: /Jira Cloud/i }),
+    );
+    await user.type(
+      screen.getByTestId("display-name-input"),
+      "niov-dev-jira",
+    );
+    await user.type(
+      screen.getByTestId("secret-ref-input"),
+      "JIRA_ACCESS_TOKEN_DEV",
+    );
+    await user.click(screen.getByTestId("register-submit"));
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).toMatchObject({
+      type: "JIRA_CLOUD_READ",
+      display_name: "niov-dev-jira",
+      secret_ref: "JIRA_ACCESS_TOKEN_DEV",
+      config: {
+        use_real: false,
+        cloud_id: "niov-dev-jira",
+      },
+    });
+  });
+});
+
+describe("Connectors — JIRA_CLOUD_READ binding render", () => {
+  const jiraBinding = {
+    binding_id: "00000000-0000-0000-0000-00000000000j",
+    org_entity_id: "11111111-1111-1111-1111-111111111111",
+    type: "JIRA_CLOUD_READ",
+    display_name: "niov-prod-jira",
+    config: {
+      use_real: false,
+      cloud_id: "00000000-1111-2222-3333-444444444444",
+    },
+    secret_ref: "JIRA_ACCESS_TOKEN_PROD",
+    enabled: true,
+    created_by_entity_id: "22222222-2222-2222-2222-222222222222",
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [jiraBinding] }),
+      ),
+    );
+  });
+
+  it("renders the Jira binding by testid with C4-A read-first badge", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${jiraBinding.binding_id}`);
+    expect(within(card).getByText("niov-prod-jira")).toBeInTheDocument();
+    expect(
+      within(card).getByText(/Read-first \(no writes at C4-A\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the JIRA_ACCESS_TOKEN env-var NAME but NEVER a concrete Atlassian PAT or Bearer token", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${jiraBinding.binding_id}`);
+    expect(
+      within(card).getByText("JIRA_ACCESS_TOKEN_PROD"),
+    ).toBeInTheDocument();
+    const docBody = (await screen.findByText(/niov-prod-jira/)).ownerDocument
+      .body.textContent ?? "";
+    // Atlassian PAT format ATATT3xFfGF0* must NEVER appear on the page.
+    expect(docBody).not.toMatch(/ATATT3xFfGF0/);
+    // Service-account private-key JSON snippet must NEVER appear.
+    expect(docBody).not.toMatch(/-----BEGIN PRIVATE KEY-----/);
+    expect(docBody).not.toMatch(/"private_key":/);
+    expect(docBody.toLowerCase()).not.toContain("bearer ");
+    // Note: a "no issue-key (TEAM-NNN)" guard at this surface
+    // would false-positive on legitimate ADR-XXXX references in
+    // the page's doctrine prose. The provider itself enforces the
+    // no-issue-key rule structurally (tests/unit/c4-a-jira-cloud-
+    // read-provider.test.ts privacy invariant suite); at the CT
+    // tier the operator-visible page never receives raw issue
+    // data so the structural guarantee carries through.
+  });
+});

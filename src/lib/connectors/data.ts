@@ -53,6 +53,17 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
       "Reads only at C3. The secret_ref field is the env-var NAME on the deployment host that resolves to a Google OAuth access token (ya29.*); never paste the resolved token here. Drive content download + Gmail body read are deferred to ≥C5; writes are deferred to ≥C6.",
   },
   {
+    type: "JIRA_CLOUD_READ",
+    display_name: "Jira Cloud (read-first)",
+    short_description:
+      "OAuth-2.0 3LO access-token read access to Jira Cloud via myself + project.search + issue.search (POST /rest/api/3/search/jql cursor-based JQL). Counts + status-category aggregates only. C4-A RUNTIME_READY.",
+    secret_ref_required: true,
+    hidden_from_admin_selection: false,
+    required_config_keys: ["use_real", "cloud_id"],
+    governance_note:
+      "Reads only at C4-A. The secret_ref field is the env-var NAME on the deployment host that resolves to a Jira Cloud OAuth 2.0 access token; never paste the resolved token here. The cloud_id field is the per-tenant UUID returned by Atlassian accessible-resources at OAuth install. Issue keys, summaries, descriptions, assignee identity, and reporter identity are NEVER traversed by the connector. Webhook ingestion, agile-board, sprint, worklog, and changelog reads are deferred; writes are deferred to ≥C6.",
+  },
+  {
     type: "OUTBOUND_WEBHOOK",
     display_name: "Outbound Webhook",
     short_description:
