@@ -61,6 +61,24 @@ export interface CtBusinessActivationInput {
   google_workspace_domain?: string;
 }
 
+// D6 enterprise-archetype input mirror of Foundation's
+// EnterpriseActivationInput. Identical 6-field shape to
+// CtBusinessActivationInput. Both env-var NAMEs only; resolved
+// VALUEs never cross the API boundary.
+//
+// Enterprise 14-step walk additionally records DUAL-CONTROL
+// design-intent at steps 10 + 11 via *_DUAL_CONTROL audit literals.
+// The CT page surfaces this by extending ActivationStepCard to
+// detect *_DUAL_CONTROL endings and render a "DUAL-CONTROL" badge.
+export interface CtEnterpriseActivationInput {
+  slack_display_name: string;
+  slack_secret_ref: string;
+  slack_workspace_id?: string;
+  google_display_name: string;
+  google_secret_ref: string;
+  google_workspace_domain?: string;
+}
+
 export interface CtActivationStepResult {
   step_order: number;
   step_id: string;

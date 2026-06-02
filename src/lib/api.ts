@@ -125,6 +125,7 @@ import type {
   CtActivationResult,
   CtTeamActivationInput,
   CtBusinessActivationInput,
+  CtEnterpriseActivationInput,
 } from "./dandelion-activation/types";
 
 // WHAT: Discriminated-union result every api.* method returns.
@@ -1167,6 +1168,26 @@ export class ApiClient {
       input: CtBusinessActivationInput,
     ): Promise<ApiResult<CtActivationResult>> =>
       this.request<CtActivationResult>("/org/dandelion/activate/business", {
+        method: "POST",
+        body: input,
+        retries: 0,
+      }),
+
+    /**
+     * POST /api/v1/org/dandelion/activate/enterprise — run the
+     * enterprise-archetype ActivationPlan (14 steps) for the
+     * caller's org. Steps 8 + 9 register real SLACK_READ +
+     * GOOGLE_WORKSPACE_READ ConnectorBindings via the existing
+     * C2 + C3 substrates. Steps 5 + 6 + 7 + 12 emit audit-only
+     * at this slice (underlying tables forward-substrate). Steps
+     * 10 + 11 emit DUAL-CONTROL audit literals truthfully
+     * recording catalog design-intent; actual dual-control
+     * approval flow per ADR-0026 is forward-substrate.
+     */
+    activateEnterprise: (
+      input: CtEnterpriseActivationInput,
+    ): Promise<ApiResult<CtActivationResult>> =>
+      this.request<CtActivationResult>("/org/dandelion/activate/enterprise", {
         method: "POST",
         body: input,
         retries: 0,
