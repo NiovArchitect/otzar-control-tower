@@ -54,6 +54,36 @@ const KNOWN_STEP_LABELS: Readonly<Record<string, StepLabel>> = Object.freeze({
     summary:
       "Recorded the advanced audit tier in the audit trail. The baseline audit chain stays on; the advanced tier extends it (never weakens it).",
   },
+  "ADMIN_ACTION:DMW_ENTERPRISE_SCOPE_GRANTED": {
+    title: "Extended memory to full enterprise scope",
+    summary:
+      "Added team + project + customer + regulator-observable memory extensions on top of the baseline. Available at the Enterprise plan tier.",
+  },
+  "ADMIN_ACTION:BREAK_GLASS_REGISTRY_ENABLED": {
+    title: "Enabled the break-glass grant registry",
+    summary:
+      "Recorded at the audit tier; underlying substrate forward-substrate. Break-glass grants will be time-boxed with mandatory post-hoc two-person review (GOVSEC.5 / ADR-0050).",
+  },
+  "ADMIN_ACTION:LAWFUL_BASIS_ATTESTATION_ENABLED": {
+    title: "Enabled the lawful-basis attestation surface",
+    summary:
+      "Recorded at the audit tier; underlying substrate forward-substrate. Regulator-grade attestation chain becomes available for future regulator-access workflows (ADR-0036).",
+  },
+  "ADMIN_ACTION:BOARD_OBSERVER_SCOPE_REGISTERED": {
+    title: "Registered the board observer scope",
+    summary:
+      "Recorded at the audit tier; underlying substrate forward-substrate. Aggregate-only projection for designated board observers; no per-employee detail.",
+  },
+  "ADMIN_ACTION:WORKFLOW_TEMPLATE_REGISTERED_DUAL_CONTROL": {
+    title: "Registered Stage 2 enterprise workflow templates",
+    summary:
+      "Recorded the catalog's design-intent that this step is dual-control-bound (ADR-0026). The actual dual-control approval flow is forward-substrate.",
+  },
+  "ADMIN_ACTION:REGULATOR_GRADE_AUDIT_ENABLED_DUAL_CONTROL": {
+    title: "Enabled the regulator-grade audit tier",
+    summary:
+      "Recorded the catalog's design-intent that this step is dual-control-bound (ADR-0026). The actual dual-control approval flow is forward-substrate.",
+  },
   "ADMIN_ACTION:ROLE_TEMPLATE_ASSIGNED": {
     title: "Assigned starter role templates",
     summary:
