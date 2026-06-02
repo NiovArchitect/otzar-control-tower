@@ -40,6 +40,8 @@ import {
   getCtConnectorTypeDefinition,
   getSelectableConnectorTypes,
 } from "@/lib/connectors/data";
+import { supportsInvokeOperations } from "@/lib/connectors/invoke-operations";
+import { ConnectorInvokeDialog } from "@/components/ConnectorInvokeDialog";
 import type {
   ConnectorBindingView,
   CtConnectorType,
@@ -75,6 +77,8 @@ function BindingCard({
   toggleBusy: boolean;
   deleteBusy: boolean;
 }) {
+  const [invokeOpen, setInvokeOpen] = useState(false);
+  const canInvoke = supportsInvokeOperations(binding.type);
   const typeDef = getCtConnectorTypeDefinition(binding.type);
   return (
     <Card data-testid={`binding-${binding.binding_id}`}>
@@ -148,8 +152,24 @@ function BindingCard({
           >
             Soft-delete
           </Button>
+          {canInvoke ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setInvokeOpen(true)}
+              disabled={!binding.enabled}
+              data-testid={`invoke-${binding.binding_id}`}
+            >
+              Test invoke
+            </Button>
+          ) : null}
         </div>
       </CardContent>
+      <ConnectorInvokeDialog
+        binding={binding}
+        open={invokeOpen}
+        onClose={() => setInvokeOpen(false)}
+      />
     </Card>
   );
 }

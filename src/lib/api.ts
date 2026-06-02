@@ -96,6 +96,7 @@ import type {
   SimulationSuccess,
   // Section 2 Action Runtime read surface (ADR-0057 §9 + §10)
   ActionDetailResponse,
+  SafeActionView,
   // Section 7 Full Audit Viewer (Foundation Wave 1+ per ADR-0071)
   ListAuditEventsInput,
   ListAuditEventsSuccess,
@@ -744,6 +745,52 @@ export class ApiClient {
       this.request<ActionDetailResponse>(
         `/actions/${encodeURIComponent(actionId)}`,
       ),
+
+    /**
+     * POST /api/v1/actions -- create-time substrate per ADR-0057 §9
+     * Option E. This CT consumer is bounded to action_type
+     * "INVOKE_CONNECTOR" only — the INVOKE_CONNECTOR CT surface
+     * lets admins test-invoke a registered ConnectorBinding
+     * against the LIVE Section 4 connector runtime. ALL other
+     * action types remain Foundation-internal (Section 2 retains
+     * full execution authority per ADR-0077 §8.4); this method
+     * narrows to the read-first invocation use case so the
+     * cockpit's READ-ONLY framing per Wave 10 stays intact.
+     *
+     * The Foundation route returns SafeActionView at status 201
+     * on create (per ADR-0057 §10 allowlist); the CT page then
+     * polls api.actions.getAction(action_id) until terminal
+     * (SUCCEEDED / FAILED / CANCELLED / TIMED_OUT) and renders
+     * last_result_summary (already SAFE-projected at the
+     * Foundation execute-tier).
+     */
+    createInvokeConnector: (input: {
+      binding_id: string;
+      operation: string;
+      fixture_key?: string;
+      idempotency_key: string;
+      payload_summary: string;
+    }): Promise<ApiResult<{ ok: true; action: SafeActionView }>> => {
+      const invocation_payload: Record<string, unknown> = {
+        operation: input.operation,
+      };
+      if (input.fixture_key !== undefined && input.fixture_key.length > 0) {
+        invocation_payload.fixture_key = input.fixture_key;
+      }
+      return this.request<{ ok: true; action: SafeActionView }>("/actions", {
+        method: "POST",
+        body: {
+          action_type: "INVOKE_CONNECTOR",
+          idempotency_key: input.idempotency_key,
+          payload_summary: input.payload_summary,
+          payload_redacted: {
+            binding_id: input.binding_id,
+            invocation_payload,
+          },
+        },
+        retries: 0,
+      });
+    },
   };
 
   // ──────────────────────────────────────────────────────────────
