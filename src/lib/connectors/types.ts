@@ -26,7 +26,8 @@ export type CtConnectorType =
   | "FIXTURE_ECHO"
   | "SLACK_READ"
   | "GOOGLE_WORKSPACE_READ"
-  | "JIRA_CLOUD_READ";
+  | "JIRA_CLOUD_READ"
+  | "LINEAR_READ";
 
 export interface ConnectorBindingView {
   binding_id: string;

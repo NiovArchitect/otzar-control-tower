@@ -64,6 +64,17 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
       "Reads only at C4-A. The secret_ref field is the env-var NAME on the deployment host that resolves to a Jira Cloud OAuth 2.0 access token; never paste the resolved token here. The cloud_id field is the per-tenant UUID returned by Atlassian accessible-resources at OAuth install. Issue keys, summaries, descriptions, assignee identity, and reporter identity are NEVER traversed by the connector. Webhook ingestion, agile-board, sprint, worklog, and changelog reads are deferred; writes are deferred to ≥C6.",
   },
   {
+    type: "LINEAR_READ",
+    display_name: "Linear (read-first)",
+    short_description:
+      "OAuth-2.0 access-token read access to Linear via viewer + teams.list + issues.list (single POST /graphql endpoint with pinned GraphQL query strings). Counts + state-type aggregates only (to_do / in_progress / done / canceled grouped from WorkflowState.type). C4-B RUNTIME_READY. Closes Project / Engineering family at 2/2 alongside Jira Cloud.",
+    secret_ref_required: true,
+    hidden_from_admin_selection: false,
+    required_config_keys: ["use_real"],
+    governance_note:
+      "Reads only at C4-B. The secret_ref field is the env-var NAME on the deployment host that resolves to a Linear OAuth 2.0 access token; never paste the resolved token here. Linear OAuth tokens are workspace-bound by construction at install time, so no per-tenant cloud_id / workspace_domain is required. Team keys (TEAM-NNN), issue identifiers, titles, descriptions, assignee identity, reporter identity, and comments are NEVER traversed by the connector. Cycle / roadmap / label / project reads are deferred; personal-API-key fallback is intentionally excluded for workspace-tier auditability; writes are deferred to ≥C6.",
+  },
+  {
     type: "OUTBOUND_WEBHOOK",
     display_name: "Outbound Webhook",
     short_description:

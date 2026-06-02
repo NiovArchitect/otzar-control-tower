@@ -634,3 +634,158 @@ describe("Connectors — JIRA_CLOUD_READ binding render", () => {
     // data so the structural guarantee carries through.
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// CT C4-B — Linear admin path tests. Mirrors the C4-A Jira Cloud +
+// C3 Google Workspace + C2 Slack admin path tests verbatim. The
+// Foundation runtime is LIVE at PR #209 (RECOMMENDATION_READY →
+// RUNTIME_READY); these tests verify the CT path graduates the
+// operator-facing surface so admins can self-serve LINEAR_READ
+// binding registration.
+// ────────────────────────────────────────────────────────────────
+
+describe("Connectors — LINEAR_READ C4-B admin path", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("renders the LINEAR_READ type in the registry card", async () => {
+    renderConnectors();
+    expect(
+      await screen.findByTestId("type-LINEAR_READ"),
+    ).toBeInTheDocument();
+  });
+
+  it("describes the C4-B read-only scope (viewer + teams.list + issues.list via GraphQL)", async () => {
+    renderConnectors();
+    const tile = await screen.findByTestId("type-LINEAR_READ");
+    // "Linear" appears in both the title and description; assert
+    // at least one match rather than uniqueness.
+    expect(within(tile).getAllByText(/Linear/i).length).toBeGreaterThan(0);
+    expect(within(tile).getByText(/viewer/)).toBeInTheDocument();
+    expect(within(tile).getByText(/teams\.list/)).toBeInTheDocument();
+    expect(within(tile).getByText(/issues\.list/)).toBeInTheDocument();
+    // The catalog short description must surface state-type
+    // aggregates framing so operators understand what the
+    // connector returns (counts only, not raw issue identifiers).
+    expect(within(tile).getByText(/state-type/i)).toBeInTheDocument();
+  });
+
+  it("posts a LINEAR_READ binding with use_real config + access-token secret_ref", async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/connectors`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            ok: true,
+            binding: {
+              binding_id: "new-linear-binding",
+              org_entity_id: "org-1",
+              type: "LINEAR_READ",
+              display_name: "niov-dev-linear",
+              config: { use_real: false },
+              secret_ref: "LINEAR_ACCESS_TOKEN_DEV",
+              enabled: true,
+              created_by_entity_id: "user-1",
+              created_at: "2026-06-01T00:00:00.000Z",
+              updated_at: "2026-06-01T00:00:00.000Z",
+            },
+            audit_event_id: "ae-linear-1",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    // Switch the type selector to Linear
+    const select = await screen.findByTestId("connector-type-select");
+    await user.click(select);
+    await user.click(
+      await screen.findByRole("option", { name: /Linear/i }),
+    );
+    await user.type(
+      screen.getByTestId("display-name-input"),
+      "niov-dev-linear",
+    );
+    await user.type(
+      screen.getByTestId("secret-ref-input"),
+      "LINEAR_ACCESS_TOKEN_DEV",
+    );
+    await user.click(screen.getByTestId("register-submit"));
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).toMatchObject({
+      type: "LINEAR_READ",
+      display_name: "niov-dev-linear",
+      secret_ref: "LINEAR_ACCESS_TOKEN_DEV",
+      config: {
+        use_real: false,
+      },
+    });
+    // C4-B Linear OAuth tokens are workspace-bound by construction;
+    // the config shape is the minimal {use_real} pair — no
+    // cloud_id / workspace_id / workspace_domain. The outer
+    // expect(posted).not.toBeNull() above narrows posted at runtime;
+    // we cast through unknown to satisfy the strict typecheck.
+    const config = (posted as unknown as { config: Record<string, unknown> })
+      .config;
+    expect(config).not.toHaveProperty("cloud_id");
+    expect(config).not.toHaveProperty("workspace_id");
+    expect(config).not.toHaveProperty("workspace_domain");
+  });
+});
+
+describe("Connectors — LINEAR_READ binding render", () => {
+  const linearBinding = {
+    binding_id: "00000000-0000-0000-0000-00000000000l",
+    org_entity_id: "11111111-1111-1111-1111-111111111111",
+    type: "LINEAR_READ",
+    display_name: "niov-prod-linear",
+    config: { use_real: false },
+    secret_ref: "LINEAR_ACCESS_TOKEN_PROD",
+    enabled: true,
+    created_by_entity_id: "22222222-2222-2222-2222-222222222222",
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [linearBinding] }),
+      ),
+    );
+  });
+
+  it("renders the Linear binding by testid with C4-B read-first badge", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${linearBinding.binding_id}`);
+    expect(within(card).getByText("niov-prod-linear")).toBeInTheDocument();
+    expect(
+      within(card).getByText(/Read-first \(no writes at C4-B\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the LINEAR_ACCESS_TOKEN env-var NAME but NEVER a concrete Linear OAuth / API key / Bearer token", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${linearBinding.binding_id}`);
+    expect(
+      within(card).getByText("LINEAR_ACCESS_TOKEN_PROD"),
+    ).toBeInTheDocument();
+    const docBody = (await screen.findByText(/niov-prod-linear/)).ownerDocument
+      .body.textContent ?? "";
+    // Linear OAuth tokens follow lin_oauth_* / lin_api_* per Linear
+    // developer docs; both must NEVER appear on the page.
+    expect(docBody).not.toMatch(/lin_oauth_/i);
+    expect(docBody).not.toMatch(/lin_api_/i);
+    // Service-account private-key JSON snippet must NEVER appear.
+    expect(docBody).not.toMatch(/-----BEGIN PRIVATE KEY-----/);
+    expect(docBody).not.toMatch(/"private_key":/);
+    expect(docBody.toLowerCase()).not.toContain("bearer ");
+  });
+});
