@@ -789,3 +789,158 @@ describe("Connectors — LINEAR_READ binding render", () => {
     expect(docBody.toLowerCase()).not.toContain("bearer ");
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// CT C-GitHub — GitHub admin path tests. Mirrors C2 Slack +
+// C3 Google + C4-A Jira + C4-B Linear admin path tests verbatim.
+// The Foundation runtime is LIVE at PR #216 (RECOMMENDATION_READY
+// → RUNTIME_READY); these tests verify the CT path graduates the
+// operator-facing surface so admins can self-serve GITHUB_READ
+// binding registration.
+// ────────────────────────────────────────────────────────────────
+
+describe("Connectors — GITHUB_READ C-GitHub admin path", () => {
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [] }),
+      ),
+    );
+  });
+
+  it("renders the GITHUB_READ type in the registry card", async () => {
+    renderConnectors();
+    expect(
+      await screen.findByTestId("type-GITHUB_READ"),
+    ).toBeInTheDocument();
+  });
+
+  it("describes the C-GitHub read-only scope (user + repos.list + issues.search via REST v3)", async () => {
+    renderConnectors();
+    const tile = await screen.findByTestId("type-GITHUB_READ");
+    expect(within(tile).getAllByText(/GitHub/i).length).toBeGreaterThan(0);
+    expect(within(tile).getByText(/user/)).toBeInTheDocument();
+    expect(within(tile).getByText(/repos\.list/)).toBeInTheDocument();
+    expect(within(tile).getByText(/issues\.search/)).toBeInTheDocument();
+    // The catalog short description must surface state-aggregates
+    // framing + the X-GitHub-Api-Version pin so operators
+    // understand what the connector returns + how it's versioned.
+    expect(within(tile).getByText(/state aggregates/i)).toBeInTheDocument();
+    expect(within(tile).getByText(/2022-11-28/)).toBeInTheDocument();
+  });
+
+  it("posts a GITHUB_READ binding with minimal use_real config + access-token secret_ref", async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/connectors`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            ok: true,
+            binding: {
+              binding_id: "new-github-binding",
+              org_entity_id: "org-1",
+              type: "GITHUB_READ",
+              display_name: "niov-dev-github",
+              config: { use_real: false },
+              secret_ref: "GITHUB_ACCESS_TOKEN_DEV",
+              enabled: true,
+              created_by_entity_id: "user-1",
+              created_at: "2026-06-01T00:00:00.000Z",
+              updated_at: "2026-06-01T00:00:00.000Z",
+            },
+            audit_event_id: "ae-github-1",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderConnectors();
+    const select = await screen.findByTestId("connector-type-select");
+    await user.click(select);
+    await user.click(
+      await screen.findByRole("option", { name: /GitHub/i }),
+    );
+    await user.type(
+      screen.getByTestId("display-name-input"),
+      "niov-dev-github",
+    );
+    await user.type(
+      screen.getByTestId("secret-ref-input"),
+      "GITHUB_ACCESS_TOKEN_DEV",
+    );
+    await user.click(screen.getByTestId("register-submit"));
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).toMatchObject({
+      type: "GITHUB_READ",
+      display_name: "niov-dev-github",
+      secret_ref: "GITHUB_ACCESS_TOKEN_DEV",
+      config: { use_real: false },
+    });
+    // C-GitHub access tokens are global to the authenticated caller
+    // or GitHub App installation; config never contains
+    // cloud_id / workspace_id / workspace_domain.
+    const config = (posted as unknown as { config: Record<string, unknown> })
+      .config;
+    expect(config).not.toHaveProperty("cloud_id");
+    expect(config).not.toHaveProperty("workspace_id");
+    expect(config).not.toHaveProperty("workspace_domain");
+  });
+});
+
+describe("Connectors — GITHUB_READ binding render", () => {
+  const githubBinding = {
+    binding_id: "00000000-0000-0000-0000-00000000000h",
+    org_entity_id: "11111111-1111-1111-1111-111111111111",
+    type: "GITHUB_READ",
+    display_name: "niov-prod-github",
+    config: { use_real: false },
+    secret_ref: "GITHUB_ACCESS_TOKEN_PROD",
+    enabled: true,
+    created_by_entity_id: "22222222-2222-2222-2222-222222222222",
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({ ok: true, bindings: [githubBinding] }),
+      ),
+    );
+  });
+
+  it("renders the GitHub binding by testid with C-GitHub read-first badge", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${githubBinding.binding_id}`);
+    expect(within(card).getByText("niov-prod-github")).toBeInTheDocument();
+    expect(
+      within(card).getByText(/Read-first \(no writes at C-GitHub\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the GITHUB_ACCESS_TOKEN env-var NAME but NEVER a concrete GitHub OAuth / PAT / installation token / Bearer header", async () => {
+    renderConnectors();
+    const card = await screen.findByTestId(`binding-${githubBinding.binding_id}`);
+    expect(
+      within(card).getByText("GITHUB_ACCESS_TOKEN_PROD"),
+    ).toBeInTheDocument();
+    const docBody = (await screen.findByText(/niov-prod-github/)).ownerDocument
+      .body.textContent ?? "";
+    // GitHub token prefixes per docs.github.com:
+    //   - Classic PAT: ghp_<...>
+    //   - Fine-grained PAT: github_pat_<...>
+    //   - OAuth Access Token: gho_<...>
+    //   - User-to-server installation token: ghs_<...>
+    // None of these must EVER appear on the page.
+    expect(docBody).not.toMatch(/ghp_/);
+    expect(docBody).not.toMatch(/github_pat_/);
+    expect(docBody).not.toMatch(/gho_/);
+    expect(docBody).not.toMatch(/ghs_/);
+    // Service-account private-key JSON snippet must NEVER appear.
+    expect(docBody).not.toMatch(/-----BEGIN PRIVATE KEY-----/);
+    expect(docBody).not.toMatch(/"private_key":/);
+    expect(docBody.toLowerCase()).not.toContain("bearer ");
+  });
+});
