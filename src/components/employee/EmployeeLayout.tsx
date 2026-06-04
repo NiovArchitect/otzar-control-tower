@@ -14,6 +14,7 @@
 import { Link, Outlet } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { EmployeeNav } from "@/components/employee/EmployeeNav";
+import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
@@ -65,6 +66,10 @@ export function EmployeeLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Persistent ambient Otzar dock. Available on every
+          authenticated employee page; nonblocking; semi-transparent. */}
+      <AmbientOtzarBar />
     </div>
   );
 }

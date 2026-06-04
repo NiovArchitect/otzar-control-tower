@@ -1,0 +1,248 @@
+// FILE: tests/unit/ambient-otzar-bar.test.tsx
+// PURPOSE: Page-level coverage for the AmbientOtzarBar — the
+//          ambient voice / text dock mounted in EmployeeLayout per
+//          [FOUNDER-AUTH — EMPLOYEE AMBIENT VOICE WORKSPACE].
+//
+// COVERAGE:
+//   - Renders collapsed by default; expand toggle works
+//   - Mic button hidden behind capability detection (no
+//     SpeechRecognition → fallback copy + disabled mic)
+//   - Send button calls voice-intents API with transcript_text
+//   - Approval / collaboration / correction badges render from
+//     the Foundation response shape
+//   - speechSynthesis.speak() called with safe speech_ready_text
+//   - mute prevents speak()
+//   - stop cancels the in-flight utterance
+//   - Privacy: NO surveillance / productivity-score / manager-
+//     visibility / Sesame-active copy
+//   - Privacy: only transcript_text crosses the wire (no raw
+//     audio body fields)
+
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { http, HttpResponse } from "msw";
+import { server } from "../msw/server";
+import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
+
+const API_BASE = "http://localhost:3000/api/v1";
+
+// Capture every body posted to /voice-intents so we can assert
+// the privacy invariant (only transcript_text crosses the wire).
+const recordedBodies: unknown[] = [];
+
+beforeEach(() => {
+  recordedBodies.length = 0;
+  // Default handler returns a deterministic Foundation-shaped
+  // VoiceIntentResponse with approval_required = true so the
+  // badge-rendering paths are exercised.
+  server.use(
+    http.post(`${API_BASE}/otzar/my-twin/voice-intents`, async ({ request }) => {
+      const body = (await request.json()) as Record<string, unknown>;
+      recordedBodies.push(body);
+      return HttpResponse.json({
+        ok: true,
+        response: "**Markdown** response body",
+        context_used: 0,
+        tokens_consumed: 12,
+        conversation_id: "conv-test",
+        next_step: "NEEDS_APPROVAL",
+        correction_capture_available: true,
+        speech_ready_text: "Markdown response body",
+        voice_output_supported: false,
+        clarification_needed: false,
+        action_proposed: false,
+        approval_required: true,
+        policy_blocked: false,
+        dmw_scope_blocked: false,
+        collaboration_suggested: true,
+        memory_used_summary: { layer_0: 0, layer_1: 0 },
+        provider_mode: "TEXT_ONLY",
+      });
+    }),
+  );
+});
+
+// Stub out the speechSynthesis global between tests so each
+// assertion gets a fresh spy. The Web Speech Recognition API is
+// NOT polyfilled — that's intentional; the bar must work
+// correctly in the "STT unsupported" path which is jsdom's
+// default.
+let speakMock: Mock;
+let cancelMock: Mock;
+
+beforeEach(() => {
+  speakMock = vi.fn();
+  cancelMock = vi.fn();
+  Object.defineProperty(window, "speechSynthesis", {
+    configurable: true,
+    value: {
+      speak: speakMock,
+      cancel: cancelMock,
+      getVoices: () => [],
+    },
+  });
+  // Stub the SpeechSynthesisUtterance constructor.
+  vi.stubGlobal(
+    "SpeechSynthesisUtterance",
+    vi.fn().mockImplementation((text: string) => ({
+      text,
+      onstart: null,
+      onend: null,
+      onerror: null,
+    })),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function renderBar(): void {
+  render(
+    <MemoryRouter>
+      <AmbientOtzarBar />
+    </MemoryRouter>,
+  );
+}
+
+describe("AmbientOtzarBar — render + expand", () => {
+  it("renders the ambient dock with 'Otzar' label", () => {
+    renderBar();
+    expect(screen.getByRole("region", { name: /ambient otzar/i })).toBeInTheDocument();
+    expect(screen.getByText("Otzar")).toBeInTheDocument();
+  });
+
+  it("starts collapsed — Send button NOT visible until expanded", () => {
+    renderBar();
+    expect(screen.queryByRole("button", { name: /^send$/i })).not.toBeInTheDocument();
+  });
+
+  it("expands when the expand button is clicked", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    expect(screen.getByRole("button", { name: /^send$/i })).toBeInTheDocument();
+  });
+});
+
+describe("AmbientOtzarBar — voice-input capability fallback", () => {
+  it("shows 'Voice input unavailable' copy when SpeechRecognition is missing", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    // jsdom does NOT expose SpeechRecognition — so the bar should
+    // fall back to disabled mic + text-only copy.
+    expect(
+      screen.getByText(
+        /Voice input unavailable in this shell\. Type to Otzar instead\./i,
+      ),
+    ).toBeInTheDocument();
+    const mic = screen.getByRole("button", { name: /voice input unavailable/i });
+    expect(mic).toBeDisabled();
+  });
+});
+
+describe("AmbientOtzarBar — send flow", () => {
+  it("sends transcript_text to /voice-intents and renders the response", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    const input = screen.getByLabelText(/Message to Otzar/i);
+    await user.type(input, "what should I focus on next");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Markdown response body/)).toBeInTheDocument();
+    });
+    // Privacy invariant: exactly one body was posted; it carries
+    // transcript_text only; never any audio-shaped key.
+    expect(recordedBodies.length).toBe(1);
+    const body = recordedBodies[0] as Record<string, unknown>;
+    expect(body.transcript_text).toBe("what should I focus on next");
+    expect(body).not.toHaveProperty("audio");
+    expect(body).not.toHaveProperty("audio_blob");
+    expect(body).not.toHaveProperty("audio_ref");
+    expect(body).not.toHaveProperty("waveform");
+  });
+
+  it("renders Approval / Collaboration / Correction badges from the response", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "ping");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Approval needed/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Collaboration suggested/)).toBeInTheDocument();
+    expect(screen.getByText(/Correct Otzar/)).toBeInTheDocument();
+    expect(screen.getByText("NEEDS_APPROVAL")).toBeInTheDocument();
+  });
+});
+
+describe("AmbientOtzarBar — speech synthesis", () => {
+  it("speaks the speech_ready_text when the response arrives", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    await waitFor(() => expect(speakMock).toHaveBeenCalledTimes(1));
+    // speak() received the SAFE projection, not the raw markdown.
+    const utterance = speakMock.mock.calls[0]?.[0] as { text: string };
+    expect(utterance.text).toBe("Markdown response body");
+    // The markdown asterisks were never spoken (we passed
+    // speech_ready_text, not response).
+    expect(utterance.text).not.toContain("**");
+  });
+
+  it("muting prevents speak() AND cancels any in-flight utterance", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("button", { name: /mute otzar/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Markdown response body/)).toBeInTheDocument();
+    });
+    expect(speakMock).not.toHaveBeenCalled();
+    // muting cancels any in-flight utterance for safety.
+    expect(cancelMock).toHaveBeenCalled();
+  });
+});
+
+describe("AmbientOtzarBar — privacy / safety copy", () => {
+  it("renders 'No raw audio is stored' explicitly when expanded", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    expect(screen.getByText(/No raw audio is stored/i)).toBeInTheDocument();
+  });
+
+  it("NEVER mentions surveillance / productivity score / manager visibility / Sesame active", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("button", { name: /expand/i }));
+    const html = document.body.innerHTML.toLowerCase();
+    expect(html).not.toContain("surveillance");
+    expect(html).not.toContain("productivity score");
+    expect(html).not.toContain("manager visibility");
+    expect(html).not.toContain("sesame active");
+    expect(html).not.toContain("full sesame voice");
+    expect(html).not.toContain("recording in background");
+    expect(html).not.toContain("monitoring employee");
+  });
+});
