@@ -12,6 +12,7 @@
 
 import {
   Bot,
+  BookOpen,
   ClipboardCheck,
   Eye,
   KeyRound,
@@ -71,6 +72,12 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/authority-grants",
     icon: KeyRound,
     description: "Choose what your Twin may do for you.",
+  },
+  {
+    label: "Preferences",
+    to: "/app/preferences",
+    icon: BookOpen,
+    description: "Teach your Twin how you work.",
   },
   {
     label: "Conversations",
