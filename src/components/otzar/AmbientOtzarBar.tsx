@@ -38,7 +38,6 @@ import {
   Volume2,
   VolumeX,
   Square,
-  ChevronUp,
   ChevronDown,
   AlertCircle,
   Users,
@@ -159,19 +158,40 @@ export function AmbientOtzarBar(): JSX.Element {
     ) : null;
 
   // ────────────────────────────────────────────────────────────
-  // Render — semi-transparent dock; bottom-right; not modal.
+  // COLLAPSED — render as an obvious "Talk to Otzar" pill button.
+  // Bigger, brighter, primary-colored so it does NOT look like a
+  // dismissible chip. Clicking expands the full dock.
+  // ────────────────────────────────────────────────────────────
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        role="region"
+        aria-label="Talk to Otzar"
+        data-testid="ambient-otzar-bar"
+        onClick={() => setExpanded(true)}
+        className="fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      >
+        <Mic className="h-5 w-5" />
+        <span>Talk to Otzar</span>
+      </button>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // EXPANDED — full ambient dock with mic + text + response.
   // ────────────────────────────────────────────────────────────
   return (
     <div
       role="region"
-      aria-label="Ambient Otzar"
+      aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
-      className="fixed bottom-4 right-4 z-50 w-[min(92vw,420px)] rounded-2xl border border-border bg-background/80 backdrop-blur shadow-lg supports-[backdrop-filter]:bg-background/60"
+      className="fixed bottom-6 right-6 z-[60] w-[min(92vw,440px)] rounded-2xl border-2 border-primary/30 bg-background/95 backdrop-blur shadow-2xl supports-[backdrop-filter]:bg-background/85"
     >
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-          <span className="text-xs font-medium truncate">Otzar</span>
+          <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-sm font-semibold">Talk to Otzar</span>
           <span className={`text-xs ${statusClass} truncate`}>{status}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -195,21 +215,18 @@ export function AmbientOtzarBar(): JSX.Element {
             type="button"
             variant="ghost"
             size="icon"
-            onClick={() => setExpanded((v) => !v)}
-            aria-label={expanded ? "Collapse" : "Expand"}
-            title={expanded ? "Collapse" : "Expand"}
+            onClick={() => setExpanded(false)}
+            aria-label="Collapse"
+            title="Collapse"
             className="h-7 w-7"
           >
-            {expanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronUp className="h-4 w-4" />
-            )}
+            <ChevronDown className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {expanded ? (
+      {(
+
         <div className="px-3 pb-3 space-y-2">
           <div className="flex gap-2">
             <Button
@@ -363,9 +380,12 @@ export function AmbientOtzarBar(): JSX.Element {
             <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs">
               <Link to="/app/corrections">Corrections</Link>
             </Button>
+            <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs">
+              <Link to="/app/voice-ready">Open full Voice page</Link>
+            </Button>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
