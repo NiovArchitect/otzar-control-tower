@@ -49,6 +49,7 @@ import { SettingsPage } from "@/pages/Settings";
 import { OnboardingPage } from "@/pages/Onboarding";
 import { BillingPreviewPage } from "@/pages/BillingPreview";
 import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
+import ConnectorRailsAdmin from "@/pages/ConnectorRailsAdmin";
 import { DocumentationPage } from "@/pages/Documentation";
 import { IntelligencePage } from "@/pages/Intelligence";
 import { ApprovalsPage } from "@/pages/Approvals";
@@ -125,6 +126,7 @@ export function App() {
               <Route path="onboarding" element={<OnboardingPage />} />
               <Route path="billing" element={<BillingPreviewPage />} />
               <Route path="connectors" element={<ConnectorsAdminPage />} />
+              <Route path="connector-rails" element={<ConnectorRailsAdmin />} />
               <Route path="voice" element={<VoiceTwinPage />} />
               <Route path="documentation" element={<DocumentationPage />} />
               <Route path="intelligence" element={<IntelligencePage />} />
