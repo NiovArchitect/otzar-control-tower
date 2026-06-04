@@ -134,6 +134,12 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "Active compliance frameworks (HIPAA, FERPA, FedRAMP, ...) and policy gates.",
   },
   {
+    label: "Collaboration policy",
+    to: "/collaboration-policy",
+    icon: ScrollText,
+    description: "Shape the operating envelope for autonomous collaboration — same-team / cross-team / sensitive domains.",
+  },
+  {
     label: "System Health",
     to: "/system-health",
     icon: Activity,

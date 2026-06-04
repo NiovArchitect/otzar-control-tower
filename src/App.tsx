@@ -42,6 +42,7 @@ import { WorkflowsPage } from "@/pages/Workflows";
 import { PlaygroundPage } from "@/pages/Playground";
 import { AgentPlaygroundPage } from "@/pages/AgentPlayground";
 import { PoliciesPage } from "@/pages/Policies";
+import { CollaborationPolicy } from "@/pages/CollaborationPolicy";
 import { SystemHealthPage } from "@/pages/SystemHealth";
 import { SettingsPage } from "@/pages/Settings";
 import { OnboardingPage } from "@/pages/Onboarding";
@@ -113,6 +114,10 @@ export function App() {
                 element={<AgentPlaygroundPage />}
               />
               <Route path="policies" element={<PoliciesPage />} />
+              <Route
+                path="collaboration-policy"
+                element={<CollaborationPolicy />}
+              />
               <Route path="system-health" element={<SystemHealthPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="onboarding" element={<OnboardingPage />} />
