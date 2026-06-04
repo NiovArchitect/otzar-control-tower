@@ -24,6 +24,7 @@ import { Corrections } from "@/pages/app/Corrections";
 import { Approvals } from "@/pages/app/Approvals";
 import { MyTwin } from "@/pages/app/MyTwin";
 import { Conversations } from "@/pages/app/Conversations";
+import { AuthorityGrants } from "@/pages/app/AuthorityGrants";
 
 import { LoginPage } from "@/pages/Login";
 import { HomePage } from "@/pages/Home";
@@ -75,6 +76,7 @@ export function App() {
               <Route path="corrections" element={<Corrections />} />
               <Route path="approvals" element={<Approvals />} />
               <Route path="my-twin" element={<MyTwin />} />
+              <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="conversations" element={<Conversations />} />
               {/* Unknown /app/* paths fall back to the employee home. */}
               <Route path="*" element={<Navigate to="/app" replace />} />

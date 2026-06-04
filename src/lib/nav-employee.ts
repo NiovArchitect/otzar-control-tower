@@ -14,6 +14,7 @@ import {
   Bot,
   ClipboardCheck,
   Eye,
+  KeyRound,
   LayoutDashboard,
   MessageSquare,
   MessagesSquare,
@@ -64,6 +65,12 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/my-twin",
     icon: Bot,
     description: "Your aligned AI teammate.",
+  },
+  {
+    label: "Authority",
+    to: "/app/authority-grants",
+    icon: KeyRound,
+    description: "Choose what your Twin may do for you.",
   },
   {
     label: "Conversations",
