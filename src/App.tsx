@@ -26,6 +26,7 @@ import { MyTwin } from "@/pages/app/MyTwin";
 import { Conversations } from "@/pages/app/Conversations";
 import { AuthorityGrants } from "@/pages/app/AuthorityGrants";
 import { Preferences } from "@/pages/app/Preferences";
+import { Collaboration } from "@/pages/app/Collaboration";
 
 import { LoginPage } from "@/pages/Login";
 import { HomePage } from "@/pages/Home";
@@ -79,6 +80,7 @@ export function App() {
               <Route path="my-twin" element={<MyTwin />} />
               <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="preferences" element={<Preferences />} />
+              <Route path="collaboration" element={<Collaboration />} />
               <Route path="conversations" element={<Conversations />} />
               {/* Unknown /app/* paths fall back to the employee home. */}
               <Route path="*" element={<Navigate to="/app" replace />} />
