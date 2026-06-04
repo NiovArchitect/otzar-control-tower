@@ -72,6 +72,35 @@ import type {
   ConversationListParams,
   ConversationDetailResponse,
   ConversationCorrectionsResponse,
+  // EDX-4 TwinAuthorityGrant types
+  CreateAuthorityGrantRequest,
+  AuthorityGrantCreateResponse,
+  AuthorityGrantListResponse,
+  AuthorityGrantRevokeResponse,
+  // EDX-5 TwinCorrectionMemory types
+  CreateCorrectionRequest,
+  CorrectionCreateResponse,
+  CorrectionListResponse,
+  CorrectionRevokeResponse,
+  // EDX-6 TwinCollaborationRequest types
+  CreateCollaborationRequestBody,
+  CollaborationCreateResponse,
+  CollaborationListResponse,
+  CollaborationTransitionResponse,
+  // Phase 1 WorkProject types
+  CreateWorkProjectRequest,
+  WorkProjectCreateResponse,
+  WorkProjectListResponse,
+  WorkProjectMembersResponse,
+  WorkProjectMemberSafeView,
+  WorkProjectMemberRole,
+  // Phase 2 OrgCollaborationPolicy types
+  OrgCollaborationPolicyListResponse,
+  OrgCollaborationPolicyUpsertResponse,
+  UpsertOrgCollaborationPolicyRequest,
+  // Phase 3 voice-ready
+  VoiceIntentRequest,
+  VoiceIntentResponse,
   // Employee Approvals -- /escalations/* product surface
   EscalationListResponse,
   EscalationResponse,
@@ -650,6 +679,184 @@ export class ApiClient {
           `/otzar/conversations/${encodeURIComponent(conversationId)}/corrections`,
         ),
     },
+
+    // ────────────────────────────────────────────────────────────
+    // Phase EDX-4 TwinAuthorityGrant routes (PR Foundation #270).
+    // ────────────────────────────────────────────────────────────
+    authorityGrants: {
+      /** POST /api/v1/otzar/my-twin/authority-grants — create a grant. */
+      create: (
+        body: CreateAuthorityGrantRequest,
+      ): Promise<ApiResult<AuthorityGrantCreateResponse>> =>
+        this.request<AuthorityGrantCreateResponse>(
+          "/otzar/my-twin/authority-grants",
+          { method: "POST", body },
+        ),
+      /** GET /api/v1/otzar/my-twin/authority-grants — self-scoped list. */
+      list: (
+        params: { state?: string; take?: number } = {},
+      ): Promise<ApiResult<AuthorityGrantListResponse>> =>
+        this.request<AuthorityGrantListResponse>(
+          `/otzar/my-twin/authority-grants${qs(params)}`,
+        ),
+      /** POST /api/v1/otzar/my-twin/authority-grants/:id/revoke. */
+      revoke: (
+        grantId: string,
+      ): Promise<ApiResult<AuthorityGrantRevokeResponse>> =>
+        this.request<AuthorityGrantRevokeResponse>(
+          `/otzar/my-twin/authority-grants/${encodeURIComponent(grantId)}/revoke`,
+          { method: "POST" },
+        ),
+    },
+
+    // ────────────────────────────────────────────────────────────
+    // Phase EDX-5 TwinCorrectionMemory routes (PR Foundation #274).
+    // ────────────────────────────────────────────────────────────
+    correctionMemory: {
+      create: (
+        body: CreateCorrectionRequest,
+      ): Promise<ApiResult<CorrectionCreateResponse>> =>
+        this.request<CorrectionCreateResponse>(
+          "/otzar/my-twin/corrections",
+          { method: "POST", body },
+        ),
+      list: (
+        params: {
+          state?: string;
+          correction_type?: string;
+          scope_type?: string;
+          take?: number;
+        } = {},
+      ): Promise<ApiResult<CorrectionListResponse>> =>
+        this.request<CorrectionListResponse>(
+          `/otzar/my-twin/corrections${qs(params)}`,
+        ),
+      revoke: (
+        correctionId: string,
+      ): Promise<ApiResult<CorrectionRevokeResponse>> =>
+        this.request<CorrectionRevokeResponse>(
+          `/otzar/my-twin/corrections/${encodeURIComponent(correctionId)}/revoke`,
+          { method: "POST" },
+        ),
+    },
+
+    // ────────────────────────────────────────────────────────────
+    // Phase EDX-6 TwinCollaborationRequest routes (PR Foundation #277).
+    // ────────────────────────────────────────────────────────────
+    collaboration: {
+      create: (
+        body: CreateCollaborationRequestBody,
+      ): Promise<ApiResult<CollaborationCreateResponse>> =>
+        this.request<CollaborationCreateResponse>(
+          "/otzar/my-twin/collaboration-requests",
+          { method: "POST", body },
+        ),
+      inbound: (
+        params: { state?: string; take?: number } = {},
+      ): Promise<ApiResult<CollaborationListResponse>> =>
+        this.request<CollaborationListResponse>(
+          `/otzar/my-twin/collaboration-requests/inbound${qs(params)}`,
+        ),
+      outbound: (
+        params: { state?: string; take?: number } = {},
+      ): Promise<ApiResult<CollaborationListResponse>> =>
+        this.request<CollaborationListResponse>(
+          `/otzar/my-twin/collaboration-requests/outbound${qs(params)}`,
+        ),
+      accept: (id: string): Promise<ApiResult<CollaborationTransitionResponse>> =>
+        this.request<CollaborationTransitionResponse>(
+          `/otzar/my-twin/collaboration-requests/${encodeURIComponent(id)}/accept`,
+          { method: "POST" },
+        ),
+      reject: (id: string): Promise<ApiResult<CollaborationTransitionResponse>> =>
+        this.request<CollaborationTransitionResponse>(
+          `/otzar/my-twin/collaboration-requests/${encodeURIComponent(id)}/reject`,
+          { method: "POST" },
+        ),
+      cancel: (id: string): Promise<ApiResult<CollaborationTransitionResponse>> =>
+        this.request<CollaborationTransitionResponse>(
+          `/otzar/my-twin/collaboration-requests/${encodeURIComponent(id)}/cancel`,
+          { method: "POST" },
+        ),
+      complete: (
+        id: string,
+      ): Promise<ApiResult<CollaborationTransitionResponse>> =>
+        this.request<CollaborationTransitionResponse>(
+          `/otzar/my-twin/collaboration-requests/${encodeURIComponent(id)}/complete`,
+          { method: "POST" },
+        ),
+    },
+
+    // ────────────────────────────────────────────────────────────
+    // Phase 1 WorkProject routes (PR Foundation #281).
+    // ────────────────────────────────────────────────────────────
+    workProjects: {
+      create: (
+        body: CreateWorkProjectRequest,
+      ): Promise<ApiResult<WorkProjectCreateResponse>> =>
+        this.request<WorkProjectCreateResponse>("/otzar/work-projects", {
+          method: "POST",
+          body,
+        }),
+      list: (
+        params: { state?: string; take?: number } = {},
+      ): Promise<ApiResult<WorkProjectListResponse>> =>
+        this.request<WorkProjectListResponse>(
+          `/otzar/work-projects${qs(params)}`,
+        ),
+      archive: (
+        projectId: string,
+      ): Promise<ApiResult<WorkProjectCreateResponse>> =>
+        this.request<WorkProjectCreateResponse>(
+          `/otzar/work-projects/${encodeURIComponent(projectId)}/archive`,
+          { method: "POST" },
+        ),
+      addMember: (
+        projectId: string,
+        body: { entity_id: string; role?: WorkProjectMemberRole },
+      ): Promise<ApiResult<{ ok: true; member: WorkProjectMemberSafeView }>> =>
+        this.request<{ ok: true; member: WorkProjectMemberSafeView }>(
+          `/otzar/work-projects/${encodeURIComponent(projectId)}/members`,
+          { method: "POST", body },
+        ),
+      members: (
+        projectId: string,
+      ): Promise<ApiResult<WorkProjectMembersResponse>> =>
+        this.request<WorkProjectMembersResponse>(
+          `/otzar/work-projects/${encodeURIComponent(projectId)}/members`,
+        ),
+    },
+
+    // ────────────────────────────────────────────────────────────
+    // Phase 3 voice-ready route (PR Foundation #287).
+    // ────────────────────────────────────────────────────────────
+    voiceIntents: {
+      create: (
+        body: VoiceIntentRequest,
+      ): Promise<ApiResult<VoiceIntentResponse>> =>
+        this.request<VoiceIntentResponse>(
+          "/otzar/my-twin/voice-intents",
+          { method: "POST", body },
+        ),
+    },
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 2 — admin OrgCollaborationPolicy namespace (PR Foundation #286).
+  // can_admin_org-gated; admins manage their OWN org's policy.
+  // ──────────────────────────────────────────────────────────────
+  orgCollaborationPolicy = {
+    list: (): Promise<ApiResult<OrgCollaborationPolicyListResponse>> =>
+      this.request<OrgCollaborationPolicyListResponse>(
+        "/orgs/me/collaboration-policy",
+      ),
+    upsert: (
+      body: UpsertOrgCollaborationPolicyRequest,
+    ): Promise<ApiResult<OrgCollaborationPolicyUpsertResponse>> =>
+      this.request<OrgCollaborationPolicyUpsertResponse>(
+        "/orgs/me/collaboration-policy",
+        { method: "POST", body },
+      ),
   };
 
   // ──────────────────────────────────────────────────────────────

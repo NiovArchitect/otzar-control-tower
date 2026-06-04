@@ -1037,7 +1037,103 @@ export interface ConversationMessageResponse {
   conversation_id: string;
   transparency?: ChatTransparency;
   context_provenance?: ContextProvenanceItem[];
+  // ────────────────────────────────────────────────────────────
+  // Phase EDX-3 / EDX-4 / EDX-6 ConductSession output expansion.
+  // All fields below are emitted on every ok=true response.
+  // ────────────────────────────────────────────────────────────
+  // Closed-vocab next-step label (slice 1).
+  next_step: ConductNextStep;
+  // Always true at the Foundation tier — POST /api/v1/otzar/correction
+  // is live (slice 2).
+  correction_capture_available: boolean;
+  // TTS / device-speech-friendly projection of the response (slice 3).
+  speech_ready_text: string;
+  // False at the Foundation tier today; mirrors voice_readiness_state.
+  voice_output_supported: boolean;
+  // Slice 4 "denial of preconditions" envelope. Always emitted as
+  // false at the chat tier until each detection substrate lands.
+  clarification_needed: boolean;
+  action_proposed: boolean;
+  approval_required: boolean;
+  policy_blocked: boolean;
+  dmw_scope_blocked: boolean;
+  collaboration_suggested: boolean;
+  // Slice 5 layer-breakdown projection of memory used.
+  memory_used_summary: MemoryUsedSummary;
+  // EDX-4 PR 4 — closed-vocab companions surfaced only when
+  // approval_required is true.
+  approval_reason?: ApprovalReason;
+  approval_duration_options?: ReadonlyArray<TwinAuthorityDurationClass>;
+  // EDX-6 — closed-vocab companion surfaced only when
+  // collaboration_suggested is true.
+  collaboration_target_type?: TwinCollaborationTargetType;
 }
+
+// Closed-vocab next-step union per EDX-3 slice 1.
+export type ConductNextStep =
+  | "ANSWERED"
+  | "NEEDS_CLARIFICATION"
+  | "NEEDS_APPROVAL"
+  | "ACTION_PROPOSED"
+  | "ACTION_CREATED"
+  | "BLOCKED_BY_POLICY"
+  | "BLOCKED_BY_SCOPE"
+  | "COLLABORATION_REQUEST_SUGGESTED"
+  | "MEMORY_CORRECTION_AVAILABLE";
+
+// EDX-3 slice 5 — layer-by-layer memory usage summary.
+export interface MemoryUsedSummary {
+  layer_1_corrections: number;
+  layer_3_work_profile: number;
+  layer_4_foundational: number;
+  layer_5_relevant_context: number;
+  layer_8_history_messages: number;
+  total_capsules: number;
+}
+
+// EDX-4 PR 4 — closed-vocab approval-reason union.
+export type ApprovalReason =
+  | "EXTERNAL_WRITE"
+  | "SENSITIVE_CONTEXT"
+  | "CONNECTOR_ACCESS"
+  | "CROSS_TEAM_REQUEST"
+  | "CROSS_PROJECT_REQUEST"
+  | "POLICY_REQUIRES_APPROVAL"
+  | "DUAL_CONTROL_REQUIRED"
+  | "LONG_TERM_AUTHORITY"
+  | "INDEFINITE_AUTHORITY";
+
+// EDX-6 — closed-vocab collaboration target type union.
+export type TwinCollaborationTargetType =
+  | "EMPLOYEE"
+  | "EMPLOYEE_TWIN"
+  | "TEAM"
+  | "PROJECT"
+  | "HIVE"
+  | "WORKFLOW";
+
+// Phase 3 — voice-ready route provider mode union.
+export type VoiceProviderMode =
+  | "TEXT_ONLY"
+  | "LOCAL_MOCK"
+  | "SELF_HOSTED_CSM1B_READY"
+  | "SELF_HOSTED_CSM1B_ACTIVE"
+  | "NOT_CONFIGURED";
+
+// Phase 3 — POST /api/v1/otzar/my-twin/voice-intents body.
+export interface VoiceIntentRequest {
+  transcript_text?: string;
+  message?: string;
+  conversation_id?: string;
+  conversation_history?: string[];
+  token_budget?: number;
+}
+
+// Phase 3 — POST /api/v1/otzar/my-twin/voice-intents success response
+// (ConductSessionSuccess + provider_mode).
+export type VoiceIntentResponse = ConversationMessageResponse & {
+  provider_mode: VoiceProviderMode;
+};
 
 // WHAT: Body for POST /api/v1/otzar/conversation/close.
 export interface ConversationCloseRequest {
@@ -1252,6 +1348,116 @@ export interface MyTwinView {
   // ADR-0053 Wave 2A: additive, optional, self-scoped role-scope profile.
   // Existing fields above are unchanged (backward-compatible).
   role_scope_profile?: MyTwinRoleScopeProfile;
+  // ────────────────────────────────────────────────────────────
+  // Phase EDX-1 / EDX-4 / EDX-5 / EDX-6 + Phase 1 MyTwinView
+  // sidecars per the [FOUNDER-AUTH — AUTONOMOUS ENTERPRISE
+  // COLLABORATION COMPLETION] arc. All optional; the route omits
+  // them on per-source read miss per ADR-0068 §6.
+  // ────────────────────────────────────────────────────────────
+  pending_approvals_summary?: TwinPendingApprovalsSummary;
+  recent_action_summary?: TwinRecentActionSummary;
+  memory_scope_summary?: TwinMemoryScopeSummary;
+  active_grants_summary?: TwinActiveGrantsSummary;
+  active_authority_summary?: TwinActiveAuthoritySummary;
+  personal_preferences_summary?: TwinPersonalPreferencesSummary;
+  collaboration_inbox_summary?: TwinCollaborationInboxSummary;
+  project_context_summary?: TwinProjectContextSummary;
+  voice_readiness_state?: TwinVoiceReadinessState;
+}
+
+// ────────────────────────────────────────────────────────────
+// MyTwinView sidecar types (Foundation-side mirrors)
+// ────────────────────────────────────────────────────────────
+
+// Phase EDX-1 — pending approvals where the caller is the approver.
+export interface TwinPendingApprovalsSummary {
+  pending_count: number;
+  most_recent_at: string | null;
+}
+
+// Phase EDX-1 — recent action volume where the caller is the source.
+export interface TwinRecentActionSummary {
+  recent_action_count: number;
+  most_recent_at: string | null;
+}
+
+// Phase EDX-1 — currently-active ConversationMemoryScope inventory.
+export interface TwinMemoryScopeSummary {
+  active_scope_count: number;
+  most_recent_at: string | null;
+}
+
+// Phase EDX-1 — ConsentGrant + TeamDelegation aggregated count.
+export interface TwinActiveGrantsSummary {
+  active_consent_grants_count: number;
+  active_team_delegations_count: number;
+  soonest_expiry_at: string | null;
+}
+
+// Phase EDX-4 — TwinAuthorityGrant inventory (the employee→Twin
+// authority-to-act substrate).
+export type TwinAuthorityDurationClass =
+  | "ONE_TIME"
+  | "SESSION"
+  | "SHORT_TERM"
+  | "PROJECT_SCOPED"
+  | "LONG_TERM"
+  | "INDEFINITE"
+  | "UNTIL_REVOKED"
+  | "SENSITIVE_CASE_BY_CASE";
+
+export interface TwinActiveAuthoritySummary {
+  active_grant_count: number;
+  expiring_soon_count: number;
+  indefinite_grant_count: number;
+  sensitive_case_by_case_count: number;
+  most_recent_grant_at: string | null;
+  next_expiry_at: string | null;
+  has_revocable_grants: boolean;
+  duration_classes_present: ReadonlyArray<TwinAuthorityDurationClass>;
+}
+
+// Phase EDX-5 — TwinCorrectionMemory inventory (personal work-style
+// memory the employee taught their Twin).
+export interface TwinPersonalPreferencesSummary {
+  active_personal_preferences_count: number;
+  active_tone_preferences_count: number;
+  active_project_preferences_count: number;
+  active_sensitivity_boundaries_count: number;
+  active_approval_preferences_count: number;
+  active_terminology_definitions_count: number;
+  active_ask_before_acting_count: number;
+  last_correction_at: string | null;
+}
+
+// Phase EDX-6 — TwinCollaborationRequest inbox where the caller is
+// the target.
+export interface TwinCollaborationInboxSummary {
+  pending_request_count: number;
+  needs_my_approval_count: number;
+  blocked_request_count: number;
+  completed_recent_count: number;
+  most_recent_request_at: string | null;
+}
+
+// Phase 1 — WorkProject membership inventory.
+export interface TwinProjectContextSummary {
+  active_project_count: number;
+  owned_project_count: number;
+  reviewer_project_count: number;
+  member_project_count: number;
+  recent_project_activity_at: string | null;
+}
+
+// Phase EDX-1 — voice surface readiness posture.
+export type VoiceReadinessValue =
+  | "LIVE"
+  | "NOT_AVAILABLE_AT_FOUNDATION_TIER";
+
+export interface TwinVoiceReadinessState {
+  envelope_construction: VoiceReadinessValue;
+  live_audio_input: VoiceReadinessValue;
+  live_audio_output: VoiceReadinessValue;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2243,4 +2449,351 @@ export interface SafeActionDetailView extends SafeActionView {
 export interface ActionDetailResponse {
   ok: true;
   action: SafeActionDetailView;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase EDX-4 — TwinAuthorityGrant types (PR Foundation #269/#270)
+// ════════════════════════════════════════════════════════════════
+
+export type TwinAuthorityGrantState =
+  | "ACTIVE"
+  | "EXPIRED"
+  | "REVOKED"
+  | "SUPERSEDED"
+  | "CONSUMED"
+  | "BLOCKED";
+
+export type TwinAuthorityScopeType =
+  | "PERSONAL"
+  | "SESSION"
+  | "PROJECT"
+  | "TEAM"
+  | "ORG"
+  | "CONNECTOR"
+  | "ACTION_TYPE"
+  | "WORKFLOW"
+  | "CONVERSATION";
+
+export type TwinAuthoritySensitivityClass =
+  | "LOW"
+  | "MODERATE"
+  | "HIGH"
+  | "REGULATED"
+  | "CUSTOMER_SENSITIVE"
+  | "FINANCIAL"
+  | "LEGAL"
+  | "SECURITY"
+  | "PERSONAL_MEMORY"
+  | "CONNECTOR_WRITE";
+
+export interface TwinAuthorityGrantSafeView {
+  grant_id: string;
+  duration_class: TwinAuthorityDurationClass;
+  sensitivity_class: TwinAuthoritySensitivityClass;
+  scope_type: TwinAuthorityScopeType;
+  scope_id: string | null;
+  state: TwinAuthorityGrantState;
+  effective_from: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  consumed_at: string | null;
+  purpose_summary: string;
+  action_type: string | null;
+  connector_type: string | null;
+  has_connector_binding: boolean;
+  revocable: boolean;
+  created_at: string;
+}
+
+export interface CreateAuthorityGrantRequest {
+  scope_type: TwinAuthorityScopeType;
+  duration_class: TwinAuthorityDurationClass;
+  purpose_summary: string;
+  scope_id?: string;
+  action_type?: string;
+  connector_type?: string;
+  connector_binding_id?: string;
+  sensitivity_class?: TwinAuthoritySensitivityClass;
+  expires_at?: string;
+  grantee_entity_id?: string;
+}
+
+export interface AuthorityGrantCreateResponse {
+  ok: true;
+  grant: TwinAuthorityGrantSafeView;
+}
+
+export interface AuthorityGrantListResponse {
+  ok: true;
+  grants: TwinAuthorityGrantSafeView[];
+}
+
+export interface AuthorityGrantRevokeResponse {
+  ok: true;
+  grant: TwinAuthorityGrantSafeView;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase EDX-5 — TwinCorrectionMemory types (PR Foundation #273/#274)
+// ════════════════════════════════════════════════════════════════
+
+export type TwinCorrectionType =
+  | "MEANING_CLARIFICATION"
+  | "TERMINOLOGY_DEFINITION"
+  | "PREFERENCE"
+  | "TONE_PREFERENCE"
+  | "PROJECT_PREFERENCE"
+  | "CLIENT_CONTEXT"
+  | "TEAM_BEST_PRACTICE_CANDIDATE"
+  | "ORG_BEST_PRACTICE_CANDIDATE"
+  | "FAILED_PATTERN"
+  | "SUCCESSFUL_PATTERN"
+  | "SENSITIVITY_BOUNDARY"
+  | "APPROVAL_PREFERENCE"
+  | "DO_NOT_USE_CONTEXT"
+  | "ASK_BEFORE_ACTING";
+
+export type TwinCorrectionState =
+  | "ACTIVE"
+  | "REVOKED"
+  | "SUPERSEDED"
+  | "EXPIRED"
+  | "PROMOTED_TO_TEAM_PATTERN"
+  | "PROMOTED_TO_ORG_PATTERN";
+
+export type TwinCorrectionScopeType =
+  | "PERSONAL"
+  | "CONVERSATION"
+  | "PROJECT"
+  | "TEAM"
+  | "ROLE"
+  | "ORG";
+
+export type TwinCorrectionRetentionClass =
+  | "EPHEMERAL"
+  | "STANDARD"
+  | "LONG_RETENTION"
+  | "PERMANENT_UNTIL_REVOKED";
+
+export interface TwinCorrectionSafeView {
+  correction_id: string;
+  scope_type: TwinCorrectionScopeType;
+  scope_id: string | null;
+  correction_type: TwinCorrectionType;
+  state: TwinCorrectionState;
+  sensitivity_class: TwinAuthoritySensitivityClass;
+  retention_class: TwinCorrectionRetentionClass;
+  safe_summary: string;
+  effective_from: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  superseded_by_id: string | null;
+  revocable: boolean;
+  created_at: string;
+}
+
+export interface CreateCorrectionRequest {
+  scope_type: TwinCorrectionScopeType;
+  correction_type: TwinCorrectionType;
+  safe_summary: string;
+  scope_id?: string;
+  sensitivity_class?: TwinAuthoritySensitivityClass;
+  retention_class?: TwinCorrectionRetentionClass;
+  source_message_id?: string;
+  source_conversation_id?: string;
+  expires_at?: string;
+}
+
+export interface CorrectionCreateResponse {
+  ok: true;
+  correction: TwinCorrectionSafeView;
+}
+
+export interface CorrectionListResponse {
+  ok: true;
+  corrections: TwinCorrectionSafeView[];
+}
+
+export interface CorrectionRevokeResponse {
+  ok: true;
+  correction: TwinCorrectionSafeView;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase EDX-6 — TwinCollaborationRequest types (PR Foundation #276/#277)
+// ════════════════════════════════════════════════════════════════
+
+export type TwinCollaborationState =
+  | "REQUESTED"
+  | "ACCEPTED"
+  | "NEEDS_APPROVAL"
+  | "BLOCKED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "REJECTED"
+  | "EXPIRED"
+  | "CANCELED";
+
+export type TwinCollaborationRequestType =
+  | "STATUS_REQUEST"
+  | "REVIEW_REQUEST"
+  | "BLOCKER_RESOLUTION"
+  | "FOLLOW_UP"
+  | "HANDOFF"
+  | "CONTEXT_REQUEST"
+  | "APPROVAL_REQUEST"
+  | "PROJECT_COORDINATION"
+  | "CROSS_TEAM_COORDINATION"
+  | "WORKFLOW_COORDINATION";
+
+export type TwinCollaborationBlockedReason =
+  | "CROSS_ORG_DENIED"
+  | "MISSING_PROJECT_MEMBERSHIP"
+  | "MISSING_TEAM_MEMBERSHIP"
+  | "MISSING_DMW_SCOPE"
+  | "MISSING_AUTHORITY_GRANT"
+  | "POLICY_REQUIRES_APPROVAL"
+  | "CONNECTOR_WRITE_NOT_AUTHORIZED"
+  | "SENSITIVE_CONTEXT_BLOCKED"
+  | "TARGET_NOT_FOUND";
+
+export interface CollaborationRequestSafeView {
+  collaboration_id: string;
+  target_type: TwinCollaborationTargetType;
+  request_type: TwinCollaborationRequestType;
+  state: TwinCollaborationState;
+  sensitivity_class: TwinAuthoritySensitivityClass;
+  safe_summary: string;
+  requested_by_ai: boolean;
+  requires_approval: boolean;
+  blocked_reason: TwinCollaborationBlockedReason | null;
+  has_target_entity: boolean;
+  has_target_twin: boolean;
+  has_target_team: boolean;
+  has_target_project: boolean;
+  expires_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface CreateCollaborationRequestBody {
+  target_type: TwinCollaborationTargetType;
+  request_type: TwinCollaborationRequestType;
+  safe_summary: string;
+  target_entity_id?: string;
+  target_twin_entity_id?: string;
+  target_team_id?: string;
+  target_project_id?: string;
+  requester_twin_entity_id?: string;
+  requested_by_ai?: boolean;
+  requires_approval?: boolean;
+}
+
+export interface CollaborationCreateResponse {
+  ok: true;
+  collaboration: CollaborationRequestSafeView;
+}
+
+export interface CollaborationListResponse {
+  ok: true;
+  collaborations: CollaborationRequestSafeView[];
+}
+
+export interface CollaborationTransitionResponse {
+  ok: true;
+  collaboration: CollaborationRequestSafeView;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase 1 — WorkProject types (PR Foundation #280/#281)
+// ════════════════════════════════════════════════════════════════
+
+export type WorkProjectState = "ACTIVE" | "ARCHIVED";
+export type WorkProjectMemberRole = "OWNER" | "MEMBER" | "REVIEWER";
+
+export interface WorkProjectSafeView {
+  project_id: string;
+  name: string;
+  state: WorkProjectState;
+  created_at: string;
+  archivable: boolean;
+}
+
+export interface WorkProjectMemberSafeView {
+  project_member_id: string;
+  project_id: string;
+  entity_id: string;
+  role: WorkProjectMemberRole;
+  created_at: string;
+}
+
+export interface CreateWorkProjectRequest {
+  name: string;
+}
+
+export interface WorkProjectCreateResponse {
+  ok: true;
+  project: WorkProjectSafeView;
+}
+
+export interface WorkProjectListResponse {
+  ok: true;
+  projects: WorkProjectSafeView[];
+}
+
+export interface WorkProjectMembersResponse {
+  ok: true;
+  members: WorkProjectMemberSafeView[];
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase 2 — OrgCollaborationPolicy types (PR Foundation #284/#286)
+// ════════════════════════════════════════════════════════════════
+
+export type OrgCollaborationScope =
+  | "SAME_TEAM"
+  | "SAME_PROJECT"
+  | "CROSS_TEAM"
+  | "CROSS_PROJECT"
+  | "ORG_WIDE";
+
+export type OrgCollaborationOutcome =
+  | "ALLOW"
+  | "NEEDS_APPROVAL"
+  | "BLOCK"
+  | "DRAFT_ONLY"
+  | "DUAL_CONTROL_REQUIRED";
+
+export interface OrgCollaborationPolicySafeView {
+  policy_id: string;
+  collaboration_scope: OrgCollaborationScope;
+  request_type: TwinCollaborationRequestType | null;
+  sensitivity_class: TwinAuthoritySensitivityClass | null;
+  outcome: OrgCollaborationOutcome;
+  requires_employee_authority: boolean;
+  requires_admin_approval: boolean;
+  requires_dual_control: boolean;
+  connector_write_allowed: boolean;
+  created_at: string;
+}
+
+export interface UpsertOrgCollaborationPolicyRequest {
+  collaboration_scope: OrgCollaborationScope;
+  outcome: OrgCollaborationOutcome;
+  request_type?: TwinCollaborationRequestType | null;
+  sensitivity_class?: TwinAuthoritySensitivityClass | null;
+  requires_employee_authority?: boolean;
+  requires_admin_approval?: boolean;
+  requires_dual_control?: boolean;
+  connector_write_allowed?: boolean;
+}
+
+export interface OrgCollaborationPolicyListResponse {
+  ok: true;
+  policies: OrgCollaborationPolicySafeView[];
+}
+
+export interface OrgCollaborationPolicyUpsertResponse {
+  ok: true;
+  policy: OrgCollaborationPolicySafeView;
 }
