@@ -1,0 +1,31 @@
+[package]
+name = "otzar-desktop"
+version = "0.1.0"
+description = "Otzar desktop shell — Tauri wrapper around the Control Tower frontend"
+authors = ["NIOV Labs"]
+license = "UNLICENSED"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "otzar_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Conservative posture: NO protocol-asset / NO custom-protocol features
+# turned on by default. The desktop shell deliberately ships with the
+# minimum Tauri feature set so the Rust attack surface stays small.
+# Add features back only when a concrete shell capability needs them
+# AND the capabilities/*.json allowlist also gains the matching grant.
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# No `[features]` block. The custom-protocol feature was a Tauri 1.x
+# pattern; in Tauri 2.x it lives behind the `withGlobalTauri` config
+# and is opt-in. We deliberately omit it.
