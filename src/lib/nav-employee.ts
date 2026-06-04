@@ -18,6 +18,7 @@ import {
   FolderKanban,
   KeyRound,
   LayoutDashboard,
+  Mic,
   MessageSquare,
   MessagesSquare,
   PencilLine,
@@ -92,6 +93,12 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/work-projects",
     icon: FolderKanban,
     description: "Your work projects and members.",
+  },
+  {
+    label: "Voice",
+    to: "/app/voice-ready",
+    icon: Mic,
+    description: "Talk to Otzar — speech-ready replies.",
   },
   {
     label: "Conversations",
