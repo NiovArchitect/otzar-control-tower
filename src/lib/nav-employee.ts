@@ -15,6 +15,7 @@ import {
   BookOpen,
   ClipboardCheck,
   Eye,
+  FolderKanban,
   KeyRound,
   LayoutDashboard,
   MessageSquare,
@@ -85,6 +86,12 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/collaboration",
     icon: Users,
     description: "Ask coworkers, teams, and projects for help.",
+  },
+  {
+    label: "Projects",
+    to: "/app/work-projects",
+    icon: FolderKanban,
+    description: "Your work projects and members.",
   },
   {
     label: "Conversations",
