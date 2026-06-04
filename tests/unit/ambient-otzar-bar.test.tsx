@@ -116,21 +116,25 @@ function renderBar(): void {
 }
 
 describe("AmbientOtzarBar — render + expand", () => {
-  it("renders the ambient dock with 'Otzar' label", () => {
+  it("renders an obvious 'Talk to Otzar' pill when collapsed", () => {
     renderBar();
-    expect(screen.getByRole("region", { name: /ambient otzar/i })).toBeInTheDocument();
-    expect(screen.getByText("Otzar")).toBeInTheDocument();
+    // Two surfaces with the same accessible label intentionally: the
+    // outer region wrapper + the inner pill button. The visible label
+    // "Talk to Otzar" must appear at least once in the DOM.
+    expect(screen.getAllByText(/Talk to Otzar/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("region", { name: /Talk to Otzar/i })).toBeInTheDocument();
   });
 
-  it("starts collapsed — Send button NOT visible until expanded", () => {
+  it("starts collapsed — Send button NOT visible until clicked", () => {
     renderBar();
     expect(screen.queryByRole("button", { name: /^send$/i })).not.toBeInTheDocument();
   });
 
-  it("expands when the expand button is clicked", async () => {
+  it("expands when the 'Talk to Otzar' pill is clicked", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    // Click the collapsed pill (it's both the region + a clickable button).
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     expect(screen.getByRole("button", { name: /^send$/i })).toBeInTheDocument();
   });
 });
@@ -139,7 +143,7 @@ describe("AmbientOtzarBar — voice-input capability fallback", () => {
   it("shows 'Voice input unavailable' copy when SpeechRecognition is missing", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     // jsdom does NOT expose SpeechRecognition — so the bar should
     // fall back to disabled mic + text-only copy.
     expect(
@@ -156,7 +160,7 @@ describe("AmbientOtzarBar — send flow", () => {
   it("sends transcript_text to /voice-intents and renders the response", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     const input = screen.getByLabelText(/Message to Otzar/i);
     await user.type(input, "what should I focus on next");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
@@ -178,7 +182,7 @@ describe("AmbientOtzarBar — send flow", () => {
   it("renders Approval / Collaboration / Correction badges from the response", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     await user.type(screen.getByLabelText(/Message to Otzar/i), "ping");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
 
@@ -195,7 +199,7 @@ describe("AmbientOtzarBar — speech synthesis", () => {
   it("speaks the speech_ready_text when the response arrives", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
 
@@ -211,7 +215,7 @@ describe("AmbientOtzarBar — speech synthesis", () => {
   it("muting prevents speak() AND cancels any in-flight utterance", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     await user.click(screen.getByRole("button", { name: /mute otzar/i }));
     await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
@@ -228,14 +232,14 @@ describe("AmbientOtzarBar — privacy / safety copy", () => {
   it("renders 'No raw audio is stored' explicitly when expanded", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     expect(screen.getByText(/No raw audio is stored/i)).toBeInTheDocument();
   });
 
   it("NEVER mentions surveillance / productivity score / manager visibility / Sesame active", async () => {
     const user = userEvent.setup();
     renderBar();
-    await user.click(screen.getByRole("button", { name: /expand/i }));
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     const html = document.body.innerHTML.toLowerCase();
     expect(html).not.toContain("surveillance");
     expect(html).not.toContain("productivity score");

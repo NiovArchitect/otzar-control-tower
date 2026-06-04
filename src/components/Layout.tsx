@@ -6,8 +6,9 @@
 //              DataSovereigntyBadge, App.tsx routes.
 
 import { Link, Outlet } from "react-router-dom";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, Mic } from "lucide-react";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import { DataSovereigntyBadge } from "@/components/DataSovereigntyBadge";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,14 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             {isEmployee(capabilities) && (
+              <Button asChild variant="default" size="sm" className="gap-1">
+                <Link to="/app/voice-ready">
+                  <Mic className="h-4 w-4" />
+                  Talk to Otzar
+                </Link>
+              </Button>
+            )}
+            {isEmployee(capabilities) && (
               <Button asChild variant="outline" size="sm">
                 <Link to="/app">Open Otzar</Link>
               </Button>
@@ -88,6 +97,13 @@ export function Layout() {
           <ConnectionStatusIndicator />
         </footer>
       </div>
+
+      {/* Persistent ambient Otzar dock. Org admins (and dual-persona
+          founders like Sadeil who land on / by default) can now Talk
+          to Otzar from the Control Tower without first navigating to
+          /app. Gated on isEmployee so true-pure-admin users (no
+          can_read_capsules) do not see the chat dock. */}
+      {isEmployee(capabilities) ? <AmbientOtzarBar /> : null}
     </div>
   );
 }
