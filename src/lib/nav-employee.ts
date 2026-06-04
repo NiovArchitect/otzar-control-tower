@@ -20,6 +20,7 @@ import {
   MessageSquare,
   MessagesSquare,
   PencilLine,
+  Users,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
@@ -78,6 +79,12 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/preferences",
     icon: BookOpen,
     description: "Teach your Twin how you work.",
+  },
+  {
+    label: "Collaboration",
+    to: "/app/collaboration",
+    icon: Users,
+    description: "Ask coworkers, teams, and projects for help.",
   },
   {
     label: "Conversations",
