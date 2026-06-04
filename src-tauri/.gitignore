@@ -6,5 +6,16 @@ Cargo.lock
 # Tauri-generated bundle artifacts
 gen/
 
+# Platform icon variants we don't ship at this slice (regenerable via
+# `npx tauri icon src-tauri/icons/icon.png` from a source 1024x1024).
+# We commit ONLY the canonical icon.png + macOS icon.icns + Windows
+# icon.ico + the three desktop sizes (32 / 128 / 128@2x). Android +
+# iOS + Windows-Store icons are forward-substrate.
+icons/64x64.png
+icons/Square*.png
+icons/StoreLogo.png
+icons/android/
+icons/ios/
+
 # OS
 .DS_Store

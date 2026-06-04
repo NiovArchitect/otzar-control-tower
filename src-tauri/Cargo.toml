@@ -15,12 +15,17 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset"] }
+# Conservative posture: NO protocol-asset / NO custom-protocol features
+# turned on by default. The desktop shell deliberately ships with the
+# minimum Tauri feature set so the Rust attack surface stays small.
+# Add features back only when a concrete shell capability needs them
+# AND the capabilities/*.json allowlist also gains the matching grant.
+tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-[features]
-default = ["custom-protocol"]
-custom-protocol = ["tauri/custom-protocol"]
+# No `[features]` block. The custom-protocol feature was a Tauri 1.x
+# pattern; in Tauri 2.x it lives behind the `withGlobalTauri` config
+# and is opt-in. We deliberately omit it.
