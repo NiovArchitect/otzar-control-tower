@@ -2797,3 +2797,224 @@ export interface OrgCollaborationPolicyUpsertResponse {
   ok: true;
   policy: OrgCollaborationPolicySafeView;
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Phase 5/6 — Connector + MCP rails substrate (Foundation PR #296 +
+// admin routes Foundation PR #298). Mirrors:
+//   GET    /api/v1/orgs/me/connector-providers
+//   POST   /api/v1/orgs/me/connector-scope-grants
+//   GET    /api/v1/orgs/me/connector-scope-grants
+//   DELETE /api/v1/orgs/me/connector-scope-grants/:grant_id
+//   POST   /api/v1/orgs/me/mcp-server-connections
+//   GET    /api/v1/orgs/me/mcp-server-connections
+//   DELETE /api/v1/orgs/me/mcp-server-connections/:id
+//   POST   /api/v1/orgs/me/mcp-tool-policies
+//   GET    /api/v1/orgs/me/mcp-tool-policies
+//   DELETE /api/v1/orgs/me/mcp-tool-policies/:policy_id
+// ──────────────────────────────────────────────────────────────────
+
+export type ConnectorProviderType =
+  | "GOOGLE_WORKSPACE"
+  | "MICROSOFT_365"
+  | "SLACK"
+  | "JIRA"
+  | "LINEAR"
+  | "SALESFORCE"
+  | "HUBSPOT"
+  | "GITHUB"
+  | "GITLAB"
+  | "NOTION"
+  | "CONFLUENCE"
+  | "INTERNAL_API"
+  | "MCP_SERVER"
+  | "CUSTOM";
+
+export type ConnectorAuthMode =
+  | "OAUTH2"
+  | "API_KEY"
+  | "SERVICE_ACCOUNT"
+  | "MCP_AUTH"
+  | "NONE_FOR_LOCAL_MOCK";
+
+export type ConnectorWriteMode =
+  | "DISABLED"
+  | "DRAFT_ONLY"
+  | "APPROVAL_REQUIRED"
+  | "ENABLED_WITH_POLICY";
+
+export interface ConnectorProviderDefinition {
+  provider_id: ConnectorProviderType;
+  display_name: string;
+  supported_auth_modes: ConnectorAuthMode[];
+  read_supported: boolean;
+  draft_supported: boolean;
+  write_supported: boolean;
+  default_write_mode: ConnectorWriteMode;
+  compliance_tags: string[];
+  connector_write_founder_gated: boolean;
+}
+
+export type ConnectorScopeType =
+  | "ORG"
+  | "TEAM"
+  | "PROJECT"
+  | "ROLE"
+  | "EMPLOYEE"
+  | "TWIN";
+
+export type ConnectorOperationClass =
+  | "READ"
+  | "DRAFT"
+  | "WRITE_REQUEST"
+  | "WRITE_EXECUTE";
+
+export interface ConnectorScopeGrantView {
+  grant_id: string;
+  connection_id: string;
+  scope_type: ConnectorScopeType;
+  scope_id: string | null;
+  allowed_operations: ConnectorOperationClass[];
+  requires_employee_authority: boolean;
+  requires_admin_approval: boolean;
+  requires_dual_control: boolean;
+  created_at: string;
+  updated_at: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface CreateConnectorScopeGrantRequest {
+  connection_id: string;
+  scope_type: ConnectorScopeType;
+  scope_id?: string | null;
+  allowed_operations: ConnectorOperationClass[];
+  requires_employee_authority?: boolean;
+  requires_admin_approval?: boolean;
+  requires_dual_control?: boolean;
+  expires_at?: string | null;
+}
+
+export type McpAuthMode =
+  | "OAUTH2"
+  | "API_KEY"
+  | "SERVICE_ACCOUNT"
+  | "MCP_AUTH"
+  | "NONE_FOR_LOCAL_MOCK";
+
+export type McpServerStatus =
+  | "NOT_CONFIGURED"
+  | "CONNECTED"
+  | "DEGRADED"
+  | "REVOKED"
+  | "ERROR";
+
+export type McpToolPolicyMode =
+  | "READ_ONLY"
+  | "APPROVAL_REQUIRED"
+  | "BLOCKED_BY_DEFAULT";
+
+export type McpOperationClass =
+  | "READ"
+  | "WRITE"
+  | "MUTATION"
+  | "EXTERNAL_SEND"
+  | "FINANCIAL"
+  | "LEGAL"
+  | "SECURITY"
+  | "CUSTOMER_SENSITIVE";
+
+export type McpPolicyOutcome =
+  | "ALLOW"
+  | "NEEDS_APPROVAL"
+  | "BLOCK"
+  | "DRAFT_ONLY"
+  | "DUAL_CONTROL_REQUIRED";
+
+export interface McpServerConnectionView {
+  mcp_connection_id: string;
+  display_name: string;
+  server_url: string;
+  auth_mode: McpAuthMode;
+  secret_ref: string | null;
+  status: McpServerStatus;
+  tool_policy_mode: McpToolPolicyMode;
+  allowed_tool_names: string[];
+  blocked_tool_names: string[];
+  created_at: string;
+  updated_at: string;
+  revoked_at: string | null;
+  last_health_check_at: string | null;
+}
+
+export interface CreateMcpServerConnectionRequest {
+  display_name: string;
+  server_url: string;
+  auth_mode?: McpAuthMode;
+  secret_ref?: string | null;
+  tool_policy_mode?: McpToolPolicyMode;
+  allowed_tool_names?: string[];
+  blocked_tool_names?: string[];
+}
+
+export interface McpToolPolicyView {
+  policy_id: string;
+  mcp_connection_id: string;
+  tool_name: string;
+  operation_class: McpOperationClass;
+  outcome: McpPolicyOutcome;
+  requires_employee_authority: boolean;
+  requires_dmw_scope: boolean;
+  requires_admin_approval: boolean;
+  redaction_policy: string | null;
+  output_retention_policy: string | null;
+  created_at: string;
+  updated_at: string;
+  revoked_at: string | null;
+}
+
+export interface CreateMcpToolPolicyRequest {
+  mcp_connection_id: string;
+  tool_name: string;
+  operation_class: McpOperationClass;
+  outcome?: McpPolicyOutcome;
+  requires_employee_authority?: boolean;
+  requires_dmw_scope?: boolean;
+  requires_admin_approval?: boolean;
+  redaction_policy?: string | null;
+  output_retention_policy?: string | null;
+}
+
+export interface ConnectorProvidersListResponse {
+  ok: true;
+  providers: ConnectorProviderDefinition[];
+}
+
+export interface ConnectorScopeGrantListResponse {
+  ok: true;
+  grants: ConnectorScopeGrantView[];
+}
+
+export interface ConnectorScopeGrantResponse {
+  ok: true;
+  grant: ConnectorScopeGrantView;
+}
+
+export interface McpServerConnectionListResponse {
+  ok: true;
+  connections: McpServerConnectionView[];
+}
+
+export interface McpServerConnectionResponse {
+  ok: true;
+  connection: McpServerConnectionView;
+}
+
+export interface McpToolPolicyListResponse {
+  ok: true;
+  policies: McpToolPolicyView[];
+}
+
+export interface McpToolPolicyResponse {
+  ok: true;
+  policy: McpToolPolicyView;
+}

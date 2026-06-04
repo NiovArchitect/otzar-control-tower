@@ -98,6 +98,17 @@ import type {
   OrgCollaborationPolicyListResponse,
   OrgCollaborationPolicyUpsertResponse,
   UpsertOrgCollaborationPolicyRequest,
+  // Phase 5/6 connector + MCP rails types
+  ConnectorProvidersListResponse,
+  ConnectorScopeGrantListResponse,
+  ConnectorScopeGrantResponse,
+  CreateConnectorScopeGrantRequest,
+  McpServerConnectionListResponse,
+  McpServerConnectionResponse,
+  CreateMcpServerConnectionRequest,
+  McpToolPolicyListResponse,
+  McpToolPolicyResponse,
+  CreateMcpToolPolicyRequest,
   // Phase 3 voice-ready
   VoiceIntentRequest,
   VoiceIntentResponse,
@@ -856,6 +867,87 @@ export class ApiClient {
       this.request<OrgCollaborationPolicyUpsertResponse>(
         "/orgs/me/collaboration-policy",
         { method: "POST", body },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // connectorRails.*  (admin connector + MCP rails per Foundation
+  // PR #296 substrate + PR #298 routes). can_admin_org-gated; only
+  // surfaces inside /admin/connector-rails.
+  // ──────────────────────────────────────────────────────────────
+  connectorRails = {
+    listProviders: (): Promise<ApiResult<ConnectorProvidersListResponse>> =>
+      this.request<ConnectorProvidersListResponse>(
+        "/orgs/me/connector-providers",
+      ),
+
+    listScopeGrants: (params: {
+      connection_id?: string;
+    } = {}): Promise<ApiResult<ConnectorScopeGrantListResponse>> =>
+      this.request<ConnectorScopeGrantListResponse>(
+        `/orgs/me/connector-scope-grants${qs(params)}`,
+      ),
+
+    createScopeGrant: (
+      body: CreateConnectorScopeGrantRequest,
+    ): Promise<ApiResult<ConnectorScopeGrantResponse>> =>
+      this.request<ConnectorScopeGrantResponse>(
+        "/orgs/me/connector-scope-grants",
+        { method: "POST", body },
+      ),
+
+    revokeScopeGrant: (
+      grantId: string,
+    ): Promise<ApiResult<ConnectorScopeGrantResponse>> =>
+      this.request<ConnectorScopeGrantResponse>(
+        `/orgs/me/connector-scope-grants/${encodeURIComponent(grantId)}`,
+        { method: "DELETE" },
+      ),
+
+    listMcpConnections: (): Promise<
+      ApiResult<McpServerConnectionListResponse>
+    > =>
+      this.request<McpServerConnectionListResponse>(
+        "/orgs/me/mcp-server-connections",
+      ),
+
+    createMcpConnection: (
+      body: CreateMcpServerConnectionRequest,
+    ): Promise<ApiResult<McpServerConnectionResponse>> =>
+      this.request<McpServerConnectionResponse>(
+        "/orgs/me/mcp-server-connections",
+        { method: "POST", body },
+      ),
+
+    revokeMcpConnection: (
+      mcpConnectionId: string,
+    ): Promise<ApiResult<McpServerConnectionResponse>> =>
+      this.request<McpServerConnectionResponse>(
+        `/orgs/me/mcp-server-connections/${encodeURIComponent(mcpConnectionId)}`,
+        { method: "DELETE" },
+      ),
+
+    listMcpPolicies: (params: {
+      mcp_connection_id?: string;
+    } = {}): Promise<ApiResult<McpToolPolicyListResponse>> =>
+      this.request<McpToolPolicyListResponse>(
+        `/orgs/me/mcp-tool-policies${qs(params)}`,
+      ),
+
+    createMcpPolicy: (
+      body: CreateMcpToolPolicyRequest,
+    ): Promise<ApiResult<McpToolPolicyResponse>> =>
+      this.request<McpToolPolicyResponse>(
+        "/orgs/me/mcp-tool-policies",
+        { method: "POST", body },
+      ),
+
+    revokeMcpPolicy: (
+      policyId: string,
+    ): Promise<ApiResult<McpToolPolicyResponse>> =>
+      this.request<McpToolPolicyResponse>(
+        `/orgs/me/mcp-tool-policies/${encodeURIComponent(policyId)}`,
+        { method: "DELETE" },
       ),
   };
 
