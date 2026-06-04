@@ -1,0 +1,10 @@
+# Cargo build artifacts
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Tauri-generated bundle artifacts
+gen/
+
+# OS
+.DS_Store

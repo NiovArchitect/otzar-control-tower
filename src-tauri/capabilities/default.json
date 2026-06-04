@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2/capabilities",
+  "identifier": "default",
+  "description": "Conservative default capabilities for the Otzar desktop shell. Adds shell.open + opener.open-url only — no filesystem write, no clipboard, no process spawn, no native dialogs. The web Control Tower's existing security posture carries over; the desktop shell adds only what the web UI cannot do natively.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "opener:default"
+  ]
+}
