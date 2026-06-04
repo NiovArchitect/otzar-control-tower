@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoleScopeProfilePanel } from "@/components/employee/RoleScopeProfilePanel";
+import { MyTwinSidecarsPanel } from "@/components/employee/MyTwinSidecarsPanel";
 import { api } from "@/lib/api";
 import type { ApiResult } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -168,6 +169,8 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       </Card>
 
       <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
+
+      <MyTwinSidecarsPanel twin={t} />
     </div>
   );
 }
