@@ -94,9 +94,9 @@ function action(overrides: Partial<SafeActionView> = {}): SafeActionView {
 function notif(overrides: Partial<SafeNotificationView> = {}): SafeNotificationView {
   return {
     notification_id: "n-1",
-    org_entity_id: "o-niov",
-    recipient_entity_id: "id-sadeil",
-    source_entity_id: "id-david",
+
+
+
     action_id: "a-1",
     notification_class: "OTZAR_INTERNAL_NOTE",
     body_summary: "Hey Sadeil — quick FYI.",

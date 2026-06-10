@@ -40,9 +40,9 @@ function buildNotification(
 ): SafeNotificationView {
   return {
     notification_id: "n-1",
-    org_entity_id: "o-niov",
-    recipient_entity_id: "id-david",
-    source_entity_id: "id-sadeil",
+
+
+
     action_id: "act-1",
     notification_class: "OTZAR_INTERNAL_NOTE",
     body_summary: "Hey David — heads up, time to get back to it.",
@@ -276,6 +276,169 @@ describe("NotificationBell — privacy invariants (RULE 0)", () => {
   });
 });
 
+describe("NotificationBell — reply-to-note round trip (Phase 1215)", () => {
+  it("clicking Reply opens an inline reply textarea", async () => {
+    mockList([
+      buildNotification({
+        notification_id: "n-r1",
+
+        body_summary: "Hey David — heads up.",
+      }),
+    ]);
+    const user = userEvent.setup();
+    render(<NotificationBell pollIntervalMs={0} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    await user.click(screen.getByTestId("notification-reply-open"));
+    expect(screen.getByTestId("notification-reply-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("notification-reply-textarea")).toBeInTheDocument();
+  });
+
+  it("Cancel closes the reply panel without an API call", async () => {
+    mockList([buildNotification({})]);
+    let postCalls = 0;
+    server.use(
+      http.post(`${API_BASE}/notifications/:id/reply`, () => {
+        postCalls += 1;
+        return HttpResponse.json({ ok: false, code: "x" }, { status: 500 });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<NotificationBell pollIntervalMs={0} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    await user.click(screen.getByTestId("notification-reply-open"));
+    await user.click(screen.getByTestId("notification-reply-cancel"));
+    expect(screen.queryByTestId("notification-reply-panel")).toBeNull();
+    expect(postCalls).toBe(0);
+  });
+
+  it("Send reply POSTs to /notifications/:id/reply (source resolved server-side, no entity_id exposure)", async () => {
+    mockList([
+      buildNotification({
+        notification_id: "n-reply-target",
+        body_summary: "Hey David — heads up.",
+      }),
+    ]);
+    let captured: { url: string; body: Record<string, unknown> } | null = null;
+    server.use(
+      http.post(`${API_BASE}/notifications/:id/reply`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        captured = { url: request.url, body };
+        return HttpResponse.json({
+          ok: true,
+          reply_action_id: "act-reply-1",
+          reply_action_status: "APPROVED",
+        });
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(<NotificationBell pollIntervalMs={0} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    await user.click(screen.getByTestId("notification-reply-open"));
+    await user.type(
+      screen.getByTestId("notification-reply-textarea"),
+      "On it — pushing the update now.",
+    );
+    await user.click(screen.getByTestId("notification-reply-send"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-reply-sent")).toBeInTheDocument(),
+    );
+
+    const c = captured as unknown as {
+      url: string;
+      body: { body_summary: string; idempotency_key: string };
+    };
+    expect(c.url).toMatch(/\/notifications\/n-reply-target\/reply$/);
+    expect(c.body.body_summary).toBe("On it — pushing the update now.");
+    expect(c.body.idempotency_key).toBeTruthy();
+
+    expect(
+      screen
+        .getByTestId("notification-reply-sent")
+        .getAttribute("data-action-id"),
+    ).toBe("act-reply-1");
+  });
+
+  it("Send button is disabled while text is empty", async () => {
+    mockList([buildNotification({})]);
+    const user = userEvent.setup();
+    render(<NotificationBell pollIntervalMs={0} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    await user.click(screen.getByTestId("notification-reply-open"));
+    const btn = screen.getByTestId("notification-reply-send");
+    expect(btn).toBeDisabled();
+  });
+
+  it("Reply failure surfaces friendly error copy", async () => {
+    mockList([buildNotification({})]);
+    server.use(
+      http.post(`${API_BASE}/notifications/:id/reply`, () =>
+        HttpResponse.json(
+          { ok: false, code: "DUAL_CONTROL_NO_APPROVER_AVAILABLE" },
+          { status: 503 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<NotificationBell pollIntervalMs={0} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    await user.click(screen.getByTestId("notification-reply-open"));
+    await user.type(
+      screen.getByTestId("notification-reply-textarea"),
+      "Quick reply.",
+    );
+    await user.click(screen.getByTestId("notification-reply-send"));
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-reply-error")).toHaveTextContent(
+        /hasn't configured who can approve/i,
+      ),
+    );
+    // The Sent state is NOT rendered on failure.
+    expect(screen.queryByTestId("notification-reply-sent")).toBeNull();
+  });
+
+  it("Reply for one notification does not open replies for others", async () => {
+    mockList([
+      buildNotification({
+        notification_id: "n-a",
+
+        body_summary: "From Sadeil.",
+      }),
+      buildNotification({
+        notification_id: "n-b",
+
+        body_summary: "From David.",
+      }),
+    ]);
+    const user = userEvent.setup();
+    render(<NotificationBell pollIntervalMs={0} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    const openButtons = screen.getAllByTestId("notification-reply-open");
+    expect(openButtons).toHaveLength(2);
+    await user.click(openButtons[1]!); // open reply only on n-b
+    expect(screen.getAllByTestId("notification-reply-panel")).toHaveLength(1);
+  });
+});
+
 describe("NotificationBell — roster-aware (not David-only)", () => {
   it("renders Annie's notification verbatim when the API returns Annie", async () => {
     useAuthStore.setState({
@@ -294,7 +457,7 @@ describe("NotificationBell — roster-aware (not David-only)", () => {
       buildNotification({
         body_summary:
           "Hey Annie, bandwidth for a compliance review this week?",
-        recipient_entity_id: "id-annie",
+
       }),
     ]);
     const user = userEvent.setup();

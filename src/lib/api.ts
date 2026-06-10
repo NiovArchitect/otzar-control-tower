@@ -72,6 +72,7 @@ import type {
   CommsExtractResponse,
   NotificationListResponse,
   NotificationReadResponse,
+  NotificationReplyResponse,
   ConversationListResponse,
   ConversationListParams,
   ConversationDetailResponse,
@@ -909,6 +910,25 @@ export class ApiClient {
       this.request<NotificationReadResponse>(
         `/notifications/${encodeURIComponent(notificationId)}/read`,
         { method: "PUT" },
+      ),
+
+    /** Phase 1215 -- POST /api/v1/notifications/:id/reply.
+     *  Recipient-side governed reply mediator. Foundation looks up
+     *  the row server-side and routes through the existing
+     *  createActionForCaller pipeline. The recipient never sees the
+     *  original sender's entity_id (SafeNotificationView excludes
+     *  source_entity_id by design). */
+    reply: (
+      notificationId: string,
+      body_summary: string,
+      idempotency_key: string,
+    ): Promise<ApiResult<NotificationReplyResponse>> =>
+      this.request<NotificationReplyResponse>(
+        `/notifications/${encodeURIComponent(notificationId)}/reply`,
+        {
+          method: "POST",
+          body: { body_summary, idempotency_key },
+        },
       ),
   };
 
