@@ -68,6 +68,7 @@ import type {
   CorrectionResponse,
   // My Twin + Conversations metadata (read-only)
   MyTwinResponse,
+  ContextHealthResponse,
   ConversationListResponse,
   ConversationListParams,
   ConversationDetailResponse,
@@ -651,6 +652,14 @@ export class ApiClient {
      *  flags / bridge ids / memory). 404 TWIN_NOT_FOUND when none assigned. */
     myTwin: (): Promise<ApiResult<MyTwinResponse>> =>
       this.request<MyTwinResponse>("/otzar/my-twin"),
+
+    /** GET /api/v1/otzar/my-twin/context-health -- closed-vocab
+     *  projection of the L0_IDENTITY block Foundation prepends to
+     *  the LLM prompt. Self-scoped; never raw memory / transcripts /
+     *  cross-user data. Returns identity + READY|PARTIAL|UNCONFIGURED
+     *  status. Phase 1205. */
+    contextHealth: (): Promise<ApiResult<ContextHealthResponse>> =>
+      this.request<ContextHealthResponse>("/otzar/my-twin/context-health"),
 
     /** GET /api/v1/otzar/conversations -- the caller's OWN conversation
      *  session METADATA (read). No transcripts / message bodies. Optional

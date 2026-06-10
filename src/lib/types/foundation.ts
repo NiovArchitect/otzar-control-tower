@@ -1534,6 +1534,68 @@ export interface MyTwinResponse {
   twin_count: number;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Phase 1205 -- GET /api/v1/otzar/my-twin/context-health.
+// Closed-vocab projection of the L0_IDENTITY block conductSession
+// prepends to the LLM. Lets the Voice page render a "Signed in as
+// / Org / Role / Twin / counts" badge so the operator sees at-a-
+// glance whether Otzar will recognize them.
+// ─────────────────────────────────────────────────────────────────
+
+export type ContextHealthStatus = "READY" | "PARTIAL" | "UNCONFIGURED";
+
+export interface ContextHealthIdentity {
+  viewer: {
+    user_id: string;
+    email: string | null;
+    display_name: string;
+    title: string;
+    org_role: string;
+    is_founder_admin: boolean;
+  };
+  org: {
+    org_id: string | null;
+    name: string | null;
+    domain: string | null;
+  };
+  twin: {
+    twin_id: string | null;
+    display_name: string | null;
+    active: boolean;
+  };
+  projects: ReadonlyArray<{
+    project_id: string;
+    name: string;
+    role: string;
+  }>;
+  authority: {
+    can_admin_org: boolean;
+    can_read_capsules: boolean;
+    can_write_capsules: boolean;
+    can_share_capsules: boolean;
+    can_access_external_api: boolean;
+    external_write_policy: string;
+  };
+  context_signals: {
+    memory_capsules_count: number;
+    transcript_summaries_count: number;
+    collaboration_inbound_count: number;
+    collaboration_outbound_count: number;
+  };
+  safety: {
+    no_external_write_without_approval: true;
+    no_private_data_to_unauthorized_users: true;
+    no_raw_audio_storage: true;
+    no_raw_transcript_default: true;
+  };
+}
+
+export interface ContextHealthResponse {
+  ok: true;
+  status: ContextHealthStatus;
+  identity: ContextHealthIdentity;
+}
+
 // WHAT: Conversation status filter / item status (product enum).
 export type ConversationStatus = "ACTIVE" | "CLOSED";
 
