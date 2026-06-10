@@ -25,6 +25,7 @@ import { Approvals } from "@/pages/app/Approvals";
 import { ActionCenter } from "@/pages/app/ActionCenter";
 import { Comms } from "@/pages/app/Comms";
 import { MyDay } from "@/pages/app/MyDay";
+import { MyMemory } from "@/pages/app/MyMemory";
 import { MyOrganization } from "@/pages/app/MyOrganization";
 import { MyTwin } from "@/pages/app/MyTwin";
 import { Conversations } from "@/pages/app/Conversations";
@@ -94,6 +95,7 @@ export function App() {
               <Route path="action-center" element={<ActionCenter />} />
               <Route path="comms" element={<Comms />} />
               <Route path="my-organization" element={<MyOrganization />} />
+              <Route path="my-memory" element={<MyMemory />} />
               <Route path="my-twin" element={<MyTwin />} />
               <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="preferences" element={<Preferences />} />

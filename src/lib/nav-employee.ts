@@ -34,6 +34,7 @@ import {
   PencilLine,
   Sun,
   Users,
+  Wallet,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
@@ -100,6 +101,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Building2,
     description:
       "Your place in the company. Projects, teammates, what Otzar can do for you here.",
+    group: "more",
+  },
+  {
+    label: "My Digital Work Wallet",
+    to: "/app/my-memory",
+    icon: Wallet,
+    description:
+      "Your memory, your permissions, and what Otzar can do with them. You're in control.",
     group: "more",
   },
   {
