@@ -21,6 +21,7 @@ import {
   Bell,
   Bot,
   BookOpen,
+  Building2,
   ClipboardCheck,
   Eye,
   FolderKanban,
@@ -93,6 +94,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
   },
 
   // ── More (deeper / configuration / debug-adjacent) ──────────
+  {
+    label: "My Organization",
+    to: "/app/my-organization",
+    icon: Building2,
+    description:
+      "Your place in the company. Projects, teammates, what Otzar can do for you here.",
+    group: "more",
+  },
   {
     label: "Approvals",
     to: "/app/approvals",
