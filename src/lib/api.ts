@@ -1114,6 +1114,7 @@ export class ApiClient {
       draft_text: string;
       idempotency_key: string;
       payload_summary: string;
+      notification_class?: string;
     }): Promise<ApiResult<{ ok: true; action: SafeActionView }>> =>
       this.request<{ ok: true; action: SafeActionView }>("/actions", {
         method: "POST",
@@ -1123,7 +1124,12 @@ export class ApiClient {
           payload_summary: input.payload_summary,
           payload_redacted: {
             recipient_entity_id: input.recipient_entity_id,
-            body: input.draft_text,
+            // ADR-0057 action-payload-validators.ts requires both
+            // notification_class (short label) and body_summary
+            // (the actual draft text).
+            notification_class:
+              input.notification_class ?? "OTZAR_INTERNAL_NOTE",
+            body_summary: input.draft_text,
           },
         },
         retries: 0,

@@ -148,11 +148,18 @@ describe("ProposedActionCard — Send hits POST /api/v1/actions and lands sent s
     const body = capturedBody as unknown as {
       action_type: string;
       idempotency_key: string;
-      payload_redacted: { recipient_entity_id: string; body: string };
+      payload_redacted: {
+        recipient_entity_id: string;
+        notification_class: string;
+        body_summary: string;
+      };
     };
     expect(body.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
     expect(body.payload_redacted.recipient_entity_id).toBe("id-david");
-    expect(body.payload_redacted.body).toBe("Hey David — heads up.");
+    expect(body.payload_redacted.notification_class).toBe(
+      "OTZAR_INTERNAL_NOTE",
+    );
+    expect(body.payload_redacted.body_summary).toBe("Hey David — heads up.");
     expect(body.idempotency_key).toBeTruthy();
   });
 
@@ -261,10 +268,10 @@ describe("ProposedActionCard — edit flow", () => {
         screen.getByTestId("proposed-action-card-sent"),
       ).toBeInTheDocument(),
     );
-    const body = capturedBody as {
-      payload_redacted: { body: string };
+    const body = capturedBody as unknown as {
+      payload_redacted: { body_summary: string };
     } | null;
-    expect(body?.payload_redacted.body).toBe("Softer ping, David.");
+    expect(body?.payload_redacted.body_summary).toBe("Softer ping, David.");
   });
 });
 
