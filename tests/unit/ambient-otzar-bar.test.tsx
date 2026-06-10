@@ -196,10 +196,26 @@ describe("AmbientOtzarBar — send flow", () => {
 });
 
 describe("AmbientOtzarBar — speech synthesis", () => {
-  it("speaks the speech_ready_text when the response arrives", async () => {
+  it("AUTO-SPEAK IS OFF BY DEFAULT — a response does NOT speak unless the operator toggles auto-speak on", async () => {
     const user = userEvent.setup();
     renderBar();
     await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    // Wait for the response card to render so we know the
+    // request/response cycle completed.
+    await waitFor(() => {
+      expect(screen.getByText(/Markdown response body/)).toBeInTheDocument();
+    });
+    // Critical: speak() must NOT have been called automatically.
+    expect(speakMock).not.toHaveBeenCalled();
+  });
+
+  it("speaks the speech_ready_text exactly ONCE when auto-speak is enabled", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.click(screen.getByLabelText(/Auto-speak responses/i));
     await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
 
@@ -216,6 +232,7 @@ describe("AmbientOtzarBar — speech synthesis", () => {
     const user = userEvent.setup();
     renderBar();
     await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.click(screen.getByLabelText(/Auto-speak responses/i));
     await user.click(screen.getByRole("button", { name: /mute otzar/i }));
     await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
@@ -225,6 +242,38 @@ describe("AmbientOtzarBar — speech synthesis", () => {
     expect(speakMock).not.toHaveBeenCalled();
     // muting cancels any in-flight utterance for safety.
     expect(cancelMock).toHaveBeenCalled();
+  });
+});
+
+describe("AmbientOtzarBar — emergency TTS loop guard (Phase 12e)", () => {
+  it("Stop voice button calls speechSynthesis.cancel()", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    cancelMock.mockClear();
+    await user.click(screen.getByRole("button", { name: /Stop voice/i }));
+    expect(cancelMock).toHaveBeenCalled();
+  });
+
+  it("Test Otzar voice clicked TWICE only queues ONE utterance (in-flight dedupe)", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const button = screen.getByRole("button", { name: /Test Otzar voice/i });
+    await user.click(button);
+    // We never call utterance.onend(), so the hook still treats the
+    // first utterance as in-flight. A second click must NOT enqueue
+    // another speak().
+    await user.click(button);
+    expect(speakMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("Auto-speak toggle defaults UNCHECKED", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const toggle = screen.getByLabelText(/Auto-speak responses/i) as HTMLInputElement;
+    expect(toggle.checked).toBe(false);
   });
 });
 

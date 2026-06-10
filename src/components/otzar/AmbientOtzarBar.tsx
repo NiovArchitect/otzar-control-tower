@@ -29,7 +29,7 @@
 //   - No surveillance copy. No "monitoring" / "productivity score"
 //     / "manager visibility" language anywhere.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Mic,
@@ -96,10 +96,19 @@ function toneIcon(tone: "ok" | "warn" | "error" | "muted"): typeof ShieldCheck {
 export function AmbientOtzarBar(): JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState("");
+  // EMERGENCY TTS LOOP GUARD per [FOUNDER-AUTH — EMERGENCY FIX]:
+  // auto-speak is OFF by default. The operator enables it
+  // explicitly via the "Auto-speak responses" toggle.
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const recognition = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
   const micPerm = useMicrophonePermission();
   const intent = useOtzarVoiceIntent();
+  // Stable ref guard against React StrictMode + re-render double-fire.
+  // Keyed by conversation_id + tokens_consumed so a brand-new turn
+  // (which advances tokens_consumed) is treated as a new utterance,
+  // but a re-render of the same response is not.
+  const lastAutoSpokenKeyRef = useRef<string | null>(null);
 
   // When recognition transcribes, mirror it into the draft so the
   // employee can edit before sending.
@@ -109,18 +118,32 @@ export function AmbientOtzarBar(): JSX.Element {
     }
   }, [recognition.transcript]);
 
-  // When a Foundation response arrives, speak the safe
-  // speech_ready_text projection (unless muted / unsupported).
+  // AUTO-SPEAK effect — only fires when:
+  //   1. auto-speak is explicitly enabled by the operator
+  //   2. there's a response
+  //   3. its stable key differs from the last auto-spoken key
+  //   4. synthesis is supported + not muted
+  // The dep array uses ONLY stable values; synthesis.speak() is
+  // also a stable callback (memoized inside the hook).
+  const responseKey =
+    intent.response !== null
+      ? `${intent.response.conversation_id}:${intent.response.tokens_consumed}`
+      : null;
   useEffect(() => {
+    if (!autoSpeak) return;
+    if (responseKey === null) return;
+    if (lastAutoSpokenKeyRef.current === responseKey) return;
     if (intent.response === null) return;
     const sayable =
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
-    if (synthesis.supported && !synthesis.muted) {
-      synthesis.speak(sayable);
-    }
-  }, [intent.response, synthesis]);
+    lastAutoSpokenKeyRef.current = responseKey;
+    synthesis.speak(sayable, { source: "auto", force: false });
+    // intent.response is intentionally NOT in the deps — we mirror
+    // it via responseKey to keep the effect stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSpeak, responseKey]);
 
   async function handleMicToggle(): Promise<void> {
     if (recognition.listening) {
@@ -145,8 +168,11 @@ export function AmbientOtzarBar(): JSX.Element {
 
   function handleTestVoice(): void {
     // Browser speechSynthesis requires a user gesture in many
-    // browsers; the click on this button satisfies that.
-    synthesis.speak(TEST_VOICE_PHRASE);
+    // browsers; the click on this button satisfies that. Force=true
+    // bypasses the auto-speak dedupe so a deliberate re-test
+    // succeeds; but the in-flight-utterance check inside the hook
+    // still prevents queue duplication from rapid clicks.
+    synthesis.speak(TEST_VOICE_PHRASE, { source: "test", force: true });
   }
 
   async function handleSend(): Promise<void> {
@@ -164,7 +190,9 @@ export function AmbientOtzarBar(): JSX.Element {
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
-    synthesis.speak(sayable);
+    // force=true so an explicit replay can bypass the auto-speak
+    // dedupe even if the same text was already auto-spoken once.
+    synthesis.speak(sayable, { source: "replay", force: true });
   }
 
   // ────────────────────────────────────────────────────────────
@@ -455,7 +483,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2 pt-1 flex-wrap">
             <Button
               type="button"
               variant="outline"
@@ -475,9 +503,40 @@ export function AmbientOtzarBar(): JSX.Element {
               <Volume2 className="h-3 w-3 mr-1" />
               Test Otzar voice
             </Button>
-            <span className="text-[10px] text-muted-foreground">
-              Speaks a short test phrase using your device's TTS.
-            </span>
+            {/* Emergency Stop voice — always visible so the
+                operator can silence Otzar without hunting. ESC also
+                works (bound at the window level inside the hook). */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={synthesis.stop}
+              disabled={!synthesis.supported}
+              className="h-7 px-2 text-xs"
+              aria-label="Stop voice"
+              title="Stop speaking (or press Escape)"
+            >
+              <Square className="h-3 w-3 mr-1" />
+              Stop voice
+            </Button>
+            {/* Auto-speak toggle — OFF by default per the emergency
+                guard. The label is short + the title carries detail. */}
+            <label
+              className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer"
+              title="When on, Otzar speaks every new response once through your device's TTS. Each response is deduped — re-renders never re-speak. Off by default."
+            >
+              <input
+                type="checkbox"
+                aria-label="Auto-speak responses"
+                checked={autoSpeak}
+                onChange={(e) => {
+                  setAutoSpeak(e.target.checked);
+                  if (e.target.checked) synthesis.resetDedupe();
+                }}
+                disabled={!synthesis.supported || synthesis.muted}
+              />
+              Auto-speak
+            </label>
           </div>
 
           <p className="text-[10px] text-muted-foreground">
