@@ -42,22 +42,73 @@ import {
   AlertCircle,
   Users,
   MessageSquare,
+  ShieldQuestion,
+  ShieldCheck,
+  ShieldX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
+import {
+  useMicrophonePermission,
+  type MicrophonePermissionState,
+} from "@/hooks/useMicrophonePermission";
 
 /**
  * The ambient Otzar dock. Mount once per authenticated employee
  * shell. No props — it reads its own state from React hooks.
  */
+const TEST_VOICE_PHRASE =
+  "Otzar voice is active. I can speak responses back to you.";
+
+function permissionLabel(state: MicrophonePermissionState): {
+  label: string;
+  icon: typeof ShieldCheck;
+  className: string;
+} {
+  switch (state) {
+    case "granted":
+      return {
+        label: "Microphone permission: granted",
+        icon: ShieldCheck,
+        className: "text-emerald-600",
+      };
+    case "denied":
+      return {
+        label: "Microphone permission: denied",
+        icon: ShieldX,
+        className: "text-destructive",
+      };
+    case "prompt":
+      return {
+        label: "Microphone permission: not yet granted",
+        icon: ShieldQuestion,
+        className: "text-amber-600",
+      };
+    case "unsupported":
+      return {
+        label: "Microphone permission: unsupported in this shell",
+        icon: ShieldX,
+        className: "text-muted-foreground",
+      };
+    case "unknown":
+    default:
+      return {
+        label: "Microphone permission: unknown",
+        icon: ShieldQuestion,
+        className: "text-muted-foreground",
+      };
+  }
+}
+
 export function AmbientOtzarBar(): JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState("");
   const recognition = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
+  const micPerm = useMicrophonePermission();
   const intent = useOtzarVoiceIntent();
 
   // When recognition transcribes, mirror it into the draft so the
@@ -81,13 +132,26 @@ export function AmbientOtzarBar(): JSX.Element {
     }
   }, [intent.response, synthesis]);
 
-  function handleMicToggle(): void {
+  async function handleMicToggle(): Promise<void> {
     if (recognition.listening) {
       recognition.stop();
-    } else {
-      recognition.reset();
-      recognition.start();
+      return;
     }
+    // Explicitly ask for mic permission BEFORE we start the speech-
+    // recognition engine. Without this, some browsers silently
+    // fail when permission is "prompt" or "denied".
+    if (micPerm.state !== "granted" && micPerm.state !== "unsupported") {
+      const next = await micPerm.request();
+      if (next !== "granted") return;
+    }
+    recognition.reset();
+    recognition.start();
+  }
+
+  function handleTestVoice(): void {
+    // Browser speechSynthesis requires a user gesture in many
+    // browsers; the click on this button satisfies that.
+    synthesis.speak(TEST_VOICE_PHRASE);
   }
 
   async function handleSend(): Promise<void> {
@@ -226,14 +290,42 @@ export function AmbientOtzarBar(): JSX.Element {
       </div>
 
       {(
-
         <div className="px-3 pb-3 space-y-2">
-          <div className="flex gap-2">
+          {/* Permission state line — always visible when expanded so
+              the operator knows whether the mic will actually work. */}
+          {(() => {
+            const pl = permissionLabel(micPerm.state);
+            const Icon = pl.icon;
+            return (
+              <div
+                className={`flex items-center gap-2 text-xs ${pl.className}`}
+                data-testid="ambient-permission-state"
+              >
+                <Icon className="h-3 w-3" />
+                <span>{pl.label}</span>
+                {micPerm.state === "prompt" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto h-6 px-2 text-xs"
+                    onClick={() => void micPerm.request()}
+                    disabled={micPerm.requesting}
+                  >
+                    {micPerm.requesting
+                      ? "Requesting…"
+                      : "Request microphone permission"}
+                  </Button>
+                ) : null}
+              </div>
+            );
+          })()}
+
+          <div className="flex gap-2 items-center">
             <Button
               type="button"
-              size="icon"
-              variant={recognition.listening ? "destructive" : "outline"}
-              onClick={handleMicToggle}
+              variant={recognition.listening ? "destructive" : "default"}
+              onClick={() => void handleMicToggle()}
               aria-label={
                 recognition.listening
                   ? "Stop listening"
@@ -248,12 +340,13 @@ export function AmbientOtzarBar(): JSX.Element {
                     : "Speak to Otzar"
                   : "Voice input unavailable in this shell. Type instead."
               }
-              disabled={!recognition.supported}
+              disabled={!recognition.supported || micPerm.state === "denied"}
+              className="h-12 w-12 rounded-full p-0 shrink-0"
             >
               {recognition.supported ? (
-                <Mic className="h-4 w-4" />
+                <Mic className="h-6 w-6" />
               ) : (
-                <MicOff className="h-4 w-4" />
+                <MicOff className="h-6 w-6" />
               )}
             </Button>
             <input
@@ -350,6 +443,31 @@ export function AmbientOtzarBar(): JSX.Element {
               </div>
             </div>
           ) : null}
+
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleTestVoice}
+              disabled={!synthesis.supported || synthesis.muted}
+              className="h-7 px-2 text-xs"
+              aria-label="Test Otzar voice"
+              title={
+                synthesis.supported
+                  ? synthesis.muted
+                    ? "Unmute to test"
+                    : "Speak a test phrase using your device's TTS"
+                  : "Speech output unsupported in this shell"
+              }
+            >
+              <Volume2 className="h-3 w-3 mr-1" />
+              Test Otzar voice
+            </Button>
+            <span className="text-[10px] text-muted-foreground">
+              Speaks a short test phrase using your device's TTS.
+            </span>
+          </div>
 
           <p className="text-[10px] text-muted-foreground">
             Voice input: {recognition.supported ? "browser STT (local)" : "text only"}
