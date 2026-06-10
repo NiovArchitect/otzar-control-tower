@@ -184,6 +184,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     description: "Submit context for Otzar to learn from.",
     group: "more",
   },
+  {
+    label: "Meeting captures",
+    to: "/app/meeting-captures",
+    icon: Mic,
+    description:
+      "Capture a meeting, log who consented, and attach it to a workspace.",
+    group: "more",
+  },
 ];
 
 // Convenience selectors used by the nav renderer.
