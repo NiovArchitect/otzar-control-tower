@@ -22,6 +22,7 @@ import {
   Bot,
   BookOpen,
   Building2,
+  Cable,
   ClipboardCheck,
   Eye,
   FolderKanban,
@@ -109,6 +110,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Wallet,
     description:
       "Your memory, your permissions, and what Otzar can do with them. You're in control.",
+    group: "more",
+  },
+  {
+    label: "Connector Health",
+    to: "/app/connector-health",
+    icon: Cable,
+    description:
+      "Honest status of integrations. Missing connectors don't break the core product.",
     group: "more",
   },
   {
