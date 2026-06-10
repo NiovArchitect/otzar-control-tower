@@ -1067,6 +1067,32 @@ export interface ConversationMessageResponse {
   // EDX-6 — closed-vocab companion surfaced only when
   // collaboration_suggested is true.
   collaboration_target_type?: TwinCollaborationTargetType;
+  // Phase 1208 — structured envelope surfaced when the LLM's
+  // canonical Phase 1207 draft shape is detected. The inline
+  // ProposedActionCard binds to this. Absent when the chat
+  // response is a normal answer / clarification / non-draft.
+  proposed_action?: ProposedAction;
+}
+
+// Phase 1208 — chat-tier closed-vocab action types.
+export type ProposedActionType = "SEND_INTERNAL_NOTIFICATION";
+
+// Phase 1208 — resolved recipient (always present when
+// proposed_action is present). entity_id/email are null when the
+// recipient was not in the viewer's org roster -- the UI should
+// surface a "recipient not in roster" warning in that case.
+export interface ProposedActionTarget {
+  display_name: string;
+  email: string | null;
+  entity_id: string | null;
+}
+
+// Phase 1208 — the structured action proposal the LLM drafted.
+export interface ProposedAction {
+  action_type: ProposedActionType;
+  target: ProposedActionTarget;
+  draft_text: string;
+  reason: string;
 }
 
 // Closed-vocab next-step union per EDX-3 slice 1.
