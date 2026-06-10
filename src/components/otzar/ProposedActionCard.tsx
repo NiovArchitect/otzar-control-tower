@@ -27,6 +27,7 @@
 import { useState } from "react";
 import type { ProposedAction } from "@/lib/types/foundation";
 import { api } from "@/lib/api";
+import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 
 interface Props {
   proposedAction: ProposedAction;
@@ -137,9 +138,36 @@ export function ProposedActionCard({
           />
           <span className="font-medium">Needs your confirmation</span>
         </div>
-        <span className="text-xs text-muted-foreground" data-testid="ctx-reason">
-          {proposedAction.reason}
-        </span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground" data-testid="ctx-reason">
+            {proposedAction.reason}
+          </span>
+          <AIBreakdownButton
+            triggerTestId="ctx-ai-breakdown"
+            breakdown={{
+              title: "Why Otzar drafted this",
+              points: [
+                {
+                  label: "Why this matters",
+                  body: `Otzar inferred from your request that you wanted to send a note to ${proposedAction.target.display_name}.`,
+                },
+                {
+                  label: "What happens if you approve",
+                  body: `Otzar submits this as a governed internal action. ${proposedAction.target.display_name} sees an unread note. Your organization's policy and audit trail record the send. No external message goes out.`,
+                },
+                {
+                  label: "What happens if you don't send",
+                  body: "The draft is discarded. Nothing is created, nothing is sent, and no audit row is emitted.",
+                },
+                {
+                  label: "Risk + permission",
+                  body: "Internal note — low risk. Otzar cannot send to anyone outside your org roster.",
+                },
+              ],
+              confidence: "HIGH",
+            }}
+          />
+        </div>
       </div>
 
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">

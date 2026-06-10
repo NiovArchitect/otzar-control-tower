@@ -36,6 +36,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
+import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import type { SafeNotificationView } from "@/lib/types/foundation";
 
 const DEFAULT_POLL_MS = 30_000;
@@ -222,17 +223,47 @@ export function NotificationBell({
                           {formatRelative(n.created_at)}
                         </p>
                       </div>
-                      {isUnread ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkRead(n.notification_id)}
-                          className="shrink-0 rounded p-1 hover:bg-accent"
-                          aria-label="Mark as read"
-                          data-testid="notification-mark-read"
-                        >
-                          <Check className="h-3 w-3" aria-hidden />
-                        </button>
-                      ) : null}
+                      <div className="flex shrink-0 items-center gap-1">
+                        <AIBreakdownButton
+                          triggerTestId="notification-ai-breakdown"
+                          breakdown={{
+                            title: "Why this is in your notifications",
+                            points: [
+                              {
+                                label: "What this is",
+                                body:
+                                  "An internal note from someone in your organization, surfaced by Otzar.",
+                              },
+                              {
+                                label: "Why it's here",
+                                body:
+                                  "The sender approved a governed Otzar action that named you as the recipient. Your organization's policy auto-approved or routed it through dual-control before it landed.",
+                              },
+                              {
+                                label: "What you can do",
+                                body:
+                                  "Mark as read. Replying inline is queued for a future slice; for now, reach out via your normal channels.",
+                              },
+                              {
+                                label: "What's protected",
+                                body:
+                                  "You see only notes your organization's policy allowed you to receive. The full audit trail records who sent, when, and why.",
+                              },
+                            ],
+                          }}
+                        />
+                        {isUnread ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleMarkRead(n.notification_id)}
+                            className="rounded p-1 hover:bg-accent"
+                            aria-label="Mark as read"
+                            data-testid="notification-mark-read"
+                          >
+                            <Check className="h-3 w-3" aria-hidden />
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </li>
                 );
