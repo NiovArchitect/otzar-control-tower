@@ -2570,6 +2570,16 @@ export interface ActionDetailResponse {
   action: SafeActionDetailView;
 }
 
+// Phase 1211 -- GET /api/v1/actions list (self-scoped by default).
+// Mirrors ListActionsView at the Foundation tier.
+export interface ActionListResponse {
+  ok: true;
+  items: SafeActionView[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
 // ════════════════════════════════════════════════════════════════
 // Phase EDX-4 — TwinAuthorityGrant types (PR Foundation #269/#270)
 // ════════════════════════════════════════════════════════════════
