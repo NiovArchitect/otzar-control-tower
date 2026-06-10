@@ -69,6 +69,8 @@ import type {
   // My Twin + Conversations metadata (read-only)
   MyTwinResponse,
   ContextHealthResponse,
+  NotificationListResponse,
+  NotificationReadResponse,
   ConversationListResponse,
   ConversationListParams,
   ConversationDetailResponse,
@@ -859,6 +861,37 @@ export class ApiClient {
           { method: "POST", body },
         ),
     },
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // notifications.* (Phase 1210 -- self-scoped inbox + mark-read).
+  // GET /api/v1/notifications + PUT /api/v1/notifications/:id/read.
+  // ──────────────────────────────────────────────────────────────
+  notifications = {
+    /** GET /api/v1/notifications -- caller's own inbox. Self-scoped
+     *  at Foundation tier. Optional unread_only and pagination. */
+    list: (
+      params: { unread_only?: boolean; page?: number; page_size?: number } = {},
+    ): Promise<ApiResult<NotificationListResponse>> => {
+      const query: Record<string, string> = {};
+      if (params.unread_only === true) query.unread_only = "true";
+      if (params.page !== undefined) query.page = String(params.page);
+      if (params.page_size !== undefined)
+        query.page_size = String(params.page_size);
+      return this.request<NotificationListResponse>(
+        `/notifications${qs(query)}`,
+      );
+    },
+
+    /** PUT /api/v1/notifications/:id/read -- mark one as read.
+     *  Idempotent at Foundation tier. */
+    markRead: (
+      notificationId: string,
+    ): Promise<ApiResult<NotificationReadResponse>> =>
+      this.request<NotificationReadResponse>(
+        `/notifications/${encodeURIComponent(notificationId)}/read`,
+        { method: "PUT" },
+      ),
   };
 
   // ──────────────────────────────────────────────────────────────

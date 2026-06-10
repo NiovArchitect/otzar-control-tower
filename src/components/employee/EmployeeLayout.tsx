@@ -15,6 +15,7 @@ import { Link, Outlet } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { EmployeeNav } from "@/components/employee/EmployeeNav";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
+import { NotificationBell } from "@/components/otzar/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
@@ -39,6 +40,7 @@ export function EmployeeLayout() {
         <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
           <span className="text-sm font-semibold sm:hidden">Otzar</span>
           <div className="ml-auto flex items-center gap-3 text-sm">
+            <NotificationBell />
             {isOrgAdmin(capabilities) && (
               <Button asChild variant="outline" size="sm">
                 <Link to="/">Open Control Tower</Link>

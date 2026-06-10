@@ -1095,6 +1095,37 @@ export interface ProposedAction {
   reason: string;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Phase 1210 -- GET /api/v1/notifications inbox + read mutations.
+// Self-scope only: every row has recipient_entity_id === caller.
+// Safe projection (no body_redacted by default).
+// ─────────────────────────────────────────────────────────────────
+
+export interface SafeNotificationView {
+  notification_id: string;
+  org_entity_id: string;
+  recipient_entity_id: string;
+  source_entity_id: string;
+  action_id: string | null;
+  notification_class: string;
+  body_summary: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+export interface NotificationListResponse {
+  ok: true;
+  page: number;
+  page_size: number;
+  total: number;
+  notifications: SafeNotificationView[];
+}
+
+export interface NotificationReadResponse {
+  ok: true;
+  notification: SafeNotificationView;
+}
+
 // Closed-vocab next-step union per EDX-3 slice 1.
 export type ConductNextStep =
   | "ANSWERED"
