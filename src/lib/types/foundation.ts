@@ -3496,3 +3496,85 @@ export interface CreateExternalFollowupResponse {
   action: SafeActionView;
   external_commitment: ExternalCommitmentSafeView;
 }
+
+// ──────────────────────────────────────────────────────────────
+// Phase 1222 — MeetingCapture types.
+// ──────────────────────────────────────────────────────────────
+
+export type MeetingCaptureProvider =
+  | "GOOGLE_MEET"
+  | "ZOOM"
+  | "MICROSOFT_TEAMS"
+  | "MANUAL_UPLOAD"
+  | "API_INGEST";
+
+export type MeetingCaptureStatus =
+  | "PENDING"
+  | "PROCESSED"
+  | "ATTACHED_TO_WORKSPACE"
+  | "BLOCKED_PARTICIPANT_CONSENT"
+  | "FAILED"
+  | "ARCHIVED";
+
+export type MeetingParticipantConsentState =
+  | "CONSENTED"
+  | "NOT_CONSENTED"
+  | "PENDING"
+  | "EXTERNAL_TRACKED";
+
+export interface MeetingCaptureSafeView {
+  meeting_capture_id: string;
+  provider: MeetingCaptureProvider;
+  provider_meeting_id: string | null;
+  title: string;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  recorded_start: string | null;
+  recorded_end: string | null;
+  participant_count: number;
+  status: MeetingCaptureStatus;
+  workspace_id: string | null;
+  source_conversation_id: string | null;
+  summary: string | null;
+  has_transcript: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ParticipantConsentView {
+  meeting_participant_consent_id: string;
+  display_name: string;
+  email: string | null;
+  participant_entity_id: string | null;
+  external_collaborator_id: string | null;
+  consent_state: MeetingParticipantConsentState;
+  consent_source: string | null;
+  consent_recorded_at: string | null;
+}
+
+export interface MeetingCaptureReceiveResponse {
+  ok: true;
+  meeting_capture: MeetingCaptureSafeView;
+  participants: ParticipantConsentView[];
+}
+
+export interface MeetingCaptureListResponse {
+  ok: true;
+  meeting_captures: MeetingCaptureSafeView[];
+}
+
+export interface MeetingCaptureDetailResponse {
+  ok: true;
+  meeting_capture: MeetingCaptureSafeView;
+  participants: ParticipantConsentView[];
+}
+
+export interface MeetingCaptureAttachResponse {
+  ok: true;
+  meeting_capture: MeetingCaptureSafeView;
+}
+
+export interface MeetingParticipantConsentUpdateResponse {
+  ok: true;
+  participant: ParticipantConsentView;
+}

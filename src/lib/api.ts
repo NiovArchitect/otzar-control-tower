@@ -178,6 +178,14 @@ import type {
   InviteExternalCollaboratorResponse,
   ListExternalCommitmentsResponse,
   CreateExternalFollowupResponse,
+  // Phase 1222 — MeetingCapture
+  MeetingCaptureProvider,
+  MeetingParticipantConsentState,
+  MeetingCaptureReceiveResponse,
+  MeetingCaptureListResponse,
+  MeetingCaptureDetailResponse,
+  MeetingCaptureAttachResponse,
+  MeetingParticipantConsentUpdateResponse,
 } from "./types/foundation";
 import type {
   ListConnectorBindingsSuccess,
@@ -1906,6 +1914,81 @@ export class ApiClient {
       this.request<CreateExternalFollowupResponse>(
         `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-commitments/${encodeURIComponent(externalCommitmentId)}/create-follow-up`,
         { method: "POST", body: input },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 1222 — meetingCaptures.*
+  // Provider-agnostic Google Meet / Zoom / Teams / manual / API
+  // ingest with per-participant consent enforcement.
+  // ──────────────────────────────────────────────────────────────
+  meetingCaptures = {
+    receive: (input: {
+      provider?: MeetingCaptureProvider;
+      provider_meeting_id?: string;
+      title: string;
+      scheduled_start?: string;
+      scheduled_end?: string;
+      recorded_start?: string;
+      recorded_end?: string;
+      summary?: string;
+      transcript?: string;
+      participants: Array<{
+        display_name: string;
+        email?: string;
+        participant_entity_id?: string;
+        external_collaborator_id?: string;
+        consent_state?: MeetingParticipantConsentState;
+        consent_source?: string;
+      }>;
+      workspace_id?: string;
+    }): Promise<ApiResult<MeetingCaptureReceiveResponse>> =>
+      this.request<MeetingCaptureReceiveResponse>(
+        "/otzar/meeting-captures",
+        { method: "POST", body: input },
+      ),
+
+    list: (
+      params: { workspace_id?: string } = {},
+    ): Promise<ApiResult<MeetingCaptureListResponse>> => {
+      const query: Record<string, string> = {};
+      if (params.workspace_id !== undefined)
+        query.workspace_id = params.workspace_id;
+      return this.request<MeetingCaptureListResponse>(
+        `/otzar/meeting-captures${qs(query)}`,
+      );
+    },
+
+    detail: (
+      meetingCaptureId: string,
+    ): Promise<ApiResult<MeetingCaptureDetailResponse>> =>
+      this.request<MeetingCaptureDetailResponse>(
+        `/otzar/meeting-captures/${encodeURIComponent(meetingCaptureId)}`,
+      ),
+
+    attach: (
+      meetingCaptureId: string,
+      input: {
+        workspace_id: string;
+        decisions?: string[];
+        commitments?: Array<{ text: string; source_excerpt: string }>;
+      },
+    ): Promise<ApiResult<MeetingCaptureAttachResponse>> =>
+      this.request<MeetingCaptureAttachResponse>(
+        `/otzar/meeting-captures/${encodeURIComponent(meetingCaptureId)}/attach`,
+        { method: "POST", body: input },
+      ),
+
+    updateParticipantConsent: (
+      participantId: string,
+      input: {
+        consent_state: MeetingParticipantConsentState;
+        consent_source?: string;
+      },
+    ): Promise<ApiResult<MeetingParticipantConsentUpdateResponse>> =>
+      this.request<MeetingParticipantConsentUpdateResponse>(
+        `/otzar/meeting-captures/participants/${encodeURIComponent(participantId)}/consent`,
+        { method: "PUT", body: input },
       ),
   };
 }
