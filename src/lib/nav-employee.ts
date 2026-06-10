@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   Eye,
   FolderKanban,
+  Headphones,
   KeyRound,
   ListChecks,
   Mic,
@@ -65,6 +66,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: ListChecks,
     description:
       "Decisions Otzar is making on your behalf — pending, approved, completed, blocked.",
+    group: "primary",
+  },
+  {
+    label: "Comms",
+    to: "/app/comms",
+    icon: Headphones,
+    description:
+      "Otzar captures meetings and conversations, then turns them into follow-ups you can approve.",
     group: "primary",
   },
   {
