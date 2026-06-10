@@ -33,6 +33,9 @@ function setAuth(): void {
   });
 }
 
+// Generic factory -- David is only the original regression fixture;
+// the card MUST work for any valid roster entry. Each helper below
+// proves the card renders a specific person's identity, not "David".
 function pa(overrides: Partial<ProposedAction> = {}): ProposedAction {
   return {
     action_type: "SEND_INTERNAL_NOTIFICATION",
@@ -44,6 +47,41 @@ function pa(overrides: Partial<ProposedAction> = {}): ProposedAction {
     draft_text: "Hey David — heads up.",
     reason: "Otzar drafted this from your request.",
     ...overrides,
+  };
+}
+
+function annieEnvelope(): ProposedAction {
+  return {
+    action_type: "SEND_INTERNAL_NOTIFICATION",
+    target: { display_name: "Annie", email: "annie@niovlabs.com", entity_id: "id-annie" },
+    draft_text: "Hey Annie, bandwidth for a compliance review this week?",
+    reason: "Otzar drafted this from your request.",
+  };
+}
+
+function samikshaEnvelope(): ProposedAction {
+  return {
+    action_type: "SEND_INTERNAL_NOTIFICATION",
+    target: {
+      display_name: "Samiksha Sharma",
+      email: "samiksha@niovlabs.com",
+      entity_id: "id-samiksha",
+    },
+    draft_text: "Hi Samiksha, please review the AI/NLP trial notes when you have a moment.",
+    reason: "Otzar drafted this from your request.",
+  };
+}
+
+function visheshEnvelope(): ProposedAction {
+  return {
+    action_type: "SEND_INTERNAL_NOTIFICATION",
+    target: {
+      display_name: "Vishesh Sharma",
+      email: "vishesh@niovlabs.com",
+      entity_id: "id-vishesh",
+    },
+    draft_text: "Hey Vishesh, can you check the UI flow?",
+    reason: "Otzar drafted this from your request.",
   };
 }
 
@@ -214,9 +252,11 @@ describe("ProposedActionCard — error state", () => {
     render(<ProposedActionCard proposedAction={pa()} />);
     await user.click(screen.getByTestId("ctx-send-button"));
     await waitFor(() => {
-      expect(screen.getByTestId("ctx-error")).toHaveTextContent(
-        "POLICY_BLOCKED",
-      );
+      const err = screen.getByTestId("ctx-error");
+      // The friendly copy is what the user sees; the raw code is on
+      // data-error-code for debug / telemetry.
+      expect(err.textContent).toContain("policy blocks");
+      expect(err.getAttribute("data-error-code")).toBe("POLICY_BLOCKED");
     });
     expect(screen.queryByTestId("proposed-action-card-sent")).toBeNull();
   });
@@ -272,6 +312,154 @@ describe("ProposedActionCard — edit flow", () => {
       payload_redacted: { body_summary: string };
     } | null;
     expect(body?.payload_redacted.body_summary).toBe("Softer ping, David.");
+  });
+});
+
+describe("ProposedActionCard — roster-aware generalization (NOT David-hardcoded)", () => {
+  // Per [GENERALIZATION GUARDRAIL — DO NOT OVERFIT TO DAVID]:
+  // the card must render whichever recipient Foundation surfaced;
+  // it must not encode any David-specific path.
+
+  it("renders Annie's identity verbatim when the envelope names Annie", () => {
+    render(<ProposedActionCard proposedAction={annieEnvelope()} />);
+    expect(screen.getByTestId("ctx-recipient")).toHaveTextContent("Annie");
+    expect(screen.getByTestId("ctx-recipient")).toHaveTextContent(
+      "annie@niovlabs.com",
+    );
+    expect(screen.getByTestId("ctx-draft")).toHaveTextContent(
+      "compliance review",
+    );
+    // No David leaks.
+    expect(screen.getByTestId("proposed-action-card").outerHTML).not.toMatch(
+      /David/,
+    );
+  });
+
+  it("renders Samiksha's identity verbatim when the envelope names Samiksha", () => {
+    render(<ProposedActionCard proposedAction={samikshaEnvelope()} />);
+    expect(screen.getByTestId("ctx-recipient")).toHaveTextContent(
+      "Samiksha Sharma",
+    );
+    expect(screen.getByTestId("ctx-recipient")).toHaveTextContent(
+      "samiksha@niovlabs.com",
+    );
+    expect(screen.getByTestId("ctx-draft")).toHaveTextContent("AI/NLP");
+    expect(screen.getByTestId("proposed-action-card").outerHTML).not.toMatch(
+      /David|Annie/,
+    );
+  });
+
+  it("renders Vishesh's identity verbatim when the envelope names Vishesh", () => {
+    render(<ProposedActionCard proposedAction={visheshEnvelope()} />);
+    expect(screen.getByTestId("ctx-recipient")).toHaveTextContent(
+      "Vishesh Sharma",
+    );
+    expect(screen.getByTestId("ctx-recipient")).toHaveTextContent(
+      "vishesh@niovlabs.com",
+    );
+    expect(screen.getByTestId("ctx-draft")).toHaveTextContent("UI flow");
+  });
+
+  it("Send POST body carries the envelope's target.entity_id (never a hardcoded value)", async () => {
+    let captured: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/actions`, async ({ request }) => {
+        captured = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            ok: true,
+            action: {
+              action_id: "act-generic",
+              source_entity_id: "u",
+              org_entity_id: "o",
+              target_entity_id: "id-annie",
+              action_type: "SEND_INTERNAL_NOTIFICATION",
+              risk_tier: "LOW",
+              status: "APPROVED",
+              payload_summary: "x",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    render(<ProposedActionCard proposedAction={annieEnvelope()} />);
+    await user.click(screen.getByTestId("ctx-send-button"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("proposed-action-card-sent"),
+      ).toBeInTheDocument(),
+    );
+    const body = captured as unknown as {
+      payload_redacted: { recipient_entity_id: string; body_summary: string };
+    };
+    expect(body.payload_redacted.recipient_entity_id).toBe("id-annie");
+    expect(body.payload_redacted.body_summary).toContain("compliance review");
+  });
+});
+
+describe("ProposedActionCard — friendly error copy (Warmwind language pass)", () => {
+  it("translates DUAL_CONTROL_NO_APPROVER_AVAILABLE into human copy", async () => {
+    server.use(
+      http.post(`${API_BASE}/actions`, () =>
+        HttpResponse.json(
+          { ok: false, code: "DUAL_CONTROL_NO_APPROVER_AVAILABLE" },
+          { status: 503 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<ProposedActionCard proposedAction={pa()} />);
+    await user.click(screen.getByTestId("ctx-send-button"));
+    await waitFor(() => {
+      const err = screen.getByTestId("ctx-error");
+      expect(err.textContent).toContain(
+        "your organization has not configured who can approve",
+      );
+      // The raw code is still attached for debug, but not the
+      // primary copy.
+      expect(err.getAttribute("data-error-code")).toBe(
+        "DUAL_CONTROL_NO_APPROVER_AVAILABLE",
+      );
+    });
+  });
+
+  it("translates POLICY_BLOCKED into human copy", async () => {
+    server.use(
+      http.post(`${API_BASE}/actions`, () =>
+        HttpResponse.json({ ok: false, code: "POLICY_BLOCKED" }, { status: 403 }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<ProposedActionCard proposedAction={pa()} />);
+    await user.click(screen.getByTestId("ctx-send-button"));
+    await waitFor(() =>
+      expect(screen.getByTestId("ctx-error").textContent).toContain(
+        "policy blocks",
+      ),
+    );
+  });
+
+  it("falls through to a generic 'Otzar could not send that' for unknown codes", async () => {
+    server.use(
+      http.post(`${API_BASE}/actions`, () =>
+        HttpResponse.json(
+          { ok: false, code: "SOMETHING_NEW" },
+          { status: 500 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<ProposedActionCard proposedAction={pa()} />);
+    await user.click(screen.getByTestId("ctx-send-button"));
+    await waitFor(() => {
+      const err = screen.getByTestId("ctx-error");
+      expect(err.textContent).toContain("Otzar could not send that");
+      expect(err.textContent).toContain("SOMETHING_NEW");
+    });
   });
 });
 

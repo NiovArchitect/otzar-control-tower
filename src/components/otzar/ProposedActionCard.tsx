@@ -222,10 +222,40 @@ export function ProposedActionCard({
           className="mt-2 rounded border border-rose-400/40 bg-rose-500/5 p-2 text-xs text-rose-700 dark:text-rose-400"
           role="alert"
           data-testid="ctx-error"
+          data-error-code={state.code}
         >
-          Send failed: {state.code}
+          {friendlyErrorCopy(state.code)}
         </p>
       ) : null}
     </div>
   );
+}
+
+/**
+ * Translate Foundation's closed-vocab failure codes into human copy
+ * the operator can act on. Per the Warmwind-OS / Warm-AI-Work-OS
+ * directive: no raw codes, no developer jargon in the primary
+ * employee surface. Unknown codes fall through to a generic
+ * "Otzar could not send that..." with the code in a small caption
+ * for debug.
+ */
+function friendlyErrorCopy(code: string): string {
+  switch (code) {
+    case "DUAL_CONTROL_NO_APPROVER_AVAILABLE":
+      return "Otzar created the action, but your organization has not configured who can approve this type of internal note yet. Ask an admin to set up an approver or enable auto-approve for low-risk internal notes.";
+    case "POLICY_BLOCKED":
+    case "POLICY_FORBIDDEN":
+      return "Otzar cannot send this — your organization's policy blocks this action.";
+    case "SESSION_INVALID":
+    case "SESSION_EXPIRED":
+    case "SESSION_REVOKED":
+      return "Your session is no longer valid. Please sign in again.";
+    case "INVALID_FIELD":
+    case "INVALID_REQUEST":
+      return "Otzar could not send that — the request shape is invalid. This is a wiring issue; please report it.";
+    case "RECIPIENT_NOT_IN_ROSTER":
+      return "Otzar can only send to people in your org roster. The recipient was not recognized.";
+    default:
+      return `Otzar could not send that. (Reference: ${code})`;
+  }
 }
