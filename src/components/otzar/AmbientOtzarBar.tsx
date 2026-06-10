@@ -51,10 +51,13 @@ import { Badge } from "@/components/ui/badge";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
+import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import {
-  useMicrophonePermission,
-  type MicrophonePermissionState,
-} from "@/hooks/useMicrophonePermission";
+  detectShellMode,
+  llmErrorCopy,
+  micCopyFor,
+  speechRecognitionErrorCopy,
+} from "@/lib/voice/diagnostics";
 
 /**
  * The ambient Otzar dock. Mount once per authenticated employee
@@ -63,43 +66,30 @@ import {
 const TEST_VOICE_PHRASE =
   "Otzar voice is active. I can speak responses back to you.";
 
-function permissionLabel(state: MicrophonePermissionState): {
-  label: string;
-  icon: typeof ShieldCheck;
-  className: string;
-} {
-  switch (state) {
-    case "granted":
-      return {
-        label: "Microphone permission: granted",
-        icon: ShieldCheck,
-        className: "text-emerald-600",
-      };
-    case "denied":
-      return {
-        label: "Microphone permission: denied",
-        icon: ShieldX,
-        className: "text-destructive",
-      };
-    case "prompt":
-      return {
-        label: "Microphone permission: not yet granted",
-        icon: ShieldQuestion,
-        className: "text-amber-600",
-      };
-    case "unsupported":
-      return {
-        label: "Microphone permission: unsupported in this shell",
-        icon: ShieldX,
-        className: "text-muted-foreground",
-      };
-    case "unknown":
+function toneClass(tone: "ok" | "warn" | "error" | "muted"): string {
+  switch (tone) {
+    case "ok":
+      return "text-emerald-600";
+    case "warn":
+      return "text-amber-600";
+    case "error":
+      return "text-destructive";
+    case "muted":
     default:
-      return {
-        label: "Microphone permission: unknown",
-        icon: ShieldQuestion,
-        className: "text-muted-foreground",
-      };
+      return "text-muted-foreground";
+  }
+}
+
+function toneIcon(tone: "ok" | "warn" | "error" | "muted"): typeof ShieldCheck {
+  switch (tone) {
+    case "ok":
+      return ShieldCheck;
+    case "error":
+      return ShieldX;
+    case "warn":
+    case "muted":
+    default:
+      return ShieldQuestion;
   }
 }
 
@@ -138,9 +128,14 @@ export function AmbientOtzarBar(): JSX.Element {
       return;
     }
     // Explicitly ask for mic permission BEFORE we start the speech-
-    // recognition engine. Without this, some browsers silently
-    // fail when permission is "prompt" or "denied".
-    if (micPerm.state !== "granted" && micPerm.state !== "unsupported") {
+    // recognition engine when the Permissions API actually supports
+    // prompting. When the state is "unsupported" we let the
+    // recognition.start() call surface the OS prompt directly.
+    if (
+      micPerm.state !== "granted" &&
+      micPerm.state !== "unsupported" &&
+      micPerm.state !== "unknown"
+    ) {
       const next = await micPerm.request();
       if (next !== "granted") return;
     }
@@ -292,18 +287,28 @@ export function AmbientOtzarBar(): JSX.Element {
       {(
         <div className="px-3 pb-3 space-y-2">
           {/* Permission state line — always visible when expanded so
-              the operator knows whether the mic will actually work. */}
+              the operator knows whether the mic will actually work.
+              Powered by micCopyFor() which is honest about
+              tauri_webview / unsupported / denied paths. */}
           {(() => {
-            const pl = permissionLabel(micPerm.state);
-            const Icon = pl.icon;
+            const shell = detectShellMode();
+            const copy = micCopyFor(shell, micPerm.state, recognition.supported);
+            const Icon = toneIcon(copy.tone);
             return (
               <div
-                className={`flex items-center gap-2 text-xs ${pl.className}`}
+                className={`flex items-start gap-2 text-xs ${toneClass(copy.tone)}`}
                 data-testid="ambient-permission-state"
               >
-                <Icon className="h-3 w-3" />
-                <span>{pl.label}</span>
-                {micPerm.state === "prompt" ? (
+                <Icon className="h-3 w-3 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium">{copy.headline}</div>
+                  {copy.detail.length > 0 ? (
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {copy.detail}
+                    </div>
+                  ) : null}
+                </div>
+                {copy.showRequestButton ? (
                   <Button
                     type="button"
                     size="sm"
@@ -340,7 +345,11 @@ export function AmbientOtzarBar(): JSX.Element {
                     : "Speak to Otzar"
                   : "Voice input unavailable in this shell. Type instead."
               }
-              disabled={!recognition.supported || micPerm.state === "denied"}
+              disabled={
+                !recognition.supported ||
+                micPerm.state === "denied" ||
+                detectShellMode() === "tauri_webview"
+              }
               className="h-12 w-12 rounded-full p-0 shrink-0"
             >
               {recognition.supported ? (
@@ -392,11 +401,13 @@ export function AmbientOtzarBar(): JSX.Element {
           ) : null}
           {recognition.error !== null ? (
             <p className="text-xs text-destructive">
-              Voice input error: {recognition.error}
+              {speechRecognitionErrorCopy(recognition.error)}
             </p>
           ) : null}
           {intent.error !== null ? (
-            <p className="text-xs text-destructive">Otzar error: {intent.error}</p>
+            <p className="text-xs text-destructive">
+              {llmErrorCopy(intent.error)}
+            </p>
           ) : null}
 
           {response !== null ? (
