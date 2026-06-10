@@ -157,6 +157,27 @@ import type {
   // Foundation per ComplianceService)
   ListComplianceFrameworksSuccess,
   GetComplianceStateSuccess,
+  // Phase 1221 — Collaboration Workspace + External Collaborator
+  CollaborationWorkspaceCreateResponse,
+  CollaborationWorkspaceListResponse,
+  CollaborationWorkspaceDetailResponse,
+  CollaborationMembershipResponse,
+  CollaborationWorkspaceActionsResponse,
+  ImportCommsOutputResponse,
+  ConfirmCommitmentResponse,
+  WorkspaceVisibility,
+  WorkspaceSourceType,
+  MembershipType,
+  MembershipAccessLevel,
+  ExternalRelationshipType,
+  ExternalRiskLevel,
+  WorkspaceExternalAccessLevel,
+  TrackExternalCollaboratorResponse,
+  ListExternalCollaboratorsResponse,
+  UpdateExternalContextResponse,
+  InviteExternalCollaboratorResponse,
+  ListExternalCommitmentsResponse,
+  CreateExternalFollowupResponse,
 } from "./types/foundation";
 import type {
   ListConnectorBindingsSuccess,
@@ -1716,6 +1737,176 @@ export class ApiClient {
         body: input,
         retries: 0,
       }),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 1221 — collaborationWorkspaces.* (+ external).
+  // Roster-aware persistent workspace surface; never leaks raw
+  // transcripts or memory internals; never sends external
+  // notifications without explicit policy + approval.
+  // ──────────────────────────────────────────────────────────────
+  collaborationWorkspaces = {
+    list: (): Promise<ApiResult<CollaborationWorkspaceListResponse>> =>
+      this.request<CollaborationWorkspaceListResponse>(
+        "/otzar/collaboration/workspaces",
+      ),
+
+    create: (input: {
+      title: string;
+      description?: string;
+      visibility?: WorkspaceVisibility;
+      source_type?: WorkspaceSourceType;
+      source_conversation_id?: string;
+      initial_members?: Array<{
+        member_entity_id: string;
+        role_label: string;
+        responsibility_summary?: string;
+        member_type?: MembershipType;
+        access_level?: MembershipAccessLevel;
+      }>;
+    }): Promise<ApiResult<CollaborationWorkspaceCreateResponse>> =>
+      this.request<CollaborationWorkspaceCreateResponse>(
+        "/otzar/collaboration/workspaces",
+        { method: "POST", body: input },
+      ),
+
+    detail: (
+      workspaceId: string,
+    ): Promise<ApiResult<CollaborationWorkspaceDetailResponse>> =>
+      this.request<CollaborationWorkspaceDetailResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}`,
+      ),
+
+    addMember: (
+      workspaceId: string,
+      input: {
+        member_entity_id: string;
+        role_label: string;
+        responsibility_summary?: string;
+        member_type?: MembershipType;
+        access_level?: MembershipAccessLevel;
+      },
+    ): Promise<ApiResult<CollaborationMembershipResponse>> =>
+      this.request<CollaborationMembershipResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/members`,
+        { method: "POST", body: input },
+      ),
+
+    importCommsOutput: (
+      workspaceId: string,
+      input: {
+        summary?: string;
+        decisions: string[];
+        commitments: Array<{ text: string; source_excerpt: string }>;
+        source_conversation_id?: string;
+      },
+    ): Promise<ApiResult<ImportCommsOutputResponse>> =>
+      this.request<ImportCommsOutputResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/import-comms-output`,
+        { method: "POST", body: input },
+      ),
+
+    confirmCommitment: (
+      workspaceId: string,
+      commitmentId: string,
+      input: { draft_text?: string } = {},
+    ): Promise<ApiResult<ConfirmCommitmentResponse>> =>
+      this.request<ConfirmCommitmentResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/commitments/${encodeURIComponent(commitmentId)}/confirm`,
+        { method: "POST", body: input },
+      ),
+
+    listActions: (
+      workspaceId: string,
+    ): Promise<ApiResult<CollaborationWorkspaceActionsResponse>> =>
+      this.request<CollaborationWorkspaceActionsResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/actions`,
+      ),
+
+    // External Collaborator addendum.
+    trackExternal: (
+      workspaceId: string,
+      input: {
+        display_name: string;
+        email?: string;
+        company_name?: string;
+        relationship_type?: ExternalRelationshipType;
+        internal_owner_entity_id?: string;
+        purpose_summary?: string;
+        goals_summary?: string;
+        needs_from_us?: string;
+        we_need_from_them?: string;
+        risk_level?: ExternalRiskLevel;
+        access_level?: WorkspaceExternalAccessLevel;
+        project_role?: string;
+      },
+    ): Promise<ApiResult<TrackExternalCollaboratorResponse>> =>
+      this.request<TrackExternalCollaboratorResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-collaborators`,
+        { method: "POST", body: input },
+      ),
+
+    listExternal: (
+      workspaceId: string,
+    ): Promise<ApiResult<ListExternalCollaboratorsResponse>> =>
+      this.request<ListExternalCollaboratorsResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-collaborators`,
+      ),
+
+    updateExternalContext: (
+      workspaceId: string,
+      externalId: string,
+      input: {
+        purpose_summary?: string;
+        goals_summary?: string;
+        needs_from_us?: string;
+        we_need_from_them?: string;
+        internal_owner_entity_id?: string;
+        risk_level?: ExternalRiskLevel;
+        project_role?: string;
+        allowed_context_policy?: string;
+      },
+    ): Promise<ApiResult<UpdateExternalContextResponse>> =>
+      this.request<UpdateExternalContextResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-collaborators/${encodeURIComponent(externalId)}/context`,
+        { method: "PUT", body: input },
+      ),
+
+    inviteExternal: (
+      workspaceId: string,
+      externalId: string,
+      input: { access_level?: WorkspaceExternalAccessLevel } = {},
+    ): Promise<ApiResult<InviteExternalCollaboratorResponse>> =>
+      this.request<InviteExternalCollaboratorResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-collaborators/${encodeURIComponent(externalId)}/invite`,
+        { method: "POST", body: input },
+      ),
+
+    revokeExternal: (
+      workspaceId: string,
+      externalId: string,
+    ): Promise<ApiResult<{ ok: true }>> =>
+      this.request<{ ok: true }>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-collaborators/${encodeURIComponent(externalId)}/revoke`,
+        { method: "POST", body: {} },
+      ),
+
+    listExternalCommitments: (
+      workspaceId: string,
+    ): Promise<ApiResult<ListExternalCommitmentsResponse>> =>
+      this.request<ListExternalCommitmentsResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-commitments`,
+      ),
+
+    createExternalFollowup: (
+      workspaceId: string,
+      externalCommitmentId: string,
+      input: { internal_owner_entity_id?: string; draft_text?: string } = {},
+    ): Promise<ApiResult<CreateExternalFollowupResponse>> =>
+      this.request<CreateExternalFollowupResponse>(
+        `/otzar/collaboration/workspaces/${encodeURIComponent(workspaceId)}/external-commitments/${encodeURIComponent(externalCommitmentId)}/create-follow-up`,
+        { method: "POST", body: input },
+      ),
   };
 }
 

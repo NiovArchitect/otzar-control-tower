@@ -33,6 +33,8 @@ import { Conversations } from "@/pages/app/Conversations";
 import { AuthorityGrants } from "@/pages/app/AuthorityGrants";
 import { Preferences } from "@/pages/app/Preferences";
 import { Collaboration } from "@/pages/app/Collaboration";
+import { CollaborationWorkspaces } from "@/pages/app/CollaborationWorkspaces";
+import { CollaborationWorkspaceDetail } from "@/pages/app/CollaborationWorkspaceDetail";
 import { WorkProjects } from "@/pages/app/WorkProjects";
 import { VoiceReady } from "@/pages/app/VoiceReady";
 import { Voice } from "@/pages/app/Voice";
@@ -102,6 +104,14 @@ export function App() {
               <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="preferences" element={<Preferences />} />
               <Route path="collaboration" element={<Collaboration />} />
+              <Route
+                path="collaboration-workspaces"
+                element={<CollaborationWorkspaces />}
+              />
+              <Route
+                path="collaboration-workspaces/:workspace_id"
+                element={<CollaborationWorkspaceDetail />}
+              />
               <Route path="work-projects" element={<WorkProjects />} />
               <Route path="voice-ready" element={<VoiceReady />} />
               <Route path="voice" element={<Voice />} />

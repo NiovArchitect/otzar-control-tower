@@ -3206,3 +3206,293 @@ export interface McpToolPolicyResponse {
   ok: true;
   policy: McpToolPolicyView;
 }
+
+// ──────────────────────────────────────────────────────────────
+// Phase 1221 — Collaboration Workspace types (+ External
+// Collaborator addendum). All views are SAFE projections from
+// the Foundation `*ForCaller` services; NEVER contain raw
+// transcripts / payload_summary internals / wallet_id /
+// capsule_id / embeddings / vectors / Bearer tokens.
+// ──────────────────────────────────────────────────────────────
+
+export type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
+export type WorkspaceVisibility = "INTERNAL_ONLY" | "EXTERNAL_ALLOWED";
+export type WorkspaceSourceType =
+  | "MANUAL"
+  | "COMMS_CAPTURE"
+  | "PROJECT"
+  | "IMPORTED";
+export type MembershipType = "INTERNAL" | "EXTERNAL";
+export type MembershipAccessLevel =
+  | "VIEW"
+  | "COMMENT"
+  | "CONTRIBUTE"
+  | "APPROVE";
+export type MembershipStatus = "ACTIVE" | "PENDING" | "REVOKED";
+export type CommitmentResolutionStatus =
+  | "RESOLVED"
+  | "UNRESOLVED"
+  | "AMBIGUOUS"
+  | "RESTRICTED";
+export type CommitmentConfidence = "HIGH" | "MEDIUM" | "LOW";
+export type CommitmentStatus =
+  | "PROPOSED"
+  | "CONFIRMED"
+  | "ACTION_CREATED"
+  | "COMPLETED"
+  | "BLOCKED";
+export type SharedContextType =
+  | "COMMS_SUMMARY"
+  | "DECISION"
+  | "COMMITMENT"
+  | "ACTION"
+  | "MEMORY_CANDIDATE"
+  | "PROJECT";
+export type SharedContextSensitivity =
+  | "PUBLIC"
+  | "INTERNAL"
+  | "CONFIDENTIAL"
+  | "RESTRICTED";
+
+export interface CollaborationWorkspaceSafeView {
+  workspace_id: string;
+  title: string;
+  description: string | null;
+  status: WorkspaceStatus;
+  visibility: WorkspaceVisibility;
+  source_type: WorkspaceSourceType;
+  source_conversation_id: string | null;
+  created_by_entity_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollaborationWorkspaceListItem
+  extends CollaborationWorkspaceSafeView {
+  counts: {
+    members: number;
+    decisions: number;
+    commitments: number;
+    open_actions: number;
+    completed_actions: number;
+  };
+}
+
+export interface CollaborationMembershipView {
+  membership_id: string;
+  workspace_id: string;
+  member_entity_id: string;
+  member_display_name: string;
+  member_email: string | null;
+  role_label: string;
+  responsibility_summary: string | null;
+  member_type: MembershipType;
+  access_level: MembershipAccessLevel;
+  status: MembershipStatus;
+}
+
+export interface CollaborationDecisionView {
+  decision_id: string;
+  workspace_id: string;
+  text: string;
+  source_conversation_id: string | null;
+  source_excerpt: string | null;
+  created_at: string;
+}
+
+export interface CollaborationCommitmentView {
+  commitment_id: string;
+  workspace_id: string;
+  owner_entity_id: string | null;
+  owner_display_name: string;
+  text: string;
+  due_date: string | null;
+  source_conversation_id: string | null;
+  source_excerpt: string | null;
+  assignment_reason: string;
+  confidence: CommitmentConfidence;
+  resolution_status: CommitmentResolutionStatus;
+  related_action_id: string | null;
+  status: CommitmentStatus;
+}
+
+export interface CollaborationSharedContextView {
+  shared_context_id: string;
+  workspace_id: string;
+  context_type: SharedContextType;
+  context_ref_id: string | null;
+  title: string;
+  summary: string;
+  sensitivity: SharedContextSensitivity;
+  created_at: string;
+}
+
+export interface CollaborationWorkspaceDetailResponse {
+  ok: true;
+  workspace: CollaborationWorkspaceSafeView;
+  members: CollaborationMembershipView[];
+  decisions: CollaborationDecisionView[];
+  commitments: CollaborationCommitmentView[];
+  linked_actions: SafeActionView[];
+  shared_context: CollaborationSharedContextView[];
+  permissions: {
+    can_view: boolean;
+    can_contribute: boolean;
+    can_approve: boolean;
+    is_creator: boolean;
+  };
+  audit_summary: {
+    created_at: string;
+    member_count: number;
+    decision_count: number;
+    commitment_count: number;
+    action_count: number;
+  };
+}
+
+export interface CollaborationWorkspaceListResponse {
+  ok: true;
+  workspaces: CollaborationWorkspaceListItem[];
+}
+
+export interface CollaborationWorkspaceCreateResponse {
+  ok: true;
+  workspace: CollaborationWorkspaceSafeView;
+  members: CollaborationMembershipView[];
+}
+
+export interface CollaborationMembershipResponse {
+  ok: true;
+  membership: CollaborationMembershipView;
+}
+
+export interface ImportCommsOutputResponse {
+  ok: true;
+  decisions: CollaborationDecisionView[];
+  commitments: CollaborationCommitmentView[];
+  shared_context: CollaborationSharedContextView | null;
+}
+
+export interface ConfirmCommitmentResponse {
+  ok: true;
+  commitment: CollaborationCommitmentView;
+  action: SafeActionView;
+}
+
+export interface CollaborationWorkspaceActionsResponse {
+  ok: true;
+  actions: SafeActionView[];
+}
+
+// External Collaborator types (addendum).
+
+export type ExternalRelationshipType =
+  | "CLIENT"
+  | "VENDOR"
+  | "CONTRACTOR"
+  | "PARTNER"
+  | "INVESTOR"
+  | "ADVISOR"
+  | "AGENCY"
+  | "REGULATOR"
+  | "PROSPECT"
+  | "CANDIDATE"
+  | "OTHER";
+
+export type ExternalCollaboratorStatus =
+  | "TRACKED_EXTERNAL"
+  | "INVITED_EXTERNAL"
+  | "ACTIVE_EXTERNAL"
+  | "REVOKED_EXTERNAL"
+  | "BLOCKED_EXTERNAL";
+
+export type WorkspaceExternalAccessLevel =
+  | "NONE"
+  | "VIEW_SHARED"
+  | "COMMENT_SHARED"
+  | "CONTRIBUTE_SHARED"
+  | "APPROVE_SHARED";
+
+export type ExternalCommitmentDirection =
+  | "INTERNAL_OWES_EXTERNAL"
+  | "EXTERNAL_OWES_INTERNAL";
+
+export type ExternalRiskLevel = "LOW" | "MEDIUM" | "HIGH";
+
+export interface ExternalCollaboratorSafeView {
+  external_collaborator_id: string;
+  display_name: string;
+  email: string | null;
+  company_name: string | null;
+  relationship_type: ExternalRelationshipType;
+  status: ExternalCollaboratorStatus;
+  internal_owner_entity_id: string | null;
+  purpose_summary: string | null;
+  goals_summary: string | null;
+  needs_from_us: string | null;
+  we_need_from_them: string | null;
+  risk_level: ExternalRiskLevel;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceExternalMembershipView {
+  workspace_external_membership_id: string;
+  workspace_id: string;
+  external_collaborator: ExternalCollaboratorSafeView;
+  access_level: WorkspaceExternalAccessLevel;
+  status: ExternalCollaboratorStatus;
+  project_role: string | null;
+  internal_owner_entity_id: string | null;
+  invited_at: string | null;
+  approved_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface ExternalCommitmentSafeView {
+  external_commitment_id: string;
+  workspace_id: string;
+  external_collaborator_id: string;
+  external_collaborator_display_name: string;
+  external_collaborator_company_name: string | null;
+  direction: ExternalCommitmentDirection;
+  text: string;
+  due_date: string | null;
+  source_excerpt: string | null;
+  internal_owner_entity_id: string | null;
+  related_action_id: string | null;
+  status: CommitmentStatus;
+  confidence: CommitmentConfidence;
+}
+
+export interface TrackExternalCollaboratorResponse {
+  ok: true;
+  external_collaborator: ExternalCollaboratorSafeView;
+  workspace_membership: WorkspaceExternalMembershipView;
+}
+
+export interface ListExternalCollaboratorsResponse {
+  ok: true;
+  workspace_memberships: WorkspaceExternalMembershipView[];
+}
+
+export interface UpdateExternalContextResponse {
+  ok: true;
+  external_collaborator: ExternalCollaboratorSafeView;
+}
+
+export interface InviteExternalCollaboratorResponse {
+  ok: true;
+  workspace_membership: WorkspaceExternalMembershipView;
+}
+
+export interface ListExternalCommitmentsResponse {
+  ok: true;
+  external_commitments: ExternalCommitmentSafeView[];
+}
+
+export interface CreateExternalFollowupResponse {
+  ok: true;
+  action: SafeActionView;
+  external_commitment: ExternalCommitmentSafeView;
+}
