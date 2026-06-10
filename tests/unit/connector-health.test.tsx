@@ -130,20 +130,23 @@ describe("ConnectorHealth — backend status overlay (admin)", () => {
       { provider_id: "JIRA", display_name: "Jira" },
     ]);
     renderPage();
-    await waitFor(() =>
-      expect(screen.getAllByTestId("connector-health-row")).toHaveLength(10),
-    );
+    // The page initially renders all rows as NOT_CONFIGURED (statuses
+    // map is null), then re-renders after the API result lands. Wait
+    // for the SLACK row to flip to CONFIGURED before reading the
+    // others.
+    await waitFor(() => {
+      const r = screen
+        .getAllByTestId("connector-health-row")
+        .find((el) => el.getAttribute("data-category-key") === "SLACK");
+      expect(r?.getAttribute("data-status")).toBe("CONFIGURED");
+    });
     const rows = screen.getAllByTestId("connector-health-row");
-    const slackRow = rows.find(
-      (r) => r.getAttribute("data-category-key") === "SLACK",
-    )!;
     const jiraRow = rows.find(
       (r) => r.getAttribute("data-category-key") === "JIRA",
     )!;
     const zoomRow = rows.find(
       (r) => r.getAttribute("data-category-key") === "ZOOM",
     )!;
-    expect(slackRow.getAttribute("data-status")).toBe("CONFIGURED");
     expect(jiraRow.getAttribute("data-status")).toBe("CONFIGURED");
     expect(zoomRow.getAttribute("data-status")).toBe("NOT_CONFIGURED");
   });
