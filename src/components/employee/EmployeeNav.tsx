@@ -6,15 +6,52 @@
 // CONNECTS TO: src/lib/nav-employee.ts, EmployeeLayout.
 
 import { NavLink } from "react-router-dom";
-import { EMPLOYEE_NAV } from "@/lib/nav-employee";
+import {
+  PRIMARY_EMPLOYEE_NAV,
+  MORE_EMPLOYEE_NAV,
+  type EmployeeNavItem,
+} from "@/lib/nav-employee";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+
+function NavRow({
+  item,
+  onNavigate,
+}: {
+  item: EmployeeNavItem;
+  onNavigate: (() => void) | undefined;
+}): JSX.Element {
+  const Icon = item.icon;
+  return (
+    <li>
+      <NavLink
+        to={item.to}
+        end={item.to === "/app"}
+        onClick={onNavigate}
+        className={({ isActive }) =>
+          cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            isActive
+              ? "bg-accent text-accent-foreground font-medium"
+              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+          )
+        }
+        data-testid="employee-nav-link"
+        data-nav-group={item.group}
+      >
+        <Icon className="h-4 w-4" aria-hidden />
+        <span className="flex-1">{item.label}</span>
+      </NavLink>
+    </li>
+  );
+}
 
 export function EmployeeNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav
       aria-label="Otzar navigation"
       className="flex h-full flex-col border-r border-border bg-card"
+      data-testid="employee-nav"
     >
       <div className="flex items-center gap-2 px-4 py-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
@@ -28,30 +65,18 @@ export function EmployeeNav({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
       <ScrollArea className="flex-1 px-2 pb-4">
-        <ul className="space-y-1">
-          {EMPLOYEE_NAV.map((item) => {
-            const Icon = item.icon;
-            return (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.to === "/app"}
-                  onClick={onNavigate}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                      isActive
-                        ? "bg-accent text-accent-foreground font-medium"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                    )
-                  }
-                >
-                  <Icon className="h-4 w-4" aria-hidden />
-                  <span className="flex-1">{item.label}</span>
-                </NavLink>
-              </li>
-            );
-          })}
+        <ul className="space-y-1" data-testid="employee-nav-primary">
+          {PRIMARY_EMPLOYEE_NAV.map((item) => (
+            <NavRow key={item.to} item={item} onNavigate={onNavigate} />
+          ))}
+        </ul>
+        <div className="px-3 pb-1 pt-4 text-[10px] uppercase tracking-wider text-muted-foreground">
+          More
+        </div>
+        <ul className="space-y-1" data-testid="employee-nav-more">
+          {MORE_EMPLOYEE_NAV.map((item) => (
+            <NavRow key={item.to} item={item} onNavigate={onNavigate} />
+          ))}
         </ul>
       </ScrollArea>
     </nav>
