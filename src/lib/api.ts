@@ -1099,6 +1099,35 @@ export class ApiClient {
         retries: 0,
       });
     },
+
+    /**
+     * Phase 1208 -- POST /api/v1/actions with action_type
+     * SEND_INTERNAL_NOTIFICATION. The CT inline approval card
+     * (ProposedActionCard) calls this when the operator clicks
+     * "Send". The Action row enters the existing ADR-0057
+     * pipeline (ACTION_PROPOSED audit -> policy evaluator ->
+     * AUTO_APPROVE or NEEDS_APPROVAL -> executor creates a
+     * recipient Notification row on APPROVED).
+     */
+    sendInternalNotification: (input: {
+      recipient_entity_id: string;
+      draft_text: string;
+      idempotency_key: string;
+      payload_summary: string;
+    }): Promise<ApiResult<{ ok: true; action: SafeActionView }>> =>
+      this.request<{ ok: true; action: SafeActionView }>("/actions", {
+        method: "POST",
+        body: {
+          action_type: "SEND_INTERNAL_NOTIFICATION",
+          idempotency_key: input.idempotency_key,
+          payload_summary: input.payload_summary,
+          payload_redacted: {
+            recipient_entity_id: input.recipient_entity_id,
+            body: input.draft_text,
+          },
+        },
+        retries: 0,
+      }),
   };
 
   // ──────────────────────────────────────────────────────────────

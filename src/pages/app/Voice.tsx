@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ContextHealthBadge } from "@/components/otzar/ContextHealthBadge";
+import { ProposedActionCard } from "@/components/otzar/ProposedActionCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -384,6 +385,11 @@ export function Voice() {
                 ? response.speech_ready_text
                 : response.response}
             </p>
+            {response.proposed_action !== undefined ? (
+              <ProposedActionCard
+                proposedAction={response.proposed_action}
+              />
+            ) : null}
             <div className="flex flex-wrap gap-2 text-xs">
               <Badge variant="outline">{response.next_step}</Badge>
               {response.approval_required ? (
