@@ -40,6 +40,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PeopleDirectory } from "@/components/otzar/PeopleDirectory";
 import { api } from "@/lib/api";
+import { resolveRoleArchetype } from "@/lib/role-archetypes";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 
 function humanizeTitle(title: string): string {
@@ -184,6 +185,40 @@ export function MyOrganization(): JSX.Element {
               <span>Your AI Twin is not configured yet.</span>
             )}
           </div>
+          {(() => {
+            const archetype = resolveRoleArchetype(i.viewer.title);
+            if (archetype === null) return null;
+            return (
+              <div
+                className="mt-2 rounded border bg-card/60 p-2 text-xs"
+                data-testid="role-archetype-card"
+                data-role-key={archetype.role_key}
+              >
+                <p className="font-medium">{archetype.description}</p>
+                <p
+                  className="mt-1 italic text-muted-foreground"
+                  data-testid="role-archetype-briefing"
+                >
+                  "{archetype.ai_twin_briefing}"
+                </p>
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Dashboard hints for this role
+                  </summary>
+                  <ul
+                    className="mt-1 list-disc space-y-0.5 pl-5 text-[11px]"
+                    data-testid="role-archetype-modules"
+                  >
+                    {archetype.default_dashboard_modules
+                      .slice(0, 5)
+                      .map((m) => (
+                        <li key={m}>{m}</li>
+                      ))}
+                  </ul>
+                </details>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
