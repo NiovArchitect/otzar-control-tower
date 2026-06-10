@@ -15,7 +15,7 @@
 //          test voice" surface explicitly built so the operator
 //          can see the talking-Otzar loop end-to-end in one place.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Mic,
   MicOff,
@@ -78,19 +78,37 @@ export function Voice() {
   const intent = useOtzarVoiceIntent();
   const micPerm = useMicrophonePermission();
   const [draft, setDraft] = useState("");
+  // EMERGENCY TTS LOOP GUARD per [FOUNDER-AUTH — EMERGENCY FIX]:
+  // auto-speak is OFF by default. Operator explicitly enables it.
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  // Stable ref guard against React StrictMode + re-render double-fire.
+  const lastAutoSpokenKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (recognition.transcript.length > 0) setDraft(recognition.transcript);
   }, [recognition.transcript]);
 
+  // AUTO-SPEAK effect — gated on the toggle + a stable response key.
+  // The key combines conversation_id + tokens_consumed so a new turn
+  // (which advances tokens_consumed) is a new utterance, but a
+  // re-render of the same response is not.
+  const responseKey =
+    intent.response !== null
+      ? `${intent.response.conversation_id}:${intent.response.tokens_consumed}`
+      : null;
   useEffect(() => {
+    if (!autoSpeak) return;
+    if (responseKey === null) return;
+    if (lastAutoSpokenKeyRef.current === responseKey) return;
     if (intent.response === null) return;
     const sayable =
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
-    if (synthesis.supported && !synthesis.muted) synthesis.speak(sayable);
-  }, [intent.response, synthesis]);
+    lastAutoSpokenKeyRef.current = responseKey;
+    synthesis.speak(sayable, { source: "auto", force: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSpeak, responseKey]);
 
   async function handleMicToggle(): Promise<void> {
     if (recognition.listening) {
@@ -118,7 +136,10 @@ export function Voice() {
   }
 
   function handleTestVoice(): void {
-    synthesis.speak(TEST_VOICE_PHRASE);
+    // force=true bypasses auto-speak dedupe; the in-flight check
+    // inside the hook still prevents queue duplication from rapid
+    // clicks.
+    synthesis.speak(TEST_VOICE_PHRASE, { source: "test", force: true });
   }
 
   function handleReplay(): void {
@@ -127,7 +148,7 @@ export function Voice() {
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
-    synthesis.speak(sayable);
+    synthesis.speak(sayable, { source: "replay", force: true });
   }
 
   const shellMode = detectShellMode();
@@ -305,18 +326,41 @@ export function Voice() {
               )}
               {synthesis.muted ? "Unmute" : "Mute"}
             </Button>
-            {synthesis.speaking ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={synthesis.stop}
-                className="gap-2"
-              >
-                <Square className="h-4 w-4" />
-                Stop
-              </Button>
-            ) : null}
+            {/* Stop voice — ALWAYS visible (not gated on
+                synthesis.speaking) so the operator can silence
+                Otzar without hunting. ESC also stops (bound at
+                window level inside the hook). */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={synthesis.stop}
+              disabled={!synthesis.supported}
+              className="gap-2"
+              aria-label="Stop voice"
+              title="Stop speaking (or press Escape)"
+            >
+              <Square className="h-4 w-4" />
+              Stop voice
+            </Button>
+            {/* Auto-speak toggle — OFF by default per the emergency
+                TTS loop guard. Operator enables it explicitly. */}
+            <label
+              className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer ml-2"
+              title="When on, Otzar speaks every new response once through your device's TTS. Each response is deduped — re-renders never re-speak."
+            >
+              <input
+                type="checkbox"
+                aria-label="Auto-speak responses"
+                checked={autoSpeak}
+                onChange={(e) => {
+                  setAutoSpeak(e.target.checked);
+                  if (e.target.checked) synthesis.resetDedupe();
+                }}
+                disabled={!synthesis.supported || synthesis.muted}
+              />
+              Auto-speak responses
+            </label>
           </div>
           {intent.error !== null ? (
             <div className="text-sm text-destructive">
