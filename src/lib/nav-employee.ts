@@ -84,10 +84,11 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "primary",
   },
   {
-    label: "Collaboration",
+    label: "People & Collaboration",
     to: "/app/collaboration",
     icon: Users,
-    description: "Ask coworkers, teams, and projects for help.",
+    description:
+      "See your team. Ask coworkers, teams, and projects for help. Powered by Dandelion.",
     group: "primary",
   },
 
