@@ -23,6 +23,7 @@ import { Observe } from "@/pages/app/Observe";
 import { Corrections } from "@/pages/app/Corrections";
 import { Approvals } from "@/pages/app/Approvals";
 import { ActionCenter } from "@/pages/app/ActionCenter";
+import { Comms } from "@/pages/app/Comms";
 import { MyDay } from "@/pages/app/MyDay";
 import { MyTwin } from "@/pages/app/MyTwin";
 import { Conversations } from "@/pages/app/Conversations";
@@ -90,6 +91,7 @@ export function App() {
               <Route path="corrections" element={<Corrections />} />
               <Route path="approvals" element={<Approvals />} />
               <Route path="action-center" element={<ActionCenter />} />
+              <Route path="comms" element={<Comms />} />
               <Route path="my-twin" element={<MyTwin />} />
               <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="preferences" element={<Preferences />} />

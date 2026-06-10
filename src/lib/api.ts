@@ -69,6 +69,7 @@ import type {
   // My Twin + Conversations metadata (read-only)
   MyTwinResponse,
   ContextHealthResponse,
+  CommsExtractResponse,
   NotificationListResponse,
   NotificationReadResponse,
   ConversationListResponse,
@@ -663,6 +664,22 @@ export class ApiClient {
      *  status. Phase 1205. */
     contextHealth: (): Promise<ApiResult<ContextHealthResponse>> =>
       this.request<ContextHealthResponse>("/otzar/my-twin/context-health"),
+
+    /** Phase 1213 — POST /api/v1/otzar/comms/extract. Given the
+     *  assembled captured conversation text, return Foundation's
+     *  structured extraction (summary / decisions / commitments /
+     *  suggested governed-Action follow-ups). The CT consumer then
+     *  renders each suggested action via the existing
+     *  ProposedActionCard so the operator can Send via the same
+     *  Phase 1208 path. */
+    commsExtract: (input: {
+      captured_text: string;
+      force_mode?: "DEMO_SCRIPTED" | "LLM" | "LOCAL_FALLBACK";
+    }): Promise<ApiResult<CommsExtractResponse>> =>
+      this.request<CommsExtractResponse>("/otzar/comms/extract", {
+        method: "POST",
+        body: input,
+      }),
 
     /** GET /api/v1/otzar/conversations -- the caller's OWN conversation
      *  session METADATA (read). No transcripts / message bodies. Optional

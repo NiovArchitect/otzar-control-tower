@@ -1126,6 +1126,41 @@ export interface NotificationReadResponse {
   notification: SafeNotificationView;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Phase 1213 -- POST /api/v1/otzar/comms/extract.
+// Mirrors Foundation's CommsExtractionResult exactly.
+// ─────────────────────────────────────────────────────────────────
+
+export type CommsExtractionMode =
+  | "DEMO_SCRIPTED"
+  | "LLM"
+  | "LOCAL_FALLBACK";
+
+export interface CommsSuggestedAction {
+  local_id: string;
+  action_type: "SEND_INTERNAL_NOTIFICATION";
+  target: ProposedActionTarget;
+  draft_text: string;
+  reason: string;
+  source_excerpt: string | null;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  resolution_status: "RESOLVED" | "UNRESOLVED" | "AMBIGUOUS" | "RESTRICTED";
+}
+
+export interface CommsExtractionResult {
+  summary: string;
+  decisions: string[];
+  commitments: string[];
+  risks_or_blockers: string[];
+  suggested_actions: CommsSuggestedAction[];
+  extraction_mode: CommsExtractionMode;
+}
+
+export interface CommsExtractResponse {
+  ok: true;
+  extraction: CommsExtractionResult;
+}
+
 // Closed-vocab next-step union per EDX-3 slice 1.
 export type ConductNextStep =
   | "ANSWERED"

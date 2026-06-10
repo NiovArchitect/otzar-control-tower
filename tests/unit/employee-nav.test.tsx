@@ -31,6 +31,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "My Day",
       "Talk to Otzar",
       "Action Center",
+      "Comms",
       "My Twin",
       "Collaboration",
     ]);
