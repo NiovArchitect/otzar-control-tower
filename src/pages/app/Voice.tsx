@@ -28,6 +28,7 @@ import {
   ShieldX,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { ContextHealthBadge } from "@/components/otzar/ContextHealthBadge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -179,6 +180,8 @@ export function Voice() {
         title="Talk to Otzar"
         description="Speak or type. Otzar responds with text + your device's TTS. No raw audio is stored."
       />
+
+      <ContextHealthBadge />
 
       <Card>
         <CardHeader>
