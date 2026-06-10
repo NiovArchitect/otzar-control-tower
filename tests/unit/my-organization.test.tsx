@@ -277,6 +277,95 @@ describe("MyOrganization — roster-aware (NOT David-only)", () => {
   });
 });
 
+describe("MyOrganization — Phase 1218 role archetype card", () => {
+  it("renders the Founder archetype's description + briefing when title is FOUNDER (mapped to CMO-like? no — Founder is not in the 13; resolves null)", async () => {
+    mockCtx(ctx());
+    renderPage();
+    // FOUNDER is intentionally not one of the 13 Wave-2.1 archetypes
+    // (the directive's 13 are functional/management roles, not the
+    // C-suite umbrella). The archetype card simply does not render.
+    await waitFor(() =>
+      expect(screen.getByTestId("my-org-identity")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("role-archetype-card")).toBeNull();
+  });
+
+  it("renders the CTO archetype card when title is CTO", async () => {
+    mockCtx(
+      ctx({
+        viewer: {
+          user_id: "u-cto",
+          email: "cto@niovlabs.com",
+          display_name: "CT Owen",
+          title: "CTO",
+          org_role: "CTO",
+          is_founder_admin: false,
+        },
+      }),
+    );
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("role-archetype-card")).toHaveAttribute(
+        "data-role-key",
+        "CTO",
+      ),
+    );
+    expect(screen.getByTestId("role-archetype-card")).toHaveTextContent(
+      "Architecture",
+    );
+    expect(screen.getByTestId("role-archetype-briefing")).toHaveTextContent(
+      /technical second seat/i,
+    );
+  });
+
+  it("renders the GENERAL_EMPLOYEE archetype card when title is 'Member'", async () => {
+    mockCtx(
+      ctx({
+        viewer: {
+          user_id: "u-x",
+          email: "x@niovlabs.com",
+          display_name: "Walter Carter",
+          title: "MEMBER",
+          org_role: "MEMBER",
+          is_founder_admin: false,
+        },
+      }),
+    );
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("role-archetype-card")).toHaveAttribute(
+        "data-role-key",
+        "GENERAL_EMPLOYEE",
+      ),
+    );
+    expect(screen.getByTestId("role-archetype-briefing")).toHaveTextContent(
+      /not your manager/i,
+    );
+  });
+
+  it("renders the AI_ENGINEER archetype card for the AI/NLP Engineer demo title", async () => {
+    mockCtx(
+      ctx({
+        viewer: {
+          user_id: "u-s",
+          email: "samiksha@niovlabs.com",
+          display_name: "Samiksha Sharma",
+          title: "AI/NLP ENGINEER",
+          org_role: "AI/NLP ENGINEER",
+          is_founder_admin: false,
+        },
+      }),
+    );
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("role-archetype-card")).toHaveAttribute(
+        "data-role-key",
+        "AI_ENGINEER",
+      ),
+    );
+  });
+});
+
 describe("MyOrganization — privacy invariants (RULE 0)", () => {
   it("never renders TAR / wallet / clearance / permission internals", async () => {
     mockCtx(ctx());
