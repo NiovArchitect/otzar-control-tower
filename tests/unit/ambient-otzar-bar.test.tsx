@@ -228,6 +228,34 @@ describe("AmbientOtzarBar — speech synthesis", () => {
   });
 });
 
+describe("AmbientOtzarBar — voice permission + Test Otzar voice (Phase 12)", () => {
+  it("permission line reports 'unsupported in this shell' under jsdom", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    // jsdom does not expose navigator.permissions; the hook reports
+    // "unsupported" and the dock renders a stable line about it.
+    const line = await screen.findByTestId("ambient-permission-state");
+    expect(line.textContent ?? "").toMatch(
+      /Microphone permission:\s*(unsupported in this shell|unknown)/i,
+    );
+  });
+
+  it("Test Otzar voice button speaks the canonical test phrase", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Test Otzar voice/i }),
+    );
+    expect(speakMock).toHaveBeenCalledTimes(1);
+    const utterance = speakMock.mock.calls[0]?.[0] as { text: string };
+    expect(utterance.text).toBe(
+      "Otzar voice is active. I can speak responses back to you.",
+    );
+  });
+});
+
 describe("AmbientOtzarBar — privacy / safety copy", () => {
   it("renders 'No raw audio is stored' explicitly when expanded", async () => {
     const user = userEvent.setup();

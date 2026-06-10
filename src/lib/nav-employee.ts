@@ -95,10 +95,16 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     description: "Your work projects and members.",
   },
   {
-    label: "Voice",
+    label: "Talk to Otzar",
+    to: "/app/voice",
+    icon: Mic,
+    description: "Speak or type to Otzar; hear the response back.",
+  },
+  {
+    label: "Voice envelope",
     to: "/app/voice-ready",
     icon: Mic,
-    description: "Talk to Otzar — speech-ready replies.",
+    description: "Typed voice-intent envelope (Phase 3 debug surface).",
   },
   {
     label: "Conversations",

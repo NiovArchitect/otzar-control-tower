@@ -29,6 +29,7 @@ import { Preferences } from "@/pages/app/Preferences";
 import { Collaboration } from "@/pages/app/Collaboration";
 import { WorkProjects } from "@/pages/app/WorkProjects";
 import { VoiceReady } from "@/pages/app/VoiceReady";
+import { Voice } from "@/pages/app/Voice";
 
 import { LoginPage } from "@/pages/Login";
 import { HomePage } from "@/pages/Home";
@@ -87,6 +88,7 @@ export function App() {
               <Route path="collaboration" element={<Collaboration />} />
               <Route path="work-projects" element={<WorkProjects />} />
               <Route path="voice-ready" element={<VoiceReady />} />
+              <Route path="voice" element={<Voice />} />
               <Route path="conversations" element={<Conversations />} />
               {/* Unknown /app/* paths fall back to the employee home. */}
               <Route path="*" element={<Navigate to="/app" replace />} />
