@@ -36,6 +36,7 @@ import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks } from "lucide-re
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import { api } from "@/lib/api";
 import type { SafeActionView } from "@/lib/types/foundation";
 
@@ -273,9 +274,37 @@ export function ActionCenter(): JSX.Element {
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center justify-between gap-2 text-sm">
                       <span>{friendlyActionType(a.action_type)}</span>
-                      <Badge variant={t === "blocked" ? "destructive" : "outline"}>
-                        {friendlyStatus(a.status)}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={t === "blocked" ? "destructive" : "outline"}>
+                          {friendlyStatus(a.status)}
+                        </Badge>
+                        <AIBreakdownButton
+                          triggerTestId="action-ai-breakdown"
+                          breakdown={{
+                            title: "Why this is in your Action Center",
+                            points: [
+                              {
+                                label: "What this is",
+                                body: `${friendlyActionType(a.action_type)} — ${friendlyRisk(a.risk_tier).toLowerCase()}.`,
+                              },
+                              {
+                                label: "Current state",
+                                body: `${friendlyStatus(a.status)}. ${
+                                  a.decision_reason !== undefined &&
+                                  a.decision_reason.length > 0
+                                    ? humanDecisionReason(a.decision_reason)
+                                    : "Otzar will move this forward through your organization's policy and audit trail."
+                                }`,
+                              },
+                              {
+                                label: "What's protected",
+                                body:
+                                  "Every transition is recorded in the audit trail. No external write happens unless your org has explicitly enabled a connector and policy allowed it.",
+                              },
+                            ],
+                          }}
+                        />
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1 pt-0 text-xs text-muted-foreground">
