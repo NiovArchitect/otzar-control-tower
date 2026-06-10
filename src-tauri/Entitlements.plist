@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  FILE: src-tauri/Entitlements.plist
+  PURPOSE: macOS entitlements + Info.plist additions for the Otzar
+           desktop shell. NSMicrophoneUsageDescription is the
+           load-bearing string macOS shows in the OS-level mic
+           permission dialog when (and only when) a future native
+           microphone-capture path lands. Adding it now is forward-
+           substrate: today's Otzar.app uses TYPED-TRANSCRIPT mode
+           in the WKWebView so no mic is captured; the string sits
+           ready for the day the operator authorizes native STT.
+
+           Per Apple's review guidelines and Tauri 2 packaging
+           guidance, the description must be present in Info.plist
+           or the OS refuses to even show the prompt.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Otzar uses the microphone only when you click "Talk to Otzar". No raw audio is stored by default.</string>
+</dict>
+</plist>

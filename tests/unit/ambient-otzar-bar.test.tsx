@@ -229,16 +229,20 @@ describe("AmbientOtzarBar — speech synthesis", () => {
 });
 
 describe("AmbientOtzarBar — voice permission + Test Otzar voice (Phase 12)", () => {
-  it("permission line reports 'unsupported in this shell' under jsdom", async () => {
+  it("permission line reports an honest browser-class headline under jsdom (no STT, no Chrome)", async () => {
     const user = userEvent.setup();
     renderBar();
     await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
-    // jsdom does not expose navigator.permissions; the hook reports
-    // "unsupported" and the dock renders a stable line about it.
+    // jsdom: not Tauri, not Chrome, no SpeechRecognition → the
+    // browser_other branch of micCopyFor fires with "Voice input
+    // unavailable in this browser" + an actionable Chrome
+    // suggestion. We assert the headline + the actionable detail
+    // both render.
     const line = await screen.findByTestId("ambient-permission-state");
     expect(line.textContent ?? "").toMatch(
-      /Microphone permission:\s*(unsupported in this shell|unknown)/i,
+      /Voice input unavailable in this browser/i,
     );
+    expect(line.textContent ?? "").toMatch(/Open Otzar in Chrome/i);
   });
 
   it("Test Otzar voice button speaks the canonical test phrase", async () => {

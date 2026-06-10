@@ -34,53 +34,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
+import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import {
-  useMicrophonePermission,
-  type MicrophonePermissionState,
-} from "@/hooks/useMicrophonePermission";
+  detectShellMode,
+  llmErrorCopy,
+  micCopyFor,
+  speechRecognitionErrorCopy,
+} from "@/lib/voice/diagnostics";
 
 const TEST_VOICE_PHRASE =
   "Otzar voice is active. I can speak responses back to you.";
 
-function permissionLabel(state: MicrophonePermissionState): {
-  label: string;
-  icon: typeof ShieldCheck;
-  className: string;
-} {
-  switch (state) {
-    case "granted":
-      return {
-        label: "Microphone permission: granted",
-        icon: ShieldCheck,
-        className: "text-emerald-600",
-      };
-    case "denied":
-      return {
-        label:
-          "Microphone permission: denied. Enable microphone access in your browser / shell to use voice input.",
-        icon: ShieldX,
-        className: "text-destructive",
-      };
-    case "prompt":
-      return {
-        label: "Microphone permission: not yet granted",
-        icon: ShieldQuestion,
-        className: "text-amber-600",
-      };
-    case "unsupported":
-      return {
-        label:
-          "Microphone permission: unsupported in this shell. Use typed transcript instead.",
-        icon: ShieldX,
-        className: "text-muted-foreground",
-      };
-    case "unknown":
+function toneClass(tone: "ok" | "warn" | "error" | "muted"): string {
+  switch (tone) {
+    case "ok":
+      return "text-emerald-600";
+    case "warn":
+      return "text-amber-600";
+    case "error":
+      return "text-destructive";
+    case "muted":
     default:
-      return {
-        label: "Microphone permission: unknown",
-        icon: ShieldQuestion,
-        className: "text-muted-foreground",
-      };
+      return "text-muted-foreground";
+  }
+}
+
+function toneIcon(tone: "ok" | "warn" | "error" | "muted"): typeof ShieldCheck {
+  switch (tone) {
+    case "ok":
+      return ShieldCheck;
+    case "error":
+      return ShieldX;
+    case "warn":
+    case "muted":
+    default:
+      return ShieldQuestion;
   }
 }
 
@@ -109,7 +97,11 @@ export function Voice() {
       recognition.stop();
       return;
     }
-    if (micPerm.state !== "granted" && micPerm.state !== "unsupported") {
+    if (
+      micPerm.state !== "granted" &&
+      micPerm.state !== "unsupported" &&
+      micPerm.state !== "unknown"
+    ) {
       const next = await micPerm.request();
       if (next !== "granted") return;
     }
@@ -138,8 +130,9 @@ export function Voice() {
     synthesis.speak(sayable);
   }
 
-  const pl = permissionLabel(micPerm.state);
-  const PermIcon = pl.icon;
+  const shellMode = detectShellMode();
+  const micCopy = micCopyFor(shellMode, micPerm.state, recognition.supported);
+  const PermIcon = toneIcon(micCopy.tone);
   const response = intent.response;
 
   let status = "Ambient. Click the microphone or type to Otzar.";
@@ -172,12 +165,37 @@ export function Voice() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div
-            className={`flex items-center gap-2 text-sm ${pl.className}`}
+            className={`flex items-start gap-2 text-sm ${toneClass(micCopy.tone)}`}
             data-testid="voice-permission-state"
           >
-            <PermIcon className="h-4 w-4" />
-            <span>{pl.label}</span>
-            {micPerm.state === "prompt" ? (
+            <PermIcon className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="font-medium">{micCopy.headline}</div>
+              {micCopy.detail.length > 0 ? (
+                <div className="text-xs text-muted-foreground">
+                  {micCopy.detail}
+                </div>
+              ) : null}
+              {shellMode === "tauri_webview" ? (
+                <a
+                  href="http://localhost:5173/app/voice"
+                  className="text-xs underline text-muted-foreground hover:text-foreground"
+                  onClick={(e) => {
+                    // Open the http URL in the system default browser
+                    // (Chrome) where mic + speechSynthesis both work.
+                    e.preventDefault();
+                    try {
+                      window.open("http://localhost:5173/app/voice", "_blank");
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  Open in Chrome →
+                </a>
+              ) : null}
+            </div>
+            {micCopy.showRequestButton ? (
               <Button
                 type="button"
                 variant="outline"
@@ -198,7 +216,7 @@ export function Voice() {
               type="button"
               variant={recognition.listening ? "destructive" : "default"}
               onClick={() => void handleMicToggle()}
-              disabled={!recognition.supported || micPerm.state === "denied"}
+              disabled={!micCopy.micButtonEnabled}
               aria-label={
                 recognition.listening
                   ? "Stop listening"
@@ -228,7 +246,7 @@ export function Voice() {
 
           {recognition.error !== null ? (
             <div className="text-sm text-destructive">
-              Voice input error: {recognition.error}
+              {speechRecognitionErrorCopy(recognition.error)}
             </div>
           ) : null}
         </CardContent>
@@ -302,7 +320,7 @@ export function Voice() {
           </div>
           {intent.error !== null ? (
             <div className="text-sm text-destructive">
-              Otzar error: {intent.error}
+              {llmErrorCopy(intent.error)}
             </div>
           ) : null}
         </CardContent>
