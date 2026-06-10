@@ -33,11 +33,18 @@
 //     data-* attributes for telemetry.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, Reply, Send, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import type { SafeNotificationView } from "@/lib/types/foundation";
+
+function randomIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `reply-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+}
 
 const DEFAULT_POLL_MS = 30_000;
 const PAGE_SIZE = 20;
@@ -54,6 +61,17 @@ interface State {
   loading: boolean;
   error: string | null;
   open: boolean;
+  /** Per-notification reply UI state. Keyed by notification_id. */
+  replies: Record<
+    string,
+    | undefined
+    | {
+        text: string;
+        sending: boolean;
+        sentActionId: string | null;
+        error: string | null;
+      }
+  >;
 }
 
 export function NotificationBell({
@@ -66,6 +84,7 @@ export function NotificationBell({
     loading: false,
     error: null,
     open: false,
+    replies: {},
   });
   const mountedRef = useRef(true);
 
@@ -109,6 +128,102 @@ export function NotificationBell({
 
   const unread = state.items.filter((n) => n.read_at === null);
   const unreadCount = unread.length;
+
+  function openReply(notificationId: string): void {
+    setState((s) => ({
+      ...s,
+      replies: {
+        ...s.replies,
+        [notificationId]: {
+          text: "",
+          sending: false,
+          sentActionId: null,
+          error: null,
+        },
+      },
+    }));
+  }
+
+  function cancelReply(notificationId: string): void {
+    setState((s) => {
+      const next = { ...s.replies };
+      delete next[notificationId];
+      return { ...s, replies: next };
+    });
+  }
+
+  function editReply(notificationId: string, text: string): void {
+    setState((s) => {
+      const existing = s.replies[notificationId];
+      if (existing === undefined) return s;
+      return {
+        ...s,
+        replies: {
+          ...s.replies,
+          [notificationId]: { ...existing, text, error: null },
+        },
+      };
+    });
+  }
+
+  async function sendReply(notification: SafeNotificationView): Promise<void> {
+    const reply = state.replies[notification.notification_id];
+    if (reply === undefined) return;
+    const text = reply.text.trim();
+    if (text.length === 0) return;
+    setState((s) => {
+      const existing = s.replies[notification.notification_id];
+      if (existing === undefined) return s;
+      return {
+        ...s,
+        replies: {
+          ...s.replies,
+          [notification.notification_id]: {
+            ...existing,
+            sending: true,
+            error: null,
+          },
+        },
+      };
+    });
+    // Foundation's POST /notifications/:id/reply mediator looks up
+    // the source server-side -- the CT consumer never sees the
+    // original sender's entity_id (SafeNotificationView excludes
+    // source_entity_id by design). Phase 1215.
+    const result = await api.notifications.reply(
+      notification.notification_id,
+      text,
+      randomIdempotencyKey(),
+    );
+    setState((s) => {
+      const existing = s.replies[notification.notification_id];
+      if (existing === undefined) return s;
+      if (result.ok) {
+        return {
+          ...s,
+          replies: {
+            ...s.replies,
+            [notification.notification_id]: {
+              ...existing,
+              sending: false,
+              sentActionId: result.data.reply_action_id,
+            },
+          },
+        };
+      }
+      return {
+        ...s,
+        replies: {
+          ...s.replies,
+          [notification.notification_id]: {
+            ...existing,
+            sending: false,
+            error: result.code,
+          },
+        },
+      };
+    });
+  }
 
   async function handleMarkRead(id: string): Promise<void> {
     // Optimistic UI: flip read_at immediately so the badge updates,
@@ -202,6 +317,7 @@ export function NotificationBell({
             >
               {state.items.map((n) => {
                 const isUnread = n.read_at === null;
+                const reply = state.replies[n.notification_id];
                 return (
                   <li
                     key={n.notification_id}
@@ -224,6 +340,17 @@ export function NotificationBell({
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
+                        {reply === undefined ? (
+                          <button
+                            type="button"
+                            onClick={() => openReply(n.notification_id)}
+                            className="rounded p-1 hover:bg-accent"
+                            aria-label="Reply"
+                            data-testid="notification-reply-open"
+                          >
+                            <Reply className="h-3 w-3" aria-hidden />
+                          </button>
+                        ) : null}
                         <AIBreakdownButton
                           triggerTestId="notification-ai-breakdown"
                           breakdown={{
@@ -242,7 +369,7 @@ export function NotificationBell({
                               {
                                 label: "What you can do",
                                 body:
-                                  "Mark as read. Replying inline is queued for a future slice; for now, reach out via your normal channels.",
+                                  "Reply inline (your message goes back to the original sender as a governed internal action), or mark as read.",
                               },
                               {
                                 label: "What's protected",
@@ -265,6 +392,69 @@ export function NotificationBell({
                         ) : null}
                       </div>
                     </div>
+                    {reply !== undefined ? (
+                      <div
+                        className="mt-2 rounded border bg-background p-2"
+                        data-testid="notification-reply-panel"
+                      >
+                        {reply.sentActionId !== null ? (
+                          <p
+                            className="text-emerald-700 dark:text-emerald-400"
+                            data-testid="notification-reply-sent"
+                            data-action-id={reply.sentActionId}
+                          >
+                            ✓ Reply sent. Otzar recorded this as a governed
+                            internal action.
+                          </p>
+                        ) : (
+                          <>
+                            <textarea
+                              value={reply.text}
+                              onChange={(e) =>
+                                editReply(n.notification_id, e.target.value)
+                              }
+                              placeholder="Type a quick reply… Otzar sends this back to the original sender as a governed internal note."
+                              className="h-16 w-full rounded border bg-card p-1.5 text-xs"
+                              data-testid="notification-reply-textarea"
+                              disabled={reply.sending}
+                            />
+                            <div className="mt-1 flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => cancelReply(n.notification_id)}
+                                className="rounded px-2 py-1 text-[11px] hover:bg-accent"
+                                disabled={reply.sending}
+                                data-testid="notification-reply-cancel"
+                              >
+                                <X className="mr-1 inline h-3 w-3" aria-hidden />
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void sendReply(n)}
+                                disabled={
+                                  reply.sending || reply.text.trim().length === 0
+                                }
+                                className="rounded bg-emerald-600 px-2 py-1 text-[11px] text-white disabled:opacity-50"
+                                data-testid="notification-reply-send"
+                              >
+                                <Send className="mr-1 inline h-3 w-3" aria-hidden />
+                                {reply.sending ? "Sending…" : "Send reply"}
+                              </button>
+                            </div>
+                            {reply.error !== null ? (
+                              <p
+                                className="mt-1 text-rose-700 dark:text-rose-400"
+                                role="alert"
+                                data-testid="notification-reply-error"
+                              >
+                                {humanizeReplyError(reply.error)}
+                              </p>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -274,6 +464,21 @@ export function NotificationBell({
       ) : null}
     </div>
   );
+}
+
+function humanizeReplyError(code: string): string {
+  switch (code) {
+    case "DUAL_CONTROL_NO_APPROVER_AVAILABLE":
+      return "Reply created, but your organization hasn't configured who can approve replies yet.";
+    case "POLICY_BLOCKED":
+    case "POLICY_FORBIDDEN":
+      return "Reply blocked by your organization's policy.";
+    case "SESSION_EXPIRED":
+    case "SESSION_INVALID":
+      return "Your session expired. Please sign in again.";
+    default:
+      return `Otzar couldn't send the reply. (Reference: ${code})`;
+  }
 }
 
 function formatRelative(iso: string): string {

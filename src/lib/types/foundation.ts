@@ -1103,14 +1103,19 @@ export interface ProposedAction {
 
 export interface SafeNotificationView {
   notification_id: string;
-  org_entity_id: string;
-  recipient_entity_id: string;
-  source_entity_id: string;
+  // Foundation's SafeNotificationView projection excludes
+  // org_entity_id / recipient_entity_id / source_entity_id /
+  // body_redacted / deleted_at by design per
+  // notification-read.service.ts:225-228. The CT consumer cannot
+  // see who sent a notification directly -- reply goes through the
+  // Phase 1215 POST /notifications/:id/reply mediator which
+  // resolves the source server-side.
   action_id: string | null;
   notification_class: string;
   body_summary: string;
   created_at: string;
   read_at: string | null;
+  status?: "READ" | "UNREAD";
 }
 
 export interface NotificationListResponse {
@@ -1124,6 +1129,13 @@ export interface NotificationListResponse {
 export interface NotificationReadResponse {
   ok: true;
   notification: SafeNotificationView;
+}
+
+// Phase 1215 — POST /api/v1/notifications/:id/reply.
+export interface NotificationReplyResponse {
+  ok: true;
+  reply_action_id: string;
+  reply_action_status: string;
 }
 
 // ─────────────────────────────────────────────────────────────────
