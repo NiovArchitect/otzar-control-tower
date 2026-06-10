@@ -94,6 +94,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
       "See your team. Ask coworkers, teams, and projects for help. Powered by Dandelion.",
     group: "primary",
   },
+  {
+    label: "Workspaces",
+    to: "/app/collaboration-workspaces",
+    icon: Building2,
+    description:
+      "Shared workspaces — people, decisions, commitments, and follow-ups for each piece of work.",
+    group: "primary",
+  },
 
   // ── More (deeper / configuration / debug-adjacent) ──────────
   {

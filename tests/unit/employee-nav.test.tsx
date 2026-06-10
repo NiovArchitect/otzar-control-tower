@@ -34,6 +34,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "Comms",
       "My Twin",
       "People & Collaboration",
+      "Workspaces",
     ]);
   });
 
