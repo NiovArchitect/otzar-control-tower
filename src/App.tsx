@@ -23,6 +23,7 @@ import { Observe } from "@/pages/app/Observe";
 import { Corrections } from "@/pages/app/Corrections";
 import { Approvals } from "@/pages/app/Approvals";
 import { ActionCenter } from "@/pages/app/ActionCenter";
+import { MyDay } from "@/pages/app/MyDay";
 import { MyTwin } from "@/pages/app/MyTwin";
 import { Conversations } from "@/pages/app/Conversations";
 import { AuthorityGrants } from "@/pages/app/AuthorityGrants";
@@ -78,7 +79,12 @@ export function App() {
                 </EmployeeGuard>
               }
             >
-              <Route index element={<EmployeeHome />} />
+              {/* Phase 1212 — My Day replaces the old EmployeeHome as the
+                  default landing. EmployeeHome remains reachable via
+                  /app/workspace as a fallback for any direct links until
+                  the next bounded slice removes it. */}
+              <Route index element={<MyDay />} />
+              <Route path="workspace" element={<EmployeeHome />} />
               <Route path="chat" element={<Chat />} />
               <Route path="observe" element={<Observe />} />
               <Route path="corrections" element={<Corrections />} />

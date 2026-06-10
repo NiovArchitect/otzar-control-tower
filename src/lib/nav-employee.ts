@@ -5,24 +5,32 @@
 // CONNECTS TO: EmployeeNav (renderer), App.tsx /app routes,
 //              src/pages/app/*.
 //
-// Phase 1 employee surface = Home, Chat, Observe, Corrections. All map
-// to REAL /otzar/* product endpoints. Future surfaces (My Twin, Teams,
-// Context) are shown as disabled FutureFeatureCard tiles on Home, NOT
-// as nav entries -- there is no backend contract for them yet.
+// Phase 1212 reorganization per [FOUNDER — WARMWIND OS REFERENCE]:
+//   - PRIMARY group surfaces the everyday Otzar Work-OS journey:
+//     My Day, Talk to Otzar, Action Center, My Twin, Collaboration.
+//   - MORE group keeps the existing deeper surfaces accessible
+//     (Approvals / Authority / Preferences / Projects / Conversations
+//      / Corrections / Observe / Workspace) but visually quieter so
+//     a new employee isn't overwhelmed.
+//   - The Phase-3-debug "Voice envelope" entry is intentionally
+//     dropped from the nav — it remains routeable for engineers via
+//     direct URL /app/voice-ready, but no longer surfaces in the
+//     employee shell.
 
 import {
+  Bell,
   Bot,
   BookOpen,
   ClipboardCheck,
   Eye,
   FolderKanban,
   KeyRound,
-  LayoutDashboard,
   ListChecks,
   Mic,
   MessageSquare,
   MessagesSquare,
   PencilLine,
+  Sun,
   Users,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
@@ -32,32 +40,24 @@ export interface EmployeeNavItem {
   to: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   description: string;
+  group: "primary" | "more";
 }
 
 export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
+  // ── Primary (warm, OS-style everyday journey) ────────────────
   {
-    label: "Home",
+    label: "My Day",
     to: "/app",
-    icon: LayoutDashboard,
-    description: "Your Otzar workspace.",
+    icon: Sun,
+    description: "What needs you today.",
+    group: "primary",
   },
   {
-    label: "Chat",
-    to: "/app/chat",
-    icon: MessageSquare,
-    description: "Talk with your AI teammate.",
-  },
-  {
-    label: "Observe",
-    to: "/app/observe",
-    icon: Eye,
-    description: "Submit context for Otzar to learn from.",
-  },
-  {
-    label: "Corrections",
-    to: "/app/corrections",
-    icon: PencilLine,
-    description: "Teach and correct your AI teammate.",
+    label: "Talk to Otzar",
+    to: "/app/voice",
+    icon: Mic,
+    description: "Voice or text. Otzar drafts; you approve.",
+    group: "primary",
   },
   {
     label: "Action Center",
@@ -65,59 +65,87 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: ListChecks,
     description:
       "Decisions Otzar is making on your behalf — pending, approved, completed, blocked.",
-  },
-  {
-    label: "Approvals",
-    to: "/app/approvals",
-    icon: ClipboardCheck,
-    description: "Approval requests waiting on you.",
+    group: "primary",
   },
   {
     label: "My Twin",
     to: "/app/my-twin",
     icon: Bot,
     description: "Your aligned AI teammate.",
-  },
-  {
-    label: "Authority",
-    to: "/app/authority-grants",
-    icon: KeyRound,
-    description: "Choose what your Twin may do for you.",
-  },
-  {
-    label: "Preferences",
-    to: "/app/preferences",
-    icon: BookOpen,
-    description: "Teach your Twin how you work.",
+    group: "primary",
   },
   {
     label: "Collaboration",
     to: "/app/collaboration",
     icon: Users,
     description: "Ask coworkers, teams, and projects for help.",
+    group: "primary",
+  },
+
+  // ── More (deeper / configuration / debug-adjacent) ──────────
+  {
+    label: "Approvals",
+    to: "/app/approvals",
+    icon: ClipboardCheck,
+    description: "Approval requests waiting on you.",
+    group: "more",
+  },
+  {
+    label: "Authority",
+    to: "/app/authority-grants",
+    icon: KeyRound,
+    description: "Choose what your Twin may do for you.",
+    group: "more",
+  },
+  {
+    label: "Preferences",
+    to: "/app/preferences",
+    icon: BookOpen,
+    description: "Teach your Twin how you work.",
+    group: "more",
   },
   {
     label: "Projects",
     to: "/app/work-projects",
     icon: FolderKanban,
     description: "Your work projects and members.",
-  },
-  {
-    label: "Talk to Otzar",
-    to: "/app/voice",
-    icon: Mic,
-    description: "Speak or type to Otzar; hear the response back.",
-  },
-  {
-    label: "Voice envelope",
-    to: "/app/voice-ready",
-    icon: Mic,
-    description: "Typed voice-intent envelope (Phase 3 debug surface).",
+    group: "more",
   },
   {
     label: "Conversations",
     to: "/app/conversations",
     icon: MessagesSquare,
     description: "Your ambient console sessions.",
+    group: "more",
+  },
+  {
+    label: "Corrections",
+    to: "/app/corrections",
+    icon: PencilLine,
+    description: "Teach and correct your AI teammate.",
+    group: "more",
+  },
+  {
+    label: "Chat",
+    to: "/app/chat",
+    icon: MessageSquare,
+    description: "Talk with your AI teammate.",
+    group: "more",
+  },
+  {
+    label: "Observe",
+    to: "/app/observe",
+    icon: Eye,
+    description: "Submit context for Otzar to learn from.",
+    group: "more",
   },
 ];
+
+// Convenience selectors used by the nav renderer.
+export const PRIMARY_EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> =
+  EMPLOYEE_NAV.filter((i) => i.group === "primary");
+export const MORE_EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> =
+  EMPLOYEE_NAV.filter((i) => i.group === "more");
+
+// Unused; intentionally exported for telemetry / tests / future use.
+export { Bell };
