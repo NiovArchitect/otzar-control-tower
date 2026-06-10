@@ -1686,6 +1686,18 @@ export interface ContextHealthIdentity {
     collaboration_inbound_count: number;
     collaboration_outbound_count: number;
   };
+  // Phase 1207 substrate -- other PERSON members of the viewer's org
+  // with the rough collab signal Foundation surfaces to the LLM. The
+  // CT consumer reads this from /otzar/my-twin/context-health and
+  // renders it as the People directory on the Collaboration page.
+  org_roster: ReadonlyArray<{
+    entity_id: string;
+    display_name: string;
+    email: string | null;
+    title: string;
+    shared_project_count: number;
+    recent_collab_count: number;
+  }>;
   safety: {
     no_external_write_without_approval: true;
     no_private_data_to_unauthorized_users: true;

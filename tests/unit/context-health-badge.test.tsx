@@ -71,6 +71,7 @@ function buildResponse(
         collaboration_inbound_count: 1,
         collaboration_outbound_count: 2,
       },
+      org_roster: [],
       safety: {
         no_external_write_without_approval: true,
         no_private_data_to_unauthorized_users: true,

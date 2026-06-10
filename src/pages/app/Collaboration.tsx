@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PeopleDirectory } from "@/components/otzar/PeopleDirectory";
 import { api } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
@@ -171,9 +172,14 @@ export function Collaboration() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Collaboration"
-        description="Ask coworkers, coworker Twins, teams, and projects for help. Same-project / same-team work usually flows automatically; cross-team or sensitive work asks for approval at the right boundary."
+        title="People & Collaboration"
+        description="See the teammates in your org, then ask coworkers, coworker Twins, teams, and projects for help. Same-project / same-team work usually flows automatically; cross-team or sensitive work asks for approval at the right boundary. Powered by Dandelion."
       />
+
+      {/* Phase 1216 -- People directory at the top of the surface
+          so the operator can see WHO they can collaborate with
+          before opening the request form. */}
+      <PeopleDirectory />
 
       <CreateCollaborationForm onCreated={invalidateAll} />
 
