@@ -22,6 +22,7 @@ import { Chat } from "@/pages/app/Chat";
 import { Observe } from "@/pages/app/Observe";
 import { Corrections } from "@/pages/app/Corrections";
 import { Approvals } from "@/pages/app/Approvals";
+import { ActionCenter } from "@/pages/app/ActionCenter";
 import { MyTwin } from "@/pages/app/MyTwin";
 import { Conversations } from "@/pages/app/Conversations";
 import { AuthorityGrants } from "@/pages/app/AuthorityGrants";
@@ -82,6 +83,7 @@ export function App() {
               <Route path="observe" element={<Observe />} />
               <Route path="corrections" element={<Corrections />} />
               <Route path="approvals" element={<Approvals />} />
+              <Route path="action-center" element={<ActionCenter />} />
               <Route path="my-twin" element={<MyTwin />} />
               <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="preferences" element={<Preferences />} />

@@ -18,6 +18,7 @@ import {
   FolderKanban,
   KeyRound,
   LayoutDashboard,
+  ListChecks,
   Mic,
   MessageSquare,
   MessagesSquare,
@@ -57,6 +58,13 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/corrections",
     icon: PencilLine,
     description: "Teach and correct your AI teammate.",
+  },
+  {
+    label: "Action Center",
+    to: "/app/action-center",
+    icon: ListChecks,
+    description:
+      "Decisions Otzar is making on your behalf — pending, approved, completed, blocked.",
   },
   {
     label: "Approvals",

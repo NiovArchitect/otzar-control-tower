@@ -139,6 +139,7 @@ import type {
   SimulationSuccess,
   // Section 2 Action Runtime read surface (ADR-0057 §9 + §10)
   ActionDetailResponse,
+  ActionListResponse,
   SafeActionView,
   // Section 7 Full Audit Viewer (Foundation Wave 1+ per ADR-0071)
   ListAuditEventsInput,
@@ -1086,6 +1087,29 @@ export class ApiClient {
       this.request<ActionDetailResponse>(
         `/actions/${encodeURIComponent(actionId)}`,
       ),
+
+    /** Phase 1211 -- GET /api/v1/actions list. Self-scoped at
+     *  Foundation tier. Optional status / risk_tier / action_type
+     *  filters; standard pagination. */
+    list: (
+      params: {
+        status?: string;
+        risk_tier?: string;
+        action_type?: string;
+        page?: number;
+        page_size?: number;
+      } = {},
+    ): Promise<ApiResult<ActionListResponse>> => {
+      const query: Record<string, string> = {};
+      if (params.status !== undefined) query.status = params.status;
+      if (params.risk_tier !== undefined) query.risk_tier = params.risk_tier;
+      if (params.action_type !== undefined)
+        query.action_type = params.action_type;
+      if (params.page !== undefined) query.page = String(params.page);
+      if (params.page_size !== undefined)
+        query.page_size = String(params.page_size);
+      return this.request<ActionListResponse>(`/actions${qs(query)}`);
+    },
 
     /**
      * POST /api/v1/actions -- create-time substrate per ADR-0057 §9
