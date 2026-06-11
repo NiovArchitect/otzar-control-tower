@@ -931,6 +931,79 @@ const otzarConversationCloseHandler = http.post(
   },
 );
 
+// Phase 1242 — default handoff readiness aggregate.
+const otzarProductionReadinessHandler = http.get(
+  `${API_BASE}/otzar/production-readiness`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      readiness: {
+        headline:
+          "Your organization is ready for a full internal demo today. 9 of 11 setup steps are complete; the production schema update is waiting for your approval.",
+        org: { checklist_steps_ready: 9, checklist_steps_total: 11, mode: "DEMO" },
+        runtimes: [
+          {
+            runtime: "Language intelligence (LLM)",
+            status: "CONFIGURED",
+            note: "A language model provider is configured.",
+          },
+          {
+            runtime: "Voice input (speech-to-text)",
+            status: "FALLBACK_AVAILABLE",
+            note: "Sample and browser voice paths work today; connect Deepgram or Whisper for production voice input.",
+          },
+        ],
+        connectors: [
+          {
+            provider: "SLACK",
+            display_name: "Slack",
+            status: "BLOCKED_BY_CREDENTIAL",
+            required_envs: ["SLACK_CLIENT_ID"],
+            app_review_required: false,
+          },
+        ],
+        schema: {
+          pending_push: true,
+          pending_tables: ["collaboration_workspaces"],
+          approval_phrase: "APPROVE PROD SCHEMA PUSH",
+          note: "The pending update is additive only — no existing data changes. It requires the Founder's explicit approval phrase before it touches production.",
+        },
+        demo_prod_separation: {
+          mode: "DEMO",
+          note: "Demo mode — demo data is clearly marked and production is untouched.",
+        },
+        audit_compliance: {
+          audit_chain: "LIVE",
+          share_packages: "PROD_READY_PENDING_SCHEMA_PUSH",
+          note: "Every action is recorded in the tamper-evident audit trail. Regulator share packages go live with the schema update.",
+        },
+        capabilities: [
+          {
+            capability: "Notes, replies & Action Center",
+            classification: "PROD",
+            note: "Live end-to-end with full audit.",
+          },
+          {
+            capability: "Observe (let Otzar read documents)",
+            classification: "PROD_READY_PENDING_SCHEMA_PUSH",
+            note: "Sample and pasted-text reading work end-to-end; goes live with the pending schema update.",
+          },
+          {
+            capability: "Slack / Microsoft 365 / Zoom connectors",
+            classification: "BLOCKED_BY_CREDENTIALS",
+            note: "Setup paths and status are ready; each needs the organization's app credentials.",
+          },
+          {
+            capability: "Circle / Base / USDC settlement",
+            classification: "NOT_STARTED",
+            note: "Deliberately last, per direction.",
+          },
+        ],
+        generated_at: new Date().toISOString(),
+      },
+    }),
+);
+
 // Phase 1237 — Dandelion defaults (healthy org; warm onboarding).
 const otzarDandelionGrowthHandler = http.get(
   `${API_BASE}/otzar/dandelion/org-growth`,
@@ -2746,6 +2819,7 @@ export const handlers = [
   // Employee Otzar MVP
   otzarConversationMessageHandler,
   otzarConversationCloseHandler,
+  otzarProductionReadinessHandler,
   otzarDandelionGrowthHandler,
   otzarDandelionOnboardingHandler,
   otzarCalendarContextHandler,

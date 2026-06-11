@@ -70,6 +70,7 @@ import type {
   MyTwinResponse,
   CalendarContextResponse,
   DandelionMemoryCandidateResponse,
+  HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
   ContextHealthResponse,
@@ -730,6 +731,10 @@ export class ApiClient {
      *  runtime (or the honest fixture fallback). */
     myDayIntelligence: (): Promise<ApiResult<MyDayIntelligenceResponse>> =>
       this.request<MyDayIntelligenceResponse>("/otzar/my-day/intelligence"),
+
+    /** Phase 1242 — enterprise handoff readiness aggregate. */
+    productionReadiness: (): Promise<ApiResult<HandoffReadinessResponse>> =>
+      this.request<HandoffReadinessResponse>("/otzar/production-readiness"),
 
     /** Phase 1237 — Dandelion org growth + voice-first onboarding. */
     dandelionOrgGrowth: (): Promise<ApiResult<DandelionOrgGrowthResponse>> =>
