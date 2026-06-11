@@ -69,6 +69,7 @@ import type {
   // My Twin + Conversations metadata (read-only)
   MyTwinResponse,
   ContextHealthResponse,
+  MyDayIntelligenceResponse,
   CommsExtractResponse,
   NotificationListResponse,
   NotificationReadResponse,
@@ -712,6 +713,13 @@ export class ApiClient {
      *  status. Phase 1205. */
     contextHealth: (): Promise<ApiResult<ContextHealthResponse>> =>
       this.request<ContextHealthResponse>("/otzar/my-twin/context-health"),
+
+    /** Phase 1234 — GET /api/v1/otzar/my-day/intelligence. The calm
+     *  ambient daily ranking: Foundation gathers the caller's SAFE
+     *  scoped signals and ranks them through the Python intelligence
+     *  runtime (or the honest fixture fallback). */
+    myDayIntelligence: (): Promise<ApiResult<MyDayIntelligenceResponse>> =>
+      this.request<MyDayIntelligenceResponse>("/otzar/my-day/intelligence"),
 
     /** Phase 1213 — POST /api/v1/otzar/comms/extract. Given the
      *  assembled captured conversation text, return Foundation's
