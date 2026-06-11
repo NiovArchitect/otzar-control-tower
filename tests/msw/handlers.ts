@@ -931,6 +931,52 @@ const otzarConversationCloseHandler = http.post(
   },
 );
 
+// Phase 1244 — default connector adapters (setup guidance).
+const otzarConnectorAdaptersHandler = http.get(
+  `${API_BASE}/connectors/adapters`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      adapters: [
+        {
+          provider_name: "SLACK",
+          category: "MESSAGING",
+          display_name: "Slack",
+          description: "Workspace messaging.",
+          required_envs: ["SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"],
+          oauth_scopes: ["chat:write"],
+          app_review_required: false,
+          can_write: true,
+          phase: 1225,
+          setup_steps: [
+            "Create a Slack app in your workspace's API portal.",
+            "Add the client ID, client secret, and signing secret to your deployment.",
+            "Sends remain approval-gated inside Otzar even after connection.",
+          ],
+          demo_mode_available: true,
+          status: "BLOCKED_BY_CREDENTIAL",
+          missing_envs: ["SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"],
+        },
+        {
+          provider_name: "OCR_TESSERACT",
+          category: "AI",
+          display_name: "Tesseract.js (local OCR)",
+          description: "Local image reading.",
+          required_envs: [],
+          oauth_scopes: [],
+          can_write: false,
+          phase: 1227,
+          setup_steps: [
+            "No credentials needed — local reading installs with a future build update.",
+          ],
+          demo_mode_available: true,
+          status: "DISABLED",
+          missing_envs: [],
+        },
+      ],
+    }),
+);
+
 // Phase 1242 — default handoff readiness aggregate.
 const otzarProductionReadinessHandler = http.get(
   `${API_BASE}/otzar/production-readiness`,
@@ -2819,6 +2865,7 @@ export const handlers = [
   // Employee Otzar MVP
   otzarConversationMessageHandler,
   otzarConversationCloseHandler,
+  otzarConnectorAdaptersHandler,
   otzarProductionReadinessHandler,
   otzarDandelionGrowthHandler,
   otzarDandelionOnboardingHandler,

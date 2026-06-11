@@ -9,6 +9,7 @@
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
@@ -249,5 +250,41 @@ describe("ConnectorHealth — privacy invariants", () => {
     expect(html).not.toMatch(/tar_hash/i);
     expect(html).not.toMatch(/wallet_id/i);
     expect(html).not.toMatch(/bearer/i);
+  });
+});
+
+describe("ConnectorHealth — How to connect (Phase 1244)", () => {
+  it("admins see expandable plain-English setup guidance with honest blockers", async () => {
+    setAuth(true);
+    renderPage();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("connector-setup-guidance"),
+      ).toBeInTheDocument(),
+    );
+    const rows = screen.getAllByTestId("connector-setup-row");
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    const slackToggle = screen
+      .getAllByTestId("connector-setup-toggle")
+      .find((t) => t.textContent?.includes("Slack"));
+    if (slackToggle === undefined) throw new Error("expected Slack row");
+    expect(slackToggle.textContent).toContain("Needs setup");
+    expect(slackToggle.textContent).toContain("Demo works today");
+    await userEvent.click(slackToggle);
+    const steps = screen.getByTestId("connector-setup-steps");
+    expect(steps).toHaveTextContent("approval-gated inside Otzar");
+    expect(steps).toHaveTextContent("Your deployment still needs:");
+    // Env NAMES are admin guidance; secrets never appear.
+    expect(steps.textContent).toContain("SLACK_CLIENT_ID");
+    expect(document.body.textContent).not.toContain("client_secret=");
+  });
+
+  it("non-admins never see the setup guidance section", async () => {
+    setAuth(false);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("connector-health-reassurance")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("connector-setup-guidance")).toBeNull();
   });
 });
