@@ -3831,3 +3831,82 @@ export interface GetAudioCaptureDetailResponse {
   audio_capture: AudioCaptureSafeView;
   segments: TranscriptSegmentView[];
 }
+
+// ─── Phase 1234 — My Day intelligence ────────────────────────
+// Calm ambient daily ranking from GET /otzar/my-day/intelligence.
+// Foundation builds a SAFE caller-scoped signal pack and ranks it
+// through the Python intelligence runtime (or the honest fixture
+// fallback). Counts + closed-vocab labels only — never payloads.
+
+export type MyDayProviderStatus =
+  | "PYTHON_CONFIGURED"
+  | "FIXTURE_PROVIDER_URL_NOT_SET"
+  | "FIXTURE_PROVIDER_DISABLED"
+  | "FIXTURE_PROVIDER_TIMEOUT"
+  | "FIXTURE_PROVIDER_ERROR"
+  | "FIXTURE_PROVIDER_INVALID_RESPONSE";
+
+export type MyDaySuggestionReason =
+  | "PENDING_APPROVALS_AWAITING_YOU"
+  | "AUTHORITY_GRANT_EXPIRING_SOON"
+  | "SENSITIVE_GRANT_REQUIRES_CASE_BY_CASE"
+  | "COLLABORATION_INBOX_NEEDS_RESPONSE"
+  | "COLLABORATION_NEEDS_YOUR_APPROVAL"
+  | "COLLABORATION_BLOCKED_NEEDS_ATTENTION"
+  | "CHAT_NEEDS_APPROVAL"
+  | "CHAT_NEEDS_CLARIFICATION"
+  | "CHAT_COLLABORATION_SUGGESTED"
+  | "PROJECT_ACTIVITY_RESUMING"
+  | "TEACH_YOUR_TWIN_PREFERENCES"
+  | "REVIEW_RECENT_ACTIONS";
+
+export interface MyDaySuggestion {
+  rank: number;
+  reason: MyDaySuggestionReason;
+  safe_title: string;
+  confidence: "HIGH" | "MEDIUM" | "LOW" | "INSUFFICIENT_CONTEXT";
+  risk:
+    | "NONE"
+    | "APPROVAL_REQUIRED"
+    | "POLICY_REVIEW"
+    | "MISSING_CONTEXT"
+    | "CROSS_TEAM_DEPENDENCY"
+    | "PROJECT_BLOCKER"
+    | "DMW_SCOPE_NEEDED";
+  score: number;
+}
+
+export interface MyDaySignals {
+  proposed_actions_count: number;
+  recent_action_count: number;
+  unread_notifications_count: number;
+  collaboration_inbox_pending_count: number;
+  collaboration_needs_approval_count: number;
+  collaboration_blocked_count: number;
+  active_authority_grants_count: number;
+  expiring_soon_grants_count: number;
+  sensitive_case_by_case_grants_count: number;
+  active_project_count: number;
+  open_commitments_owned_count: number;
+  waiting_on_external_count: number;
+  owed_to_external_count: number;
+  most_recent_action_at: string | null;
+  most_recent_collaboration_at: string | null;
+}
+
+export interface MyDayIntelligenceView {
+  headline: string;
+  suggestions: MyDaySuggestion[];
+  signals: MyDaySignals;
+  waiting_on_external: {
+    they_owe_us_count: number;
+    we_owe_them_count: number;
+  };
+  provider_status: MyDayProviderStatus;
+  generated_at: string;
+}
+
+export interface MyDayIntelligenceResponse {
+  ok: true;
+  intelligence: MyDayIntelligenceView;
+}

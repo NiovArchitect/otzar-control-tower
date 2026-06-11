@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   Clock,
   Mic,
+  Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,8 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type {
   ContextHealthResponse,
+  MyDayIntelligenceView,
+  MyDaySuggestionReason,
   SafeActionView,
   SafeNotificationView,
 } from "@/lib/types/foundation";
@@ -51,8 +54,43 @@ interface State {
   identity: ContextHealthResponse | null;
   pending: SafeActionView[];
   notifications: SafeNotificationView[];
+  intelligence: MyDayIntelligenceView | null;
   loading: boolean;
 }
+
+// Phase 1234 — friendly copy for the closed-vocab suggestion reasons.
+// Calm language only; no developer vocabulary.
+const REASON_COPY: Record<MyDaySuggestionReason, string> = {
+  PENDING_APPROVALS_AWAITING_YOU: "Drafts are waiting on your decision",
+  AUTHORITY_GRANT_EXPIRING_SOON: "A permission you granted expires soon",
+  SENSITIVE_GRANT_REQUIRES_CASE_BY_CASE:
+    "A sensitive permission needs your case-by-case review",
+  COLLABORATION_INBOX_NEEDS_RESPONSE: "A teammate is waiting on your reply",
+  COLLABORATION_NEEDS_YOUR_APPROVAL: "A collaboration needs your approval",
+  COLLABORATION_BLOCKED_NEEDS_ATTENTION: "A collaboration is blocked",
+  CHAT_NEEDS_APPROVAL: "Your last chat drafted something to approve",
+  CHAT_NEEDS_CLARIFICATION: "Otzar needs one clarification from you",
+  CHAT_COLLABORATION_SUGGESTED: "Otzar suggested looping in a teammate",
+  PROJECT_ACTIVITY_RESUMING: "A project of yours is picking back up",
+  TEACH_YOUR_TWIN_PREFERENCES: "Teach Otzar how you like things done",
+  REVIEW_RECENT_ACTIONS: "Recent activity is ready for a quick review",
+};
+
+// Where each suggestion's "Open" affordance lands.
+const REASON_LINK: Record<MyDaySuggestionReason, string> = {
+  PENDING_APPROVALS_AWAITING_YOU: "/app/action-center",
+  AUTHORITY_GRANT_EXPIRING_SOON: "/app/authority-grants",
+  SENSITIVE_GRANT_REQUIRES_CASE_BY_CASE: "/app/authority-grants",
+  COLLABORATION_INBOX_NEEDS_RESPONSE: "/app/collaboration",
+  COLLABORATION_NEEDS_YOUR_APPROVAL: "/app/collaboration",
+  COLLABORATION_BLOCKED_NEEDS_ATTENTION: "/app/collaboration",
+  CHAT_NEEDS_APPROVAL: "/app/action-center",
+  CHAT_NEEDS_CLARIFICATION: "/app/chat",
+  CHAT_COLLABORATION_SUGGESTED: "/app/collaboration",
+  PROJECT_ACTIVITY_RESUMING: "/app/work-projects",
+  TEACH_YOUR_TWIN_PREFERENCES: "/app/my-twin",
+  REVIEW_RECENT_ACTIONS: "/app/action-center",
+};
 
 function friendlyActionType(action_type: string): string {
   switch (action_type) {
@@ -117,6 +155,7 @@ export function MyDay(): JSX.Element {
     identity: null,
     pending: [],
     notifications: [],
+    intelligence: null,
     loading: true,
   });
 
@@ -127,12 +166,16 @@ export function MyDay(): JSX.Element {
       api.otzar.contextHealth(),
       api.actions.list({ status: "PROPOSED", page_size: 5 }),
       api.notifications.list({ unread_only: true, page_size: 5 }),
-    ]).then(([healthResult, actionsResult, notifsResult]) => {
+      // Phase 1234 — non-blocking: when this fails the card simply
+      // does not render; the rest of My Day works unchanged.
+      api.otzar.myDayIntelligence(),
+    ]).then(([healthResult, actionsResult, notifsResult, intelResult]) => {
       if (cancelled) return;
       setState({
         identity: healthResult.ok ? healthResult.data : null,
         pending: actionsResult.ok ? actionsResult.data.items : [],
         notifications: notifsResult.ok ? notifsResult.data.notifications : [],
+        intelligence: intelResult.ok ? intelResult.data.intelligence : null,
         loading: false,
       });
     });
@@ -198,6 +241,86 @@ export function MyDay(): JSX.Element {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Phase 1234 — What matters today (ranked daily intelligence) */}
+      {!state.loading && state.intelligence !== null ? (
+        <Card
+          data-testid="my-day-intelligence"
+          data-provider-status={state.intelligence.provider_status}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Sparkles className="h-4 w-4" aria-hidden /> What matters today
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+            <p
+              className="text-muted-foreground"
+              data-testid="my-day-intelligence-headline"
+            >
+              {state.intelligence.headline}
+            </p>
+            {state.intelligence.suggestions.length > 0 ? (
+              <ul
+                className="space-y-1"
+                data-testid="my-day-intelligence-list"
+              >
+                {state.intelligence.suggestions.slice(0, 3).map((s) => (
+                  <li
+                    key={`${s.rank}-${s.reason}`}
+                    data-testid="my-day-intelligence-item"
+                    className="flex items-center justify-between gap-2 rounded border bg-card p-2"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {s.safe_title}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {REASON_COPY[s.reason]}
+                        {s.risk === "APPROVAL_REQUIRED"
+                          ? " — ready for your approval."
+                          : s.risk === "PROJECT_BLOCKER"
+                            ? " — currently blocking progress."
+                            : ""}
+                      </p>
+                    </div>
+                    <Button asChild variant="ghost" size="sm">
+                      <Link to={REASON_LINK[s.reason]}>
+                        Open{" "}
+                        <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
+                      </Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {state.intelligence.waiting_on_external.they_owe_us_count > 0 ? (
+              <p
+                className="text-muted-foreground"
+                data-testid="my-day-intelligence-external"
+              >
+                Waiting on{" "}
+                {state.intelligence.waiting_on_external.they_owe_us_count}{" "}
+                {state.intelligence.waiting_on_external.they_owe_us_count === 1
+                  ? "item"
+                  : "items"}{" "}
+                from outside your organization.{" "}
+                <Link
+                  to="/app/collaboration-workspaces"
+                  className="underline-offset-2 hover:underline"
+                >
+                  See who →
+                </Link>
+              </p>
+            ) : null}
+            <p className="text-[10px] text-muted-foreground">
+              {state.intelligence.provider_status === "PYTHON_CONFIGURED"
+                ? "Ranked by Otzar's intelligence service."
+                : "Ranked by Otzar's built-in assistant."}
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Pending confirmations */}
       <Card data-testid="my-day-pending">
