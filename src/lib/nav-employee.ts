@@ -33,6 +33,7 @@ import {
   MessageSquare,
   MessagesSquare,
   PencilLine,
+  ShieldCheck,
   Sun,
   Users,
   Wallet,
@@ -190,6 +191,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Mic,
     description:
       "Capture a meeting, log who consented, and attach it to a workspace.",
+    group: "more",
+  },
+  {
+    label: "Production readiness",
+    to: "/app/onboarding-readiness",
+    icon: ShieldCheck,
+    description:
+      "Admin-only checklist of what's left before this Otzar deployment is production-ready.",
     group: "more",
   },
 ];

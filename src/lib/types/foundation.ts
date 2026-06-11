@@ -3578,3 +3578,164 @@ export interface MeetingParticipantConsentUpdateResponse {
   ok: true;
   participant: ParticipantConsentView;
 }
+
+// ──────────────────────────────────────────────────────────────
+// Phase 1228 — DMW Registry types.
+// ──────────────────────────────────────────────────────────────
+
+export type DMWType =
+  | "HUMAN"
+  | "ENTERPRISE"
+  | "DEPARTMENT"
+  | "AI_TWIN"
+  | "AI_EMPLOYEE"
+  | "DEVICE"
+  | "VENDOR"
+  | "REGULATOR"
+  | "AGENT"
+  | "EXTERNAL_COLLABORATOR";
+
+export interface DMWRegistryEntry {
+  dmw_id: string;
+  entity_id: string | null;
+  external_collaborator_id: string | null;
+  dmw_type: DMWType;
+  display_name: string;
+  email: string | null;
+  org_entity_id: string | null;
+  wallet_type: "PERSONAL" | "ENTERPRISE" | "DEVICE" | null;
+  controller_dmw_id: string | null;
+  counts: {
+    consent_grants_active: number;
+    delegations_active: number;
+    swarm_boundaries: number;
+    memory_scopes_active: number;
+    external_collaborations: number;
+  };
+  status: "ACTIVE" | "SUSPENDED" | "REVOKED" | "DELETED";
+  created_at: string;
+}
+
+export interface GetMyDMWResponse {
+  ok: true;
+  dmw: DMWRegistryEntry;
+}
+
+export interface ListOrgDMWResponse {
+  ok: true;
+  org_entity_id: string;
+  entries: DMWRegistryEntry[];
+}
+
+export interface GetDMWByIdResponse {
+  ok: true;
+  dmw: DMWRegistryEntry;
+}
+
+export interface DMWAuditEntry {
+  event_id: string;
+  event_type: string;
+  outcome: string;
+  actor_entity_id: string | null;
+  created_at: string;
+}
+
+export interface ListDMWAuditResponse {
+  ok: true;
+  events: DMWAuditEntry[];
+}
+
+// ──────────────────────────────────────────────────────────────
+// Phase 1229 — COSMP capsule management types.
+// ──────────────────────────────────────────────────────────────
+
+export interface CapsuleSafeView {
+  capsule_id: string;
+  wallet_id: string;
+  entity_id: string;
+  capsule_type: string;
+  topic_tags: string[];
+  payload_summary: string;
+  relevance_score: number;
+  clearance_required: number;
+  access_count: number;
+  status: "ACTIVE" | "EXPIRED" | "REVOKED" | "ARCHIVED";
+  created_at: string;
+  last_updated_at: string;
+  last_accessed_at: string | null;
+  expires_at: string | null;
+}
+
+export interface ListCapsulesResponse {
+  ok: true;
+  capsules: CapsuleSafeView[];
+  total: number;
+}
+
+export interface RevokeCapsuleResponse {
+  ok: true;
+  capsule_id: string;
+  revoked_at: string;
+}
+
+export interface COSMPAuditSummaryView {
+  total_events: number;
+  by_event_type: Record<string, number>;
+  recent_events: Array<{
+    audit_id: string;
+    event_type: string;
+    outcome: string;
+    timestamp: string;
+    capsule_id: string | null;
+  }>;
+}
+
+export interface GetCOSMPAuditResponse {
+  ok: true;
+  summary: COSMPAuditSummaryView;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Phase 1230 — Onboarding checklist types.
+// ──────────────────────────────────────────────────────────────
+
+export type OnboardingStepStatus =
+  | "PENDING"
+  | "READY"
+  | "MISSING_KEYS"
+  | "ATTENTION";
+
+export interface OnboardingStep {
+  step_id: string;
+  label: string;
+  status: OnboardingStepStatus;
+  summary: string;
+  completed_at: string | null;
+  action_required?: string;
+}
+
+export interface OnboardingChecklist {
+  org_entity_id: string;
+  mode: "DEMO" | "PRODUCTION";
+  ready_for_production_at: string | null;
+  steps: OnboardingStep[];
+  facts: {
+    total_members: number;
+    admin_members: number;
+    role_archetypes_assigned: number;
+    action_policies_configured: number;
+    connector_bindings: number;
+    stt_providers_available: number;
+    stt_providers_missing_keys: number;
+    has_open_audit_chain: boolean;
+    schema_migration_state:
+      | "LOCAL_ONLY"
+      | "PROD_MIGRATION_ACKNOWLEDGED"
+      | "PROD_MIGRATION_APPLIED";
+  };
+}
+
+export interface GetOnboardingChecklistResponse {
+  ok: true;
+  checklist: OnboardingChecklist;
+}
