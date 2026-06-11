@@ -3,15 +3,26 @@
 //          EMPLOYEE_NAV and highlights the active route. Intentionally
 //          carries NO org-admin actions (no invite/suspend/grant/
 //          revoke/settings) -- those live only in AdminSidebar.
-// CONNECTS TO: src/lib/nav-employee.ts, EmployeeLayout.
+//
+//          Phase 1235 (ambient shell): the "More" section is
+//          COLLAPSED by default — normal employees see the 7 primary
+//          surfaces and one quiet "More" disclosure, not 22 links.
+//          Admin/diagnostic entries (adminOnly) are hidden unless the
+//          viewer has org-admin capability.
+// CONNECTS TO: src/lib/nav-employee.ts, EmployeeLayout,
+//              src/lib/auth/capabilities.ts.
 
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   PRIMARY_EMPLOYEE_NAV,
   MORE_EMPLOYEE_NAV,
   type EmployeeNavItem,
 } from "@/lib/nav-employee";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuthStore } from "@/lib/stores/auth";
+import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { cn } from "@/lib/utils";
 
 function NavRow({
@@ -47,6 +58,16 @@ function NavRow({
 }
 
 export function EmployeeNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { capabilities } = useAuthStore();
+  const admin = isOrgAdmin(capabilities);
+  // Phase 1235: collapsed by default — the shell stays quiet until
+  // the employee asks for more.
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const moreItems = MORE_EMPLOYEE_NAV.filter(
+    (i) => i.adminOnly !== true || admin,
+  );
+
   return (
     <nav
       aria-label="Otzar navigation"
@@ -70,14 +91,27 @@ export function EmployeeNav({ onNavigate }: { onNavigate?: () => void }) {
             <NavRow key={item.to} item={item} onNavigate={onNavigate} />
           ))}
         </ul>
-        <div className="px-3 pb-1 pt-4 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          aria-expanded={moreOpen}
+          className="mt-4 flex w-full items-center gap-1 px-3 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          data-testid="employee-nav-more-toggle"
+        >
+          {moreOpen ? (
+            <ChevronDown className="h-3 w-3" aria-hidden />
+          ) : (
+            <ChevronRight className="h-3 w-3" aria-hidden />
+          )}
           More
-        </div>
-        <ul className="space-y-1" data-testid="employee-nav-more">
-          {MORE_EMPLOYEE_NAV.map((item) => (
-            <NavRow key={item.to} item={item} onNavigate={onNavigate} />
-          ))}
-        </ul>
+        </button>
+        {moreOpen ? (
+          <ul className="space-y-1" data-testid="employee-nav-more">
+            {moreItems.map((item) => (
+              <NavRow key={item.to} item={item} onNavigate={onNavigate} />
+            ))}
+          </ul>
+        ) : null}
       </ScrollArea>
     </nav>
   );
