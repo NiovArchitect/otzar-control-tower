@@ -189,7 +189,6 @@ export function ConnectorHealth(): JSX.Element {
     return () => {
       cancelledAdapters = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [admin]);
 
   useEffect(() => {

@@ -67,7 +67,10 @@ const BANNED_EVERYWHERE = [
 
 // Developer vocabulary: banned on normal-employee pages. Admin /
 // diagnostics pages (relaxed tier) may name technical concepts.
-const BANNED_FOR_EMPLOYEES = ["payload", " adapter", "API key"];
+// "COSMP" is banned for employees per the MyMemory/Workspace copy
+// discipline (protocol names live in admin/governance surfaces and
+// the buyer-facing Playground patent demo only).
+const BANNED_FOR_EMPLOYEES = ["payload", " adapter", "API key", "COSMP"];
 
 interface PageCase {
   name: string;

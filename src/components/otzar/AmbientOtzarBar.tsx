@@ -187,7 +187,6 @@ export function AmbientOtzarBar(): JSX.Element {
     };
     // recognition/synthesis are accessed via refs to keep this
     // effect mount-stable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // AUTO-SPEAK effect — only fires when:

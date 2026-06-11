@@ -15,7 +15,8 @@ export function DataSovereigntyBadge() {
     >
       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
       <span>
-        Sovereign by design — every access is audited under the COSMP Protocol.
+        Sovereign by design — every access is recorded in your organization's
+        audit trail.
       </span>
     </div>
   );

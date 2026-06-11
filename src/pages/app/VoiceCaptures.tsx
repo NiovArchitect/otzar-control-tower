@@ -105,16 +105,37 @@ export function VoiceCaptures(): JSX.Element {
   const [segments, setSegments] = useState<CapturedSegment[]>([]);
   const [lastCapture, setLastCapture] = useState<AudioCaptureSafeView | null>(null);
   const [list, setList] = useState<AudioCaptureSafeView[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const startedAtRef = useRef<number>(0);
   const recogRef = useRef<SREventTarget | null>(null);
 
   useEffect(() => {
-    api.voiceCaptures.providers().then((r) => {
-      if (r.ok) setProviders(r.data.providers);
-    });
-    api.voiceCaptures.list().then((r) => {
-      if (r.ok) setList(r.data.audio_captures);
-    });
+    // A failed load must never masquerade as "no captures yet" — set
+    // loadError so the empty states tell the truth.
+    let cancelled = false;
+    api.voiceCaptures
+      .providers()
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) setProviders(r.data.providers);
+        else setLoadError(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
+    api.voiceCaptures
+      .list()
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) setList(r.data.audio_captures);
+        else setLoadError(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function resetState(): void {
@@ -261,6 +282,16 @@ export function VoiceCaptures(): JSX.Element {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-xs">
+          {providers.length === 0 ? (
+            <p
+              className="text-[10px] text-muted-foreground"
+              data-testid="voice-captures-providers-empty"
+            >
+              {loadError
+                ? "Couldn't load provider status right now. Refresh to try again."
+                : "Checking provider status…"}
+            </p>
+          ) : null}
           <ul className="space-y-1">
             {providers.map((p) => (
               <li
@@ -478,8 +509,13 @@ export function VoiceCaptures(): JSX.Element {
         </CardHeader>
         <CardContent>
           {list.length === 0 ? (
-            <p className="text-[10px] text-muted-foreground">
-              No voice captures yet.
+            <p
+              className="text-[10px] text-muted-foreground"
+              data-testid="voice-captures-list-empty"
+            >
+              {loadError
+                ? "Couldn't load your voice captures right now. Refresh to try again."
+                : "No voice captures yet."}
             </p>
           ) : (
             <ul className="space-y-1 text-xs">
