@@ -186,6 +186,17 @@ import type {
   MeetingCaptureDetailResponse,
   MeetingCaptureAttachResponse,
   MeetingParticipantConsentUpdateResponse,
+  // Phase 1228
+  GetMyDMWResponse,
+  ListOrgDMWResponse,
+  GetDMWByIdResponse,
+  ListDMWAuditResponse,
+  // Phase 1229
+  ListCapsulesResponse,
+  RevokeCapsuleResponse,
+  GetCOSMPAuditResponse,
+  // Phase 1230
+  GetOnboardingChecklistResponse,
 } from "./types/foundation";
 import type {
   ListConnectorBindingsSuccess,
@@ -1989,6 +2000,120 @@ export class ApiClient {
       this.request<MeetingParticipantConsentUpdateResponse>(
         `/otzar/meeting-captures/participants/${encodeURIComponent(participantId)}/consent`,
         { method: "PUT", body: input },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 1228 — DMW Registry
+  // ──────────────────────────────────────────────────────────────
+  dmwRegistry = {
+    me: (): Promise<ApiResult<GetMyDMWResponse>> =>
+      this.request<GetMyDMWResponse>("/dmw/me"),
+    org: (): Promise<ApiResult<ListOrgDMWResponse>> =>
+      this.request<ListOrgDMWResponse>("/dmw/org"),
+    detail: (
+      dmwId: string,
+    ): Promise<ApiResult<GetDMWByIdResponse>> =>
+      this.request<GetDMWByIdResponse>(
+        `/dmw/${encodeURIComponent(dmwId)}`,
+      ),
+    createDelegation: (
+      dmwId: string,
+      input: {
+        team_entity_id: string;
+        capability_scope: string[];
+        supervision_required?: boolean;
+        valid_until?: string;
+      },
+    ): Promise<
+      ApiResult<{
+        ok: true;
+        delegation_id: string;
+        status: "ACTIVE";
+        capability_scope: string[];
+        valid_until: string | null;
+      }>
+    > =>
+      this.request<{
+        ok: true;
+        delegation_id: string;
+        status: "ACTIVE";
+        capability_scope: string[];
+        valid_until: string | null;
+      }>(
+        `/dmw/${encodeURIComponent(dmwId)}/delegations`,
+        { method: "POST", body: input },
+      ),
+    revokeDelegation: (
+      delegationId: string,
+    ): Promise<ApiResult<{ ok: true; delegation_id: string; revoked_at: string }>> =>
+      this.request<{ ok: true; delegation_id: string; revoked_at: string }>(
+        `/dmw/delegations/${encodeURIComponent(delegationId)}/revoke`,
+        { method: "POST", body: {} },
+      ),
+    audit: (
+      dmwId: string,
+    ): Promise<ApiResult<ListDMWAuditResponse>> =>
+      this.request<ListDMWAuditResponse>(
+        `/dmw/${encodeURIComponent(dmwId)}/audit`,
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 1229 — COSMP capsule management
+  // ──────────────────────────────────────────────────────────────
+  cosmpCapsules = {
+    list: (
+      params: {
+        capsule_type?: string;
+        include_revoked?: boolean;
+        take?: number;
+        skip?: number;
+      } = {},
+    ): Promise<ApiResult<ListCapsulesResponse>> => {
+      const query: Record<string, string> = {};
+      if (params.capsule_type !== undefined) query.capsule_type = params.capsule_type;
+      if (params.include_revoked === true) query.include_revoked = "true";
+      if (params.take !== undefined) query.take = String(params.take);
+      if (params.skip !== undefined) query.skip = String(params.skip);
+      return this.request<ListCapsulesResponse>(`/cosmp/capsules${qs(query)}`);
+    },
+    revoke: (
+      capsuleId: string,
+      input: { reason?: string } = {},
+    ): Promise<ApiResult<RevokeCapsuleResponse>> =>
+      this.request<RevokeCapsuleResponse>(
+        `/cosmp/capsules/${encodeURIComponent(capsuleId)}/revoke`,
+        { method: "POST", body: input },
+      ),
+    audit: (
+      params: { take?: number } = {},
+    ): Promise<ApiResult<GetCOSMPAuditResponse>> => {
+      const query: Record<string, string> = {};
+      if (params.take !== undefined) query.take = String(params.take);
+      return this.request<GetCOSMPAuditResponse>(`/cosmp/audit${qs(query)}`);
+    },
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 1230 — Onboarding checklist
+  // ──────────────────────────────────────────────────────────────
+  onboarding = {
+    checklist: (): Promise<ApiResult<GetOnboardingChecklistResponse>> =>
+      this.request<GetOnboardingChecklistResponse>("/onboarding/checklist"),
+    completeStep: (
+      stepId: string,
+    ): Promise<ApiResult<GetOnboardingChecklistResponse>> =>
+      this.request<GetOnboardingChecklistResponse>(
+        `/onboarding/steps/${encodeURIComponent(stepId)}/complete`,
+        { method: "POST", body: {} },
+      ),
+    setMode: (
+      mode: "DEMO" | "PRODUCTION",
+    ): Promise<ApiResult<GetOnboardingChecklistResponse>> =>
+      this.request<GetOnboardingChecklistResponse>(
+        "/onboarding/mode",
+        { method: "PUT", body: { mode } },
       ),
   };
 }

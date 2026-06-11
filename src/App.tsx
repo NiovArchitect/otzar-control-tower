@@ -36,6 +36,7 @@ import { Collaboration } from "@/pages/app/Collaboration";
 import { CollaborationWorkspaces } from "@/pages/app/CollaborationWorkspaces";
 import { CollaborationWorkspaceDetail } from "@/pages/app/CollaborationWorkspaceDetail";
 import { MeetingCaptures } from "@/pages/app/MeetingCaptures";
+import { OnboardingReadiness } from "@/pages/app/OnboardingReadiness";
 import { WorkProjects } from "@/pages/app/WorkProjects";
 import { VoiceReady } from "@/pages/app/VoiceReady";
 import { Voice } from "@/pages/app/Voice";
@@ -114,6 +115,7 @@ export function App() {
                 element={<CollaborationWorkspaceDetail />}
               />
               <Route path="meeting-captures" element={<MeetingCaptures />} />
+              <Route path="onboarding-readiness" element={<OnboardingReadiness />} />
               <Route path="work-projects" element={<WorkProjects />} />
               <Route path="voice-ready" element={<VoiceReady />} />
               <Route path="voice" element={<Voice />} />
