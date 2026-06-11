@@ -36,6 +36,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check, Reply, Send, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
+import { usePresenceStore } from "@/lib/stores/presence";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import type { SafeNotificationView } from "@/lib/types/foundation";
 
@@ -128,6 +129,13 @@ export function NotificationBell({
 
   const unread = state.items.filter((n) => n.read_at === null);
   const unreadCount = unread.length;
+
+  // Phase 1251 — feed the edge presence so the glow + ambient cards
+  // know about new notes without polling twice.
+  const setPresenceSignals = usePresenceStore((s) => s.setSignals);
+  useEffect(() => {
+    setPresenceSignals({ unreadCount });
+  }, [unreadCount, setPresenceSignals]);
 
   function openReply(notificationId: string): void {
     setState((s) => ({

@@ -8,6 +8,7 @@
 import { Link, Outlet } from "react-router-dom";
 import { LogOut, Menu, Mic } from "lucide-react";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { AdminCommandLayer } from "@/components/AdminCommandLayer";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import { DataSovereigntyBadge } from "@/components/DataSovereigntyBadge";
@@ -57,6 +58,7 @@ export function Layout() {
             )}
           </div>
           <div className="flex items-center gap-3 text-sm">
+            <AdminCommandLayer />
             {isEmployee(capabilities) && (
               <Button asChild variant="default" size="sm" className="gap-1">
                 <Link to="/app/voice-ready">

@@ -15,6 +15,8 @@ import { Link, Outlet } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { EmployeeNav } from "@/components/employee/EmployeeNav";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
+import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
+import { AmbientNotificationStack } from "@/components/otzar/AmbientNotificationStack";
 import { NotificationBell } from "@/components/otzar/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -69,8 +71,12 @@ export function EmployeeLayout() {
         </main>
       </div>
 
-      {/* Persistent ambient Otzar dock. Available on every
-          authenticated employee page; nonblocking; semi-transparent. */}
+      {/* Phase 1251 — the Otzar edge presence. The glow speaks state
+          at the viewport edge; ambient cards surface only what
+          matters; the orb/dock is the voice-first entry point. All
+          pointer-safe and nonblocking — work stays foreground. */}
+      <AmbientEdgeGlow />
+      <AmbientNotificationStack />
       <AmbientOtzarBar />
     </div>
   );

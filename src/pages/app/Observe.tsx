@@ -204,8 +204,51 @@ export function Observe() {
     <div className="space-y-6">
       <PageHeader
         title="Observe"
-        description="Let Otzar read documents and notes you choose, and turn them into organized work — privately, inside your organization."
+        description="Otzar can understand the work you already see on screen — any document, any tool, any system — without a separate integration for each one. You choose what it reads; everything stays governed."
       />
+
+      {/* Phase 1251 — the shared-screen story, progressive
+          disclosure: the vision in plain language, collapsed by
+          default so the working surface stays calm. */}
+      <details
+        className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-xs"
+        data-testid="observe-vision"
+      >
+        <summary className="cursor-pointer font-medium text-foreground">
+          What Otzar's eyes can do for you
+        </summary>
+        <ul className="mt-2 space-y-1 text-muted-foreground">
+          <li>
+            <span className="text-foreground">Process whisperer</span> — paste
+            what you're working in and Otzar explains the next step in plain
+            language.
+          </li>
+          <li>
+            <span className="text-foreground">Cross-tool bridge</span> — Otzar
+            connects what you see in one tool to your team's decisions,
+            commitments, and workspaces.
+          </li>
+          <li>
+            <span className="text-foreground">Shadow coach</span> — learning a
+            complex system? Otzar reads the same screen and walks you through
+            it.
+          </li>
+          <li>
+            <span className="text-foreground">Compliance guardian</span> —
+            anything Otzar reads is permission-checked, policy-gated, and
+            recorded in your audit trail.
+          </li>
+          <li>
+            <span className="text-foreground">Performance helper</span> — Otzar
+            turns what it reads into follow-ups so nothing falls through.
+          </li>
+        </ul>
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          Today this works with pasted text and samples; live screen sharing
+          arrives with the same governance. Otzar never reads anything you
+          didn't choose to share, and never acts without your approval.
+        </p>
+      </details>
 
       {/* ── Phase 1227: Let Otzar read this ── */}
       <Card data-testid="observe-read">
