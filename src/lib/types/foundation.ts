@@ -4127,3 +4127,32 @@ export interface HandoffReadinessResponse {
     generated_at: string;
   };
 }
+
+// ─── Phase 1244 — connector adapter status + setup guidance ──
+
+export interface ConnectorAdapterRow {
+  provider_name: string;
+  category: string;
+  display_name: string;
+  description: string;
+  required_envs: string[];
+  oauth_scopes: string[];
+  setup_docs_url?: string;
+  app_review_required?: boolean;
+  can_write: boolean;
+  phase: number;
+  setup_steps: string[];
+  demo_mode_available: boolean;
+  status:
+    | "CONFIGURED"
+    | "BLOCKED_BY_CREDENTIAL"
+    | "BLOCKED_BY_APP_REVIEW"
+    | "DISABLED"
+    | "ERROR";
+  missing_envs: string[];
+}
+
+export interface ConnectorAdaptersResponse {
+  ok: true;
+  adapters: ConnectorAdapterRow[];
+}

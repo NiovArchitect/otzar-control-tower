@@ -70,6 +70,7 @@ import type {
   MyTwinResponse,
   CalendarContextResponse,
   DandelionMemoryCandidateResponse,
+  ConnectorAdaptersResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -731,6 +732,10 @@ export class ApiClient {
      *  runtime (or the honest fixture fallback). */
     myDayIntelligence: (): Promise<ApiResult<MyDayIntelligenceResponse>> =>
       this.request<MyDayIntelligenceResponse>("/otzar/my-day/intelligence"),
+
+    /** Phase 1244 — connector adapter status + setup guidance. */
+    connectorAdapters: (): Promise<ApiResult<ConnectorAdaptersResponse>> =>
+      this.request<ConnectorAdaptersResponse>("/connectors/adapters"),
 
     /** Phase 1242 — enterprise handoff readiness aggregate. */
     productionReadiness: (): Promise<ApiResult<HandoffReadinessResponse>> =>

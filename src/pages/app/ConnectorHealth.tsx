@@ -43,6 +43,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
+import type { ConnectorAdapterRow } from "@/lib/types/foundation";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 
 // Founder-mandated honest catalogue. Each entry MUST exist regardless
@@ -174,6 +175,22 @@ export function ConnectorHealth(): JSX.Element {
   const [adminAccessAvailable, setAdminAccessAvailable] = useState<
     boolean | null
   >(null);
+  // Phase 1244 — adapter setup guidance (admin section). Failure is
+  // non-blocking.
+  const [adapters, setAdapters] = useState<ConnectorAdapterRow[]>([]);
+  const [openAdapter, setOpenAdapter] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!admin) return;
+    let cancelledAdapters = false;
+    void api.otzar.connectorAdapters().then((r) => {
+      if (!cancelledAdapters && r.ok) setAdapters(r.data.adapters);
+    });
+    return () => {
+      cancelledAdapters = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin]);
 
   useEffect(() => {
     let cancelled = false;
@@ -337,6 +354,79 @@ export function ConnectorHealth(): JSX.Element {
                 Open admin <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
               </Link>
             </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Phase 1244 — How to connect (admins). Plain-English setup
+          guidance from the hardened adapter registry. */}
+      {admin && adapters.length > 0 ? (
+        <Card data-testid="connector-setup-guidance">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">How to connect</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-xs">
+            {adapters.map((a) => (
+              <div
+                key={a.provider_name}
+                className="rounded border bg-card p-2"
+                data-testid="connector-setup-row"
+                data-provider={a.provider_name}
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 text-left"
+                  onClick={() =>
+                    setOpenAdapter((prev) =>
+                      prev === a.provider_name ? null : a.provider_name,
+                    )
+                  }
+                  aria-expanded={openAdapter === a.provider_name}
+                  data-testid="connector-setup-toggle"
+                >
+                  <span className="font-medium">{a.display_name}</span>
+                  <span className="flex items-center gap-2">
+                    {a.demo_mode_available ? (
+                      <Badge variant="outline" className="text-[9px]">
+                        Demo works today
+                      </Badge>
+                    ) : null}
+                    <Badge variant="outline" className="text-[9px]">
+                      {a.status === "CONFIGURED"
+                        ? "Connected"
+                        : a.status === "BLOCKED_BY_APP_REVIEW"
+                          ? "Needs app review"
+                          : a.status === "BLOCKED_BY_CREDENTIAL"
+                            ? "Needs setup"
+                            : "Not active"}
+                    </Badge>
+                  </span>
+                </button>
+                {openAdapter === a.provider_name ? (
+                  <div
+                    className="mt-2 space-y-1 text-muted-foreground"
+                    data-testid="connector-setup-steps"
+                  >
+                    <ol className="list-decimal pl-5">
+                      {a.setup_steps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                    {a.missing_envs.length > 0 ? (
+                      <p className="text-[10px]">
+                        Your deployment still needs:{" "}
+                        {a.missing_envs.join(", ")}
+                      </p>
+                    ) : null}
+                    {a.setup_docs_url !== undefined ? (
+                      <p className="text-[10px]">
+                        Provider docs: {a.setup_docs_url}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ))}
           </CardContent>
         </Card>
       ) : null}
