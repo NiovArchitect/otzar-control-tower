@@ -68,6 +68,7 @@ import type {
   CorrectionResponse,
   // My Twin + Conversations metadata (read-only)
   MyTwinResponse,
+  CalendarContextResponse,
   ContextHealthResponse,
   MyDayIntelligenceResponse,
   ObserveAttachWorkspaceResponse,
@@ -726,6 +727,10 @@ export class ApiClient {
      *  runtime (or the honest fixture fallback). */
     myDayIntelligence: (): Promise<ApiResult<MyDayIntelligenceResponse>> =>
       this.request<MyDayIntelligenceResponse>("/otzar/my-day/intelligence"),
+
+    /** Phase 1236 — calendar-aware quiet mode context. */
+    calendarContext: (): Promise<ApiResult<CalendarContextResponse>> =>
+      this.request<CalendarContextResponse>("/otzar/calendar/context"),
 
     /** Phase 1227 — governed Observe ("Let Otzar read this"). */
     observeProviders: (): Promise<ApiResult<ObserveProvidersResponse>> =>

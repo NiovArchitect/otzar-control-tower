@@ -3978,3 +3978,47 @@ export interface ObserveAttachWorkspaceResponse {
   imported_decisions: number;
   imported_commitments: number;
 }
+
+// ─── Phase 1236 — calendar-aware quiet mode ──────────────────
+// GET /otzar/calendar/context: whether voice is appropriate right
+// now. Meeting detection comes from real MeetingCapture schedule
+// windows (credential-free); provider_mode is honest readiness.
+
+export type CalendarProviderMode =
+  | "MOCK_CALENDAR"
+  | "GOOGLE_CALENDAR_CONFIGURED"
+  | "MICROSOFT_CALENDAR_CONFIGURED"
+  | "BLOCKED_BY_CREDENTIALS"
+  | "ERROR";
+
+export type CalendarQuietReason =
+  | "IN_MEETING"
+  | "PRESENTING"
+  | "FOCUS_TIME"
+  | "OUTSIDE_WORK_HOURS"
+  | "USER_PREFERENCE"
+  | "NONE";
+
+export interface CalendarContextResponse {
+  ok: true;
+  provider_mode: CalendarProviderMode;
+  quiet_recommended: boolean;
+  quiet_reason: CalendarQuietReason;
+  current_event?: {
+    title_summary: string;
+    starts_at: string;
+    ends_at: string;
+    meeting_provider?: "GOOGLE_MEET" | "ZOOM" | "MICROSOFT_TEAMS" | "OTHER";
+    has_external_participants: boolean;
+    capture_allowed_status:
+      | "ALLOWED"
+      | "NEEDS_CONSENT"
+      | "BLOCKED"
+      | "UNKNOWN";
+  };
+  next_event?: {
+    title_summary: string;
+    starts_at: string;
+    prep_recommended: boolean;
+  };
+}

@@ -49,6 +49,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
+import type { CalendarContextResponse } from "@/lib/types/foundation";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
@@ -106,8 +108,25 @@ export function AmbientOtzarBar(): JSX.Element {
   // employee turns it back off. When calendar connectors land,
   // meeting detection will flip this automatically.
   const [quiet, setQuiet] = useState(false);
+  // Phase 1236 — calendar-aware automatic quiet mode. autoQuiet
+  // marks that quiet was entered for the user (meeting/focus), so
+  // the banner explains why and offers "Resume voice". The session
+  // override stops auto-quiet from re-engaging in a loop after the
+  // user deliberately resumes; it clears when the quiet
+  // recommendation lifts.
+  const [autoQuietReason, setAutoQuietReason] = useState<
+    "IN_MEETING" | "FOCUS_TIME" | "OTHER" | null
+  >(null);
+  const [calendarProviderMode, setCalendarProviderMode] = useState<
+    CalendarContextResponse["provider_mode"] | null
+  >(null);
+  const voiceOverrideRef = useRef(false);
   const recognition = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
+  const recognitionRef = useRef(recognition);
+  recognitionRef.current = recognition;
+  const synthesisRef = useRef(synthesis);
+  synthesisRef.current = synthesis;
   const micPerm = useMicrophonePermission();
   const intent = useOtzarVoiceIntent();
   // Stable ref guard against React StrictMode + re-render double-fire.
@@ -123,6 +142,53 @@ export function AmbientOtzarBar(): JSX.Element {
       setDraft(recognition.transcript);
     }
   }, [recognition.transcript]);
+
+  // CALENDAR-AWARE QUIET effect (Phase 1236). Polls the safe
+  // calendar context on mount and every 90s. Failure is
+  // non-blocking: the shell works exactly as before.
+  useEffect(() => {
+    let cancelled = false;
+    async function check(): Promise<void> {
+      const r = await api.otzar.calendarContext();
+      if (cancelled || !r.ok) return;
+      setCalendarProviderMode(r.data.provider_mode);
+      if (r.data.quiet_recommended) {
+        if (!voiceOverrideRef.current) {
+          const reason =
+            r.data.quiet_reason === "IN_MEETING" ||
+            r.data.quiet_reason === "FOCUS_TIME"
+              ? r.data.quiet_reason
+              : "OTHER";
+          setAutoQuietReason(reason);
+          setQuiet((prev) => {
+            if (!prev) {
+              if (recognitionRef.current.listening)
+                recognitionRef.current.stop();
+              synthesisRef.current.stop();
+            }
+            return true;
+          });
+        }
+      } else {
+        // Recommendation lifted — clear the override so the next
+        // real meeting can auto-quiet again, and release auto quiet.
+        voiceOverrideRef.current = false;
+        setAutoQuietReason((prevReason) => {
+          if (prevReason !== null) setQuiet(false);
+          return null;
+        });
+      }
+    }
+    void check();
+    const timer = setInterval(() => void check(), 90_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+    // recognition/synthesis are accessed via refs to keep this
+    // effect mount-stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // AUTO-SPEAK effect — only fires when:
   //   1. auto-speak is explicitly enabled by the operator
@@ -159,6 +225,11 @@ export function AmbientOtzarBar(): JSX.Element {
         // Entering quiet mode silences Otzar immediately.
         if (recognition.listening) recognition.stop();
         synthesis.stop();
+      } else if (autoQuietReason !== null) {
+        // The user deliberately resumed voice while a quiet
+        // recommendation is active — honor it for this session.
+        voiceOverrideRef.current = true;
+        setAutoQuietReason(null);
       }
       return next;
     });
@@ -360,15 +431,34 @@ export function AmbientOtzarBar(): JSX.Element {
             <div
               className="rounded-md border border-border bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground"
               data-testid="ambient-quiet-banner"
+              data-auto-quiet={autoQuietReason ?? "manual"}
             >
               <p className="font-medium text-foreground">
-                Quiet mode — Otzar won't speak or listen.
+                {autoQuietReason === "IN_MEETING"
+                  ? "Otzar went quiet for your meeting."
+                  : autoQuietReason !== null
+                    ? "Otzar went quiet for your focus time."
+                    : "Quiet mode — Otzar won't speak or listen."}
               </p>
               <p>
-                Type below; approvals and cards still work. When your
-                calendar is connected, Otzar will go quiet automatically
-                during meetings.
+                Voice is paused. You can still approve or type.
+                {autoQuietReason === null &&
+                calendarProviderMode === "MOCK_CALENDAR"
+                  ? " Connect your calendar to make quiet mode automatic."
+                  : ""}
               </p>
+              {autoQuietReason !== null ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-1 h-6 text-xs"
+                  onClick={handleQuietToggle}
+                  data-testid="ambient-resume-voice"
+                >
+                  Resume voice
+                </Button>
+              ) : null}
             </div>
           ) : null}
           {/* Permission state line — always visible when expanded so
