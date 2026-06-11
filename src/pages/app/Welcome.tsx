@@ -95,6 +95,19 @@ export function Welcome(): JSX.Element {
         description="Otzar will help you understand your day, your team, and what needs your attention."
       />
 
+      {/* Phase 1251 — Dandelion propagation framing: Otzar grows
+          through an organization root-first, not by mass invites. */}
+      <p
+        className="text-xs text-muted-foreground"
+        data-testid="welcome-propagation-note"
+      >
+        Otzar was planted at your organization's root and spreads where
+        the work needs it — you're being welcomed because your role,
+        your projects, and your handoffs matter, not because of a mass
+        invite. Everything you share here stays governed by your
+        organization's policies and is yours to approve.
+      </p>
+
       {/* The greeting — voice on request, text always. */}
       <Card data-testid="welcome-greeting">
         <CardContent className="flex items-center justify-between gap-4 py-4">

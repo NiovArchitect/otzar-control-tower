@@ -55,6 +55,7 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
 import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
+import { usePresenceStore, usePresenceState } from "@/lib/stores/presence";
 import {
   detectShellMode,
   llmErrorCopy,
@@ -129,6 +130,35 @@ export function AmbientOtzarBar(): JSX.Element {
   synthesisRef.current = synthesis;
   const micPerm = useMicrophonePermission();
   const intent = useOtzarVoiceIntent();
+  // Phase 1251 — publish ambient signals to the presence store so
+  // the edge glow + ambient cards speak the same state language.
+  const presenceState = usePresenceState();
+  const setPresenceSignals = usePresenceStore((s) => s.setSignals);
+  const markPresenceSuccess = usePresenceStore((s) => s.markSuccess);
+  const markPresenceFailure = usePresenceStore((s) => s.markFailure);
+  useEffect(() => {
+    setPresenceSignals({
+      listening: recognition.listening,
+      thinking: intent.processing,
+      quiet,
+      quietReason: autoQuietReason,
+      voiceBlocked: micPerm.state === "denied" || !recognition.supported,
+    });
+  }, [
+    recognition.listening,
+    recognition.supported,
+    intent.processing,
+    quiet,
+    autoQuietReason,
+    micPerm.state,
+    setPresenceSignals,
+  ]);
+  useEffect(() => {
+    if (intent.response !== null) markPresenceSuccess();
+  }, [intent.response, markPresenceSuccess]);
+  useEffect(() => {
+    if (intent.error !== null) markPresenceFailure();
+  }, [intent.error, markPresenceFailure]);
   // Stable ref guard against React StrictMode + re-render double-fire.
   // Keyed by conversation_id + tokens_consumed so a brand-new turn
   // (which advances tokens_consumed) is treated as a new utterance,
@@ -335,28 +365,56 @@ export function AmbientOtzarBar(): JSX.Element {
     ) : null;
 
   // ────────────────────────────────────────────────────────────
-  // COLLAPSED — render as an obvious "Talk to Otzar" pill button.
-  // Bigger, brighter, primary-colored so it does NOT look like a
-  // dismissible chip. Clicking expands the full dock.
+  // COLLAPSED — the Otzar orb (Phase 1251). A presence, not a
+  // widget: a calm pill with a breathing state dot and a soft
+  // state-tinted halo behind it. Clicking expands the full dock.
   // ────────────────────────────────────────────────────────────
   if (!expanded) {
+    const collapsedLabel = quiet
+      ? "Otzar · quiet"
+      : presenceState === "APPROVAL_REQUIRED"
+        ? "Otzar · needs you"
+        : presenceState === "LISTENING"
+          ? "Otzar · listening"
+          : presenceState === "THINKING"
+            ? "Otzar · thinking"
+            : "Talk to Otzar";
+    const orbHalo =
+      presenceState === "APPROVAL_REQUIRED"
+        ? "bg-amber-400/30 motion-safe:animate-edge-pulse"
+        : presenceState === "LISTENING"
+          ? "bg-sky-400/30 motion-safe:animate-edge-breathe"
+          : presenceState === "THINKING"
+            ? "bg-indigo-400/25 motion-safe:animate-edge-breathe"
+            : presenceState === "FAILURE"
+              ? "bg-rose-400/25"
+              : presenceState === "RECOMMENDATION"
+                ? "bg-teal-400/20"
+                : "bg-transparent";
     return (
-      <button
-        type="button"
-        role="region"
-        aria-label="Talk to Otzar"
-        data-testid="ambient-otzar-bar"
-        data-quiet={quiet ? "true" : "false"}
-        onClick={() => setExpanded(true)}
-        className={
-          quiet
-            ? "fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground shadow-md hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            : "fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-        }
-      >
-        {quiet ? <MoonStar className="h-4 w-4" /> : <Mic className="h-5 w-5" />}
-        <span>{quiet ? "Otzar · quiet" : "Talk to Otzar"}</span>
-      </button>
+      <div className="fixed bottom-6 right-6 z-[60]">
+        <span
+          aria-hidden
+          className={`absolute -inset-2 rounded-full blur-md transition-colors duration-700 ${orbHalo}`}
+        />
+        <button
+          type="button"
+          role="region"
+          aria-label="Talk to Otzar"
+          data-testid="ambient-otzar-bar"
+          data-quiet={quiet ? "true" : "false"}
+          data-presence={presenceState}
+          onClick={() => setExpanded(true)}
+          className={
+            quiet
+              ? "relative flex items-center gap-2 rounded-full border border-border bg-card/90 px-4 py-2 text-xs font-medium text-muted-foreground shadow-md backdrop-blur hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              : "relative flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          }
+        >
+          {quiet ? <MoonStar className="h-4 w-4" /> : <Mic className="h-5 w-5" />}
+          <span>{collapsedLabel}</span>
+        </button>
+      </div>
     );
   }
 

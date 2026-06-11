@@ -69,10 +69,31 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        // Phase 1251 — Otzar edge-presence motion language. Gentle by
+        // design: pulses signal attention, breathing signals activity,
+        // shimmer confirms success. All gated behind motion-safe at
+        // the call sites so prefers-reduced-motion users get static
+        // tints only.
+        "edge-pulse": {
+          "0%, 100%": { opacity: "0.45" },
+          "50%": { opacity: "1" },
+        },
+        "edge-breathe": {
+          "0%, 100%": { opacity: "0.35", transform: "scale(1)" },
+          "50%": { opacity: "0.8", transform: "scale(1.04)" },
+        },
+        "edge-shimmer": {
+          "0%": { opacity: "0" },
+          "30%": { opacity: "1" },
+          "100%": { opacity: "0.5" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "edge-pulse": "edge-pulse 2.4s ease-in-out infinite",
+        "edge-breathe": "edge-breathe 3.2s ease-in-out infinite",
+        "edge-shimmer": "edge-shimmer 1.2s ease-out",
       },
     },
   },
