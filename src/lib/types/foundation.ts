@@ -3739,3 +3739,95 @@ export interface GetOnboardingChecklistResponse {
   ok: true;
   checklist: OnboardingChecklist;
 }
+
+// ──────────────────────────────────────────────────────────────
+// Phase 1223 — Voice/STT types.
+// ──────────────────────────────────────────────────────────────
+
+export type STTProviderType =
+  | "DEMO_FIXTURE"
+  | "LOCAL_BROWSER"
+  | "WHISPER_API"
+  | "DEEPGRAM"
+  | "GOOGLE_SPEECH"
+  | "AZURE_SPEECH";
+
+export type STTProviderStatus =
+  | "CONFIGURED"
+  | "MISSING_CREDENTIAL"
+  | "ERROR"
+  | "DISABLED"
+  | "DEMO_ONLY";
+
+export type AudioCaptureMode =
+  | "LIVE_MIC"
+  | "AUDIO_FILE_UPLOAD"
+  | "DEMO_AUDIO_SAMPLE"
+  | "LOCAL_FALLBACK";
+
+export type AudioCaptureStatus =
+  | "RECEIVED"
+  | "TRANSCRIBING"
+  | "TRANSCRIBED"
+  | "FAILED"
+  | "ATTACHED_TO_MEETING_CAPTURE"
+  | "ARCHIVED";
+
+export interface STTProviderStatusRow {
+  provider_name: STTProviderType;
+  status: STTProviderStatus;
+  always_available: boolean;
+  description: string;
+}
+
+export interface AudioCaptureSafeView {
+  audio_capture_id: string;
+  provider: STTProviderType;
+  provider_status_at_start: STTProviderStatus;
+  mode: AudioCaptureMode;
+  status: AudioCaptureStatus;
+  title: string | null;
+  summary: string | null;
+  duration_ms: number | null;
+  meeting_capture_id: string | null;
+  workspace_id: string | null;
+  segment_count: number;
+  full_transcript: string | null;
+  failure_class: string | null;
+  failure_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TranscriptSegmentView {
+  transcript_segment_id: string;
+  speaker_label: string | null;
+  start_ms: number;
+  end_ms: number;
+  text: string;
+  confidence: number | null;
+  is_final: boolean;
+}
+
+export interface ListSTTProvidersResponse {
+  ok: true;
+  providers: STTProviderStatusRow[];
+}
+
+export interface ReceiveAudioResponse {
+  ok: true;
+  audio_capture: AudioCaptureSafeView;
+  segments: TranscriptSegmentView[];
+  handoff_meeting_capture_id?: string;
+}
+
+export interface ListAudioCapturesResponse {
+  ok: true;
+  audio_captures: AudioCaptureSafeView[];
+}
+
+export interface GetAudioCaptureDetailResponse {
+  ok: true;
+  audio_capture: AudioCaptureSafeView;
+  segments: TranscriptSegmentView[];
+}

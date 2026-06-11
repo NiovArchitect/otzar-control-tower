@@ -38,7 +38,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
     ]);
   });
 
-  it("more group carries My Organization / My Digital Work Wallet / Connector Health / Approvals / Authority / Preferences / Projects / Conversations / Corrections / Chat / Observe / Meeting captures / Production readiness", () => {
+  it("more group carries deeper config + voice captures", () => {
     const labels = MORE_EMPLOYEE_NAV.map((i) => i.label);
     expect(labels).toEqual([
       "My Organization",
@@ -54,6 +54,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "Observe",
       "Meeting captures",
       "Production readiness",
+      "Voice captures",
     ]);
   });
 

@@ -201,6 +201,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
       "Admin-only checklist of what's left before this Otzar deployment is production-ready.",
     group: "more",
   },
+  {
+    label: "Voice captures",
+    to: "/app/voice-captures",
+    icon: Mic,
+    description:
+      "Talk to Otzar — capture a meeting by voice, transcribe it, and turn it into governed follow-ups.",
+    group: "more",
+  },
 ];
 
 // Convenience selectors used by the nav renderer.
