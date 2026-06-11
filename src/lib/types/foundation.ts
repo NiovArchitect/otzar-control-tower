@@ -4073,3 +4073,57 @@ export interface DandelionMemoryCandidateResponse {
   ok: true;
   action: SafeActionView;
 }
+
+// ─── Phase 1242 — enterprise handoff readiness aggregate ─────
+
+export type HandoffCapabilityClass =
+  | "PROD"
+  | "PROD_READY_PENDING_SCHEMA_PUSH"
+  | "PROD_READY_PENDING_CREDENTIALS"
+  | "BLOCKED_BY_CREDENTIALS"
+  | "BLOCKED_BY_APP_REVIEW"
+  | "DEMO_ONLY"
+  | "PARTIAL"
+  | "NOT_STARTED";
+
+export interface HandoffReadinessResponse {
+  ok: true;
+  readiness: {
+    headline: string;
+    org: {
+      checklist_steps_ready: number;
+      checklist_steps_total: number;
+      mode: string;
+    };
+    runtimes: Array<{
+      runtime: string;
+      status: "CONFIGURED" | "FALLBACK_AVAILABLE" | "NOT_CONFIGURED";
+      note: string;
+    }>;
+    connectors: Array<{
+      provider: string;
+      display_name: string;
+      status: string;
+      required_envs: string[];
+      app_review_required: boolean;
+    }>;
+    schema: {
+      pending_push: boolean;
+      pending_tables: string[];
+      approval_phrase: string;
+      note: string;
+    };
+    demo_prod_separation: { mode: string; note: string };
+    audit_compliance: {
+      audit_chain: "LIVE";
+      share_packages: HandoffCapabilityClass;
+      note: string;
+    };
+    capabilities: Array<{
+      capability: string;
+      classification: HandoffCapabilityClass;
+      note: string;
+    }>;
+    generated_at: string;
+  };
+}

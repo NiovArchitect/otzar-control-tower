@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
+import type { HandoffReadinessResponse } from "@/lib/types/foundation";
 import type {
   OnboardingChecklist,
   OnboardingStep,
@@ -70,8 +71,19 @@ export function OnboardingReadiness(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Phase 1242 — the enterprise handoff aggregate. Failure is
+  // non-blocking: the checklist surface works unchanged.
+  const [handoff, setHandoff] = useState<
+    HandoffReadinessResponse["readiness"] | null
+  >(null);
+
+  async function refreshHandoff(): Promise<void> {
+    const r = await api.otzar.productionReadiness();
+    if (r.ok) setHandoff(r.data.readiness);
+  }
 
   async function refresh(): Promise<void> {
+    void refreshHandoff();
     const r = await api.onboarding.checklist();
     if (r.ok) {
       setChecklist(r.data.checklist);
@@ -191,6 +203,10 @@ export function OnboardingReadiness(): JSX.Element {
           </p>
         </CardContent>
       </Card>
+
+      {handoff !== null ? (
+        <HandoffSection readiness={handoff} />
+      ) : null}
 
       <Card data-testid="onboarding-readiness-facts-card">
         <CardHeader className="pb-2">
@@ -320,5 +336,122 @@ export function OnboardingReadiness(): JSX.Element {
         outside your org unless an approved connector is configured.
       </p>
     </div>
+  );
+}
+
+
+// Phase 1242 — "What's ready vs blocked", in plain admin English.
+// Groups the capability truth table into four calm buckets and
+// surfaces the schema-approval gate explicitly.
+const CLASS_LABEL: Record<string, string> = {
+  PROD: "Ready now",
+  PROD_READY_PENDING_SCHEMA_PUSH: "Ready after schema approval",
+  PROD_READY_PENDING_CREDENTIALS: "Needs credentials",
+  BLOCKED_BY_CREDENTIALS: "Needs credentials",
+  BLOCKED_BY_APP_REVIEW: "Needs app review",
+  DEMO_ONLY: "Demo only",
+  PARTIAL: "Partially ready",
+  NOT_STARTED: "Not started",
+};
+
+function HandoffSection({
+  readiness,
+}: {
+  readiness: HandoffReadinessResponse["readiness"];
+}): JSX.Element {
+  const buckets: Array<{ title: string; classes: string[] }> = [
+    { title: "Ready now", classes: ["PROD"] },
+    {
+      title: "Ready after your schema approval",
+      classes: ["PROD_READY_PENDING_SCHEMA_PUSH"],
+    },
+    {
+      title: "Needs credentials or app review",
+      classes: [
+        "PROD_READY_PENDING_CREDENTIALS",
+        "BLOCKED_BY_CREDENTIALS",
+        "BLOCKED_BY_APP_REVIEW",
+      ],
+    },
+    { title: "Not started (by design)", classes: ["NOT_STARTED"] },
+  ];
+
+  return (
+    <Card data-testid="handoff-readiness-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">What's ready vs blocked</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-xs">
+        <p
+          className="text-muted-foreground"
+          data-testid="handoff-readiness-headline"
+        >
+          {readiness.headline}
+        </p>
+
+        {readiness.schema.pending_push ? (
+          <div
+            className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2"
+            data-testid="handoff-schema-callout"
+          >
+            <p className="font-medium">
+              Production schema update is waiting for approval.
+            </p>
+            <p className="text-muted-foreground">
+              {readiness.schema.note} To approve, the Founder types:{" "}
+              <span className="font-mono">
+                {readiness.schema.approval_phrase}
+              </span>
+            </p>
+          </div>
+        ) : null}
+
+        {buckets.map((bucket) => {
+          const rows = readiness.capabilities.filter((c) =>
+            bucket.classes.includes(c.classification),
+          );
+          if (rows.length === 0) return null;
+          return (
+            <div key={bucket.title} data-testid="handoff-bucket">
+              <p className="font-medium">{bucket.title}</p>
+              <ul className="mt-1 space-y-0.5">
+                {rows.map((c) => (
+                  <li
+                    key={c.capability}
+                    className="flex items-start gap-2"
+                    data-testid="handoff-capability"
+                    data-class={c.classification}
+                  >
+                    <Badge variant="outline" className="shrink-0 text-[9px]">
+                      {CLASS_LABEL[c.classification] ?? c.classification}
+                    </Badge>
+                    <span>
+                      <span className="text-foreground">{c.capability}</span>{" "}
+                      <span className="text-muted-foreground">— {c.note}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+
+        <div data-testid="handoff-runtimes">
+          <p className="font-medium">Runtimes</p>
+          <ul className="mt-1 space-y-0.5 text-muted-foreground">
+            {readiness.runtimes.map((rt) => (
+              <li key={rt.runtime}>
+                <span className="text-foreground">{rt.runtime}:</span>{" "}
+                {rt.note}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground">
+          {readiness.audit_compliance.note}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
