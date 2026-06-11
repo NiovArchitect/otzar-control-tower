@@ -34,6 +34,7 @@ import { Link } from "react-router-dom";
 import {
   Mic,
   MicOff,
+  MoonStar,
   Send,
   Volume2,
   VolumeX,
@@ -100,6 +101,11 @@ export function AmbientOtzarBar(): JSX.Element {
   // auto-speak is OFF by default. The operator enables it
   // explicitly via the "Auto-speak responses" toggle.
   const [autoSpeak, setAutoSpeak] = useState(false);
+  // Phase 1235b — quiet mode: Otzar won't speak or listen. For
+  // meetings / shared spaces / focus. Voice resumes when the
+  // employee turns it back off. When calendar connectors land,
+  // meeting detection will flip this automatically.
+  const [quiet, setQuiet] = useState(false);
   const recognition = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
   const micPerm = useMicrophonePermission();
@@ -131,6 +137,7 @@ export function AmbientOtzarBar(): JSX.Element {
       : null;
   useEffect(() => {
     if (!autoSpeak) return;
+    if (quiet) return;
     if (responseKey === null) return;
     if (lastAutoSpokenKeyRef.current === responseKey) return;
     if (intent.response === null) return;
@@ -143,9 +150,22 @@ export function AmbientOtzarBar(): JSX.Element {
     // intent.response is intentionally NOT in the deps — we mirror
     // it via responseKey to keep the effect stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSpeak, responseKey]);
+  }, [autoSpeak, quiet, responseKey]);
+
+  function handleQuietToggle(): void {
+    setQuiet((v) => {
+      const next = !v;
+      if (next) {
+        // Entering quiet mode silences Otzar immediately.
+        if (recognition.listening) recognition.stop();
+        synthesis.stop();
+      }
+      return next;
+    });
+  }
 
   async function handleMicToggle(): Promise<void> {
+    if (quiet) return;
     if (recognition.listening) {
       recognition.stop();
       return;
@@ -256,11 +276,16 @@ export function AmbientOtzarBar(): JSX.Element {
         role="region"
         aria-label="Talk to Otzar"
         data-testid="ambient-otzar-bar"
+        data-quiet={quiet ? "true" : "false"}
         onClick={() => setExpanded(true)}
-        className="fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        className={
+          quiet
+            ? "fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground shadow-md hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            : "fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        }
       >
-        <Mic className="h-5 w-5" />
-        <span>Talk to Otzar</span>
+        {quiet ? <MoonStar className="h-4 w-4" /> : <Mic className="h-5 w-5" />}
+        <span>{quiet ? "Otzar · quiet" : "Talk to Otzar"}</span>
       </button>
     );
   }
@@ -282,6 +307,23 @@ export function AmbientOtzarBar(): JSX.Element {
           <span className={`text-xs ${statusClass} truncate`}>{status}</span>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant={quiet ? "secondary" : "ghost"}
+            size="icon"
+            onClick={handleQuietToggle}
+            aria-label={quiet ? "Leave quiet mode" : "Quiet mode"}
+            aria-pressed={quiet}
+            title={
+              quiet
+                ? "Leave quiet mode"
+                : "Quiet mode — Otzar won't speak or listen"
+            }
+            className="h-7 w-7"
+            data-testid="ambient-quiet-toggle"
+          >
+            <MoonStar className="h-4 w-4" />
+          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -314,6 +356,21 @@ export function AmbientOtzarBar(): JSX.Element {
 
       {(
         <div className="px-3 pb-3 space-y-2">
+          {quiet ? (
+            <div
+              className="rounded-md border border-border bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground"
+              data-testid="ambient-quiet-banner"
+            >
+              <p className="font-medium text-foreground">
+                Quiet mode — Otzar won't speak or listen.
+              </p>
+              <p>
+                Type below; approvals and cards still work. When your
+                calendar is connected, Otzar will go quiet automatically
+                during meetings.
+              </p>
+            </div>
+          ) : null}
           {/* Permission state line — always visible when expanded so
               the operator knows whether the mic will actually work.
               Powered by micCopyFor() which is honest about
@@ -360,20 +417,25 @@ export function AmbientOtzarBar(): JSX.Element {
               variant={recognition.listening ? "destructive" : "default"}
               onClick={() => void handleMicToggle()}
               aria-label={
-                recognition.listening
-                  ? "Stop listening"
-                  : recognition.supported
-                    ? "Start listening"
-                    : "Voice input unavailable"
+                quiet
+                  ? "Voice is paused in quiet mode"
+                  : recognition.listening
+                    ? "Stop listening"
+                    : recognition.supported
+                      ? "Start listening"
+                      : "Voice input unavailable"
               }
               title={
-                recognition.supported
-                  ? recognition.listening
-                    ? "Stop listening"
-                    : "Speak to Otzar"
-                  : "Voice input unavailable in this shell. Type instead."
+                quiet
+                  ? "Voice is paused in quiet mode"
+                  : recognition.supported
+                    ? recognition.listening
+                      ? "Stop listening"
+                      : "Speak to Otzar"
+                    : "Voice input unavailable in this shell. Type instead."
               }
               disabled={
+                quiet ||
                 !recognition.supported ||
                 micPerm.state === "denied" ||
                 detectShellMode() === "tauri_webview"

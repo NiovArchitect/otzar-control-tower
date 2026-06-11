@@ -6,15 +6,34 @@
 //   - src/lib/nav-employee.ts (source of truth)
 //   - src/components/employee/EmployeeNav.tsx (renderer)
 
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, expect, it, beforeEach } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { EmployeeNav } from "@/components/employee/EmployeeNav";
+import { useAuthStore } from "@/lib/stores/auth";
 import {
   EMPLOYEE_NAV,
   PRIMARY_EMPLOYEE_NAV,
   MORE_EMPLOYEE_NAV,
 } from "@/lib/nav-employee";
+
+function setAuth(admin: boolean): void {
+  useAuthStore.setState({
+    token: "tok",
+    entity: { email: "e@example.com" },
+    isAuthenticated: true,
+    capabilities: {
+      can_read_capsules: true,
+      can_write_capsules: true,
+      can_share_capsules: false,
+      can_admin_org: admin,
+      can_admin_niov: false,
+    },
+  });
+}
+
+beforeEach(() => setAuth(false));
 
 function renderNav(): void {
   render(
@@ -22,6 +41,10 @@ function renderNav(): void {
       <EmployeeNav />
     </MemoryRouter>,
   );
+}
+
+async function openMore(): Promise<void> {
+  await userEvent.click(screen.getByTestId("employee-nav-more-toggle"));
 }
 
 describe("nav-employee.ts — primary / more groupings", () => {
@@ -76,19 +99,30 @@ describe("nav-employee.ts — primary / more groupings", () => {
 });
 
 describe("EmployeeNav renderer — visually separates the two groups", () => {
-  it("renders a primary list and a more list", () => {
+  it("renders the primary list; More is COLLAPSED by default (Phase 1235 ambient shell)", () => {
     renderNav();
     expect(screen.getByTestId("employee-nav-primary")).toBeInTheDocument();
-    expect(screen.getByTestId("employee-nav-more")).toBeInTheDocument();
+    expect(screen.queryByTestId("employee-nav-more")).toBeNull();
+    expect(screen.getByTestId("employee-nav-more-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
-  it("renders a 'More' section header above the more list", () => {
+  it("renders a 'More' disclosure that expands the more list", async () => {
     renderNav();
     expect(screen.getByText("More")).toBeInTheDocument();
+    await openMore();
+    expect(screen.getByTestId("employee-nav-more")).toBeInTheDocument();
+    expect(screen.getByTestId("employee-nav-more-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
   });
 
-  it("tags each rendered NavLink with its group via data-nav-group", () => {
+  it("tags each rendered NavLink with its group via data-nav-group", async () => {
     renderNav();
+    await openMore();
     const links = screen.getAllByTestId("employee-nav-link");
     const primaryCount = links.filter(
       (l) => l.getAttribute("data-nav-group") === "primary",
@@ -97,7 +131,22 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
       (l) => l.getAttribute("data-nav-group") === "more",
     ).length;
     expect(primaryCount).toBe(PRIMARY_EMPLOYEE_NAV.length);
-    expect(moreCount).toBe(MORE_EMPLOYEE_NAV.length);
+    // Non-admin viewers do not see adminOnly entries.
+    expect(moreCount).toBe(
+      MORE_EMPLOYEE_NAV.filter((i) => i.adminOnly !== true).length,
+    );
+  });
+
+  it("hides admin-only entries from normal employees and shows them to org admins", async () => {
+    renderNav();
+    await openMore();
+    expect(screen.queryByText("Production readiness")).toBeNull();
+
+    cleanup();
+    setAuth(true);
+    renderNav();
+    await openMore();
+    expect(screen.getByText("Production readiness")).toBeInTheDocument();
   });
 
   it("never surfaces 'Voice envelope' in the rendered nav", () => {

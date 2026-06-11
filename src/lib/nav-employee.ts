@@ -43,6 +43,9 @@ import type { ComponentType, SVGProps } from "react";
 export interface EmployeeNavItem {
   label: string;
   to: string;
+  /** Phase 1235 — admin/diagnostic entries are hidden from normal
+   *  employees; EmployeeNav filters on isOrgAdmin. */
+  adminOnly?: boolean;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   description: string;
   group: "primary" | "more";
@@ -200,6 +203,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     description:
       "Admin-only checklist of what's left before this Otzar deployment is production-ready.",
     group: "more",
+    adminOnly: true,
   },
   {
     label: "Voice captures",
