@@ -33,6 +33,7 @@ import { Observe } from "@/pages/app/Observe";
 import { OnboardingReadiness } from "@/pages/app/OnboardingReadiness";
 import { Preferences } from "@/pages/app/Preferences";
 import { VoiceCaptures } from "@/pages/app/VoiceCaptures";
+import { Welcome } from "@/pages/app/Welcome";
 import { WorkProjects } from "@/pages/app/WorkProjects";
 
 function setAuth(): void {
@@ -95,6 +96,7 @@ const PAGES: PageCase[] = [
   { name: "Observe", element: <Observe />, tier: "employee" },
   { name: "Preferences", element: <Preferences />, tier: "employee" },
   { name: "VoiceCaptures", element: <VoiceCaptures />, tier: "employee" },
+  { name: "Welcome", element: <Welcome />, tier: "employee" },
   { name: "WorkProjects", element: <WorkProjects />, tier: "employee" },
   // Admin / diagnostics tier — technical concepts allowed, raw
   // internals still banned.

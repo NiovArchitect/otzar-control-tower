@@ -20,6 +20,7 @@ import { EmployeeLayout } from "@/components/employee/EmployeeLayout";
 import { EmployeeHome } from "@/pages/app/EmployeeHome";
 import { Chat } from "@/pages/app/Chat";
 import { Observe } from "@/pages/app/Observe";
+import { Welcome } from "@/pages/app/Welcome";
 import { Corrections } from "@/pages/app/Corrections";
 import { Approvals } from "@/pages/app/Approvals";
 import { ActionCenter } from "@/pages/app/ActionCenter";
@@ -96,6 +97,7 @@ export function App() {
               <Route path="workspace" element={<EmployeeHome />} />
               <Route path="chat" element={<Chat />} />
               <Route path="observe" element={<Observe />} />
+              <Route path="welcome" element={<Welcome />} />
               <Route path="corrections" element={<Corrections />} />
               <Route path="approvals" element={<Approvals />} />
               <Route path="action-center" element={<ActionCenter />} />

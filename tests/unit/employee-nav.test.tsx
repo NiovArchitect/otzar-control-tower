@@ -74,6 +74,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "Conversations",
       "Corrections",
       "Chat",
+      "Getting started",
       "Observe",
       "Meeting captures",
       "Production readiness",

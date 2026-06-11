@@ -18,6 +18,7 @@
 //     employee shell.
 
 import {
+  Sparkles,
   Bell,
   Bot,
   BookOpen,
@@ -179,6 +180,13 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/chat",
     icon: MessageSquare,
     description: "Talk with your AI teammate.",
+    group: "more",
+  },
+  {
+    label: "Getting started",
+    to: "/app/welcome",
+    icon: Sparkles,
+    description: "Meet Otzar — tell it what to call you and where to start.",
     group: "more",
   },
   {
