@@ -931,6 +931,44 @@ const otzarConversationCloseHandler = http.post(
   },
 );
 
+// Phase 1227 — default handlers for the Observe read-flow mounts.
+// Per-test server.use(...) overrides take precedence.
+const otzarObserveProvidersHandler = http.get(
+  `${API_BASE}/otzar/observe/providers`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      providers: [
+        {
+          provider: "DEMO_FIXTURE",
+          status: "DEMO_ONLY",
+          display_name: "Sample document",
+          description: "Try Otzar's reading flow with a built-in sample.",
+          required_envs: [],
+        },
+        {
+          provider: "PLAIN_TEXT",
+          status: "READY",
+          display_name: "Pasted text",
+          description: "Paste text from any document.",
+          required_envs: [],
+        },
+        {
+          provider: "AWS_TEXTRACT",
+          status: "BLOCKED_BY_KEY",
+          display_name: "AWS Textract",
+          description: "Cloud document reading. Needs your organization's AWS setup.",
+          required_envs: ["AWS_ACCESS_KEY_ID"],
+        },
+      ],
+    }),
+);
+
+const otzarCollaborationWorkspacesDefaultHandler = http.get(
+  `${API_BASE}/otzar/collaboration/workspaces`,
+  () => HttpResponse.json({ ok: true, workspaces: [] }),
+);
+
 const otzarObserveHandler = http.post(
   `${API_BASE}/otzar/observe`,
   async ({ request }) => {
@@ -2646,6 +2684,8 @@ export const handlers = [
   // Employee Otzar MVP
   otzarConversationMessageHandler,
   otzarConversationCloseHandler,
+  otzarObserveProvidersHandler,
+  otzarCollaborationWorkspacesDefaultHandler,
   otzarObserveHandler,
   otzarCorrectionHandler,
   // Employee Approvals / Escalations (pending before :id so the literal
