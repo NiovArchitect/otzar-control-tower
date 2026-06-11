@@ -83,7 +83,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     label: "Access Control",
     to: "/access-control",
     icon: KeyRound,
-    description: "Who can read, write, or share which knowledge items -- COSMP-governed.",
+    description: "Who can read, write, or share which knowledge items -- governed and audited.",
   },
   {
     label: "Data & Knowledge",

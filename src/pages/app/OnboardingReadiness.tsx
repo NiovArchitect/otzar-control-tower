@@ -95,7 +95,10 @@ export function OnboardingReadiness(): JSX.Element {
   }
 
   useEffect(() => {
-    refresh();
+    // Mount-only initial load; refresh reads only stable setters and
+    // the api singleton, so re-running on identity change adds nothing.
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function completeStep(step: OnboardingStep): Promise<void> {

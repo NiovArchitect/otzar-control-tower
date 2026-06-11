@@ -105,7 +105,7 @@ export function LoginPage() {
           <CardTitle>NIOV Control Tower</CardTitle>
           <CardDescription>
             Sign in with your org-admin credentials. Every action you take is
-            audited under the COSMP Protocol.
+            recorded in your organization's audit trail.
           </CardDescription>
         </CardHeader>
         <CardContent>
