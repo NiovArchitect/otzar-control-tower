@@ -197,6 +197,13 @@ import type {
   GetCOSMPAuditResponse,
   // Phase 1230
   GetOnboardingChecklistResponse,
+  // Phase 1223
+  STTProviderType,
+  AudioCaptureMode,
+  ListSTTProvidersResponse,
+  ReceiveAudioResponse,
+  ListAudioCapturesResponse,
+  GetAudioCaptureDetailResponse,
 } from "./types/foundation";
 import type {
   ListConnectorBindingsSuccess,
@@ -2114,6 +2121,56 @@ export class ApiClient {
       this.request<GetOnboardingChecklistResponse>(
         "/onboarding/mode",
         { method: "PUT", body: { mode } },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 1223 — voiceCaptures.*
+  // STT pipeline with 4 modes (LIVE_MIC / AUDIO_FILE_UPLOAD /
+  // DEMO_AUDIO_SAMPLE / LOCAL_FALLBACK) and 4+ providers.
+  // ──────────────────────────────────────────────────────────────
+  voiceCaptures = {
+    providers: (): Promise<ApiResult<ListSTTProvidersResponse>> =>
+      this.request<ListSTTProvidersResponse>("/otzar/voice-captures/providers"),
+    receive: (input: {
+      provider?: STTProviderType;
+      mode?: AudioCaptureMode;
+      storage_ref?: string;
+      title?: string;
+      pre_transcribed_segments?: Array<{
+        speaker_label?: string | null;
+        start_ms: number;
+        end_ms: number;
+        text: string;
+        confidence?: number | null;
+        is_final?: boolean;
+      }>;
+      meeting_capture_id?: string;
+      workspace_id?: string;
+      handoff_to_meeting_capture?: boolean;
+      participants?: Array<{
+        display_name: string;
+        email?: string;
+        participant_entity_id?: string;
+        consent_state?:
+          | "CONSENTED"
+          | "NOT_CONSENTED"
+          | "PENDING"
+          | "EXTERNAL_TRACKED";
+        consent_source?: string;
+      }>;
+    }): Promise<ApiResult<ReceiveAudioResponse>> =>
+      this.request<ReceiveAudioResponse>("/otzar/voice-captures", {
+        method: "POST",
+        body: input,
+      }),
+    list: (): Promise<ApiResult<ListAudioCapturesResponse>> =>
+      this.request<ListAudioCapturesResponse>("/otzar/voice-captures"),
+    detail: (
+      audioCaptureId: string,
+    ): Promise<ApiResult<GetAudioCaptureDetailResponse>> =>
+      this.request<GetAudioCaptureDetailResponse>(
+        `/otzar/voice-captures/${encodeURIComponent(audioCaptureId)}`,
       ),
   };
 }
