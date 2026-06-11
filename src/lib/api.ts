@@ -70,6 +70,12 @@ import type {
   MyTwinResponse,
   ContextHealthResponse,
   MyDayIntelligenceResponse,
+  ObserveAttachWorkspaceResponse,
+  ObserveCaptureSourceType,
+  ObserveCapturesListResponse,
+  ObserveExtractResponse,
+  ObserveOCRProvider,
+  ObserveProvidersResponse,
   CommsExtractResponse,
   NotificationListResponse,
   NotificationReadResponse,
@@ -720,6 +726,36 @@ export class ApiClient {
      *  runtime (or the honest fixture fallback). */
     myDayIntelligence: (): Promise<ApiResult<MyDayIntelligenceResponse>> =>
       this.request<MyDayIntelligenceResponse>("/otzar/my-day/intelligence"),
+
+    /** Phase 1227 — governed Observe ("Let Otzar read this"). */
+    observeProviders: (): Promise<ApiResult<ObserveProvidersResponse>> =>
+      this.request<ObserveProvidersResponse>("/otzar/observe/providers"),
+
+    observeExtract: (input: {
+      provider: ObserveOCRProvider;
+      source_type: ObserveCaptureSourceType;
+      title?: string;
+      plain_text?: string;
+    }): Promise<ApiResult<ObserveExtractResponse>> =>
+      this.request<ObserveExtractResponse>("/otzar/observe/extract", {
+        method: "POST",
+        body: input,
+      }),
+
+    observeCaptures: (): Promise<ApiResult<ObserveCapturesListResponse>> =>
+      this.request<ObserveCapturesListResponse>("/otzar/observe/captures"),
+
+    observeAttachWorkspace: (
+      observeCaptureId: string,
+      workspaceId: string,
+    ): Promise<ApiResult<ObserveAttachWorkspaceResponse>> =>
+      this.request<ObserveAttachWorkspaceResponse>(
+        `/otzar/observe/${observeCaptureId}/attach-workspace`,
+        {
+          method: "POST",
+          body: { workspace_id: workspaceId },
+        },
+      ),
 
     /** Phase 1213 — POST /api/v1/otzar/comms/extract. Given the
      *  assembled captured conversation text, return Foundation's

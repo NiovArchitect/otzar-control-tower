@@ -3910,3 +3910,71 @@ export interface MyDayIntelligenceResponse {
   ok: true;
   intelligence: MyDayIntelligenceView;
 }
+
+// ─── Phase 1227 — OCR / Observe (governed document observation) ──
+// "Let Otzar read this": capture → provider text extraction →
+// structured extraction (the Phase 1213 comms pipeline) → optional
+// workspace attach. Suggested follow-ups are draft proposals only.
+
+export type ObserveOCRProvider =
+  | "DEMO_FIXTURE"
+  | "PLAIN_TEXT"
+  | "TESSERACT_LOCAL"
+  | "AWS_TEXTRACT"
+  | "GOOGLE_VISION";
+
+export type ObserveOCRProviderStatus =
+  | "READY"
+  | "DEMO_ONLY"
+  | "BLOCKED_BY_KEY"
+  | "NEEDS_PROVIDER_INSTALL";
+
+export interface ObserveProviderStatusRow {
+  provider: ObserveOCRProvider;
+  status: ObserveOCRProviderStatus;
+  display_name: string;
+  description: string;
+  required_envs: string[];
+}
+
+export interface ObserveProvidersResponse {
+  ok: true;
+  providers: ObserveProviderStatusRow[];
+}
+
+export type ObserveCaptureSourceType =
+  | "IMAGE"
+  | "PDF"
+  | "DOCUMENT"
+  | "SCREENSHOT"
+  | "PLAIN_TEXT_SOURCE"
+  | "DEMO";
+
+export interface ObserveCaptureView {
+  observe_capture_id: string;
+  provider: ObserveOCRProvider;
+  source_type: ObserveCaptureSourceType;
+  title: string | null;
+  status: "RECEIVED" | "EXTRACTED" | "FAILED" | "ATTACHED";
+  extracted_text_summary: string | null;
+  extraction: CommsExtractionResult | null;
+  workspace_id: string | null;
+  created_at: string;
+}
+
+export interface ObserveExtractResponse {
+  ok: true;
+  capture: ObserveCaptureView;
+}
+
+export interface ObserveCapturesListResponse {
+  ok: true;
+  captures: ObserveCaptureView[];
+}
+
+export interface ObserveAttachWorkspaceResponse {
+  ok: true;
+  capture: ObserveCaptureView;
+  imported_decisions: number;
+  imported_commitments: number;
+}
