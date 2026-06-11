@@ -1040,9 +1040,20 @@ const otzarProductionReadinessHandler = http.get(
             note: "Setup paths and status are ready; each needs the organization's app credentials.",
           },
           {
+            capability:
+              "Governed transaction substrate (intent → policy → approval → proof)",
+            classification: "PROD",
+            note: "Live on the current schema: DMW actors propose, policy gates, humans approve, every step audit-chained.",
+          },
+          {
+            capability: "Mock settlement rail (development/demo)",
+            classification: "DEMO_ONLY",
+            note: "The only executable rail. Produces clearly-labeled mock receipts — settles nothing.",
+          },
+          {
             capability: "Circle / Base / USDC settlement",
-            classification: "NOT_STARTED",
-            note: "Deliberately last, per direction.",
+            classification: "BLOCKED_BY_CREDENTIALS",
+            note: "Architecture prepared; no funds move until the Founder explicitly authorizes implementation and credentials exist.",
           },
         ],
         generated_at: new Date().toISOString(),

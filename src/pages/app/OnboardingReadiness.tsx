@@ -376,6 +376,13 @@ function HandoffSection({
         "BLOCKED_BY_APP_REVIEW",
       ],
     },
+    // Phase 1250: DEMO_ONLY (e.g. the mock settlement rail) and
+    // PARTIAL must be visible — a capability the admin can't see is
+    // a truth gap, not a simplification.
+    {
+      title: "Demo / development only (safe by design)",
+      classes: ["DEMO_ONLY", "PARTIAL"],
+    },
     { title: "Not started (by design)", classes: ["NOT_STARTED"] },
   ];
 
