@@ -931,6 +931,18 @@ const otzarConversationCloseHandler = http.post(
   },
 );
 
+// Phase 1236 — default calendar context (no quiet recommendation).
+const otzarCalendarContextHandler = http.get(
+  `${API_BASE}/otzar/calendar/context`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      provider_mode: "MOCK_CALENDAR",
+      quiet_recommended: false,
+      quiet_reason: "NONE",
+    }),
+);
+
 // Phase 1227 — default handlers for the Observe read-flow mounts.
 // Per-test server.use(...) overrides take precedence.
 const otzarObserveProvidersHandler = http.get(
@@ -2684,6 +2696,7 @@ export const handlers = [
   // Employee Otzar MVP
   otzarConversationMessageHandler,
   otzarConversationCloseHandler,
+  otzarCalendarContextHandler,
   otzarObserveProvidersHandler,
   otzarCollaborationWorkspacesDefaultHandler,
   otzarObserveHandler,

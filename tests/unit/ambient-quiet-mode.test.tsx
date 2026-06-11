@@ -6,9 +6,13 @@
 // CONNECTS TO: src/components/otzar/AmbientOtzarBar.tsx.
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { server } from "../msw/server";
 import { MemoryRouter } from "react-router-dom";
+
+const API_BASE = "http://localhost:3000/api/v1";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { useAuthStore } from "@/lib/stores/auth";
 
@@ -59,7 +63,7 @@ describe("AmbientOtzarBar — quiet mode (Phase 1235b)", () => {
       "Quiet mode — Otzar won't speak or listen.",
     );
     expect(banner).toHaveTextContent(
-      "When your calendar is connected, Otzar will go quiet automatically during meetings.",
+      "Connect your calendar to make quiet mode automatic.",
     );
     expect(
       screen.getByRole("button", { name: "Voice is paused in quiet mode" }),
@@ -108,5 +112,81 @@ describe("AmbientOtzarBar — quiet mode (Phase 1235b)", () => {
     ]) {
       expect(text).not.toContain(banned);
     }
+  });
+});
+
+describe("AmbientOtzarBar — calendar-aware automatic quiet mode (Phase 1236)", () => {
+  function meetingContext() {
+    return {
+      ok: true,
+      provider_mode: "MOCK_CALENDAR",
+      quiet_recommended: true,
+      quiet_reason: "IN_MEETING",
+      current_event: {
+        title_summary: "Launch sync",
+        starts_at: new Date(Date.now() - 600_000).toISOString(),
+        ends_at: new Date(Date.now() + 1_800_000).toISOString(),
+        meeting_provider: "GOOGLE_MEET",
+        has_external_participants: true,
+        capture_allowed_status: "NEEDS_CONSENT",
+      },
+    };
+  }
+
+  it("auto-enters quiet mode when the calendar says IN_MEETING", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/calendar/context`, () =>
+        HttpResponse.json(meetingContext()),
+      ),
+    );
+    renderBar();
+    await waitFor(() =>
+      expect(screen.getByTestId("ambient-otzar-bar")).toHaveAttribute(
+        "data-quiet",
+        "true",
+      ),
+    );
+    await expand();
+    const banner = screen.getByTestId("ambient-quiet-banner");
+    expect(banner).toHaveAttribute("data-auto-quiet", "IN_MEETING");
+    expect(banner).toHaveTextContent("Otzar went quiet for your meeting.");
+    expect(banner).toHaveTextContent("You can still approve or type.");
+    expect(
+      screen.getByRole("button", { name: "Voice is paused in quiet mode" }),
+    ).toBeDisabled();
+  });
+
+  it("Resume voice overrides auto-quiet for the session", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/calendar/context`, () =>
+        HttpResponse.json(meetingContext()),
+      ),
+    );
+    renderBar();
+    await waitFor(() =>
+      expect(screen.getByTestId("ambient-otzar-bar")).toHaveAttribute(
+        "data-quiet",
+        "true",
+      ),
+    );
+    await expand();
+    await userEvent.click(screen.getByTestId("ambient-resume-voice"));
+    expect(screen.queryByTestId("ambient-quiet-banner")).toBeNull();
+    expect(screen.getByTestId("ambient-quiet-toggle")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("a failing calendar endpoint never breaks the shell", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/calendar/context`, () =>
+        HttpResponse.json({ ok: false, code: "ERROR" }, { status: 500 }),
+      ),
+    );
+    renderBar();
+    const pill = screen.getByTestId("ambient-otzar-bar");
+    expect(pill).toHaveAttribute("data-quiet", "false");
+    expect(pill).toHaveTextContent("Talk to Otzar");
   });
 });
