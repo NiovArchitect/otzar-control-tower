@@ -931,6 +931,56 @@ const otzarConversationCloseHandler = http.post(
   },
 );
 
+// Phase 1237 — Dandelion defaults (healthy org; warm onboarding).
+const otzarDandelionGrowthHandler = http.get(
+  `${API_BASE}/otzar/dandelion/org-growth`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      growth: {
+        headline:
+          "Your organization looks healthy this week. Otzar will keep watching for ways to help it grow.",
+        recommendations: [],
+        signals: {
+          members_count: 4,
+          external_collaborators_count: 1,
+          unowned_external_count: 0,
+          disconnected_members_count: 0,
+        },
+        generated_at: new Date().toISOString(),
+      },
+    }),
+);
+
+const otzarDandelionOnboardingHandler = http.get(
+  `${API_BASE}/otzar/dandelion/onboarding`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      onboarding: {
+        greeting:
+          "Welcome, Sadeil — I'm Otzar. I'll help you understand your day, your team, and what needs your attention.",
+        teammates_to_meet: [
+          {
+            display_name: "David Odie",
+            role_label: "Tech Lead",
+            shares_a_project: true,
+          },
+        ],
+        workspaces_to_join: [
+          { workspace_id: "ws-1", title: "Launch Collaboration" },
+        ],
+        first_steps: [
+          "Tell Otzar what to call you — and how to pronounce it.",
+          "Open My Day to see what matters today.",
+          "Say hello to a teammate Otzar suggested.",
+        ],
+        memory_consent_note:
+          "Otzar only remembers what you approve. Anything you save is private to your organization, recorded in the audit trail, and you can revoke it later.",
+      },
+    }),
+);
+
 // Phase 1236 — default calendar context (no quiet recommendation).
 const otzarCalendarContextHandler = http.get(
   `${API_BASE}/otzar/calendar/context`,
@@ -2696,6 +2746,8 @@ export const handlers = [
   // Employee Otzar MVP
   otzarConversationMessageHandler,
   otzarConversationCloseHandler,
+  otzarDandelionGrowthHandler,
+  otzarDandelionOnboardingHandler,
   otzarCalendarContextHandler,
   otzarObserveProvidersHandler,
   otzarCollaborationWorkspacesDefaultHandler,

@@ -4022,3 +4022,54 @@ export interface CalendarContextResponse {
     prep_recommended: boolean;
   };
 }
+
+// ─── Phase 1237 — Dandelion org growth + onboarding ──────────
+
+export type DandelionRecommendationKind =
+  | "ASSIGN_INTERNAL_OWNER"
+  | "REDUCE_OVERLOAD"
+  | "CONNECT_TEAMMATE"
+  | "PREPARE_ONBOARDING";
+
+export interface DandelionRecommendation {
+  kind: DandelionRecommendationKind;
+  title: string;
+  why: string;
+  people: string[];
+  suggested_next_step: string;
+}
+
+export interface DandelionOrgGrowthResponse {
+  ok: true;
+  growth: {
+    headline: string;
+    recommendations: DandelionRecommendation[];
+    signals: {
+      members_count: number;
+      external_collaborators_count: number;
+      unowned_external_count: number;
+      disconnected_members_count: number;
+    };
+    generated_at: string;
+  };
+}
+
+export interface DandelionOnboardingResponse {
+  ok: true;
+  onboarding: {
+    greeting: string;
+    teammates_to_meet: Array<{
+      display_name: string;
+      role_label: string | null;
+      shares_a_project: boolean;
+    }>;
+    workspaces_to_join: Array<{ workspace_id: string; title: string }>;
+    first_steps: string[];
+    memory_consent_note: string;
+  };
+}
+
+export interface DandelionMemoryCandidateResponse {
+  ok: true;
+  action: SafeActionView;
+}

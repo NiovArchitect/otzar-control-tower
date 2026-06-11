@@ -69,6 +69,9 @@ import type {
   // My Twin + Conversations metadata (read-only)
   MyTwinResponse,
   CalendarContextResponse,
+  DandelionMemoryCandidateResponse,
+  DandelionOnboardingResponse,
+  DandelionOrgGrowthResponse,
   ContextHealthResponse,
   MyDayIntelligenceResponse,
   ObserveAttachWorkspaceResponse,
@@ -727,6 +730,25 @@ export class ApiClient {
      *  runtime (or the honest fixture fallback). */
     myDayIntelligence: (): Promise<ApiResult<MyDayIntelligenceResponse>> =>
       this.request<MyDayIntelligenceResponse>("/otzar/my-day/intelligence"),
+
+    /** Phase 1237 — Dandelion org growth + voice-first onboarding. */
+    dandelionOrgGrowth: (): Promise<ApiResult<DandelionOrgGrowthResponse>> =>
+      this.request<DandelionOrgGrowthResponse>("/otzar/dandelion/org-growth"),
+
+    dandelionOnboarding: (): Promise<ApiResult<DandelionOnboardingResponse>> =>
+      this.request<DandelionOnboardingResponse>("/otzar/dandelion/onboarding"),
+
+    dandelionMemoryCandidate: (input: {
+      preferred_name?: string;
+      pronunciation?: string;
+      communication_preference?: string;
+      quiet_preference?: string;
+      remember_text?: string;
+    }): Promise<ApiResult<DandelionMemoryCandidateResponse>> =>
+      this.request<DandelionMemoryCandidateResponse>(
+        "/otzar/dandelion/onboarding/memory-candidates",
+        { method: "POST", body: input },
+      ),
 
     /** Phase 1236 — calendar-aware quiet mode context. */
     calendarContext: (): Promise<ApiResult<CalendarContextResponse>> =>

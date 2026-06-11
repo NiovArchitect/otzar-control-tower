@@ -25,6 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PeopleDirectory } from "@/components/otzar/PeopleDirectory";
+import { Sprout } from "lucide-react";
+import { useAuthStore } from "@/lib/stores/auth";
+import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { api } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
@@ -175,6 +178,9 @@ export function Collaboration() {
         title="People & Collaboration"
         description="See the teammates in your org, then ask coworkers, coworker Twins, teams, and projects for help. Same-project / same-team work usually flows automatically; cross-team or sensitive work asks for approval at the right boundary. Powered by Dandelion."
       />
+
+      {/* Phase 1237 — Dandelion org-growth intelligence (admins). */}
+      <DandelionGrowthCard />
 
       {/* Phase 1216 -- People directory at the top of the surface
           so the operator can see WHO they can collaborate with
@@ -502,5 +508,85 @@ function CollaborationRow({
         </div>
       )}
     </li>
+  );
+}
+
+
+// Phase 1237 — the Dandelion admin wow card: "Otzar found N ways to
+// strengthen your organization this week." Governed recommendations
+// only — nothing executes from here; each suggested step routes
+// through existing pages. Hidden for non-admins; dismissals are
+// local to the session (recommendations recompute server-side).
+function DandelionGrowthCard(): JSX.Element | null {
+  const { capabilities } = useAuthStore();
+  const admin = isOrgAdmin(capabilities);
+  const growth = useQuery({
+    queryKey: ["otzar", "dandelion", "org-growth"],
+    queryFn: () => api.otzar.dandelionOrgGrowth(),
+    enabled: admin,
+  });
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+
+  if (!admin) return null;
+  if (!growth.data || !growth.data.ok) return null;
+  const view = growth.data.data.growth;
+  const visible = view.recommendations.filter(
+    (r) => !dismissed.has(r.title),
+  );
+
+  return (
+    <Card data-testid="dandelion-growth-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Sprout className="h-4 w-4" aria-hidden /> Help your organization
+          grow
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-xs">
+        <p
+          className="text-muted-foreground"
+          data-testid="dandelion-growth-headline"
+        >
+          {view.headline}
+        </p>
+        {visible.length > 0 ? (
+          <ul className="space-y-1" data-testid="dandelion-growth-list">
+            {visible.map((rec) => (
+              <li
+                key={rec.title}
+                className="rounded border bg-card p-2"
+                data-testid="dandelion-growth-item"
+                data-kind={rec.kind}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-foreground">{rec.title}</p>
+                    <p className="text-muted-foreground">{rec.why}</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Next step: {rec.suggested_next_step}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setDismissed((prev) => new Set([...prev, rec.title]))
+                    }
+                    data-testid="dandelion-growth-dismiss"
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="text-[10px] text-muted-foreground">
+          Suggestions only — nothing happens without you. Private to your
+          organization.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
