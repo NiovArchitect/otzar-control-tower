@@ -44,7 +44,136 @@ import type {
   McpPolicyOutcome,
   McpServerConnectionView,
   McpToolPolicyView,
+  OAuthConnectionStatus,
+  OAuthStatusRow,
 } from "@/lib/types/foundation";
+
+// Phase 1261 — humanized closed-vocab copy for OAuth connection
+// statuses. Exhaustive Record: a new status can't render raw.
+const OAUTH_STATUS_COPY: Record<OAuthConnectionStatus, string> = {
+  APP_CREDENTIALS_MISSING: "Needs app credentials",
+  READY_FOR_CONSENT: "Ready to connect",
+  CONNECTED_UNVERIFIED: "Connected — verify to confirm",
+  VERIFIED: "Verified",
+  ERROR_NEEDS_RECONNECT: "Needs reconnect",
+  REVOKED: "Revoked",
+};
+
+function OAuthProviderRow({
+  row,
+  onChanged,
+}: {
+  row: OAuthStatusRow;
+  onChanged: () => void;
+}) {
+  const start = useMutation({
+    mutationFn: () => api.otzar.oauthStart(row.slug),
+    onSuccess: (result) => {
+      if (result.ok) {
+        window.open(result.data.authorize_url, "_blank");
+        toast.success(
+          `Continue the ${row.display_name} consent in your browser, then come back and press Verify.`,
+        );
+      } else {
+        toast.error(
+          "Couldn't start the connection — check that the app credentials are configured on the server.",
+        );
+      }
+    },
+  });
+  const verify = useMutation({
+    mutationFn: () => api.otzar.oauthVerify(row.slug),
+    onSuccess: (result) => {
+      if (result.ok) {
+        toast.success(`${row.display_name} verified — the connection works.`);
+      } else {
+        toast.error(
+          `${row.display_name} verification failed — reconnect from this card.`,
+        );
+      }
+      onChanged();
+    },
+  });
+  const revoke = useMutation({
+    mutationFn: () => api.otzar.oauthRevoke(row.slug),
+    onSuccess: () => {
+      toast.success(`${row.display_name} connection revoked.`);
+      onChanged();
+    },
+  });
+  const connected =
+    row.status === "CONNECTED_UNVERIFIED" ||
+    row.status === "VERIFIED" ||
+    row.status === "ERROR_NEEDS_RECONNECT";
+  return (
+    <Card
+      data-testid="oauth-provider-row"
+      data-provider={row.provider}
+      data-status={row.status}
+    >
+      <CardContent className="pt-4 space-y-2 text-xs">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium text-sm">{row.display_name}</span>
+          <Badge variant="outline" data-testid="oauth-status-badge">
+            {OAUTH_STATUS_COPY[row.status]}
+          </Badge>
+        </div>
+        {row.account_label !== null ? (
+          <div className="text-muted-foreground">
+            Workspace: {row.account_label}
+          </div>
+        ) : null}
+        {row.last_verified_at !== null ? (
+          <div className="text-muted-foreground">
+            Last verified: {new Date(row.last_verified_at).toLocaleString()}
+          </div>
+        ) : null}
+        {row.status === "APP_CREDENTIALS_MISSING" ? (
+          <p className="text-muted-foreground">
+            Create the OAuth app in the provider console first — the exact
+            steps live in the setup runbook. Credentials go in the server
+            deployment, never here.
+          </p>
+        ) : null}
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            data-testid="oauth-connect-button"
+            disabled={
+              row.status === "APP_CREDENTIALS_MISSING" || start.isPending
+            }
+            onClick={() => start.mutate()}
+          >
+            {start.isPending
+              ? "Opening…"
+              : connected
+                ? "Reconnect"
+                : "Connect"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            data-testid="oauth-verify-button"
+            disabled={!connected || verify.isPending}
+            onClick={() => verify.mutate()}
+          >
+            {verify.isPending ? "Verifying…" : "Verify"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            data-testid="oauth-revoke-button"
+            disabled={!connected || revoke.isPending}
+            onClick={() => revoke.mutate()}
+          >
+            {revoke.isPending ? "Revoking…" : "Revoke"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 const MCP_OPERATION_CLASSES: ReadonlyArray<McpOperationClass> = [
   "READ",
@@ -444,6 +573,11 @@ export default function ConnectorRailsAdmin() {
     queryFn: () => api.connectorRails.listMcpPolicies(),
   });
 
+  const oauthStatus = useQuery({
+    queryKey: ["connector-rails", "oauth-status"],
+    queryFn: () => api.otzar.oauthStatus(),
+  });
+
   const onProvidersChanged = () =>
     queryClient.invalidateQueries({ queryKey: ["connector-rails"] });
 
@@ -453,6 +587,37 @@ export default function ConnectorRailsAdmin() {
         title="Connector + MCP rails"
         description="Tenant-owned connector + MCP-server credentials. Vault paths only — never raw secrets."
       />
+
+      <section className="space-y-4" data-testid="oauth-connections-section">
+        <h2 className="text-lg font-semibold">
+          Workspace connections (OAuth)
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Google Workspace, Slack, Microsoft 365, and Zoom connect with your
+          organization's own consent — Connect opens the provider's sign-in
+          in your browser; Verify proves the connection actually works. A
+          connection only shows Verified after a live check.
+        </p>
+        {oauthStatus.isLoading ? (
+          <Skeleton className="h-32" />
+        ) : oauthStatus.data?.ok ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {oauthStatus.data.data.providers.map((row) => (
+              <OAuthProviderRow
+                key={row.provider}
+                row={row}
+                onChanged={onProvidersChanged}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="pt-4 text-sm text-muted-foreground">
+              Couldn't load connection status (admin access required).
+            </CardContent>
+          </Card>
+        )}
+      </section>
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Provider catalog</h2>

@@ -71,6 +71,8 @@ import type {
   CalendarContextResponse,
   DandelionMemoryCandidateResponse,
   ConnectorAdaptersResponse,
+  OAuthStatusResponse,
+  OAuthStartResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -736,6 +738,33 @@ export class ApiClient {
     /** Phase 1244 — connector adapter status + setup guidance. */
     connectorAdapters: (): Promise<ApiResult<ConnectorAdaptersResponse>> =>
       this.request<ConnectorAdaptersResponse>("/connectors/adapters"),
+
+    /** Phase 1261 — Priority C OAuth connection status (admin). */
+    oauthStatus: (): Promise<ApiResult<OAuthStatusResponse>> =>
+      this.request<OAuthStatusResponse>("/connectors/oauth/status"),
+
+    /** Phase 1261 — begin the OAuth consent flow; the returned
+     *  authorize_url opens in the system browser. */
+    oauthStart: (slug: string): Promise<ApiResult<OAuthStartResponse>> =>
+      this.request<OAuthStartResponse>(`/connectors/oauth/${slug}/start`, {
+        method: "POST",
+        body: {},
+      }),
+
+    /** Phase 1261 — live verification probe (the only path to
+     *  the Verified status). */
+    oauthVerify: (slug: string): Promise<ApiResult<{ ok: true; status: string }>> =>
+      this.request<{ ok: true; status: string }>(
+        `/connectors/oauth/${slug}/verify`,
+        { method: "POST", body: {} },
+      ),
+
+    /** Phase 1261 — revoke + wipe the stored connection. */
+    oauthRevoke: (slug: string): Promise<ApiResult<{ ok: true }>> =>
+      this.request<{ ok: true }>(`/connectors/oauth/${slug}/revoke`, {
+        method: "POST",
+        body: {},
+      }),
 
     /** Phase 1242 — enterprise handoff readiness aggregate. */
     productionReadiness: (): Promise<ApiResult<HandoffReadinessResponse>> =>
