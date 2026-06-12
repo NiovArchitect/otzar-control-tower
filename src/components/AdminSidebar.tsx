@@ -5,7 +5,7 @@
 // CONNECTS TO: src/lib/nav.ts, src/hooks/use-pending-approvals.ts.
 
 import { NavLink } from "react-router-dom";
-import { NAV } from "@/lib/nav";
+import { NAV, NAV_GROUP_ORDER } from "@/lib/nav";
 import { usePendingApprovals } from "@/hooks/use-pending-approvals";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,8 +31,15 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
       <ScrollArea className="flex-1 px-2 pb-4">
-        <ul className="space-y-1">
-          {NAV.map((item) => {
+        {/* Phase 1255 slice 2 — OS-style sections: the admin governs
+            an enterprise, not a flat list of pages. */}
+        {NAV_GROUP_ORDER.map((group) => (
+          <div key={group} data-testid="admin-nav-group" data-group={group}>
+            <p className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              {group}
+            </p>
+            <ul className="space-y-1">
+              {NAV.filter((item) => item.group === group).map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.to}>
@@ -59,10 +66,12 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                       </Badge>
                     )}
                 </NavLink>
-              </li>
-            );
-          })}
-        </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </ScrollArea>
     </nav>
   );

@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CommandCenterPanel } from "@/components/CommandCenterPanel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -61,8 +62,13 @@ export function HomePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Home"
-        description="Live snapshot of your organization -- approvals waiting on you, active AI teammates, compound intelligence score, and the latest admin activity."
+        title="Command Center"
+        description="Run and govern your organization from one place — what needs attention, what blocks go-live, and what to do next. Ask Otzar (⌘K) to go anywhere."
+      />
+
+      {/* ── Phase 1255 slice 2 — Command Center panel ──────────── */}
+      <CommandCenterPanel
+        pendingApprovals={value?.pending_approvals_count ?? null}
       />
 
       {/* ── KPI cards (12A) ────────────────────────────────────── */}
