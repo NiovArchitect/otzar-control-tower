@@ -14,19 +14,21 @@ import {
 } from "@/lib/voice/diagnostics";
 
 describe("voice diagnostics — micCopyFor", () => {
-  it("tauri_webview: typed-transcript mode + no request button + mic disabled", () => {
+  it("tauri_webview: calm typed fallback — no jargon, no warnings (Phase 1253)", () => {
     const out = micCopyFor("tauri_webview", "unsupported", false);
-    expect(out.headline).toMatch(/Desktop voice input: typed-transcript mode/);
+    expect(out.headline).toMatch(/Type to Otzar/);
     expect(out.showRequestButton).toBe(false);
     expect(out.micButtonEnabled).toBe(false);
     expect(out.tone).toBe("muted");
-    expect(out.detail).toMatch(/Use the textarea below/);
-    expect(out.detail).toMatch(/open Otzar in Chrome/);
+    expect(out.detail).toMatch(/Typing works exactly the same/);
+    expect(`${out.headline} ${out.detail}`).not.toMatch(
+      /typed-transcript|browser microphone API|forward-substrate/,
+    );
   });
 
-  it("tauri_webview: even if SpeechRecognition is somehow present, we still report typed mode", () => {
+  it("tauri_webview: even if SpeechRecognition is somehow present, typing stays the path", () => {
     const out = micCopyFor("tauri_webview", "granted", true);
-    expect(out.headline).toMatch(/typed-transcript mode/);
+    expect(out.headline).toMatch(/Type to Otzar/);
     expect(out.micButtonEnabled).toBe(false);
   });
 
@@ -98,19 +100,17 @@ describe("voice diagnostics — speechRecognitionErrorCopy", () => {
 });
 
 describe("voice diagnostics — llmErrorCopy", () => {
-  it("LLM_UNAVAILABLE → friendly copy referencing LLM_PROVIDER", () => {
+  it("LLM_UNAVAILABLE → calm setup-mode copy, no provider jargon (Phase 1253)", () => {
     const out = llmErrorCopy("LLM_UNAVAILABLE");
-    expect(out).toMatch(/AI brain is not connected/);
-    expect(out).toMatch(/LLM_PROVIDER/);
-    expect(out).toMatch(/No secrets are shown here/);
-    // We deliberately surface the env-var NAME but never a value;
-    // assert the var name is the only secret-shaped string allowed.
+    expect(out).toMatch(/setup mode/);
+    expect(out).toMatch(/admin can finish setup/);
+    expect(out).not.toMatch(/LLM_PROVIDER|backend|brain/);
     expect(out).not.toMatch(/sk-/);
     expect(out).not.toMatch(/api[_-]?key=/i);
   });
 
   it("BUDGET_TOO_LARGE → actionable trim suggestion", () => {
-    expect(llmErrorCopy("BUDGET_TOO_LARGE")).toMatch(/too long for the current token budget/);
+    expect(llmErrorCopy("BUDGET_TOO_LARGE")).toMatch(/a little long/);
   });
 
   it("session codes → 'sign in again' copy", () => {
@@ -124,9 +124,11 @@ describe("voice diagnostics — llmErrorCopy", () => {
     }
   });
 
-  it("unknown code falls through with the raw code in parens but a try-again instruction", () => {
-    expect(llmErrorCopy("MYSTERY_CODE")).toMatch(/Otzar error \(MYSTERY_CODE\)/);
-    expect(llmErrorCopy("MYSTERY_CODE")).toMatch(/Foundation API logs/);
+  it("unknown code → plain recovery copy with a small support ref, never raw backend prose", () => {
+    const out = llmErrorCopy("MYSTERY_CODE");
+    expect(out).toMatch(/try again in a moment/);
+    expect(out).toMatch(/ref: MYSTERY_CODE/);
+    expect(out).not.toMatch(/Foundation API logs|Otzar error/);
   });
 });
 

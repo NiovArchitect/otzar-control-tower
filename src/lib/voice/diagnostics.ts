@@ -70,10 +70,13 @@ export function micCopyFor(
   // SpeechRecognition typically isn't there either. Be honest +
   // direct the operator to Chrome or typed-transcript.
   if (shell === "tauri_webview") {
+    // Phase 1253: typed input is the quiet fallback, never a
+    // technical warning. No "browser microphone API", no URLs, no
+    // "forward-substrate" in the employee's face.
     return {
-      headline: "Desktop voice input: typed-transcript mode",
+      headline: "Type to Otzar — voice on desktop is coming",
       detail:
-        "The Otzar desktop shell does not expose the browser microphone API. Use the textarea below, OR open Otzar in Chrome at http://localhost:5173/app/voice for live microphone input. Native desktop mic capture is queued forward-substrate.",
+        "Typing works exactly the same: Otzar listens, helps, and asks before acting. Native desktop voice is on the way; voice also works today in your browser.",
       showRequestButton: false,
       micButtonEnabled: false,
       tone: "muted",
@@ -176,18 +179,25 @@ export function speechRecognitionErrorCopy(error: string): string {
 export function llmErrorCopy(code: string): string {
   switch (code) {
     case "LLM_UNAVAILABLE":
-      return "Otzar's AI brain is not connected. The backend LLM provider returned an error — check LLM_PROVIDER + the configured API key. (No secrets are shown here.)";
+      // Phase 1253: setup mode, not a broken brain. Provider/key
+      // details live behind the admin Integrations surface, never in
+      // the employee's face.
+      return "Otzar is in setup mode — the AI provider isn't connected yet. Everything else keeps working, and an admin can finish setup in Integrations.";
+    case "OTZAR_BUSY_TRY_AGAIN":
+      return "Otzar is catching its breath — try again in a moment. Nothing was lost.";
     case "BUDGET_TOO_LARGE":
-      return "Your message is too long for the current token budget. Trim it and try again.";
+      return "That message is a little long. Trim it and try again.";
     case "INVALID_REQUEST":
-      return "Otzar rejected the request shape. Try refreshing the page.";
+      return "Something looked off about that request. Refresh and try again.";
     case "SESSION_INVALID":
     case "SESSION_EXPIRED":
     case "SESSION_REVOKED":
     case "SESSION_INVALIDATED":
       return "Your session expired. Sign in again.";
     default:
-      return `Otzar error (${code}). Try again, or check the Foundation API logs.`;
+      // Plain recovery copy with a small support reference — never a
+      // raw backend error sentence.
+      return `Otzar couldn't finish that — try again in a moment. (ref: ${code})`;
   }
 }
 

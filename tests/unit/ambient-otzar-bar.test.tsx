@@ -304,7 +304,7 @@ describe("AmbientOtzarBar — voice permission + Test Otzar voice (Phase 12)", (
     expect(speakMock).toHaveBeenCalledTimes(1);
     const utterance = speakMock.mock.calls[0]?.[0] as { text: string };
     expect(utterance.text).toBe(
-      "Otzar voice is active. I can speak responses back to you.",
+      "OatZar voice is active. I can speak responses back to you.",
     );
   });
 });

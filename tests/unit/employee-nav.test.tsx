@@ -88,7 +88,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
   });
 
   it("My Day is the first primary entry and routes to /app", () => {
-    expect(PRIMARY_EMPLOYEE_NAV[0]?.to).toBe("/app");
+    expect(PRIMARY_EMPLOYEE_NAV[0]?.to).toBe("/app/my-day");
     expect(PRIMARY_EMPLOYEE_NAV[0]?.label).toBe("My Day");
   });
 

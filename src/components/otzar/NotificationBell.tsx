@@ -257,10 +257,38 @@ export function NotificationBell({
     if (!state.open) void fetchOnce();
   }
 
+  // Phase 1253 (Founder acceptance fix): the panel closes like every
+  // calm overlay should — click anywhere outside, or press Escape.
+  // Focus returns to the bell button on Escape so keyboard users
+  // never lose their place.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const bellButtonRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!state.open) return;
+    function onPointerDown(e: MouseEvent): void {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setState((s) => ({ ...s, open: false }));
+      }
+    }
+    function onKeyDown(e: KeyboardEvent): void {
+      if (e.key === "Escape") {
+        setState((s) => ({ ...s, open: false }));
+        bellButtonRef.current?.focus();
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [state.open]);
+
   return (
-    <div className="relative" data-testid="notification-bell-root">
+    <div className="relative" data-testid="notification-bell-root" ref={rootRef}>
       <button
         type="button"
+        ref={bellButtonRef}
         onClick={toggle}
         className="relative rounded p-1.5 hover:bg-accent"
         aria-label={

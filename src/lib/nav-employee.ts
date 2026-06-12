@@ -56,7 +56,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
   // ── Primary (warm, OS-style everyday journey) ────────────────
   {
     label: "My Day",
-    to: "/app",
+    to: "/app/my-day",
     icon: Sun,
     description: "What needs you today.",
     group: "primary",
