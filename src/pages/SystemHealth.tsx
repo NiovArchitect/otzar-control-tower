@@ -7,11 +7,12 @@
 //          states; no jargon; every blocked row says what fixes it.
 // CONNECTS TO: api.platform.health, api.otzar.productionReadiness,
 //          src/lib/voice/native-mic.ts, src/lib/voice/diagnostics
-//          (shell mode), Command Center.
+//          (shell mode), src/lib/desktop-capabilities.ts (Phase
+//          1259C honest capability report), Command Center.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Activity, ArrowRight, Mic2, Server } from "lucide-react";
+import { Activity, ArrowRight, Laptop, Mic2, Server } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,10 @@ import {
   nativeMicCopy,
   type NativeMicStatus,
 } from "@/lib/voice/native-mic";
+import {
+  capabilityStatusCopy,
+  getDesktopCapabilities,
+} from "@/lib/desktop-capabilities";
 import type {
   HandoffReadinessResponse,
   PlatformHealth,
@@ -36,6 +41,7 @@ export function SystemHealthPage(): JSX.Element {
   >([]);
   const [nativeMic, setNativeMic] = useState<NativeMicStatus | null>(null);
   const shell = detectShellMode();
+  const capabilities = getDesktopCapabilities();
 
   useEffect(() => {
     let cancelled = false;
@@ -175,6 +181,37 @@ export function SystemHealthPage(): JSX.Element {
           </p>
           <p className="text-muted-foreground">
             Typing always works and rides the same command layer as voice.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="system-health-desktop-capabilities">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Laptop className="h-4 w-4" aria-hidden /> Desktop capabilities
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-xs">
+          {capabilities.map((cap) => (
+            <div
+              key={cap.id}
+              className="flex items-start justify-between gap-2 rounded-xl border border-border/70 p-2.5"
+              data-testid="system-health-capability-row"
+              data-capability={cap.id}
+              data-status={cap.status}
+            >
+              <span>
+                <span className="text-foreground">{cap.label}</span>{" "}
+                <span className="text-muted-foreground">— {cap.note}</span>
+              </span>
+              <Badge variant="outline" className="shrink-0 text-[9px]">
+                {capabilityStatusCopy[cap.status]}
+              </Badge>
+            </div>
+          ))}
+          <p className="text-muted-foreground">
+            Each row is the live truth for this install — nothing shows as
+            working unless the runtime path actually exists.
           </p>
         </CardContent>
       </Card>
