@@ -63,6 +63,7 @@ import {
   type NativeMicStatus,
 } from "@/lib/voice/native-mic";
 import { routeVoiceCommand } from "@/lib/voice/command-router";
+import { speakPremium } from "@/lib/voice/premium-tts";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
 import {
@@ -246,6 +247,20 @@ export function AmbientOtzarBar(): JSX.Element {
     // effect mount-stable.
   }, []);
 
+  // Phase 1259 — assistant speech is PREMIUM-FIRST: try the real
+  // provider voice; the device voice is only the fallback. The
+  // synthesis fallback keeps the existing dedupe/mute semantics.
+  function speakAssistant(
+    text: string,
+    opts: { source: "auto" | "replay"; force: boolean },
+  ): void {
+    void speakPremium(text).then((outcome) => {
+      if (outcome.kind !== "PREMIUM") {
+        synthesisRef.current.speak(text, opts);
+      }
+    });
+  }
+
   // AUTO-SPEAK effect — only fires when:
   //   1. auto-speak is explicitly enabled by the operator
   //   2. there's a response
@@ -268,7 +283,7 @@ export function AmbientOtzarBar(): JSX.Element {
         ? intent.response.speech_ready_text
         : intent.response.response;
     lastAutoSpokenKeyRef.current = responseKey;
-    synthesis.speak(sayable, { source: "auto", force: false });
+    speakAssistant(sayable, { source: "auto", force: false });
     // intent.response is intentionally NOT in the deps — we mirror
     // it via responseKey to keep the effect stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -360,7 +375,7 @@ export function AmbientOtzarBar(): JSX.Element {
         : intent.response.response;
     // force=true so an explicit replay can bypass the auto-speak
     // dedupe even if the same text was already auto-spoken once.
-    synthesis.speak(sayable, { source: "replay", force: true });
+    speakAssistant(sayable, { source: "replay", force: true });
   }
 
   // ────────────────────────────────────────────────────────────

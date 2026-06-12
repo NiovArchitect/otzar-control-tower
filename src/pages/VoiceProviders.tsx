@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { humanizeStatus } from "@/lib/labels/humanize";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { speakPremium } from "@/lib/voice/premium-tts";
 import {
   detectNativeMicCapability,
   nativeMicCopy,
@@ -87,6 +88,19 @@ function rowsFromAdapters(adapters: ConnectorAdapterRow[]): VoiceRow[] {
 
 export default function VoiceProviders(): JSX.Element {
   const synthesis = useSpeechSynthesis();
+  // Phase 1259 — what the listener ACTUALLY heard, labeled honestly.
+  const [lastVoice, setLastVoice] = useState<
+    "PREMIUM" | "FALLBACK" | null
+  >(null);
+  async function handleHearIt(): Promise<void> {
+    const outcome = await speakPremium(PRONUNCIATION_PHRASE);
+    if (outcome.kind === "PREMIUM") {
+      setLastVoice("PREMIUM");
+      return;
+    }
+    setLastVoice("FALLBACK");
+    synthesis.speak(PRONUNCIATION_PHRASE, { source: "test", force: true });
+  }
   const [stt, setStt] = useState<STTProviderStatusRow[]>([]);
   const [adapters, setAdapters] = useState<ConnectorAdapterRow[]>([]);
   const [nativeMic, setNativeMic] = useState<NativeMicStatus | null>(null);
@@ -265,17 +279,29 @@ export default function VoiceProviders(): JSX.Element {
             type="button"
             size="sm"
             variant="outline"
-            disabled={!synthesis.supported}
             data-testid="voice-pronunciation-test-button"
-            onClick={() =>
-              synthesis.speak(PRONUNCIATION_PHRASE, {
-                source: "test",
-                force: true,
-              })
-            }
+            onClick={() => void handleHearIt()}
           >
             <Mic2 className="mr-1 h-3.5 w-3.5" aria-hidden /> Hear it
           </Button>
+          {lastVoice === "PREMIUM" ? (
+            <p
+              className="text-[10px] text-emerald-600"
+              data-testid="voice-last-played-premium"
+            >
+              Premium voice preview — that was Otzar's real voice.
+            </p>
+          ) : null}
+          {lastVoice === "FALLBACK" ? (
+            <p
+              className="text-[10px] text-muted-foreground"
+              data-testid="voice-last-played-fallback"
+            >
+              Using the temporary device voice. The premium voice needs
+              provider verification (check ElevenLabs credits/permissions in
+              Integrations).
+            </p>
+          ) : null}
           <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Sparkles className="h-3 w-3" aria-hidden />
             The Otzar voice direction is original — warm, calm, premium, never
