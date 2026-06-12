@@ -4156,3 +4156,37 @@ export interface ConnectorAdaptersResponse {
   ok: true;
   adapters: ConnectorAdapterRow[];
 }
+
+/** Phase 1261 — Priority C OAuth connection status (Foundation
+ *  GET /connectors/oauth/status). VERIFIED appears only after a
+ *  live server-side probe; token material never rides this shape. */
+export type OAuthConnectionStatus =
+  | "APP_CREDENTIALS_MISSING"
+  | "READY_FOR_CONSENT"
+  | "CONNECTED_UNVERIFIED"
+  | "VERIFIED"
+  | "ERROR_NEEDS_RECONNECT"
+  | "REVOKED";
+
+export interface OAuthStatusRow {
+  provider: string;
+  display_name: string;
+  slug: string;
+  app_credentials_present: boolean;
+  status: OAuthConnectionStatus;
+  scopes: string[];
+  account_label: string | null;
+  connected_at: string | null;
+  last_verified_at: string | null;
+  redirect_uri: string;
+}
+
+export interface OAuthStatusResponse {
+  ok: true;
+  providers: OAuthStatusRow[];
+}
+
+export interface OAuthStartResponse {
+  ok: true;
+  authorize_url: string;
+}
