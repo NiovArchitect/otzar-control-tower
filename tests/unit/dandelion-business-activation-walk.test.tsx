@@ -182,7 +182,7 @@ describe("D6 business — card shell", () => {
   it("renders the doctrine line about activating the business envelope", () => {
     renderPage();
     expect(
-      screen.getAllByText(/Activate the business envelope/i).length,
+      screen.getAllByText(/Activate the business rollout/i).length,
     ).toBeGreaterThan(0);
   });
 

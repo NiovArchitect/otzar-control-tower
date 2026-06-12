@@ -132,7 +132,7 @@ describe("D6 team — card shell", () => {
     // "Activate the team envelope" appears as the card title + the
     // button label; both are valid renderings.
     expect(
-      screen.getAllByText(/Activate the team envelope/i).length,
+      screen.getAllByText(/Activate the team rollout/i).length,
     ).toBeGreaterThan(0);
   });
 

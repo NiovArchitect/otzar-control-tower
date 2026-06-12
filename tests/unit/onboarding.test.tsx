@@ -93,11 +93,11 @@ describe("ADR-0080 Wave 3 Dandelion Preview -- shell + doctrine", () => {
     );
   });
 
-  it("shows the envelope-doctrine line 'JSON is not the moat — the governed context envelope is.'", () => {
+  it("shows the activation-package doctrine line (Phase 1255 humanized copy)", () => {
     renderPage();
     expect(
       screen.getByText(
-        "JSON is not the moat — the governed context envelope is.",
+        "The value is the governed activation package — not the raw file behind it.",
       ),
     ).toBeInTheDocument();
   });

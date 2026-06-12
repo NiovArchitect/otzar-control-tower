@@ -92,6 +92,18 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "Unified browser over your organization's knowledge items.",
   },
   {
+    label: "Reports",
+    to: "/reports",
+    icon: ScrollText,
+    description: "Governed reporting -- regulator packages, readiness truth, and activity records. Scheduled internal reports arrive with the reports schema.",
+  },
+  {
+    label: "Data retention",
+    to: "/retention",
+    icon: ScrollText,
+    description: "How long data lives and who controls it -- memory revocation, transcript retention, legal hold, and what stays as tamper-evident proof.",
+  },
+  {
     label: "Security & Audit",
     to: "/security-audit",
     icon: Shield,

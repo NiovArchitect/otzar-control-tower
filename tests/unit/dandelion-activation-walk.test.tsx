@@ -116,7 +116,7 @@ describe("D6 — activation card shell", () => {
     renderPage();
     expect(
       screen.getByText(
-        /Run the smallest viable starter-pilot envelope/i,
+        /Run the smallest viable starter pilot setup/i,
       ),
     ).toBeInTheDocument();
   });
@@ -127,7 +127,7 @@ describe("D6 — activation card shell", () => {
       screen.getByTestId("activate-starter-pilot-button"),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Activate starter-pilot envelope/i }),
+      screen.getByRole("button", { name: /Activate starter pilot/i }),
     ).toBeInTheDocument();
   });
 });

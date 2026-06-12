@@ -55,5 +55,11 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
 //      original literal is still available in the audit_event_id
 //      navigation target.
 export function getAuditEventLabel(type: AuditEventType): string {
-  return AUDIT_EVENT_TYPE_LABELS[type] ?? type;
+  const curated = AUDIT_EVENT_TYPE_LABELS[type];
+  if (curated !== undefined) return curated;
+  // Phase 1255: NEW Foundation literals must never leak raw
+  // UNDERSCORE_NAMES into admin copy — sentence-case them.
+  const words = String(type).toLowerCase().split("_").filter(Boolean);
+  const sentence = words.join(" ");
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }

@@ -96,6 +96,31 @@ const ENTRIES: ReadonlyArray<{ group: string; items: CommandEntry[] }> = [
     ],
   },
   {
+    group: "Reports & data",
+    items: [
+      {
+        question: "Show me reports",
+        keywords: "reports weekly executive summary regulator package readiness",
+        to: "/reports",
+      },
+      {
+        question: "Open data retention settings",
+        keywords: "retention lifecycle legal hold delete transcripts memory revocation",
+        to: "/retention",
+      },
+      {
+        question: "What data is connected and where does it go?",
+        keywords: "data knowledge sources destinations flow servers sharing",
+        to: "/data-knowledge",
+      },
+      {
+        question: "Which organization am I administering?",
+        keywords: "organization tenant org context users members",
+        to: "/users",
+      },
+    ],
+  },
+  {
     group: "Governance & evidence",
     items: [
       {

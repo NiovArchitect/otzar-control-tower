@@ -105,7 +105,7 @@ describe("Connectors — page shell", () => {
     renderConnectors();
     expect(
       screen.getAllByText(
-        /env-var NAME on the deployment host\. The resolved env-var value/i,
+        /secure setup key is a NAME that points at a credential/i,
       ).length,
     ).toBeGreaterThan(0);
   });
@@ -178,7 +178,7 @@ describe("Connectors — one binding rendered", () => {
     // env-var NAME is the only thing the API returns + page shows
     expect(within(card).getByText("SLACK_BOT_TOKEN_PROD")).toBeInTheDocument();
     expect(
-      within(card).getByText(/env-var NAME only; resolved value never displayed/i),
+      within(card).getByText(/a reference name only — the credential value is never shown/i),
     ).toBeInTheDocument();
     // A concrete resolved bot-token value would match
     // /xoxb-\d+-\d+-[a-z0-9]+/i. The page renders OAuth-model
