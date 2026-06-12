@@ -155,7 +155,7 @@ export function speechRecognitionErrorCopy(error: string): string {
   switch (error) {
     case "not-allowed":
     case "service-not-allowed":
-      return "Microphone was blocked by this shell. Open Otzar in Chrome at http://localhost:5173/app/voice for mic input, or type your message instead.";
+      return "Microphone was blocked by this shell. Open Otzar in your browser for mic input, or type your message instead.";
     case "no-speech":
       return "No speech detected. Try again, closer to the microphone.";
     case "audio-capture":

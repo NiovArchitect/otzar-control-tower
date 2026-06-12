@@ -72,12 +72,13 @@ describe("voice diagnostics — micCopyFor", () => {
 });
 
 describe("voice diagnostics — speechRecognitionErrorCopy", () => {
-  it("not-allowed → actionable copy that mentions Chrome", () => {
+  it("not-allowed → actionable browser-fallback copy without dev URLs", () => {
     const out = speechRecognitionErrorCopy("not-allowed");
     expect(out).toMatch(/Microphone was blocked/);
-    expect(out).toMatch(/Chrome/);
+    expect(out).toMatch(/in your browser/);
     expect(out).toMatch(/type your message/);
     expect(out).not.toContain("not-allowed"); // raw code hidden
+    expect(out).not.toContain("localhost"); // production-coherent copy
   });
 
   it("service-not-allowed maps to the same not-allowed copy", () => {

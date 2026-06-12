@@ -208,13 +208,14 @@ export function Voice() {
                   {micCopy.detail}
                 </div>
               ) : null}
-              {shellMode === "tauri_webview" ? (
+              {shellMode === "tauri_webview" && import.meta.env.DEV ? (
                 <a
                   href="http://localhost:5173/app/voice"
                   className="text-xs underline text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
-                    // Open the http URL in the system default browser
-                    // (Chrome) where mic + speechSynthesis both work.
+                    // Dev-only: the Vite dev server URL exists only on a
+                    // dev machine; production shells get the honest
+                    // browser-fallback copy without a dead link.
                     e.preventDefault();
                     try {
                       window.open("http://localhost:5173/app/voice", "_blank");
