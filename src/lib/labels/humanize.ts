@@ -48,6 +48,9 @@ export function humanizeStatus(status: string): string {
   const map: Record<string, string> = {
     CONFIGURED: "Connected",
     BLOCKED_BY_CREDENTIALS: "Needs credentials",
+    BLOCKED_BY_CREDENTIAL: "Needs credentials",
+    NEEDS_PROVIDER_INSTALL: "Needs install",
+    BLOCKED_BY_KEY: "Needs credentials",
     BLOCKED_BY_APP_REVIEW: "Needs app review",
     NOT_AUTHORIZED: "Needs explicit authorization",
     DEMO_ONLY: "Demo only",
