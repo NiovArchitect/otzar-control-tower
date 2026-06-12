@@ -63,6 +63,16 @@ const ENTRIES: ReadonlyArray<{ group: string; items: CommandEntry[] }> = [
         keywords: "connector keys oauth google slack microsoft zoom setup",
         to: "/connectors",
       },
+      {
+        question: "Set up MCP servers and tool policies",
+        keywords: "mcp model context protocol tools vault secret integrations",
+        to: "/connector-rails",
+      },
+      {
+        question: "Where do I enter provider credentials?",
+        keywords: "api key credential secret vault provider setup anthropic openai deepgram elevenlabs",
+        to: "/connector-rails",
+      },
     ],
   },
   {

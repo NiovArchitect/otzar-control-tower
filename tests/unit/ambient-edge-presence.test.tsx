@@ -291,6 +291,13 @@ describe("Phase 1251 — AdminCommandLayer", () => {
     expect(
       screen.getByText("What is blocking production?"),
     ).toBeInTheDocument();
+    // Phase 1252: credential + MCP setup are reachable by question.
+    expect(
+      screen.getByText("Set up MCP servers and tool policies"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Where do I enter provider credentials?"),
+    ).toBeInTheDocument();
   });
 });
 

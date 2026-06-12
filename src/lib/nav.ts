@@ -170,6 +170,12 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "Section 4 ConnectorBinding admin surface -- register, list, enable / disable, and soft-delete bindings for SLACK_READ and OUTBOUND_WEBHOOK connector types. C2 Slack runtime is LIVE.",
   },
   {
+    label: "Integrations & MCP",
+    to: "/connector-rails",
+    icon: PlugZap,
+    description: "Provider catalog, MCP server connections (vault-path references only -- never raw secrets), and per-tool policies (allow / approval / block / draft-only / dual-control). Org-scoped and audited.",
+  },
+  {
     label: "Voice",
     to: "/voice",
     icon: Mic,
