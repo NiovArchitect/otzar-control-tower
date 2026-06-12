@@ -63,7 +63,7 @@ import {
   type NativeMicStatus,
 } from "@/lib/voice/native-mic";
 import { routeVoiceCommand } from "@/lib/voice/command-router";
-import { speakPremium } from "@/lib/voice/premium-tts";
+import { speakPremium, speakWithOtzarVoice } from "@/lib/voice/premium-tts";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
 import {
@@ -334,7 +334,9 @@ export function AmbientOtzarBar(): JSX.Element {
     // bypasses the auto-speak dedupe so a deliberate re-test
     // succeeds; but the in-flight-utterance check inside the hook
     // still prevents queue duplication from rapid clicks.
-    synthesis.speak(TEST_VOICE_PHRASE, { source: "test", force: true });
+    void speakWithOtzarVoice(TEST_VOICE_PHRASE, (t) =>
+      synthesis.speak(t, { source: "test", force: true }),
+    );
   }
 
   async function handleSend(): Promise<void> {
@@ -352,14 +354,18 @@ export function AmbientOtzarBar(): JSX.Element {
     if (routed.kind === "NAVIGATE") {
       setDraft("");
       setRouterAck(routed.spoken);
-      synthesis.speak(routed.spoken, { source: "manual", force: true });
+      void speakWithOtzarVoice(routed.spoken, (t) =>
+        synthesis.speak(t, { source: "manual", force: true }),
+      );
       navigate(routed.surface.route);
       return;
     }
     if (routed.kind === "ADMIN_BLOCKED") {
       setDraft("");
       setRouterAck(routed.spoken);
-      synthesis.speak(routed.spoken, { source: "manual", force: true });
+      void speakWithOtzarVoice(routed.spoken, (t) =>
+        synthesis.speak(t, { source: "manual", force: true }),
+      );
       return;
     }
     setRouterAck(null);

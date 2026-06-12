@@ -12,7 +12,7 @@
   "app": {
     "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://localhost:3000 https://api.niov.example.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:"
+      "csp": "default-src 'self'; connect-src 'self' http://localhost:3000 https://api.niov.example.com; img-src 'self' data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:"
     },
     "windows": [
       {

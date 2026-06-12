@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { humanizeStatus } from "@/lib/labels/humanize";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
-import { speakPremium } from "@/lib/voice/premium-tts";
+import { speakWithOtzarVoice } from "@/lib/voice/premium-tts";
 import {
   detectNativeMicCapability,
   nativeMicCopy,
@@ -93,13 +93,10 @@ export default function VoiceProviders(): JSX.Element {
     "PREMIUM" | "FALLBACK" | null
   >(null);
   async function handleHearIt(): Promise<void> {
-    const outcome = await speakPremium(PRONUNCIATION_PHRASE);
-    if (outcome.kind === "PREMIUM") {
-      setLastVoice("PREMIUM");
-      return;
-    }
-    setLastVoice("FALLBACK");
-    synthesis.speak(PRONUNCIATION_PHRASE, { source: "test", force: true });
+    const outcome = await speakWithOtzarVoice(PRONUNCIATION_PHRASE, (t) =>
+      synthesis.speak(t, { source: "test", force: true }),
+    );
+    setLastVoice(outcome.kind === "PREMIUM" ? "PREMIUM" : "FALLBACK");
   }
   const [stt, setStt] = useState<STTProviderStatusRow[]>([]);
   const [adapters, setAdapters] = useState<ConnectorAdapterRow[]>([]);

@@ -90,3 +90,49 @@ describe("Phase 1259 — speakPremium honesty", () => {
     expect((await speakPremium("hi")).kind).toBe("FALLBACK_NEEDED");
   });
 });
+
+describe("Phase 1259B — runtime voice-path locks", () => {
+  it("Tauri CSP allows blob: media playback (the premium-audio blocker)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const conf = readFileSync("src-tauri/tauri.conf.json", "utf8");
+    expect(conf).toContain("media-src 'self' blob:");
+  });
+
+  it("no UI component calls device TTS directly — fallback closures only", async () => {
+    const { readFileSync, readdirSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const offenders: string[] = [];
+    function walk(dir: string): void {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (/\.(tsx|ts)$/.test(name) && !p.includes("useSpeechSynthesis")) {
+          const src = readFileSync(p, "utf8");
+          for (const line of src.split("\n")) {
+            const t = line.trim();
+            if (
+              t.includes("synthesis.speak(") &&
+              !t.startsWith("//") &&
+              !t.includes("synthesis.speak(t,")
+            ) {
+              offenders.push(`${p}: ${t.slice(0, 80)}`);
+            }
+          }
+        }
+      }
+    }
+    walk("src");
+    expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+
+  it("speakWithOtzarVoice fires the device fallback ONLY on premium failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const { speakWithOtzarVoice } = await import(
+      "../../src/lib/voice/premium-tts"
+    );
+    const fallback = vi.fn();
+    const outcome = await speakWithOtzarVoice("hello", fallback);
+    expect(outcome.kind).toBe("FALLBACK_NEEDED");
+    expect(fallback).toHaveBeenCalledWith("hello");
+  });
+});
