@@ -56,8 +56,41 @@ export async function speakPremium(
     const audio = new Audio(url);
     audio.onended = () => URL.revokeObjectURL(url);
     await audio.play();
+    // Safe diagnostic: provider + size only — never keys, never user
+    // text beyond what the caller chose to speak.
+    console.info("[otzar-voice]", {
+      voice_playback_provider: provider,
+      route_called: "tts-preview",
+      fallback_used: false,
+      audio_bytes: blob.size,
+    });
     return { kind: "PREMIUM", provider };
   } catch {
     return { kind: "FALLBACK_NEEDED", reason: "UNAVAILABLE" };
   }
+}
+
+
+// WHAT: THE single voice-output utility (Phase 1259B). Premium
+//       provider audio first; the device voice only as an explicit,
+//       caller-labeled fallback.
+// INPUT: text + the device-voice fallback the caller already owns.
+// OUTPUT: what actually played, so UIs can label honestly.
+// WHY: scattered speechSynthesis calls made the robot voice the de
+//      facto runtime. Every speak site routes through here now.
+export async function speakWithOtzarVoice(
+  text: string,
+  deviceFallback: (text: string) => void,
+): Promise<PremiumSpeakOutcome> {
+  const outcome = await speakPremium(text);
+  if (outcome.kind !== "PREMIUM") {
+    console.info("[otzar-voice]", {
+      voice_playback_provider: "device",
+      route_called: "tts-preview",
+      fallback_used: true,
+      reason: outcome.reason,
+    });
+    deviceFallback(text);
+  }
+  return outcome;
 }

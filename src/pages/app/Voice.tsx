@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { speakWithOtzarVoice } from "@/lib/voice/premium-tts";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
 import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import {
@@ -108,7 +109,9 @@ export function Voice() {
         ? intent.response.speech_ready_text
         : intent.response.response;
     lastAutoSpokenKeyRef.current = responseKey;
-    synthesis.speak(sayable, { source: "auto", force: false });
+    void speakWithOtzarVoice(sayable, (t) =>
+      synthesis.speak(t, { source: "auto", force: false }),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSpeak, responseKey]);
 
@@ -141,7 +144,9 @@ export function Voice() {
     // force=true bypasses auto-speak dedupe; the in-flight check
     // inside the hook still prevents queue duplication from rapid
     // clicks.
-    synthesis.speak(TEST_VOICE_PHRASE, { source: "test", force: true });
+    void speakWithOtzarVoice(TEST_VOICE_PHRASE, (t) =>
+      synthesis.speak(t, { source: "test", force: true }),
+    );
   }
 
   function handleReplay(): void {
@@ -150,7 +155,9 @@ export function Voice() {
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
-    synthesis.speak(sayable, { source: "replay", force: true });
+    void speakWithOtzarVoice(sayable, (t) =>
+      synthesis.speak(t, { source: "replay", force: true }),
+    );
   }
 
   const shellMode = detectShellMode();

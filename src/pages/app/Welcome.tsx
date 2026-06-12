@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { speakWithOtzarVoice } from "@/lib/voice/premium-tts";
 import { api } from "@/lib/api";
 import type { DandelionOnboardingResponse } from "@/lib/types/foundation";
 
@@ -121,10 +122,10 @@ export function Welcome(): JSX.Element {
             size="sm"
             disabled={!synthesis.supported}
             onClick={() =>
-              synthesis.speak(
+              void speakWithOtzarVoice(
                 onboarding?.greeting ??
                   "Welcome. I'm Otzar. What should I call you?",
-                { source: "manual", force: true },
+                (t) => synthesis.speak(t, { source: "manual", force: true }),
               )
             }
             data-testid="welcome-hear-greeting"
