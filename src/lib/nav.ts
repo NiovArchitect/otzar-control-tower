@@ -231,6 +231,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Integrations",
   },
   {
+    label: "Voice Providers",
+    to: "/voice-providers",
+    icon: Mic,
+    description: "Activate Otzar's premium voice -- realtime conversation, streaming voice input, premium voice output, speaker detection, and the pronunciation test. Org-scoped credentials; values never shown.",
+    group: "Integrations",
+  },
+  {
     label: "Voice",
     to: "/voice",
     icon: Mic,

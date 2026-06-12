@@ -64,6 +64,11 @@ const ENTRIES: ReadonlyArray<{ group: string; items: CommandEntry[] }> = [
         to: "/connectors",
       },
       {
+        question: "Connect voice providers",
+        keywords: "voice realtime deepgram elevenlabs assemblyai whisper pronunciation tts stt premium",
+        to: "/voice-providers",
+      },
+      {
         question: "Set up MCP servers and tool policies",
         keywords: "mcp model context protocol tools vault secret integrations",
         to: "/connector-rails",
