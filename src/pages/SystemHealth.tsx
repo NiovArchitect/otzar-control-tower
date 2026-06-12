@@ -1,19 +1,183 @@
 // FILE: SystemHealth.tsx
-// PURPOSE: Customer-facing "System Health" screen -- combined view
-//          of Foundation platform status (version, database, cache)
-//          AND the Seven Feedback Loops (last run, lag, alerts).
-//          Replaces the duplicate Health screen. Real screen lands
-//          in 12E.
-// CONNECTS TO: src/components/Placeholder.tsx.
+// PURPOSE: Phase 1256A — real System Health: live platform status
+//          (API + database), runtime/provider rows from the
+//          readiness aggregate (humanized, honest), and the desktop
+//          voice substrate row (shell mode + native microphone
+//          capability — Phase 1256A bridge). Honest empty/error
+//          states; no jargon; every blocked row says what fixes it.
+// CONNECTS TO: api.platform.health, api.otzar.productionReadiness,
+//          src/lib/voice/native-mic.ts, src/lib/voice/diagnostics
+//          (shell mode), Command Center.
 
-import { Placeholder } from "./Placeholder";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Activity, ArrowRight, Mic2, Server } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
+import { humanizeStatus } from "@/lib/labels/humanize";
+import { detectShellMode } from "@/lib/voice/diagnostics";
+import {
+  detectNativeMicCapability,
+  nativeMicCopy,
+  type NativeMicStatus,
+} from "@/lib/voice/native-mic";
+import type {
+  HandoffReadinessResponse,
+  PlatformHealth,
+} from "@/lib/types/foundation";
 
-export function SystemHealthPage() {
+export function SystemHealthPage(): JSX.Element {
+  const [health, setHealth] = useState<PlatformHealth | null>(null);
+  const [healthFailed, setHealthFailed] = useState(false);
+  const [runtimes, setRuntimes] = useState<
+    HandoffReadinessResponse["readiness"]["runtimes"]
+  >([]);
+  const [nativeMic, setNativeMic] = useState<NativeMicStatus | null>(null);
+  const shell = detectShellMode();
+
+  useEffect(() => {
+    let cancelled = false;
+    api.platform
+      .health()
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) setHealth(r.data);
+        else setHealthFailed(true);
+      })
+      .catch(() => {
+        if (!cancelled) setHealthFailed(true);
+      });
+    api.otzar
+      .productionReadiness()
+      .then((r) => {
+        if (!cancelled && r.ok) setRuntimes(r.data.readiness.runtimes);
+      })
+      .catch(() => {
+        /* admin-gated; stays honest-empty */
+      });
+    void detectNativeMicCapability().then((cap) => {
+      if (!cancelled) setNativeMic(cap.status);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <Placeholder
-      title="System Health"
-      description="Foundation platform status (version, database, cache) plus live status of the Seven Feedback Loops -- last run, lag, and active alerts."
-      arrivingIn="Section 12E"
-    />
+    <div className="space-y-5" data-testid="system-health-page">
+      <PageHeader
+        title="System Health"
+        description="The live operational truth: platform, runtimes, providers, and the desktop voice substrate — with what fixes each blocked item."
+      />
+
+      <Card data-testid="system-health-platform">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Server className="h-4 w-4" aria-hidden /> Platform
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1.5 text-xs">
+          {healthFailed ? (
+            <p className="text-muted-foreground">
+              Couldn't reach the platform just now — refresh to try again.
+            </p>
+          ) : health === null ? (
+            <p className="text-muted-foreground">Checking…</p>
+          ) : (
+            <>
+              <p>
+                Service:{" "}
+                <Badge variant="outline" className="text-[9px]">
+                  Online · v{health.version}
+                </Badge>
+              </p>
+              <p>
+                Database:{" "}
+                <Badge variant="outline" className="text-[9px]">
+                  {health.database === "connected"
+                    ? "Connected"
+                    : "Attention needed"}
+                </Badge>
+              </p>
+              <p className="text-muted-foreground">
+                Last check: {new Date(health.timestamp).toLocaleTimeString()}
+              </p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="system-health-runtimes">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Activity className="h-4 w-4" aria-hidden /> Runtimes &amp;
+            providers
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-xs">
+          {runtimes.length === 0 ? (
+            <p className="text-muted-foreground">
+              Runtime detail loads from the readiness check (admin access
+              required).
+            </p>
+          ) : (
+            runtimes.map((rt) => (
+              <div
+                key={rt.runtime}
+                className="flex items-center justify-between rounded-xl border border-border/70 p-2.5"
+                data-testid="system-health-runtime-row"
+              >
+                <span>
+                  <span className="text-foreground">{rt.runtime}</span>{" "}
+                  <span className="text-muted-foreground">— {rt.note}</span>
+                </span>
+                <Badge variant="outline" className="text-[9px]">
+                  {humanizeStatus(rt.status)}
+                </Badge>
+              </div>
+            ))
+          )}
+          <Link
+            to="/connector-rails"
+            className="flex items-center justify-between rounded-xl border border-border/70 p-2.5 hover:border-primary/40"
+          >
+            <span className="text-foreground">
+              Fix anything blocked — open Integrations
+            </span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="system-health-desktop-voice">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Mic2 className="h-4 w-4" aria-hidden /> Desktop voice
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1.5 text-xs">
+          <p>
+            Shell:{" "}
+            <Badge variant="outline" className="text-[9px]">
+              {shell === "tauri_webview" ? "Otzar desktop app" : "Browser"}
+            </Badge>
+          </p>
+          <p
+            data-testid="system-health-native-mic"
+            data-status={nativeMic ?? ""}
+          >
+            Microphone:{" "}
+            <span className="text-muted-foreground">
+              {nativeMic === null ? "Checking…" : nativeMicCopy(nativeMic)}
+            </span>
+          </p>
+          <p className="text-muted-foreground">
+            Typing always works and rides the same command layer as voice.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

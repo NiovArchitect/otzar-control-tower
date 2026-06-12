@@ -56,6 +56,12 @@ import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
 import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import { usePresenceStore, usePresenceState } from "@/lib/stores/presence";
+import {
+  detectNativeMicCapability,
+  nativeMicCopy,
+  requestNativeMicAccess,
+  type NativeMicStatus,
+} from "@/lib/voice/native-mic";
 import { routeVoiceCommand } from "@/lib/voice/command-router";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -106,6 +112,19 @@ export function AmbientOtzarBar(): JSX.Element {
   // Phase 1253 — the router's last calm acknowledgement ("I opened
   // Integrations…"), shown inline so voice routing feels intentional.
   const [routerAck, setRouterAck] = useState<string | null>(null);
+  // Phase 1256A — native desktop mic capability (detection only;
+  // the OS prompt fires only from the explicit "Allow microphone"
+  // button; no audio is ever captured here).
+  const [nativeMic, setNativeMic] = useState<NativeMicStatus>("UNSUPPORTED");
+  useEffect(() => {
+    let cancelled = false;
+    void detectNativeMicCapability().then((cap) => {
+      if (!cancelled) setNativeMic(cap.status);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const navigate = useNavigate();
   const capabilities = useAuthStore((s) => s.capabilities);
   // EMERGENCY TTS LOOP GUARD per [FOUNDER-AUTH — EMERGENCY FIX]:
@@ -549,10 +568,36 @@ export function AmbientOtzarBar(): JSX.Element {
           ) : null}
           {/* Permission state line — always visible when expanded so
               the operator knows whether the mic will actually work.
-              Powered by micCopyFor() which is honest about
-              tauri_webview / unsupported / denied paths. */}
+              Browser shells: micCopyFor(). Desktop shell (Phase
+              1256A): the NATIVE mic capability bridge — detection,
+              calm copy, and the real OS permission prompt. */}
           {(() => {
             const shell = detectShellMode();
+            if (shell === "tauri_webview" && nativeMic !== "UNSUPPORTED") {
+              return (
+                <div
+                  className="flex items-start gap-2 text-xs text-muted-foreground"
+                  data-testid="ambient-permission-state"
+                  data-native-mic={nativeMic}
+                >
+                  <Mic className="h-3 w-3 mt-0.5 shrink-0" aria-hidden />
+                  <div className="flex-1 min-w-0">{nativeMicCopy(nativeMic)}</div>
+                  {nativeMic === "PERMISSION_NEEDED" ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="ml-auto h-6 px-2 text-xs"
+                      onClick={() => {
+                        void requestNativeMicAccess().then(setNativeMic);
+                      }}
+                    >
+                      Allow microphone
+                    </Button>
+                  ) : null}
+                </div>
+              );
+            }
             const copy = micCopyFor(shell, micPerm.state, recognition.supported);
             const Icon = toneIcon(copy.tone);
             return (

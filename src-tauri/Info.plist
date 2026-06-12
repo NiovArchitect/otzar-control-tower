@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  FILE: src-tauri/Info.plist
+  PURPOSE: Phase 1256A — Info.plist additions Tauri v2 merges into
+           the app bundle. NSMicrophoneUsageDescription MUST live in
+           Info.plist (not Entitlements.plist) or macOS refuses to
+           show the microphone permission prompt at all — this is
+           the load-bearing native-mic substrate fix. The WKWebView
+           can then expose navigator.mediaDevices.getUserMedia for
+           the native voice path once a streaming STT provider key
+           exists. No audio is captured or stored by this change.
+-->
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Otzar uses the microphone only when you choose to talk to it. No raw audio is stored by default.</string>
+</dict>
+</plist>
