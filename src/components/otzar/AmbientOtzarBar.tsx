@@ -56,6 +56,9 @@ import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
 import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import { usePresenceStore, usePresenceState } from "@/lib/stores/presence";
+import { routeVoiceCommand } from "@/lib/voice/command-router";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/lib/stores/auth";
 import {
   detectShellMode,
   llmErrorCopy,
@@ -100,6 +103,11 @@ function toneIcon(tone: "ok" | "warn" | "error" | "muted"): typeof ShieldCheck {
 export function AmbientOtzarBar(): JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState("");
+  // Phase 1253 — the router's last calm acknowledgement ("I opened
+  // Integrations…"), shown inline so voice routing feels intentional.
+  const [routerAck, setRouterAck] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const capabilities = useAuthStore((s) => s.capabilities);
   // EMERGENCY TTS LOOP GUARD per [FOUNDER-AUTH — EMERGENCY FIX]:
   // auto-speak is OFF by default. The operator enables it
   // explicitly via the "Auto-speak responses" toggle.
@@ -300,6 +308,27 @@ export function AmbientOtzarBar(): JSX.Element {
     if (text.length === 0 || intent.processing) return;
     // Cancel any in-flight speech before sending the next turn.
     synthesis.stop();
+    // Phase 1253 — voice is the REMOTE CONTROL: spoken AND typed
+    // input both ride the command router first. A match navigates
+    // (read/route only — every write still happens on the governed
+    // destination surface); admin surfaces are role-gated with a
+    // warm refusal; no match falls through to the conversational
+    // governed voice-intent API.
+    const routed = routeVoiceCommand(text, capabilities);
+    if (routed.kind === "NAVIGATE") {
+      setDraft("");
+      setRouterAck(routed.spoken);
+      synthesis.speak(routed.spoken, { source: "manual", force: true });
+      navigate(routed.surface.route);
+      return;
+    }
+    if (routed.kind === "ADMIN_BLOCKED") {
+      setDraft("");
+      setRouterAck(routed.spoken);
+      synthesis.speak(routed.spoken, { source: "manual", force: true });
+      return;
+    }
+    setRouterAck(null);
     setDraft("");
     await intent.send(text);
   }
@@ -644,6 +673,14 @@ export function AmbientOtzarBar(): JSX.Element {
           {intent.error !== null ? (
             <p className="text-xs text-destructive">
               {llmErrorCopy(intent.error)}
+            </p>
+          ) : null}
+          {routerAck !== null ? (
+            <p
+              className="text-xs text-muted-foreground"
+              data-testid="voice-router-ack"
+            >
+              {routerAck}
             </p>
           ) : null}
 

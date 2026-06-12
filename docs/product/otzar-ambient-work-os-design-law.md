@@ -128,3 +128,58 @@ plumbing, and screen-edge docking. Tauri v2 supports all of these;
 they are deliberately a separate slice so the web shell ships the
 experience first. STT inside the Tauri webview is currently
 unsupported (detected and surfaced honestly in the dock).
+
+## 10. Voice is the remote control (Phase 1253)
+
+Voice is not a page and not a chatbot box. Spoken AND typed input
+ride the same `VoiceCommandRouter` over a registry of
+voice-addressable surfaces (`src/lib/voice/command-router.ts`):
+"what needs my approval" routes to the Action Center, "open provider
+settings" routes admins to Integrations — the user never needs to
+know where a button lives. The router classifies, role-gates, and
+routes; it NEVER mutates data or executes external actions. Every
+write it leads to happens on the governed destination surface
+(identity → DMW → COSMP → policy → approval → governed Action →
+audit). Admin surfaces give employees a warm refusal, never an error.
+Unmatched utterances fall through to the governed conversational
+voice-intent API. Routing feedback is ambient: a calm acknowledgement
+line and the edge presence, never a takeover.
+
+## 11. The Otzar voice (persona + pronunciation law)
+
+Spelled **Otzar** everywhere; pronounced **"OatZar"** — enforced
+centrally in `useSpeechSynthesis` (spoken audio only; UI text keeps
+the real spelling), test-locked.
+
+Persona: warm, calm, emotionally present, quick but not rushed,
+natural pauses, confident, premium, cinematic, enterprise-trustworthy.
+Never robotic, salesy, gamer, fake-cheerful, or scary. No cloning of
+any real person's voice or any protected voice identity — the Otzar
+voice is an original direction. Sample register: "Good morning. I'm
+Otzar. I'll stay out of your way unless something needs your
+attention."
+
+Recommended premium stack (credential-gated, adapters shipped):
+OpenAI Realtime for conversational voice, Deepgram/Whisper for
+streaming STT, ElevenLabs for premium TTS in a cascaded pipeline,
+AssemblyAI for diarization. Browser TTS is the honest fallback and is
+never presented as the brand voice. Forbidden brand-facing copy:
+"typed transcript mode", "browser microphone API", raw provider
+errors.
+
+## 12. The calm default (Phase 1253 acceptance)
+
+The default employee experience is the **Focus Home** (`/app`):
+mostly-open workspace, a greeting, the presence line, at most the top
+1–3 items that genuinely need attention, the voice hint, and one
+quiet door to the full workbench (`/app/my-day`). The sidebar does
+not exist on the Focus Home. Overlays close on outside click and
+Escape. Errors read as setup/recovery, never as a broken AI brain.
+
+## 13. Work Comms (strategy pointer)
+
+Personal WhatsApp monitoring is NOT supported and will not be built.
+The strategic path is Otzar Work Comms — employer-scoped, consented,
+governed work communication (design:
+`niov-foundation/docs/otzar/WORK_COMMS_DESIGN.md`), with official
+WhatsApp Business API integration possible later where Meta permits.

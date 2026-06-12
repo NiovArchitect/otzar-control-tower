@@ -149,7 +149,13 @@ export function useSpeechSynthesis(): SpeechSynthesisHook {
       } catch {
         // ignore
       }
-      const utterance = new SpeechSynthesisUtterance(text);
+      // PRONUNCIATION LAW (Phase 1253): the product is SPELLED
+      // "Otzar" but PRONOUNCED "OatZar". The substitution applies to
+      // the spoken audio only — UI text, docs, and code keep the
+      // real spelling.
+      const utterance = new SpeechSynthesisUtterance(
+        text.replace(/\bOtzar\b/g, "OatZar"),
+      );
       // Set the in-flight hash IMMEDIATELY (not in onstart) so the
       // dedupe guard fires on rapid repeat clicks even when the
       // browser is slow to invoke onstart (and so jsdom tests can

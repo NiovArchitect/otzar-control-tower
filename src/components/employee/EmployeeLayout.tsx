@@ -11,7 +11,7 @@
 // session, then clears the in-memory store regardless of the result
 // (fail-safe). Token stays memory-only -- no persistence added.
 
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { EmployeeNav } from "@/components/employee/EmployeeNav";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
@@ -25,6 +25,11 @@ import { api } from "@/lib/api";
 
 export function EmployeeLayout() {
   const { entity, capabilities, logout } = useAuthStore();
+  // Phase 1253 — the Focus Home is nav-free: the workspace stays
+  // open and Otzar stays ambient. The sidebar appears only on the
+  // deeper workbench pages.
+  const location = useLocation();
+  const isFocusHome = location.pathname === "/app";
 
   async function handleLogout(): Promise<void> {
     // Best-effort server-side invalidation; clear memory regardless.
@@ -34,9 +39,11 @@ export function EmployeeLayout() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <aside className="hidden w-60 shrink-0 sm:block">
-        <EmployeeNav />
-      </aside>
+      {!isFocusHome && (
+        <aside className="hidden w-60 shrink-0 sm:block">
+          <EmployeeNav />
+        </aside>
+      )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
