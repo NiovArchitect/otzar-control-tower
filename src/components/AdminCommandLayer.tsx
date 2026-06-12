@@ -140,8 +140,13 @@ const ENTRIES: ReadonlyArray<{ group: string; items: CommandEntry[] }> = [
       },
       {
         question: "Is the system healthy?",
-        keywords: "system health runtime status",
+        keywords: "system health runtime status api database",
         to: "/system-health",
+      },
+      {
+        question: "What should I do next?",
+        keywords: "next best action command center overview home attention",
+        to: "/",
       },
     ],
   },
