@@ -213,17 +213,26 @@ function ChainRefRow({
       </div>
     );
   }
+  // Phase 1255: ids + hashes are PROOF, not primary copy — they live
+  // behind a "View technical proof" disclosure.
   return (
     <div className="grid grid-cols-[160px_1fr] items-baseline gap-x-3 text-xs">
       <span className="text-muted-foreground">{label}</span>
       <div className="space-y-1">
-        <span className="block break-all font-mono text-foreground">
-          {chainRef.audit_id}
+        <span className="block text-foreground">
+          {formatRelativeTime(chainRef.timestamp)}
         </span>
-        <span className="block text-[10px] text-muted-foreground">
-          {formatRelativeTime(chainRef.timestamp)} · hash{" "}
-          {chainRef.event_hash.slice(0, 12)}…
-        </span>
+        <details data-testid="technical-proof">
+          <summary className="cursor-pointer text-[10px] text-muted-foreground">
+            View technical proof
+          </summary>
+          <span className="block break-all font-mono text-[10px] text-muted-foreground">
+            {chainRef.audit_id}
+          </span>
+          <span className="block break-all font-mono text-[10px] text-muted-foreground">
+            hash {chainRef.event_hash}
+          </span>
+        </details>
       </div>
     </div>
   );
@@ -275,8 +284,7 @@ function EventListRow({
               )}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {formatRelativeTime(event.timestamp)} ·{" "}
-              <span className="font-mono">{event.event_hash.slice(0, 12)}…</span>
+              {formatRelativeTime(event.timestamp)}
             </p>
           </div>
           <span className="text-[10px] text-muted-foreground font-mono">

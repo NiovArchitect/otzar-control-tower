@@ -48,7 +48,7 @@ import type {
 } from "@/lib/connectors/types";
 
 const PRIVACY_NOTICE =
-  "The secret_ref field is the env-var NAME on the deployment host. The resolved env-var value (e.g. a bot token) never crosses the API boundary and this page never attempts to display, decode, or fetch it.";
+  "The secure setup key is a NAME that points at a credential on your deployment — the credential value itself never crosses the API boundary, and this page never displays, decodes, or fetches it.";
 
 const ENABLED_BY_DEFAULT_NOTICE =
   "New bindings are read-only at the connector tier — write capabilities are disabled at the runtime layer and require separate Founder authorization (forward-substrate to ≥C6).";
@@ -111,11 +111,11 @@ function BindingCard({
           </Badge>
         </div>
         <div>
-          <div className="font-medium">Secret env-var name</div>
+          <div className="font-medium">Secure setup key name</div>
           <div className="text-muted-foreground">
             {binding.secret_ref ?? "—"}
             <span className="ml-2 text-xs italic">
-              (env-var NAME only; resolved value never displayed)
+              (a reference name only — the credential value is never shown)
             </span>
           </div>
         </div>

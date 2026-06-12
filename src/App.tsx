@@ -64,6 +64,8 @@ import { OnboardingPage } from "@/pages/Onboarding";
 import { BillingPreviewPage } from "@/pages/BillingPreview";
 import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
 import ConnectorRailsAdmin from "@/pages/ConnectorRailsAdmin";
+import ReportsPage from "@/pages/Reports";
+import RetentionPage from "@/pages/Retention";
 import { DocumentationPage } from "@/pages/Documentation";
 import { IntelligencePage } from "@/pages/Intelligence";
 import { ApprovalsPage } from "@/pages/Approvals";
@@ -160,6 +162,8 @@ export function App() {
               />
               <Route path="system-health" element={<SystemHealthPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="retention" element={<RetentionPage />} />
               <Route path="onboarding" element={<OnboardingPage />} />
               <Route path="billing" element={<BillingPreviewPage />} />
               <Route path="connectors" element={<ConnectorsAdminPage />} />

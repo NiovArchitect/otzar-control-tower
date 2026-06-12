@@ -202,7 +202,7 @@ describe("D6 enterprise — card shell", () => {
   it("renders the doctrine line about activating the enterprise envelope", () => {
     renderPage();
     expect(
-      screen.getAllByText(/Activate the enterprise envelope/i).length,
+      screen.getAllByText(/Activate the enterprise rollout/i).length,
     ).toBeGreaterThan(0);
   });
 

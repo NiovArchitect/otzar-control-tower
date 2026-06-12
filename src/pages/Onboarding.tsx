@@ -142,10 +142,10 @@ function DoctrineCard() {
       </CardHeader>
       <CardContent className="space-y-2 text-sm text-muted-foreground">
         <p>
-          Templates describe useful defaults. Governed envelopes define
+          Templates describe useful defaults. Governed activation packages define
           how those defaults may be used.
         </p>
-        <p>JSON is not the moat — the governed context envelope is.</p>
+        <p>The value is the governed activation package — not the raw file behind it.</p>
         <ul className="ml-4 list-disc space-y-1">
           <li>Catalog entries are not permissions.</li>
           <li>Connector presets are not live connectors.</li>
@@ -154,7 +154,7 @@ function DoctrineCard() {
             workflows, or Digital Twin profiles.
           </li>
           <li>
-            Dandelion will eventually assemble governed starter envelopes
+            Dandelion will eventually assemble governed starter packages
             for Foundation governance to authorize.
           </li>
         </ul>
@@ -876,9 +876,9 @@ function GovernedEnvelopePanel() {
   return (
     <Card data-testid="governed-envelope-panel">
       <CardHeader>
-        <CardTitle className="text-base">Governed envelope</CardTitle>
+        <CardTitle className="text-base">Governed activation package</CardTitle>
         <CardDescription>
-          Templates describe useful defaults. Governed envelopes define
+          Templates describe useful defaults. Governed activation packages define
           how those defaults may be used.
         </CardDescription>
       </CardHeader>
@@ -952,10 +952,10 @@ function GovernedEnvelopePanel() {
 // ────────────────────────────────────────────────────────────────
 
 const ACTIVATION_DOCTRINE_LINE =
-  "Run the smallest viable starter-pilot envelope. Every step is audit-logged and reversible. Foundation governance authorizes activation — Dandelion suggests, Foundation governs.";
+  "Run the smallest viable starter pilot setup. Every step is audit-logged and reversible. Foundation governance authorizes activation — Dandelion suggests, Foundation governs.";
 
 const ACTIVATION_OUT_OF_SCOPE_LINE =
-  "This action records the activation lineage at the audit tier. Live connectors, live workflow execution, and the team / business / enterprise envelopes follow in later product slices.";
+  "This action records the activation lineage at the audit tier. Live connectors, live workflow execution, and the team / business / enterprise rollout packages follow in later product slices.";
 
 function failureMessage(result: CtActivationResult): string {
   if (result.ok) return "";
@@ -967,7 +967,7 @@ function failureMessage(result: CtActivationResult): string {
     case "CALLER_NOT_IN_ORG":
       return "Your session is not associated with an organization yet. Run the org onboarding flow first.";
     case "ARCHETYPE_UNKNOWN":
-      return "The requested envelope archetype is not yet supported.";
+      return "That rollout package is not available yet.";
     case "CATALOG_NOT_FOUND":
     case "CATALOG_MALFORMED":
       return "The activation catalog is unavailable. Contact support.";
@@ -1074,7 +1074,7 @@ function DandelionActivationCard() {
   return (
     <Card data-testid="dandelion-activation-card">
       <CardHeader>
-        <CardTitle>Activate the starter-pilot envelope</CardTitle>
+        <CardTitle>Activate the starter pilot</CardTitle>
         <CardDescription>{ACTIVATION_DOCTRINE_LINE}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
@@ -1090,7 +1090,7 @@ function DandelionActivationCard() {
             ? "Activating…"
             : success !== null
               ? "Activate again"
-              : "Activate starter-pilot envelope"}
+              : "Activate starter pilot"}
         </Button>
         {errorMessage !== null ? (
           <p
@@ -1148,7 +1148,7 @@ function DandelionActivationCard() {
 // ────────────────────────────────────────────────────────────────
 
 const TEAM_ACTIVATION_DOCTRINE_LINE =
-  "Activate the team envelope. Step 5 registers a real Slack read-first binding from the env-var NAME on your deployment host. Live API access stays disabled until a separate Founder-authorized deployment flip.";
+  "Activate the team rollout. Step 5 registers a read-first Slack workspace connection from the secure setup key on your deployment. Live API access stays disabled until a separate Founder-authorized deployment flip.";
 
 const TEAM_ACTIVATION_PRIVACY_LINE =
   "The Slack env-var NAME field is the variable name on the deployment host (e.g. SLACK_BOT_TOKEN_PROD). Never paste the resolved bot token here. The resolved value never crosses the API boundary.";
@@ -1203,7 +1203,7 @@ function TeamActivationCard() {
   return (
     <Card data-testid="dandelion-team-activation-card">
       <CardHeader>
-        <CardTitle>Activate the team envelope</CardTitle>
+        <CardTitle>Activate the team rollout</CardTitle>
         <CardDescription>{TEAM_ACTIVATION_DOCTRINE_LINE}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
@@ -1258,7 +1258,7 @@ function TeamActivationCard() {
             ? "Activating…"
             : success !== null
               ? "Activate again"
-              : "Activate team envelope"}
+              : "Activate team rollout"}
         </Button>
         {errorMessage !== null ? (
           <p
@@ -1318,7 +1318,7 @@ function TeamActivationCard() {
 // ────────────────────────────────────────────────────────────────
 
 const BUSINESS_ACTIVATION_DOCTRINE_LINE =
-  "Activate the business envelope. Steps 6 + 7 register real Slack + Google Workspace read-first bindings from the env-var NAMEs on your deployment host. Live API access stays disabled until a separate Founder-authorized deployment flip.";
+  "Activate the business rollout. Steps 6 + 7 register read-first Slack + Google Workspace connections from the secure setup keys on your deployment. Live API access stays disabled until a separate Founder-authorized deployment flip.";
 
 const BUSINESS_ACTIVATION_PRIVACY_LINE =
   "Both Slack and Google env-var NAME fields are variable names on the deployment host (e.g. SLACK_BOT_TOKEN_PROD + GOOGLE_ACCESS_TOKEN_PROD). Never paste the resolved bot token or OAuth access token here. The resolved values never cross the API boundary.";
@@ -1390,7 +1390,7 @@ function BusinessActivationCard() {
   return (
     <Card data-testid="dandelion-business-activation-card">
       <CardHeader>
-        <CardTitle>Activate the business envelope</CardTitle>
+        <CardTitle>Activate the business rollout</CardTitle>
         <CardDescription>
           {BUSINESS_ACTIVATION_DOCTRINE_LINE}
         </CardDescription>
@@ -1482,7 +1482,7 @@ function BusinessActivationCard() {
             ? "Activating…"
             : success !== null
               ? "Activate again"
-              : "Activate business envelope"}
+              : "Activate business rollout"}
         </Button>
         {errorMessage !== null ? (
           <p
@@ -1550,7 +1550,7 @@ function BusinessActivationCard() {
 // ────────────────────────────────────────────────────────────────
 
 const ENTERPRISE_ACTIVATION_DOCTRINE_LINE =
-  "Activate the enterprise envelope. Steps 8 + 9 register real Slack + Google Workspace read-first bindings; steps 5 + 6 + 7 + 12 record governance surfaces at the audit tier (underlying substrate forward-substrate); steps 10 + 11 record dual-control design-intent. Live API access stays disabled until a separate Founder-authorized deployment flip.";
+  "Activate the enterprise rollout. Steps 8 + 9 register read-first Slack + Google Workspace connections; steps 5 + 6 + 7 + 12 record governance surfaces at the audit tier (underlying substrate forward-substrate); steps 10 + 11 record dual-control design-intent. Live API access stays disabled until a separate Founder-authorized deployment flip.";
 
 const ENTERPRISE_ACTIVATION_PRIVACY_LINE =
   "Both Slack and Google env-var NAME fields are variable names on the deployment host (e.g. SLACK_BOT_TOKEN_PROD + GOOGLE_ACCESS_TOKEN_PROD). Never paste the resolved bot token or OAuth access token here. The resolved values never cross the API boundary.";
@@ -1616,7 +1616,7 @@ function EnterpriseActivationCard() {
   return (
     <Card data-testid="dandelion-enterprise-activation-card">
       <CardHeader>
-        <CardTitle>Activate the enterprise envelope</CardTitle>
+        <CardTitle>Activate the enterprise rollout</CardTitle>
         <CardDescription>
           {ENTERPRISE_ACTIVATION_DOCTRINE_LINE}
         </CardDescription>
@@ -1708,7 +1708,7 @@ function EnterpriseActivationCard() {
             ? "Activating…"
             : success !== null
               ? "Activate again"
-              : "Activate enterprise envelope"}
+              : "Activate enterprise rollout"}
         </Button>
         {errorMessage !== null ? (
           <p

@@ -25,8 +25,8 @@ import type { OotbCatalogMirror } from "./types";
 export const OOTB_CATALOG_MIRROR: OotbCatalogMirror = {
   source_doctrine: [
     "Dandelion suggests the starter shape; Foundation governance authorizes what may actually run.",
-    "Templates describe useful defaults. Governed envelopes define how those defaults may be used.",
-    "JSON is not the moat — the governed context envelope is.",
+    "Templates describe useful defaults. Governed activation packages define how those defaults may be used.",
+    "The value is the governed activation package — not the raw file behind it.",
     "Catalog entries are not permissions.",
     "Connector presets are not live connectors.",
     "This preview does not activate tools, users, permissions, workflows, or Digital Twin profiles.",
@@ -34,7 +34,7 @@ export const OOTB_CATALOG_MIRROR: OotbCatalogMirror = {
   envelope_defaults_summary: {
     object_type: "CatalogItem",
     human_readable_summary:
-      "Every Foundation OOTB catalog file carries an envelope_defaults block stamping each item with governed envelope metadata. Per-item overrides take precedence.",
+      "Every catalog item carries governed defaults — sensitivity, purpose, and policy stamps. Per-item overrides take precedence.",
     model_usage_notes:
       "Treat catalog entries as SUGGESTIONS. Defer permissions to PermissionBundle + DelegatedAuthorityProfile + Foundation governance. Defer connector activation to a future RULE 21 research-arc implementation.",
     scope_defaults: [
@@ -1042,7 +1042,7 @@ export const OOTB_CATALOG_MIRROR: OotbCatalogMirror = {
       "Some memory may be shared with another Twin only with explicit governed authorization.",
       "Some memory is temporary or delegated (out-of-office, vacation delegate).",
       "Some memory is retained only as safe metadata (audit chain) — never as raw payload.",
-      "Memory shapes Twin aha moments under governed envelopes — never via private profiling.",
+      "Memory shapes Twin aha moments under governed permissions — never via private profiling.",
     ],
   },
   // Mirror of Wave 6 connector-priority-matrix.json (Foundation PR #169 d2f9c44).
