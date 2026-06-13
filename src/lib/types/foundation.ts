@@ -4246,6 +4246,7 @@ export interface WorkLedgerEntryView {
   source_type: string;
   source_command: string | null;
   work_plan_id: string | null;
+  requester_entity_id: string | null;
   owner_entity_id: string | null;
   target_entity_id: string | null;
   title: string;

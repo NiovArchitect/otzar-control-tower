@@ -150,6 +150,10 @@ const ACTION_DESTINATIONS: ReadonlyArray<{
   { keywords: ["authority"], route: "/app/authority-grants", label: "Authority", admin_only: false },
   { keywords: ["preferences"], route: "/app/preferences", label: "Preferences", admin_only: false },
   { keywords: ["projects"], route: "/app/work-projects", label: "Projects", admin_only: false },
+  // ── Work OS cockpits (Phase 1279 durable Work Ledger) ─────────
+  { keywords: ["my work", "what do i owe", "what i owe", "what is waiting on me", "what's waiting on me", "what do i need to do"], route: "/app/my-work", label: "My Work", admin_only: false },
+  { keywords: ["team work", "team's work", "what does my team owe", "who is waiting on whom"], route: "/app/team-work", label: "Team Work", admin_only: false },
+  { keywords: ["blind spots", "blind spot", "what am i missing", "what's blocked", "what is blocked", "what is slipping", "what's slipping"], route: "/app/blind-spots", label: "Blind Spots", admin_only: false },
   { keywords: ["work comms"], route: COMMS_ROUTE, label: "Work Comms", admin_only: false },
   { keywords: ["action center", "approvals"], route: "/app/action-center", label: "Action Center", admin_only: false },
   { keywords: ["corrections", "correct otzar"], route: "/app/corrections", label: "Corrections", admin_only: false },
@@ -412,8 +416,11 @@ export function classifyVoiceAction(
 
   // 2c) Approvals review — navigate to the approvals surface AND fetch
   //     the real pending count (the orb calls api.escalations.pending).
+  // NOTE (Phase 1279): bare "what's waiting on me" now routes to the My
+  // Work cockpit (which surfaces confirmations + approvals waiting on me);
+  // this intent keeps the explicit approval phrasings only.
   const approvalsIntent =
-    /\bneeds my approval\b|\bwhat (?:needs|requires) approval\b|\bpending (?:approvals|decisions)\b|\bwhat'?s waiting (?:on|for) me\b|\bwhat is waiting (?:on|for) me\b|\b(?:show|open|view)\b[^?]*\b(approvals?|action center)\b|\bmy approvals\b/.test(
+    /\bneeds my approval\b|\bwhat (?:needs|requires) approval\b|\bpending (?:approvals|decisions)\b|\b(?:show|open|view)\b[^?]*\b(approvals?|action center)\b|\bmy approvals\b/.test(
       lower,
     );
   if (approvalsIntent) {
@@ -458,6 +465,41 @@ export function classifyVoiceAction(
         ? ONBOARDING_ADMIN_ROUTE
         : ONBOARDING_EMPLOYEE_ROUTE,
     };
+  }
+
+  // 2.5) Work OS cockpit QUERIES (Phase 1279) — these are first-class
+  //      Work OS questions, not chat. They route to the durable Work
+  //      Ledger cockpits even WITHOUT a navigation verb ("what am I
+  //      missing", "what is blocked", "what is waiting on me").
+  const WORK_OS_QUERIES: ReadonlyArray<{ patterns: RegExp; route: string; label: string }> = [
+    {
+      patterns:
+        /\b(my work|what do i owe|what i owe|what(?:'s| is| are)? waiting on me|what do i need to do)\b/,
+      route: "/app/my-work",
+      label: "My Work",
+    },
+    {
+      patterns:
+        /\b(blind spots?|what am i missing|what(?:'s| is) blocked|what(?:'s| is) slipping)\b/,
+      route: "/app/blind-spots",
+      label: "Blind Spots",
+    },
+    {
+      patterns: /\b(team work|what does my team owe|who is waiting on whom)\b/,
+      route: "/app/team-work",
+      label: "Team Work",
+    },
+  ];
+  for (const q of WORK_OS_QUERIES) {
+    if (q.patterns.test(lower)) {
+      return {
+        kind: "INTERNAL_NAVIGATION",
+        heard,
+        actionLabel: `Internal navigation → ${q.label}`,
+        spoken: `Opening ${q.label}.`,
+        route: q.route,
+      };
+    }
   }
 
   // 3) Explicit named destinations (incl. admin/system surfaces).

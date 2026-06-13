@@ -1196,6 +1196,11 @@ export class ApiClient {
     /** GET /api/v1/work-os/blind-spots — attention-needing items. */
     blindSpots: (): Promise<ApiResult<WorkLedgerListResponse>> =>
       this.request<WorkLedgerListResponse>("/work-os/blind-spots"),
+
+    /** GET /api/v1/work-os/team-work — manager/admin team view; 403 with
+     *  TEAM_SCOPE_NOT_CONFIGURED when the caller lacks team authority. */
+    teamWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
+      this.request<WorkLedgerListResponse>("/work-os/team-work"),
   };
 
   // ──────────────────────────────────────────────────────────────
