@@ -71,6 +71,22 @@ describe("planWorkCommand — single intents", () => {
     );
   });
 
+  it("assigns instruction weight: follow-up promise = COMMITMENT, schedule = COMMAND (addendum §5)", () => {
+    const followUp = planWorkCommand(
+      "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
+    );
+    expect(followUp.actions[0]!.weight).toBe("COMMITMENT");
+
+    const schedule = planWorkCommand(
+      "Schedule a 30-minute meeting with Vishesh tomorrow.",
+    );
+    expect(schedule.actions[0]!.weight).toBe("COMMAND");
+
+    const delegate = planWorkCommand("Ask David to review the AI UI.");
+    expect(delegate.actions[0]!.kind).toBe("TASK");
+    expect(delegate.actions[0]!.weight).toBe("DELEGATION");
+  });
+
   it("classifies an unknown participant's name without inventing it", () => {
     const plan = planWorkCommand("Schedule a meeting with Alex tomorrow.");
     expect(plan.actions[0]!.kind).toBe("SCHEDULE_MEETING");

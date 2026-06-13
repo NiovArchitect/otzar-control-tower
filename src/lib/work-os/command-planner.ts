@@ -17,10 +17,30 @@ export type PlannedActionKind =
   | "TASK"
   | "DRAFT_MESSAGE";
 
+// Phase 1273 addendum §5 — instructions carry weight. The SAME action
+// kind means different things depending on how it was uttered: a
+// commitment ("I told X I would…") must become a tracked artifact; a
+// delegation ("ask X to…") implies a target + acceptance; a command
+// ("schedule…") is a direct execution intent. Weight is orthogonal to
+// kind and feeds the authority/policy decision + the artifact's framing.
+export type InstructionWeight =
+  | "COMMAND"
+  | "REQUEST"
+  | "SUGGESTION"
+  | "REMINDER"
+  | "COMMITMENT"
+  | "APPROVAL"
+  | "DELEGATION"
+  | "ESCALATION"
+  | "BLOCKER"
+  | "DECISION";
+
 export interface PlannedAction {
   /** Stable per-plan index id, e.g. "a1", "a2". */
   id: string;
   kind: PlannedActionKind;
+  /** How the instruction was uttered (command vs commitment vs …). */
+  weight: InstructionWeight;
   /** Resolved later; the raw name token extracted from this segment. */
   target_name?: string;
   /** Meeting duration in minutes when stated ("30-minute"). */
@@ -94,6 +114,33 @@ function extractParticipant(text: string): string | undefined {
   return undefined;
 }
 
+// WHAT: Classify the instruction weight of a segment (addendum §5).
+// WHY: A commitment ("I told X I would…") and a command ("schedule…")
+//      are not the same even when they touch the same surface — weight
+//      decides whether Otzar tracks a promise, delegates, or executes.
+function classifyInstructionWeight(
+  seg: string,
+  kind: PlannedActionKind,
+): InstructionWeight {
+  const l = seg.toLowerCase();
+  if (/\b(i told|i promised|i said i('?d| would)|i owe|i'?ll follow up|i will follow up)\b/.test(l)) {
+    return "COMMITMENT";
+  }
+  if (/\b(blocked by|waiting on|we'?re waiting|stuck on)\b/.test(l)) return "BLOCKER";
+  if (/\b(we (?:agreed|decided)|decision is|we will go with)\b/.test(l)) return "DECISION";
+  if (/\b(escalate|urgent|asap|right away)\b/.test(l)) return "ESCALATION";
+  if (/\b(remind me|don'?t forget|remember to)\b/.test(l)) return "REMINDER";
+  if (/\b(ask|assign|have\s+\w+\s+review|delegate)\b/.test(l)) return "DELEGATION";
+  if (/\b(maybe|consider|might want|perhaps|we could)\b/.test(l)) return "SUGGESTION";
+  if (/\b(can you|could you|would you|please)\b/.test(l)) return "REQUEST";
+  // Default by kind: scheduling is a command; a follow-up note is a
+  // commitment; a task is a delegation; a message is a request.
+  if (kind === "SCHEDULE_MEETING") return "COMMAND";
+  if (kind === "FOLLOW_UP_NOTE") return "COMMITMENT";
+  if (kind === "TASK") return "DELEGATION";
+  return "REQUEST";
+}
+
 function classifySegment(seg: string): PlannedActionKind | null {
   const l = seg.toLowerCase();
   // Follow-up FIRST: "follow up" / "follow-up note" wins over a bare
@@ -151,6 +198,7 @@ export function planWorkCommand(transcript: string): WorkPlan {
     const action: PlannedAction = {
       id: `a${idx}`,
       kind,
+      weight: classifyInstructionWeight(seg, kind),
       source_segment: seg,
     };
     const target = extractParticipant(seg);
