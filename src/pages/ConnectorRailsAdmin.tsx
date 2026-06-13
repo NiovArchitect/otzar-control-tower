@@ -59,6 +59,16 @@ const OAUTH_STATUS_COPY: Record<OAuthConnectionStatus, string> = {
   REVOKED: "Revoked",
 };
 
+// Phase 1263 — Microsoft 365 is intentionally parked (not broken) until
+// the Founder's Microsoft/Entra account setup is ready. Match on any of
+// the server-driven identifiers so the parked copy stays correct
+// regardless of the exact slug the API emits.
+function isMicrosoftProvider(row: OAuthStatusRow): boolean {
+  const haystack =
+    `${row.provider} ${row.slug} ${row.display_name}`.toLowerCase();
+  return haystack.includes("microsoft");
+}
+
 function OAuthProviderRow({
   row,
   onChanged,
@@ -129,11 +139,18 @@ function OAuthProviderRow({
           </div>
         ) : null}
         {row.status === "APP_CREDENTIALS_MISSING" ? (
-          <p className="text-muted-foreground">
-            Create the OAuth app in the provider console first — the exact
-            steps live in the setup runbook. Credentials go in the server
-            deployment, never here.
-          </p>
+          isMicrosoftProvider(row) ? (
+            <p className="text-muted-foreground">
+              Microsoft 365 is parked until Microsoft/Entra account setup is
+              ready. Add app credentials to connect and verify.
+            </p>
+          ) : (
+            <p className="text-muted-foreground">
+              Create the OAuth app in the provider console first — the exact
+              steps live in the setup runbook. Credentials go in the server
+              deployment, never here.
+            </p>
+          )
         ) : null}
         <div className="flex flex-wrap gap-2 pt-1">
           <Button
