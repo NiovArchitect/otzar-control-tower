@@ -720,6 +720,25 @@ export function AmbientOtzarBar(): JSX.Element {
     // reconnect for event creation / …) which we surface honestly. No
     // event is created and no invite sent while any gate is unmet.
     if (a.kind === "SCHEDULE_MEETING") {
+      // Phase 1274/1275 Task E — an unresolved participant blocks the
+      // whole lifecycle: never call event-create; ask to resolve first.
+      if (a.status === "Participant unresolved") {
+        setPendingArtifact({ ...a, body, status: "Resolve participant first." });
+        return;
+      }
+      // Phase 1274/1275 Task D — if the user GAVE an explicit time, do NOT
+      // send selected_time: null and then say "Choose a time". We have the
+      // clock time but converting "tomorrow" + timezone to a concrete
+      // datetime is a separate bridge — say so honestly, don't pretend.
+      if (a.explicitTime !== undefined) {
+        setPendingArtifact({
+          ...a,
+          body,
+          status: "Selected-time normalization not wired",
+          runtimeNote: `I have the time (${a.proposedTime ?? a.explicitTime}), but converting "tomorrow" + timezone to a concrete datetime isn't wired yet. No event created, no invite sent.`,
+        });
+        return;
+      }
       const gateStatus: Record<string, string> = {
         NEEDS_SELECTED_TIME: "Choose a time.",
         PARTICIPANT_UNRESOLVED: a.targetLabel
@@ -993,6 +1012,9 @@ export function AmbientOtzarBar(): JSX.Element {
       weight: action.weight,
       ...(authorityNote !== undefined ? { authorityNote } : {}),
       ...(proposedTime !== undefined ? { proposedTime } : {}),
+      ...(action.explicit_time !== undefined
+        ? { explicitTime: action.explicit_time }
+        : {}),
       ...(timezoneNote !== undefined ? { timezoneNote } : {}),
       ...(action.evidence.length > 0 ? { evidence: action.evidence } : {}),
       sourceCommand,
@@ -1081,6 +1103,31 @@ export function AmbientOtzarBar(): JSX.Element {
     if (a === undefined) return;
     let status: string;
     let note: string | undefined;
+    // Task E — unresolved participant blocks the lifecycle (no create).
+    if (a.kind === "SCHEDULE_MEETING" && a.status === "Participant unresolved") {
+      setPlanArtifacts((prev) =>
+        prev.map((x, j) =>
+          j === index ? { ...x, body, status: "Resolve participant first." } : x,
+        ),
+      );
+      return;
+    }
+    // Task D — explicit time given: don't send null + say "Choose a time".
+    if (a.kind === "SCHEDULE_MEETING" && a.explicitTime !== undefined) {
+      setPlanArtifacts((prev) =>
+        prev.map((x, j) =>
+          j === index
+            ? {
+                ...x,
+                body,
+                status: "Selected-time normalization not wired",
+                runtimeNote: `I have the time (${a.proposedTime ?? a.explicitTime}), but converting "tomorrow" + timezone to a concrete datetime isn't wired yet. No event created.`,
+              }
+            : x,
+        ),
+      );
+      return;
+    }
     if (a.kind === "SCHEDULE_MEETING") {
       const r = await api.connectorData.calendarEventCreate({
         title: a.title,
@@ -1396,6 +1443,7 @@ export function AmbientOtzarBar(): JSX.Element {
             ? { prerequisite: `Requires ${prereqMatch[1]}` }
             : {}),
           ...(proposedTime !== undefined ? { proposedTime } : {}),
+          ...(explicit !== undefined ? { explicitTime: explicit.time } : {}),
           ...(tzNote !== undefined ? { timezoneNote: tzNote } : {}),
           runtimeNote:
             "Event creation is not enabled yet. Creating the calendar event requires an event-write scope and an approval-gated create flow. This is a proposal: no event is created, no invite is sent.",

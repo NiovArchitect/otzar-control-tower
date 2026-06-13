@@ -863,6 +863,64 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
+  it("Confirm with an explicit time does NOT send selected_time:null / 'Choose a time' — says normalization not wired (Phase 1274/1275 Task D)", async () => {
+    let createCalls = 0;
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [],
+        }),
+      ),
+      http.post(`${API_BASE}/calendar/events/create`, () => {
+        createCalls += 1;
+        return HttpResponse.json({ ok: false, code: "NEEDS_SELECTED_TIME" }, { status: 409 });
+      }),
+    );
+    await speak("Schedule a meeting with Vishesh tomorrow at 11am PST.");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-confirm")).toBeInTheDocument(),
+    );
+    await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
+    await waitFor(() => {
+      expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
+        /Selected-time normalization not wired/i,
+      );
+    });
+    const card = screen.getByTestId("work-artifact-card").textContent ?? "";
+    expect(card).not.toMatch(/Choose a time/i);
+    expect(createCalls).toBe(0); // never sent selected_time: null
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("Confirm on an unresolved Alex blocks with 'Resolve participant first', no event-create call (Phase 1274/1275 Task E)", async () => {
+    let createCalls = 0;
+    server.use(
+      http.post(`${API_BASE}/calendar/events/create`, () => {
+        createCalls += 1;
+        return HttpResponse.json({ ok: false, code: "PARTICIPANT_UNRESOLVED" }, { status: 409 });
+      }),
+    );
+    await speak("Schedule a meeting with Alex tomorrow.");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("work-artifact-authority").textContent,
+      ).toMatch(/don't know which Alex/i);
+    });
+    await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
+    await waitFor(() => {
+      expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
+        /Resolve participant first/i,
+      );
+    });
+    expect(createCalls).toBe(0);
+    expect(actionPosts.length).toBe(0);
+  });
+
   it("conversation thread persists prompts + results and is scrollable", async () => {
     await speak("What should I do next?");
     await waitFor(() => {

@@ -61,6 +61,10 @@ export interface WorkArtifact {
   planId?: string;
   /** Phase 1274 — explicit proposed time, e.g. "11:00 AM Pacific Time". */
   proposedTime?: string;
+  /** Phase 1274/1275 — machine 24h clock ("11:00") when the user gave an
+   *  explicit time. Present ⇒ Confirm must NOT treat it as "no time
+   *  selected"; full datetime normalization is a separate bridge. */
+  explicitTime?: string;
   /** Phase 1274 — timezone interpretation + target local-time note. */
   timezoneNote?: string;
   /** Phase 1275 — confidence/evidence for inferred fields (shown in
