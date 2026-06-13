@@ -1037,6 +1037,24 @@ export class ApiClient {
           { method: "POST", body },
         ),
     },
+
+    // Phase 1264 — desktop voice input. The Tauri WKWebView has no Web
+    // Speech API; the desktop app records audio with MediaRecorder and
+    // POSTs it here for real provider transcription (OpenAI Whisper).
+    // Audio is never stored server-side; the transcript then rides the
+    // SAME governed chat path as typed input.
+    voice: {
+      transcribe: (body: {
+        audio_base64: string;
+        mime_type: string;
+      }): Promise<
+        ApiResult<{ ok: true; transcript: string; provider: string }>
+      > =>
+        this.request<{ ok: true; transcript: string; provider: string }>(
+          "/otzar/voice/transcribe",
+          { method: "POST", body },
+        ),
+    },
   };
 
   // ──────────────────────────────────────────────────────────────

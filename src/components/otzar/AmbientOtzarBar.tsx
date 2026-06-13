@@ -62,8 +62,17 @@ import {
   requestNativeMicAccess,
   type NativeMicStatus,
 } from "@/lib/voice/native-mic";
-import { routeVoiceCommand } from "@/lib/voice/command-router";
-import { speakPremium, speakWithOtzarVoice } from "@/lib/voice/premium-tts";
+import {
+  speakWithOtzarVoice,
+  cancelVoicePlayback,
+  getLastVoicePath,
+} from "@/lib/voice/premium-tts";
+import {
+  classifyVoiceAction,
+  safeOpenExternalUrl,
+} from "@/lib/voice/voice-action-runtime";
+import { recordVoiceAction } from "@/lib/voice/voice-action-log";
+import { useDesktopVoiceCapture } from "@/hooks/useDesktopVoiceCapture";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
 import {
@@ -71,6 +80,7 @@ import {
   llmErrorCopy,
   micCopyFor,
   speechRecognitionErrorCopy,
+  transcribeErrorCopy,
 } from "@/lib/voice/diagnostics";
 
 /**
@@ -158,6 +168,28 @@ export function AmbientOtzarBar(): JSX.Element {
   synthesisRef.current = synthesis;
   const micPerm = useMicrophonePermission();
   const intent = useOtzarVoiceIntent();
+  // Phase 1264 — desktop voice input. The Tauri WKWebView has no Web
+  // Speech API, so on desktop we record with MediaRecorder and
+  // transcribe through Foundation (OpenAI Whisper). In a browser the
+  // existing local Web Speech API path stays the labeled fallback.
+  const desktopCap = useDesktopVoiceCapture();
+  const desktopCapRef = useRef(desktopCap);
+  desktopCapRef.current = desktopCap;
+  // True only while PREMIUM audio is actually playing (device speech
+  // has its own reactive `synthesis.speaking`). Drives the orb's
+  // "Speaking…" state honestly — never shown when silent.
+  const [premiumSpeaking, setPremiumSpeaking] = useState(false);
+  // Phase 1264 Voice Action Runtime display: what was heard, what was
+  // decided, what happened, and which voice path spoke.
+  const [actionHeard, setActionHeard] = useState<string | null>(null);
+  const [actionLabel, setActionLabel] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<string | null>(null);
+  const [actionVoicePath, setActionVoicePath] = useState<string | null>(null);
+  // When a desktop external-link open can't hand off automatically, we
+  // surface a clickable link instead of silently failing.
+  const [externalLinkPending, setExternalLinkPending] = useState<string | null>(
+    null,
+  );
   // Phase 1251 — publish ambient signals to the presence store so
   // the edge glow + ambient cards speak the same state language.
   const presenceState = usePresenceState();
@@ -166,15 +198,19 @@ export function AmbientOtzarBar(): JSX.Element {
   const markPresenceFailure = usePresenceStore((s) => s.markFailure);
   useEffect(() => {
     setPresenceSignals({
-      listening: recognition.listening,
-      thinking: intent.processing,
+      listening: recognition.listening || desktopCap.state === "recording",
+      thinking: intent.processing || desktopCap.state === "transcribing",
       quiet,
       quietReason: autoQuietReason,
-      voiceBlocked: micPerm.state === "denied" || !recognition.supported,
+      voiceBlocked:
+        micPerm.state === "denied" ||
+        (!recognition.supported && !desktopCap.supported),
     });
   }, [
     recognition.listening,
     recognition.supported,
+    desktopCap.state,
+    desktopCap.supported,
     intent.processing,
     quiet,
     autoQuietReason,
@@ -247,17 +283,25 @@ export function AmbientOtzarBar(): JSX.Element {
     // effect mount-stable.
   }, []);
 
-  // Phase 1259 — assistant speech is PREMIUM-FIRST: try the real
-  // provider voice; the device voice is only the fallback. The
-  // synthesis fallback keeps the existing dedupe/mute semantics.
+  // Phase 1264 — assistant speech goes through the single
+  // VoicePlaybackController: ONE active utterance, premium-first, the
+  // device voice only as a labeled fallback AFTER premium fails, and a
+  // newer prompt cancels the older one (no double-speak, no robot
+  // voice "second"). premiumSpeaking drives the honest orb state.
   function speakAssistant(
     text: string,
-    opts: { source: "auto" | "replay"; force: boolean },
+    opts: { source: "auto" | "replay" | "manual"; force: boolean },
   ): void {
-    void speakPremium(text).then((outcome) => {
-      if (outcome.kind !== "PREMIUM") {
-        synthesisRef.current.speak(text, opts);
-      }
+    void speakWithOtzarVoice(
+      text,
+      (t) => synthesis.speak(t, opts),
+      {
+        muted: synthesisRef.current.muted,
+        onPremiumStart: () => setPremiumSpeaking(true),
+        onPremiumEnd: () => setPremiumSpeaking(false),
+      },
+    ).then(() => {
+      setActionVoicePath(getLastVoicePath());
     });
   }
 
@@ -306,8 +350,26 @@ export function AmbientOtzarBar(): JSX.Element {
     });
   }
 
+  // Phase 1264 — desktop shells use the MediaRecorder→Whisper path;
+  // browser shells keep the local Web Speech API path.
+  const useDesktopCapture =
+    detectShellMode() === "tauri_webview" && desktopCap.supported;
+
   async function handleMicToggle(): Promise<void> {
     if (quiet) return;
+    if (useDesktopCapture) {
+      // Desktop: record → stop → transcribe. The transcript effect
+      // submits it through the governed action/chat path.
+      if (
+        desktopCap.state === "recording" ||
+        desktopCap.state === "transcribing"
+      ) {
+        desktopCap.stop();
+        return;
+      }
+      await desktopCap.start();
+      return;
+    }
     if (recognition.listening) {
       recognition.stop();
       return;
@@ -339,39 +401,162 @@ export function AmbientOtzarBar(): JSX.Element {
     );
   }
 
-  async function handleSend(): Promise<void> {
-    const text = draft.trim();
-    if (text.length === 0 || intent.processing) return;
-    // Cancel any in-flight speech before sending the next turn.
-    synthesis.stop();
-    // Phase 1253 — voice is the REMOTE CONTROL: spoken AND typed
-    // input both ride the command router first. A match navigates
-    // (read/route only — every write still happens on the governed
-    // destination surface); admin surfaces are role-gated with a
-    // warm refusal; no match falls through to the conversational
-    // governed voice-intent API.
-    const routed = routeVoiceCommand(text, capabilities);
-    if (routed.kind === "NAVIGATE") {
-      setDraft("");
-      setRouterAck(routed.spoken);
-      void speakWithOtzarVoice(routed.spoken, (t) =>
-        synthesis.speak(t, { source: "manual", force: true }),
-      );
-      navigate(routed.surface.route);
-      return;
-    }
-    if (routed.kind === "ADMIN_BLOCKED") {
-      setDraft("");
-      setRouterAck(routed.spoken);
-      void speakWithOtzarVoice(routed.spoken, (t) =>
-        synthesis.speak(t, { source: "manual", force: true }),
-      );
-      return;
-    }
-    setRouterAck(null);
-    setDraft("");
-    await intent.send(text);
+  // Speak a confirmation through the single controller (premium-first,
+  // device fallback labeled), and record which path spoke.
+  function speakConfirmation(text: string): void {
+    if (text.length === 0) return;
+    void speakWithOtzarVoice(
+      text,
+      (t) => synthesis.speak(t, { source: "manual", force: true }),
+      {
+        muted: synthesisRef.current.muted,
+        onPremiumStart: () => setPremiumSpeaking(true),
+        onPremiumEnd: () => setPremiumSpeaking(false),
+      },
+    ).then(() => setActionVoicePath(getLastVoicePath()));
   }
+
+  // Phase 1264 Voice Action Runtime — voice OPERATES the app. Every
+  // utterance (spoken OR typed) is classified into a SAFE action:
+  // internal navigation, connector-status navigation, a safe external
+  // URL open, a draft-only (approval-gated) action, or a fall-through
+  // to the SAME governed chat path as typed input. Each is audited
+  // (safe metadata only) and confirmed in premium voice.
+  async function handleSendText(raw: string): Promise<void> {
+    const text = raw.trim();
+    if (text.length === 0 || intent.processing) return;
+    // A new prompt cancels any current speech cleanly — no double-speak.
+    cancelVoicePlayback();
+    setExternalLinkPending(null);
+    setActionVoicePath(null);
+
+    const action = classifyVoiceAction(text, capabilities);
+    setActionHeard(action.heard);
+    setActionLabel(action.actionLabel);
+    setDraft("");
+    setRouterAck(null);
+    const at = new Date().toISOString();
+
+    switch (action.kind) {
+      case "INTERNAL_NAVIGATION":
+      case "CONNECTOR_STATUS_NAVIGATION": {
+        const dest = action.actionLabel.replace(/^.*→\s*/, "");
+        setActionResult(`Opened ${dest}.`);
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result: "success",
+        });
+        if (action.route !== undefined) navigate(action.route);
+        return;
+      }
+      case "EXTERNAL_URL_OPEN": {
+        const url = action.url ?? "";
+        const opened = safeOpenExternalUrl(url);
+        if (opened === "OPENED") {
+          setActionResult(action.spoken);
+          speakConfirmation(action.spoken);
+          recordVoiceAction({
+            at,
+            transcript: text,
+            actionType: action.kind,
+            target: url,
+            result: "success",
+          });
+        } else {
+          // Never silently fail: surface a clickable link instead.
+          setExternalLinkPending(url);
+          setActionResult("Tap the link below to open it in your browser.");
+          speakConfirmation("Here's the link — tap it to open in your browser.");
+          recordVoiceAction({
+            at,
+            transcript: text,
+            actionType: action.kind,
+            target: url,
+            result: "needs_confirmation",
+          });
+        }
+        return;
+      }
+      case "BLOCKED_URL": {
+        setActionResult(
+          `Blocked: ${action.blockedReason ?? "unsafe link"}.`,
+        );
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "blocked",
+        });
+        return;
+      }
+      case "ADMIN_BLOCKED": {
+        setActionResult(action.spoken);
+        setRouterAck(action.spoken);
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "blocked",
+        });
+        return;
+      }
+      case "DRAFT_ONLY": {
+        setActionResult(action.spoken);
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result:
+            action.needsConfirmation === true ? "needs_confirmation" : "success",
+        });
+        if (action.route !== undefined) navigate(action.route);
+        return;
+      }
+      case "GOVERNED_CHAT":
+      default: {
+        setActionResult(null);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: "GOVERNED_CHAT",
+          target: null,
+          result: "success",
+        });
+        // Same governed path as typed input; auto-speak effect voices
+        // the response (premium-first) when enabled.
+        await intent.send(text);
+        return;
+      }
+    }
+  }
+
+  async function handleSend(): Promise<void> {
+    await handleSendText(draft);
+  }
+
+  // Phase 1264 — when the desktop (Whisper) transcript lands, submit it
+  // through the SAME governed action/chat path as typed input. A ref
+  // keeps the effect mount-stable while always calling the latest
+  // handler.
+  const handleSendTextRef = useRef(handleSendText);
+  handleSendTextRef.current = handleSendText;
+  useEffect(() => {
+    const t = desktopCap.transcript.trim();
+    if (t.length === 0) return;
+    setDraft(t);
+    void handleSendTextRef.current(t);
+    desktopCapRef.current.reset();
+  }, [desktopCap.transcript]);
 
   function handleReplay(): void {
     if (intent.response === null) return;
@@ -385,27 +570,49 @@ export function AmbientOtzarBar(): JSX.Element {
   }
 
   // ────────────────────────────────────────────────────────────
-  // Status copy. Closed-vocab + safety-honest. NEVER claims
-  // Sesame is active.
+  // Status copy — the canonical orb state vocabulary (Phase 1264):
+  // Idle / Listening / Transcribing / Thinking / Speaking / Error.
+  // Closed-vocab + safety-honest. NEVER claims Sesame is active.
   // ────────────────────────────────────────────────────────────
+  const hasVoiceError =
+    desktopCap.state === "error" ||
+    recognition.error !== null ||
+    intent.error !== null;
   let status: string;
   let statusClass = "text-muted-foreground";
-  if (recognition.listening) {
+  if (recognition.listening || desktopCap.state === "recording") {
     status = "Listening…";
     statusClass = "text-primary";
+  } else if (desktopCap.state === "transcribing") {
+    status = "Transcribing…";
+    statusClass = "text-primary";
   } else if (intent.processing) {
-    status = "Processing…";
+    status = "Thinking…";
     statusClass = "text-primary";
-  } else if (synthesis.speaking) {
-    status = "Otzar is speaking…";
+  } else if (premiumSpeaking || synthesis.speaking) {
+    status = "Speaking…";
     statusClass = "text-primary";
+  } else if (hasVoiceError) {
+    status = "Error";
+    statusClass = "text-destructive";
   } else if (synthesis.muted) {
     status = "Muted";
-  } else if (intent.response !== null) {
-    status = "Ready";
+  } else if (intent.response !== null || actionResult !== null) {
+    status = "Idle";
   } else {
-    status = "Ambient. Speak or type.";
+    status = "Idle · speak or type";
   }
+
+  // Phase 1264 — unified mic availability across shells. Desktop uses
+  // MediaRecorder→Whisper; browser uses the local Web Speech API.
+  const voiceInputAvailable = useDesktopCapture || recognition.supported;
+  const micActive =
+    recognition.listening || desktopCap.state === "recording";
+  const micEnabled =
+    !quiet &&
+    voiceInputAvailable &&
+    micPerm.state !== "denied" &&
+    desktopCap.state !== "transcribing";
 
   const response = intent.response;
   const approvalBadge =
@@ -594,6 +801,31 @@ export function AmbientOtzarBar(): JSX.Element {
               calm copy, and the real OS permission prompt. */}
           {(() => {
             const shell = detectShellMode();
+            if (shell === "tauri_webview" && desktopCap.supported) {
+              // Phase 1264 — desktop voice is LIVE: record → transcribe
+              // (Whisper) → governed action/chat. Honest copy by state.
+              const desktopCopy =
+                desktopCap.state === "error" && desktopCap.errorCode !== null
+                  ? transcribeErrorCopy(desktopCap.errorCode)
+                  : desktopCap.state === "recording"
+                    ? "Listening on desktop — tap the mic again to send."
+                    : desktopCap.state === "transcribing"
+                      ? "Transcribing your audio…"
+                      : "Desktop voice is on. Tap the mic and talk — Otzar transcribes and routes it the same way as typing.";
+              const tone =
+                desktopCap.state === "error" ? "error" : "muted";
+              return (
+                <div
+                  className={`flex items-start gap-2 text-xs ${toneClass(tone)}`}
+                  data-testid="ambient-permission-state"
+                  data-native-mic={nativeMic}
+                  data-desktop-capture={desktopCap.state}
+                >
+                  <Mic className="h-3 w-3 mt-0.5 shrink-0" aria-hidden />
+                  <div className="flex-1 min-w-0">{desktopCopy}</div>
+                </div>
+              );
+            }
             if (shell === "tauri_webview" && nativeMic !== "UNSUPPORTED") {
               return (
                 <div
@@ -656,35 +888,32 @@ export function AmbientOtzarBar(): JSX.Element {
           <div className="flex gap-2 items-center">
             <Button
               type="button"
-              variant={recognition.listening ? "destructive" : "default"}
+              variant={micActive ? "destructive" : "default"}
               onClick={() => void handleMicToggle()}
+              data-testid="ambient-mic-button"
+              data-mic-active={micActive ? "true" : "false"}
               aria-label={
                 quiet
                   ? "Voice is paused in quiet mode"
-                  : recognition.listening
+                  : micActive
                     ? "Stop listening"
-                    : recognition.supported
+                    : voiceInputAvailable
                       ? "Start listening"
                       : "Voice input unavailable"
               }
               title={
                 quiet
                   ? "Voice is paused in quiet mode"
-                  : recognition.supported
-                    ? recognition.listening
+                  : voiceInputAvailable
+                    ? micActive
                       ? "Stop listening"
                       : "Speak to Otzar"
                     : "Voice input unavailable in this shell. Type instead."
               }
-              disabled={
-                quiet ||
-                !recognition.supported ||
-                micPerm.state === "denied" ||
-                detectShellMode() === "tauri_webview"
-              }
+              disabled={!micEnabled}
               className="h-12 w-12 rounded-full p-0 shrink-0"
             >
-              {recognition.supported ? (
+              {voiceInputAvailable ? (
                 <Mic className="h-6 w-6" />
               ) : (
                 <MicOff className="h-6 w-6" />
@@ -695,7 +924,7 @@ export function AmbientOtzarBar(): JSX.Element {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder={
-                recognition.supported
+                voiceInputAvailable
                   ? "Speak or type…"
                   : "Voice input unavailable. Type to Otzar."
               }
@@ -721,7 +950,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </Button>
           </div>
 
-          {!recognition.supported ? (
+          {!voiceInputAvailable ? (
             <p className="text-xs text-muted-foreground">
               Voice input unavailable in this shell. Type to Otzar instead.
             </p>
@@ -729,6 +958,14 @@ export function AmbientOtzarBar(): JSX.Element {
           {!synthesis.supported ? (
             <p className="text-xs text-muted-foreground">
               Speech output unavailable. Showing speech-ready text.
+            </p>
+          ) : null}
+          {desktopCap.state === "error" && desktopCap.errorCode !== null ? (
+            <p
+              className="text-xs text-destructive"
+              data-testid="desktop-capture-error"
+            >
+              {transcribeErrorCopy(desktopCap.errorCode)}
             </p>
           ) : null}
           {recognition.error !== null ? (
@@ -748,6 +985,61 @@ export function AmbientOtzarBar(): JSX.Element {
             >
               {routerAck}
             </p>
+          ) : null}
+
+          {/* Phase 1264 Voice Action Runtime — Heard / Action / Result /
+              Voice. Shows what Otzar heard, what it decided, what it did,
+              and which voice path spoke. Blocked actions + external links
+              are surfaced explicitly (never a silent fail). */}
+          {actionHeard !== null ? (
+            <div
+              className="rounded-md border border-border bg-muted/40 px-2 py-1.5 text-xs space-y-1"
+              data-testid="voice-action-panel"
+            >
+              <div>
+                <span className="font-medium text-foreground">Heard:</span>{" "}
+                <span className="text-muted-foreground">“{actionHeard}”</span>
+              </div>
+              {actionLabel !== null ? (
+                <div>
+                  <span className="font-medium text-foreground">Action:</span>{" "}
+                  <span className="text-muted-foreground">{actionLabel}</span>
+                </div>
+              ) : null}
+              {actionResult !== null ? (
+                <div>
+                  <span className="font-medium text-foreground">Result:</span>{" "}
+                  <span className="text-muted-foreground">{actionResult}</span>
+                </div>
+              ) : null}
+              {externalLinkPending !== null ? (
+                <div>
+                  <a
+                    href={externalLinkPending}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline break-all"
+                    data-testid="voice-external-link"
+                  >
+                    {externalLinkPending}
+                  </a>
+                </div>
+              ) : null}
+              {actionVoicePath !== null ? (
+                <div>
+                  <span className="font-medium text-foreground">Voice:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {actionVoicePath === "premium_voice"
+                      ? "Premium voice"
+                      : actionVoicePath === "fallback_device_voice"
+                        ? "Device fallback (premium unavailable)"
+                        : actionVoicePath === "muted"
+                          ? "Muted"
+                          : "No audio"}
+                  </span>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           {response !== null ? (
@@ -852,17 +1144,17 @@ export function AmbientOtzarBar(): JSX.Element {
           </div>
 
           <p className="text-[10px] text-muted-foreground">
-            Voice input: {recognition.supported ? "browser STT (local)" : "text only"}
+            Voice input:{" "}
+            {useDesktopCapture
+              ? "desktop mic → transcription"
+              : recognition.supported
+                ? "browser STT (local)"
+                : "text only"}
             {" · "}
             Voice output:{" "}
-            {synthesis.supported
-              ? synthesis.muted
-                ? "muted"
-                : "browser/device TTS"
-              : "speech-ready text"}
-            {response !== null && !response.voice_output_supported ? (
-              <span> · Live Sesame voice not enabled yet.</span>
-            ) : null}
+            {synthesis.muted
+              ? "muted"
+              : "premium voice · device fallback only if premium fails"}
             {" · "}
             No raw audio is stored.
           </p>
