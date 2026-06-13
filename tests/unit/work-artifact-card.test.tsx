@@ -85,6 +85,36 @@ describe("WorkArtifactCard", () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
+  it("'Include others' opens a teammate picker input — NOT a chatbot prompt", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkArtifactCard artifact={artifact()} onConfirm={vi.fn()} onCancel={vi.fn()} />,
+    );
+    await user.click(screen.getByTestId("work-artifact-include-open"));
+    const include = screen.getByTestId("work-artifact-include");
+    expect(include.querySelector("input")).not.toBeNull();
+    await user.type(
+      screen.getByLabelText(/Include another teammate/i),
+      "Samiksha",
+    );
+    await user.click(screen.getByTestId("work-artifact-include-add"));
+    expect(screen.getByText(/To: David, Samiksha/)).toBeInTheDocument();
+  });
+
+  it("Edit opens an inline textarea (no 'what should I improve?' question)", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkArtifactCard artifact={artifact()} onConfirm={vi.fn()} onCancel={vi.fn()} />,
+    );
+    expect(screen.queryByTestId("work-artifact-edit")).toBeNull();
+    await user.click(screen.getByTestId("work-artifact-edit-open"));
+    // Inline editing appears immediately — direct control, not a prompt.
+    expect(screen.getByTestId("work-artifact-edit")).toBeInTheDocument();
+    expect(document.body.innerHTML.toLowerCase()).not.toContain(
+      "what would you like me to improve",
+    );
+  });
+
   it("renders a preserved prerequisite (after-X-confirms)", () => {
     render(
       <WorkArtifactCard

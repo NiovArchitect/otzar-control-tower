@@ -87,3 +87,49 @@ standing authority"; REQUIRE_DUAL_CONTROL → "Approval required"; FORBIDDEN
 - Schedule: MeetingProposalCard rendered; never routes to transcripts; "after X confirms" prerequisite preserved; no event created.
 - Authority: status reflects real policy decision (standing authority vs approval required vs blocked).
 - No Work-OS command falls into a generic LLM refusal.
+
+## Phase 1268 Gap Discovery — Toward AGI-Like Context Orchestration
+
+Closed this phase: the draft→Action Center **lifecycle** (the opened
+action no longer "disappears" — Action Center now reads `?focus=<id>`,
+auto-selects the tab, scrolls + ring-highlights the action, and offers
+real **Approve/Reject** on pending actions via the linked escalation).
+WorkArtifactCard gained **Include others** (picker input, not a prompt)
+and inline **Edit** with a SAFE edit-feedback signal. Context-first
+"no-homework" defaults are locked by tests (internal channel default;
+Slack/email only when named; no upfront interrogation).
+
+Remaining bridges, by dimension (status → symptom → next bridge → acceptance):
+
+| # | Dimension | Status | Next bridge / acceptance |
+| --- | --- | --- | --- |
+| 1 | Personal work queue | Partial (Action Center) | Persisted "my drafts/proposals" filter; AT: my pending actions list |
+| 2 | Team work queue | Missing | Org/team action list (admin scope); AT: team pending actions |
+| 3 | AI Twin inbox | Missing | Twin-addressed collaboration list; AT: requests to my Twin |
+| 4 | Human teammate inbox | Partial (Notifications) | Threaded teammate inbox; AT: 1:1 thread view |
+| 5 | Collaboration threads | Partial (Collaboration page) | Per-request thread + focus; AT: open request by id |
+| 6 | Action Center | **Done** (focus + approve/reject) | Detail drawer + body surface (privacy-bounded) |
+| 7 | Project/goal context | Missing | Active-project selector + artifact.attach; AT: artifact shows project |
+| 8 | Meeting intelligence | Partial (conversation→actions) | Transcript ingestion + extraction; AT: transcript→action items |
+| 9 | Calendar availability | Missing (backend) | `POST /calendar/freebusy` (Google scopes present); AT: candidate slots |
+| 10 | External comms | Missing (backend) | Approval-gated Slack/email send; AT: no send without approval |
+| 11 | Notifications | **Done** (wrap/scroll/route/clean error) | Detail modal |
+| 12 | Authority/approval | Partial (policy evaluator surfaced) | Standing/short/long grant UI; AT: status reflects grant tier |
+| 13 | Long-term delegation | Missing | Authority-grant create from card; AT: grant persists |
+| 14 | Short-term delegation | Missing | Time-boxed grant; AT: expiry honored |
+| 15 | Standing authority | Partial (AUTO_APPROVE shown) | Grant management surface |
+| 16 | Audit + memory | Partial (audit events + edit feedback) | Surface action audit timeline |
+| 17 | Desktop OS actions | N/A this phase | — |
+| 18 | Browser/URL actions | Done (safe open) | — |
+| 19 | File/document actions | Missing | Attach/preview; AT: artifact attachment |
+| 20 | Connector health | Done (summary) | — |
+| 21 | Agent performance | Missing | Per-agent action metrics |
+| 22 | Feedback/learning loop | Started (edit signal) | Default-improvement from feedback |
+| 23 | Admin setup gaps | Partial | Teammate invite/activation surface |
+| 24 | Employee setup gaps | Partial (onboarding) | — |
+| 25 | Handoff readiness | See §8 acceptance tests | Run full E2E lifecycle |
+
+Recommended next bridge order (unchanged + refined): calendar free/busy
+→ task create/assign as a ProposedAction type → meeting transcript
+ingestion → calendar event create (gated) → external Slack/email send →
+Zoom recordings → project/goal attach → Twin intercession policy.

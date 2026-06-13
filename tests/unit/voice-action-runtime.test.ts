@@ -217,6 +217,50 @@ describe("Work OS action classifier", () => {
   });
 });
 
+// ── Phase 1268 Addendum — No-Homework / context-first defaults ──────
+describe("context-first defaults (no homework)", () => {
+  it("internal draft defaults to the internal channel — never asks which channel", () => {
+    const a = classifyVoiceAction(
+      "Draft a message to David saying we need to review this.",
+      EMPLOYEE,
+    );
+    expect(a.kind).toBe("DRAFT_MESSAGE");
+    expect(a.connector).toBe("internal");
+    // Otzar inferred the body; it does not ask "what should I say?".
+    expect(a.draftPayload?.toLowerCase()).toContain("we need to review this");
+    // No channel question in the spoken copy.
+    expect(a.spoken.toLowerCase()).not.toContain("which channel");
+  });
+
+  it("uses Slack ONLY when explicitly named", () => {
+    const slack = classifyVoiceAction(
+      "Draft a Slack message to David saying ship it.",
+      EMPLOYEE,
+    );
+    expect(slack.connector).toBe("slack");
+    const internal = classifyVoiceAction(
+      "Draft a message to David saying ship it.",
+      EMPLOYEE,
+    );
+    expect(internal.connector).toBe("internal");
+  });
+
+  it("a missing optional project does not block the draft", () => {
+    const a = classifyVoiceAction("Draft a message to David: looks good.", EMPLOYEE);
+    expect(a.kind).toBe("DRAFT_MESSAGE");
+    expect(a.requiresApproval).toBe(true);
+  });
+
+  it("meeting proposal infers participant + does not interrogate upfront", () => {
+    const a = classifyVoiceAction("Schedule a meeting with Vishesh tomorrow.", EMPLOYEE);
+    expect(a.kind).toBe("SCHEDULE_MEETING");
+    expect(a.targetEntity).toBe("Vishesh");
+    // Single targeted note about approval — not a five-question form.
+    expect(a.spoken.toLowerCase()).not.toContain("what duration");
+    expect(a.spoken.toLowerCase()).not.toContain("which project");
+  });
+});
+
 describe("safeOpenExternalUrl — protocol re-validation at the boundary", () => {
   it("refuses a non-http(s) URL even if passed directly", () => {
     expect(safeOpenExternalUrl("file:///etc/passwd")).toBe("NEEDS_LINK");

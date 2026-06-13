@@ -78,6 +78,32 @@ export function getVoiceActionLog(): VoiceActionLogEntry[] {
   return [...ring].reverse();
 }
 
+/** Phase 1268 — lightweight, SAFE feedback signal when a user edits an
+ *  artifact, so future phases can improve context-first defaults. Coarse
+ *  edit-type only (no secrets, no body text). */
+export function recordArtifactEdit(input: {
+  at: string;
+  kind: string;
+  originalChars: number;
+  editedChars: number;
+  confirmed: boolean;
+}): void {
+  const editType =
+    input.editedChars < input.originalChars
+      ? "shorter"
+      : input.editedChars > input.originalChars
+        ? "expanded"
+        : "revised";
+  console.info("[otzar-artifact-edit]", {
+    at: input.at,
+    kind: input.kind,
+    edit_type: editType,
+    original_chars: input.originalChars,
+    edited_chars: input.editedChars,
+    confirmed: input.confirmed,
+  });
+}
+
 export function clearVoiceActionLog(): void {
   ring.length = 0;
 }

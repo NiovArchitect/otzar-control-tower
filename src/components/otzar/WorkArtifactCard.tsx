@@ -63,6 +63,9 @@ export function WorkArtifactCard({
 }: Props): JSX.Element {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(artifact.body);
+  const [includeOpen, setIncludeOpen] = useState(false);
+  const [includeName, setIncludeName] = useState("");
+  const [included, setIncluded] = useState<string[]>([]);
 
   return (
     <div
@@ -82,7 +85,36 @@ export function WorkArtifactCard({
       {artifact.targetLabel !== undefined ? (
         <div className="text-muted-foreground">
           To: {artifact.targetLabel}
+          {included.length > 0 ? `, ${included.join(", ")}` : ""}
           {artifact.channel !== undefined ? ` · ${artifact.channel}` : ""}
+        </div>
+      ) : null}
+
+      {includeOpen ? (
+        <div className="flex items-center gap-1" data-testid="work-artifact-include">
+          <input
+            value={includeName}
+            onChange={(e) => setIncludeName(e.target.value)}
+            placeholder="Add a teammate (name)"
+            aria-label="Include another teammate"
+            className="flex-1 rounded border border-input bg-card px-1.5 py-1 text-xs"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[11px]"
+            data-testid="work-artifact-include-add"
+            disabled={includeName.trim().length === 0}
+            onClick={() => {
+              const name = includeName.trim();
+              setIncluded((prev) => [...prev, name]);
+              setIncludeName("");
+              setIncludeOpen(false);
+            }}
+          >
+            Add
+          </Button>
         </div>
       ) : null}
 
@@ -167,6 +199,16 @@ export function WorkArtifactCard({
               onClick={() => setEditing(true)}
             >
               <Pencil className="mr-1 h-3 w-3" /> Edit
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-[11px]"
+              data-testid="work-artifact-include-open"
+              onClick={() => setIncludeOpen((v) => !v)}
+            >
+              Include others
             </Button>
             <Button
               type="button"

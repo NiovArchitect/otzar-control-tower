@@ -72,7 +72,10 @@ import {
   safeOpenExternalUrl,
   type VoiceAction,
 } from "@/lib/voice/voice-action-runtime";
-import { recordVoiceAction } from "@/lib/voice/voice-action-log";
+import {
+  recordVoiceAction,
+  recordArtifactEdit,
+} from "@/lib/voice/voice-action-log";
 import {
   appendConversationEntry,
   useConversationStore,
@@ -688,7 +691,9 @@ export function AmbientOtzarBar(): JSX.Element {
           status,
           actionId: r.data.action.action_id,
           recipientEntityId: resolved.entityId,
-          route: ACTION_CENTER,
+          // Open routes to the EXACT action, focused — so it never
+          // "disappears" into a generic Action Center list.
+          route: `${ACTION_CENTER}?focus=${encodeURIComponent(r.data.action.action_id)}`,
         });
         finish(
           `Internal message to ${label} created as a governed action — ${status}. Nothing was sent externally. See the card to Edit, Confirm, or open Action Center.`,
@@ -743,6 +748,16 @@ export function AmbientOtzarBar(): JSX.Element {
   async function reproposeArtifact(body: string): Promise<void> {
     const a = pendingArtifact;
     if (a === null) return;
+    // Phase 1268 — capture a SAFE edit-feedback signal (coarse only).
+    if (body !== a.body) {
+      recordArtifactEdit({
+        at: new Date().toISOString(),
+        kind: a.kind,
+        originalChars: a.body.length,
+        editedChars: body.length,
+        confirmed: true,
+      });
+    }
     if (a.recipientEntityId === undefined) {
       // No real recipient (meeting proposal / unresolved draft): revise
       // the visible artifact locally — there's no backend create path.
