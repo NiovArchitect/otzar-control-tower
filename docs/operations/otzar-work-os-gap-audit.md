@@ -259,3 +259,58 @@ views/focuses; Confirm proposes/attempts-gated-create; nothing is created
 or sent from Open or from free/busy; the gated create is the single
 chokepoint that guarantees no auto-create. Locked by tests
 (`calendar-event.test.ts`, `ambient-otzar-bar.test.tsx`).
+
+## Phase 1274 — Timezone Intelligence + Target-Resolution Gating (LANDED)
+
+- **Planner time/context parsing fixed.** `about X` → context is exactly
+  `X` (no clause leak); `at 11am pst` → `explicit_time` 11:00 + label
+  `pst`; follow-up inherits plan context.
+- **Pure timezone helper** (`timezone.ts`): casual US labels → IANA +
+  season-neutral display ("PST" → Pacific Time); unknown label → null
+  (never fabricates a zone).
+- **Free/busy gated on resolution.** Unresolved participant (Alex) →
+  **no** free/busy call, **no** candidate windows; availability honestly
+  labelled "Checked your calendar only (target calendar address not
+  wired)". Explicit time → "Proposed time" + interpretation, not "Choose
+  a time".
+- **Real timezones** from `EntityProfile.timezone` (authority context),
+  nullable → labelled org-default fallback. **Next bridges:**
+  `OrgSettings.timezone` field; per-employee work-hours fields; target
+  calendar address/visibility wiring.
+
+## Phase 1275 — Tenant-Grade Intelligence Doctrine (woven, incremental)
+
+**Doctrine:** Otzar's "AGI effect" comes from durable tenant-grade
+context — a Tenant Operating Constitution + ledgers + confidence/evidence
++ source-of-truth precedence + compliance modes + connector trust states
++ autonomy levels + execution verification — **woven into** the existing
+AuthorityContextService / RBAC-ABAC matrix / ProposedAction / Action
+Center / WorkArtifactCard / planner / connector rails, NOT bolted on.
+
+**Landed (woven, consumed):**
+- **Confidence/evidence** on every planned action (`InferenceEvidence`),
+  surfaced in the existing WorkArtifactCard View/Why details (field ·
+  value · confidence · needs-confirmation). No "AI guessed" without
+  confidence; inspect-only.
+
+**Next woven increments + exact integration points (not yet built — to
+avoid sprawl):**
+- **WorkLedgerEntry** (durable alignment record) — link to existing
+  ProposedAction / AuditEvent / Notification / Project, not replace them.
+  Integration point: emit on follow-up/task/commitment creation in the
+  orb + a `GET/POST /api/v1/work-os/ledger` route.
+- **TenantOperatingConstitutionService** — compute from existing
+  `OrgSettings` + connector-oauth status + the authority matrix; feed the
+  matrix's compliance-mode branches. Route `GET /work-os/tenant-constitution`.
+- **Connector trust states** — extend connector-rails status mapping
+  (VERIFIED_READ_ONLY / SCOPE_MISSING / APPROVAL_GATED); gate execution.
+- **Blind-spot route** — derive from ledger/artifact statuses
+  (NEEDS_TARGET_RESOLUTION / NEEDS_APPROVAL / RUNTIME_MISSING / overdue).
+- **Execution verification** — `ExecutionAttempt` referencing AuditEvent
+  ids; EXECUTED_UNVERIFIED vs VERIFIED.
+- **Human correction feedback** — structured CORRECTION metadata from
+  card edits, feeding planner/target/channel/timezone defaults.
+
+Tenant isolation, memory classification (via COSMP/DMW), and role-specific
+cockpits remain governed by the existing substrate; constitution + ledger
+work above must stay tenant-scoped with isolation tests.
