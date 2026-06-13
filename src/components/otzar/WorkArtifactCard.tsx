@@ -67,6 +67,9 @@ export interface WorkArtifact {
   explicitTime?: string;
   /** Phase 1274 — timezone interpretation + target local-time note. */
   timezoneNote?: string;
+  /** Phase 1278 — which runtime produced the extraction (deterministic
+   *  TypeScript vs. Python enrichment). Honest; shown in View/Why. */
+  extractionSource?: string;
   /** Phase 1275 — confidence/evidence for inferred fields (shown in
    *  View/Why details only — never noise in the main card). */
   evidence?: Array<{
@@ -331,6 +334,11 @@ export function WorkArtifactCard({
           ) : null}
           {artifact.sourceCommand !== undefined ? (
             <div>Source: “{artifact.sourceCommand}”</div>
+          ) : null}
+          {artifact.extractionSource !== undefined ? (
+            <div data-testid="work-artifact-extraction-source">
+              Extraction: {artifact.extractionSource}
+            </div>
           ) : null}
           {artifact.evidence !== undefined && artifact.evidence.length > 0 ? (
             <div className="space-y-0.5" data-testid="work-artifact-evidence">

@@ -852,6 +852,26 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(actionPosts.length).toBe(0);
   });
 
+  it("Conversation-to-work artifact shows HONEST extraction source — deterministic, never fake Python (Phase 1278)", async () => {
+    // Default MSW runtime registry reports Python NOT_CONFIGURED.
+    await speak(
+      "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-open")).toBeInTheDocument(),
+    );
+    await userEvent.setup().click(screen.getByTestId("work-artifact-open"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("work-artifact-extraction-source"),
+      ).toBeInTheDocument(),
+    );
+    const src =
+      screen.getByTestId("work-artifact-extraction-source").textContent ?? "";
+    expect(src).toMatch(/Deterministic extraction/i);
+    expect(src).not.toMatch(/Python enrichment used/i);
+  });
+
   it("'I told Vishesh I would follow up…' creates a FOLLOW-UP artifact (commitment), no send (Phase 1273)", async () => {
     await speak(
       "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",

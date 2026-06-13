@@ -99,6 +99,10 @@ import {
 } from "@/lib/work-os/timezone";
 import { getCalendarCreateGateCopy } from "@/lib/work-os/calendar-gate-copy";
 import {
+  extractionSourceLabel,
+  type PythonRuntimeStatus,
+} from "@/lib/work-os/extraction-source";
+import {
   WorkArtifactCard,
   type WorkArtifact,
 } from "@/components/otzar/WorkArtifactCard";
@@ -190,6 +194,27 @@ export function AmbientOtzarBar(): JSX.Element {
     CalendarContextResponse["provider_mode"] | null
   >(null);
   const voiceOverrideRef = useRef(false);
+  // Phase 1278 — the live Python intelligence runtime status, read once
+  // from the runtime registry so conversation-to-work artifacts can show
+  // an HONEST extraction source (deterministic vs. Python enrichment).
+  const pythonRuntimeRef = useRef<PythonRuntimeStatus>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void api.system
+      .runtimeCapabilities()
+      .then((r) => {
+        if (!cancelled && r.ok) {
+          pythonRuntimeRef.current = r.data.runtimes.python_worker
+            .status as PythonRuntimeStatus;
+        }
+      })
+      .catch(() => {
+        /* registry unreachable → stays null → "Deterministic extraction" */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const recognition = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
   const recognitionRef = useRef(recognition);
@@ -1018,6 +1043,7 @@ export function AmbientOtzarBar(): JSX.Element {
         : {}),
       ...(timezoneNote !== undefined ? { timezoneNote } : {}),
       ...(action.evidence.length > 0 ? { evidence: action.evidence } : {}),
+      extractionSource: extractionSourceLabel(pythonRuntimeRef.current),
       sourceCommand,
       ...(planId !== undefined ? { planId } : {}),
       runtimeNote:
