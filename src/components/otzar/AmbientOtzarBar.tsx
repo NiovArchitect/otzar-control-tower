@@ -97,6 +97,7 @@ import {
   interpretTimezoneLabel,
   displayForIana,
 } from "@/lib/work-os/timezone";
+import { getCalendarCreateGateCopy } from "@/lib/work-os/calendar-gate-copy";
 import {
   WorkArtifactCard,
   type WorkArtifact,
@@ -1021,7 +1022,17 @@ export function AmbientOtzarBar(): JSX.Element {
       ...(planId !== undefined ? { planId } : {}),
       runtimeNote:
         action.kind === "SCHEDULE_MEETING"
-          ? "Proposal only — no event is created and no invite is sent until every gate passes."
+          ? getCalendarCreateGateCopy({
+              status,
+              ...(action.prerequisite !== undefined
+                ? { prerequisite: `Requires ${action.prerequisite}` }
+                : {}),
+              ...(action.explicit_time !== undefined
+                ? { explicitTime: action.explicit_time }
+                : {}),
+              ...(proposedTime !== undefined ? { proposedTime } : {}),
+              ...(target !== undefined ? { targetLabel: target } : {}),
+            })
           : action.kind === "TASK"
             ? "Task proposal — not assigned until you confirm; no fake completion."
             : "Follow-up draft — nothing is sent. Edit and confirm when ready.",
@@ -1445,8 +1456,16 @@ export function AmbientOtzarBar(): JSX.Element {
           ...(proposedTime !== undefined ? { proposedTime } : {}),
           ...(explicit !== undefined ? { explicitTime: explicit.time } : {}),
           ...(tzNote !== undefined ? { timezoneNote: tzNote } : {}),
-          runtimeNote:
-            "Event creation is not enabled yet. Creating the calendar event requires an event-write scope and an approval-gated create flow. This is a proposal: no event is created, no invite is sent.",
+          runtimeNote: getCalendarCreateGateCopy({
+            ...(prereqMatch !== null
+              ? { prerequisite: `Requires ${prereqMatch[1]}` }
+              : {}),
+            ...(explicit !== undefined ? { explicitTime: explicit.time } : {}),
+            ...(proposedTime !== undefined ? { proposedTime } : {}),
+            ...(action.targetEntity !== undefined
+              ? { targetLabel: action.targetEntity }
+              : {}),
+          }),
         });
         setActionResult(action.spoken);
         setActionStatus(baseStatus);
@@ -1486,7 +1505,14 @@ export function AmbientOtzarBar(): JSX.Element {
                 // Unresolved → no availability, no free/busy call.
                 setPendingArtifact((prev) =>
                   prev !== null && prev.kind === "SCHEDULE_MEETING"
-                    ? { ...prev, authorityNote: note, status: "Participant unresolved" }
+                    ? {
+                        ...prev,
+                        authorityNote: note,
+                        status: "Participant unresolved",
+                        runtimeNote: getCalendarCreateGateCopy({
+                          status: "Participant unresolved",
+                        }),
+                      }
                     : prev,
                 );
                 return;

@@ -164,12 +164,16 @@ describe("Work OS action classifier", () => {
     expect(a.spoken.toLowerCase()).toContain("won't answer for them");
   });
 
-  it("'Schedule a meeting with Vishesh tomorrow.' → SCHEDULE_MEETING, approval-gated, no auto-create", () => {
+  it("'Schedule a meeting with Vishesh tomorrow.' → SCHEDULE_MEETING, gate-aware, no auto-create", () => {
     const a = classifyVoiceAction("Schedule a meeting with Vishesh tomorrow.", EMPLOYEE);
     expect(a.kind).toBe("SCHEDULE_MEETING");
     expect(a.requiresApproval).toBe(true);
     expect(a.isExternalWrite).toBe(true);
-    expect(a.spoken.toLowerCase()).toContain("approval");
+    // Phase 1274/1275: gate-aware copy (no stale "isn't exposed"); names
+    // the gates + the standing safety line.
+    expect(a.spoken.toLowerCase()).toContain("gated");
+    expect(a.spoken.toLowerCase()).not.toContain("isn't exposed");
+    expect(a.spoken.toLowerCase()).toContain("no event is created");
   });
 
   it("'After Samiksha confirms, put it on the calendar.' → SCHEDULE_MEETING with prerequisite", () => {

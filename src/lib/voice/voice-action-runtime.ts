@@ -559,7 +559,7 @@ export function classifyVoiceAction(
       actionLabel: participant
         ? `Draft meeting proposal → ${participant}`
         : "Draft meeting proposal",
-      spoken: `I drafted a meeting proposal${participant ? ` with ${participant}` : ""}. Approval and participant confirmation are required before I create the calendar event — calendar event-creation isn't exposed yet.${prereqNote}`,
+      spoken: `I drafted a meeting proposal${participant ? ` with ${participant}` : ""}. Creating the event is gated — it proceeds only after participant resolution, a selected time, any required confirmations, Google event-write scope, and policy/authority gates pass. No event is created and no invite is sent yet.${prereqNote}`,
       ...(participant !== undefined ? { targetEntity: participant } : {}),
       connector: "calendar",
       isExternalWrite: true,

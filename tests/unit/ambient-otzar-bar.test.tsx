@@ -548,9 +548,13 @@ describe("AmbientOtzarBar — Work OS commands", () => {
         screen.getByTestId("work-artifact-availability").textContent,
       ).toMatch(/Checked your calendar only/i);
     });
-    // Event creation stays gated; no backend action created.
+    // Event creation stays gated — now with PRECISE gate-aware copy
+    // (Phase 1274/1275), not the stale "not enabled yet" blanket.
     expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
-      /Event creation is not enabled yet/i,
+      /No event created\. No invite sent\./i,
+    );
+    expect(screen.getByTestId("work-artifact-card").textContent).not.toMatch(
+      /not enabled yet/i,
     );
     expect(actionPosts.length).toBe(0);
   });
