@@ -505,6 +505,45 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
+  it("'Draft a message to David…' renders a VISIBLE editable artifact card (no hearsay)", async () => {
+    await speak("Draft a message to David saying we need to review this.");
+    await waitFor(() => {
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument();
+    });
+    // The card shows the recipient + an Edit + Cancel control.
+    expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
+      /David/,
+    );
+    expect(screen.getByTestId("work-artifact-edit-open")).toBeInTheDocument();
+    expect(screen.getByTestId("work-artifact-cancel")).toBeInTheDocument();
+    // A real governed action was created (not hearsay).
+    await waitFor(() => expect(actionPosts.length).toBe(1));
+  });
+
+  it("'Schedule a meeting with Vishesh tomorrow' renders a meeting proposal card and NEVER routes to transcripts/creates an event", async () => {
+    await speak("Schedule a meeting with Vishesh tomorrow.");
+    await waitFor(() => {
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument();
+    });
+    const card = screen.getByTestId("work-artifact-card");
+    expect(card.getAttribute("data-kind")).toBe("SCHEDULE_MEETING");
+    expect(card.textContent).toMatch(/Meeting proposal/i);
+    // No backend action (no event create), no Twin chat.
+    expect(actionPosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+  });
+
+  it("'After Samiksha confirms, put it on the calendar' preserves the prerequisite", async () => {
+    await speak("After Samiksha confirms, put it on the calendar.");
+    await waitFor(() => {
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("work-artifact-prereq").textContent).toMatch(
+      /Samiksha/i,
+    );
+    expect(actionPosts.length).toBe(0);
+  });
+
   it("conversation thread persists prompts + results and is scrollable", async () => {
     await speak("What should I do next?");
     await waitFor(() => {

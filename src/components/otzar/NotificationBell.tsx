@@ -63,6 +63,10 @@ interface State {
   total: number;
   loading: boolean;
   error: string | null;
+  /** Phase 1267 — a clean, humanized error for a mark-read/action
+   *  failure, kept SEPARATE from the list-load `error` so a failed
+   *  checkbox never blanks the panel or shows a raw network code. */
+  markError: string | null;
   open: boolean;
   /** Per-notification reply UI state. Keyed by notification_id. */
   replies: Record<
@@ -87,6 +91,7 @@ export function NotificationBell({
     total: 0,
     loading: false,
     error: null,
+    markError: null,
     open: false,
     replies: {},
   });
@@ -242,6 +247,7 @@ export function NotificationBell({
     const before = state.items;
     setState((s) => ({
       ...s,
+      markError: null,
       items: s.items.map((n) =>
         n.notification_id === id
           ? { ...n, read_at: new Date().toISOString() }
@@ -250,7 +256,13 @@ export function NotificationBell({
     }));
     const result = await api.notifications.markRead(id);
     if (!result.ok) {
-      setState((s) => ({ ...s, items: before, error: result.code }));
+      // Clean, humanized copy — NEVER a raw network code, and the list
+      // stays usable (we only roll back the optimistic flip).
+      setState((s) => ({
+        ...s,
+        items: before,
+        markError: humanizeMarkError(result.code),
+      }));
     }
   }
 
@@ -329,7 +341,7 @@ export function NotificationBell({
 
       {state.open ? (
         <div
-          className="absolute right-0 z-50 mt-2 w-80 rounded-md border bg-popover p-2 shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-96 max-w-[92vw] rounded-md border bg-popover p-2 shadow-lg"
           data-testid="notification-bell-dropdown"
           role="dialog"
           aria-label="Notifications"
@@ -340,6 +352,15 @@ export function NotificationBell({
               {unreadCount} unread
             </span>
           </div>
+          {state.markError !== null ? (
+            <p
+              className="mb-1 break-words rounded border border-amber-400/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400"
+              role="alert"
+              data-testid="notification-mark-error"
+            >
+              {state.markError}
+            </p>
+          ) : null}
           {state.error !== null ? (
             <p
               className="rounded border border-rose-400/40 bg-rose-500/5 p-2 text-xs text-rose-700 dark:text-rose-400"
@@ -391,11 +412,11 @@ export function NotificationBell({
                         data-testid="notification-open"
                         aria-label="Open notification"
                       >
-                        <p className="line-clamp-3 text-foreground">
+                        <p className="whitespace-pre-wrap break-words text-foreground">
                           {n.body_summary}
                         </p>
                         <p className="mt-1 text-[10px] text-muted-foreground">
-                          {formatRelative(n.created_at)}
+                          {formatRelative(n.created_at)} · tap to open
                         </p>
                       </button>
                       <div className="flex shrink-0 items-center gap-1">
@@ -441,7 +462,10 @@ export function NotificationBell({
                         {isUnread ? (
                           <button
                             type="button"
-                            onClick={() => void handleMarkRead(n.notification_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleMarkRead(n.notification_id);
+                            }}
                             className="rounded p-1 hover:bg-accent"
                             aria-label="Mark as read"
                             data-testid="notification-mark-read"
@@ -523,6 +547,20 @@ export function NotificationBell({
       ) : null}
     </div>
   );
+}
+
+function humanizeMarkError(code: string): string {
+  switch (code) {
+    case "NETWORK_ERROR":
+      return "Couldn't update just now — check your connection and try again.";
+    case "SESSION_EXPIRED":
+    case "SESSION_INVALID":
+      return "Your session expired. Please sign in again.";
+    case "NOTIFICATION_NOT_FOUND":
+      return "That notification is no longer available.";
+    default:
+      return "Couldn't mark that as read. Try again in a moment.";
+  }
 }
 
 function humanizeReplyError(code: string): string {

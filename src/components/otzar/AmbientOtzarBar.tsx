@@ -78,6 +78,10 @@ import {
   useConversationStore,
 } from "@/lib/work-os/conversation-store";
 import { resolveTarget } from "@/lib/work-os/target-resolution";
+import {
+  WorkArtifactCard,
+  type WorkArtifact,
+} from "@/components/otzar/WorkArtifactCard";
 import { useDesktopVoiceCapture } from "@/hooks/useDesktopVoiceCapture";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -198,6 +202,11 @@ export function AmbientOtzarBar(): JSX.Element {
   // Phase 1265 — Work OS status line (Draft only / Approval required /
   // Read-only / Runtime not available / Routed / Blocked).
   const [actionStatus, setActionStatus] = useState<string | null>(null);
+  // Phase 1267 — the visible, editable work artifact (draft message /
+  // proposed action / meeting proposal) so Otzar is never "hearsay UI".
+  const [pendingArtifact, setPendingArtifact] = useState<WorkArtifact | null>(
+    null,
+  );
   // Which STT engine produced the spoken command's transcript
   // (desktop path only): "openai-whisper" or "deepgram".
   const [transcriptionProvider, setTranscriptionProvider] = useState<
@@ -580,6 +589,7 @@ export function AmbientOtzarBar(): JSX.Element {
   ): Promise<void> {
     const COMMS = "/app/comms";
     const ACTION_CENTER = "/app/action-center";
+    const isSend = action.kind === "SEND_REQUIRES_APPROVAL";
     const finish = (
       msg: string,
       status: string,
@@ -608,21 +618,44 @@ export function AmbientOtzarBar(): JSX.Element {
 
     // External channel (Slack / email) is never sent from voice.
     if (action.isExternalWrite === true || action.connector === "slack" || action.connector === "email") {
+      setPendingArtifact({
+        kind: action.kind,
+        title: `Draft ${action.connector ?? "external"} message`,
+        ...(action.targetEntity !== undefined
+          ? { targetLabel: action.targetEntity }
+          : {}),
+        channel: action.connector ?? "external",
+        body: action.draftPayload ?? action.heard,
+        status: "Approval required",
+        route: COMMS,
+        runtimeNote:
+          "External send (Slack/email) needs approval and an external-send runtime that isn't wired to voice yet.",
+      });
       finish(
-        "I can draft that, but sending externally needs approval and an external-send runtime that isn't wired to voice yet. Opening Work Comms.",
+        "I drafted that. Sending externally needs approval — nothing was sent. Edit or open Work Comms from the card.",
         "Approval required",
         "needs_confirmation",
-        COMMS,
       );
       return;
     }
     const recipientName = action.targetEntity;
     if (recipientName === undefined) {
+      // Missing body? ask a targeted clarification, don't draft empty.
+      const body = action.draftPayload ?? "";
+      setPendingArtifact({
+        kind: action.kind,
+        title: "Draft message",
+        channel: "internal",
+        body: body.length > 0 ? body : "(no message yet)",
+        status: "Draft only · pick recipient",
+        route: COMMS,
+        runtimeNote:
+          "Tell me who it's for (and what to say) — or choose the teammate in Work Comms. Nothing is sent.",
+      });
       finish(
-        "Draft created. Tell me who it's for — open Work Comms to pick the teammate. Nothing is sent.",
+        "Draft created. Tell me who it's for — choose the teammate to propose it. Nothing is sent.",
         "Draft only · pick recipient",
         "needs_confirmation",
-        COMMS,
       );
       return;
     }
@@ -643,48 +676,113 @@ export function AmbientOtzarBar(): JSX.Element {
         idempotency_key: idem,
         payload_summary: `Voice message to ${resolved.displayName ?? recipientName}`,
       });
+      const label = resolved.displayName ?? recipientName;
       if (r.ok) {
         const status = humanizeActionStatus(r.data.action.status);
+        setPendingArtifact({
+          kind: action.kind,
+          title: `${isSend ? "Send" : "Draft"} message → ${label}`,
+          targetLabel: label,
+          channel: "internal",
+          body: draft,
+          status,
+          actionId: r.data.action.action_id,
+          recipientEntityId: resolved.entityId,
+          route: ACTION_CENTER,
+        });
         finish(
-          `Internal message to ${resolved.displayName ?? recipientName} created as a governed action — ${status}. Nothing was sent externally.`,
+          `Internal message to ${label} created as a governed action — ${status}. Nothing was sent externally. See the card to Edit, Confirm, or open Action Center.`,
           status,
           status === "Approval required" ? "needs_confirmation" : "success",
-          ACTION_CENTER,
         );
       } else {
-        finish(
-          humanizeActionError(r.code),
-          "Blocked by policy",
-          "blocked",
-        );
+        setPendingArtifact({
+          kind: action.kind,
+          title: `Draft message → ${label}`,
+          targetLabel: label,
+          channel: "internal",
+          body: draft,
+          status: "Blocked by policy",
+          recipientEntityId: resolved.entityId,
+          runtimeNote: humanizeActionError(r.code),
+        });
+        finish(humanizeActionError(r.code), "Blocked by policy", "blocked");
       }
       return;
     }
-    if (resolved.kind === "AMBIGUOUS") {
-      finish(
-        `More than one teammate matches "${recipientName}". Open Work Comms to pick the right one. Draft kept, nothing sent.`,
-        "Draft only · pick recipient",
-        "needs_confirmation",
-        COMMS,
-      );
-      return;
-    }
-    if (resolved.kind === "NOT_FOUND") {
-      finish(
-        `I couldn't find "${recipientName}" in your organization. Open Work Comms to pick a teammate. Draft kept, nothing sent.`,
-        "Draft only · recipient not found",
-        "needs_confirmation",
-        COMMS,
-      );
-      return;
-    }
-    // RUNTIME_MISSING — roster not reachable for this caller.
+    // Unresolved target → a VISIBLE local draft card + a target picker
+    // (never a fabricated recipient id, never a backend action).
+    const draft = action.draftPayload ?? action.heard;
+    const note =
+      resolved.kind === "AMBIGUOUS"
+        ? `More than one teammate matches "${recipientName}". Choose the recipient in Work Comms.`
+        : resolved.kind === "NOT_FOUND"
+          ? `"${recipientName}" isn't in your organization. Choose a teammate in Work Comms.`
+          : "Resolving teammates from voice needs the org roster (not available to you here). Choose the recipient in Work Comms.";
+    setPendingArtifact({
+      kind: action.kind,
+      title: `Draft message${recipientName !== undefined ? ` → ${recipientName}` : ""}`,
+      ...(recipientName !== undefined ? { targetLabel: recipientName } : {}),
+      channel: "internal",
+      body: draft,
+      status: "Draft only · pick recipient",
+      route: COMMS,
+      runtimeNote: note,
+    });
     finish(
-      "Draft created. Resolving teammates from voice needs the org roster, which isn't available to you here yet. Open Work Comms to pick the recipient.",
-      "Draft only · resolver unavailable",
+      "Draft created. Pick the recipient to propose it — nothing is sent.",
+      "Draft only · pick recipient",
       "needs_confirmation",
-      COMMS,
     );
+  }
+
+  // Phase 1267 — work-artifact card handlers. Edit revises the body
+  // (re-proposes a governed action when a real recipient exists);
+  // Confirm opens the governed destination (or re-proposes edits);
+  // Cancel dismisses the local card. NEVER sends externally.
+  async function reproposeArtifact(body: string): Promise<void> {
+    const a = pendingArtifact;
+    if (a === null) return;
+    if (a.recipientEntityId === undefined) {
+      // No real recipient (meeting proposal / unresolved draft): revise
+      // the visible artifact locally — there's no backend create path.
+      setPendingArtifact({ ...a, body });
+      return;
+    }
+    const idem =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `voice-msg-edit-${a.recipientEntityId}-${body.length}`;
+    const r = await api.actions.sendInternalNotification({
+      recipient_entity_id: a.recipientEntityId,
+      draft_text: body,
+      idempotency_key: idem,
+      payload_summary: a.title,
+    });
+    if (r.ok) {
+      setPendingArtifact({
+        ...a,
+        body,
+        status: humanizeActionStatus(r.data.action.status),
+        actionId: r.data.action.action_id,
+      });
+    } else {
+      setPendingArtifact({
+        ...a,
+        body,
+        status: "Blocked by policy",
+        runtimeNote: humanizeActionError(r.code),
+      });
+    }
+  }
+  function confirmArtifact(body: string): void {
+    const a = pendingArtifact;
+    if (a === null) return;
+    if (a.recipientEntityId !== undefined && body !== a.body) {
+      void reproposeArtifact(body);
+      return;
+    }
+    if (a.route !== undefined) navigate(a.route);
   }
 
   // Phase 1264 Voice Action Runtime — voice OPERATES the app. Every
@@ -701,6 +799,7 @@ export function AmbientOtzarBar(): JSX.Element {
     setExternalLinkPending(null);
     setActionVoicePath(null);
     setActionStatus(null);
+    setPendingArtifact(null);
     // Typed input has no transcription engine; the desktop-voice effect
     // re-sets this after calling handleSendText.
     setTranscriptionProvider(null);
@@ -871,8 +970,44 @@ export function AmbientOtzarBar(): JSX.Element {
         void executeMessageAction(action, at);
         return;
       }
+      case "SCHEDULE_MEETING": {
+        // A VISIBLE meeting-proposal card — NEVER routes to transcripts,
+        // NEVER creates a calendar event. Preserves any "after X
+        // confirms" prerequisite.
+        const prereqMatch = action.spoken.match(
+          /requires ([A-Za-z]+'s? confirmation[^.]*)/i,
+        );
+        setPendingArtifact({
+          kind: action.kind,
+          title: action.targetEntity
+            ? `Meeting proposal → ${action.targetEntity}`
+            : "Meeting proposal",
+          ...(action.targetEntity !== undefined
+            ? { targetLabel: action.targetEntity }
+            : {}),
+          channel: "calendar",
+          body: action.heard,
+          status: "Draft · Approval required",
+          ...(prereqMatch !== null
+            ? { prerequisite: `Requires ${prereqMatch[1]}` }
+            : {}),
+          runtimeNote:
+            "Calendar availability check + event creation aren't wired yet. This is a proposal — no event is created, no invite is sent.",
+        });
+        setActionResult(action.spoken);
+        setActionStatus("Draft · Approval required");
+        logAction(action.spoken, "Draft · Approval required");
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.targetEntity ?? null,
+          result: "needs_confirmation",
+        });
+        return;
+      }
       case "ASK_TWIN":
-      case "SCHEDULE_MEETING":
       case "MEETING_NOTES_TO_ACTIONS":
       case "ZOOM_RECORDINGS":
       case "WORKFLOW_START":
@@ -1128,7 +1263,7 @@ export function AmbientOtzarBar(): JSX.Element {
       role="region"
       aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
-      className="fixed bottom-6 right-6 z-[60] w-[min(92vw,440px)] rounded-2xl border-2 border-primary/30 bg-background/95 backdrop-blur shadow-2xl supports-[backdrop-filter]:bg-background/85"
+      className="fixed bottom-6 right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-2xl border-2 border-primary/30 bg-background/95 backdrop-blur shadow-2xl supports-[backdrop-filter]:bg-background/85"
     >
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -1185,7 +1320,7 @@ export function AmbientOtzarBar(): JSX.Element {
       </div>
 
       {(
-        <div className="px-3 pb-3 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-2">
           {quiet ? (
             <div
               className="rounded-md border border-border bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground"
@@ -1459,7 +1594,9 @@ export function AmbientOtzarBar(): JSX.Element {
                             ? "Error: "
                             : "Action: "}
                     </span>
-                    <span className="whitespace-pre-wrap">{m.text}</span>
+                    <span className="whitespace-pre-wrap break-words">
+                      {m.text}
+                    </span>
                     {m.status !== undefined ? (
                       <span className="ml-1 text-[10px] opacity-70">
                         [{m.status}]
@@ -1545,6 +1682,18 @@ export function AmbientOtzarBar(): JSX.Element {
                 </div>
               ) : null}
             </div>
+          ) : null}
+
+          {/* Phase 1267 — the VISIBLE, EDITABLE work artifact (draft /
+              proposed action / meeting proposal). No more hearsay UI. */}
+          {pendingArtifact !== null ? (
+            <WorkArtifactCard
+              artifact={pendingArtifact}
+              onConfirm={confirmArtifact}
+              onCancel={() => setPendingArtifact(null)}
+              onEdit={(body) => void reproposeArtifact(body)}
+              onOpen={(route) => navigate(route)}
+            />
           ) : null}
 
           {response !== null ? (
