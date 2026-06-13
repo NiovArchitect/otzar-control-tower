@@ -133,3 +133,47 @@ Recommended next bridge order (unchanged + refined): calendar free/busy
 → task create/assign as a ProposedAction type → meeting transcript
 ingestion → calendar event create (gated) → external Slack/email send →
 Zoom recordings → project/goal attach → Twin intercession policy.
+
+## Domain-General Intelligence Orchestration Standard (Phase 1269)
+
+Otzar's "AGI effect" is **domain-general intelligence through
+orchestration**, not autonomous magic. It is produced by capturing
+enough governed enterprise context that the next step is obvious, and
+by executing it within policy — drafting/proposing where authority is
+needed, executing where authority is standing, and never faking.
+
+**1. Signals captured:** voice, chat, meetings/transcripts, notifications,
+projects/goals, tasks, calendars, connector state, approvals/escalations,
+artifact edits (feedback), decisions, blockers, follow-ups.
+
+**2. Context graph (entities + edges):** people · AI Twins · agents ·
+projects · goals · conversations · meetings · decisions · tasks ·
+approvals · artifacts · connectors. Resolution today: `org/entities`
+roster (people + AI). Edges (artifact→project, meeting→owner) are the
+next bridges.
+
+**3. Execution loop:** detect (classifier) → infer (context-first
+defaults) → draft (local artifact) → propose (Confirm → governed
+ProposedAction) → approve (escalation policy) → execute (only when
+authorized) → verify (action status) → notify → learn (edit-feedback
+signal). Phase 1269 makes draft/propose/approve correct and distinct.
+
+**4. Priority alignment:** every artifact should attach to its
+project/goal when known; every meeting action should carry an
+owner/deadline; every teammate request should carry status; every
+blocker should be visible. Project/goal attach + owner/deadline are
+named bridges.
+
+**5. Human-load minimization (no-homework):** infer first; draft first
+when safe; ask only targeted questions (unresolved target, external
+send, policy gate); internal-first; policy-driven approvals; standing
+authority where safe. Locked by tests.
+
+**6. Acceptance for the AGI effect:** a user should not have to remember
+every promise from a meeting (after-call artifacts); a teammate should
+not hunt for work (Action Center + Collaboration inbox); an admin should
+see risk/approval/action status (Action Center); the org should meet or
+exceed priorities by coordinating every communication + execution
+surface. Current coverage + remaining bridges are tracked in the tables
+above; the orchestration standard is the bar each future phase is
+measured against.
