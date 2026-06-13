@@ -84,7 +84,7 @@ describe("classifyVoiceAction — navigation + actions", () => {
   it("'show Slack verification' → connector-status nav, never auto-verifies", () => {
     const a = classifyVoiceAction("Show me Slack verification.", ADMIN);
     expect(a.kind).toBe("CONNECTOR_STATUS_NAVIGATION");
-    expect(a.route).toBe("/connector-rails?provider=slack");
+    expect(a.route).toBe("/connector-rails?focus=slack");
     expect(a.provider).toBe("slack");
     expect(a.spoken.toLowerCase()).toContain("won't run verification");
   });
@@ -114,17 +114,106 @@ describe("classifyVoiceAction — navigation + actions", () => {
     expect(a.transcript).toBe("What should I do next?");
   });
 
-  it("'send David a message' → draft-only, needs confirmation, no auto-send", () => {
+  it("'send David a message' → SEND_REQUIRES_APPROVAL, no auto-send", () => {
     const a = classifyVoiceAction("Send David this message.", EMPLOYEE);
-    expect(a.kind).toBe("DRAFT_ONLY");
-    expect(a.needsConfirmation).toBe(true);
+    expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
+    expect(a.requiresApproval).toBe(true);
+    expect(a.spoken.toLowerCase()).toContain("approval");
+    expect(a.spoken.toLowerCase()).not.toContain("sent it");
+  });
+
+  it("'draft a message to David' → DRAFT_MESSAGE, approval required, no send", () => {
+    const a = classifyVoiceAction("Draft a message to David.", EMPLOYEE);
+    expect(a.kind).toBe("DRAFT_MESSAGE");
+    expect(a.requiresApproval).toBe(true);
+    expect(a.targetEntity).toBe("David");
+    expect(a.spoken.toLowerCase()).toContain("approval");
+  });
+});
+
+// ── Phase 1265 Work OS action runtime ───────────────────────────────
+describe("Work OS action classifier", () => {
+  it("'What's connected?' → CONNECTOR_STATUS_SUMMARY (read-only), not chat", () => {
+    const a = classifyVoiceAction("What's connected?", ADMIN);
+    expect(a.kind).toBe("CONNECTOR_STATUS_SUMMARY");
+    expect(a.isReadOnly).toBe(true);
+  });
+
+  it("multi-provider status → CONNECTOR_STATUS_SUMMARY", () => {
+    expect(
+      classifyVoiceAction("Show me Google, Slack and Zoom status.", ADMIN).kind,
+    ).toBe("CONNECTOR_STATUS_SUMMARY");
+  });
+
+  it("single 'show Slack verification' stays focus-navigation", () => {
+    expect(classifyVoiceAction("Show me Slack verification.", ADMIN).kind).toBe(
+      "CONNECTOR_STATUS_NAVIGATION",
+    );
+  });
+
+  it("'What needs my approval?' → APPROVALS_REVIEW (routes to approvals)", () => {
+    const a = classifyVoiceAction("What needs my approval?", EMPLOYEE);
+    expect(a.kind).toBe("APPROVALS_REVIEW");
+    expect(a.route).toBe("/app/approvals");
+  });
+
+  it("'Ask David's Twin what he thinks.' → ASK_TWIN, never fakes the answer", () => {
+    const a = classifyVoiceAction("Ask David's Twin what he thinks.", EMPLOYEE);
+    expect(a.kind).toBe("ASK_TWIN");
+    expect(a.route).toBe("/app/collaboration");
+    expect(a.spoken.toLowerCase()).toContain("won't answer for them");
+  });
+
+  it("'Schedule a meeting with Vishesh tomorrow.' → SCHEDULE_MEETING, approval-gated, no auto-create", () => {
+    const a = classifyVoiceAction("Schedule a meeting with Vishesh tomorrow.", EMPLOYEE);
+    expect(a.kind).toBe("SCHEDULE_MEETING");
+    expect(a.requiresApproval).toBe(true);
+    expect(a.isExternalWrite).toBe(true);
     expect(a.spoken.toLowerCase()).toContain("approval");
   });
 
-  it("'draft a message to David' → draft-only without forced confirmation", () => {
-    const a = classifyVoiceAction("Draft a message to David.", EMPLOYEE);
-    expect(a.kind).toBe("DRAFT_ONLY");
-    expect(a.needsConfirmation).toBe(false);
+  it("'After Samiksha confirms, put it on the calendar.' → SCHEDULE_MEETING with prerequisite", () => {
+    const a = classifyVoiceAction(
+      "After Samiksha confirms, put it on the calendar.",
+      EMPLOYEE,
+    );
+    expect(a.kind).toBe("SCHEDULE_MEETING");
+    expect(a.spoken).toContain("Samiksha");
+    expect(a.spoken.toLowerCase()).toContain("confirmation");
+  });
+
+  it("'Pull latest Zoom recordings.' → ZOOM_RECORDINGS, honest block", () => {
+    const a = classifyVoiceAction("Pull latest Zoom recordings.", ADMIN);
+    expect(a.kind).toBe("ZOOM_RECORDINGS");
+    expect(a.spoken.toLowerCase()).toContain("verified");
+    expect(a.spoken.toLowerCase()).toContain("isn't exposed");
+  });
+
+  it("'Turn this meeting into action items.' → MEETING_NOTES_TO_ACTIONS", () => {
+    expect(
+      classifyVoiceAction("Turn this meeting into action items.", EMPLOYEE).kind,
+    ).toBe("MEETING_NOTES_TO_ACTIONS");
+  });
+
+  it("'Start the onboarding workflow.' → WORKFLOW_START, needs confirmation", () => {
+    const a = classifyVoiceAction("Start the onboarding workflow.", ADMIN);
+    expect(a.kind).toBe("WORKFLOW_START");
+    expect(a.needsConfirmation).toBe(true);
+  });
+
+  it("a hard work verb with no handler → UNSUPPORTED, never chat", () => {
+    const a = classifyVoiceAction("Notify accounting about the invoice.", EMPLOYEE);
+    expect(["SEND_REQUIRES_APPROVAL", "UNSUPPORTED"]).toContain(a.kind);
+    expect(a.kind).not.toBe("GOVERNED_CHAT");
+  });
+
+  it("pure conversational prompt still reaches GOVERNED_CHAT", () => {
+    expect(classifyVoiceAction("Explain what this means.", EMPLOYEE).kind).toBe(
+      "GOVERNED_CHAT",
+    );
+    expect(
+      classifyVoiceAction("Help me think through this.", EMPLOYEE).kind,
+    ).toBe("GOVERNED_CHAT");
   });
 });
 

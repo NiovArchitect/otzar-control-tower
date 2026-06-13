@@ -70,6 +70,7 @@ import {
 import {
   classifyVoiceAction,
   safeOpenExternalUrl,
+  type VoiceAction,
 } from "@/lib/voice/voice-action-runtime";
 import { recordVoiceAction } from "@/lib/voice/voice-action-log";
 import { useDesktopVoiceCapture } from "@/hooks/useDesktopVoiceCapture";
@@ -185,6 +186,9 @@ export function AmbientOtzarBar(): JSX.Element {
   const [actionLabel, setActionLabel] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [actionVoicePath, setActionVoicePath] = useState<string | null>(null);
+  // Phase 1265 — Work OS status line (Draft only / Approval required /
+  // Read-only / Runtime not available / Routed / Blocked).
+  const [actionStatus, setActionStatus] = useState<string | null>(null);
   // Which STT engine produced the spoken command's transcript
   // (desktop path only): "openai-whisper" or "deepgram".
   const [transcriptionProvider, setTranscriptionProvider] = useState<
@@ -421,6 +425,103 @@ export function AmbientOtzarBar(): JSX.Element {
     ).then(() => setActionVoicePath(getLastVoicePath()));
   }
 
+  // Phase 1265 — humanize a provider's connection status for the spoken
+  // summary. NEVER says "Verified" unless the live status is VERIFIED
+  // (no fake green).
+  function humanizeOAuthStatus(status: string): string {
+    switch (status) {
+      case "VERIFIED":
+        return "Verified";
+      case "CONNECTED_UNVERIFIED":
+        return "connected (verify to confirm)";
+      case "READY_FOR_CONSENT":
+        return "ready to connect";
+      case "APP_CREDENTIALS_MISSING":
+        return "needs app credentials (parked)";
+      case "ERROR_NEEDS_RECONNECT":
+        return "needs reconnect";
+      case "REVOKED":
+        return "revoked";
+      default:
+        return status.toLowerCase().replace(/_/g, " ");
+    }
+  }
+
+  // Phase 1265 — build a REAL connector status summary. Prefers the
+  // OAuth status endpoint (admin); falls back to the adapter registry
+  // (presence only) for non-admins; honest message if neither loads.
+  async function buildConnectorSummary(): Promise<string> {
+    const oauth = await api.otzar.oauthStatus();
+    if (oauth.ok && oauth.data.providers.length > 0) {
+      const parts = oauth.data.providers.map(
+        (p) => `${p.display_name}: ${humanizeOAuthStatus(p.status)}`,
+      );
+      return parts.join(". ") + ".";
+    }
+    const adapters = await api.otzar.connectorAdapters();
+    if (adapters.ok && adapters.data.adapters.length > 0) {
+      const parts = adapters.data.adapters
+        .slice(0, 8)
+        .map((a) => {
+          const label =
+            a.status === "CONFIGURED"
+              ? "configured"
+              : a.status === "BLOCKED_BY_CREDENTIAL"
+                ? "needs credentials"
+                : a.status === "BLOCKED_BY_APP_REVIEW"
+                  ? "needs app review"
+                  : a.status.toLowerCase().replace(/_/g, " ");
+          return `${a.display_name}: ${label}`;
+        });
+      return (
+        "Connector presence (verify for live state). " + parts.join(". ") + "."
+      );
+    }
+    return "I couldn't load connector status right now. Open Workspace connections to check.";
+  }
+
+  // Phase 1265 — Work OS status badge from a classified action.
+  function workStatusFor(a: VoiceAction): string {
+    if (a.kind === "DRAFT_MESSAGE") return "Draft only · Approval required";
+    if (a.kind === "SEND_REQUIRES_APPROVAL") return "Approval required";
+    if (a.kind === "SCHEDULE_MEETING") return "Draft · Approval required";
+    if (a.kind === "ASK_TWIN") return "Routed to Collaboration";
+    if (a.kind === "READ_ONLY_SUMMARY" || a.kind === "CONNECTOR_STATUS_SUMMARY")
+      return "Read-only";
+    if (a.kind === "APPROVALS_REVIEW") return "Read-only";
+    if (
+      a.kind === "ZOOM_RECORDINGS" ||
+      a.kind === "WORKFLOW_START" ||
+      a.kind === "MEETING_NOTES_TO_ACTIONS"
+    )
+      return "Runtime not available yet";
+    if (a.kind === "UNSUPPORTED") return "Blocked";
+    return "Done";
+  }
+
+  // Phase 1265 — generic executor for navigate-and-announce work
+  // actions (draft/send/ask/schedule/zoom/workflow/notes/read-only).
+  // Speaks the honest result, records audit, sets the status badge, and
+  // navigates if a real route is attached. NEVER performs an external
+  // write.
+  function runWorkAction(
+    action: VoiceAction,
+    at: string,
+    result: "success" | "blocked" | "needs_confirmation",
+  ): void {
+    setActionResult(action.spoken);
+    setActionStatus(workStatusFor(action));
+    speakConfirmation(action.spoken);
+    recordVoiceAction({
+      at,
+      transcript: action.heard,
+      actionType: action.kind,
+      target: action.route ?? action.targetEntity ?? null,
+      result,
+    });
+    if (action.route !== undefined) navigate(action.route);
+  }
+
   // Phase 1264 Voice Action Runtime — voice OPERATES the app. Every
   // utterance (spoken OR typed) is classified into a SAFE action:
   // internal navigation, connector-status navigation, a safe external
@@ -434,6 +535,7 @@ export function AmbientOtzarBar(): JSX.Element {
     cancelVoicePlayback();
     setExternalLinkPending(null);
     setActionVoicePath(null);
+    setActionStatus(null);
     // Typed input has no transcription engine; the desktop-voice effect
     // re-sets this after calling handleSendText.
     setTranscriptionProvider(null);
@@ -504,9 +606,10 @@ export function AmbientOtzarBar(): JSX.Element {
         return;
       }
       case "UNSUPPORTED": {
-        // A navigation-shaped request to a screen we don't have. Handle
-        // it HERE with honest copy — never hand it to the Twin.
+        // A navigation/work request we can't satisfy. Handle it HERE
+        // with honest copy — never hand it to the Twin.
         setActionResult(action.spoken);
+        setActionStatus("Blocked");
         speakConfirmation(action.spoken);
         recordVoiceAction({
           at,
@@ -515,6 +618,72 @@ export function AmbientOtzarBar(): JSX.Element {
           target: null,
           result: "blocked",
         });
+        return;
+      }
+      case "CONNECTOR_STATUS_SUMMARY": {
+        // Real read-only summary of connector/OAuth state — no fake green.
+        setActionStatus("Read-only");
+        setActionResult("Checking what's connected…");
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "success",
+        });
+        void buildConnectorSummary().then((summary) => {
+          setActionResult(summary);
+          speakConfirmation(
+            summary.length > 220 ? "Here's your connector status." : summary,
+          );
+        });
+        return;
+      }
+      case "APPROVALS_REVIEW": {
+        // Navigate to Action Center AND fetch the REAL pending count.
+        setActionStatus("Read-only");
+        if (action.route !== undefined) navigate(action.route);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result: "success",
+        });
+        void api.escalations.pending({ limit: 50 }).then((r) => {
+          let msg: string;
+          if (r.ok) {
+            const n = r.data.escalations.length;
+            msg =
+              n === 0
+                ? "I opened Action Center. Nothing is waiting on your approval right now."
+                : `I opened Action Center. You have ${n} item${n === 1 ? "" : "s"} waiting on your approval.`;
+          } else {
+            msg =
+              "I opened Action Center. The pending-approval summary isn't available right now.";
+          }
+          setActionResult(msg);
+          speakConfirmation(msg);
+        });
+        return;
+      }
+      case "DRAFT_MESSAGE":
+      case "SEND_REQUIRES_APPROVAL":
+      case "ASK_TWIN":
+      case "SCHEDULE_MEETING":
+      case "MEETING_NOTES_TO_ACTIONS":
+      case "ZOOM_RECORDINGS":
+      case "WORKFLOW_START":
+      case "READ_ONLY_SUMMARY": {
+        // Governed work: drafted / proposed / routed / honestly blocked.
+        // NEVER an external write, NEVER a faked agent answer.
+        const result: "success" | "blocked" | "needs_confirmation" =
+          action.requiresApproval === true || action.needsConfirmation === true
+            ? "needs_confirmation"
+            : action.blockedReason !== undefined && action.route === undefined
+              ? "blocked"
+              : "success";
+        runWorkAction(action, at, result);
         return;
       }
       case "ADMIN_BLOCKED": {
@@ -1051,6 +1220,12 @@ export function AmbientOtzarBar(): JSX.Element {
                 <div>
                   <span className="font-medium text-foreground">Result:</span>{" "}
                   <span className="text-muted-foreground">{actionResult}</span>
+                </div>
+              ) : null}
+              {actionStatus !== null ? (
+                <div data-testid="voice-action-status">
+                  <span className="font-medium text-foreground">Status:</span>{" "}
+                  <span className="text-muted-foreground">{actionStatus}</span>
                 </div>
               ) : null}
               {externalLinkPending !== null ? (

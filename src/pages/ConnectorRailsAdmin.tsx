@@ -25,7 +25,7 @@
 //     credential separation in docs/deployment/cloud-portability.md
 //     §2.2.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -62,10 +62,19 @@ const OAUTH_STATUS_COPY: Record<OAuthConnectionStatus, string> = {
 function OAuthProviderRow({
   row,
   onChanged,
+  focused = false,
 }: {
   row: OAuthStatusRow;
   onChanged: () => void;
+  /** Phase 1265 — voice "show Slack verification" focuses this card. */
+  focused?: boolean;
 }) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (focused && cardRef.current !== null) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [focused]);
   const start = useMutation({
     mutationFn: () => api.otzar.oauthStart(row.slug),
     onSuccess: (result) => {
@@ -107,9 +116,12 @@ function OAuthProviderRow({
     row.status === "ERROR_NEEDS_RECONNECT";
   return (
     <Card
+      ref={cardRef}
       data-testid="oauth-provider-row"
       data-provider={row.provider}
       data-status={row.status}
+      data-focused={focused ? "true" : "false"}
+      className={focused ? "ring-2 ring-primary ring-offset-2" : undefined}
     >
       <CardContent className="pt-4 space-y-2 text-xs">
         <div className="flex items-center justify-between gap-2">
@@ -560,6 +572,25 @@ function McpPolicyRow({
 
 export default function ConnectorRailsAdmin() {
   const queryClient = useQueryClient();
+  // Phase 1265 — voice navigation can focus a provider card via
+  // ?focus=slack|google|zoom|microsoft (e.g. "show Slack verification").
+  // Read from the URL directly (no Router hook) so the page renders fine
+  // in any context.
+  const focusSlug = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return (
+        new URLSearchParams(window.location.search).get("focus") ?? ""
+      ).toLowerCase();
+    } catch {
+      return "";
+    }
+  }, []);
+  const matchesFocus = (row: OAuthStatusRow): boolean =>
+    focusSlug.length > 0 &&
+    `${row.provider} ${row.slug} ${row.display_name}`
+      .toLowerCase()
+      .includes(focusSlug);
   const providers = useQuery({
     queryKey: ["connector-rails", "providers"],
     queryFn: () => api.connectorRails.listProviders(),
@@ -607,6 +638,7 @@ export default function ConnectorRailsAdmin() {
                 key={row.provider}
                 row={row}
                 onChanged={onProvidersChanged}
+                focused={matchesFocus(row)}
               />
             ))}
           </div>

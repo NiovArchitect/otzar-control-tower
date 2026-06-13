@@ -27,12 +27,25 @@ import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { routeVoiceCommand } from "@/lib/voice/command-router";
 
 export type VoiceActionKind =
+  // Navigation
   | "INTERNAL_NAVIGATION"
   | "CONNECTOR_STATUS_NAVIGATION"
   | "EXTERNAL_URL_OPEN"
   | "BLOCKED_URL"
   | "ADMIN_BLOCKED"
-  | "DRAFT_ONLY"
+  // Work OS — governed work (Phase 1265)
+  | "CONNECTOR_STATUS_SUMMARY" // read-only: summarize real connector/OAuth state
+  | "APPROVALS_REVIEW" // navigate + fetch real pending approvals
+  | "DRAFT_MESSAGE" // draft only; approval + recipient confirmation required
+  | "SEND_REQUIRES_APPROVAL" // never auto-send; route to approval/comms
+  | "ASK_TWIN" // route to collaboration; never fake the answer
+  | "SCHEDULE_MEETING" // draft a calendar proposal; never auto-create
+  | "MEETING_NOTES_TO_ACTIONS" // needs a meeting/transcript; route or block
+  | "ZOOM_RECORDINGS" // verified but no recordings runtime yet
+  | "WORKFLOW_START" // requires confirmation; route to workflows
+  | "READ_ONLY_SUMMARY" // route to the surface that owns the data
+  // Fallbacks
+  | "DRAFT_ONLY" // legacy umbrella (kept for back-compat)
   | "GOVERNED_CHAT"
   | "UNSUPPORTED";
 
@@ -56,6 +69,23 @@ export interface VoiceAction {
   needsConfirmation?: boolean;
   /** Passthrough text for GOVERNED_CHAT. */
   transcript?: string;
+  // ── Work OS structured fields (Phase 1265) ──────────────────────
+  /** True when the action would write outside the org (send/post/email/invite). */
+  isExternalWrite?: boolean;
+  /** True when the action only reads data. */
+  isReadOnly?: boolean;
+  /** True when the action creates/requests an approval-gated effect. */
+  requiresApproval?: boolean;
+  /** Best-effort recipient/target extracted from the utterance. */
+  targetEntity?: string;
+  /** Best-effort connector channel (slack / email / internal / calendar). */
+  connector?: string;
+  /** Best-effort draft body extracted from the utterance. */
+  draftPayload?: string;
+  /** The Foundation action_type this maps to, when applicable. */
+  backendActionType?: string;
+  /** Closest real route to offer when the exact runtime is missing. */
+  closestRoute?: string;
 }
 
 const NAV_VERBS = [
@@ -207,6 +237,82 @@ function matchProvider(lower: string): { slug: string; label: string } | null {
   return null;
 }
 
+/** How many distinct providers are named (drives single-focus vs
+ *  multi-provider summary). */
+function countProviders(lower: string): number {
+  return PROVIDER_KEYWORDS.filter((p) => p.words.some((w) => lower.includes(w)))
+    .length;
+}
+
+/** Hard work verbs that imply an app ACTION (not conversation). When
+ *  one is present but no specific Work-OS handler matched, the request
+ *  is UNSUPPORTED — never handed to the Twin to refuse. */
+const HARD_WORK_VERB =
+  /\b(draft|send|post|email|notify|dm|schedule|book|assign|create a task|make a task|start the|run the|kick ?off)\b/;
+
+/** Best-effort recipient extraction ("to David", "with Vishesh", "ask
+ *  David", "message Samiksha"). Verb is matched case-insensitively; the
+ *  name must be a Capitalized word (so "to review" is not a recipient).
+ *  Common non-name words are filtered out. */
+const RECIPIENT_STOP_WORDS = new Set([
+  "the",
+  "this",
+  "that",
+  "a",
+  "an",
+  "everyone",
+  "them",
+  "him",
+  "her",
+  "us",
+  "me",
+  "my",
+  "our",
+  "work",
+  "review",
+  "it",
+]);
+function firstName(text: string, re: RegExp): string | undefined {
+  for (const m of text.matchAll(re)) {
+    const name = m[1];
+    if (
+      name !== undefined &&
+      /^[A-Z]/.test(name) &&
+      !RECIPIENT_STOP_WORDS.has(name.toLowerCase())
+    ) {
+      return name;
+    }
+  }
+  return undefined;
+}
+function extractRecipient(text: string): string | undefined {
+  // Prepositions first ("to David", "with Vishesh") so a verb like
+  // "message" can't capture the preposition ("message TO David").
+  return (
+    firstName(text, /\b(?:to|with|for)\s+([A-Za-z]+)/gi) ??
+    firstName(text, /\b(?:message|email|ask|notify|dm|send|post)\s+([A-Za-z]+)/gi)
+  );
+}
+
+/** Best-effort draft body extraction ("saying ...", "that ..."). */
+function extractBody(text: string): string | undefined {
+  const m = text.match(/\b(?:saying|that says|that|:)\s+(.{3,})$/i);
+  return m?.[1]?.trim();
+}
+
+/** Best-effort channel ("slack", "email", else internal). */
+function detectChannel(lower: string): "slack" | "email" | "internal" {
+  if (lower.includes("slack")) return "slack";
+  if (lower.includes("email") || lower.includes("e-mail")) return "email";
+  return "internal";
+}
+
+const APPROVALS_EMPLOYEE_ROUTE = "/app/approvals";
+const WORK_PROJECTS_ROUTE = "/app/work-projects";
+const CONVERSATIONS_ROUTE = "/app/conversations";
+const WORKFLOWS_ROUTE = "/workflows";
+const COLLABORATION_ROUTE = "/app/collaboration";
+
 // WHAT: Classify one utterance into a safe VoiceAction.
 // INPUT: the transcript + caller capabilities (for admin gating).
 // OUTPUT: a VoiceAction the orb executes + narrates.
@@ -255,7 +361,26 @@ export function classifyVoiceAction(
     };
   }
 
-  // 2) Connector-status navigation (provider + status/verification/
+  // 2a) Connector status SUMMARY (read-only, real data). Generic
+  //     "what's connected", "summarize connectors", multi-provider
+  //     status, or "is X connected" — the orb fetches real OAuth +
+  //     adapter status and summarizes. Single-provider focus (2b) wins
+  //     for "show Slack verification".
+  const connectorSummaryIntent =
+    /what'?s connected|what is connected|whats connected|summar(?:ise|ize)\s+(?:the\s+)?connector|connector summary|what integrations|which integrations|are (?:my )?(?:connectors|integrations)|is\s+(?:microsoft|slack|zoom|google)\b[^?]*\bconnected/.test(
+      lower,
+    ) || countProviders(lower) >= 2;
+  if (connectorSummaryIntent) {
+    return {
+      kind: "CONNECTOR_STATUS_SUMMARY",
+      heard,
+      actionLabel: "Connector status summary",
+      spoken: "Checking what's connected.",
+      isReadOnly: true,
+    };
+  }
+
+  // 2b) Connector-status navigation (provider + status/verification/
   //    connector/parked intent). Admin-gated like the rails page.
   const provider = matchProvider(lower);
   const connectorIntent =
@@ -280,8 +405,25 @@ export function classifyVoiceAction(
       heard,
       actionLabel: `Connector status → ${provider.label}`,
       spoken: `Opening Workspace connections and focusing ${provider.label}. I won't run verification unless you ask.`,
-      route: `${CONNECTOR_RAILS_ROUTE}?provider=${provider.slug}`,
+      route: `${CONNECTOR_RAILS_ROUTE}?focus=${provider.slug}`,
       provider: provider.slug,
+    };
+  }
+
+  // 2c) Approvals review — navigate to the approvals surface AND fetch
+  //     the real pending count (the orb calls api.escalations.pending).
+  const approvalsIntent =
+    /\bneeds my approval\b|\bwhat (?:needs|requires) approval\b|\bpending (?:approvals|decisions)\b|\bwhat'?s waiting (?:on|for) me\b|\bwhat is waiting (?:on|for) me\b|\b(?:show|open|view)\b[^?]*\b(approvals?|action center)\b|\bmy approvals\b/.test(
+      lower,
+    );
+  if (approvalsIntent) {
+    return {
+      kind: "APPROVALS_REVIEW",
+      heard,
+      actionLabel: "Approvals review",
+      spoken: "Opening Action Center and checking what needs your approval.",
+      route: APPROVALS_EMPLOYEE_ROUTE,
+      isReadOnly: true,
     };
   }
 
@@ -298,7 +440,15 @@ export function classifyVoiceAction(
     /^(how|what|why|when|where|can|could|would|should|do|does|is|are|will)\b/.test(
       lower,
     ) || lower.includes("?");
-  if (mentionsOnboarding && ONBOARDING_VERBS.test(lower) && !isQuestion) {
+  // A "...onboarding workflow" command is a WORKFLOW action, not
+  // onboarding navigation — let the work handler own it.
+  const mentionsWorkflow = /\bworkflow\b/.test(lower);
+  if (
+    mentionsOnboarding &&
+    ONBOARDING_VERBS.test(lower) &&
+    !isQuestion &&
+    !mentionsWorkflow
+  ) {
     return {
       kind: "INTERNAL_NAVIGATION",
       heard,
@@ -344,8 +494,210 @@ export function classifyVoiceAction(
     }
   }
 
-  // 4) Internal navigation via the existing pure router (rich employee
-  //    phrases like "what needs my attention").
+  // 4) WORK OS write/action commands run BEFORE the legacy router so
+  //    "schedule a meeting" / "turn this meeting into actions" / "start
+  //    the X workflow" are owned by the Work OS runtime, not navigated
+  //    by an alias. These are never handed to the Twin to refuse — each
+  //    is executed safely, drafted, proposed, routed to approval, or
+  //    honestly blocked with the exact missing runtime.
+
+  // 5a) Ask another Twin / agent — never fake the answer.
+  if (
+    /\bask\b/.test(lower) &&
+    /\b(twin|agent|my twin|the ai|engineer|project manager|david|samiksha|vishesh|annie|maria|carlos)\b/.test(
+      lower,
+    )
+  ) {
+    const target = extractRecipient(heard);
+    return {
+      kind: "ASK_TWIN",
+      heard,
+      actionLabel: target ? `Ask Twin → ${target}` : "Ask a Twin / agent",
+      spoken:
+        "I'll route this to Collaboration. I won't answer for them myself — and resolving a teammate from voice isn't wired yet, so pick them in Collaboration.",
+      route: COLLABORATION_ROUTE,
+      ...(target !== undefined ? { targetEntity: target } : {}),
+      requiresApproval: false,
+      closestRoute: COLLABORATION_ROUTE,
+    };
+  }
+
+  // 5b) Zoom recordings — Zoom is verified but no recordings runtime is
+  //     exposed yet. Route to the connector surface, honest block.
+  if (
+    lower.includes("zoom") &&
+    /\b(recording|recordings|meeting|latest)\b/.test(lower)
+  ) {
+    return {
+      kind: "ZOOM_RECORDINGS",
+      heard,
+      actionLabel: "Zoom recordings",
+      spoken:
+        "Zoom is verified, but a recordings runtime isn't exposed in the Work OS yet. I'll open the connector surface.",
+      route: `${CONNECTOR_RAILS_ROUTE}?focus=zoom`,
+      provider: "zoom",
+      blockedReason: "zoom recordings runtime not exposed",
+      isReadOnly: true,
+    };
+  }
+
+  // 5c) Schedule / calendar — draft a proposal; never auto-create.
+  if (
+    /\b(schedule|find time|find a time|book|check availability|put (?:this|it) on (?:the )?calendar|add (?:a )?(?:follow.?up )?meeting|set up a meeting)\b/.test(
+      lower,
+    )
+  ) {
+    const participant = extractRecipient(heard);
+    const prereq = heard.match(/\bafter\s+([A-Za-z][a-zA-Z'-]+)\s+confirms?\b/i);
+    const prereqNote =
+      prereq !== null
+        ? ` Prerequisite: requires ${prereq[1]}'s confirmation first.`
+        : "";
+    return {
+      kind: "SCHEDULE_MEETING",
+      heard,
+      actionLabel: participant
+        ? `Draft meeting proposal → ${participant}`
+        : "Draft meeting proposal",
+      spoken: `I drafted a meeting proposal${participant ? ` with ${participant}` : ""}. Approval and participant confirmation are required before I create the calendar event — calendar event-creation isn't exposed yet.${prereqNote}`,
+      ...(participant !== undefined ? { targetEntity: participant } : {}),
+      connector: "calendar",
+      isExternalWrite: true,
+      requiresApproval: true,
+      needsConfirmation: true,
+      blockedReason: "calendar create runtime not exposed",
+    };
+  }
+
+  // 5d) Meeting notes → action items — needs a meeting/transcript.
+  if (
+    /\b(turn (?:this|the) (?:meeting|conversation) into|action items|follow.?ups? (?:from|on|we discussed)|capture the decisions|create (?:tasks|action items) from)\b/.test(
+      lower,
+    )
+  ) {
+    return {
+      kind: "MEETING_NOTES_TO_ACTIONS",
+      heard,
+      actionLabel: "Meeting notes → actions",
+      spoken:
+        "Share the meeting or open a capture and I'll draft the action items — turning the current voice session into a meeting transcript isn't wired yet.",
+      route: CONVERSATIONS_ROUTE,
+      closestRoute: CONVERSATIONS_ROUTE,
+      blockedReason: "no meeting transcript in context",
+    };
+  }
+
+  // 5e) Workflow start — requires confirmation; runtime not exposed.
+  if (/\b(start|run|kick ?off|begin|launch)\b[^?]*\bworkflow\b/.test(lower)) {
+    return {
+      kind: "WORKFLOW_START",
+      heard,
+      actionLabel: "Start workflow",
+      spoken:
+        "Starting a workflow needs your confirmation, and the workflow-start runtime isn't exposed to voice yet. I'll open Workflows.",
+      route: WORKFLOWS_ROUTE,
+      needsConfirmation: true,
+      blockedReason: "workflow start runtime not exposed",
+    };
+  }
+
+  // 5f) Project work — task create / assign / blockers.
+  if (
+    /\b(create a task|make a task|assign (?:this|it) to|add (?:this|it) to the project|project blockers?|what'?s blocked|what is blocked|handoff report)\b/.test(
+      lower,
+    )
+  ) {
+    const isWrite = /\b(create|make|assign|add)\b/.test(lower);
+    return {
+      kind: isWrite ? "DRAFT_MESSAGE" : "READ_ONLY_SUMMARY",
+      heard,
+      actionLabel: isWrite ? "Draft project task" : "Project summary",
+      spoken: isWrite
+        ? "I'll open Projects. Creating or assigning a task needs approval, and task-write from voice isn't wired yet — draft it on the project surface."
+        : "I'll open Projects so you can review blockers — a voice project summary isn't wired yet.",
+      route: WORK_PROJECTS_ROUTE,
+      ...(isWrite ? { requiresApproval: true } : { isReadOnly: true }),
+      blockedReason: "project write runtime not exposed",
+    };
+  }
+
+  // 5g) Draft a message — draft only; approval + recipient confirmation.
+  if (
+    /\bdraft\b/.test(lower) ||
+    /\b(write|prepare)\s+(?:a |an )?(?:message|email|note|follow.?up|reply)\b/.test(
+      lower,
+    )
+  ) {
+    const recipient = extractRecipient(heard);
+    const body = extractBody(heard);
+    const channel = detectChannel(lower);
+    return {
+      kind: "DRAFT_MESSAGE",
+      heard,
+      actionLabel: recipient ? `Draft message → ${recipient}` : "Draft message",
+      spoken: `Draft created${recipient ? ` for ${recipient}` : ""}. Approval is required before sending${recipient === undefined ? ", and I'll need you to confirm the recipient" : ""}. Nothing is sent automatically.`,
+      route: COMMS_ROUTE,
+      connector: channel,
+      ...(recipient !== undefined ? { targetEntity: recipient } : {}),
+      ...(body !== undefined ? { draftPayload: body } : {}),
+      backendActionType: "SEND_INTERNAL_NOTIFICATION",
+      requiresApproval: true,
+      needsConfirmation: recipient === undefined,
+    };
+  }
+
+  // 5h) Send / post / email / notify — NEVER auto-send.
+  if (
+    /\b(send|post|email|notify|dm)\b/.test(lower) &&
+    /\bto\b|\bdavid\b|\bsamiksha\b|\bvishesh\b|\bteam\b|\bslack\b|\bemail\b|\beveryone\b|\bhim\b|\bher\b|\bthem\b/.test(
+      lower,
+    )
+  ) {
+    const recipient = extractRecipient(heard);
+    const channel = detectChannel(lower);
+    const external = channel === "slack" || channel === "email";
+    return {
+      kind: "SEND_REQUIRES_APPROVAL",
+      heard,
+      actionLabel: recipient
+        ? `Send → ${recipient} (approval required)`
+        : "Send (approval required)",
+      spoken:
+        "I won't send that automatically. I can draft it, but sending requires approval — open Work Comms to review and approve. Nothing left the company.",
+      route: COMMS_ROUTE,
+      connector: channel,
+      ...(recipient !== undefined ? { targetEntity: recipient } : {}),
+      backendActionType: "SEND_INTERNAL_NOTIFICATION",
+      isExternalWrite: external,
+      requiresApproval: true,
+      needsConfirmation: true,
+    };
+  }
+
+  // 5i) Read-only summary of a real surface.
+  if (
+    /\b(summar(?:ise|ize) my (?:work comms|day)|what happened today|what changed in slack|what should i review first)\b/.test(
+      lower,
+    )
+  ) {
+    const toComms = lower.includes("comms") || lower.includes("slack");
+    return {
+      kind: "READ_ONLY_SUMMARY",
+      heard,
+      actionLabel: "Read-only summary",
+      spoken: toComms
+        ? "I'll open Work Comms — a spoken summary runtime isn't wired yet."
+        : "I'll open My Day — a spoken daily summary runtime isn't wired yet.",
+      route: toComms ? COMMS_ROUTE : "/app/my-day",
+      isReadOnly: true,
+      blockedReason: "voice summary runtime not exposed",
+    };
+  }
+
+  // 6) Internal navigation via the existing pure router (rich employee
+  //    phrases like "what needs my attention"). Runs AFTER the specific
+  //    work handlers but BEFORE the hard-verb guardrail so legacy nav
+  //    aliases still work for obscure phrases.
   const routed = routeVoiceCommand(heard, capabilities);
   if (routed.kind === "ADMIN_BLOCKED") {
     return {
@@ -365,25 +717,16 @@ export function classifyVoiceAction(
     };
   }
 
-  // 5) Draft-only / send-gated comms. Drafting is allowed; sending is
-  //    approval-gated — nothing leaves automatically this phase.
-  const mentionsSend =
-    /\b(send|email|post|dm|message)\b/.test(lower) &&
-    /\bto\b|\bdavid\b|\bteam\b|\bslack\b|\bemail\b/.test(lower);
-  const mentionsDraft = /\bdraft\b/.test(lower);
-  if (mentionsDraft || mentionsSend) {
-    const needsConfirmation = mentionsSend && !mentionsDraft;
+  // 5j) A HARD work verb with no specific handler → UNSUPPORTED, never
+  //     handed to the Twin to refuse (Part G guardrail).
+  if (HARD_WORK_VERB.test(lower)) {
     return {
-      kind: "DRAFT_ONLY",
+      kind: "UNSUPPORTED",
       heard,
-      actionLabel: needsConfirmation
-        ? "Draft only — sending needs your approval"
-        : "Draft only",
-      spoken: needsConfirmation
-        ? "I can draft that, but sending anything externally needs your explicit approval. I'll open comms so you can review and approve."
-        : "I'll open comms so you can draft that. Nothing is sent without your approval.",
-      route: COMMS_ROUTE,
-      needsConfirmation,
+      actionLabel: "Work action not available",
+      spoken:
+        "I can't perform that work from voice yet. I can draft a message, open approvals, or take you to the related screen — tell me which.",
+      blockedReason: "no matching work-os runtime",
     };
   }
 

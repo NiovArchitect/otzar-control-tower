@@ -33,6 +33,7 @@ import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
+import { useAuthStore } from "@/lib/stores/auth";
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -354,5 +355,139 @@ describe("AmbientOtzarBar — privacy / safety copy", () => {
     expect(html).not.toContain("full sesame voice");
     expect(html).not.toContain("recording in background");
     expect(html).not.toContain("monitoring employee");
+  });
+});
+
+// ── Phase 1265 Work OS commands — never fall into the Twin chatbot ───
+describe("AmbientOtzarBar — Work OS commands", () => {
+  beforeEach(() => {
+    // Founder is an org admin; admin destinations + OAuth status read.
+    useAuthStore.setState({
+      token: "tok",
+      entity: { email: "founder@niovlabs.com" },
+      isAuthenticated: true,
+      capabilities: {
+        can_read_capsules: true,
+        can_write_capsules: true,
+        can_share_capsules: true,
+        can_admin_org: true,
+        can_admin_niov: false,
+      },
+    });
+  });
+
+  async function speak(text: string): Promise<HTMLElement> {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), text);
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    let panel!: HTMLElement;
+    await waitFor(() => {
+      panel = screen.getByTestId("voice-action-panel");
+    });
+    return panel;
+  }
+
+  it("'What's connected?' summarizes real connector state — never the Twin", async () => {
+    server.use(
+      http.get(`${API_BASE}/connectors/oauth/status`, () =>
+        HttpResponse.json({
+          ok: true,
+          providers: [
+            { provider: "GOOGLE", display_name: "Google Workspace", slug: "google", app_credentials_present: true, status: "VERIFIED", scopes: [], account_label: null, connected_at: null, last_verified_at: null, redirect_uri: "" },
+            { provider: "MICROSOFT", display_name: "Microsoft 365", slug: "microsoft", app_credentials_present: false, status: "APP_CREDENTIALS_MISSING", scopes: [], account_label: null, connected_at: null, last_verified_at: null, redirect_uri: "" },
+          ],
+        }),
+      ),
+    );
+    await speak("What's connected?");
+    await waitFor(() => {
+      expect(screen.getByText(/Google Workspace: Verified/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Microsoft 365: needs app credentials/i)).toBeInTheDocument();
+    expect(recordedBodies.length).toBe(0); // Twin chat never called
+  });
+
+  it("'Show me what needs my approval' fetches the REAL pending count, no chat", async () => {
+    server.use(
+      http.get(`${API_BASE}/escalations/pending`, () =>
+        HttpResponse.json({
+          ok: true,
+          escalations: [
+            { escalation_id: "e1" },
+            { escalation_id: "e2" },
+          ],
+        }),
+      ),
+    );
+    await speak("Show me what needs my approval.");
+    await waitFor(() => {
+      expect(screen.getByText(/2 items waiting on your approval/i)).toBeInTheDocument();
+    });
+    expect(recordedBodies.length).toBe(0);
+  });
+
+  it("'Draft a message to David…' drafts only, approval required, no send, no chat", async () => {
+    const panel = await speak(
+      "Draft a message to David saying we need to review this.",
+    );
+    expect(panel.textContent).toMatch(/Draft message → David/i);
+    expect(screen.getByTestId("voice-action-status").textContent).toMatch(
+      /Approval required/i,
+    );
+    expect(recordedBodies.length).toBe(0);
+  });
+
+  it("'Send David this message' shows approval required and NEVER sends", async () => {
+    await speak("Send David this message.");
+    expect(screen.getByTestId("voice-action-status").textContent).toMatch(
+      /Approval required/i,
+    );
+    expect(recordedBodies.length).toBe(0);
+  });
+
+  it("'Ask David's Twin…' routes to collaboration and never fakes David's answer", async () => {
+    const panel = await speak("Ask David's Twin what he thinks.");
+    expect(panel.textContent).toMatch(/Ask Twin → David/i);
+    // No fabricated answer and no Twin chat call.
+    expect(recordedBodies.length).toBe(0);
+    const html = document.body.innerHTML.toLowerCase();
+    expect(html).not.toContain("david thinks");
+    expect(html).not.toContain("david says");
+  });
+
+  it("'Schedule a meeting with Vishesh tomorrow' drafts an approval-gated proposal, no auto-create", async () => {
+    const panel = await speak("Schedule a meeting with Vishesh tomorrow.");
+    expect(panel.textContent).toMatch(/Draft meeting proposal → Vishesh/i);
+    expect(screen.getByTestId("voice-action-status").textContent).toMatch(
+      /Approval required/i,
+    );
+    expect(recordedBodies.length).toBe(0);
+  });
+
+  it("'Take me to connectors' navigates and never calls the Twin", async () => {
+    const panel = await speak("Take me to connectors.");
+    expect(panel.textContent).toMatch(/Workspace connections/i);
+    expect(recordedBodies.length).toBe(0);
+  });
+
+  it("'What should I do next?' still reaches governed chat (Twin called)", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "What should I do next?");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    await waitFor(() => {
+      expect(recordedBodies.length).toBe(1);
+    });
+  });
+
+  it("a Work OS command never produces a chatbot 'I can't navigate' refusal", async () => {
+    await speak("Draft a message to David saying we need to review this.");
+    const html = document.body.innerHTML.toLowerCase();
+    expect(html).not.toContain("i can't navigate");
+    expect(html).not.toContain("i cannot navigate");
+    expect(html).not.toContain("use the platform navigation");
   });
 });
