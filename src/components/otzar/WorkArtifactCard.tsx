@@ -74,6 +74,9 @@ export interface WorkArtifact {
   ledgerEntryId?: string;
   /** Phase 1279 — honest persistence-failure note (never fakes saved). */
   ledgerError?: string;
+  /** Phase 1281 — governed BEAM coordination result (BEAM_DISPATCHED /
+   *  BEAM_UNAVAILABLE / BEAM_FAILED / TYPESCRIPT_ONLY). Shown in View/Why. */
+  coordinationRuntime?: string;
   /** Phase 1275 — confidence/evidence for inferred fields (shown in
    *  View/Why details only — never noise in the main card). */
   evidence?: Array<{
@@ -362,6 +365,18 @@ export function WorkArtifactCard({
           ) : null}
           {artifact.ledgerEntryId !== undefined ? (
             <div>Work Ledger id: {artifact.ledgerEntryId}</div>
+          ) : null}
+          {artifact.coordinationRuntime !== undefined ? (
+            <div data-testid="work-artifact-coordination">
+              Coordination:{" "}
+              {artifact.coordinationRuntime === "BEAM_DISPATCHED"
+                ? "BEAM dispatched"
+                : artifact.coordinationRuntime === "BEAM_UNAVAILABLE"
+                  ? "TypeScript fallback (BEAM unavailable)"
+                  : artifact.coordinationRuntime === "BEAM_FAILED"
+                    ? "TypeScript fallback (BEAM dispatch failed)"
+                    : "TypeScript only"}
+            </div>
           ) : null}
           {artifact.evidence !== undefined && artifact.evidence.length > 0 ? (
             <div className="space-y-0.5" data-testid="work-artifact-evidence">

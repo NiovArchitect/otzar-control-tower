@@ -4256,6 +4256,9 @@ export interface WorkLedgerEntryView {
   next_action: string | null;
   due_at: string | null;
   created_at: string;
+  // Phase 1281 — governed BEAM coordination result (create-time).
+  coordination_runtime?: string;
+  coordination_watcher?: string;
 }
 
 export interface WorkLedgerCreateResponse {

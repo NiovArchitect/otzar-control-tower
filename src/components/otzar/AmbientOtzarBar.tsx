@@ -1085,6 +1085,9 @@ export function AmbientOtzarBar(): JSX.Element {
     });
     if (persisted.ledgerEntryId !== undefined) {
       artifact.ledgerEntryId = persisted.ledgerEntryId;
+      if (persisted.coordinationRuntime !== undefined) {
+        artifact.coordinationRuntime = persisted.coordinationRuntime;
+      }
     } else {
       artifact.ledgerError = "Could not save to Work Ledger.";
     }
@@ -1104,7 +1107,7 @@ export function AmbientOtzarBar(): JSX.Element {
     targetUnresolved: boolean;
     workPlanId: string | undefined;
     prerequisite: string | undefined;
-  }): Promise<{ ledgerEntryId?: string }> {
+  }): Promise<{ ledgerEntryId?: string; coordinationRuntime?: string }> {
     const ledgerType =
       args.kind === "FOLLOW_UP_NOTE"
         ? "FOLLOW_UP"
@@ -1134,7 +1137,14 @@ export function AmbientOtzarBar(): JSX.Element {
         : {}),
       ...(args.workPlanId !== undefined ? { work_plan_id: args.workPlanId } : {}),
     });
-    return r.ok ? { ledgerEntryId: r.data.entry.ledger_entry_id } : {};
+    return r.ok
+      ? {
+          ledgerEntryId: r.data.entry.ledger_entry_id,
+          ...(r.data.entry.coordination_runtime !== undefined
+            ? { coordinationRuntime: r.data.entry.coordination_runtime }
+            : {}),
+        }
+      : {};
   }
 
   // Render a multi-intent plan as several linked, inspectable cards.

@@ -2931,6 +2931,8 @@ const workLedgerCreateHandler = http.post(
           next_action: null,
           due_at: null,
           created_at: "2026-06-13T18:00:00.000Z",
+          coordination_runtime: "BEAM_DISPATCHED",
+          coordination_watcher: "none",
         },
       },
       { status: 201 },
