@@ -852,6 +852,34 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(actionPosts.length).toBe(0);
   });
 
+  it("Follow-up artifact PERSISTS to the durable Work Ledger and shows 'Saved to Work Ledger' (Phase 1279)", async () => {
+    await speak(
+      "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-ledger-saved")).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByTestId("work-artifact-ledger-saved").textContent,
+    ).toMatch(/Saved to Work Ledger/i);
+  });
+
+  it("Failed ledger persistence shows a safe error — never fakes saved (Phase 1279)", async () => {
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, () =>
+        HttpResponse.json({ ok: false, code: "INVALID_REQUEST", message: "x" }, { status: 422 }),
+      ),
+    );
+    await speak("I told Vishesh I would follow up about the Otzar voice runtime.");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-ledger-error")).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByTestId("work-artifact-ledger-error").textContent,
+    ).toMatch(/Could not save to Work Ledger/i);
+    expect(screen.queryByTestId("work-artifact-ledger-saved")).toBeNull();
+  });
+
   it("Conversation-to-work artifact shows HONEST extraction source — deterministic, never fake Python (Phase 1278)", async () => {
     // Default MSW runtime registry reports Python NOT_CONFIGURED.
     await speak(

@@ -4239,6 +4239,35 @@ export interface CalendarEventProposalBody {
   caller_confirmed?: boolean;
 }
 
+// Phase 1279 — durable Work Ledger entry (safe projection).
+export interface WorkLedgerEntryView {
+  ledger_entry_id: string;
+  ledger_type: string;
+  source_type: string;
+  source_command: string | null;
+  work_plan_id: string | null;
+  owner_entity_id: string | null;
+  target_entity_id: string | null;
+  title: string;
+  status: string;
+  priority: string;
+  extraction_source: string;
+  next_action: string | null;
+  due_at: string | null;
+  created_at: string;
+}
+
+export interface WorkLedgerCreateResponse {
+  ok: true;
+  entry: WorkLedgerEntryView;
+}
+
+export interface WorkLedgerListResponse {
+  ok: true;
+  items?: WorkLedgerEntryView[];
+  entries?: WorkLedgerEntryView[];
+}
+
 // Phase 1277 — polyglot runtime fabric capability registry.
 export interface RuntimeView {
   status:

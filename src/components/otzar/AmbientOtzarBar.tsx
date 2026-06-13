@@ -967,6 +967,8 @@ export function AmbientOtzarBar(): JSX.Element {
         ? `Interpreted ${action.explicit_timezone_label.toUpperCase()} as ${tzInterp.display}.`
         : undefined;
 
+    let targetEntityId: string | undefined;
+    let targetUnresolved = false;
     if (target !== undefined) {
       const r = await api.workOs.authorityContext({
         target_name: target,
@@ -975,11 +977,14 @@ export function AmbientOtzarBar(): JSX.Element {
       if (r.ok) {
         const a = r.data.authority;
         const pol = r.data.policies[0];
+        if (a.target_entity_id !== null) targetEntityId = a.target_entity_id;
         if (a.target_resolution === "NOT_FOUND") {
           status = "Participant unresolved";
+          targetUnresolved = true;
           authorityNote = `I don't know which ${target}. Choose a teammate or enter an email/calendar.`;
         } else if (a.target_resolution === "AMBIGUOUS") {
           status = "Participant ambiguous";
+          targetUnresolved = true;
           authorityNote = `More than one teammate matches "${target}" — pick one.`;
         } else if (pol !== undefined) {
           status =
@@ -1022,7 +1027,7 @@ export function AmbientOtzarBar(): JSX.Element {
           }.`
         : action.source_segment;
 
-    return {
+    const artifact: WorkArtifact = {
       kind: action.kind,
       title,
       ...(target !== undefined ? { targetLabel: target } : {}),
@@ -1063,6 +1068,73 @@ export function AmbientOtzarBar(): JSX.Element {
             ? "Task proposal — not assigned until you confirm; no fake completion."
             : "Follow-up draft — nothing is sent. Edit and confirm when ready.",
     };
+
+    // Phase 1279 — persist to the durable Work Ledger (tenant-scoped,
+    // runtime-attributed). Honest: ledger status is data, not execution;
+    // failure shows a safe note and NEVER claims saved.
+    const persisted = await persistArtifactToLedger({
+      kind: action.kind,
+      title,
+      sourceCommand,
+      contextLabel: action.context_label,
+      evidence: action.evidence,
+      targetEntityId,
+      targetUnresolved,
+      workPlanId: planId,
+      prerequisite: action.prerequisite,
+    });
+    if (persisted.ledgerEntryId !== undefined) {
+      artifact.ledgerEntryId = persisted.ledgerEntryId;
+    } else {
+      artifact.ledgerError = "Could not save to Work Ledger.";
+    }
+    return artifact;
+  }
+
+  // Map a conversation-to-work artifact to a durable ledger entry and
+  // persist it via Foundation. Returns the ledger id on success. Never
+  // fakes persistence; the caller surfaces a safe error if it fails.
+  async function persistArtifactToLedger(args: {
+    kind: PlannedAction["kind"];
+    title: string;
+    sourceCommand: string;
+    contextLabel: string | undefined;
+    evidence: PlannedAction["evidence"];
+    targetEntityId: string | undefined;
+    targetUnresolved: boolean;
+    workPlanId: string | undefined;
+    prerequisite: string | undefined;
+  }): Promise<{ ledgerEntryId?: string }> {
+    const ledgerType =
+      args.kind === "FOLLOW_UP_NOTE"
+        ? "FOLLOW_UP"
+        : args.kind === "TASK"
+          ? "TASK"
+          : args.kind === "SCHEDULE_MEETING"
+            ? "MEETING"
+            : "COMMITMENT";
+    const status = args.targetUnresolved
+      ? "NEEDS_TARGET_RESOLUTION"
+      : args.prerequisite !== undefined
+        ? "NEEDS_PARTICIPANT_CONFIRMATION"
+        : "PROPOSED";
+    const r = await api.workOs.createLedgerEntry({
+      ledger_type: ledgerType,
+      title: args.title,
+      source_type: "VOICE_COMMAND",
+      source_command: args.sourceCommand,
+      status,
+      extraction_source: "TYPESCRIPT_DETERMINISTIC",
+      evidence: args.evidence,
+      ...(args.contextLabel !== undefined
+        ? { details: { context_label: args.contextLabel } }
+        : {}),
+      ...(args.targetEntityId !== undefined
+        ? { target_entity_id: args.targetEntityId }
+        : {}),
+      ...(args.workPlanId !== undefined ? { work_plan_id: args.workPlanId } : {}),
+    });
+    return r.ok ? { ledgerEntryId: r.data.entry.ledger_entry_id } : {};
   }
 
   // Render a multi-intent plan as several linked, inspectable cards.

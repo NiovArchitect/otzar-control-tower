@@ -2908,9 +2908,40 @@ const runtimeCapabilitiesHandler = http.get(
     }),
 );
 
+// Phase 1279 — durable Work Ledger create default (echoes a saved entry).
+const workLedgerCreateHandler = http.post(
+  `${API_BASE}/work-os/ledger`,
+  async ({ request }) => {
+    const b = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ok: true,
+        entry: {
+          ledger_entry_id: "led-test-1",
+          ledger_type: typeof b.ledger_type === "string" ? b.ledger_type : "TASK",
+          source_type: "VOICE_COMMAND",
+          source_command: typeof b.source_command === "string" ? b.source_command : null,
+          work_plan_id: typeof b.work_plan_id === "string" ? b.work_plan_id : null,
+          owner_entity_id: null,
+          target_entity_id: typeof b.target_entity_id === "string" ? b.target_entity_id : null,
+          title: typeof b.title === "string" ? b.title : "Work item",
+          status: typeof b.status === "string" ? b.status : "PROPOSED",
+          priority: "ROUTINE",
+          extraction_source: "TYPESCRIPT_DETERMINISTIC",
+          next_action: null,
+          due_at: null,
+          created_at: "2026-06-13T18:00:00.000Z",
+        },
+      },
+      { status: 201 },
+    );
+  },
+);
+
 export const handlers = [
   workOsAuthorityHandler,
   runtimeCapabilitiesHandler,
+  workLedgerCreateHandler,
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
   // Section 7 Full Audit Viewer (ADR-0071 + earlier Section 7 waves)

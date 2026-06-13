@@ -70,6 +70,10 @@ export interface WorkArtifact {
   /** Phase 1278 — which runtime produced the extraction (deterministic
    *  TypeScript vs. Python enrichment). Honest; shown in View/Why. */
   extractionSource?: string;
+  /** Phase 1279 — durable Work Ledger id once the artifact is persisted. */
+  ledgerEntryId?: string;
+  /** Phase 1279 — honest persistence-failure note (never fakes saved). */
+  ledgerError?: string;
   /** Phase 1275 — confidence/evidence for inferred fields (shown in
    *  View/Why details only — never noise in the main card). */
   evidence?: Array<{
@@ -183,6 +187,22 @@ export function WorkArtifactCard({
           data-testid="work-artifact-prereq"
         >
           ⏳ {artifact.prerequisite}
+        </div>
+      ) : null}
+      {artifact.ledgerEntryId !== undefined ? (
+        <div
+          className="text-[10px] text-emerald-600 dark:text-emerald-400"
+          data-testid="work-artifact-ledger-saved"
+        >
+          ✓ Saved to Work Ledger
+        </div>
+      ) : null}
+      {artifact.ledgerError !== undefined ? (
+        <div
+          className="text-[10px] text-amber-600 dark:text-amber-400"
+          data-testid="work-artifact-ledger-error"
+        >
+          {artifact.ledgerError}
         </div>
       ) : null}
       {artifact.proposedTime !== undefined ? (
@@ -339,6 +359,9 @@ export function WorkArtifactCard({
             <div data-testid="work-artifact-extraction-source">
               Extraction: {artifact.extractionSource}
             </div>
+          ) : null}
+          {artifact.ledgerEntryId !== undefined ? (
+            <div>Work Ledger id: {artifact.ledgerEntryId}</div>
           ) : null}
           {artifact.evidence !== undefined && artifact.evidence.length > 0 ? (
             <div className="space-y-0.5" data-testid="work-artifact-evidence">

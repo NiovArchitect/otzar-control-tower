@@ -78,6 +78,8 @@ import type {
   CalendarEventProposalBody,
   AuthorityContextResponse,
   RuntimeCapabilitiesResponse,
+  WorkLedgerCreateResponse,
+  WorkLedgerListResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1177,6 +1179,23 @@ export class ApiClient {
         method: "POST",
         body,
       }),
+
+    /** POST /api/v1/work-os/ledger — persist a durable work object. */
+    createLedgerEntry: (
+      body: Record<string, unknown>,
+    ): Promise<ApiResult<WorkLedgerCreateResponse>> =>
+      this.request<WorkLedgerCreateResponse>("/work-os/ledger", {
+        method: "POST",
+        body,
+      }),
+
+    /** GET /api/v1/work-os/my-work — the caller's durable work items. */
+    myWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
+      this.request<WorkLedgerListResponse>("/work-os/my-work"),
+
+    /** GET /api/v1/work-os/blind-spots — attention-needing items. */
+    blindSpots: (): Promise<ApiResult<WorkLedgerListResponse>> =>
+      this.request<WorkLedgerListResponse>("/work-os/blind-spots"),
   };
 
   // ──────────────────────────────────────────────────────────────
