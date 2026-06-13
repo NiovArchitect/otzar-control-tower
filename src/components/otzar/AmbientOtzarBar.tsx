@@ -994,6 +994,7 @@ export function AmbientOtzarBar(): JSX.Element {
       ...(authorityNote !== undefined ? { authorityNote } : {}),
       ...(proposedTime !== undefined ? { proposedTime } : {}),
       ...(timezoneNote !== undefined ? { timezoneNote } : {}),
+      ...(action.evidence.length > 0 ? { evidence: action.evidence } : {}),
       sourceCommand,
       ...(planId !== undefined ? { planId } : {}),
       runtimeNote:

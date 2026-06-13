@@ -830,6 +830,24 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(actionPosts.length).toBe(0);
   });
 
+  it("Follow-up artifact View/Why details show evidence (confidence) — inspect only (Phase 1275)", async () => {
+    await speak(
+      "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-open")).toBeInTheDocument(),
+    );
+    // The follow-up card has no route → "View" toggles an inspector.
+    await userEvent.setup().click(screen.getByTestId("work-artifact-open"));
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-evidence")).toBeInTheDocument(),
+    );
+    const ev = screen.getByTestId("work-artifact-evidence").textContent ?? "";
+    expect(ev).toMatch(/context_label: Otzar voice runtime/i);
+    // Inspect-only: no action created by opening Why details.
+    expect(actionPosts.length).toBe(0);
+  });
+
   it("'I told Vishesh I would follow up…' creates a FOLLOW-UP artifact (commitment), no send (Phase 1273)", async () => {
     await speak(
       "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",

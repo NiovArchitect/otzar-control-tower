@@ -68,6 +68,23 @@ describe("planWorkCommand — multi-intent", () => {
     const followUp = plan.actions.find((a) => a.kind === "FOLLOW_UP_NOTE");
     expect(followUp?.context_label).toBe("Otzar voice runtime");
   });
+
+  it("Phase 1275 — emits confidence/evidence for target, context, time, timezone", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING")!;
+    const fields = meeting.evidence.map((e) => e.field);
+    expect(fields).toContain("target");
+    expect(fields).toContain("context_label");
+    expect(fields).toContain("time");
+    expect(fields).toContain("timezone");
+    // Target needs confirmation (resolution is the authority service's job).
+    const target = meeting.evidence.find((e) => e.field === "target");
+    expect(target?.requires_confirmation).toBe(true);
+    // Context is a high-confidence phrase match.
+    const ctx = meeting.evidence.find((e) => e.field === "context_label");
+    expect(ctx?.confidence).toBe("HIGH");
+    expect(ctx?.evidence_type).toBe("PHRASE_MATCH");
+  });
 });
 
 describe("planWorkCommand — single intents", () => {

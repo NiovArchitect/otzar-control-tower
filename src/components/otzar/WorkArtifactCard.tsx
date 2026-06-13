@@ -63,6 +63,17 @@ export interface WorkArtifact {
   proposedTime?: string;
   /** Phase 1274 — timezone interpretation + target local-time note. */
   timezoneNote?: string;
+  /** Phase 1275 — confidence/evidence for inferred fields (shown in
+   *  View/Why details only — never noise in the main card). */
+  evidence?: Array<{
+    field: string;
+    value: string;
+    confidence: string;
+    evidence_type: string;
+    source_text?: string;
+    note?: string;
+    requires_confirmation?: boolean;
+  }>;
 }
 
 interface Props {
@@ -311,8 +322,22 @@ export function WorkArtifactCard({
           {artifact.channel !== undefined ? (
             <div>Channel: {artifact.channel}</div>
           ) : null}
+          {artifact.authorityNote !== undefined ? (
+            <div>Why: {artifact.authorityNote}</div>
+          ) : null}
           {artifact.sourceCommand !== undefined ? (
             <div>Source: “{artifact.sourceCommand}”</div>
+          ) : null}
+          {artifact.evidence !== undefined && artifact.evidence.length > 0 ? (
+            <div className="space-y-0.5" data-testid="work-artifact-evidence">
+              <div className="font-medium">Evidence</div>
+              {artifact.evidence.map((e, i) => (
+                <div key={`${e.field}-${i}`}>
+                  • {e.field}: {e.value} ({e.confidence}
+                  {e.requires_confirmation === true ? " · needs confirmation" : ""})
+                </div>
+              ))}
+            </div>
           ) : null}
           <div className="italic">Inspect only — nothing is sent or created.</div>
         </div>

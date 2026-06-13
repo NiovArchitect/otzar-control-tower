@@ -35,9 +35,37 @@ export type InstructionWeight =
   | "BLOCKER"
   | "DECISION";
 
+// Phase 1275 — confidence/evidence so inferences are explainable, never
+// "the AI guessed". Attached to planned actions + surfaced in the card's
+// View/Why details. Kept minimal so it never becomes noise.
+export type EvidenceConfidence = "HIGH" | "MEDIUM" | "LOW";
+export type EvidenceType =
+  | "EXACT_ENTITY_MATCH"
+  | "PHRASE_MATCH"
+  | "ROLE_MATCH"
+  | "PROJECT_CONTEXT"
+  | "CALENDAR_SETTING"
+  | "USER_SETTING"
+  | "ORG_DEFAULT"
+  | "DEMO_FALLBACK"
+  | "HISTORICAL_PATTERN"
+  | "AI_INFERENCE";
+
+export interface InferenceEvidence {
+  field: string;
+  value: string;
+  confidence: EvidenceConfidence;
+  evidence_type: EvidenceType;
+  source_text?: string;
+  requires_confirmation?: boolean;
+  note?: string;
+}
+
 export interface PlannedAction {
   /** Stable per-plan index id, e.g. "a1", "a2". */
   id: string;
+  /** Why each inferred field was chosen (target/context/time/timezone). */
+  evidence: InferenceEvidence[];
   kind: PlannedActionKind;
   /** How the instruction was uttered (command vs commitment vs …). */
   weight: InstructionWeight;
@@ -222,6 +250,7 @@ export function planWorkCommand(transcript: string): WorkPlan {
     const action: PlannedAction = {
       id: `a${idx}`,
       kind,
+      evidence: [],
       weight: classifyInstructionWeight(seg, kind),
       source_segment: seg,
     };
@@ -248,6 +277,49 @@ export function planWorkCommand(transcript: string): WorkPlan {
     if (prereq !== undefined) action.prerequisite = prereq;
     const segContext = extractContextLabel(seg) ?? planContext;
     if (segContext !== undefined) action.context_label = segContext;
+
+    // Evidence: explain each inferred field. Target resolution
+    // (found/not) is the authority service's job — the planner only
+    // attests it extracted a name token from a phrase.
+    if (target !== undefined) {
+      action.evidence.push({
+        field: "target",
+        value: target,
+        confidence: "MEDIUM",
+        evidence_type: "PHRASE_MATCH",
+        source_text: target,
+        requires_confirmation: true,
+        note: "name token extracted; resolution decided by authority service",
+      });
+    }
+    if (segContext !== undefined) {
+      action.evidence.push({
+        field: "context_label",
+        value: segContext,
+        confidence: "HIGH",
+        evidence_type: "PHRASE_MATCH",
+        source_text: "phrase after “about”",
+      });
+    }
+    if (action.explicit_time !== undefined) {
+      action.evidence.push({
+        field: "time",
+        value: action.explicit_time,
+        confidence: "HIGH",
+        evidence_type: "PHRASE_MATCH",
+        source_text: "explicit clock time",
+      });
+    }
+    if (action.explicit_timezone_label !== undefined) {
+      action.evidence.push({
+        field: "timezone",
+        value: action.explicit_timezone_label,
+        confidence: "MEDIUM",
+        evidence_type: "PHRASE_MATCH",
+        source_text: action.explicit_timezone_label,
+        note: "interpreted to a US timezone display",
+      });
+    }
     actions.push(action);
   }
 
