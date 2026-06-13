@@ -34,6 +34,9 @@ export interface DesktopVoiceCaptureHook {
   state: DesktopCaptureState;
   /** The latest provider transcript, or "" until one lands. */
   transcript: string;
+  /** Which STT provider produced the latest transcript (e.g.
+   *  "openai-whisper" / "deepgram"), or null until one lands. */
+  provider: string | null;
   /** Closed-vocab error code for diagnostics.transcribeErrorCopy(). */
   errorCode: string | null;
   /** Begin recording (prompts for mic permission if needed). */
@@ -77,6 +80,7 @@ export function useDesktopVoiceCapture(): DesktopVoiceCaptureHook {
   const supported = hasRecorder();
   const [state, setState] = useState<DesktopCaptureState>("idle");
   const [transcript, setTranscript] = useState("");
+  const [provider, setProvider] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -116,6 +120,7 @@ export function useDesktopVoiceCapture(): DesktopVoiceCaptureHook {
     }
     setErrorCode(null);
     setTranscript("");
+    setProvider(null);
     cancelledRef.current = false;
     let stream: MediaStream;
     try {
@@ -166,6 +171,7 @@ export function useDesktopVoiceCapture(): DesktopVoiceCaptureHook {
             mime_type: mimeType,
           });
           if (result.ok) {
+            setProvider(result.data.provider);
             setTranscript(result.data.transcript);
             setState("idle");
           } else {
@@ -217,6 +223,7 @@ export function useDesktopVoiceCapture(): DesktopVoiceCaptureHook {
 
   const reset = useCallback((): void => {
     setTranscript("");
+    setProvider(null);
     setErrorCode(null);
     if (state === "error") setState("idle");
   }, [state]);
@@ -225,6 +232,7 @@ export function useDesktopVoiceCapture(): DesktopVoiceCaptureHook {
     supported,
     state,
     transcript,
+    provider,
     errorCode,
     start,
     stop,

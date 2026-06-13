@@ -185,6 +185,11 @@ export function AmbientOtzarBar(): JSX.Element {
   const [actionLabel, setActionLabel] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [actionVoicePath, setActionVoicePath] = useState<string | null>(null);
+  // Which STT engine produced the spoken command's transcript
+  // (desktop path only): "openai-whisper" or "deepgram".
+  const [transcriptionProvider, setTranscriptionProvider] = useState<
+    string | null
+  >(null);
   // When a desktop external-link open can't hand off automatically, we
   // surface a clickable link instead of silently failing.
   const [externalLinkPending, setExternalLinkPending] = useState<string | null>(
@@ -429,6 +434,9 @@ export function AmbientOtzarBar(): JSX.Element {
     cancelVoicePlayback();
     setExternalLinkPending(null);
     setActionVoicePath(null);
+    // Typed input has no transcription engine; the desktop-voice effect
+    // re-sets this after calling handleSendText.
+    setTranscriptionProvider(null);
 
     const action = classifyVoiceAction(text, capabilities);
     setActionHeard(action.heard);
@@ -553,8 +561,13 @@ export function AmbientOtzarBar(): JSX.Element {
   useEffect(() => {
     const t = desktopCap.transcript.trim();
     if (t.length === 0) return;
+    // Capture which engine transcribed BEFORE reset() clears it.
+    const prov = desktopCapRef.current.provider;
     setDraft(t);
     void handleSendTextRef.current(t);
+    // handleSendText clears transcriptionProvider for typed input;
+    // re-set it AFTER so the desktop-voice provider wins.
+    setTranscriptionProvider(prov);
     desktopCapRef.current.reset();
   }, [desktopCap.transcript]);
 
@@ -1000,6 +1013,20 @@ export function AmbientOtzarBar(): JSX.Element {
                 <span className="font-medium text-foreground">Heard:</span>{" "}
                 <span className="text-muted-foreground">“{actionHeard}”</span>
               </div>
+              {transcriptionProvider !== null ? (
+                <div data-testid="voice-transcription-provider">
+                  <span className="font-medium text-foreground">
+                    Transcription:
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    {transcriptionProvider === "deepgram"
+                      ? "Deepgram"
+                      : transcriptionProvider === "openai-whisper"
+                        ? "OpenAI Whisper"
+                        : transcriptionProvider}
+                  </span>
+                </div>
+              ) : null}
               {actionLabel !== null ? (
                 <div>
                   <span className="font-medium text-foreground">Action:</span>{" "}
