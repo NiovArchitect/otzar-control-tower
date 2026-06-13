@@ -73,25 +73,51 @@ standing authority"; REQUIRE_DUAL_CONTROL → "Approval required"; FORBIDDEN
   Audited `CONNECTOR_DATA_READ`. Reusable token resolver
   `getProviderAccessTokenForOrg` (load → refresh → re-seal) backs both.
 
+**LANDED (Phase 1271 — meeting-proposal availability):**
+
+- ✅ **MeetingProposalCard now calls free/busy.** "Schedule a meeting
+  with X tomorrow" → proposal card → real `POST /calendar/freebusy` for
+  tomorrow's work hours → `availabilityNote` shows candidate windows /
+  fully-booked / **"Google reconnect required"** (on `SCOPE_REAUTH_REQUIRED`
+  / `NOT_CONNECTED` / `TOKEN_REFRESH_FAILED`). No event created, no invite.
+- ✅ **Least-privilege Google scopes requested** (Phase 1271 §Group 1):
+  `calendar.freebusy`, `calendar.events.freebusy`,
+  `calendar.calendarlist.readonly`, `calendar.settings.readonly` added to
+  the Google OAuth ask. `calendar.readonly` (already granted) currently
+  powers free/busy; the new narrower scopes apply on next re-consent. A
+  unit test forbids broad `calendar`/`calendar.events`/Gmail-send/Drive
+  scopes from the default ask.
+
 **REMAINING (precise blockers):**
 
-1. **Calendar event proposal/create** — BLOCKED: only the
-   `calendar.readonly` scope is granted
-   (`connector-oauth.service.ts:122`). Creating an event needs
-   `calendar.events` (write). Unblocking requires a Founder-authorized
-   scope expansion + re-consent, then an approval-gated create route.
-2. **External Slack/email send** — governed, approval-required; needs a
-   ProposedAction `INVOKE_CONNECTOR` handler + Slack `chat:write` /
-   email send provider. Routes through the ADR-0057 pipeline; never an
-   auto-send.
-3. **Meeting-transcript ingestion** — Zoom transcript files are listed
-   by the recordings bridge (`file_types` includes `TRANSCRIPT`), but
-   downloading + parsing them into action items is a follow-on (the
-   download URL is deliberately withheld from the SAFE projection).
-4. **Task create/assign** — governed task ProposedAction type; no task
-   model/connector write surface exists yet (`linear-read.provider.ts`
-   is read-only).
-5. **Collaboration target resolution + Twin intercession policy** —
+1. **Calendar event proposal/create** — BLOCKED: the granted token is
+   read-only for calendar. Creating an event needs an **event-write**
+   scope (prefer `calendar.app.created` for app-owned calendars, else
+   `calendar.events`; avoid broad `calendar`). Requires a
+   Founder-authorized scope add + re-consent, then an approval-gated
+   create route. The card already states this gate honestly.
+2. **Gmail draft/send (future governed bridge)** — Gmail scopes are
+   configured in the Founder's Google console but are **NOT requested**
+   by Otzar in this phase. When built, use the **narrowest** scope:
+   `gmail.drafts.create` for drafts, `gmail.send` only for actual send;
+   avoid `gmail.modify`/`gmail.readonly`/full restricted scopes. Must be
+   approval/confirmation-gated via the ADR-0057 pipeline; never auto-send.
+   Keep separate from calendar work.
+3. **External Slack/email send** — governed, approval-required; needs an
+   `INVOKE_CONNECTOR` handler + Slack `chat:write` / email send provider.
+4. **Google Meet / Drive transcript ingestion (future bridge)** — may
+   need `drive.meet.readonly` or related Drive scope. **NOT requested**
+   in Phase 1271. **Kept separate from the Zoom recordings route** (Zoom
+   recordings ≠ Google Meet transcripts). Restricted Drive scopes require
+   explicit Founder authorization for the next bridge.
+5. **Meeting-transcript ingestion (Zoom)** — Zoom transcript files are
+   listed by the recordings bridge (`file_types` includes `TRANSCRIPT`),
+   but downloading + parsing them is a follow-on (the download URL is
+   deliberately withheld from the SAFE projection).
+6. **Task create/assign** — governed task ProposedAction type; no task
+   connector write surface exists yet (`linear-read.provider.ts` is
+   read-only).
+7. **Collaboration target resolution + Twin intercession policy** —
    resolve "David's Twin" + delegated-authority answering.
 
 ## 7. Recommended next bridge order
@@ -135,7 +161,7 @@ Remaining bridges, by dimension (status → symptom → next bridge → acceptan
 | 6 | Action Center | **Done** (focus + approve/reject) | Detail drawer + body surface (privacy-bounded) |
 | 7 | Project/goal context | Missing | Active-project selector + artifact.attach; AT: artifact shows project |
 | 8 | Meeting intelligence | Partial (conversation→actions; Zoom recordings list live) | Transcript download + extraction; AT: transcript→action items |
-| 9 | Calendar availability | **Done** (read) `POST /api/v1/calendar/freebusy` | Event create needs `calendar.events` scope (currently readonly) |
+| 9 | Calendar availability | **Done** (read + card-wired) — MeetingProposalCard calls `POST /api/v1/calendar/freebusy` | Event create needs an event-write scope (token is read-only) |
 | 10 | External comms | Missing (backend) | Approval-gated Slack/email send; AT: no send without approval |
 | 11 | Notifications | **Done** (wrap/scroll/route/clean error) | Detail modal |
 | 12 | Authority/approval | Partial (policy evaluator surfaced) | Standing/short/long grant UI; AT: status reflects grant tier |

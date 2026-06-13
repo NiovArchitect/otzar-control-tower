@@ -83,6 +83,11 @@ import {
 import { resolveTarget } from "@/lib/work-os/target-resolution";
 import { setActionDetails } from "@/lib/work-os/action-details-store";
 import {
+  tomorrowWorkWindow,
+  freeWindowsFromBusy,
+  DEFAULT_MEETING_MINUTES,
+} from "@/lib/work-os/availability";
+import {
   WorkArtifactCard,
   type WorkArtifact,
 } from "@/components/otzar/WorkArtifactCard";
@@ -1005,8 +1010,9 @@ export function AmbientOtzarBar(): JSX.Element {
           ...(prereqMatch !== null
             ? { prerequisite: `Requires ${prereqMatch[1]}` }
             : {}),
+          availabilityNote: "Checking your calendar availability…",
           runtimeNote:
-            "Availability (free/busy) is now readable, but creating the event isn't wired yet — the Google connection is read-only (calendar.readonly). This is a proposal: no event is created, no invite is sent.",
+            "Event creation is not enabled yet. Availability can be checked, but creating the calendar event requires an event-write scope and an approval-gated create flow. This is a proposal: no event is created, no invite is sent.",
         });
         setActionResult(action.spoken);
         setActionStatus("Draft · Approval required");
@@ -1019,6 +1025,53 @@ export function AmbientOtzarBar(): JSX.Element {
           target: action.targetEntity ?? null,
           result: "needs_confirmation",
         });
+        // Phase 1271 — REAL free/busy read for tomorrow's work hours.
+        // Populates the card's availabilityNote with candidate windows /
+        // busy blockers / a precise reconnect message. NEVER fabricates
+        // availability; NEVER creates an event or sends an invite.
+        {
+          const win = tomorrowWorkWindow();
+          void api.connectorData
+            .calendarFreeBusy({ time_min: win.time_min, time_max: win.time_max })
+            .then((r) => {
+              let note: string;
+              if (r.ok) {
+                const free = freeWindowsFromBusy(
+                  r.data.busy,
+                  win.time_min,
+                  win.time_max,
+                  DEFAULT_MEETING_MINUTES,
+                );
+                if (free.length === 0) {
+                  note =
+                    "No open " +
+                    `${DEFAULT_MEETING_MINUTES}-min slot in tomorrow's work hours — the day looks fully booked.`;
+                } else {
+                  note =
+                    "Candidate windows tomorrow:\n" +
+                    free
+                      .slice(0, 3)
+                      .map((w) => `• ${w}`)
+                      .join("\n");
+                }
+              } else if (
+                r.code === "SCOPE_REAUTH_REQUIRED" ||
+                r.code === "NOT_CONNECTED" ||
+                r.code === "TOKEN_REFRESH_FAILED"
+              ) {
+                note =
+                  "Google reconnect required for calendar availability. Open Workspace connections to reconnect.";
+              } else {
+                note =
+                  "Couldn't check calendar availability right now. The proposal still stands.";
+              }
+              setPendingArtifact((prev) =>
+                prev !== null && prev.kind === "SCHEDULE_MEETING"
+                  ? { ...prev, availabilityNote: note }
+                  : prev,
+              );
+            });
+        }
         return;
       }
       case "ZOOM_RECORDINGS": {
@@ -1055,7 +1108,8 @@ export function AmbientOtzarBar(): JSX.Element {
             }
           } else if (
             r.code === "NOT_CONNECTED" ||
-            r.code === "TOKEN_REFRESH_FAILED"
+            r.code === "TOKEN_REFRESH_FAILED" ||
+            r.code === "SCOPE_REAUTH_REQUIRED"
           ) {
             msg =
               "Your Zoom connection needs a reconnect before I can read recordings. Open Workspace connections to fix it.";

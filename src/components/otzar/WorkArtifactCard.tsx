@@ -46,6 +46,10 @@ export interface WorkArtifact {
   route?: string;
   /** Honest note when a backend bridge is missing. */
   runtimeNote?: string;
+  /** Phase 1271 — real free/busy availability summary for a meeting
+   *  proposal: candidate windows, busy blockers, or a reconnect/blocked
+   *  message. Never fabricated; set only from a live free/busy read. */
+  availabilityNote?: string;
 }
 
 interface Props {
@@ -147,6 +151,14 @@ export function WorkArtifactCard({
           data-testid="work-artifact-prereq"
         >
           ⏳ {artifact.prerequisite}
+        </div>
+      ) : null}
+      {artifact.availabilityNote !== undefined ? (
+        <div
+          className="whitespace-pre-line rounded bg-muted/50 p-1.5 text-[11px] text-foreground"
+          data-testid="work-artifact-availability"
+        >
+          {artifact.availabilityNote}
         </div>
       ) : null}
       {artifact.runtimeNote !== undefined ? (

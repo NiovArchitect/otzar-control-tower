@@ -523,6 +523,59 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
+  it("'Schedule a meeting with Vishesh tomorrow' shows REAL free/busy candidate windows, no event created (Phase 1271)", async () => {
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [{ start: "2026-06-14T17:00:00Z", end: "2026-06-14T18:00:00Z" }],
+        }),
+      ),
+    );
+    await speak("Schedule a meeting with Vishesh tomorrow.");
+    // The proposal card appears immediately.
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument(),
+    );
+    // Then real availability resolves into the card.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("work-artifact-availability").textContent,
+      ).toMatch(/Candidate windows tomorrow/i);
+    });
+    // Event creation stays gated; no backend action created.
+    expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
+      /Event creation is not enabled yet/i,
+    );
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("Meeting proposal shows 'Google reconnect required' when free/busy needs re-consent — never fake availability", async () => {
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json(
+          { ok: false, code: "SCOPE_REAUTH_REQUIRED" },
+          { status: 409 },
+        ),
+      ),
+    );
+    await speak("Schedule a meeting with Vishesh tomorrow.");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("work-artifact-availability").textContent,
+      ).toMatch(/Google reconnect required/i);
+    });
+    // No fabricated candidate windows, no event created.
+    expect(
+      screen.getByTestId("work-artifact-availability").textContent,
+    ).not.toMatch(/Candidate windows/i);
+    expect(actionPosts.length).toBe(0);
+  });
+
   it("'Draft a message to David…' creates a LOCAL draft (NO backend action until Confirm)", async () => {
     // Phase 1269 semantics: draft is local — proposing is an explicit
     // Confirm, never automatic.
