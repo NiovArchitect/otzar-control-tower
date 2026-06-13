@@ -50,6 +50,15 @@ export interface WorkArtifact {
    *  proposal: candidate windows, busy blockers, or a reconnect/blocked
    *  message. Never fabricated; set only from a live free/busy read. */
   availabilityNote?: string;
+  /** Phase 1273 — project/goal context label, e.g. "Otzar voice runtime". */
+  contextLabel?: string;
+  /** Phase 1273 — instruction weight (COMMITMENT / COMMAND / DELEGATION…). */
+  weight?: string;
+  /** Phase 1273 — authority/policy status from the backend authority
+   *  context (e.g. "Manager authority — internal scheduling allowed"). */
+  authorityNote?: string;
+  /** Phase 1273 — links artifacts that came from one multi-intent plan. */
+  planId?: string;
 }
 
 interface Props {
@@ -73,6 +82,7 @@ export function WorkArtifactCard({
 }: Props): JSX.Element {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(artifact.body);
+  const [viewing, setViewing] = useState(false);
   const [includeOpen, setIncludeOpen] = useState(false);
   const [includeName, setIncludeName] = useState("");
   const [included, setIncluded] = useState<string[]>([]);
@@ -151,6 +161,19 @@ export function WorkArtifactCard({
           data-testid="work-artifact-prereq"
         >
           ⏳ {artifact.prerequisite}
+        </div>
+      ) : null}
+      {artifact.authorityNote !== undefined ? (
+        <div
+          className="rounded bg-primary/10 p-1.5 text-[11px] text-foreground"
+          data-testid="work-artifact-authority"
+        >
+          {artifact.authorityNote}
+        </div>
+      ) : null}
+      {artifact.contextLabel !== undefined ? (
+        <div className="text-[10px] text-muted-foreground" data-testid="work-artifact-context">
+          Context: {artifact.contextLabel}
         </div>
       ) : null}
       {artifact.availabilityNote !== undefined ? (
@@ -238,21 +261,48 @@ export function WorkArtifactCard({
             >
               <X className="mr-1 h-3 w-3" /> Cancel
             </Button>
-            {artifact.route !== undefined ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-[11px]"
-                data-testid="work-artifact-open"
-                onClick={() => onOpen?.(artifact.route as string)}
-              >
-                <ExternalLink className="mr-1 h-3 w-3" /> Open
-              </Button>
-            ) : null}
+            {/* View/Open is ALWAYS available (Phase 1273): inspect-only.
+                Routes to a detail surface when one exists; otherwise
+                toggles an in-place inspector. NEVER confirms/creates/
+                sends. */}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-[11px]"
+              data-testid="work-artifact-open"
+              onClick={() => {
+                if (artifact.route !== undefined) {
+                  onOpen?.(artifact.route);
+                } else {
+                  setViewing((v) => !v);
+                }
+              }}
+            >
+              <ExternalLink className="mr-1 h-3 w-3" />
+              {artifact.route !== undefined ? "Open" : "View"}
+            </Button>
           </>
         )}
       </div>
+      {viewing && artifact.route === undefined ? (
+        <div
+          className="mt-1 space-y-0.5 rounded bg-muted/40 p-1.5 text-[11px] text-muted-foreground"
+          data-testid="work-artifact-view-details"
+        >
+          <div>Status: {artifact.status}</div>
+          {artifact.targetLabel !== undefined ? (
+            <div>Target: {artifact.targetLabel}</div>
+          ) : null}
+          {artifact.channel !== undefined ? (
+            <div>Channel: {artifact.channel}</div>
+          ) : null}
+          {artifact.sourceCommand !== undefined ? (
+            <div>Source: “{artifact.sourceCommand}”</div>
+          ) : null}
+          <div className="italic">Inspect only — nothing is sent or created.</div>
+        </div>
+      ) : null}
     </div>
   );
 }

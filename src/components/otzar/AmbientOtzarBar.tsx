@@ -88,6 +88,10 @@ import {
   DEFAULT_MEETING_MINUTES,
 } from "@/lib/work-os/availability";
 import {
+  planWorkCommand,
+  type PlannedAction,
+} from "@/lib/work-os/command-planner";
+import {
   WorkArtifactCard,
   type WorkArtifact,
 } from "@/components/otzar/WorkArtifactCard";
@@ -216,6 +220,9 @@ export function AmbientOtzarBar(): JSX.Element {
   const [pendingArtifact, setPendingArtifact] = useState<WorkArtifact | null>(
     null,
   );
+  // Phase 1273 — a multi-intent WorkPlan renders as several linked,
+  // independently-inspectable artifact cards (never one flattened card).
+  const [planArtifacts, setPlanArtifacts] = useState<WorkArtifact[]>([]);
   // Which STT engine produced the spoken command's transcript
   // (desktop path only): "openai-whisper" or "deepgram".
   const [transcriptionProvider, setTranscriptionProvider] = useState<
@@ -852,6 +859,248 @@ export function AmbientOtzarBar(): JSX.Element {
   // URL open, a draft-only (approval-gated) action, or a fall-through
   // to the SAME governed chat path as typed input. Each is audited
   // (safe metadata only) and confirmed in premium voice.
+  // Phase 1273 — map a planned-action kind to its backend Work OS action.
+  function workOsActionFor(kind: PlannedAction["kind"]): string {
+    if (kind === "SCHEDULE_MEETING") return "CREATE_INTERNAL_MEETING";
+    if (kind === "TASK") return "ASSIGN_TASK";
+    return "CREATE_FOLLOW_UP_NOTE";
+  }
+
+  function statusForDecision(decision: string): string {
+    switch (decision) {
+      case "ALLOW":
+        return "Ready";
+      case "ALLOW_WITH_CONFIRMATION":
+        return "Ready to confirm";
+      case "ALLOW_WITH_STANDING_AUTHORITY":
+        return "Ready (standing authority)";
+      case "REQUIRES_TARGET_CONFIRMATION":
+        return "Needs participant confirmation";
+      case "REQUIRES_APPROVAL":
+        return "Needs approval";
+      case "REQUIRES_DUAL_CONTROL":
+        return "Needs dual control";
+      case "BLOCKED":
+        return "Blocked";
+      case "RUNTIME_MISSING":
+        return "Runtime not wired";
+      default:
+        return "Draft · needs confirmation";
+    }
+  }
+
+  // Build one inspectable WorkArtifact from a planned action, enriching
+  // it with the REAL backend authority decision (never a generic draft;
+  // never a guessed target). The target is resolved server-side — an
+  // unknown name surfaces as an honest "unresolved" status.
+  async function buildArtifactFromAction(
+    action: PlannedAction,
+    sourceCommand: string,
+    planId: string | undefined,
+  ): Promise<WorkArtifact> {
+    const target = action.target_name;
+    let authorityNote: string | undefined;
+    let status = "Draft · needs confirmation";
+
+    if (target !== undefined) {
+      const r = await api.workOs.authorityContext({
+        target_name: target,
+        actions: [workOsActionFor(action.kind)],
+      });
+      if (r.ok) {
+        const a = r.data.authority;
+        const pol = r.data.policies[0];
+        if (a.target_resolution === "NOT_FOUND") {
+          status = "Participant unresolved";
+          authorityNote = `I don't know which ${target}. Choose a teammate or enter an email/calendar.`;
+        } else if (a.target_resolution === "AMBIGUOUS") {
+          status = "Participant ambiguous";
+          authorityNote = `More than one teammate matches "${target}" — pick one.`;
+        } else if (pol !== undefined) {
+          status = statusForDecision(pol.decision);
+          authorityNote = a.caller_is_manager_of_target
+            ? `Manager authority over ${a.target_display_name ?? target}. ${pol.reason}`
+            : pol.reason;
+        }
+      }
+    }
+
+    const title =
+      action.kind === "SCHEDULE_MEETING"
+        ? target
+          ? `Meeting proposal → ${target}`
+          : "Meeting proposal"
+        : action.kind === "TASK"
+          ? target
+            ? `Task → ${target}`
+            : "Task proposal"
+          : target
+            ? `Follow up with ${target}`
+            : "Follow-up note";
+    const channel = action.kind === "SCHEDULE_MEETING" ? "calendar" : "internal";
+    const body =
+      action.kind === "FOLLOW_UP_NOTE"
+        ? `Follow up with ${target ?? "them"}${
+            action.context_label !== undefined
+              ? ` about ${action.context_label}`
+              : ""
+          }.`
+        : action.source_segment;
+
+    return {
+      kind: action.kind,
+      title,
+      ...(target !== undefined ? { targetLabel: target } : {}),
+      channel,
+      body,
+      status,
+      ...(action.prerequisite !== undefined
+        ? { prerequisite: `Requires ${action.prerequisite}` }
+        : {}),
+      ...(action.context_label !== undefined
+        ? { contextLabel: action.context_label }
+        : {}),
+      weight: action.weight,
+      ...(authorityNote !== undefined ? { authorityNote } : {}),
+      sourceCommand,
+      ...(planId !== undefined ? { planId } : {}),
+      runtimeNote:
+        action.kind === "SCHEDULE_MEETING"
+          ? "Proposal only — no event is created and no invite is sent until every gate passes."
+          : action.kind === "TASK"
+            ? "Task proposal — not assigned until you confirm; no fake completion."
+            : "Follow-up draft — nothing is sent. Edit and confirm when ready.",
+    };
+  }
+
+  // Render a multi-intent plan as several linked, inspectable cards.
+  async function renderWorkPlan(
+    actions: PlannedAction[],
+    sourceCommand: string,
+    at: string,
+  ): Promise<void> {
+    const planId = `plan-${at}`;
+    const planned = actions.filter(
+      (a) =>
+        a.kind === "SCHEDULE_MEETING" ||
+        a.kind === "FOLLOW_UP_NOTE" ||
+        a.kind === "TASK",
+    );
+    const artifacts = await Promise.all(
+      planned.map((a) => buildArtifactFromAction(a, sourceCommand, planId)),
+    );
+    setPlanArtifacts(artifacts);
+    const summary = `I split that into ${artifacts.length} linked actions: ${artifacts
+      .map((x) => x.title)
+      .join("; ")}.`;
+    setActionResult(summary);
+    setActionStatus("Plan · review each");
+    appendConversationEntry({
+      role: "action",
+      text: summary,
+      at,
+      kind: "WORK_PLAN",
+      status: "Plan",
+    });
+    speakConfirmation("I split that into linked actions — review each below.");
+    recordVoiceAction({
+      at,
+      transcript: sourceCommand,
+      actionType: "WORK_PLAN",
+      target: null,
+      result: "needs_confirmation",
+    });
+  }
+
+  // Render a single follow-up commitment as one inspectable artifact.
+  async function renderFollowUp(
+    action: PlannedAction,
+    sourceCommand: string,
+    at: string,
+  ): Promise<void> {
+    const artifact = await buildArtifactFromAction(action, sourceCommand, undefined);
+    setPendingArtifact(artifact);
+    setActionResult(artifact.title);
+    setActionStatus(artifact.status);
+    appendConversationEntry({
+      role: "action",
+      text: `${artifact.title} — ${artifact.status}.`,
+      at,
+      kind: "FOLLOW_UP_NOTE",
+      status: artifact.status,
+    });
+    speakConfirmation(`I created a follow-up draft: ${artifact.title}.`);
+    recordVoiceAction({
+      at,
+      transcript: sourceCommand,
+      actionType: "FOLLOW_UP_NOTE",
+      target: action.target_name ?? null,
+      result: "needs_confirmation",
+    });
+  }
+
+  // Confirm ONE artifact within a plan — never the others (Phase 1273).
+  // A meeting attempts the gated create (which blocks honestly); a
+  // follow-up/task is confirmed as a local draft (no send, no fake
+  // completion). Persistent task/collab substrate is the next bridge.
+  async function confirmPlanArtifact(index: number, body: string): Promise<void> {
+    const a = planArtifacts[index];
+    if (a === undefined) return;
+    let status: string;
+    let note: string | undefined;
+    if (a.kind === "SCHEDULE_MEETING") {
+      const r = await api.connectorData.calendarEventCreate({
+        title: a.title,
+        participants:
+          a.targetLabel !== undefined
+            ? [{ label: a.targetLabel, resolved: true }]
+            : [],
+        selected_time: null,
+        caller_confirmed: true,
+        ...(a.prerequisite !== undefined
+          ? { prerequisite: a.prerequisite, participant_confirmations_satisfied: false }
+          : { participant_confirmations_satisfied: true }),
+        source_command: a.sourceCommand ?? body,
+      });
+      if (r.ok) {
+        status = "Created.";
+      } else if (r.code === "NEEDS_SELECTED_TIME") {
+        status = "Choose a time.";
+      } else if (
+        r.code === "EVENT_WRITE_SCOPE_MISSING" ||
+        r.code === "GOOGLE_RECONNECT_REQUIRED"
+      ) {
+        status = "Needs Google reconnect for event creation.";
+      } else if (r.code === "NEEDS_PARTICIPANT_CONFIRMATION") {
+        status = a.prerequisite ?? "Needs participant confirmation.";
+      } else {
+        status = "Held at gate.";
+      }
+      note = r.ok ? undefined : "No event created — held at the gate. No invite sent.";
+    } else {
+      // Follow-up / task: confirm as a local governed draft. No send,
+      // no fake completion — real persistence is the next bridge.
+      status =
+        a.kind === "TASK"
+          ? "Task proposal confirmed (local)"
+          : "Follow-up confirmed (local draft)";
+      note = "Saved locally — no message sent, no task marked complete.";
+    }
+    setPlanArtifacts((prev) =>
+      prev.map((x, j) => {
+        if (j !== index) return x;
+        const { runtimeNote: _drop, ...rest } = x;
+        void _drop;
+        return {
+          ...rest,
+          body,
+          status,
+          ...(note !== undefined ? { runtimeNote: note } : {}),
+        };
+      }),
+    );
+  }
+
   async function handleSendText(raw: string): Promise<void> {
     const text = raw.trim();
     if (text.length === 0 || intent.processing) return;
@@ -861,9 +1110,49 @@ export function AmbientOtzarBar(): JSX.Element {
     setActionVoicePath(null);
     setActionStatus(null);
     setPendingArtifact(null);
+    setPlanArtifacts([]);
     // Typed input has no transcription engine; the desktop-voice effect
     // re-sets this after calling handleSendText.
     setTranscriptionProvider(null);
+
+    // Phase 1273 — multi-intent + commitment interception. A compound
+    // command becomes a WorkPlan of linked cards; a stated commitment
+    // ("I told X I would follow up") becomes a follow-up artifact. Single
+    // meeting/draft/navigation commands fall through to the existing
+    // classifier (which carries the free/busy + gated-create flow).
+    {
+      const plan = planWorkCommand(text);
+      const nonTrivial = plan.actions.filter(
+        (a) =>
+          a.kind === "SCHEDULE_MEETING" ||
+          a.kind === "FOLLOW_UP_NOTE" ||
+          a.kind === "TASK",
+      );
+      const at0 = new Date().toISOString();
+      if (plan.multi_intent && nonTrivial.length > 1) {
+        setActionHeard(text);
+        setActionLabel("Work plan");
+        setDraft("");
+        appendConversationEntry({ role: "user", text, at: at0 });
+        await renderWorkPlan(plan.actions, text, at0);
+        return;
+      }
+      if (
+        plan.actions.length === 1 &&
+        plan.actions[0]!.kind === "FOLLOW_UP_NOTE"
+      ) {
+        setActionHeard(text);
+        setActionLabel(
+          plan.actions[0]!.target_name !== undefined
+            ? `Follow up → ${plan.actions[0]!.target_name}`
+            : "Follow-up note",
+        );
+        setDraft("");
+        appendConversationEntry({ role: "user", text, at: at0 });
+        await renderFollowUp(plan.actions[0]!, text, at0);
+        return;
+      }
+    }
 
     const action = classifyVoiceAction(text, capabilities);
     setActionHeard(action.heard);
@@ -1067,6 +1356,46 @@ export function AmbientOtzarBar(): JSX.Element {
           target: action.targetEntity ?? null,
           result: "needs_confirmation",
         });
+        // Phase 1273 — REAL authority context: resolve the participant
+        // and surface the manager/peer/unresolved status from the backend
+        // (no generic draft; no guessed Alex). Updates the card in place.
+        if (action.targetEntity !== undefined) {
+          void api.workOs
+            .authorityContext({
+              target_name: action.targetEntity,
+              actions: ["CREATE_INTERNAL_MEETING", "READ_CALENDAR_FREEBUSY_TARGET"],
+            })
+            .then((r) => {
+              if (!r.ok) return;
+              const a = r.data.authority;
+              const meetingPol = r.data.policies.find(
+                (p) => p.action === "CREATE_INTERNAL_MEETING",
+              );
+              let note: string;
+              let unresolved = false;
+              if (a.target_resolution === "NOT_FOUND") {
+                unresolved = true;
+                note = `I don't know which ${action.targetEntity}. Choose a teammate or enter an email/calendar.`;
+              } else if (a.target_resolution === "AMBIGUOUS") {
+                unresolved = true;
+                note = `More than one teammate matches "${action.targetEntity}" — pick one.`;
+              } else {
+                const who = a.target_display_name ?? action.targetEntity;
+                note = a.caller_is_manager_of_target
+                  ? `Manager authority over ${who} — internal scheduling allowed (${meetingPol?.reason ?? "manager authority"}). Calendar visibility: ${a.caller_can_view_target_calendar ? "allowed by policy (target calendar address not yet wired)" : "not granted"}.`
+                  : (meetingPol?.reason ?? "Peer scheduling needs the teammate's confirmation.");
+              }
+              setPendingArtifact((prev) =>
+                prev !== null && prev.kind === "SCHEDULE_MEETING"
+                  ? {
+                      ...prev,
+                      authorityNote: note,
+                      ...(unresolved ? { status: "Participant unresolved" } : {}),
+                    }
+                  : prev,
+              );
+            });
+        }
         // Phase 1271 — REAL free/busy read for tomorrow's work hours.
         // Populates the card's availabilityNote with candidate windows /
         // busy blockers / a precise reconnect message. NEVER fabricates
@@ -1859,6 +2188,31 @@ export function AmbientOtzarBar(): JSX.Element {
               onEdit={(body) => void reviseArtifact(body)}
               onOpen={(route) => navigate(route)}
             />
+          ) : null}
+
+          {/* Phase 1273 — a multi-intent plan renders as several linked
+              cards. Confirming/cancelling one NEVER touches the others. */}
+          {planArtifacts.length > 0 ? (
+            <div className="space-y-1.5" data-testid="work-plan">
+              <div className="text-[11px] font-medium text-muted-foreground">
+                Plan · {planArtifacts.length} linked actions
+              </div>
+              {planArtifacts.map((pa, i) => (
+                <WorkArtifactCard
+                  key={`${pa.planId ?? "plan"}-${i}`}
+                  artifact={pa}
+                  onConfirm={(body) => void confirmPlanArtifact(i, body)}
+                  onCancel={() =>
+                    setPlanArtifacts((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  onEdit={(body) =>
+                    setPlanArtifacts((prev) =>
+                      prev.map((x, j) => (j === i ? { ...x, body } : x)),
+                    )
+                  }
+                />
+              ))}
+            </div>
           ) : null}
 
           {response !== null ? (

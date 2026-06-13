@@ -4239,6 +4239,37 @@ export interface CalendarEventProposalBody {
   caller_confirmed?: boolean;
 }
 
+// Phase 1273 — authority context (hierarchy/RBAC/ABAC) from the backend.
+export interface AuthorityContextView {
+  caller_can_admin_org: boolean;
+  target_resolution:
+    | "RESOLVED_INTERNAL_ENTITY"
+    | "AMBIGUOUS"
+    | "NOT_FOUND"
+    | "NEEDS_EMAIL"
+    | "RUNTIME_MISSING";
+  target_entity_id: string | null;
+  target_display_name: string | null;
+  target_role_title: string | null;
+  caller_is_manager_of_target: boolean;
+  caller_can_view_target_calendar: boolean;
+  caller_can_schedule_with_target: boolean;
+  caller_can_assign_task_to_target: boolean;
+}
+
+export interface WorkOsPolicyResult {
+  action: string;
+  decision: string;
+  reason_code: string;
+  reason: string;
+}
+
+export interface AuthorityContextResponse {
+  ok: true;
+  authority: AuthorityContextView;
+  policies: WorkOsPolicyResult[];
+}
+
 /** Gate blocker codes returned by the gated create endpoint. */
 export type CalendarEventGateCode =
   | "NEEDS_SELECTED_TIME"

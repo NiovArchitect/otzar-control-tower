@@ -2830,7 +2830,62 @@ const complianceStateHandler = http.get(
     ),
 );
 
+// Phase 1273 — authority context (hierarchy/RBAC/ABAC). Default mirrors
+// the live demo: the caller is an org admin (manager authority); known
+// teammates resolve; an unknown name (Alex) is NOT_FOUND. Tests override
+// with server.use for peer / ambiguous cases.
+const KNOWN_TEAMMATES: Record<string, { id: string; name: string; role: string }> = {
+  vishesh: { id: "ent-vishesh", name: "Vishesh Sharma", role: "AI UI ENGINEER" },
+  samiksha: { id: "ent-samiksha", name: "Samiksha Sharma", role: "AI/NLP ENGINEER" },
+  david: { id: "ent-david", name: "David Odie", role: "TECH LEAD" },
+};
+const workOsAuthorityHandler = http.post(
+  `${API_BASE}/work-os/authority-context`,
+  async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as {
+      target_name?: string;
+      actions?: string[];
+    };
+    const key = (body.target_name ?? "").trim().toLowerCase();
+    const hit = KNOWN_TEAMMATES[key];
+    const resolved = hit !== undefined;
+    const authority = {
+      caller_can_admin_org: true,
+      target_resolution: resolved ? "RESOLVED_INTERNAL_ENTITY" : "NOT_FOUND",
+      target_entity_id: hit?.id ?? null,
+      target_display_name: hit?.name ?? null,
+      target_role_title: hit?.role ?? null,
+      caller_is_manager_of_target: resolved,
+      caller_can_view_target_calendar: resolved,
+      caller_can_schedule_with_target: resolved,
+      caller_can_assign_task_to_target: resolved,
+    };
+    const policies = (body.actions ?? []).map((action) => {
+      if (!resolved) {
+        return {
+          action,
+          decision: "BLOCKED",
+          reason_code: "TARGET_NOT_FOUND",
+          reason: "The participant could not be resolved in your organization.",
+        };
+      }
+      const decision =
+        action === "CREATE_INTERNAL_MEETING" || action === "ASSIGN_TASK"
+          ? "ALLOW_WITH_CONFIRMATION"
+          : "ALLOW";
+      return {
+        action,
+        decision,
+        reason_code: "MANAGER_AUTHORITY",
+        reason: "Manager authority allows internal action after you confirm.",
+      };
+    });
+    return HttpResponse.json({ ok: true, authority, policies }, { status: 200 });
+  },
+);
+
 export const handlers = [
+  workOsAuthorityHandler,
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
   // Section 7 Full Audit Viewer (ADR-0071 + earlier Section 7 waves)

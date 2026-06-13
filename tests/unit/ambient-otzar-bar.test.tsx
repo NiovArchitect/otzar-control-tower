@@ -693,6 +693,122 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
+  it("Scheduling Vishesh shows MANAGER AUTHORITY status, not a generic draft (Phase 1273)", async () => {
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [],
+        }),
+      ),
+    );
+    await speak("Schedule a meeting with Vishesh tomorrow.");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("work-artifact-authority").textContent,
+      ).toMatch(/Manager authority/i);
+    });
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("Scheduling unknown Alex shows participant UNRESOLVED — never guesses (Phase 1273)", async () => {
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [],
+        }),
+      ),
+    );
+    await speak("Schedule a meeting with Alex tomorrow.");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("work-artifact-authority").textContent,
+      ).toMatch(/don't know which Alex/i);
+    });
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("Meeting proposal card ALWAYS shows View/Open (inspect-only) — Phase 1273 regression fix", async () => {
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [],
+        }),
+      ),
+    );
+    await speak("Schedule a meeting with Vishesh tomorrow.");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-open")).toBeInTheDocument(),
+    );
+    // View opens an in-place inspector and creates nothing.
+    await userEvent.setup().click(screen.getByTestId("work-artifact-open"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("work-artifact-view-details"),
+      ).toBeInTheDocument(),
+    );
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("Multi-intent command renders TWO linked plan cards (meeting + David follow-up) — Phase 1273", async () => {
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [],
+        }),
+      ),
+    );
+    await speak(
+      "After Samiksha confirms, schedule a 30-minute meeting with Vishesh tomorrow during work hours about the Otzar voice runtime, and prepare a follow-up note for David.",
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("work-plan")).toBeInTheDocument(),
+    );
+    const cards = screen.getAllByTestId("work-artifact-card");
+    expect(cards.length).toBe(2);
+    const text = cards.map((c) => c.textContent ?? "").join(" | ");
+    expect(text).toMatch(/Meeting proposal → Vishesh/i);
+    expect(text).toMatch(/Follow up with David/i);
+    // Samiksha prerequisite preserved; context attached; nothing executed.
+    expect(text).toMatch(/Samiksha/i);
+    expect(text).toMatch(/Otzar voice runtime/i);
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("'I told Vishesh I would follow up…' creates a FOLLOW-UP artifact (commitment), no send (Phase 1273)", async () => {
+    await speak(
+      "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument(),
+    );
+    const card = screen.getByTestId("work-artifact-card");
+    expect(card.textContent).toMatch(/Follow up with Vishesh/i);
+    expect(card.textContent).toMatch(/Otzar voice runtime/i);
+    // No send, no governed action created.
+    expect(actionPosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+  });
+
   it("conversation thread persists prompts + results and is scrollable", async () => {
     await speak("What should I do next?");
     await waitFor(() => {

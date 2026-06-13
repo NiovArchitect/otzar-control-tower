@@ -76,6 +76,7 @@ import type {
   ZoomRecordingsResponse,
   CalendarFreeBusyResponse,
   CalendarEventProposalBody,
+  AuthorityContextResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1157,6 +1158,24 @@ export class ApiClient {
         "/calendar/events/create",
         { method: "POST", body },
       ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // workOs.* (Phase 1273) — authority context (hierarchy/RBAC/ABAC).
+  // Resolves a target in the caller's org and returns the authority
+  // context + per-action policy decisions. The source of truth for
+  // "what can Otzar do now" lives in the backend; the UI displays it.
+  // ──────────────────────────────────────────────────────────────
+  workOs = {
+    /** POST /api/v1/work-os/authority-context — resolve target + policy. */
+    authorityContext: (body: {
+      target_name?: string;
+      actions?: string[];
+    }): Promise<ApiResult<AuthorityContextResponse>> =>
+      this.request<AuthorityContextResponse>("/work-os/authority-context", {
+        method: "POST",
+        body,
+      }),
   };
 
   // ──────────────────────────────────────────────────────────────
