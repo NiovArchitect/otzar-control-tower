@@ -2887,8 +2887,30 @@ const workOsAuthorityHandler = http.post(
   },
 );
 
+// Phase 1277 — runtime fabric default: honest NOT_CONFIGURED (no live
+// Python/BEAM in tests); env KEY NAMES only, never values.
+function runtimeView(status: string, env_key: string | null, configured: boolean) {
+  return { status, env_key, configured, capabilities: [], note: "", last_checked_at: null };
+}
+const runtimeCapabilitiesHandler = http.get(
+  `${API_BASE}/system/runtime-capabilities`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      runtimes: {
+        typescript_api: runtimeView("HEALTHY", null, true),
+        python_worker: runtimeView("NOT_CONFIGURED", "PYTHON_INTELLIGENCE_RUNTIME_URL", false),
+        beam_fabric: runtimeView("DISABLED", "BEAM_RUNTIME_URL", false),
+        desktop_native: runtimeView("CONFIGURED_UNVERIFIED", null, true),
+        queue_event_bus: runtimeView("NOT_CONFIGURED", null, false),
+        fallback_active: true,
+      },
+    }),
+);
+
 export const handlers = [
   workOsAuthorityHandler,
+  runtimeCapabilitiesHandler,
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
   // Section 7 Full Audit Viewer (ADR-0071 + earlier Section 7 waves)

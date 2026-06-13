@@ -4239,6 +4239,33 @@ export interface CalendarEventProposalBody {
   caller_confirmed?: boolean;
 }
 
+// Phase 1277 — polyglot runtime fabric capability registry.
+export interface RuntimeView {
+  status:
+    | "NOT_CONFIGURED"
+    | "CONFIGURED_UNVERIFIED"
+    | "HEALTHY"
+    | "UNHEALTHY"
+    | "DISABLED";
+  env_key: string | null;
+  configured: boolean;
+  capabilities: string[];
+  note: string;
+  last_checked_at: string | null;
+}
+
+export interface RuntimeCapabilitiesResponse {
+  ok: true;
+  runtimes: {
+    typescript_api: RuntimeView;
+    python_worker: RuntimeView;
+    beam_fabric: RuntimeView;
+    desktop_native: RuntimeView;
+    queue_event_bus: RuntimeView;
+    fallback_active: boolean;
+  };
+}
+
 // Phase 1273 — authority context (hierarchy/RBAC/ABAC) from the backend.
 export interface AuthorityContextView {
   caller_can_admin_org: boolean;

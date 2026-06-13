@@ -314,3 +314,32 @@ avoid sprawl):**
 Tenant isolation, memory classification (via COSMP/DMW), and role-specific
 cockpits remain governed by the existing substrate; constitution + ledger
 work above must stay tenant-scoped with isolation tests.
+
+## Phase 1277 — Polyglot Runtime Fabric (governed)
+
+**Division of labor** (full doc: `otzar-polyglot-runtime-architecture.md`):
+TypeScript/Fastify owns governance APIs; Python owns intelligence jobs;
+BEAM/Elixir owns coordination actors; Tauri/Rust owns native desktop
+capability; Postgres owns durable state. **Foundation remains the sole
+authority** — no runtime bypasses policy (ask → receive governed job →
+emit audited result → or fail closed).
+
+**Landed:**
+- ✅ **RuntimeCapabilityRegistry** — `GET /api/v1/system/runtime-capabilities`,
+  honest aggregated status (env KEY NAMES only; `NOT_CONFIGURED`/`DISABLED`
+  never faked). Reuses existing Python + BEAM clients (no duplication).
+- ✅ **System Health "Runtime Fabric" card** — shows each runtime's status,
+  capabilities, and the active fallback line.
+
+**Current status (honest):**
+- Python intelligence worker: scaffold exists (`services/python-intelligence/`);
+  `NOT_CONFIGURED` at runtime unless `PYTHON_INTELLIGENCE_RUNTIME_URL` is set
+  → deterministic TypeScript fallback, surfaced as fallback.
+- BEAM coordination fabric: Elixir apps exist; `DISABLED`/`CONFIGURED_UNVERIFIED`
+  unless `BEAM_RUNTIME_ENABLED`+`BEAM_RUNTIME_URL` set and `/health` passes.
+
+**Next bridges:** `GovernedRuntimeJob` + `RuntimeDispatchService`; Python
+`EXTRACT_WORK_SIGNALS` woven into the planner; WorkOsEvent → BEAM fanout/
+watchdogs on ledger/collaboration creation; Python blind-spot scoring +
+workload optimization + scenario simulation; desktop screen Observe +
+native notifications.

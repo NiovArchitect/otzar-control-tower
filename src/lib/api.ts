@@ -77,6 +77,7 @@ import type {
   CalendarFreeBusyResponse,
   CalendarEventProposalBody,
   AuthorityContextResponse,
+  RuntimeCapabilitiesResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1176,6 +1177,16 @@ export class ApiClient {
         method: "POST",
         body,
       }),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // system.* (Phase 1277) — honest polyglot runtime fabric status.
+  // ──────────────────────────────────────────────────────────────
+  system = {
+    /** GET /api/v1/system/runtime-capabilities — TS/Python/BEAM/desktop
+     *  runtime truth (env KEY NAMES only; NOT_CONFIGURED never faked). */
+    runtimeCapabilities: (): Promise<ApiResult<RuntimeCapabilitiesResponse>> =>
+      this.request<RuntimeCapabilitiesResponse>("/system/runtime-capabilities"),
   };
 
   // ──────────────────────────────────────────────────────────────
