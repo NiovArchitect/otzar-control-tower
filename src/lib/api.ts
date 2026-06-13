@@ -80,6 +80,7 @@ import type {
   RuntimeCapabilitiesResponse,
   WorkLedgerCreateResponse,
   WorkLedgerListResponse,
+  ExecutionAttemptListResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1201,6 +1202,16 @@ export class ApiClient {
      *  TEAM_SCOPE_NOT_CONFIGURED when the caller lacks team authority. */
     teamWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
       this.request<WorkLedgerListResponse>("/work-os/team-work"),
+
+    /** GET /api/v1/work-os/ledger/:id/execution-attempts — durable
+     *  evidence that runtime steps happened for one ledger entry
+     *  (tenant-scoped; an attempt is evidence, never an action). */
+    executionAttempts: (
+      ledgerEntryId: string,
+    ): Promise<ApiResult<ExecutionAttemptListResponse>> =>
+      this.request<ExecutionAttemptListResponse>(
+        `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/execution-attempts`,
+      ),
   };
 
   // ──────────────────────────────────────────────────────────────

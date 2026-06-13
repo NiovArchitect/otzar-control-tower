@@ -4259,6 +4259,34 @@ export interface WorkLedgerEntryView {
   // Phase 1281 — governed BEAM coordination result (create-time).
   coordination_runtime?: string;
   coordination_watcher?: string;
+  // Phase 1282 — advisory Python enrichment truth (View/Why). Present only
+  // when enrichment ran; status names the degrade path when Python was not
+  // used. Foundation stays the authority — this never decides ownership.
+  python_enrichment?: {
+    status: string;
+    signals: Array<{ signal_type: string; confidence: string; evidence_phrase: string }>;
+    primary_signal: string | null;
+    multi_intent: boolean;
+  };
+}
+
+// Phase 1282 — durable execution evidence for a ledger entry. An attempt is
+// EVIDENCE that a runtime step happened, never an action.
+export interface ExecutionAttemptView {
+  attempt_id: string;
+  ledger_entry_id: string;
+  attempt_type: string;
+  runtime: string;
+  evidence_type: string;
+  status: string;
+  error_code: string | null;
+  created_at: string;
+  verified_at: string | null;
+}
+
+export interface ExecutionAttemptListResponse {
+  ok: boolean;
+  attempts?: ExecutionAttemptView[];
 }
 
 export interface WorkLedgerCreateResponse {

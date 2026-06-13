@@ -68,6 +68,28 @@ export function WorkLedgerItem({
           {detail("Target", entry.target_entity_id)}
           {detail("Plan", entry.work_plan_id)}
           {detail("Due", entry.due_at)}
+          {entry.python_enrichment !== undefined ? (
+            <div className="mt-1 border-t border-border/50 pt-1" data-testid="work-ledger-item-enrichment">
+              <div>
+                <span className="text-muted-foreground">Python enrichment:</span>{" "}
+                {entry.python_enrichment.status === "PYTHON_ENRICHED"
+                  ? `advisory · ${entry.python_enrichment.signals.length} signal${
+                      entry.python_enrichment.signals.length === 1 ? "" : "s"
+                    }${entry.python_enrichment.multi_intent ? " · multi-intent" : ""}`
+                  : `not used (${entry.python_enrichment.status.replace(/_/g, " ").toLowerCase()})`}
+              </div>
+              {entry.python_enrichment.signals.length > 0 ? (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {entry.python_enrichment.signals.map((s) => (
+                    <Badge key={`${s.signal_type}-${s.evidence_phrase}`} variant="outline" className="text-[9px]">
+                      {s.signal_type.replace(/_/g, " ").toLowerCase()} · {s.confidence.toLowerCase()}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+              <div className="text-[10px] italic">Advisory only — Foundation decides ownership and policy.</div>
+            </div>
+          ) : null}
           <div className="italic">Inspect only — nothing is sent or executed.</div>
         </div>
       ) : null}
