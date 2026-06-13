@@ -59,6 +59,10 @@ export interface WorkArtifact {
   authorityNote?: string;
   /** Phase 1273 — links artifacts that came from one multi-intent plan. */
   planId?: string;
+  /** Phase 1274 — explicit proposed time, e.g. "11:00 AM Pacific Time". */
+  proposedTime?: string;
+  /** Phase 1274 — timezone interpretation + target local-time note. */
+  timezoneNote?: string;
 }
 
 interface Props {
@@ -161,6 +165,16 @@ export function WorkArtifactCard({
           data-testid="work-artifact-prereq"
         >
           ⏳ {artifact.prerequisite}
+        </div>
+      ) : null}
+      {artifact.proposedTime !== undefined ? (
+        <div className="text-[11px] text-foreground" data-testid="work-artifact-proposed-time">
+          Proposed time: {artifact.proposedTime}
+        </div>
+      ) : null}
+      {artifact.timezoneNote !== undefined ? (
+        <div className="text-[10px] text-muted-foreground" data-testid="work-artifact-timezone">
+          {artifact.timezoneNote}
         </div>
       ) : null}
       {artifact.authorityNote !== undefined ? (

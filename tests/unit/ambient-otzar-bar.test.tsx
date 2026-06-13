@@ -541,11 +541,12 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     await waitFor(() =>
       expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument(),
     );
-    // Then real availability resolves into the card.
+    // Then real availability resolves into the card — honestly labelled
+    // as the caller's own calendar (Phase 1274: target calendar not wired).
     await waitFor(() => {
       expect(
         screen.getByTestId("work-artifact-availability").textContent,
-      ).toMatch(/Candidate windows tomorrow/i);
+      ).toMatch(/Checked your calendar only/i);
     });
     // Event creation stays gated; no backend action created.
     expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
@@ -715,7 +716,36 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(actionPosts.length).toBe(0);
   });
 
-  it("Scheduling unknown Alex shows participant UNRESOLVED — never guesses (Phase 1273)", async () => {
+  it("Scheduling unknown Alex shows UNRESOLVED, calls NO free/busy, shows NO candidate windows (Phase 1274)", async () => {
+    let freebusyCalls = 0;
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () => {
+        freebusyCalls += 1;
+        return HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [],
+        });
+      }),
+    );
+    await speak("Schedule a meeting with Alex tomorrow.");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("work-artifact-authority").textContent,
+      ).toMatch(/don't know which Alex/i);
+    });
+    const card = screen.getByTestId("work-artifact-card");
+    // Critical: unresolved → no availability, no fabricated windows.
+    expect(card.textContent).not.toMatch(/Candidate windows/i);
+    expect(screen.queryByTestId("work-artifact-availability")).toBeNull();
+    expect(freebusyCalls).toBe(0);
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("Explicit '11am PST' shows a Proposed time + interpretation, not 'Choose a time' (Phase 1274)", async () => {
     server.use(
       http.post(`${API_BASE}/calendar/freebusy`, () =>
         HttpResponse.json({
@@ -728,12 +758,18 @@ describe("AmbientOtzarBar — Work OS commands", () => {
         }),
       ),
     );
-    await speak("Schedule a meeting with Alex tomorrow.");
+    await speak("Schedule a meeting with Vishesh tomorrow at 11am PST.");
     await waitFor(() => {
       expect(
-        screen.getByTestId("work-artifact-authority").textContent,
-      ).toMatch(/don't know which Alex/i);
+        screen.getByTestId("work-artifact-proposed-time").textContent,
+      ).toMatch(/11:00 AM Pacific Time/i);
     });
+    expect(screen.getByTestId("work-artifact-timezone").textContent).toMatch(
+      /Interpreted PST as Pacific Time/i,
+    );
+    expect(screen.getByTestId("work-artifact-card").textContent).not.toMatch(
+      /Choose a time/i,
+    );
     expect(actionPosts.length).toBe(0);
   });
 
@@ -838,11 +874,13 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(html).not.toContain("david says");
   });
 
-  it("'Schedule a meeting with Vishesh tomorrow' drafts an approval-gated proposal, no auto-create", async () => {
+  it("'Schedule a meeting with Vishesh tomorrow' (no time given) drafts a proposal asking to choose a time, no auto-create", async () => {
     const panel = await speak("Schedule a meeting with Vishesh tomorrow.");
     expect(panel.textContent).toMatch(/Draft meeting proposal → Vishesh/i);
+    // Phase 1274: with no explicit time, the honest status is "choose a
+    // time" (not a generic "Approval required").
     expect(screen.getByTestId("voice-action-status").textContent).toMatch(
-      /Approval required/i,
+      /choose a time/i,
     );
     expect(recordedBodies.length).toBe(0);
   });

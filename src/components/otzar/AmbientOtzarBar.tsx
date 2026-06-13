@@ -89,8 +89,14 @@ import {
 } from "@/lib/work-os/availability";
 import {
   planWorkCommand,
+  extractExplicitTime,
   type PlannedAction,
 } from "@/lib/work-os/command-planner";
+import {
+  formatProposedTime,
+  interpretTimezoneLabel,
+  displayForIana,
+} from "@/lib/work-os/timezone";
 import {
   WorkArtifactCard,
   type WorkArtifact,
@@ -902,6 +908,20 @@ export function AmbientOtzarBar(): JSX.Element {
     let authorityNote: string | undefined;
     let status = "Draft · needs confirmation";
 
+    // Phase 1274 — explicit proposed time on a meeting action.
+    const proposedTime =
+      action.kind === "SCHEDULE_MEETING" && action.explicit_time !== undefined
+        ? formatProposedTime(action.explicit_time, action.explicit_timezone_label)
+        : undefined;
+    const tzInterp =
+      action.explicit_timezone_label !== undefined
+        ? interpretTimezoneLabel(action.explicit_timezone_label)
+        : null;
+    const timezoneNote =
+      action.explicit_timezone_label !== undefined && tzInterp !== null
+        ? `Interpreted ${action.explicit_timezone_label.toUpperCase()} as ${tzInterp.display}.`
+        : undefined;
+
     if (target !== undefined) {
       const r = await api.workOs.authorityContext({
         target_name: target,
@@ -917,10 +937,20 @@ export function AmbientOtzarBar(): JSX.Element {
           status = "Participant ambiguous";
           authorityNote = `More than one teammate matches "${target}" — pick one.`;
         } else if (pol !== undefined) {
-          status = statusForDecision(pol.decision);
+          status =
+            action.kind === "SCHEDULE_MEETING" && proposedTime !== undefined
+              ? action.prerequisite !== undefined
+                ? "Time proposed · needs confirmation"
+                : "Time proposed · event creation gated"
+              : statusForDecision(pol.decision);
+          const who = a.target_display_name ?? target;
+          const tzDisplay =
+            a.target_timezone !== null
+              ? displayForIana(a.target_timezone)
+              : `using org default (${displayForIana(a.org_default_timezone)}) — ${who}'s timezone not configured`;
           authorityNote = a.caller_is_manager_of_target
-            ? `Manager authority over ${a.target_display_name ?? target}. ${pol.reason}`
-            : pol.reason;
+            ? `Manager authority over ${who}. ${pol.reason} ${who} local time: ${tzDisplay}.`
+            : `${pol.reason} ${who} local time: ${tzDisplay}.`;
         }
       }
     }
@@ -962,6 +992,8 @@ export function AmbientOtzarBar(): JSX.Element {
         : {}),
       weight: action.weight,
       ...(authorityNote !== undefined ? { authorityNote } : {}),
+      ...(proposedTime !== undefined ? { proposedTime } : {}),
+      ...(timezoneNote !== undefined ? { timezoneNote } : {}),
       sourceCommand,
       ...(planId !== undefined ? { planId } : {}),
       runtimeNote:
@@ -1327,6 +1359,27 @@ export function AmbientOtzarBar(): JSX.Element {
         const prereqMatch = action.spoken.match(
           /requires ([A-Za-z]+'s? confirmation[^.]*)/i,
         );
+        // Phase 1274 — parse an explicit time ("at 11am pst") so the card
+        // shows a Proposed time, not just "Choose a time".
+        const explicit = extractExplicitTime(text);
+        const proposedTime =
+          explicit !== undefined
+            ? formatProposedTime(explicit.time, explicit.timezone_label)
+            : undefined;
+        const tzInterp =
+          explicit?.timezone_label !== undefined
+            ? interpretTimezoneLabel(explicit.timezone_label)
+            : null;
+        const tzNote =
+          explicit?.timezone_label !== undefined && tzInterp !== null
+            ? `Interpreted ${explicit.timezone_label.toUpperCase()} as ${tzInterp.display}.`
+            : undefined;
+        const baseStatus =
+          explicit !== undefined
+            ? prereqMatch !== null
+              ? "Time proposed · needs confirmation"
+              : "Time proposed · event creation gated"
+            : "Draft · choose a time";
         setPendingArtifact({
           kind: action.kind,
           title: action.targetEntity
@@ -1337,17 +1390,18 @@ export function AmbientOtzarBar(): JSX.Element {
             : {}),
           channel: "calendar",
           body: action.heard,
-          status: "Draft · Approval required",
+          status: baseStatus,
           ...(prereqMatch !== null
             ? { prerequisite: `Requires ${prereqMatch[1]}` }
             : {}),
-          availabilityNote: "Checking your calendar availability…",
+          ...(proposedTime !== undefined ? { proposedTime } : {}),
+          ...(tzNote !== undefined ? { timezoneNote: tzNote } : {}),
           runtimeNote:
-            "Event creation is not enabled yet. Availability can be checked, but creating the calendar event requires an event-write scope and an approval-gated create flow. This is a proposal: no event is created, no invite is sent.",
+            "Event creation is not enabled yet. Creating the calendar event requires an event-write scope and an approval-gated create flow. This is a proposal: no event is created, no invite is sent.",
         });
         setActionResult(action.spoken);
-        setActionStatus("Draft · Approval required");
-        logAction(action.spoken, "Draft · Approval required");
+        setActionStatus(baseStatus);
+        logAction(action.spoken, baseStatus);
         speakConfirmation(action.spoken);
         recordVoiceAction({
           at,
@@ -1356,9 +1410,9 @@ export function AmbientOtzarBar(): JSX.Element {
           target: action.targetEntity ?? null,
           result: "needs_confirmation",
         });
-        // Phase 1273 — REAL authority context: resolve the participant
-        // and surface the manager/peer/unresolved status from the backend
-        // (no generic draft; no guessed Alex). Updates the card in place.
+        // Phase 1273/1274 — REAL authority context FIRST. Free/busy is
+        // gated on resolution: an unresolved participant NEVER triggers a
+        // free/busy read and NEVER shows candidate windows (the Alex bug).
         if (action.targetEntity !== undefined) {
           void api.workOs
             .authorityContext({
@@ -1371,76 +1425,71 @@ export function AmbientOtzarBar(): JSX.Element {
               const meetingPol = r.data.policies.find(
                 (p) => p.action === "CREATE_INTERNAL_MEETING",
               );
-              let note: string;
-              let unresolved = false;
-              if (a.target_resolution === "NOT_FOUND") {
-                unresolved = true;
-                note = `I don't know which ${action.targetEntity}. Choose a teammate or enter an email/calendar.`;
-              } else if (a.target_resolution === "AMBIGUOUS") {
-                unresolved = true;
-                note = `More than one teammate matches "${action.targetEntity}" — pick one.`;
-              } else {
-                const who = a.target_display_name ?? action.targetEntity;
-                note = a.caller_is_manager_of_target
-                  ? `Manager authority over ${who} — internal scheduling allowed (${meetingPol?.reason ?? "manager authority"}). Calendar visibility: ${a.caller_can_view_target_calendar ? "allowed by policy (target calendar address not yet wired)" : "not granted"}.`
-                  : (meetingPol?.reason ?? "Peer scheduling needs the teammate's confirmation.");
-              }
-              setPendingArtifact((prev) =>
-                prev !== null && prev.kind === "SCHEDULE_MEETING"
-                  ? {
-                      ...prev,
-                      authorityNote: note,
-                      ...(unresolved ? { status: "Participant unresolved" } : {}),
-                    }
-                  : prev,
-              );
-            });
-        }
-        // Phase 1271 — REAL free/busy read for tomorrow's work hours.
-        // Populates the card's availabilityNote with candidate windows /
-        // busy blockers / a precise reconnect message. NEVER fabricates
-        // availability; NEVER creates an event or sends an invite.
-        {
-          const win = tomorrowWorkWindow();
-          void api.connectorData
-            .calendarFreeBusy({ time_min: win.time_min, time_max: win.time_max })
-            .then((r) => {
-              let note: string;
-              if (r.ok) {
-                const free = freeWindowsFromBusy(
-                  r.data.busy,
-                  win.time_min,
-                  win.time_max,
-                  DEFAULT_MEETING_MINUTES,
-                );
-                if (free.length === 0) {
-                  note =
-                    "No open " +
-                    `${DEFAULT_MEETING_MINUTES}-min slot in tomorrow's work hours — the day looks fully booked.`;
-                } else {
-                  note =
-                    "Candidate windows tomorrow:\n" +
-                    free
-                      .slice(0, 3)
-                      .map((w) => `• ${w}`)
-                      .join("\n");
-                }
-              } else if (
-                r.code === "SCOPE_REAUTH_REQUIRED" ||
-                r.code === "NOT_CONNECTED" ||
-                r.code === "TOKEN_REFRESH_FAILED"
+              const who = a.target_display_name ?? action.targetEntity;
+              if (
+                a.target_resolution === "NOT_FOUND" ||
+                a.target_resolution === "AMBIGUOUS"
               ) {
-                note =
-                  "Google reconnect required for calendar availability. Open Workspace connections to reconnect.";
-              } else {
-                note =
-                  "Couldn't check calendar availability right now. The proposal still stands.";
+                const note =
+                  a.target_resolution === "AMBIGUOUS"
+                    ? `More than one teammate matches "${action.targetEntity}" — pick one.`
+                    : `I don't know which ${action.targetEntity}. Choose a teammate or enter an email/calendar.`;
+                // Unresolved → no availability, no free/busy call.
+                setPendingArtifact((prev) =>
+                  prev !== null && prev.kind === "SCHEDULE_MEETING"
+                    ? { ...prev, authorityNote: note, status: "Participant unresolved" }
+                    : prev,
+                );
+                return;
               }
+              // Resolved: surface authority + target local time honestly.
+              const tzDisplay =
+                a.target_timezone !== null
+                  ? displayForIana(a.target_timezone)
+                  : `using org default (${displayForIana(a.org_default_timezone)}) — ${who}'s timezone not configured`;
+              const note = a.caller_is_manager_of_target
+                ? `Manager authority over ${who} — internal scheduling allowed. ${who} local time: ${tzDisplay}.`
+                : `${meetingPol?.reason ?? "Peer scheduling needs the teammate's confirmation."} ${who} local time: ${tzDisplay}.`;
               setPendingArtifact((prev) =>
                 prev !== null && prev.kind === "SCHEDULE_MEETING"
-                  ? { ...prev, availabilityNote: note }
+                  ? { ...prev, authorityNote: note }
                   : prev,
               );
+              // Free/busy ONLY now (resolved). Labelled honestly as the
+              // caller's own calendar (target calendar address not wired).
+              const win = tomorrowWorkWindow();
+              void api.connectorData
+                .calendarFreeBusy({ time_min: win.time_min, time_max: win.time_max })
+                .then((fb) => {
+                  let avail: string;
+                  if (fb.ok) {
+                    const free = freeWindowsFromBusy(
+                      fb.data.busy,
+                      win.time_min,
+                      win.time_max,
+                      DEFAULT_MEETING_MINUTES,
+                    );
+                    avail =
+                      free.length === 0
+                        ? `Checked your calendar only — no open ${DEFAULT_MEETING_MINUTES}-min slot in tomorrow's work hours.`
+                        : `Checked your calendar only (${who}'s calendar address not wired):\n` +
+                          free.slice(0, 3).map((w) => `• ${w}`).join("\n");
+                  } else if (
+                    fb.code === "SCOPE_REAUTH_REQUIRED" ||
+                    fb.code === "NOT_CONNECTED" ||
+                    fb.code === "TOKEN_REFRESH_FAILED"
+                  ) {
+                    avail =
+                      "Google reconnect required for calendar availability.";
+                  } else {
+                    avail = "Couldn't check calendar availability right now.";
+                  }
+                  setPendingArtifact((prev) =>
+                    prev !== null && prev.kind === "SCHEDULE_MEETING"
+                      ? { ...prev, availabilityNote: avail }
+                      : prev,
+                  );
+                });
             });
         }
         return;

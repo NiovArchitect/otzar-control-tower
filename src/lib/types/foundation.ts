@@ -4255,6 +4255,10 @@ export interface AuthorityContextView {
   caller_can_view_target_calendar: boolean;
   caller_can_schedule_with_target: boolean;
   caller_can_assign_task_to_target: boolean;
+  // Phase 1274 — enterprise time context.
+  caller_timezone: string | null;
+  target_timezone: string | null;
+  org_default_timezone: string;
 }
 
 export interface WorkOsPolicyResult {

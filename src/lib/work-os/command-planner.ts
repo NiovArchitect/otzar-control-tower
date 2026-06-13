@@ -49,6 +49,10 @@ export interface PlannedAction {
   when?: string;
   /** True when "work hours" / "business hours" is stated. */
   work_hours?: boolean;
+  /** Explicit clock time the user gave, normalized to 24h "HH:MM". */
+  explicit_time?: string;
+  /** Raw timezone label the user said ("pst", "et") if any. */
+  explicit_timezone_label?: string;
   /** Preserved prerequisite, e.g. "Samiksha confirms". */
   prerequisite?: string;
   /** Project/context label, e.g. "Otzar voice runtime". */
@@ -66,17 +70,37 @@ export interface WorkPlan {
   multi_intent: boolean;
 }
 
-// "about the Otzar voice runtime" / "regarding X" / "on the X project".
+// Extract ONLY the object of "about X" / "regarding X" — never the
+// surrounding scheduling clause. "schedule a 30-minute meeting … about
+// the Otzar voice runtime" → "Otzar voice runtime" (the prior regex
+// leaked the whole clause — the live bug this fixes).
 function extractContextLabel(text: string): string | undefined {
   const m = text.match(
-    /\b(?:about|regarding|re:|on the|for the)\s+(?:the\s+)?([^.,;]+?)(?:\s+(?:project|runtime|goal|initiative))?(?=[.,;]|\s+and\b|\s+during\b|\s+tomorrow\b|$)/i,
+    /\b(?:about|regarding|re:|concerning|on the topic of)\s+(?:the\s+)?(.+?)(?=[.,;]|\s+and\s+|$)/i,
   );
   if (m === null) return undefined;
-  let label = (m[1] ?? "").trim();
-  // Re-append a trailing domain noun if the phrase named one.
-  const tail = text.match(/\b([A-Za-z][\w ]*?\s+(?:runtime|project|goal|initiative))\b/i);
-  if (tail !== null) label = (tail[1] ?? label).trim();
+  const label = (m[1] ?? "").trim().replace(/[.,;]+$/, "");
   return label.length > 0 ? label : undefined;
+}
+
+// Extract an explicit clock time + optional timezone label.
+// "at 11am pst" / "11:30 am" / "at 2pm ET" → { time:"11:00",
+// timezone_label:"pst" }. Requires am/pm so "30-minute" never matches.
+export function extractExplicitTime(
+  text: string,
+): { time: string; timezone_label?: string } | undefined {
+  const m = text.match(
+    /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)\s*(pst|pdt|pt|est|edt|et|cst|cdt|ct|mst|mdt|mt|utc|gmt)?\b/i,
+  );
+  if (m === null) return undefined;
+  let hour = Number.parseInt(m[1] ?? "", 10);
+  const minute = m[2] ?? "00";
+  const ampm = (m[3] ?? "").toLowerCase().replace(/\./g, "");
+  if (ampm === "pm" && hour < 12) hour += 12;
+  if (ampm === "am" && hour === 12) hour = 0;
+  const time = `${String(hour).padStart(2, "0")}:${minute}`;
+  const tz = m[4]?.toLowerCase();
+  return tz !== undefined ? { time, timezone_label: tz } : { time };
 }
 
 function extractDurationMinutes(text: string): number | undefined {
@@ -209,6 +233,15 @@ export function planWorkCommand(transcript: string): WorkPlan {
     if (when !== undefined) action.when = when;
     if (/\b(work hours|business hours|during the day)\b/i.test(seg)) {
       action.work_hours = true;
+    }
+    if (kind === "SCHEDULE_MEETING") {
+      const t = extractExplicitTime(seg);
+      if (t !== undefined) {
+        action.explicit_time = t.time;
+        if (t.timezone_label !== undefined) {
+          action.explicit_timezone_label = t.timezone_label;
+        }
+      }
     }
     const segPrereq = extractPrerequisite(seg);
     const prereq = segPrereq ?? (kind === "SCHEDULE_MEETING" ? leadingPrereq : undefined);

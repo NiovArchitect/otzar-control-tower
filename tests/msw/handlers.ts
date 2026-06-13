@@ -2859,6 +2859,9 @@ const workOsAuthorityHandler = http.post(
       caller_can_view_target_calendar: resolved,
       caller_can_schedule_with_target: resolved,
       caller_can_assign_task_to_target: resolved,
+      caller_timezone: "America/Los_Angeles",
+      target_timezone: null,
+      org_default_timezone: "America/Los_Angeles",
     };
     const policies = (body.actions ?? []).map((action) => {
       if (!resolved) {

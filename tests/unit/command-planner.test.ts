@@ -10,7 +10,7 @@ import { planWorkCommand } from "../../src/lib/work-os/command-planner";
 
 describe("planWorkCommand — multi-intent", () => {
   const multi =
-    "After Samiksha confirms, schedule a 30-minute meeting with Vishesh tomorrow during work hours about the Otzar voice runtime, and prepare a follow-up note for David.";
+    "After Samiksha confirms, schedule a 30-minute meeting with Vishesh tomorrow during work hours at 11am pst about the Otzar voice runtime, and prepare a follow-up note for David.";
 
   it("splits into TWO linked actions (meeting + David follow-up), never dropping the second", () => {
     const plan = planWorkCommand(multi);
@@ -45,6 +45,28 @@ describe("planWorkCommand — multi-intent", () => {
     for (const a of plan.actions) {
       expect(a.context_label?.toLowerCase()).toContain("otzar voice runtime");
     }
+  });
+
+  it("Phase 1274 — context_label is EXACTLY 'Otzar voice runtime' (no clause leak)", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING");
+    // The prior bug leaked "minute meeting with Vishesh … during work hours".
+    expect(meeting?.context_label).toBe("Otzar voice runtime");
+    expect(meeting?.context_label).not.toMatch(/meeting|work hours|minute/i);
+  });
+
+  it("Phase 1274 — parses explicit '11am pst' → time 11:00 + label pst on the meeting", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING");
+    expect(meeting?.explicit_time).toBe("11:00");
+    expect(meeting?.explicit_timezone_label).toBe("pst");
+    expect(meeting?.duration_minutes).toBe(30);
+  });
+
+  it("Phase 1274 — David follow-up inherits the Otzar voice runtime context", () => {
+    const plan = planWorkCommand(multi);
+    const followUp = plan.actions.find((a) => a.kind === "FOLLOW_UP_NOTE");
+    expect(followUp?.context_label).toBe("Otzar voice runtime");
   });
 });
 
