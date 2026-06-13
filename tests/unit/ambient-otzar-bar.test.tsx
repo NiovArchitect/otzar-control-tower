@@ -167,7 +167,7 @@ describe("AmbientOtzarBar — send flow", () => {
     await user.click(screen.getByRole("button", { name: /^send$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Markdown response body/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Markdown response body/).length).toBeGreaterThan(0);
     });
     // Privacy invariant: exactly one body was posted; it carries
     // transcript_text only; never any audio-shaped key.
@@ -200,7 +200,9 @@ describe("AmbientOtzarBar — send flow", () => {
     expect(
       screen.getByText(/Internal navigation → Onboarding/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Opened Onboarding\./i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Opened Onboarding\./i).length,
+    ).toBeGreaterThan(0);
     // The governed chat / Twin endpoint was NEVER called for navigation.
     expect(recordedBodies.length).toBe(0);
   });
@@ -231,7 +233,7 @@ describe("AmbientOtzarBar — speech synthesis", () => {
     // Wait for the response card to render so we know the
     // request/response cycle completed.
     await waitFor(() => {
-      expect(screen.getByText(/Markdown response body/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Markdown response body/).length).toBeGreaterThan(0);
     });
     // Critical: speak() must NOT have been called automatically.
     expect(speakMock).not.toHaveBeenCalled();
@@ -263,7 +265,7 @@ describe("AmbientOtzarBar — speech synthesis", () => {
     await user.type(screen.getByLabelText(/Message to Otzar/i), "hi");
     await user.click(screen.getByRole("button", { name: /^send$/i }));
     await waitFor(() => {
-      expect(screen.getByText(/Markdown response body/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Markdown response body/).length).toBeGreaterThan(0);
     });
     expect(speakMock).not.toHaveBeenCalled();
     // muting cancels any in-flight utterance for safety.
@@ -360,7 +362,9 @@ describe("AmbientOtzarBar — privacy / safety copy", () => {
 
 // ── Phase 1265 Work OS commands — never fall into the Twin chatbot ───
 describe("AmbientOtzarBar — Work OS commands", () => {
+  const actionPosts: Array<Record<string, unknown>> = [];
   beforeEach(() => {
+    actionPosts.length = 0;
     // Founder is an org admin; admin destinations + OAuth status read.
     useAuthStore.setState({
       token: "tok",
@@ -374,6 +378,49 @@ describe("AmbientOtzarBar — Work OS commands", () => {
         can_admin_niov: false,
       },
     });
+    // Real roster so target resolution can resolve "David".
+    server.use(
+      http.get(`${API_BASE}/org/entities`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [
+            {
+              entity_id: "ent-david",
+              entity_type: "PERSON",
+              display_name: "David",
+              email: "david@niovlabs.com",
+              status: "ACTIVE",
+              clearance_level: 1,
+              public_key: "",
+              failed_auth_attempts: 0,
+              suspended_at: null,
+              created_at: "",
+              updated_at: "",
+              deleted_at: null,
+            },
+          ],
+          total: 1,
+          skip: 0,
+          take: 200,
+        }),
+      ),
+      // Governed Action create — capture the body; return a PROPOSED
+      // (approval-required) action. NEVER an external send.
+      http.post(`${API_BASE}/actions`, async ({ request }) => {
+        actionPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          {
+            ok: true,
+            action: {
+              action_id: "act-1",
+              action_type: "SEND_INTERNAL_NOTIFICATION",
+              status: "PROPOSED",
+            },
+          },
+          { status: 201 },
+        );
+      }),
+    );
   });
 
   async function speak(text: string): Promise<HTMLElement> {
@@ -403,9 +450,9 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
     await speak("What's connected?");
     await waitFor(() => {
-      expect(screen.getByText(/Google Workspace: Verified/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Google Workspace: Verified/i).length).toBeGreaterThan(0);
     });
-    expect(screen.getByText(/Microsoft 365: needs app credentials/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Microsoft 365: needs app credentials/i).length).toBeGreaterThan(0);
     expect(recordedBodies.length).toBe(0); // Twin chat never called
   });
 
@@ -423,28 +470,58 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
     await speak("Show me what needs my approval.");
     await waitFor(() => {
-      expect(screen.getByText(/2 items waiting on your approval/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/2 items waiting on your approval/i).length).toBeGreaterThan(0);
     });
     expect(recordedBodies.length).toBe(0);
   });
 
-  it("'Draft a message to David…' drafts only, approval required, no send, no chat", async () => {
-    const panel = await speak(
-      "Draft a message to David saying we need to review this.",
+  it("'Draft a message to David…' creates a REAL governed internal-notification action (approval required), no external send, no chat", async () => {
+    await speak("Draft a message to David saying we need to review this.");
+    await waitFor(() => {
+      expect(actionPosts.length).toBe(1);
+    });
+    // The governed Action is an INTERNAL notification to the resolved
+    // recipient — never an external send.
+    const body = actionPosts[0]!;
+    expect(body.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
+    expect((body.payload_redacted as Record<string, unknown>).recipient_entity_id).toBe(
+      "ent-david",
     );
-    expect(panel.textContent).toMatch(/Draft message → David/i);
+    expect(screen.getByTestId("voice-action-status").textContent).toMatch(
+      /Approval required/i,
+    );
+    expect(recordedBodies.length).toBe(0); // no Twin chat
+  });
+
+  it("'Send David this message' creates an approval-required action and NEVER sends externally", async () => {
+    await speak("Send David this message.");
+    await waitFor(() => {
+      expect(actionPosts.length).toBe(1);
+    });
+    expect(actionPosts[0]!.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
     expect(screen.getByTestId("voice-action-status").textContent).toMatch(
       /Approval required/i,
     );
     expect(recordedBodies.length).toBe(0);
   });
 
-  it("'Send David this message' shows approval required and NEVER sends", async () => {
-    await speak("Send David this message.");
-    expect(screen.getByTestId("voice-action-status").textContent).toMatch(
-      /Approval required/i,
+  it("conversation thread persists prompts + results and is scrollable", async () => {
+    await speak("What should I do next?");
+    await waitFor(() => {
+      expect(screen.getByTestId("otzar-conversation")).toBeInTheDocument();
+    });
+    // Send a second prompt; the FIRST must still be visible.
+    await userEvent.setup().type(
+      screen.getByLabelText(/Message to Otzar/i),
+      "Take me to connectors.",
     );
-    expect(recordedBodies.length).toBe(0);
+    await userEvent.setup().click(screen.getByRole("button", { name: /^send$/i }));
+    await waitFor(() => {
+      const entries = screen.getAllByTestId("otzar-conversation-entry");
+      const texts = entries.map((e) => e.textContent ?? "").join(" | ");
+      expect(texts).toMatch(/What should I do next\?/);
+      expect(texts).toMatch(/connectors|Workspace connections/i);
+    });
   });
 
   it("'Ask David's Twin…' routes to collaboration and never fakes David's answer", async () => {

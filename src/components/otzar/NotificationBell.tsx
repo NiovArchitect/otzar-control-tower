@@ -33,8 +33,10 @@
 //     data-* attributes for telemetry.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, Check, Reply, Send, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { notificationRoute } from "@/lib/work-os/notification-routing";
 import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
@@ -79,6 +81,7 @@ export function NotificationBell({
   pollIntervalMs = DEFAULT_POLL_MS,
 }: Props): JSX.Element {
   const authed = useAuthStore((s) => s.isAuthenticated);
+  const navigate = useNavigate();
   const [state, setState] = useState<State>({
     items: [],
     total: 0,
@@ -257,6 +260,20 @@ export function NotificationBell({
     if (!state.open) void fetchOnce();
   }
 
+  // Phase 1266 — clicking a notification routes to a REAL Work-OS
+  // destination (Action Center focused on the action, Connector Rails,
+  // Collaboration, …). Always resolves to a real route — never a dead
+  // click, never a raw error. Marks read + closes the panel.
+  function openNotification(n: SafeNotificationView): void {
+    const route = notificationRoute({
+      action_id: n.action_id,
+      notification_class: n.notification_class,
+    });
+    setState((s) => ({ ...s, open: false }));
+    if (n.read_at === null) void handleMarkRead(n.notification_id);
+    navigate(route);
+  }
+
   // Phase 1253 (Founder acceptance fix): the panel closes like every
   // calm overlay should — click anywhere outside, or press Escape.
   // Focus returns to the bell button on Escape so keyboard users
@@ -367,14 +384,20 @@ export function NotificationBell({
                     data-unread={isUnread ? "true" : "false"}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
+                      <button
+                        type="button"
+                        onClick={() => openNotification(n)}
+                        className="flex-1 cursor-pointer text-left"
+                        data-testid="notification-open"
+                        aria-label="Open notification"
+                      >
                         <p className="line-clamp-3 text-foreground">
                           {n.body_summary}
                         </p>
                         <p className="mt-1 text-[10px] text-muted-foreground">
                           {formatRelative(n.created_at)}
                         </p>
-                      </div>
+                      </button>
                       <div className="flex shrink-0 items-center gap-1">
                         {reply === undefined ? (
                           <button

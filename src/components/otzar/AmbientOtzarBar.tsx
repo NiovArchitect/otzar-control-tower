@@ -73,6 +73,11 @@ import {
   type VoiceAction,
 } from "@/lib/voice/voice-action-runtime";
 import { recordVoiceAction } from "@/lib/voice/voice-action-log";
+import {
+  appendConversationEntry,
+  useConversationStore,
+} from "@/lib/work-os/conversation-store";
+import { resolveTarget } from "@/lib/work-os/target-resolution";
 import { useDesktopVoiceCapture } from "@/hooks/useDesktopVoiceCapture";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -176,6 +181,10 @@ export function AmbientOtzarBar(): JSX.Element {
   const desktopCap = useDesktopVoiceCapture();
   const desktopCapRef = useRef(desktopCap);
   desktopCapRef.current = desktopCap;
+  // Phase 1266 — the persistent, scrollable Otzar conversation thread.
+  const conversation = useConversationStore((s) => s.entries);
+  const clearConversation = useConversationStore((s) => s.clear);
+  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   // True only while PREMIUM audio is actually playing (device speech
   // has its own reactive `synthesis.speaking`). Drives the orb's
   // "Speaking…" state honestly — never shown when silent.
@@ -519,7 +528,163 @@ export function AmbientOtzarBar(): JSX.Element {
       target: action.route ?? action.targetEntity ?? null,
       result,
     });
+    appendConversationEntry({
+      role: "action",
+      text: action.spoken,
+      at,
+      kind: action.kind,
+      status: workStatusFor(action),
+    });
     if (action.route !== undefined) navigate(action.route);
+  }
+
+  // Phase 1266 — map a real Action lifecycle status / policy decision
+  // to an honest Work-OS status badge.
+  function humanizeActionStatus(status: string): string {
+    switch (status) {
+      case "APPROVED":
+      case "SCHEDULED":
+      case "RUNNING":
+      case "SUCCEEDED":
+        return "Approved — standing authority";
+      case "PROPOSED":
+        return "Approval required";
+      case "REJECTED":
+        return "Blocked by policy";
+      default:
+        return status.toLowerCase().replace(/_/g, " ");
+    }
+  }
+  function humanizeActionError(code: string): string {
+    switch (code) {
+      case "POLICY_BLOCKED":
+      case "POLICY_FORBIDDEN":
+        return "That message is blocked by your organization's policy.";
+      case "DUAL_CONTROL_NO_APPROVER_AVAILABLE":
+        return "Draft created, but your org hasn't configured who approves messages yet.";
+      case "OPERATION_NOT_PERMITTED":
+        return "You don't have authority to send that. I kept it as a draft.";
+      default:
+        return `Otzar couldn't create that action. (ref: ${code})`;
+    }
+  }
+
+  // Phase 1266 — REAL draft/send bridge. Resolve the recipient and
+  // create a governed SEND_INTERNAL_NOTIFICATION ProposedAction (which
+  // runs the ADR-0057 policy evaluator → AUTO_APPROVE/standing-authority
+  // or approval-required). NEVER sends externally; never fabricates a
+  // recipient id. Unresolved → draft + target picker.
+  async function executeMessageAction(
+    action: VoiceAction,
+    at: string,
+  ): Promise<void> {
+    const COMMS = "/app/comms";
+    const ACTION_CENTER = "/app/action-center";
+    const finish = (
+      msg: string,
+      status: string,
+      result: "success" | "blocked" | "needs_confirmation",
+      route?: string,
+    ): void => {
+      setActionResult(msg);
+      setActionStatus(status);
+      appendConversationEntry({
+        role: "action",
+        text: msg,
+        at,
+        kind: action.kind,
+        status,
+      });
+      speakConfirmation(msg);
+      recordVoiceAction({
+        at,
+        transcript: action.heard,
+        actionType: action.kind,
+        target: action.targetEntity ?? null,
+        result,
+      });
+      if (route !== undefined) navigate(route);
+    };
+
+    // External channel (Slack / email) is never sent from voice.
+    if (action.isExternalWrite === true || action.connector === "slack" || action.connector === "email") {
+      finish(
+        "I can draft that, but sending externally needs approval and an external-send runtime that isn't wired to voice yet. Opening Work Comms.",
+        "Approval required",
+        "needs_confirmation",
+        COMMS,
+      );
+      return;
+    }
+    const recipientName = action.targetEntity;
+    if (recipientName === undefined) {
+      finish(
+        "Draft created. Tell me who it's for — open Work Comms to pick the teammate. Nothing is sent.",
+        "Draft only · pick recipient",
+        "needs_confirmation",
+        COMMS,
+      );
+      return;
+    }
+    const resolved = await resolveTarget(recipientName);
+    if (
+      (resolved.kind === "RESOLVED_HUMAN" ||
+        resolved.kind === "RESOLVED_AI_AGENT") &&
+      resolved.entityId !== undefined
+    ) {
+      const idem =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `voice-msg-${at}-${recipientName}`;
+      const draft = action.draftPayload ?? action.heard;
+      const r = await api.actions.sendInternalNotification({
+        recipient_entity_id: resolved.entityId,
+        draft_text: draft,
+        idempotency_key: idem,
+        payload_summary: `Voice message to ${resolved.displayName ?? recipientName}`,
+      });
+      if (r.ok) {
+        const status = humanizeActionStatus(r.data.action.status);
+        finish(
+          `Internal message to ${resolved.displayName ?? recipientName} created as a governed action — ${status}. Nothing was sent externally.`,
+          status,
+          status === "Approval required" ? "needs_confirmation" : "success",
+          ACTION_CENTER,
+        );
+      } else {
+        finish(
+          humanizeActionError(r.code),
+          "Blocked by policy",
+          "blocked",
+        );
+      }
+      return;
+    }
+    if (resolved.kind === "AMBIGUOUS") {
+      finish(
+        `More than one teammate matches "${recipientName}". Open Work Comms to pick the right one. Draft kept, nothing sent.`,
+        "Draft only · pick recipient",
+        "needs_confirmation",
+        COMMS,
+      );
+      return;
+    }
+    if (resolved.kind === "NOT_FOUND") {
+      finish(
+        `I couldn't find "${recipientName}" in your organization. Open Work Comms to pick a teammate. Draft kept, nothing sent.`,
+        "Draft only · recipient not found",
+        "needs_confirmation",
+        COMMS,
+      );
+      return;
+    }
+    // RUNTIME_MISSING — roster not reachable for this caller.
+    finish(
+      "Draft created. Resolving teammates from voice needs the org roster, which isn't available to you here yet. Open Work Comms to pick the recipient.",
+      "Draft only · resolver unavailable",
+      "needs_confirmation",
+      COMMS,
+    );
   }
 
   // Phase 1264 Voice Action Runtime — voice OPERATES the app. Every
@@ -546,12 +711,24 @@ export function AmbientOtzarBar(): JSX.Element {
     setDraft("");
     setRouterAck(null);
     const at = new Date().toISOString();
+    // Persist the prompt to the scrollable Otzar conversation thread.
+    appendConversationEntry({ role: "user", text, at });
+    // Local helper to log a terminal Work-OS result to the thread.
+    const logAction = (resultText: string, status?: string): void =>
+      appendConversationEntry({
+        role: "action",
+        text: resultText,
+        at,
+        kind: action.kind,
+        ...(status !== undefined ? { status } : {}),
+      });
 
     switch (action.kind) {
       case "INTERNAL_NAVIGATION":
       case "CONNECTOR_STATUS_NAVIGATION": {
         const dest = action.actionLabel.replace(/^.*→\s*/, "");
         setActionResult(`Opened ${dest}.`);
+        logAction(`Opened ${dest}.`, "Navigated");
         speakConfirmation(action.spoken);
         recordVoiceAction({
           at,
@@ -595,6 +772,7 @@ export function AmbientOtzarBar(): JSX.Element {
         setActionResult(
           `Blocked: ${action.blockedReason ?? "unsafe link"}.`,
         );
+        logAction(`Blocked: ${action.blockedReason ?? "unsafe link"}.`, "Blocked");
         speakConfirmation(action.spoken);
         recordVoiceAction({
           at,
@@ -610,6 +788,7 @@ export function AmbientOtzarBar(): JSX.Element {
         // with honest copy — never hand it to the Twin.
         setActionResult(action.spoken);
         setActionStatus("Blocked");
+        logAction(action.spoken, "Blocked");
         speakConfirmation(action.spoken);
         recordVoiceAction({
           at,
@@ -633,6 +812,13 @@ export function AmbientOtzarBar(): JSX.Element {
         });
         void buildConnectorSummary().then((summary) => {
           setActionResult(summary);
+          appendConversationEntry({
+            role: "action",
+            text: summary,
+            at,
+            kind: action.kind,
+            status: "Read-only",
+          });
           speakConfirmation(
             summary.length > 220 ? "Here's your connector status." : summary,
           );
@@ -663,12 +849,28 @@ export function AmbientOtzarBar(): JSX.Element {
               "I opened Action Center. The pending-approval summary isn't available right now.";
           }
           setActionResult(msg);
+          appendConversationEntry({
+            role: "action",
+            text: msg,
+            at,
+            kind: action.kind,
+            status: "Read-only",
+          });
           speakConfirmation(msg);
         });
         return;
       }
       case "DRAFT_MESSAGE":
-      case "SEND_REQUIRES_APPROVAL":
+      case "SEND_REQUIRES_APPROVAL": {
+        // REAL execution bridge: resolve the recipient and create a
+        // governed ProposedAction (SEND_INTERNAL_NOTIFICATION) that
+        // enters the ADR-0057 policy pipeline. NEVER sends externally;
+        // the Action lands PROPOSED/approval-gated unless standing
+        // authority auto-approves it. If the recipient can't be
+        // resolved, fall back to a draft + target picker (no fake id).
+        void executeMessageAction(action, at);
+        return;
+      }
       case "ASK_TWIN":
       case "SCHEDULE_MEETING":
       case "MEETING_NOTES_TO_ACTIONS":
@@ -689,6 +891,7 @@ export function AmbientOtzarBar(): JSX.Element {
       case "ADMIN_BLOCKED": {
         setActionResult(action.spoken);
         setRouterAck(action.spoken);
+        logAction(action.spoken, "Blocked");
         speakConfirmation(action.spoken);
         recordVoiceAction({
           at,
@@ -701,6 +904,10 @@ export function AmbientOtzarBar(): JSX.Element {
       }
       case "DRAFT_ONLY": {
         setActionResult(action.spoken);
+        logAction(
+          action.spoken,
+          action.needsConfirmation === true ? "Approval required" : "Draft only",
+        );
         speakConfirmation(action.spoken);
         recordVoiceAction({
           at,
@@ -725,7 +932,24 @@ export function AmbientOtzarBar(): JSX.Element {
         });
         // Same governed path as typed input; auto-speak effect voices
         // the response (premium-first) when enabled.
-        await intent.send(text);
+        const resp = await intent.send(text);
+        if (resp !== null) {
+          const answer =
+            resp.speech_ready_text.length > 0
+              ? resp.speech_ready_text
+              : resp.response;
+          appendConversationEntry({
+            role: "otzar",
+            text: answer,
+            at: new Date().toISOString(),
+          });
+        } else if (intent.error !== null) {
+          appendConversationEntry({
+            role: "error",
+            text: llmErrorCopy(intent.error),
+            at: new Date().toISOString(),
+          });
+        }
         return;
       }
     }
@@ -753,6 +977,12 @@ export function AmbientOtzarBar(): JSX.Element {
     setTranscriptionProvider(prov);
     desktopCapRef.current.reset();
   }, [desktopCap.transcript]);
+
+  // Phase 1266 — keep the conversation transcript scrolled to the
+  // newest message as the thread grows.
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ block: "end" });
+  }, [conversation.length]);
 
   function handleReplay(): void {
     if (intent.response === null) return;
@@ -1181,6 +1411,65 @@ export function AmbientOtzarBar(): JSX.Element {
             >
               {routerAck}
             </p>
+          ) : null}
+
+          {/* Phase 1266 — the persistent, scrollable Otzar conversation
+              thread. Survives navigation + reloads (localStorage). Shows
+              prompts, Otzar answers, Work-OS action results, and errors
+              with ordering — so messages never disappear. */}
+          {conversation.length > 0 ? (
+            <div
+              className="rounded-md border border-border bg-background/60"
+              data-testid="otzar-conversation"
+            >
+              <div className="flex items-center justify-between px-2 py-1 border-b border-border">
+                <span className="text-[11px] font-medium text-foreground">
+                  Conversation
+                </span>
+                <button
+                  type="button"
+                  onClick={() => clearConversation()}
+                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  data-testid="otzar-conversation-clear"
+                  aria-label="Clear conversation"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="max-h-44 overflow-y-auto px-2 py-1 space-y-1 text-xs">
+                {conversation.map((m) => (
+                  <div
+                    key={m.id}
+                    data-testid="otzar-conversation-entry"
+                    data-role={m.role}
+                    className={
+                      m.role === "user"
+                        ? "text-foreground"
+                        : m.role === "error"
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    <span className="font-medium">
+                      {m.role === "user"
+                        ? "You: "
+                        : m.role === "otzar"
+                          ? "Otzar: "
+                          : m.role === "error"
+                            ? "Error: "
+                            : "Action: "}
+                    </span>
+                    <span className="whitespace-pre-wrap">{m.text}</span>
+                    {m.status !== undefined ? (
+                      <span className="ml-1 text-[10px] opacity-70">
+                        [{m.status}]
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+                <div ref={transcriptEndRef} />
+              </div>
+            </div>
           ) : null}
 
           {/* Phase 1264 Voice Action Runtime — Heard / Action / Result /
