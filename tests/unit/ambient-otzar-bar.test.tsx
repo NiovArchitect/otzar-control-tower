@@ -475,6 +475,54 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
+  it("'Pull latest Zoom recordings' fetches the REAL recordings list, no chat (Phase 1270)", async () => {
+    server.use(
+      http.get(`${API_BASE}/zoom/recordings`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "zoom",
+          recordings: [
+            {
+              meeting_uuid: "uuid-A",
+              topic: "Quarterly review",
+              start_time: "2026-06-01T15:00:00Z",
+              duration_minutes: 42,
+              recording_count: 2,
+              total_size_bytes: 12345,
+              file_types: ["MP4", "TRANSCRIPT"],
+            },
+          ],
+        }),
+      ),
+    );
+    await speak("Pull latest Zoom recordings.");
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/Quarterly review/i).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText(/1 Zoom recording/i).length).toBeGreaterThan(0);
+    expect(recordedBodies.length).toBe(0); // Twin chat never called
+  });
+
+  it("Zoom recordings with a needs-reconnect connection shows an honest reconnect message", async () => {
+    server.use(
+      http.get(`${API_BASE}/zoom/recordings`, () =>
+        HttpResponse.json(
+          { ok: false, code: "TOKEN_REFRESH_FAILED" },
+          { status: 409 },
+        ),
+      ),
+    );
+    await speak("Pull latest Zoom recordings.");
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/needs a reconnect/i).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(recordedBodies.length).toBe(0);
+  });
+
   it("'Draft a message to David…' creates a LOCAL draft (NO backend action until Confirm)", async () => {
     // Phase 1269 semantics: draft is local — proposing is an explicit
     // Confirm, never automatic.

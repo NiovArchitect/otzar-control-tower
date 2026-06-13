@@ -522,8 +522,10 @@ export function classifyVoiceAction(
     };
   }
 
-  // 5b) Zoom recordings — Zoom is verified but no recordings runtime is
-  //     exposed yet. Route to the connector surface, honest block.
+  // 5b) Zoom recordings — Phase 1270: a real read-only runtime now
+  //     exists (GET /api/v1/zoom/recordings). The orb fetches the
+  //     org's actual cloud recordings; honest empty/error states when
+  //     there are none or the connection needs a reconnect.
   if (
     lower.includes("zoom") &&
     /\b(recording|recordings|meeting|latest)\b/.test(lower)
@@ -532,11 +534,9 @@ export function classifyVoiceAction(
       kind: "ZOOM_RECORDINGS",
       heard,
       actionLabel: "Zoom recordings",
-      spoken:
-        "Zoom is verified, but a recordings runtime isn't exposed in the Work OS yet. I'll open the connector surface.",
+      spoken: "Let me pull your Zoom cloud recordings.",
       route: `${CONNECTOR_RAILS_ROUTE}?focus=zoom`,
       provider: "zoom",
-      blockedReason: "zoom recordings runtime not exposed",
       isReadOnly: true,
     };
   }

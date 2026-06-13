@@ -46,7 +46,6 @@ standing authority"; REQUIRE_DUAL_CONTROL → "Approval required"; FORBIDDEN
 | Command | Block copy | Missing backend |
 | --- | --- | --- |
 | "Ask <teammate>'s Twin …" | Routes to Collaboration; "Twin-request runtime / teammate resolution from voice isn't wired" | collaboration target resolution + Twin intercession policy |
-| "Pull latest Zoom recordings" | "Zoom is verified, but a recordings runtime isn't exposed yet" | Zoom recordings list route |
 | "Turn this meeting into action items" | Routes to Conversations; "transcript capture from this voice session isn't wired" | meeting-transcript ingestion + action-item extraction |
 | "Start the <X> workflow" | Routes to Workflows; "workflow-start runtime isn't exposed to voice" | workflow-start route |
 | "Create a task / assign to <teammate>" | Routes to Projects; "task-write from voice isn't wired" | task create/assign route |
@@ -59,25 +58,50 @@ standing authority"; REQUIRE_DUAL_CONTROL → "Approval required"; FORBIDDEN
 - After-call queue list (today: per-command card; no persistent queue surface).
 - Draft inbox (today: per-command card + Work Comms; no unified draft list).
 
-## 6. Missing backend routes (the next bridges)
+## 6. Backend routes — landed vs. remaining
 
-1. **Calendar free/busy (read)** — `GET /api/v1/otzar/calendar/freebusy` (scopes + token already present for Google Calendar). Unblocks real availability.
-2. **Calendar event proposal/create** — approval-gated create; unblocks real scheduling.
-3. **External Slack/email send** — governed, approval-required; unblocks real outbound messaging.
-4. **Zoom recordings list** — read-only; unblocks recording summaries.
-5. **Meeting-transcript ingestion** — capture current session / uploaded transcript → action items.
-6. **Task create/assign** — governed task ProposedAction type.
-7. **Collaboration target resolution + Twin intercession policy** — resolve "David's Twin" + delegated-authority answering.
+**LANDED (Phase 1270 — real, read-only, tested):**
+
+- ✅ **Zoom recordings list** — `GET /api/v1/zoom/recordings`. SAFE
+  projection (topic/when/duration/file-types); NO download/play URLs
+  (they can embed tokens). Audited `CONNECTOR_DATA_READ`. The orb's
+  "Pull latest Zoom recordings" now lists the org's real cloud
+  recordings (honest empty / reconnect / error states).
+- ✅ **Calendar free/busy (read)** — `POST /api/v1/calendar/freebusy`
+  (RFC3339 `time_min`/`time_max`; `calendar.readonly` scope covers
+  `freeBusy`). Returns busy intervals only — never event titles.
+  Audited `CONNECTOR_DATA_READ`. Reusable token resolver
+  `getProviderAccessTokenForOrg` (load → refresh → re-seal) backs both.
+
+**REMAINING (precise blockers):**
+
+1. **Calendar event proposal/create** — BLOCKED: only the
+   `calendar.readonly` scope is granted
+   (`connector-oauth.service.ts:122`). Creating an event needs
+   `calendar.events` (write). Unblocking requires a Founder-authorized
+   scope expansion + re-consent, then an approval-gated create route.
+2. **External Slack/email send** — governed, approval-required; needs a
+   ProposedAction `INVOKE_CONNECTOR` handler + Slack `chat:write` /
+   email send provider. Routes through the ADR-0057 pipeline; never an
+   auto-send.
+3. **Meeting-transcript ingestion** — Zoom transcript files are listed
+   by the recordings bridge (`file_types` includes `TRANSCRIPT`), but
+   downloading + parsing them into action items is a follow-on (the
+   download URL is deliberately withheld from the SAFE projection).
+4. **Task create/assign** — governed task ProposedAction type; no task
+   model/connector write surface exists yet (`linear-read.provider.ts`
+   is read-only).
+5. **Collaboration target resolution + Twin intercession policy** —
+   resolve "David's Twin" + delegated-authority answering.
 
 ## 7. Recommended next bridge order
 
-1. Calendar free/busy (read-only, lowest risk, highest scheduling value).
+1. Calendar event create (approval-gated) — needs `calendar.events`
+   scope expansion + re-consent first.
 2. Task create/assign as a ProposedAction type (reuses ADR-0057 pipeline).
 3. Meeting-transcript ingestion → action items (feeds drafts/tasks).
-4. Calendar event create (approval-gated) once free/busy + confirmations land.
-5. External Slack/email send (governed, approval-required).
-6. Zoom recordings list.
-7. Twin intercession policy.
+4. External Slack/email send (governed, approval-required).
+5. Twin intercession policy.
 
 ## 8. Acceptance tests for handoff readiness
 
@@ -110,8 +134,8 @@ Remaining bridges, by dimension (status → symptom → next bridge → acceptan
 | 5 | Collaboration threads | Partial (Collaboration page) | Per-request thread + focus; AT: open request by id |
 | 6 | Action Center | **Done** (focus + approve/reject) | Detail drawer + body surface (privacy-bounded) |
 | 7 | Project/goal context | Missing | Active-project selector + artifact.attach; AT: artifact shows project |
-| 8 | Meeting intelligence | Partial (conversation→actions) | Transcript ingestion + extraction; AT: transcript→action items |
-| 9 | Calendar availability | Missing (backend) | `POST /calendar/freebusy` (Google scopes present); AT: candidate slots |
+| 8 | Meeting intelligence | Partial (conversation→actions; Zoom recordings list live) | Transcript download + extraction; AT: transcript→action items |
+| 9 | Calendar availability | **Done** (read) `POST /api/v1/calendar/freebusy` | Event create needs `calendar.events` scope (currently readonly) |
 | 10 | External comms | Missing (backend) | Approval-gated Slack/email send; AT: no send without approval |
 | 11 | Notifications | **Done** (wrap/scroll/route/clean error) | Detail modal |
 | 12 | Authority/approval | Partial (policy evaluator surfaced) | Standing/short/long grant UI; AT: status reflects grant tier |

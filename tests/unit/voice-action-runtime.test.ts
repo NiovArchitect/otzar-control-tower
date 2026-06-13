@@ -182,11 +182,15 @@ describe("Work OS action classifier", () => {
     expect(a.spoken.toLowerCase()).toContain("confirmation");
   });
 
-  it("'Pull latest Zoom recordings.' → ZOOM_RECORDINGS, honest block", () => {
+  it("'Pull latest Zoom recordings.' → ZOOM_RECORDINGS, real read-only runtime (Phase 1270)", () => {
     const a = classifyVoiceAction("Pull latest Zoom recordings.", ADMIN);
     expect(a.kind).toBe("ZOOM_RECORDINGS");
-    expect(a.spoken.toLowerCase()).toContain("verified");
-    expect(a.spoken.toLowerCase()).toContain("isn't exposed");
+    expect(a.isReadOnly).toBe(true);
+    // The recordings runtime now exists (GET /api/v1/zoom/recordings),
+    // so the classifier no longer announces it as unexposed.
+    expect(a.spoken.toLowerCase()).toContain("zoom");
+    expect(a.spoken.toLowerCase()).not.toContain("isn't exposed");
+    expect(a.blockedReason).toBeUndefined();
   });
 
   it("'Turn this meeting into action items.' → MEETING_NOTES_TO_ACTIONS", () => {

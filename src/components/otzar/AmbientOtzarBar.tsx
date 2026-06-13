@@ -511,11 +511,8 @@ export function AmbientOtzarBar(): JSX.Element {
     if (a.kind === "READ_ONLY_SUMMARY" || a.kind === "CONNECTOR_STATUS_SUMMARY")
       return "Read-only";
     if (a.kind === "APPROVALS_REVIEW") return "Read-only";
-    if (
-      a.kind === "ZOOM_RECORDINGS" ||
-      a.kind === "WORKFLOW_START" ||
-      a.kind === "MEETING_NOTES_TO_ACTIONS"
-    )
+    if (a.kind === "ZOOM_RECORDINGS") return "Read-only";
+    if (a.kind === "WORKFLOW_START" || a.kind === "MEETING_NOTES_TO_ACTIONS")
       return "Runtime not available yet";
     if (a.kind === "UNSUPPORTED") return "Blocked";
     return "Done";
@@ -1009,7 +1006,7 @@ export function AmbientOtzarBar(): JSX.Element {
             ? { prerequisite: `Requires ${prereqMatch[1]}` }
             : {}),
           runtimeNote:
-            "Calendar availability check + event creation aren't wired yet. This is a proposal — no event is created, no invite is sent.",
+            "Availability (free/busy) is now readable, but creating the event isn't wired yet — the Google connection is read-only (calendar.readonly). This is a proposal: no event is created, no invite is sent.",
         });
         setActionResult(action.spoken);
         setActionStatus("Draft · Approval required");
@@ -1024,9 +1021,64 @@ export function AmbientOtzarBar(): JSX.Element {
         });
         return;
       }
+      case "ZOOM_RECORDINGS": {
+        // REAL read-only bridge (Phase 1270): fetch the org's actual
+        // Zoom cloud recordings via GET /api/v1/zoom/recordings. Honest
+        // empty / reconnect / error states — never a faked recording.
+        setActionStatus("Read-only");
+        setActionResult("Pulling your Zoom cloud recordings…");
+        if (action.route !== undefined) navigate(action.route);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result: "success",
+        });
+        void api.connectorData.zoomRecordings({ page_size: 10 }).then((r) => {
+          let msg: string;
+          if (r.ok) {
+            const recs = r.data.recordings;
+            if (recs.length === 0) {
+              msg =
+                "Zoom is connected, but there are no cloud recordings on this account yet.";
+            } else {
+              const lines = recs.slice(0, 5).map((rec) => {
+                const when = rec.start_time
+                  ? new Date(rec.start_time).toLocaleString()
+                  : "unknown time";
+                return `• ${rec.topic} — ${when} · ${rec.duration_minutes} min`;
+              });
+              const more =
+                recs.length > 5 ? `\n…and ${recs.length - 5} more.` : "";
+              msg = `You have ${recs.length} Zoom recording${recs.length === 1 ? "" : "s"}:\n${lines.join("\n")}${more}`;
+            }
+          } else if (
+            r.code === "NOT_CONNECTED" ||
+            r.code === "TOKEN_REFRESH_FAILED"
+          ) {
+            msg =
+              "Your Zoom connection needs a reconnect before I can read recordings. Open Workspace connections to fix it.";
+          } else {
+            msg =
+              "I couldn't reach Zoom for your recordings right now. Try again in a moment.";
+          }
+          setActionResult(msg);
+          appendConversationEntry({
+            role: "action",
+            text: msg,
+            at,
+            kind: action.kind,
+            status: "Read-only",
+          });
+          speakConfirmation(
+            msg.length > 220 ? "Here are your Zoom recordings." : msg,
+          );
+        });
+        return;
+      }
       case "ASK_TWIN":
       case "MEETING_NOTES_TO_ACTIONS":
-      case "ZOOM_RECORDINGS":
       case "WORKFLOW_START":
       case "READ_ONLY_SUMMARY": {
         // Governed work: drafted / proposed / routed / honestly blocked.

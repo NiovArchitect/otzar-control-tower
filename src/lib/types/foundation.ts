@@ -4190,3 +4190,35 @@ export interface OAuthStartResponse {
   ok: true;
   authorize_url: string;
 }
+
+// Phase 1270 — read-only connector data bridges. SAFE projections
+// only: no recording download/play URLs, no calendar event titles.
+export interface ZoomRecordingView {
+  meeting_uuid: string;
+  topic: string;
+  start_time: string;
+  duration_minutes: number;
+  recording_count: number;
+  total_size_bytes: number;
+  file_types: string[];
+}
+
+export interface ZoomRecordingsResponse {
+  ok: true;
+  provider: "zoom";
+  recordings: ZoomRecordingView[];
+}
+
+export interface FreeBusyInterval {
+  start: string;
+  end: string;
+}
+
+export interface CalendarFreeBusyResponse {
+  ok: true;
+  provider: "google";
+  calendar_id: string;
+  time_min: string;
+  time_max: string;
+  busy: FreeBusyInterval[];
+}

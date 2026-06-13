@@ -73,6 +73,8 @@ import type {
   ConnectorAdaptersResponse,
   OAuthStatusResponse,
   OAuthStartResponse,
+  ZoomRecordingsResponse,
+  CalendarFreeBusyResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1105,6 +1107,42 @@ export class ApiClient {
           body: { body_summary, idempotency_key },
         },
       ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // connectorData.* (Phase 1270) — read-only bridges that turn a
+  // verified OAuth connection into live data the Work OS can act on.
+  // Both are READ-ONLY; neither creates/sends/mutates provider data.
+  // The backend SAFE-projects (no recording download URLs, no event
+  // titles) and audits every read as CONNECTOR_DATA_READ.
+  // ──────────────────────────────────────────────────────────────
+  connectorData = {
+    /** GET /api/v1/zoom/recordings — the org's Zoom cloud recordings.
+     *  SAFE projection only (topic/when/duration/file-types). */
+    zoomRecordings: (
+      params: { from?: string; to?: string; page_size?: number } = {},
+    ): Promise<ApiResult<ZoomRecordingsResponse>> => {
+      const query: Record<string, string> = {};
+      if (params.from !== undefined) query.from = params.from;
+      if (params.to !== undefined) query.to = params.to;
+      if (params.page_size !== undefined)
+        query.page_size = String(params.page_size);
+      return this.request<ZoomRecordingsResponse>(
+        `/zoom/recordings${qs(query)}`,
+      );
+    },
+
+    /** POST /api/v1/calendar/freebusy — busy intervals for a window.
+     *  time_min/time_max are RFC3339. Never returns event titles. */
+    calendarFreeBusy: (body: {
+      time_min: string;
+      time_max: string;
+      calendar_id?: string;
+    }): Promise<ApiResult<CalendarFreeBusyResponse>> =>
+      this.request<CalendarFreeBusyResponse>("/calendar/freebusy", {
+        method: "POST",
+        body,
+      }),
   };
 
   // ──────────────────────────────────────────────────────────────
