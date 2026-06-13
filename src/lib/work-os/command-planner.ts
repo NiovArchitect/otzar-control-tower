@@ -1,0 +1,179 @@
+// FILE: command-planner.ts
+// PURPOSE: Phase 1273 — deterministic multi-intent command planner.
+//          Splits a compound work instruction into coordinated, linked
+//          actions WITHOUT flattening them into one meeting card and
+//          WITHOUT dropping the second intent (the David follow-up that
+//          the live test lost). It also detects single follow-up/after-
+//          call promises and preserves "after X confirms" prerequisites.
+//          Pure + deterministic (LLM-free) so the structure is testable
+//          and never hallucinated.
+// CONNECTS TO: AmbientOtzarBar (renders one card per planned action),
+//          authority-context route (each action's target → authority),
+//          calendar-event gated create (meeting actions).
+
+export type PlannedActionKind =
+  | "SCHEDULE_MEETING"
+  | "FOLLOW_UP_NOTE"
+  | "TASK"
+  | "DRAFT_MESSAGE";
+
+export interface PlannedAction {
+  /** Stable per-plan index id, e.g. "a1", "a2". */
+  id: string;
+  kind: PlannedActionKind;
+  /** Resolved later; the raw name token extracted from this segment. */
+  target_name?: string;
+  /** Meeting duration in minutes when stated ("30-minute"). */
+  duration_minutes?: number;
+  /** Coarse date phrase ("tomorrow"). */
+  when?: string;
+  /** True when "work hours" / "business hours" is stated. */
+  work_hours?: boolean;
+  /** Preserved prerequisite, e.g. "Samiksha confirms". */
+  prerequisite?: string;
+  /** Project/context label, e.g. "Otzar voice runtime". */
+  context_label?: string;
+  /** The raw segment text this action came from. */
+  source_segment: string;
+}
+
+export interface WorkPlan {
+  source_command: string;
+  /** Plan-wide project/context label when present. */
+  context_label?: string;
+  actions: PlannedAction[];
+  /** True when more than one coordinated action was detected. */
+  multi_intent: boolean;
+}
+
+// "about the Otzar voice runtime" / "regarding X" / "on the X project".
+function extractContextLabel(text: string): string | undefined {
+  const m = text.match(
+    /\b(?:about|regarding|re:|on the|for the)\s+(?:the\s+)?([^.,;]+?)(?:\s+(?:project|runtime|goal|initiative))?(?=[.,;]|\s+and\b|\s+during\b|\s+tomorrow\b|$)/i,
+  );
+  if (m === null) return undefined;
+  let label = (m[1] ?? "").trim();
+  // Re-append a trailing domain noun if the phrase named one.
+  const tail = text.match(/\b([A-Za-z][\w ]*?\s+(?:runtime|project|goal|initiative))\b/i);
+  if (tail !== null) label = (tail[1] ?? label).trim();
+  return label.length > 0 ? label : undefined;
+}
+
+function extractDurationMinutes(text: string): number | undefined {
+  const m = text.match(/\b(\d{1,3})[\s-]*(?:minute|min|minutes)\b/i);
+  if (m !== null) return Number.parseInt(m[1] ?? "", 10);
+  const hr = text.match(/\b(\d{1,2})[\s-]*(?:hour|hr|hours)\b/i);
+  if (hr !== null) return Number.parseInt(hr[1] ?? "", 10) * 60;
+  return undefined;
+}
+
+function extractWhen(text: string): string | undefined {
+  const m = text.match(/\b(today|tomorrow|next week|this week|monday|tuesday|wednesday|thursday|friday)\b/i);
+  return m === null ? undefined : (m[1] ?? "").toLowerCase();
+}
+
+// "After Samiksha confirms, ..." → "Samiksha confirms".
+function extractPrerequisite(text: string): string | undefined {
+  const m = text.match(/\bafter\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(confirms?|approves?|responds?|replies)\b/i);
+  if (m === null) return undefined;
+  return `${m[1]} ${m[2]}`.replace(/\s+/g, " ").trim();
+}
+
+// Pull a participant after a preposition/verb in a single segment.
+function extractParticipant(text: string): string | undefined {
+  // promise "told X", meeting "with X", note/message "for X"/"to X",
+  // task "ask X" / "have X". Check the promise verb first so
+  // "I told Vishesh I would follow up" resolves to Vishesh, not a later
+  // preposition.
+  const told = text.match(/\b(?:told|promised|owe)\s+([A-Z][a-z]+)\b/);
+  if (told !== null) return told[1];
+  const prep = text.match(/\b(?:with|for|to)\s+([A-Z][a-z]+)\b/);
+  if (prep !== null) return prep[1];
+  const verb = text.match(/\b(?:ask|have|assign(?:\s+this)?\s+to)\s+([A-Z][a-z]+)\b/i);
+  if (verb !== null) return verb[1];
+  return undefined;
+}
+
+function classifySegment(seg: string): PlannedActionKind | null {
+  const l = seg.toLowerCase();
+  // Follow-up FIRST: "follow up" / "follow-up note" wins over a bare
+  // "meeting" mention like "after the meeting" (the live-test trap).
+  if (/\b(follow.?up|prepare a (?:follow.?up )?note)\b/.test(l)) {
+    return "FOLLOW_UP_NOTE";
+  }
+  // Scheduling requires a real scheduling verb — NOT a bare "meeting".
+  if (
+    /\b(schedule|book|set up a meeting|put (?:this|it) on (?:the )?calendar|get (?:on|him|her|them) .*calendar|add (?:a )?meeting)\b/.test(
+      l,
+    )
+  ) {
+    return "SCHEDULE_MEETING";
+  }
+  if (/\b(assign|create a task|task for|have\s+\w+\s+review|ask\s+\w+\s+to)\b/.test(l)) {
+    return "TASK";
+  }
+  if (/\b(draft|message|send (?:a )?note|tell|let .* know)\b/.test(l)) {
+    return "DRAFT_MESSAGE";
+  }
+  return null;
+}
+
+// Split on coordinating "and" / commas that join independent clauses,
+// but NOT inside "30-minute" or "follow-up". We split on ", and ",
+// " and " (word-boundary), and "; " — then drop empty fragments.
+function splitSegments(text: string): string[] {
+  return text
+    .split(/\s*,?\s+and\s+|\s*;\s+/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+// WHAT: Plan a (possibly compound) work command into linked actions.
+// INPUT: the raw transcript.
+// OUTPUT: a WorkPlan — one action per detected intent, with extracted
+//         participant/duration/when/work-hours/prerequisite/context.
+// WHY: The multi-intent live test failed because the second intent (the
+//      David follow-up) was dropped. This guarantees every recognized
+//      clause becomes its own linked, inspectable action.
+export function planWorkCommand(transcript: string): WorkPlan {
+  const source = transcript.trim();
+  const planContext = extractContextLabel(source);
+  // A leading "After X confirms," applies to the FIRST scheduling action.
+  const leadingPrereq = extractPrerequisite(source);
+
+  const segments = splitSegments(source);
+  const actions: PlannedAction[] = [];
+  let idx = 0;
+  for (const seg of segments) {
+    const kind = classifySegment(seg);
+    if (kind === null) continue;
+    idx += 1;
+    const action: PlannedAction = {
+      id: `a${idx}`,
+      kind,
+      source_segment: seg,
+    };
+    const target = extractParticipant(seg);
+    if (target !== undefined) action.target_name = target;
+    const dur = extractDurationMinutes(seg);
+    if (dur !== undefined) action.duration_minutes = dur;
+    const when = extractWhen(seg);
+    if (when !== undefined) action.when = when;
+    if (/\b(work hours|business hours|during the day)\b/i.test(seg)) {
+      action.work_hours = true;
+    }
+    const segPrereq = extractPrerequisite(seg);
+    const prereq = segPrereq ?? (kind === "SCHEDULE_MEETING" ? leadingPrereq : undefined);
+    if (prereq !== undefined) action.prerequisite = prereq;
+    const segContext = extractContextLabel(seg) ?? planContext;
+    if (segContext !== undefined) action.context_label = segContext;
+    actions.push(action);
+  }
+
+  return {
+    source_command: source,
+    ...(planContext !== undefined ? { context_label: planContext } : {}),
+    actions,
+    multi_intent: actions.length > 1,
+  };
+}
