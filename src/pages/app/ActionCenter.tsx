@@ -39,6 +39,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import { api } from "@/lib/api";
+import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView } from "@/lib/types/foundation";
 
 type Tab = "pending" | "approved" | "completed" | "blocked";
@@ -317,6 +318,9 @@ export function ActionCenter(): JSX.Element {
           {current.map((a) => {
             const t = STATUS_TO_TAB[a.status] ?? "blocked";
             const isFocused = focusId.length > 0 && a.action_id === focusId;
+            // Phase 1269 — the human-readable artifact detail the user
+            // authored (recipient/channel/body/source), if we have it.
+            const details = getActionDetails(a.action_id);
             return (
               <li
                 key={a.action_id}
@@ -334,7 +338,11 @@ export function ActionCenter(): JSX.Element {
                 >
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center justify-between gap-2 text-sm">
-                      <span>{friendlyActionType(a.action_type)}</span>
+                      <span>
+                        {details?.recipientLabel !== undefined
+                          ? `${friendlyActionType(a.action_type)} → ${details.recipientLabel}`
+                          : friendlyActionType(a.action_type)}
+                      </span>
                       <div className="flex items-center gap-2">
                         <Badge variant={t === "blocked" ? "destructive" : "outline"}>
                           {friendlyStatus(a.status)}
@@ -369,6 +377,41 @@ export function ActionCenter(): JSX.Element {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1 pt-0 text-xs text-muted-foreground">
+                    {/* Phase 1269 — full human-readable detail, available
+                        for EVERY status (incl. approved/executed) so an
+                        action is always inspectable, never a generic
+                        "internal note". */}
+                    {details !== null ? (
+                      <div
+                        className="rounded border border-border bg-muted/30 p-1.5 space-y-0.5"
+                        data-testid="action-detail"
+                      >
+                        {details.recipientLabel !== undefined ? (
+                          <div>
+                            <span className="font-medium text-foreground">
+                              Recipient:
+                            </span>{" "}
+                            {details.recipientLabel}
+                            {details.channel !== undefined
+                              ? ` · ${details.channel}`
+                              : ""}
+                          </div>
+                        ) : null}
+                        <div data-testid="action-detail-body">
+                          <span className="font-medium text-foreground">
+                            Message:
+                          </span>{" "}
+                          <span className="whitespace-pre-wrap break-words">
+                            {details.body}
+                          </span>
+                        </div>
+                        {details.sourceCommand !== undefined ? (
+                          <div className="text-[10px] opacity-70 break-words">
+                            From: “{details.sourceCommand}”
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       <span>{friendlyRisk(a.risk_tier)}</span>
                       <span aria-hidden>·</span>

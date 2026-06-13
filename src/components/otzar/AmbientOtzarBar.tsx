@@ -81,6 +81,7 @@ import {
   useConversationStore,
 } from "@/lib/work-os/conversation-store";
 import { resolveTarget } from "@/lib/work-os/target-resolution";
+import { setActionDetails } from "@/lib/work-os/action-details-store";
 import {
   WorkArtifactCard,
   type WorkArtifact,
@@ -586,188 +587,150 @@ export function AmbientOtzarBar(): JSX.Element {
   // runs the ADR-0057 policy evaluator → AUTO_APPROVE/standing-authority
   // or approval-required). NEVER sends externally; never fabricates a
   // recipient id. Unresolved → draft + target picker.
+  // Phase 1269 — a "Draft …" command creates a LOCAL draft artifact
+  // ONLY. It does NOT create a backend ProposedAction (that conflated
+  // DRAFT with PROPOSE and made Open look like auto-confirm). The user
+  // reviews/edits the visible draft, then CONFIRM proposes it. Open
+  // never confirms/sends. External (Slack/email) drafts are local and
+  // never auto-routed/auto-submitted.
+  const COMMS_ROUTE = "/app/comms";
+  const ACTION_CENTER_ROUTE = "/app/action-center";
+
   async function executeMessageAction(
     action: VoiceAction,
     at: string,
   ): Promise<void> {
-    const COMMS = "/app/comms";
-    const ACTION_CENTER = "/app/action-center";
     const isSend = action.kind === "SEND_REQUIRES_APPROVAL";
-    const finish = (
-      msg: string,
-      status: string,
-      result: "success" | "blocked" | "needs_confirmation",
-      route?: string,
-    ): void => {
-      setActionResult(msg);
-      setActionStatus(status);
-      appendConversationEntry({
-        role: "action",
-        text: msg,
-        at,
-        kind: action.kind,
-        status,
-      });
-      speakConfirmation(msg);
-      recordVoiceAction({
-        at,
-        transcript: action.heard,
-        actionType: action.kind,
-        target: action.targetEntity ?? null,
-        result,
-      });
-      if (route !== undefined) navigate(route);
-    };
-
-    // External channel (Slack / email) is never sent from voice.
-    if (action.isExternalWrite === true || action.connector === "slack" || action.connector === "email") {
-      setPendingArtifact({
-        kind: action.kind,
-        title: `Draft ${action.connector ?? "external"} message`,
-        ...(action.targetEntity !== undefined
-          ? { targetLabel: action.targetEntity }
-          : {}),
-        channel: action.connector ?? "external",
-        body: action.draftPayload ?? action.heard,
-        status: "Approval required",
-        route: COMMS,
-        runtimeNote:
-          "External send (Slack/email) needs approval and an external-send runtime that isn't wired to voice yet.",
-      });
-      finish(
-        "I drafted that. Sending externally needs approval — nothing was sent. Edit or open Work Comms from the card.",
-        "Approval required",
-        "needs_confirmation",
-      );
-      return;
-    }
+    const channel = action.connector ?? "internal";
+    const external = channel === "slack" || channel === "email";
     const recipientName = action.targetEntity;
-    if (recipientName === undefined) {
-      // Missing body? ask a targeted clarification, don't draft empty.
-      const body = action.draftPayload ?? "";
-      setPendingArtifact({
-        kind: action.kind,
-        title: "Draft message",
-        channel: "internal",
-        body: body.length > 0 ? body : "(no message yet)",
-        status: "Draft only · pick recipient",
-        route: COMMS,
-        runtimeNote:
-          "Tell me who it's for (and what to say) — or choose the teammate in Work Comms. Nothing is sent.",
-      });
-      finish(
-        "Draft created. Tell me who it's for — choose the teammate to propose it. Nothing is sent.",
-        "Draft only · pick recipient",
-        "needs_confirmation",
-      );
-      return;
-    }
-    const resolved = await resolveTarget(recipientName);
-    if (
-      (resolved.kind === "RESOLVED_HUMAN" ||
-        resolved.kind === "RESOLVED_AI_AGENT") &&
-      resolved.entityId !== undefined
-    ) {
-      const idem =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `voice-msg-${at}-${recipientName}`;
-      const draft = action.draftPayload ?? action.heard;
-      const r = await api.actions.sendInternalNotification({
-        recipient_entity_id: resolved.entityId,
-        draft_text: draft,
-        idempotency_key: idem,
-        payload_summary: `Voice message to ${resolved.displayName ?? recipientName}`,
-      });
-      const label = resolved.displayName ?? recipientName;
-      if (r.ok) {
-        const status = humanizeActionStatus(r.data.action.status);
-        setPendingArtifact({
-          kind: action.kind,
-          title: `${isSend ? "Send" : "Draft"} message → ${label}`,
-          targetLabel: label,
-          channel: "internal",
-          body: draft,
-          status,
-          actionId: r.data.action.action_id,
-          recipientEntityId: resolved.entityId,
-          // Open routes to the EXACT action, focused — so it never
-          // "disappears" into a generic Action Center list.
-          route: `${ACTION_CENTER}?focus=${encodeURIComponent(r.data.action.action_id)}`,
-        });
-        finish(
-          `Internal message to ${label} created as a governed action — ${status}. Nothing was sent externally. See the card to Edit, Confirm, or open Action Center.`,
-          status,
-          status === "Approval required" ? "needs_confirmation" : "success",
-        );
+    const body = action.draftPayload ?? action.heard;
+
+    // Resolve the recipient for a label + later Confirm — but DO NOT
+    // create any backend object yet.
+    let recipientEntityId: string | undefined;
+    let label = recipientName;
+    let resolveNote: string | undefined;
+    if (recipientName !== undefined) {
+      const resolved = await resolveTarget(recipientName);
+      if (
+        (resolved.kind === "RESOLVED_HUMAN" ||
+          resolved.kind === "RESOLVED_AI_AGENT") &&
+        resolved.entityId !== undefined
+      ) {
+        recipientEntityId = resolved.entityId;
+        label = resolved.displayName ?? recipientName;
+      } else if (resolved.kind === "AMBIGUOUS") {
+        resolveNote = `More than one teammate matches "${recipientName}". Open Work Comms to pick the right one.`;
+      } else if (resolved.kind === "NOT_FOUND") {
+        resolveNote = `"${recipientName}" isn't in your organization. Open Work Comms to pick a teammate.`;
       } else {
-        setPendingArtifact({
-          kind: action.kind,
-          title: `Draft message → ${label}`,
-          targetLabel: label,
-          channel: "internal",
-          body: draft,
-          status: "Blocked by policy",
-          recipientEntityId: resolved.entityId,
-          runtimeNote: humanizeActionError(r.code),
-        });
-        finish(humanizeActionError(r.code), "Blocked by policy", "blocked");
+        resolveNote =
+          "Resolving teammates from voice needs the org roster (not available to you here). Open Work Comms to pick the recipient.";
       }
-      return;
+    } else {
+      resolveNote = "Tell me who it's for, then Confirm to propose.";
     }
-    // Unresolved target → a VISIBLE local draft card + a target picker
-    // (never a fabricated recipient id, never a backend action).
-    const draft = action.draftPayload ?? action.heard;
-    const note =
-      resolved.kind === "AMBIGUOUS"
-        ? `More than one teammate matches "${recipientName}". Choose the recipient in Work Comms.`
-        : resolved.kind === "NOT_FOUND"
-          ? `"${recipientName}" isn't in your organization. Choose a teammate in Work Comms.`
-          : "Resolving teammates from voice needs the org roster (not available to you here). Choose the recipient in Work Comms.";
+
+    const status = external
+      ? "Local draft — external send not wired"
+      : recipientEntityId !== undefined
+        ? "Draft — Confirm to propose"
+        : "Local draft — pick a recipient";
+    const runtimeNote = external
+      ? "External send (Slack/email) isn't wired yet. This stays a local draft until that bridge lands — it is never auto-sent."
+      : resolveNote;
+
     setPendingArtifact({
       kind: action.kind,
-      title: `Draft message${recipientName !== undefined ? ` → ${recipientName}` : ""}`,
-      ...(recipientName !== undefined ? { targetLabel: recipientName } : {}),
-      channel: "internal",
-      body: draft,
-      status: "Draft only · pick recipient",
-      route: COMMS,
-      runtimeNote: note,
+      title: `${isSend ? "Send" : "Draft"} message${label !== undefined ? ` → ${label}` : ""}`,
+      ...(label !== undefined ? { targetLabel: label } : {}),
+      channel,
+      body,
+      status,
+      ...(recipientEntityId !== undefined ? { recipientEntityId } : {}),
+      externalChannel: external,
+      sourceCommand: action.heard,
+      // Open routes to the Work Comms DRAFT surface — it never confirms
+      // or proposes. Once proposed, Confirm rewrites the route to the
+      // focused Action Center entry.
+      route: COMMS_ROUTE,
+      ...(runtimeNote !== undefined ? { runtimeNote } : {}),
     });
-    finish(
-      "Draft created. Pick the recipient to propose it — nothing is sent.",
-      "Draft only · pick recipient",
-      "needs_confirmation",
-    );
+
+    const msg = external
+      ? "Draft created. External send isn't wired — nothing is sent. Edit, then Confirm to keep it for review."
+      : recipientEntityId !== undefined
+        ? `Draft to ${label} created. Review it, then Confirm to propose — nothing is sent yet.`
+        : "Draft created. Pick the recipient, then Confirm to propose — nothing is sent.";
+    setActionResult(msg);
+    setActionStatus(status);
+    appendConversationEntry({ role: "action", text: msg, at, kind: action.kind, status });
+    speakConfirmation(msg);
+    recordVoiceAction({
+      at,
+      transcript: action.heard,
+      actionType: action.kind,
+      target: action.targetEntity ?? null,
+      result: "needs_confirmation",
+    });
+    // NOTE: deliberately NO navigate() — the draft stays in view; the
+    // user opens it explicitly.
   }
 
-  // Phase 1267 — work-artifact card handlers. Edit revises the body
-  // (re-proposes a governed action when a real recipient exists);
-  // Confirm opens the governed destination (or re-proposes edits);
-  // Cancel dismisses the local card. NEVER sends externally.
-  async function reproposeArtifact(body: string): Promise<void> {
+  // Phase 1269 — CONFIRM is the only operation that proposes/creates a
+  // governed action. Open never reaches here.
+  async function confirmArtifact(body: string): Promise<void> {
     const a = pendingArtifact;
     if (a === null) return;
-    // Phase 1268 — capture a SAFE edit-feedback signal (coarse only).
+    const now = new Date().toISOString();
     if (body !== a.body) {
       recordArtifactEdit({
-        at: new Date().toISOString(),
+        at: now,
         kind: a.kind,
         originalChars: a.body.length,
         editedChars: body.length,
         confirmed: true,
       });
     }
-    if (a.recipientEntityId === undefined) {
-      // No real recipient (meeting proposal / unresolved draft): revise
-      // the visible artifact locally — there's no backend create path.
-      setPendingArtifact({ ...a, body });
+    // Already proposed → Confirm just opens the focused action; never
+    // re-creates.
+    if (a.proposed === true && a.actionId !== undefined) {
+      navigate(`${ACTION_CENTER_ROUTE}?focus=${encodeURIComponent(a.actionId)}`);
       return;
     }
+    // Meeting proposals + external channels have no create runtime yet —
+    // keep the artifact local + honest. NEVER auto-create/send.
+    if (a.kind === "SCHEDULE_MEETING") {
+      setPendingArtifact({
+        ...a,
+        body,
+        status: "Proposal saved (local)",
+        runtimeNote:
+          "Calendar create runtime isn't wired yet — saved as a local proposal. No event is created, no invite is sent.",
+      });
+      return;
+    }
+    if (a.externalChannel === true) {
+      setPendingArtifact({
+        ...a,
+        body,
+        status: "Local draft — external send not wired",
+        runtimeNote:
+          "Slack/email send isn't wired yet, so this can't be proposed for external send. Saved as a local draft.",
+      });
+      return;
+    }
+    if (a.recipientEntityId === undefined) {
+      // No resolved recipient → can't propose; route to the picker.
+      navigate(COMMS_ROUTE);
+      return;
+    }
+    // Internal, resolved recipient → CREATE the governed ProposedAction.
     const idem =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
-        : `voice-msg-edit-${a.recipientEntityId}-${body.length}`;
+        : `voice-msg-${now}-${a.recipientEntityId}`;
     const r = await api.actions.sendInternalNotification({
       recipient_entity_id: a.recipientEntityId,
       draft_text: body,
@@ -775,12 +738,38 @@ export function AmbientOtzarBar(): JSX.Element {
       payload_summary: a.title,
     });
     if (r.ok) {
-      setPendingArtifact({
-        ...a,
+      const actionId = r.data.action.action_id;
+      const status = humanizeActionStatus(r.data.action.status);
+      // Persist the human-readable detail so the Action Center shows
+      // recipient/channel/body — not a generic "internal note".
+      setActionDetails(actionId, {
+        title: a.title,
+        ...(a.targetLabel !== undefined ? { recipientLabel: a.targetLabel } : {}),
+        channel: a.channel ?? "internal",
         body,
-        status: humanizeActionStatus(r.data.action.status),
-        actionId: r.data.action.action_id,
+        ...(a.sourceCommand !== undefined ? { sourceCommand: a.sourceCommand } : {}),
       });
+      // Drop any prior runtimeNote (exactOptionalPropertyTypes: omit).
+      const { runtimeNote: _clearedNote, ...rest } = a;
+      void _clearedNote;
+      setPendingArtifact({
+        ...rest,
+        body,
+        proposed: true,
+        actionId,
+        status,
+        route: `${ACTION_CENTER_ROUTE}?focus=${encodeURIComponent(actionId)}`,
+      });
+      appendConversationEntry({
+        role: "action",
+        text: `Proposed: internal message to ${a.targetLabel ?? "recipient"} — ${status}.`,
+        at: now,
+        kind: a.kind,
+        status,
+      });
+      speakConfirmation(
+        `Proposed your message to ${a.targetLabel ?? "your teammate"} — ${status}.`,
+      );
     } else {
       setPendingArtifact({
         ...a,
@@ -790,14 +779,27 @@ export function AmbientOtzarBar(): JSX.Element {
       });
     }
   }
-  function confirmArtifact(body: string): void {
+
+  // Edit-Save revises the body locally; if already proposed, re-propose
+  // a new governed action with the edits.
+  async function reviseArtifact(body: string): Promise<void> {
     const a = pendingArtifact;
     if (a === null) return;
-    if (a.recipientEntityId !== undefined && body !== a.body) {
-      void reproposeArtifact(body);
+    if (body !== a.body) {
+      recordArtifactEdit({
+        at: new Date().toISOString(),
+        kind: a.kind,
+        originalChars: a.body.length,
+        editedChars: body.length,
+        confirmed: false,
+      });
+    }
+    if (a.proposed === true) {
+      // Re-propose with the edited body (a new governed action).
+      await confirmArtifact(body);
       return;
     }
-    if (a.route !== undefined) navigate(a.route);
+    setPendingArtifact({ ...a, body });
   }
 
   // Phase 1264 Voice Action Runtime — voice OPERATES the app. Every
@@ -1704,9 +1706,9 @@ export function AmbientOtzarBar(): JSX.Element {
           {pendingArtifact !== null ? (
             <WorkArtifactCard
               artifact={pendingArtifact}
-              onConfirm={confirmArtifact}
+              onConfirm={(body) => void confirmArtifact(body)}
               onCancel={() => setPendingArtifact(null)}
-              onEdit={(body) => void reproposeArtifact(body)}
+              onEdit={(body) => void reviseArtifact(body)}
               onOpen={(route) => navigate(route)}
             />
           ) : null}

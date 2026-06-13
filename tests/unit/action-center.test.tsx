@@ -290,3 +290,60 @@ describe("ActionCenter — roster-aware (not David-only)", () => {
     expect(document.body.outerHTML).not.toMatch(/\bDavid\b/);
   });
 });
+
+describe("ActionCenter — focus + artifact detail (Phase 1269)", () => {
+  it("focuses the action from ?focus and shows the real recipient + body (not 'internal note')", async () => {
+    const { setActionDetails } = await import(
+      "@/lib/work-os/action-details-store"
+    );
+    setActionDetails("act-focus", {
+      title: "Draft message → David",
+      recipientLabel: "David",
+      channel: "internal",
+      body: "We need to review this.",
+      sourceCommand: "Draft a message to David saying we need to review this.",
+    });
+    mockList([action({ action_id: "act-focus", status: "PROPOSED" })]);
+    // The orb's Open routes with ?focus=<id>; emulate that URL.
+    window.history.pushState({}, "", "/app/action-center?focus=act-focus");
+    render(
+      <MemoryRouter>
+        <ActionCenter />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("action-center-card")).toBeInTheDocument(),
+    );
+    // Focused (highlighted) + real body visible — never disappears.
+    expect(
+      screen.getByTestId("action-center-card").getAttribute("data-focused"),
+    ).toBe("true");
+    expect(screen.getByTestId("action-detail-body").textContent).toMatch(
+      /We need to review this\./,
+    );
+    // Reset the URL so other tests are unaffected.
+    window.history.pushState({}, "", "/");
+  });
+
+  it("keeps the body inspectable even after approval", async () => {
+    const { setActionDetails } = await import(
+      "@/lib/work-os/action-details-store"
+    );
+    setActionDetails("act-approved", {
+      title: "Draft message → Samiksha",
+      recipientLabel: "Samiksha",
+      channel: "internal",
+      body: "Approved note body.",
+    });
+    mockList([action({ action_id: "act-approved", status: "APPROVED" })]);
+    renderPage();
+    // Approved tab.
+    await waitFor(() =>
+      expect(screen.getByTestId("action-tab-approved")).toBeInTheDocument(),
+    );
+    await userEvent.setup().click(screen.getByTestId("action-tab-approved"));
+    expect(screen.getByTestId("action-detail-body").textContent).toMatch(
+      /Approved note body\./,
+    );
+  });
+});

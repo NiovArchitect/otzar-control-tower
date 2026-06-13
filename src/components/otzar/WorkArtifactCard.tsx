@@ -34,7 +34,13 @@ export interface WorkArtifact {
   prerequisite?: string;
   /** Backend ProposedAction id, when one was created. */
   actionId?: string;
-  /** Resolved recipient entity id — lets Edit re-propose with edits. */
+  /** True once a backend ProposedAction has been created (Confirm). */
+  proposed?: boolean;
+  /** True for an external channel (Slack/email) — never auto-sent. */
+  externalChannel?: boolean;
+  /** The original spoken/typed command (shown as source). */
+  sourceCommand?: string;
+  /** Resolved recipient entity id — lets Confirm propose the action. */
   recipientEntityId?: string;
   /** Where "Open" routes (Action Center / Work Comms / …). */
   route?: string;

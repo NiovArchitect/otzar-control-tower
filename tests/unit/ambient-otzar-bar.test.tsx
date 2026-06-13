@@ -475,49 +475,59 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
-  it("'Draft a message to David…' creates a REAL governed internal-notification action (approval required), no external send, no chat", async () => {
+  it("'Draft a message to David…' creates a LOCAL draft (NO backend action until Confirm)", async () => {
+    // Phase 1269 semantics: draft is local — proposing is an explicit
+    // Confirm, never automatic.
     await speak("Draft a message to David saying we need to review this.");
-    await waitFor(() => {
-      expect(actionPosts.length).toBe(1);
-    });
-    // The governed Action is an INTERNAL notification to the resolved
-    // recipient — never an external send.
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("work-artifact-card").textContent).toMatch(/David/);
+    // No governed action was created just by drafting.
+    expect(actionPosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0); // no Twin chat
+  });
+
+  it("Confirm on the draft creates the REAL governed internal-notification action (no external send)", async () => {
+    await speak("Draft a message to David saying we need to review this.");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-confirm")).toBeInTheDocument(),
+    );
+    await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
+    await waitFor(() => expect(actionPosts.length).toBe(1));
     const body = actionPosts[0]!;
     expect(body.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
     expect((body.payload_redacted as Record<string, unknown>).recipient_entity_id).toBe(
       "ent-david",
     );
-    expect(screen.getByTestId("voice-action-status").textContent).toMatch(
-      /Approval required/i,
-    );
-    expect(recordedBodies.length).toBe(0); // no Twin chat
-  });
-
-  it("'Send David this message' creates an approval-required action and NEVER sends externally", async () => {
-    await speak("Send David this message.");
-    await waitFor(() => {
-      expect(actionPosts.length).toBe(1);
-    });
-    expect(actionPosts[0]!.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
-    expect(screen.getByTestId("voice-action-status").textContent).toMatch(
-      /Approval required/i,
-    );
     expect(recordedBodies.length).toBe(0);
   });
 
-  it("'Draft a message to David…' renders a VISIBLE editable artifact card (no hearsay)", async () => {
-    await speak("Draft a message to David saying we need to review this.");
-    await waitFor(() => {
-      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument();
-    });
-    // The card shows the recipient + an Edit + Cancel control.
-    expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
-      /David/,
+  it("'Draft a Slack message…' stays a LOCAL draft — never auto-routes, never auto-submits", async () => {
+    await speak("Draft a Slack message to David saying we need to review this.");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument(),
     );
-    expect(screen.getByTestId("work-artifact-edit-open")).toBeInTheDocument();
-    expect(screen.getByTestId("work-artifact-cancel")).toBeInTheDocument();
-    // A real governed action was created (not hearsay).
+    // External: no backend action created, no navigation away.
+    expect(actionPosts.length).toBe(0);
+    expect(screen.getByTestId("work-artifact-card").getAttribute("data-kind")).toBe(
+      "DRAFT_MESSAGE",
+    );
+    // Confirm does NOT send externally (no send runtime) — still 0 posts.
+    await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
+    expect(actionPosts.length).toBe(0);
+  });
+
+  it("'Send David this message' is a draft until Confirm; Confirm proposes, never sends", async () => {
+    await speak("Send David this message.");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-confirm")).toBeInTheDocument(),
+    );
+    expect(actionPosts.length).toBe(0); // not sent/proposed on the command
+    await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
     await waitFor(() => expect(actionPosts.length).toBe(1));
+    expect(actionPosts[0]!.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
+    expect(recordedBodies.length).toBe(0);
   });
 
   it("'Schedule a meeting with Vishesh tomorrow' renders a meeting proposal card and NEVER routes to transcripts/creates an event", async () => {
