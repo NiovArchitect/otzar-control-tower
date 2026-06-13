@@ -133,3 +133,88 @@ describe("safeOpenExternalUrl — protocol re-validation at the boundary", () =>
     expect(safeOpenExternalUrl("file:///etc/passwd")).toBe("NEEDS_LINK");
   });
 });
+
+// ── HARD REGRESSION GUARD (the live failure) ────────────────────────
+// "Take me to the onboarding screen" was answered by Sadeil's Twin
+// ("I can't navigate your UI…") instead of navigating. These lock the
+// deterministic interception so it can never regress.
+describe("onboarding/setup navigation regression guard", () => {
+  it("'Take me to the onboarding screen.' → INTERNAL_NAVIGATION, NOT chat", () => {
+    const a = classifyVoiceAction("Take me to the onboarding screen.", ADMIN);
+    expect(a.kind).toBe("INTERNAL_NAVIGATION");
+    expect(a.kind).not.toBe("GOVERNED_CHAT");
+    expect(a.route).toBe("/onboarding");
+    expect(a.spoken.toLowerCase()).toContain("onboarding");
+  });
+
+  it("'Open onboarding.' → INTERNAL_NAVIGATION", () => {
+    expect(classifyVoiceAction("Open onboarding.", ADMIN).kind).toBe(
+      "INTERNAL_NAVIGATION",
+    );
+  });
+
+  it("'Go to setup.' → INTERNAL_NAVIGATION", () => {
+    expect(classifyVoiceAction("Go to setup.", ADMIN).kind).toBe(
+      "INTERNAL_NAVIGATION",
+    );
+  });
+
+  it("'Show me onboarding.' → INTERNAL_NAVIGATION", () => {
+    expect(classifyVoiceAction("Show me onboarding.", ADMIN).kind).toBe(
+      "INTERNAL_NAVIGATION",
+    );
+  });
+
+  it("'Continue onboarding.' → INTERNAL_NAVIGATION (non-generic verb)", () => {
+    expect(classifyVoiceAction("Continue onboarding.", ADMIN).kind).toBe(
+      "INTERNAL_NAVIGATION",
+    );
+  });
+
+  it("'How do I complete onboarding?' → GOVERNED_CHAT (a question, not nav)", () => {
+    const a = classifyVoiceAction("How do I complete onboarding?", ADMIN);
+    expect(a.kind).toBe("GOVERNED_CHAT");
+  });
+
+  it("employee onboarding nav lands on the employee onboarding route", () => {
+    const a = classifyVoiceAction("Take me to the onboarding screen.", EMPLOYEE);
+    expect(a.kind).toBe("INTERNAL_NAVIGATION");
+    expect(a.route).toBe("/app/onboarding-readiness");
+  });
+});
+
+describe("expanded deterministic navigation map", () => {
+  it("admin surfaces resolve to real routes", () => {
+    expect(classifyVoiceAction("open workflows", ADMIN).route).toBe("/workflows");
+    expect(classifyVoiceAction("go to retention", ADMIN).route).toBe("/retention");
+    expect(classifyVoiceAction("open data knowledge", ADMIN).route).toBe(
+      "/data-knowledge",
+    );
+  });
+  it("employee surfaces resolve to real routes", () => {
+    expect(classifyVoiceAction("take me to corrections", EMPLOYEE).route).toBe(
+      "/app/corrections",
+    );
+    expect(classifyVoiceAction("open conversations", EMPLOYEE).route).toBe(
+      "/app/conversations",
+    );
+    expect(classifyVoiceAction("go to preferences", EMPLOYEE).route).toBe(
+      "/app/preferences",
+    );
+  });
+});
+
+describe("UNSUPPORTED guardrail — never hand screen-nav to the LLM", () => {
+  it("an unknown 'X screen' request → UNSUPPORTED, not GOVERNED_CHAT", () => {
+    const a = classifyVoiceAction("Take me to the holodeck screen.", ADMIN);
+    expect(a.kind).toBe("UNSUPPORTED");
+    expect(a.kind).not.toBe("GOVERNED_CHAT");
+    expect(a.spoken.toLowerCase()).toContain("can't open that screen");
+  });
+
+  it("a plain question with no screen/page word still reaches chat", () => {
+    expect(classifyVoiceAction("What should I do next?", EMPLOYEE).kind).toBe(
+      "GOVERNED_CHAT",
+    );
+  });
+});

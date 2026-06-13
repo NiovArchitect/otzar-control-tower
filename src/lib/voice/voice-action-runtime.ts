@@ -103,20 +103,42 @@ const ACTION_DESTINATIONS: ReadonlyArray<{
   label: string;
   admin_only: boolean;
 }> = [
+  // ── Admin / product surfaces (real routes only) ──────────────
   { keywords: ["workspace connections", "connector rails", "connector + mcp", "mcp rails", "connectors", "mcp"], route: CONNECTOR_RAILS_ROUTE, label: "Workspace connections", admin_only: true },
   { keywords: ["voice providers"], route: "/voice-providers", label: "Voice Providers", admin_only: true },
   { keywords: ["system health"], route: "/system-health", label: "System Health", admin_only: true },
   { keywords: ["admin command center", "command center", "admin home", "admin dashboard", "admin"], route: "/", label: "Admin command center", admin_only: true },
   { keywords: ["security audit", "audit log", "audit trail", "security"], route: "/security-audit", label: "Security & Audit", admin_only: true },
   { keywords: ["reports"], route: "/reports", label: "Reports", admin_only: true },
+  { keywords: ["workflows", "workflow"], route: "/workflows", label: "Workflows", admin_only: true },
+  { keywords: ["retention"], route: "/retention", label: "Retention", admin_only: true },
+  { keywords: ["data knowledge", "data-knowledge", "knowledge base"], route: "/data-knowledge", label: "Data & Knowledge", admin_only: true },
+  // ── Employee surfaces (real routes only) ─────────────────────
   { keywords: ["employee chat", "chat"], route: "/app/chat", label: "Employee Chat", admin_only: false },
   { keywords: ["employee page", "employee home", "employee"], route: "/app", label: "Employee home", admin_only: false },
   { keywords: ["my twin"], route: "/app/my-twin", label: "My Twin", admin_only: false },
   { keywords: ["authority"], route: "/app/authority-grants", label: "Authority", admin_only: false },
+  { keywords: ["preferences"], route: "/app/preferences", label: "Preferences", admin_only: false },
   { keywords: ["projects"], route: "/app/work-projects", label: "Projects", admin_only: false },
   { keywords: ["work comms"], route: COMMS_ROUTE, label: "Work Comms", admin_only: false },
   { keywords: ["action center", "approvals"], route: "/app/action-center", label: "Action Center", admin_only: false },
+  { keywords: ["corrections", "correct otzar"], route: "/app/corrections", label: "Corrections", admin_only: false },
+  { keywords: ["conversations", "conversation history"], route: "/app/conversations", label: "Conversations", admin_only: false },
+  { keywords: ["my organization", "organization context", "org context", "organization"], route: "/app/my-organization", label: "Organization", admin_only: false },
+  { keywords: ["collaborators", "collaboration"], route: "/app/collaboration", label: "Collaboration", admin_only: false },
+  { keywords: ["voice page", "talk to otzar", "voice"], route: "/app/voice", label: "Voice", admin_only: false },
 ];
+
+/** Onboarding/setup is role-aware: admins land on the org setup /
+ *  production-readiness surface; employees land on their onboarding
+ *  readiness page. Both are real routes. */
+const ONBOARDING_ADMIN_ROUTE = "/onboarding";
+const ONBOARDING_EMPLOYEE_ROUTE = "/app/onboarding-readiness";
+
+/** Verbs that count as "navigate me there" for onboarding, including
+ *  continue/start/show which the generic NAV_VERBS list omits. */
+const ONBOARDING_VERBS =
+  /\b(take me to|go to|navigate to|bring up|pull up|open up|open|show me|show|continue|start|resume|begin)\b/;
 
 // WHAT: Validate + normalize a possible URL inside an utterance.
 // OUTPUT: { ok, url } for a safe http(s) URL; { blocked, reason } for a
@@ -263,6 +285,31 @@ export function classifyVoiceAction(
     };
   }
 
+  // 2.5) Onboarding / setup — role-aware, and recognizes verbs the
+  //      generic list omits (continue / start / show). A QUESTION about
+  //      onboarding ("how do I complete onboarding?") is NOT navigation.
+  //      This is the fix for the live failure where "take me to the
+  //      onboarding screen" fell through to the Twin.
+  const mentionsOnboarding =
+    /\b(onboarding|onboard|getting started|first[- ]?run)\b/.test(lower) ||
+    /\bset ?up\b/.test(lower) ||
+    /\bget started\b/.test(lower);
+  const isQuestion =
+    /^(how|what|why|when|where|can|could|would|should|do|does|is|are|will)\b/.test(
+      lower,
+    ) || lower.includes("?");
+  if (mentionsOnboarding && ONBOARDING_VERBS.test(lower) && !isQuestion) {
+    return {
+      kind: "INTERNAL_NAVIGATION",
+      heard,
+      actionLabel: "Internal navigation → Onboarding",
+      spoken: "Opening onboarding.",
+      route: isOrgAdmin(capabilities)
+        ? ONBOARDING_ADMIN_ROUTE
+        : ONBOARDING_EMPLOYEE_ROUTE,
+    };
+  }
+
   // 3) Explicit named destinations (incl. admin/system surfaces).
   //    Requires a navigation verb so ordinary chat ("what about the
   //    system health of the project") never hijacks navigation.
@@ -337,6 +384,26 @@ export function classifyVoiceAction(
         : "I'll open comms so you can draft that. Nothing is sent without your approval.",
       route: COMMS_ROUTE,
       needsConfirmation,
+    };
+  }
+
+  // 5.5) A navigation-SHAPED request to a screen we don't recognize is
+  //      handled HERE — never handed to the Twin, which would refuse
+  //      like a chatbot ("I can't navigate your UI…"). Only triggers on
+  //      an explicit "navigate to a named screen/page" shape, so plain
+  //      questions ("what should I do next") still reach governed chat.
+  const looksLikeScreenNav =
+    /(take me to|go to|navigate to|bring up|pull up|open)\b[^?]*\b(screen|page|tab|view|dashboard|panel|section)\b/.test(
+      lower,
+    );
+  if (looksLikeScreenNav) {
+    return {
+      kind: "UNSUPPORTED",
+      heard,
+      actionLabel: "No matching screen",
+      spoken:
+        "I can't open that screen yet — it isn't one I can navigate to in Otzar. I can take you to your home, connectors, or system health.",
+      blockedReason: "no matching internal route",
     };
   }
 

@@ -179,6 +179,31 @@ describe("AmbientOtzarBar — send flow", () => {
     expect(body).not.toHaveProperty("waveform");
   });
 
+  it("a navigation command navigates and NEVER reaches the Twin/chat path", async () => {
+    // Regression guard for the live failure: "Take me to the onboarding
+    // screen" must be intercepted deterministically — Sadeil's Twin must
+    // never answer "I can't navigate your UI".
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(
+      screen.getByLabelText(/Message to Otzar/i),
+      "Take me to the onboarding screen",
+    );
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    // The Voice Action Runtime panel shows Heard + Action(navigation).
+    await waitFor(() => {
+      expect(screen.getByTestId("voice-action-panel")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(/Internal navigation → Onboarding/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Opened Onboarding\./i)).toBeInTheDocument();
+    // The governed chat / Twin endpoint was NEVER called for navigation.
+    expect(recordedBodies.length).toBe(0);
+  });
+
   it("renders Approval / Collaboration / Correction badges from the response", async () => {
     const user = userEvent.setup();
     renderBar();

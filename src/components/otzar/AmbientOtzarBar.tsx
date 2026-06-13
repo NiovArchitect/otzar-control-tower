@@ -503,6 +503,20 @@ export function AmbientOtzarBar(): JSX.Element {
         });
         return;
       }
+      case "UNSUPPORTED": {
+        // A navigation-shaped request to a screen we don't have. Handle
+        // it HERE with honest copy — never hand it to the Twin.
+        setActionResult(action.spoken);
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "blocked",
+        });
+        return;
+      }
       case "ADMIN_BLOCKED": {
         setActionResult(action.spoken);
         setRouterAck(action.spoken);
