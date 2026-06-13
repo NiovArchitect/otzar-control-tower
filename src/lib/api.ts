@@ -75,6 +75,7 @@ import type {
   OAuthStartResponse,
   ZoomRecordingsResponse,
   CalendarFreeBusyResponse,
+  CalendarEventProposalBody,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1143,6 +1144,19 @@ export class ApiClient {
         method: "POST",
         body,
       }),
+
+    /** POST /api/v1/calendar/events/create — Phase 1272 GATED create.
+     *  Never auto-creates: returns { ok:false, code } with a precise
+     *  gate blocker (EVENT_WRITE_SCOPE_MISSING / NEEDS_SELECTED_TIME /
+     *  …) until every gate passes AND an event-write scope is granted.
+     *  No event is created and no invite sent while gated. */
+    calendarEventCreate: (
+      body: CalendarEventProposalBody,
+    ): Promise<ApiResult<{ ok: true; status: "CREATED" }>> =>
+      this.request<{ ok: true; status: "CREATED" }>(
+        "/calendar/events/create",
+        { method: "POST", body },
+      ),
   };
 
   // ──────────────────────────────────────────────────────────────

@@ -701,15 +701,57 @@ export function AmbientOtzarBar(): JSX.Element {
       navigate(`${ACTION_CENTER_ROUTE}?focus=${encodeURIComponent(a.actionId)}`);
       return;
     }
-    // Meeting proposals + external channels have no create runtime yet —
-    // keep the artifact local + honest. NEVER auto-create/send.
+    // Meeting proposals: Confirm ATTEMPTS a GATED create via the real
+    // backend. It never auto-creates — the backend returns the precise
+    // unmet gate (no selected time / needs confirmation / needs Google
+    // reconnect for event creation / …) which we surface honestly. No
+    // event is created and no invite sent while any gate is unmet.
     if (a.kind === "SCHEDULE_MEETING") {
+      const gateStatus: Record<string, string> = {
+        NEEDS_SELECTED_TIME: "Choose a time.",
+        PARTICIPANT_UNRESOLVED: a.targetLabel
+          ? `Needs ${a.targetLabel} resolved.`
+          : "Needs a participant.",
+        NEEDS_PARTICIPANT_CONFIRMATION: a.prerequisite ?? "Needs confirmation.",
+        NEEDS_APPROVAL: "Needs approval.",
+        NEEDS_CALLER_CONFIRMATION: "Confirm the proposal to continue.",
+        POLICY_BLOCKED: "Blocked by policy.",
+        GOOGLE_RECONNECT_REQUIRED:
+          "Needs Google reconnect for event creation.",
+        EVENT_WRITE_SCOPE_MISSING:
+          "Needs Google reconnect for event creation (event-write scope).",
+        CALENDAR_PROVIDER_UNAVAILABLE: "Ready to create — create runtime pending.",
+      };
+      const r = await api.connectorData.calendarEventCreate({
+        title: a.title,
+        participants:
+          a.targetLabel !== undefined
+            ? [{ label: a.targetLabel, resolved: a.recipientEntityId !== undefined }]
+            : [],
+        selected_time: null, // slot-selection UI is the next bridge
+        caller_confirmed: true, // the user clicked Confirm
+        ...(a.prerequisite !== undefined
+          ? { prerequisite: a.prerequisite, participant_confirmations_satisfied: false }
+          : { participant_confirmations_satisfied: true }),
+        source_command: a.sourceCommand ?? body,
+      });
+      const status = r.ok
+        ? "Created."
+        : (gateStatus[r.code] ?? "Proposal saved (gated).");
+      // Drop the prior runtimeNote on success (exactOptionalPropertyTypes
+      // forbids assigning undefined — omit the key instead).
+      const { runtimeNote: _priorNote, ...rest } = a;
+      void _priorNote;
       setPendingArtifact({
-        ...a,
+        ...rest,
         body,
-        status: "Proposal saved (local)",
-        runtimeNote:
-          "Calendar create runtime isn't wired yet — saved as a local proposal. No event is created, no invite is sent.",
+        status,
+        ...(r.ok
+          ? {}
+          : {
+              runtimeNote:
+                "No event was created — the proposal is held at the gate above. No invite sent.",
+            }),
       });
       return;
     }

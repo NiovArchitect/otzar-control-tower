@@ -227,3 +227,35 @@ exceed priorities by coordinating every communication + execution
 surface. Current coverage + remaining bridges are tracked in the tables
 above; the orchestration standard is the bar each future phase is
 measured against.
+
+## Phase 1272 — Event Creation Gating + Task/Collab/Transcript Bridge Results
+
+**Doctrine (carried forward):** collaboration is *governed execution
+around a shared goal*, not chat; rules define authority/visibility/
+delegation/interruption/execution/escalation, not just approvals; prefer
+internal surfaces first (Work Comms · Collaboration · Action Center ·
+Projects/goals · Meeting proposals · Notifications); external rails
+(Slack/email/Calendar/Zoom/Drive) are governed execution rails, not the
+default model; the AI Twin may represent context but must **not
+impersonate consent**; approvals must not become homework (distinguish
+no-approval / confirmation / approval / dual-control / standing /
+temporary / blocked-by-policy / runtime-missing); every artifact carries
+the full lifecycle and stays persistent + inspectable + attributable.
+
+| Bridge | Status | Detail / exact blocker | Next bridge / acceptance |
+| --- | --- | --- | --- |
+| **Calendar event proposal/create** | **Implemented (gated)** | `POST /api/v1/calendar/events/propose` + `/create`. Gate ladder: selected-time → participants → participant-confirmation → approval → caller-confirmation → connection → **event-write scope**. `create` NEVER auto-creates: today it always blocks (token is calendar-read-only) and audits `CALENDAR_EVENT_CREATE` DENIED with a scrubbed gate code. Card Confirm calls `create` and shows the precise blocker ("Needs Google reconnect for event creation"). | Add slot-selection UI + (when authorized) the real Google `events.insert` runtime, gated behind an event-write re-consent. AT: create blocked until selected time + scope + confirmations + approval all present. |
+| **Event-write scope decision** | **Deferred (by design)** | NOT requested this phase (would expand the OAuth ask + force re-consent). Recommended narrowest path: `calendar.app.created` (app-owned calendars) or `calendar.events`; **avoid** broad `calendar`. Gate reads the **granted** scopes (no fake readiness). | Founder-authorized scope add + human re-consent, then implement `events.insert`. |
+| **Participant confirmation** | **Partial (preserved + gated)** | Prerequisite ("Requires Samiksha confirmation") is preserved on the card and maps to the `NEEDS_PARTICIPANT_CONFIRMATION` gate, which blocks create. No confirmation-request runtime yet; Samiksha's confirmation is never faked. States needed: not_requested / requested / confirmed / declined / unknown / runtime_missing. | Build a confirmation-request artifact (internal notification/collaboration request) + status round-trip. |
+| **Task create/assign** | **Blocked (no substrate)** | No task/project write surface exists (`linear-read.provider.ts` is read-only; no task ProposedAction type). Not faked. | New `TaskProposal` substrate or a `TASK` ProposedAction type + assignee/project resolution + Projects surface. |
+| **Collaboration request** | **Blocked (needs execution-workspace substrate)** | Per doctrine, a collaboration thread must be an *execution workspace* (messages + drafts + tasks + approvals + decisions + owners + deadlines + Twin input + audit), not a chat. The orb already routes "Ask David's Twin" to Collaboration without faking an answer; the persistent request/workspace substrate is the bridge. | Collaboration request model + focused-thread route + status ("Waiting on David / David's Twin"). |
+| **Twin intercession** | **Blocked (policy substrate)** | No intercession policy runtime. Doctrine: a Twin may summarize known context, draft, route, and execute **only inside delegated authority** — never fabricate a human answer/approval. | Intercession policy (delegated-authority check) + a collaboration request fallback. |
+| **Transcript ingestion / meeting→actions** | **Blocked (no parse runtime)** | Zoom recordings list exposes `file_types` incl. `TRANSCRIPT`, but the download/parse runtime is intentionally absent and the download URL is withheld from the SAFE projection. Current Otzar conversation history is the safest first source. | Conversation→actions extractor over the live thread (no invented transcript) + Zoom transcript download/parse as a separate gated bridge. |
+| **After-call queue** | **Not started** | No persistent after-call artifact list yet. | A queue surface fed by meeting→action artifacts with structured metadata (source command, type, inferred target/channel/project, edits, confirmed/cancelled). |
+| **External Gmail/Slack** | **Audit only (no send)** | Not implemented; no scopes requested. Gmail strategy: `gmail.drafts.create` for drafts, `gmail.send` only for send, avoid `gmail.modify`. Slack: propose/send via `INVOKE_CONNECTOR` with `chat:write` only after approval. No send, no broad/restricted scopes this phase. | Governed `INVOKE_CONNECTOR` handler + approval-gated proposal → send. |
+
+**Lifecycle preservation (Phase 1269, not regressed):** Open only
+views/focuses; Confirm proposes/attempts-gated-create; nothing is created
+or sent from Open or from free/busy; the gated create is the single
+chokepoint that guarantees no auto-create. Locked by tests
+(`calendar-event.test.ts`, `ambient-otzar-bar.test.tsx`).

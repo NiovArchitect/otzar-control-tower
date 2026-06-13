@@ -655,6 +655,44 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(actionPosts.length).toBe(0);
   });
 
+  it("Confirming a meeting proposal hits the GATED create endpoint and shows the blocker — no event, no internal action (Phase 1272)", async () => {
+    server.use(
+      http.post(`${API_BASE}/calendar/freebusy`, () =>
+        HttpResponse.json({
+          ok: true,
+          provider: "google",
+          calendar_id: "primary",
+          time_min: "2026-06-14T16:00:00Z",
+          time_max: "2026-06-15T00:00:00Z",
+          busy: [],
+        }),
+      ),
+      http.post(`${API_BASE}/calendar/events/create`, () =>
+        HttpResponse.json(
+          { ok: false, code: "EVENT_WRITE_SCOPE_MISSING" },
+          { status: 409 },
+        ),
+      ),
+    );
+    await speak("Schedule a meeting with Vishesh tomorrow.");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-confirm")).toBeInTheDocument(),
+    );
+    await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
+    // The gated create blocked → honest reconnect status, NOT "Created".
+    await waitFor(() => {
+      expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
+        /Needs Google reconnect for event creation/i,
+      );
+    });
+    expect(screen.getByTestId("work-artifact-card").textContent).not.toMatch(
+      /\bCreated\b/,
+    );
+    // No event created, no internal-notification action created.
+    expect(actionPosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+  });
+
   it("conversation thread persists prompts + results and is scrollable", async () => {
     await speak("What should I do next?");
     await waitFor(() => {

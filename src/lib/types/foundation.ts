@@ -4222,3 +4222,31 @@ export interface CalendarFreeBusyResponse {
   time_max: string;
   busy: FreeBusyInterval[];
 }
+
+// Phase 1272 — gated calendar event proposal/create. The backend
+// enforces the gate ladder; the client never asserts readiness it
+// can't back. Participants carry display labels only (no emails).
+export interface CalendarEventProposalBody {
+  title: string;
+  participants: Array<{ label: string; resolved: boolean }>;
+  selected_time?: { start: string; end: string } | null;
+  duration_minutes?: number;
+  source_command?: string;
+  prerequisite?: string;
+  participant_confirmations_satisfied?: boolean;
+  requires_approval?: boolean;
+  approved?: boolean;
+  caller_confirmed?: boolean;
+}
+
+/** Gate blocker codes returned by the gated create endpoint. */
+export type CalendarEventGateCode =
+  | "NEEDS_SELECTED_TIME"
+  | "PARTICIPANT_UNRESOLVED"
+  | "NEEDS_PARTICIPANT_CONFIRMATION"
+  | "NEEDS_APPROVAL"
+  | "NEEDS_CALLER_CONFIRMATION"
+  | "POLICY_BLOCKED"
+  | "GOOGLE_RECONNECT_REQUIRED"
+  | "EVENT_WRITE_SCOPE_MISSING"
+  | "CALENDAR_PROVIDER_UNAVAILABLE";
