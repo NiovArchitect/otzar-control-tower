@@ -86,7 +86,11 @@ import {
   isExplicitActionCenterNav,
 } from "@/lib/work-os/pending-confirm";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
-import { classifyThreadQuery, composeThreadAnswer } from "@/lib/work-os/thread-query";
+import {
+  classifyThreadQuery,
+  composeThreadAnswer,
+  composeWaitingOnAnswer,
+} from "@/lib/work-os/thread-query";
 import {
   tomorrowWorkWindow,
   freeWindowsFromBusy,
@@ -1317,9 +1321,16 @@ export function AmbientOtzarBar(): JSX.Element {
           resolved.entityId !== undefined
         ) {
           const display = resolved.displayName ?? tq.person;
-          const t = await api.workOs.thread(resolved.entityId);
-          const messages = t.ok && t.data.ok && t.data.messages != null ? t.data.messages : [];
-          const answer = composeThreadAnswer(tq, display, messages);
+          let answer: string;
+          if (tq.type === "WAITING_ON") {
+            const w = await api.workOs.waitingOn(resolved.entityId);
+            const items = w.ok && w.data.ok ? w.data.waiting_on_them ?? [] : [];
+            answer = composeWaitingOnAnswer(display, items);
+          } else {
+            const t = await api.workOs.thread(resolved.entityId);
+            const messages = t.ok && t.data.ok && t.data.messages != null ? t.data.messages : [];
+            answer = composeThreadAnswer(tq, display, messages);
+          }
           setActionResult(answer);
           appendConversationEntry({ role: "otzar", text: answer, at: at0 });
           speakConfirmation(answer);

@@ -16,11 +16,9 @@ import { signalLabel, ledgerTypeForSignal, isAddable } from "@/lib/work-os/threa
 
 export function ThreadSignalChip({
   signalType,
-  body,
   sourceMessageId,
 }: {
   signalType: string;
-  body: string;
   sourceMessageId: string;
 }): JSX.Element {
   const [state, setState] = useState<"idle" | "adding" | "added" | "dismissed" | "corrected" | "error">("idle");
@@ -33,18 +31,10 @@ export function ThreadSignalChip({
     const ledgerType = ledgerTypeForSignal(signalType);
     if (ledgerType === null) return;
     setState("adding");
-    const r = await api.workOs.createLedgerEntry({
-      ledger_type: ledgerType,
-      title: body.slice(0, 60),
-      summary: body.slice(0, 200),
-      source_type: "CHAT",
-      source_command: body,
-      status: "DETECTED",
-      priority: "ROUTINE",
-      // Proof back to the source thread message.
-      details: { thread_signal: signalType, source_message_id: sourceMessageId, source: "thread_message" },
-    });
-    setState(r.ok ? "added" : "error");
+    // Track-signal derives the DIRECTION on the backend from the source
+    // message (requester=sender, owner=the asked person) → waiting-on state.
+    const r = await api.workOs.trackSignal(sourceMessageId, ledgerType);
+    setState(r.ok && r.data.ok ? "added" : "error");
   }
 
   async function notWork(): Promise<void> {
