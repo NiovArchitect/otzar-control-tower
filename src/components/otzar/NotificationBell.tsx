@@ -202,19 +202,39 @@ export function NotificationBell({
         },
       };
     });
-    // Foundation's POST /notifications/:id/reply mediator looks up
-    // the source server-side -- the CT consumer never sees the
-    // original sender's entity_id (SafeNotificationView excludes
-    // source_entity_id by design). Phase 1215.
-    const result = await api.notifications.reply(
-      notification.notification_id,
-      text,
-      randomIdempotencyKey(),
-    );
+    // Phase 1284 Wave 2 — when the governed sender identity is known (it now
+    // is, on the recipient's inbox), the reply goes back to that sender via
+    // the SAME human-authority internal-message path that delivered the
+    // original — so David's reply reaches Sadeil directly (not the gated
+    // Action reply route). Falls back to the legacy mediator only when the
+    // sender entity is unavailable.
+    const senderId = notification.sender?.entity_id;
+    let ok: boolean;
+    let sentMarker: string | null = null;
+    let errCode: string | null = null;
+    if (senderId !== undefined && senderId.length > 0) {
+      const r = await api.workOs.internalMessage(senderId, text);
+      ok = r.ok && r.data.status === "DELIVERED";
+      sentMarker = r.ok ? (r.data.notification_id ?? "sent") : null;
+      errCode = r.ok
+        ? r.data.status === "DELIVERED"
+          ? null
+          : (r.data.reason ?? r.data.status)
+        : r.code;
+    } else {
+      const result = await api.notifications.reply(
+        notification.notification_id,
+        text,
+        randomIdempotencyKey(),
+      );
+      ok = result.ok;
+      sentMarker = result.ok ? result.data.reply_action_id : null;
+      errCode = result.ok ? null : result.code;
+    }
     setState((s) => {
       const existing = s.replies[notification.notification_id];
       if (existing === undefined) return s;
-      if (result.ok) {
+      if (ok) {
         return {
           ...s,
           replies: {
@@ -222,7 +242,7 @@ export function NotificationBell({
             [notification.notification_id]: {
               ...existing,
               sending: false,
-              sentActionId: result.data.reply_action_id,
+              ...(sentMarker !== null ? { sentActionId: sentMarker } : {}),
             },
           },
         };
@@ -234,7 +254,7 @@ export function NotificationBell({
           [notification.notification_id]: {
             ...existing,
             sending: false,
-            error: result.code,
+            error: errCode ?? "REPLY_FAILED",
           },
         },
       };
