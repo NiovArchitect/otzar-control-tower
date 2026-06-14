@@ -62,6 +62,37 @@ describe("classifyUrlCandidate — safe URL allowlist", () => {
   });
 });
 
+describe("Phase 1284 Wave 2 — 'tell X …' routes to the human-authority draft card", () => {
+  it("classifies the EXACT failing phrase as a direct internal message to David", () => {
+    const a = classifyVoiceAction(
+      "Tell David I said good morning and looking forward to seeing his progress on what he is working on.",
+      ADMIN,
+    );
+    // Must route to the draft-card path (executeMessageAction), NOT chat.
+    expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
+    expect(a.targetEntity).toBe("David");
+    expect(a.connector).toBe("internal");
+    // Body strips the "tell David I said" prefix.
+    expect(a.draftPayload).toContain("good morning");
+    expect(a.draftPayload).toContain("looking forward");
+    // Human-authority: not flagged as approval-required by default.
+    expect(a.requiresApproval).toBe(false);
+  });
+
+  it("'let David know the build passed' also routes to the draft card", () => {
+    const a = classifyVoiceAction("Let David know the build passed.", ADMIN);
+    expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
+    expect(a.targetEntity).toBe("David");
+    expect(a.draftPayload).toContain("build passed");
+  });
+
+  it("'tell David ... on slack' is NOT the internal path (external stays gated)", () => {
+    const a = classifyVoiceAction("Tell David on slack we shipped.", ADMIN);
+    // Falls through to the external/send path, never the internal direct path.
+    expect(a.connector).not.toBe("internal");
+  });
+});
+
 describe("classifyVoiceAction — navigation + actions", () => {
   it("'take me to connectors' → internal navigation to Workspace connections", () => {
     const a = classifyVoiceAction("Take me to connectors.", ADMIN);
