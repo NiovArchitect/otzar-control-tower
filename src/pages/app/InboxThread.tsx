@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { SafeNotificationView, DirectThreadMessageView } from "@/lib/types/foundation";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
+import { ThreadSignalChip } from "@/components/otzar/ThreadSignalChip";
 
 type Phase = "loading" | "ready" | "not-found" | "error";
 
@@ -145,6 +146,13 @@ export function InboxThread(): JSX.Element {
                 {!m.from_me && m.sender_role_title != null ? ` · ${m.sender_role_title}` : ""}
               </div>
               <p className="whitespace-pre-wrap break-words text-foreground">{m.body}</p>
+              {m.signal !== undefined ? (
+                <ThreadSignalChip
+                  signalType={m.signal.signal_type}
+                  body={m.body}
+                  sourceMessageId={m.message_id}
+                />
+              ) : null}
               <p className="text-[9px] text-muted-foreground">{m.created_at}</p>
             </div>
           ))}

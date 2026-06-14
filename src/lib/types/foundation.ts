@@ -4324,6 +4324,12 @@ export interface DirectThreadMessageView {
   body: string;
   created_at: string;
   from_me: boolean;
+  // Phase 1285 slice 3 — advisory POSSIBLE work signal (never auto-promoted).
+  signal?: {
+    signal_type: string;
+    confidence: string;
+    evidence_phrase: string;
+  };
 }
 export interface DirectThreadResponse {
   ok: boolean;
