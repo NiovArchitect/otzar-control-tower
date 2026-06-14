@@ -29,6 +29,10 @@
 
 import { create, type StoreApi, type UseBoundStore } from "zustand";
 import { api } from "../api";
+import {
+  bindConversationScope,
+  clearConversationScope,
+} from "../work-os/conversation-store";
 
 // WHAT: TAR-derived capability flags surfaced to the UI.
 // INPUT: Used as part of state shape.
@@ -131,10 +135,18 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
         isLoading: false,
         loginError: null,
       });
+      // Phase 1284 P0 — bind the personal chat transcript to THIS user so a
+      // different account on the same device never sees this user's chat.
+      // session_id (unique per login) is the safest scope; falls back to the
+      // email when present. This loads only this user's transcript.
+      bindConversationScope(body.session_id ?? email);
       return { ok: true };
     },
 
     logout: (): void => {
+      // Hide the current user's transcript before clearing identity so the
+      // next account starts from an empty chat (no stale leak).
+      clearConversationScope();
       set({
         token: null,
         entity: null,

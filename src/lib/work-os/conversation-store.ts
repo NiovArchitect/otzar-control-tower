@@ -33,13 +33,30 @@ export interface ConversationEntry {
   status?: string;
 }
 
-const STORAGE_KEY = "otzar.conversation.v1";
+// Phase 1284 Priority-0 isolation fix. The personal chat transcript MUST be
+// scoped to the authenticated user — never globally shared across users,
+// demo accounts, or desktop profiles on the same device. The key is bound
+// per-user via bindConversationScope(scopeId) on login and cleared on
+// logout. The version bump (v1 -> v2) abandons the previously SHARED
+// "otzar.conversation.v1" key so the leaked cross-user transcript is never
+// read again. Until a scope is bound, NOTHING is loaded or persisted (the
+// safety guard: when the authenticated user is unknown, show an empty chat,
+// never another user's transcript).
+const STORAGE_PREFIX = "otzar.conversation.v2";
 const MAX_ENTRIES = 200;
 
-function loadInitial(): ConversationEntry[] {
+// The currently-bound, user-scoped storage key. null = no authenticated
+// scope yet (show empty, persist nothing).
+let activeStorageKey: string | null = null;
+
+function keyForScope(scopeId: string): string {
+  return `${STORAGE_PREFIX}.${scopeId}`;
+}
+
+function loadForKey(key: string): ConversationEntry[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     if (raw === null) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -60,8 +77,11 @@ function loadInitial(): ConversationEntry[] {
 
 function persist(entries: ConversationEntry[]): void {
   if (typeof window === "undefined") return;
+  // Safety guard: never persist to a shared/unknown key. If no user scope is
+  // bound, the transcript stays in memory only and dies with the tab.
+  if (activeStorageKey === null) return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    window.localStorage.setItem(activeStorageKey, JSON.stringify(entries));
   } catch {
     /* storage full / unavailable — keep the in-memory thread regardless */
   }
@@ -77,12 +97,35 @@ function nextId(): string {
 
 interface ConversationState {
   entries: ConversationEntry[];
+  /** Bind the transcript to an authenticated user (Phase 1284 P0). Loads
+   *  only that user's scoped transcript; never another user's. */
+  bindScope: (scopeId: string) => void;
+  /** Unbind on logout: clear the visible transcript + stop persisting.
+   *  Does NOT delete the prior user's durable local data, just hides it. */
+  clearScope: () => void;
   append: (entry: Omit<ConversationEntry, "id">) => void;
   clear: () => void;
 }
 
 export const useConversationStore = create<ConversationState>((set) => ({
-  entries: loadInitial(),
+  // Start EMPTY — never load a transcript before the authenticated user is
+  // known (safety guard: unknown user => empty chat, never a leak).
+  entries: [],
+  bindScope: (scopeId: string) =>
+    set(() => {
+      const id = (scopeId ?? "").trim();
+      if (id.length === 0) {
+        activeStorageKey = null;
+        return { entries: [] };
+      }
+      activeStorageKey = keyForScope(id);
+      return { entries: loadForKey(activeStorageKey) };
+    }),
+  clearScope: () =>
+    set(() => {
+      activeStorageKey = null;
+      return { entries: [] };
+    }),
   append: (entry) =>
     set((s) => {
       // Skip empty text (e.g. a GOVERNED_CHAT action with no spoken copy).
@@ -106,4 +149,13 @@ export function appendConversationEntry(
   entry: Omit<ConversationEntry, "id">,
 ): void {
   useConversationStore.getState().append(entry);
+}
+
+/** Bind/unbind the user scope from non-React call sites (the auth store).
+ *  Called on login (with a stable per-user id) and logout. */
+export function bindConversationScope(scopeId: string): void {
+  useConversationStore.getState().bindScope(scopeId);
+}
+export function clearConversationScope(): void {
+  useConversationStore.getState().clearScope();
 }
