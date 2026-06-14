@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
+import { ThreadSignalChip } from "@/components/otzar/ThreadSignalChip";
 import type { DirectThreadMessageView } from "@/lib/types/foundation";
 
 export function PersonCockpit({
@@ -112,6 +113,13 @@ export function PersonCockpit({
                 <div key={m.message_id} className="text-[11px]" data-testid="person-cockpit-message">
                   <span className="text-muted-foreground">{m.from_me ? "You" : displayName}:</span>{" "}
                   {m.body}
+                  {m.signal !== undefined ? (
+                    <ThreadSignalChip
+                      signalType={m.signal.signal_type}
+                      body={m.body}
+                      sourceMessageId={m.message_id}
+                    />
+                  ) : null}
                 </div>
               ))}
             </div>
