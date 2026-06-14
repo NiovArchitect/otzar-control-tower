@@ -82,6 +82,7 @@ import type {
   WorkLedgerListResponse,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
+  DirectThreadResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1225,6 +1226,13 @@ export class ApiClient {
         method: "POST",
         body: { recipient, message },
       }),
+
+    /** GET /api/v1/work-os/threads/with/:entityId — the persistent direct
+     *  thread between the caller and another org member (both directions). */
+    thread: (entityId: string): Promise<ApiResult<DirectThreadResponse>> =>
+      this.request<DirectThreadResponse>(
+        `/work-os/threads/with/${encodeURIComponent(entityId)}`,
+      ),
   };
 
   // ──────────────────────────────────────────────────────────────

@@ -4315,6 +4315,25 @@ export interface ExecutionAttemptListResponse {
   attempts?: ExecutionAttemptView[];
 }
 
+// Phase 1284 Wave 3 — direct relationship thread (both-direction exchange).
+export interface DirectThreadMessageView {
+  message_id: string;
+  sender_entity_id: string;
+  sender_display_name: string;
+  sender_role_title: string | null;
+  body: string;
+  created_at: string;
+  from_me: boolean;
+}
+export interface DirectThreadResponse {
+  ok: boolean;
+  thread_key?: string;
+  participants?: Array<{ entity_id: string; display_name: string; role_title: string | null }>;
+  messages?: DirectThreadMessageView[];
+  latest_message_at?: string | null;
+  code?: string;
+}
+
 // Phase 1284 — human-authority direct internal message result.
 export interface InternalMessageResponse {
   ok: boolean;

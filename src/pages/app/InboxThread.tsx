@@ -13,8 +13,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useAuthStore } from "@/lib/stores/auth";
-import type { SafeNotificationView } from "@/lib/types/foundation";
+import type { SafeNotificationView, DirectThreadMessageView } from "@/lib/types/foundation";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 
 type Phase = "loading" | "ready" | "not-found" | "error";
@@ -22,9 +21,9 @@ type Phase = "loading" | "ready" | "not-found" | "error";
 export function InboxThread(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const myEmail = useAuthStore((s) => s.entity?.email ?? null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [item, setItem] = useState<SafeNotificationView | null>(null);
+  const [threadMsgs, setThreadMsgs] = useState<DirectThreadMessageView[] | null>(null);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [replyState, setReplyState] = useState<
@@ -49,11 +48,24 @@ export function InboxThread(): JSX.Element {
       setItem(found);
       setPhase("ready");
       if (found.read_at === null) void api.notifications.markRead(found.notification_id);
+      // Load the full persistent thread with this sender (both directions).
+      if (found.sender != null) {
+        const t = await api.workOs.thread(found.sender.entity_id);
+        if (!cancelled && t.ok && t.data.ok && t.data.messages != null) {
+          setThreadMsgs(t.data.messages);
+        }
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [id]);
+
+  async function reloadThread(): Promise<void> {
+    if (item?.sender == null) return;
+    const t = await api.workOs.thread(item.sender.entity_id);
+    if (t.ok && t.data.ok && t.data.messages != null) setThreadMsgs(t.data.messages);
+  }
 
   async function sendReply(): Promise<void> {
     if (item?.sender == null) return;
@@ -67,6 +79,8 @@ export function InboxThread(): JSX.Element {
     if (r.ok && r.data.status === "DELIVERED") {
       setReply("");
       setReplyState({ kind: "sent", to: r.data.recipient_display_name ?? item.sender.display_name });
+      // Append the new message by reloading the persistent thread.
+      void reloadThread();
     } else {
       setReplyState({
         kind: "error",
@@ -106,24 +120,47 @@ export function InboxThread(): JSX.Element {
         <Badge variant="outline">{item.status === "UNREAD" ? "New" : "Read"}</Badge>
       </div>
 
-      <div className="rounded-md border border-border bg-background/70 p-3 text-sm">
-        <div className="text-muted-foreground">
-          <span className="font-medium text-foreground" data-testid="inbox-thread-from">
+      <div className="text-[11px] text-muted-foreground">
+        Conversation with{" "}
+        <span className="font-medium text-foreground">
+          {sender?.display_name ?? "teammate"}
+          {sender?.role_title != null ? ` · ${sender.role_title}` : ""}
+        </span>
+      </div>
+
+      {/* Full persistent thread (both directions, ordered). Falls back to the
+          single notification body if the thread couldn't be loaded. */}
+      {threadMsgs != null && threadMsgs.length > 0 ? (
+        <div className="space-y-2" data-testid="inbox-thread-messages">
+          {threadMsgs.map((m) => (
+            <div
+              key={m.message_id}
+              className={`max-w-[85%] rounded-md border border-border p-2 text-sm ${
+                m.from_me ? "ml-auto bg-primary/10" : "bg-background/70"
+              }`}
+              data-testid="inbox-thread-message"
+            >
+              <div className="text-[10px] text-muted-foreground">
+                {m.from_me ? "You" : m.sender_display_name}
+                {!m.from_me && m.sender_role_title != null ? ` · ${m.sender_role_title}` : ""}
+              </div>
+              <p className="whitespace-pre-wrap break-words text-foreground">{m.body}</p>
+              <p className="text-[9px] text-muted-foreground">{m.created_at}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-md border border-border bg-background/70 p-3 text-sm" data-testid="inbox-thread-single">
+          <div className="text-[11px] font-medium text-foreground" data-testid="inbox-thread-from">
             From: {sender?.display_name ?? "Unknown sender"}
             {sender?.role_title != null ? ` · ${sender.role_title}` : ""}
-          </span>
-          {sender != null && sender.source_kind !== "HUMAN" ? (
-            <span className="ml-2 text-[11px]">({sender.authority_label})</span>
-          ) : null}
+          </div>
+          <p className="mt-2 whitespace-pre-wrap break-words text-foreground" data-testid="inbox-thread-body">
+            {item.body_summary}
+          </p>
+          <p className="mt-1 text-[10px] text-muted-foreground">{item.created_at}</p>
         </div>
-        <div className="text-[11px] text-muted-foreground" data-testid="inbox-thread-to">
-          To: you{myEmail != null ? ` (${myEmail})` : ""}
-        </div>
-        <p className="mt-2 whitespace-pre-wrap break-words text-foreground" data-testid="inbox-thread-body">
-          {item.body_summary}
-        </p>
-        <p className="mt-1 text-[10px] text-muted-foreground">{item.created_at}</p>
-      </div>
+      )}
 
       {/* Reply composer — human-authority internal path, back to the sender. */}
       {sender != null ? (
