@@ -17,7 +17,7 @@
 //
 // CONNECTS TO: api.otzar.collaboration.*
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -157,6 +157,9 @@ const TERMINAL_STATES: ReadonlySet<TwinCollaborationState> = new Set([
 
 export function Collaboration() {
   const queryClient = useQueryClient();
+  // Phase 1285 slice 2 — "Request help" from a person cockpit prefills the
+  // form with that teammate (removes the manual target-id friction).
+  const [prefillEntityId, setPrefillEntityId] = useState<string | null>(null);
   const inbound = useQuery({
     queryKey: ["otzar", "collaboration", "inbound"],
     queryFn: () => api.otzar.collaboration.inbound(),
@@ -185,9 +188,17 @@ export function Collaboration() {
       {/* Phase 1216 -- People directory at the top of the surface
           so the operator can see WHO they can collaborate with
           before opening the request form. */}
-      <PeopleDirectory />
+      <PeopleDirectory
+        onRequestHelp={(id) => {
+          setPrefillEntityId(id);
+          document.getElementById("collab-summary")?.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
 
-      <CreateCollaborationForm onCreated={invalidateAll} />
+      <CreateCollaborationForm
+        onCreated={invalidateAll}
+        {...(prefillEntityId !== null ? { prefillEntityId } : {})}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card data-testid="inbound-card">
@@ -225,7 +236,13 @@ export function Collaboration() {
   );
 }
 
-function CreateCollaborationForm({ onCreated }: { onCreated: () => void }) {
+function CreateCollaborationForm({
+  onCreated,
+  prefillEntityId,
+}: {
+  onCreated: () => void;
+  prefillEntityId?: string;
+}) {
   const [targetType, setTargetType] =
     useState<TwinCollaborationTargetType>("EMPLOYEE");
   const [requestType, setRequestType] =
@@ -233,6 +250,15 @@ function CreateCollaborationForm({ onCreated }: { onCreated: () => void }) {
   const [safeSummary, setSafeSummary] = useState("");
   const [targetId, setTargetId] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 1285 slice 2 — when "Request help" prefills a teammate, fill the
+  // target id + set EMPLOYEE type so the user never types an entity id.
+  useEffect(() => {
+    if (prefillEntityId !== undefined && prefillEntityId.length > 0) {
+      setTargetType("EMPLOYEE");
+      setTargetId(prefillEntityId);
+    }
+  }, [prefillEntityId]);
 
   const create = useMutation({
     mutationFn: (body: CreateCollaborationRequestBody) =>
