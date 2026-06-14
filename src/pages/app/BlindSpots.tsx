@@ -11,6 +11,12 @@ import { api } from "@/lib/api";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
 import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 
+// Phase 1283 — split runtime/verification failures (proof issues) from the
+// ledger-status blind spots so admins see the proof failures distinctly.
+function isRuntimeIssue(e: WorkLedgerEntryView): boolean {
+  return e.blind_spot_reason !== undefined;
+}
+
 export function BlindSpots(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -56,10 +62,29 @@ export function BlindSpots(): JSX.Element {
           Nothing is blocked, unresolved, or overdue right now.
         </div>
       ) : (
-        <div className="space-y-1.5">
-          {items.map((e) => (
-            <WorkLedgerItem key={e.ledger_entry_id} entry={e} />
-          ))}
+        <div className="space-y-4">
+          {items.some(isRuntimeIssue) ? (
+            <div className="space-y-1.5" data-testid="blind-spots-runtime-issues">
+              <h2 className="text-xs font-semibold text-amber-600">
+                Runtime / verification issues
+              </h2>
+              {items.filter(isRuntimeIssue).map((e) => (
+                <WorkLedgerItem key={e.ledger_entry_id} entry={e} />
+              ))}
+            </div>
+          ) : null}
+          {items.some((e) => !isRuntimeIssue(e)) ? (
+            <div className="space-y-1.5" data-testid="blind-spots-status">
+              {items.some(isRuntimeIssue) ? (
+                <h2 className="text-xs font-semibold text-muted-foreground">
+                  Work needing attention
+                </h2>
+              ) : null}
+              {items.filter((e) => !isRuntimeIssue(e)).map((e) => (
+                <WorkLedgerItem key={e.ledger_entry_id} entry={e} />
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

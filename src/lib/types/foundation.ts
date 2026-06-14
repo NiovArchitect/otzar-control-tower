@@ -4268,6 +4268,28 @@ export interface WorkLedgerEntryView {
     primary_signal: string | null;
     multi_intent: boolean;
   };
+  // Phase 1283 — persisted coordination summary (read back from the row, not
+  // just the create response).
+  coordination?: {
+    runtime: string;
+    event_id: string | null;
+    watcher: string | null;
+    dispatched_at: string | null;
+    error_code: string | null;
+  };
+  // Phase 1283 — internal watcher state. Never sends anything.
+  watchers?: Array<{
+    watcher_id: string;
+    watcher_type: string;
+    status: string;
+    source_runtime: string;
+    escalation_level: string;
+    created_at: string;
+  }>;
+  // Phase 1283 — set when the row is in Blind Spots due to a runtime/
+  // verification failure (vs a ledger-status blind spot).
+  blind_spot_reason?: string;
+  blind_spot_severity?: string;
 }
 
 // Phase 1282 — durable execution evidence for a ledger entry. An attempt is
