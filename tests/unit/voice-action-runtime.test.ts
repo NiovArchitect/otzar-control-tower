@@ -72,9 +72,10 @@ describe("Phase 1284 Wave 2 — 'tell X …' routes to the human-authority draft
     expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
     expect(a.targetEntity).toBe("David");
     expect(a.connector).toBe("internal");
-    // Body strips the "tell David I said" prefix.
-    expect(a.draftPayload).toContain("good morning");
-    expect(a.draftPayload).toContain("looking forward");
+    // Body strips the "tell David I said" prefix (and is sentence-cased).
+    expect(a.draftPayload?.toLowerCase()).toContain("good morning");
+    expect(a.draftPayload?.toLowerCase()).toContain("looking forward");
+    expect(a.draftPayload?.toLowerCase()).not.toContain("tell david");
     // Human-authority: not flagged as approval-required by default.
     expect(a.requiresApproval).toBe(false);
   });

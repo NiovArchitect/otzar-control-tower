@@ -25,6 +25,7 @@
 import type { AuthCapabilities } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { routeVoiceCommand } from "@/lib/voice/command-router";
+import { stripCommandWrapper } from "@/lib/work-os/message-sanitize";
 
 export type VoiceActionKind =
   // Navigation
@@ -305,16 +306,10 @@ function extractBody(text: string): string | undefined {
 }
 
 // Phase 1284 Wave 2 — body for the "tell/message/let X know …" family.
-// Strips the leading "tell/message/remind <name>" (and an optional
-// "know"/"that"/"I said"/":") so "tell David I said good morning and …"
-// yields "good morning and …".
+// Delegates to stripCommandWrapper so the command instruction ("Tell David,")
+// is removed and the delivered text is sentence-cased + dash-sanitized.
 function extractTellBody(text: string, recipient: string): string | undefined {
-  const re = new RegExp(
-    `^\\s*(?:tell|message|remind|let|ping|notify)\\s+${recipient}\\s+(?:know\\s+)?(?:that\\s+)?(?:i\\s+said\\s+)?(?:i\\s+wanted\\s+to\\s+say\\s+)?(?:to\\s+)?`,
-    "i",
-  );
-  const body = text.replace(re, "").trim();
-  return body.length >= 2 ? body : undefined;
+  return stripCommandWrapper(text, recipient);
 }
 
 /** Best-effort channel ("slack", "email", else internal). */
