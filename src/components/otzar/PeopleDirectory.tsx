@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
 import { api } from "@/lib/api";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
+import { PersonCockpit } from "@/components/otzar/PersonCockpit";
 
 type RosterPeer =
   ContextHealthResponse["identity"]["org_roster"][number];
@@ -67,11 +68,17 @@ function initials(name: string): string {
   );
 }
 
-export function PeopleDirectory(): JSX.Element {
+export function PeopleDirectory({
+  onRequestHelp,
+}: {
+  onRequestHelp?: (entityId: string, displayName: string) => void;
+} = {}): JSX.Element {
   const [roster, setRoster] = useState<ReadonlyArray<RosterPeer> | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Phase 1285 slice 2 — the open relationship cockpit (one at a time).
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,43 +168,65 @@ export function PeopleDirectory(): JSX.Element {
           className="grid grid-cols-1 gap-2 sm:grid-cols-2"
           data-testid="people-directory-list"
         >
-          {sorted.map((p) => (
-            <li
-              key={p.entity_id}
-              className="flex items-center gap-3 rounded border bg-card p-3"
-              data-testid="people-directory-card"
-              data-entity-id={p.entity_id}
-            >
-              <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
-                aria-hidden
+          {sorted.map((p) => {
+            const open = openId === p.entity_id;
+            return (
+              <li
+                key={p.entity_id}
+                className={`rounded border bg-card ${open ? "sm:col-span-2" : ""}`}
+                data-testid="people-directory-card"
+                data-entity-id={p.entity_id}
               >
-                {initials(p.display_name)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
-                  {p.display_name}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {humanizeTitle(p.title)}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
-                  {p.shared_project_count > 0 ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      {p.shared_project_count} shared project
-                      {p.shared_project_count === 1 ? "" : "s"}
-                    </Badge>
-                  ) : null}
-                  {p.recent_collab_count > 0 ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      {p.recent_collab_count} recent collab
-                      {p.recent_collab_count === 1 ? "" : "s"}
-                    </Badge>
-                  ) : null}
-                </div>
-              </div>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 p-3 text-left hover:bg-muted/40"
+                  data-testid="people-directory-card-open"
+                  aria-expanded={open}
+                  onClick={() => setOpenId(open ? null : p.entity_id)}
+                >
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+                    aria-hidden
+                  >
+                    {initials(p.display_name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{p.display_name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {humanizeTitle(p.title)}
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+                      {p.shared_project_count > 0 ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          {p.shared_project_count} shared project
+                          {p.shared_project_count === 1 ? "" : "s"}
+                        </Badge>
+                      ) : null}
+                      {p.recent_collab_count > 0 ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          {p.recent_collab_count} recent collab
+                          {p.recent_collab_count === 1 ? "" : "s"}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{open ? "Close" : "Open"}</span>
+                </button>
+                {open ? (
+                  <div className="px-3 pb-3">
+                    <PersonCockpit
+                      entityId={p.entity_id}
+                      displayName={p.display_name}
+                      roleTitle={humanizeTitle(p.title)}
+                      sharedProjects={p.shared_project_count}
+                      recentCollabs={p.recent_collab_count}
+                      {...(onRequestHelp !== undefined ? { onRequestHelp } : {})}
+                    />
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
         <p className="mt-3 text-[10px] text-muted-foreground">
           Otzar can route collaboration requests to any of these teammates.
