@@ -85,7 +85,6 @@ import {
   isPendingConfirmPhrase,
   isExplicitActionCenterNav,
 } from "@/lib/work-os/pending-confirm";
-import { setActionDetails } from "@/lib/work-os/action-details-store";
 import {
   tomorrowWorkWindow,
   freeWindowsFromBusy,
@@ -596,38 +595,7 @@ export function AmbientOtzarBar(): JSX.Element {
     if (action.route !== undefined) navigate(action.route);
   }
 
-  // Phase 1266 — map a real Action lifecycle status / policy decision
-  // to an honest Work-OS status badge.
-  function humanizeActionStatus(status: string): string {
-    switch (status) {
-      case "APPROVED":
-      case "SCHEDULED":
-      case "RUNNING":
-      case "SUCCEEDED":
-        return "Approved — standing authority";
-      case "PROPOSED":
-        return "Approval required";
-      case "REJECTED":
-        return "Blocked by policy";
-      default:
-        return status.toLowerCase().replace(/_/g, " ");
-    }
-  }
-  function humanizeActionError(code: string): string {
-    switch (code) {
-      case "POLICY_BLOCKED":
-      case "POLICY_FORBIDDEN":
-        return "That message is blocked by your organization's policy.";
-      case "DUAL_CONTROL_NO_APPROVER_AVAILABLE":
-        return "Draft created, but your org hasn't configured who approves messages yet.";
-      case "OPERATION_NOT_PERMITTED":
-        return "You don't have authority to send that. I kept it as a draft.";
-      default:
-        return `Otzar couldn't create that action. (ref: ${code})`;
-    }
-  }
-
-  // Phase 1266 — REAL draft/send bridge. Resolve the recipient and
+  // Phase 1284 Wave 2 — REAL draft/send bridge. Resolve the recipient and
   // create a governed SEND_INTERNAL_NOTIFICATION ProposedAction (which
   // runs the ADR-0057 policy evaluator → AUTO_APPROVE/standing-authority
   // or approval-required). NEVER sends externally; never fabricates a
