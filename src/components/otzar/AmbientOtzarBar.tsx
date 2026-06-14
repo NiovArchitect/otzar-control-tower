@@ -86,6 +86,7 @@ import {
   isExplicitActionCenterNav,
 } from "@/lib/work-os/pending-confirm";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
+import { classifyThreadQuery, composeThreadAnswer } from "@/lib/work-os/thread-query";
 import {
   tomorrowWorkWindow,
   freeWindowsFromBusy,
@@ -1298,6 +1299,41 @@ export function AmbientOtzarBar(): JSX.Element {
       appendConversationEntry({ role: "user", text, at: at0 });
       await confirmArtifact(pendingArtifact.body);
       return;
+    }
+
+    // Phase 1285 slice 1 — thread-aware answers. "Did I receive a message
+    // from X?" / "What did X say?" / "What did I ask X?" are answered from
+    // the REAL authorized thread records (GET /work-os/threads/with/:id),
+    // never the LLM. Runs before classification so it isn't routed as chat.
+    {
+      const tq = classifyThreadQuery(text);
+      if (tq !== null) {
+        const at0 = new Date().toISOString();
+        setDraft("");
+        appendConversationEntry({ role: "user", text, at: at0 });
+        const resolved = await resolveTarget(tq.person);
+        if (
+          (resolved.kind === "RESOLVED_HUMAN" || resolved.kind === "RESOLVED_AI_AGENT") &&
+          resolved.entityId !== undefined
+        ) {
+          const display = resolved.displayName ?? tq.person;
+          const t = await api.workOs.thread(resolved.entityId);
+          const messages = t.ok && t.data.ok && t.data.messages != null ? t.data.messages : [];
+          const answer = composeThreadAnswer(tq, display, messages);
+          setActionResult(answer);
+          appendConversationEntry({ role: "otzar", text: answer, at: at0 });
+          speakConfirmation(answer);
+        } else {
+          const miss =
+            resolved.kind === "AMBIGUOUS"
+              ? `More than one teammate matches "${tq.person}". Who do you mean?`
+              : `I couldn't find "${tq.person}" in your organization.`;
+          setActionResult(miss);
+          appendConversationEntry({ role: "otzar", text: miss, at: at0 });
+          speakConfirmation(miss);
+        }
+        return;
+      }
     }
 
     // Phase 1273 — multi-intent + commitment interception. A compound
