@@ -304,6 +304,19 @@ function extractBody(text: string): string | undefined {
   return m?.[1]?.trim();
 }
 
+// Phase 1284 Wave 2 — body for the "tell/message/let X know …" family.
+// Strips the leading "tell/message/remind <name>" (and an optional
+// "know"/"that"/"I said"/":") so "tell David I said good morning and …"
+// yields "good morning and …".
+function extractTellBody(text: string, recipient: string): string | undefined {
+  const re = new RegExp(
+    `^\\s*(?:tell|message|remind|let|ping|notify)\\s+${recipient}\\s+(?:know\\s+)?(?:that\\s+)?(?:i\\s+said\\s+)?(?:i\\s+wanted\\s+to\\s+say\\s+)?(?:to\\s+)?`,
+    "i",
+  );
+  const body = text.replace(re, "").trim();
+  return body.length >= 2 ? body : undefined;
+}
+
 /** Best-effort channel ("slack", "email", else internal). */
 function detectChannel(lower: string): "slack" | "email" | "internal" {
   if (lower.includes("slack")) return "slack";
@@ -660,6 +673,43 @@ export function classifyVoiceAction(
       route: WORK_PROJECTS_ROUTE,
       ...(isWrite ? { requiresApproval: true } : { isReadOnly: true }),
       blockedReason: "project write runtime not exposed",
+    };
+  }
+
+  // 5f-bis) Direct internal note — "tell/message/remind/let X know …".
+  // Phase 1284 Wave 2: this is a HUMAN-authored internal Otzar message. It
+  // routes to the draft card whose Confirm calls the human-authority path
+  // (POST /work-os/internal-messages) — NOT the AI dual-control Action
+  // ladder. Internal inbox only; no Slack/email/calendar.
+  const tellMatch = heard.match(
+    /\b(?:tell|message|remind|ping|notify|let)\s+([A-Za-z][a-zA-Z'’-]+)\b/i,
+  );
+  // The word right after the verb must be a NAME, not a preposition/pronoun
+  // ("message TO David" is the draft path, not a direct "message David").
+  const TELL_STOPWORDS = new Set([
+    "to", "with", "for", "the", "a", "an", "know", "that", "him", "her",
+    "them", "us", "me", "everyone", "all", "my", "our", "this", "it", "again",
+    "about", "regarding", "on", "in",
+  ]);
+  if (
+    tellMatch !== null &&
+    !TELL_STOPWORDS.has(tellMatch[1]!.toLowerCase()) &&
+    !/\bdraft\b|\bslack\b|\bemail\b|\be-mail\b|\bcalendar\b|\binvite\b/.test(lower)
+  ) {
+    const recipient = tellMatch[1]!;
+    const body = extractTellBody(heard, recipient);
+    return {
+      kind: "SEND_REQUIRES_APPROVAL",
+      heard,
+      actionLabel: `Message → ${recipient}`,
+      spoken: `Drafted a direct internal note to ${recipient}. Review it and Confirm (or say "I confirm") to deliver — internal Otzar message only, nothing is sent until you confirm.`,
+      route: COMMS_ROUTE,
+      connector: "internal",
+      targetEntity: recipient,
+      ...(body !== undefined ? { draftPayload: body } : {}),
+      backendActionType: "SEND_INTERNAL_NOTIFICATION",
+      requiresApproval: false,
+      needsConfirmation: false,
     };
   }
 
