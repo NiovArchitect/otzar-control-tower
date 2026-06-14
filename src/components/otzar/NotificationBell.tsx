@@ -300,6 +300,7 @@ export function NotificationBell({
     const route = notificationRoute({
       action_id: n.action_id,
       notification_class: n.notification_class,
+      notification_id: n.notification_id,
     });
     setState((s) => ({ ...s, open: false }));
     if (n.read_at === null) void handleMarkRead(n.notification_id);

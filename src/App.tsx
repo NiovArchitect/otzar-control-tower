@@ -42,6 +42,7 @@ import { OnboardingReadiness } from "@/pages/app/OnboardingReadiness";
 import { VoiceCaptures } from "@/pages/app/VoiceCaptures";
 import { WorkProjects } from "@/pages/app/WorkProjects";
 import { MyWork } from "@/pages/app/MyWork";
+import { InboxThread } from "@/pages/app/InboxThread";
 import { TeamWork } from "@/pages/app/TeamWork";
 import { BlindSpots } from "@/pages/app/BlindSpots";
 import { VoiceReady } from "@/pages/app/VoiceReady";
@@ -129,6 +130,7 @@ export function App() {
               <Route path="voice-captures" element={<VoiceCaptures />} />
               <Route path="work-projects" element={<WorkProjects />} />
               <Route path="my-work" element={<MyWork />} />
+              <Route path="inbox/:id" element={<InboxThread />} />
               <Route path="team-work" element={<TeamWork />} />
               <Route path="blind-spots" element={<BlindSpots />} />
               <Route path="voice-ready" element={<VoiceReady />} />

@@ -1,0 +1,180 @@
+// FILE: InboxThread.tsx
+// PURPOSE: Phase 1284 Wave 2 — the real message/thread detail view a direct
+//          internal-message notification opens (NOT the Comms capture page).
+//          Shows From / To / body / timestamp / status, a reply composer that
+//          sends back to the sender via the human-authority internal-message
+//          path (POST /work-os/internal-messages), and a View/Why proof
+//          section. No Slack/email/calendar — internal Otzar inbox only.
+// CONNECTS TO: src/lib/api.ts (notifications.list/markRead, workOs.internalMessage),
+//          src/lib/work-os/notification-routing.ts, App.tsx route inbox/:id.
+
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/lib/stores/auth";
+import type { SafeNotificationView } from "@/lib/types/foundation";
+
+type Phase = "loading" | "ready" | "not-found" | "error";
+
+export function InboxThread(): JSX.Element {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const myEmail = useAuthStore((s) => s.entity?.email ?? null);
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [item, setItem] = useState<SafeNotificationView | null>(null);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const [replyState, setReplyState] = useState<
+    { kind: "idle" } | { kind: "sent"; to: string } | { kind: "error"; reason: string }
+  >({ kind: "idle" });
+  const [showWhy, setShowWhy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const r = await api.notifications.list({ page_size: 100 });
+      if (cancelled) return;
+      if (!r.ok) {
+        setPhase("error");
+        return;
+      }
+      const found = r.data.notifications.find((n) => n.notification_id === id) ?? null;
+      if (found === null) {
+        setPhase("not-found");
+        return;
+      }
+      setItem(found);
+      setPhase("ready");
+      if (found.read_at === null) void api.notifications.markRead(found.notification_id);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  async function sendReply(): Promise<void> {
+    if (item?.sender == null) return;
+    const text = reply.trim();
+    if (text.length === 0) return;
+    setSending(true);
+    // Reply goes back to the original sender via the SAME human-authority
+    // internal-message path that delivered the original. No external send.
+    const r = await api.workOs.internalMessage(item.sender.entity_id, text);
+    setSending(false);
+    if (r.ok && r.data.status === "DELIVERED") {
+      setReply("");
+      setReplyState({ kind: "sent", to: r.data.recipient_display_name ?? item.sender.display_name });
+    } else {
+      setReplyState({
+        kind: "error",
+        reason: r.ok ? (r.data.reason ?? r.data.status) : "Reply could not be delivered.",
+      });
+    }
+  }
+
+  if (phase === "loading") {
+    return <div className="p-4 text-sm text-muted-foreground">Opening message…</div>;
+  }
+  if (phase === "error") {
+    return (
+      <div className="p-4 text-sm text-amber-600" data-testid="inbox-thread-error">
+        Couldn't open this message right now.
+      </div>
+    );
+  }
+  if (phase === "not-found" || item === null) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground" data-testid="inbox-thread-not-found">
+        This message is no longer in your inbox.
+        <div className="mt-2">
+          <Button variant="outline" onClick={() => navigate("/app/my-work")}>
+            Back to My Work
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const sender = item.sender;
+  return (
+    <div className="mx-auto max-w-2xl space-y-4 p-4" data-testid="inbox-thread">
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold">Message</h1>
+        <Badge variant="outline">{item.status === "UNREAD" ? "New" : "Read"}</Badge>
+      </div>
+
+      <div className="rounded-md border border-border bg-background/70 p-3 text-sm">
+        <div className="text-muted-foreground">
+          <span className="font-medium text-foreground" data-testid="inbox-thread-from">
+            From: {sender?.display_name ?? "Unknown sender"}
+            {sender?.role_title != null ? ` · ${sender.role_title}` : ""}
+          </span>
+          {sender != null && sender.source_kind !== "HUMAN" ? (
+            <span className="ml-2 text-[11px]">({sender.authority_label})</span>
+          ) : null}
+        </div>
+        <div className="text-[11px] text-muted-foreground" data-testid="inbox-thread-to">
+          To: you{myEmail != null ? ` (${myEmail})` : ""}
+        </div>
+        <p className="mt-2 whitespace-pre-wrap break-words text-foreground" data-testid="inbox-thread-body">
+          {item.body_summary}
+        </p>
+        <p className="mt-1 text-[10px] text-muted-foreground">{item.created_at}</p>
+      </div>
+
+      {/* Reply composer — human-authority internal path, back to the sender. */}
+      {sender != null ? (
+        <div className="rounded-md border border-border p-3" data-testid="inbox-thread-reply">
+          <label className="text-xs font-medium text-foreground/80" htmlFor="inbox-reply">
+            Reply to {sender.display_name}
+          </label>
+          <textarea
+            id="inbox-reply"
+            data-testid="inbox-thread-reply-input"
+            className="mt-1 w-full rounded border border-border bg-background p-2 text-sm"
+            rows={3}
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            placeholder="Write a reply… (internal Otzar message only — no Slack/email/calendar)"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              data-testid="inbox-thread-reply-send"
+              disabled={sending || reply.trim().length === 0}
+              onClick={() => void sendReply()}
+            >
+              {sending ? "Sending…" : "Send reply"}
+            </Button>
+            <Button variant="outline" onClick={() => setShowWhy((v) => !v)}>
+              {showWhy ? "Hide" : "View / Why"}
+            </Button>
+          </div>
+          {replyState.kind === "sent" ? (
+            <p className="mt-2 text-xs text-emerald-600" data-testid="inbox-thread-reply-sent">
+              Reply delivered to {replyState.to}.
+            </p>
+          ) : null}
+          {replyState.kind === "error" ? (
+            <p className="mt-2 text-xs text-amber-600">{replyState.reason}</p>
+          ) : null}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">
+          This message has no replyable sender on record.
+        </div>
+      )}
+
+      {showWhy ? (
+        <div className="rounded bg-muted/40 p-2 text-[11px] text-muted-foreground" data-testid="inbox-thread-why">
+          <div>Delivery: human-authority internal message (governed, audited).</div>
+          <div>Channel: internal Otzar inbox only — no Slack/email/calendar/external.</div>
+          <div>Message id: {item.notification_id}</div>
+          {sender != null ? <div>Sender authority: {sender.authority_label}</div> : null}
+          <div className="italic">Inspect only — replying sends an internal note to the sender.</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
