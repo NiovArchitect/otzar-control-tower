@@ -85,6 +85,7 @@ import {
   isPendingConfirmPhrase,
   isExplicitActionCenterNav,
 } from "@/lib/work-os/pending-confirm";
+import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import {
   tomorrowWorkWindow,
   freeWindowsFromBusy,
@@ -800,7 +801,9 @@ export function AmbientOtzarBar(): JSX.Element {
     // the resolved entity_id when we have it, else the typed name (the
     // backend resolves + governs either way; nothing external is sent).
     const recipientRef = a.recipientEntityId ?? a.targetLabel ?? a.sourceCommand ?? "";
-    const r = await api.workOs.internalMessage(recipientRef, body);
+    // Recipient-facing cleanup: natural punctuation (no em dashes) on the
+    // delivered note, even if the draft body was edited in the card.
+    const r = await api.workOs.internalMessage(recipientRef, sanitizeOutboundMessage(body));
     if (r.ok && r.data.status === "DELIVERED") {
       const to = r.data.recipient_display_name ?? a.targetLabel ?? "your teammate";
       const status = `Delivered to ${to}`;

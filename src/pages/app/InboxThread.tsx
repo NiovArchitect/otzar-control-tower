@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/stores/auth";
 import type { SafeNotificationView } from "@/lib/types/foundation";
+import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 
 type Phase = "loading" | "ready" | "not-found" | "error";
 
@@ -61,7 +62,7 @@ export function InboxThread(): JSX.Element {
     setSending(true);
     // Reply goes back to the original sender via the SAME human-authority
     // internal-message path that delivered the original. No external send.
-    const r = await api.workOs.internalMessage(item.sender.entity_id, text);
+    const r = await api.workOs.internalMessage(item.sender.entity_id, sanitizeOutboundMessage(text));
     setSending(false);
     if (r.ok && r.data.status === "DELIVERED") {
       setReply("");
