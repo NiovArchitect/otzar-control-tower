@@ -4190,3 +4190,208 @@ export interface OAuthStartResponse {
   ok: true;
   authorize_url: string;
 }
+
+// Phase 1270 — read-only connector data bridges. SAFE projections
+// only: no recording download/play URLs, no calendar event titles.
+export interface ZoomRecordingView {
+  meeting_uuid: string;
+  topic: string;
+  start_time: string;
+  duration_minutes: number;
+  recording_count: number;
+  total_size_bytes: number;
+  file_types: string[];
+}
+
+export interface ZoomRecordingsResponse {
+  ok: true;
+  provider: "zoom";
+  recordings: ZoomRecordingView[];
+}
+
+export interface FreeBusyInterval {
+  start: string;
+  end: string;
+}
+
+export interface CalendarFreeBusyResponse {
+  ok: true;
+  provider: "google";
+  calendar_id: string;
+  time_min: string;
+  time_max: string;
+  busy: FreeBusyInterval[];
+}
+
+// Phase 1272 — gated calendar event proposal/create. The backend
+// enforces the gate ladder; the client never asserts readiness it
+// can't back. Participants carry display labels only (no emails).
+export interface CalendarEventProposalBody {
+  title: string;
+  participants: Array<{ label: string; resolved: boolean }>;
+  selected_time?: { start: string; end: string } | null;
+  duration_minutes?: number;
+  source_command?: string;
+  prerequisite?: string;
+  participant_confirmations_satisfied?: boolean;
+  requires_approval?: boolean;
+  approved?: boolean;
+  caller_confirmed?: boolean;
+}
+
+// Phase 1279 — durable Work Ledger entry (safe projection).
+export interface WorkLedgerEntryView {
+  ledger_entry_id: string;
+  ledger_type: string;
+  source_type: string;
+  source_command: string | null;
+  work_plan_id: string | null;
+  requester_entity_id: string | null;
+  owner_entity_id: string | null;
+  target_entity_id: string | null;
+  title: string;
+  status: string;
+  priority: string;
+  extraction_source: string;
+  next_action: string | null;
+  due_at: string | null;
+  created_at: string;
+  // Phase 1281 — governed BEAM coordination result (create-time).
+  coordination_runtime?: string;
+  coordination_watcher?: string;
+  // Phase 1282 — advisory Python enrichment truth (View/Why). Present only
+  // when enrichment ran; status names the degrade path when Python was not
+  // used. Foundation stays the authority — this never decides ownership.
+  python_enrichment?: {
+    status: string;
+    signals: Array<{ signal_type: string; confidence: string; evidence_phrase: string }>;
+    primary_signal: string | null;
+    multi_intent: boolean;
+  };
+  // Phase 1283 — persisted coordination summary (read back from the row, not
+  // just the create response).
+  coordination?: {
+    runtime: string;
+    event_id: string | null;
+    watcher: string | null;
+    dispatched_at: string | null;
+    error_code: string | null;
+  };
+  // Phase 1283 — internal watcher state. Never sends anything.
+  watchers?: Array<{
+    watcher_id: string;
+    watcher_type: string;
+    status: string;
+    source_runtime: string;
+    escalation_level: string;
+    created_at: string;
+  }>;
+  // Phase 1283 — set when the row is in Blind Spots due to a runtime/
+  // verification failure (vs a ledger-status blind spot).
+  blind_spot_reason?: string;
+  blind_spot_severity?: string;
+}
+
+// Phase 1282 — durable execution evidence for a ledger entry. An attempt is
+// EVIDENCE that a runtime step happened, never an action.
+export interface ExecutionAttemptView {
+  attempt_id: string;
+  ledger_entry_id: string;
+  attempt_type: string;
+  runtime: string;
+  evidence_type: string;
+  status: string;
+  error_code: string | null;
+  created_at: string;
+  verified_at: string | null;
+}
+
+export interface ExecutionAttemptListResponse {
+  ok: boolean;
+  attempts?: ExecutionAttemptView[];
+}
+
+export interface WorkLedgerCreateResponse {
+  ok: true;
+  entry: WorkLedgerEntryView;
+}
+
+export interface WorkLedgerListResponse {
+  ok: true;
+  items?: WorkLedgerEntryView[];
+  entries?: WorkLedgerEntryView[];
+}
+
+// Phase 1277 — polyglot runtime fabric capability registry.
+export interface RuntimeView {
+  status:
+    | "NOT_CONFIGURED"
+    | "CONFIGURED_UNVERIFIED"
+    | "HEALTHY"
+    | "UNHEALTHY"
+    | "DISABLED";
+  env_key: string | null;
+  configured: boolean;
+  capabilities: string[];
+  note: string;
+  last_checked_at: string | null;
+}
+
+export interface RuntimeCapabilitiesResponse {
+  ok: true;
+  runtimes: {
+    typescript_api: RuntimeView;
+    python_worker: RuntimeView;
+    beam_fabric: RuntimeView;
+    desktop_native: RuntimeView;
+    queue_event_bus: RuntimeView;
+    fallback_active: boolean;
+  };
+}
+
+// Phase 1273 — authority context (hierarchy/RBAC/ABAC) from the backend.
+export interface AuthorityContextView {
+  caller_can_admin_org: boolean;
+  target_resolution:
+    | "RESOLVED_INTERNAL_ENTITY"
+    | "AMBIGUOUS"
+    | "NOT_FOUND"
+    | "NEEDS_EMAIL"
+    | "RUNTIME_MISSING";
+  target_entity_id: string | null;
+  target_display_name: string | null;
+  target_role_title: string | null;
+  caller_is_manager_of_target: boolean;
+  caller_can_view_target_calendar: boolean;
+  caller_can_schedule_with_target: boolean;
+  caller_can_assign_task_to_target: boolean;
+  // Phase 1274 — enterprise time context.
+  caller_timezone: string | null;
+  target_timezone: string | null;
+  org_default_timezone: string;
+}
+
+export interface WorkOsPolicyResult {
+  action: string;
+  decision: string;
+  reason_code: string;
+  reason: string;
+}
+
+export interface AuthorityContextResponse {
+  ok: true;
+  authority: AuthorityContextView;
+  policies: WorkOsPolicyResult[];
+}
+
+/** Gate blocker codes returned by the gated create endpoint. */
+export type CalendarEventGateCode =
+  | "NEEDS_SELECTED_TIME"
+  | "PARTICIPANT_UNRESOLVED"
+  | "NEEDS_PARTICIPANT_CONFIRMATION"
+  | "NEEDS_APPROVAL"
+  | "NEEDS_CALLER_CONFIRMATION"
+  | "POLICY_BLOCKED"
+  | "GOOGLE_RECONNECT_REQUIRED"
+  | "EVENT_WRITE_SCOPE_MISSING"
+  | "CALENDAR_PROVIDER_UNAVAILABLE";

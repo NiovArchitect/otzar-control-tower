@@ -201,6 +201,43 @@ export function llmErrorCopy(code: string): string {
   }
 }
 
+/**
+ * Phase 1264 — honest copy for the desktop (MediaRecorder → Whisper)
+ * transcription path. Closed-vocab failure codes from the Foundation
+ * /otzar/voice/transcribe route + the client-side capture states.
+ * Never a raw provider/stack message; never a fake "configured".
+ */
+export function transcribeErrorCopy(code: string): string {
+  switch (code) {
+    case "STT_NOT_CONFIGURED":
+      return "Speech transcription isn't configured yet. An admin can add the provider key in Integrations — typing works fully today.";
+    case "STT_PROVIDER_AUTH_FAILED":
+      return "Speech transcription isn't authorized. An admin should check the OpenAI project/key. Typing works while this is fixed.";
+    case "STT_PROVIDER_BILLING":
+      return "Speech transcription needs OpenAI billing attention. Typing works while this is fixed.";
+    case "STT_PROVIDER_RATE_LIMITED":
+      return "Speech transcription is rate-limited right now. Try again shortly — typing works in the meantime.";
+    case "STT_MODEL_UNAVAILABLE":
+      return "The transcription model isn't available for this OpenAI project. An admin can check model access. Typing works today.";
+    case "STT_BAD_AUDIO":
+      return "That recording couldn't be read. Try again, a little closer to the mic.";
+    case "STT_PROVIDER_UNAVAILABLE":
+      return "The speech provider didn't respond. Try again in a moment, or type your message.";
+    case "STT_NO_SPEECH":
+      return "I didn't catch any speech. Try again, a little closer to the mic.";
+    case "INVALID_AUDIO":
+      return "That recording didn't come through. Try again, or type your message.";
+    case "MIC_BLOCKED":
+      return "Microphone access is blocked. Enable microphone access for Otzar in macOS Settings → Privacy & Security → Microphone.";
+    case "MIC_UNSUPPORTED":
+      return "This shell can't record audio. Type your message — Otzar routes it the same way.";
+    case "NETWORK_ERROR":
+      return "Otzar cannot reach the local Foundation API. Start the API or check the desktop API URL, then try again.";
+    default:
+      return `Voice transcription couldn't finish — try again or type your message. (ref: ${code})`;
+  }
+}
+
 export interface TtsHealth {
   supported: boolean;
   muted: boolean;

@@ -1,0 +1,136 @@
+// FILE: tests/unit/command-planner.test.ts
+// PURPOSE: Phase 1273 — lock the multi-intent planner against the exact
+//          live-failed commands. The David follow-up must NOT be dropped;
+//          the Samiksha prerequisite must be preserved; the meeting must
+//          keep duration/when/work-hours/context; a single follow-up
+//          promise must be detected.
+
+import { describe, expect, it } from "vitest";
+import { planWorkCommand } from "../../src/lib/work-os/command-planner";
+
+describe("planWorkCommand — multi-intent", () => {
+  const multi =
+    "After Samiksha confirms, schedule a 30-minute meeting with Vishesh tomorrow during work hours at 11am pst about the Otzar voice runtime, and prepare a follow-up note for David.";
+
+  it("splits into TWO linked actions (meeting + David follow-up), never dropping the second", () => {
+    const plan = planWorkCommand(multi);
+    expect(plan.multi_intent).toBe(true);
+    expect(plan.actions.length).toBe(2);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING");
+    const followUp = plan.actions.find((a) => a.kind === "FOLLOW_UP_NOTE");
+    expect(meeting).toBeDefined();
+    expect(followUp).toBeDefined();
+    // The David note is present (the dropped-intent regression).
+    expect(followUp?.target_name).toBe("David");
+  });
+
+  it("preserves the Samiksha prerequisite on the meeting action", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING");
+    expect(meeting?.prerequisite?.toLowerCase()).toContain("samiksha");
+  });
+
+  it("captures duration, day, work-hours, and participant on the meeting", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING");
+    expect(meeting?.duration_minutes).toBe(30);
+    expect(meeting?.when).toBe("tomorrow");
+    expect(meeting?.work_hours).toBe(true);
+    expect(meeting?.target_name).toBe("Vishesh");
+  });
+
+  it("attaches the Otzar voice runtime context to the plan and both actions", () => {
+    const plan = planWorkCommand(multi);
+    expect(plan.context_label?.toLowerCase()).toContain("otzar voice runtime");
+    for (const a of plan.actions) {
+      expect(a.context_label?.toLowerCase()).toContain("otzar voice runtime");
+    }
+  });
+
+  it("Phase 1274 — context_label is EXACTLY 'Otzar voice runtime' (no clause leak)", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING");
+    // The prior bug leaked "minute meeting with Vishesh … during work hours".
+    expect(meeting?.context_label).toBe("Otzar voice runtime");
+    expect(meeting?.context_label).not.toMatch(/meeting|work hours|minute/i);
+  });
+
+  it("Phase 1274 — parses explicit '11am pst' → time 11:00 + label pst on the meeting", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING");
+    expect(meeting?.explicit_time).toBe("11:00");
+    expect(meeting?.explicit_timezone_label).toBe("pst");
+    expect(meeting?.duration_minutes).toBe(30);
+  });
+
+  it("Phase 1274 — David follow-up inherits the Otzar voice runtime context", () => {
+    const plan = planWorkCommand(multi);
+    const followUp = plan.actions.find((a) => a.kind === "FOLLOW_UP_NOTE");
+    expect(followUp?.context_label).toBe("Otzar voice runtime");
+  });
+
+  it("Phase 1275 — emits confidence/evidence for target, context, time, timezone", () => {
+    const plan = planWorkCommand(multi);
+    const meeting = plan.actions.find((a) => a.kind === "SCHEDULE_MEETING")!;
+    const fields = meeting.evidence.map((e) => e.field);
+    expect(fields).toContain("target");
+    expect(fields).toContain("context_label");
+    expect(fields).toContain("time");
+    expect(fields).toContain("timezone");
+    // Target needs confirmation (resolution is the authority service's job).
+    const target = meeting.evidence.find((e) => e.field === "target");
+    expect(target?.requires_confirmation).toBe(true);
+    // Context is a high-confidence phrase match.
+    const ctx = meeting.evidence.find((e) => e.field === "context_label");
+    expect(ctx?.confidence).toBe("HIGH");
+    expect(ctx?.evidence_type).toBe("PHRASE_MATCH");
+  });
+});
+
+describe("planWorkCommand — single intents", () => {
+  it("plans a single scheduling command (Vishesh, tomorrow)", () => {
+    const plan = planWorkCommand(
+      "Schedule a 30-minute meeting with Vishesh tomorrow during work hours about the Otzar voice runtime.",
+    );
+    expect(plan.multi_intent).toBe(false);
+    expect(plan.actions.length).toBe(1);
+    expect(plan.actions[0]!.kind).toBe("SCHEDULE_MEETING");
+    expect(plan.actions[0]!.target_name).toBe("Vishesh");
+  });
+
+  it("detects a follow-up promise and its target + context", () => {
+    const plan = planWorkCommand(
+      "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
+    );
+    expect(plan.actions.length).toBe(1);
+    expect(plan.actions[0]!.kind).toBe("FOLLOW_UP_NOTE");
+    expect(plan.actions[0]!.target_name).toBe("Vishesh");
+    expect(plan.actions[0]!.context_label?.toLowerCase()).toContain(
+      "otzar voice runtime",
+    );
+  });
+
+  it("assigns instruction weight: follow-up promise = COMMITMENT, schedule = COMMAND (addendum §5)", () => {
+    const followUp = planWorkCommand(
+      "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
+    );
+    expect(followUp.actions[0]!.weight).toBe("COMMITMENT");
+
+    const schedule = planWorkCommand(
+      "Schedule a 30-minute meeting with Vishesh tomorrow.",
+    );
+    expect(schedule.actions[0]!.weight).toBe("COMMAND");
+
+    const delegate = planWorkCommand("Ask David to review the AI UI.");
+    expect(delegate.actions[0]!.kind).toBe("TASK");
+    expect(delegate.actions[0]!.weight).toBe("DELEGATION");
+  });
+
+  it("classifies an unknown participant's name without inventing it", () => {
+    const plan = planWorkCommand("Schedule a meeting with Alex tomorrow.");
+    expect(plan.actions[0]!.kind).toBe("SCHEDULE_MEETING");
+    // The planner extracts the raw name token; resolution (found/not) is
+    // the authority service's job, not the planner's.
+    expect(plan.actions[0]!.target_name).toBe("Alex");
+  });
+});

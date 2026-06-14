@@ -62,8 +62,51 @@ import {
   requestNativeMicAccess,
   type NativeMicStatus,
 } from "@/lib/voice/native-mic";
-import { routeVoiceCommand } from "@/lib/voice/command-router";
-import { speakPremium, speakWithOtzarVoice } from "@/lib/voice/premium-tts";
+import {
+  speakWithOtzarVoice,
+  cancelVoicePlayback,
+  getLastVoicePath,
+} from "@/lib/voice/premium-tts";
+import {
+  classifyVoiceAction,
+  safeOpenExternalUrl,
+  type VoiceAction,
+} from "@/lib/voice/voice-action-runtime";
+import {
+  recordVoiceAction,
+  recordArtifactEdit,
+} from "@/lib/voice/voice-action-log";
+import {
+  appendConversationEntry,
+  useConversationStore,
+} from "@/lib/work-os/conversation-store";
+import { resolveTarget } from "@/lib/work-os/target-resolution";
+import { setActionDetails } from "@/lib/work-os/action-details-store";
+import {
+  tomorrowWorkWindow,
+  freeWindowsFromBusy,
+  DEFAULT_MEETING_MINUTES,
+} from "@/lib/work-os/availability";
+import {
+  planWorkCommand,
+  extractExplicitTime,
+  type PlannedAction,
+} from "@/lib/work-os/command-planner";
+import {
+  formatProposedTime,
+  interpretTimezoneLabel,
+  displayForIana,
+} from "@/lib/work-os/timezone";
+import { getCalendarCreateGateCopy } from "@/lib/work-os/calendar-gate-copy";
+import {
+  extractionSourceLabel,
+  type PythonRuntimeStatus,
+} from "@/lib/work-os/extraction-source";
+import {
+  WorkArtifactCard,
+  type WorkArtifact,
+} from "@/components/otzar/WorkArtifactCard";
+import { useDesktopVoiceCapture } from "@/hooks/useDesktopVoiceCapture";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
 import {
@@ -71,6 +114,7 @@ import {
   llmErrorCopy,
   micCopyFor,
   speechRecognitionErrorCopy,
+  transcribeErrorCopy,
 } from "@/lib/voice/diagnostics";
 
 /**
@@ -150,6 +194,27 @@ export function AmbientOtzarBar(): JSX.Element {
     CalendarContextResponse["provider_mode"] | null
   >(null);
   const voiceOverrideRef = useRef(false);
+  // Phase 1278 — the live Python intelligence runtime status, read once
+  // from the runtime registry so conversation-to-work artifacts can show
+  // an HONEST extraction source (deterministic vs. Python enrichment).
+  const pythonRuntimeRef = useRef<PythonRuntimeStatus>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void api.system
+      .runtimeCapabilities()
+      .then((r) => {
+        if (!cancelled && r.ok) {
+          pythonRuntimeRef.current = r.data.runtimes.python_worker
+            .status as PythonRuntimeStatus;
+        }
+      })
+      .catch(() => {
+        /* registry unreachable → stays null → "Deterministic extraction" */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const recognition = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
   const recognitionRef = useRef(recognition);
@@ -158,6 +223,48 @@ export function AmbientOtzarBar(): JSX.Element {
   synthesisRef.current = synthesis;
   const micPerm = useMicrophonePermission();
   const intent = useOtzarVoiceIntent();
+  // Phase 1264 — desktop voice input. The Tauri WKWebView has no Web
+  // Speech API, so on desktop we record with MediaRecorder and
+  // transcribe through Foundation (OpenAI Whisper). In a browser the
+  // existing local Web Speech API path stays the labeled fallback.
+  const desktopCap = useDesktopVoiceCapture();
+  const desktopCapRef = useRef(desktopCap);
+  desktopCapRef.current = desktopCap;
+  // Phase 1266 — the persistent, scrollable Otzar conversation thread.
+  const conversation = useConversationStore((s) => s.entries);
+  const clearConversation = useConversationStore((s) => s.clear);
+  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  // True only while PREMIUM audio is actually playing (device speech
+  // has its own reactive `synthesis.speaking`). Drives the orb's
+  // "Speaking…" state honestly — never shown when silent.
+  const [premiumSpeaking, setPremiumSpeaking] = useState(false);
+  // Phase 1264 Voice Action Runtime display: what was heard, what was
+  // decided, what happened, and which voice path spoke.
+  const [actionHeard, setActionHeard] = useState<string | null>(null);
+  const [actionLabel, setActionLabel] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<string | null>(null);
+  const [actionVoicePath, setActionVoicePath] = useState<string | null>(null);
+  // Phase 1265 — Work OS status line (Draft only / Approval required /
+  // Read-only / Runtime not available / Routed / Blocked).
+  const [actionStatus, setActionStatus] = useState<string | null>(null);
+  // Phase 1267 — the visible, editable work artifact (draft message /
+  // proposed action / meeting proposal) so Otzar is never "hearsay UI".
+  const [pendingArtifact, setPendingArtifact] = useState<WorkArtifact | null>(
+    null,
+  );
+  // Phase 1273 — a multi-intent WorkPlan renders as several linked,
+  // independently-inspectable artifact cards (never one flattened card).
+  const [planArtifacts, setPlanArtifacts] = useState<WorkArtifact[]>([]);
+  // Which STT engine produced the spoken command's transcript
+  // (desktop path only): "openai-whisper" or "deepgram".
+  const [transcriptionProvider, setTranscriptionProvider] = useState<
+    string | null
+  >(null);
+  // When a desktop external-link open can't hand off automatically, we
+  // surface a clickable link instead of silently failing.
+  const [externalLinkPending, setExternalLinkPending] = useState<string | null>(
+    null,
+  );
   // Phase 1251 — publish ambient signals to the presence store so
   // the edge glow + ambient cards speak the same state language.
   const presenceState = usePresenceState();
@@ -166,15 +273,19 @@ export function AmbientOtzarBar(): JSX.Element {
   const markPresenceFailure = usePresenceStore((s) => s.markFailure);
   useEffect(() => {
     setPresenceSignals({
-      listening: recognition.listening,
-      thinking: intent.processing,
+      listening: recognition.listening || desktopCap.state === "recording",
+      thinking: intent.processing || desktopCap.state === "transcribing",
       quiet,
       quietReason: autoQuietReason,
-      voiceBlocked: micPerm.state === "denied" || !recognition.supported,
+      voiceBlocked:
+        micPerm.state === "denied" ||
+        (!recognition.supported && !desktopCap.supported),
     });
   }, [
     recognition.listening,
     recognition.supported,
+    desktopCap.state,
+    desktopCap.supported,
     intent.processing,
     quiet,
     autoQuietReason,
@@ -247,17 +358,25 @@ export function AmbientOtzarBar(): JSX.Element {
     // effect mount-stable.
   }, []);
 
-  // Phase 1259 — assistant speech is PREMIUM-FIRST: try the real
-  // provider voice; the device voice is only the fallback. The
-  // synthesis fallback keeps the existing dedupe/mute semantics.
+  // Phase 1264 — assistant speech goes through the single
+  // VoicePlaybackController: ONE active utterance, premium-first, the
+  // device voice only as a labeled fallback AFTER premium fails, and a
+  // newer prompt cancels the older one (no double-speak, no robot
+  // voice "second"). premiumSpeaking drives the honest orb state.
   function speakAssistant(
     text: string,
-    opts: { source: "auto" | "replay"; force: boolean },
+    opts: { source: "auto" | "replay" | "manual"; force: boolean },
   ): void {
-    void speakPremium(text).then((outcome) => {
-      if (outcome.kind !== "PREMIUM") {
-        synthesisRef.current.speak(text, opts);
-      }
+    void speakWithOtzarVoice(
+      text,
+      (t) => synthesis.speak(t, opts),
+      {
+        muted: synthesisRef.current.muted,
+        onPremiumStart: () => setPremiumSpeaking(true),
+        onPremiumEnd: () => setPremiumSpeaking(false),
+      },
+    ).then(() => {
+      setActionVoicePath(getLastVoicePath());
     });
   }
 
@@ -306,8 +425,26 @@ export function AmbientOtzarBar(): JSX.Element {
     });
   }
 
+  // Phase 1264 — desktop shells use the MediaRecorder→Whisper path;
+  // browser shells keep the local Web Speech API path.
+  const useDesktopCapture =
+    detectShellMode() === "tauri_webview" && desktopCap.supported;
+
   async function handleMicToggle(): Promise<void> {
     if (quiet) return;
+    if (useDesktopCapture) {
+      // Desktop: record → stop → transcribe. The transcript effect
+      // submits it through the governed action/chat path.
+      if (
+        desktopCap.state === "recording" ||
+        desktopCap.state === "transcribing"
+      ) {
+        desktopCap.stop();
+        return;
+      }
+      await desktopCap.start();
+      return;
+    }
     if (recognition.listening) {
       recognition.stop();
       return;
@@ -339,39 +476,1374 @@ export function AmbientOtzarBar(): JSX.Element {
     );
   }
 
-  async function handleSend(): Promise<void> {
-    const text = draft.trim();
-    if (text.length === 0 || intent.processing) return;
-    // Cancel any in-flight speech before sending the next turn.
-    synthesis.stop();
-    // Phase 1253 — voice is the REMOTE CONTROL: spoken AND typed
-    // input both ride the command router first. A match navigates
-    // (read/route only — every write still happens on the governed
-    // destination surface); admin surfaces are role-gated with a
-    // warm refusal; no match falls through to the conversational
-    // governed voice-intent API.
-    const routed = routeVoiceCommand(text, capabilities);
-    if (routed.kind === "NAVIGATE") {
-      setDraft("");
-      setRouterAck(routed.spoken);
-      void speakWithOtzarVoice(routed.spoken, (t) =>
-        synthesis.speak(t, { source: "manual", force: true }),
-      );
-      navigate(routed.surface.route);
-      return;
-    }
-    if (routed.kind === "ADMIN_BLOCKED") {
-      setDraft("");
-      setRouterAck(routed.spoken);
-      void speakWithOtzarVoice(routed.spoken, (t) =>
-        synthesis.speak(t, { source: "manual", force: true }),
-      );
-      return;
-    }
-    setRouterAck(null);
-    setDraft("");
-    await intent.send(text);
+  // Speak a confirmation through the single controller (premium-first,
+  // device fallback labeled), and record which path spoke.
+  function speakConfirmation(text: string): void {
+    if (text.length === 0) return;
+    void speakWithOtzarVoice(
+      text,
+      (t) => synthesis.speak(t, { source: "manual", force: true }),
+      {
+        muted: synthesisRef.current.muted,
+        onPremiumStart: () => setPremiumSpeaking(true),
+        onPremiumEnd: () => setPremiumSpeaking(false),
+      },
+    ).then(() => setActionVoicePath(getLastVoicePath()));
   }
+
+  // Phase 1265 — humanize a provider's connection status for the spoken
+  // summary. NEVER says "Verified" unless the live status is VERIFIED
+  // (no fake green).
+  function humanizeOAuthStatus(status: string): string {
+    switch (status) {
+      case "VERIFIED":
+        return "Verified";
+      case "CONNECTED_UNVERIFIED":
+        return "connected (verify to confirm)";
+      case "READY_FOR_CONSENT":
+        return "ready to connect";
+      case "APP_CREDENTIALS_MISSING":
+        return "needs app credentials (parked)";
+      case "ERROR_NEEDS_RECONNECT":
+        return "needs reconnect";
+      case "REVOKED":
+        return "revoked";
+      default:
+        return status.toLowerCase().replace(/_/g, " ");
+    }
+  }
+
+  // Phase 1265 — build a REAL connector status summary. Prefers the
+  // OAuth status endpoint (admin); falls back to the adapter registry
+  // (presence only) for non-admins; honest message if neither loads.
+  async function buildConnectorSummary(): Promise<string> {
+    const oauth = await api.otzar.oauthStatus();
+    if (oauth.ok && oauth.data.providers.length > 0) {
+      const parts = oauth.data.providers.map(
+        (p) => `${p.display_name}: ${humanizeOAuthStatus(p.status)}`,
+      );
+      return parts.join(". ") + ".";
+    }
+    const adapters = await api.otzar.connectorAdapters();
+    if (adapters.ok && adapters.data.adapters.length > 0) {
+      const parts = adapters.data.adapters
+        .slice(0, 8)
+        .map((a) => {
+          const label =
+            a.status === "CONFIGURED"
+              ? "configured"
+              : a.status === "BLOCKED_BY_CREDENTIAL"
+                ? "needs credentials"
+                : a.status === "BLOCKED_BY_APP_REVIEW"
+                  ? "needs app review"
+                  : a.status.toLowerCase().replace(/_/g, " ");
+          return `${a.display_name}: ${label}`;
+        });
+      return (
+        "Connector presence (verify for live state). " + parts.join(". ") + "."
+      );
+    }
+    return "I couldn't load connector status right now. Open Workspace connections to check.";
+  }
+
+  // Phase 1265 — Work OS status badge from a classified action.
+  function workStatusFor(a: VoiceAction): string {
+    if (a.kind === "DRAFT_MESSAGE") return "Draft only · Approval required";
+    if (a.kind === "SEND_REQUIRES_APPROVAL") return "Approval required";
+    if (a.kind === "SCHEDULE_MEETING") return "Draft · Approval required";
+    if (a.kind === "ASK_TWIN") return "Routed to Collaboration";
+    if (a.kind === "READ_ONLY_SUMMARY" || a.kind === "CONNECTOR_STATUS_SUMMARY")
+      return "Read-only";
+    if (a.kind === "APPROVALS_REVIEW") return "Read-only";
+    if (a.kind === "ZOOM_RECORDINGS") return "Read-only";
+    if (a.kind === "WORKFLOW_START" || a.kind === "MEETING_NOTES_TO_ACTIONS")
+      return "Runtime not available yet";
+    if (a.kind === "UNSUPPORTED") return "Blocked";
+    return "Done";
+  }
+
+  // Phase 1265 — generic executor for navigate-and-announce work
+  // actions (draft/send/ask/schedule/zoom/workflow/notes/read-only).
+  // Speaks the honest result, records audit, sets the status badge, and
+  // navigates if a real route is attached. NEVER performs an external
+  // write.
+  function runWorkAction(
+    action: VoiceAction,
+    at: string,
+    result: "success" | "blocked" | "needs_confirmation",
+  ): void {
+    setActionResult(action.spoken);
+    setActionStatus(workStatusFor(action));
+    speakConfirmation(action.spoken);
+    recordVoiceAction({
+      at,
+      transcript: action.heard,
+      actionType: action.kind,
+      target: action.route ?? action.targetEntity ?? null,
+      result,
+    });
+    appendConversationEntry({
+      role: "action",
+      text: action.spoken,
+      at,
+      kind: action.kind,
+      status: workStatusFor(action),
+    });
+    if (action.route !== undefined) navigate(action.route);
+  }
+
+  // Phase 1266 — map a real Action lifecycle status / policy decision
+  // to an honest Work-OS status badge.
+  function humanizeActionStatus(status: string): string {
+    switch (status) {
+      case "APPROVED":
+      case "SCHEDULED":
+      case "RUNNING":
+      case "SUCCEEDED":
+        return "Approved — standing authority";
+      case "PROPOSED":
+        return "Approval required";
+      case "REJECTED":
+        return "Blocked by policy";
+      default:
+        return status.toLowerCase().replace(/_/g, " ");
+    }
+  }
+  function humanizeActionError(code: string): string {
+    switch (code) {
+      case "POLICY_BLOCKED":
+      case "POLICY_FORBIDDEN":
+        return "That message is blocked by your organization's policy.";
+      case "DUAL_CONTROL_NO_APPROVER_AVAILABLE":
+        return "Draft created, but your org hasn't configured who approves messages yet.";
+      case "OPERATION_NOT_PERMITTED":
+        return "You don't have authority to send that. I kept it as a draft.";
+      default:
+        return `Otzar couldn't create that action. (ref: ${code})`;
+    }
+  }
+
+  // Phase 1266 — REAL draft/send bridge. Resolve the recipient and
+  // create a governed SEND_INTERNAL_NOTIFICATION ProposedAction (which
+  // runs the ADR-0057 policy evaluator → AUTO_APPROVE/standing-authority
+  // or approval-required). NEVER sends externally; never fabricates a
+  // recipient id. Unresolved → draft + target picker.
+  // Phase 1269 — a "Draft …" command creates a LOCAL draft artifact
+  // ONLY. It does NOT create a backend ProposedAction (that conflated
+  // DRAFT with PROPOSE and made Open look like auto-confirm). The user
+  // reviews/edits the visible draft, then CONFIRM proposes it. Open
+  // never confirms/sends. External (Slack/email) drafts are local and
+  // never auto-routed/auto-submitted.
+  const COMMS_ROUTE = "/app/comms";
+  const ACTION_CENTER_ROUTE = "/app/action-center";
+
+  async function executeMessageAction(
+    action: VoiceAction,
+    at: string,
+  ): Promise<void> {
+    const isSend = action.kind === "SEND_REQUIRES_APPROVAL";
+    const channel = action.connector ?? "internal";
+    const external = channel === "slack" || channel === "email";
+    const recipientName = action.targetEntity;
+    const body = action.draftPayload ?? action.heard;
+
+    // Resolve the recipient for a label + later Confirm — but DO NOT
+    // create any backend object yet.
+    let recipientEntityId: string | undefined;
+    let label = recipientName;
+    let resolveNote: string | undefined;
+    if (recipientName !== undefined) {
+      const resolved = await resolveTarget(recipientName);
+      if (
+        (resolved.kind === "RESOLVED_HUMAN" ||
+          resolved.kind === "RESOLVED_AI_AGENT") &&
+        resolved.entityId !== undefined
+      ) {
+        recipientEntityId = resolved.entityId;
+        label = resolved.displayName ?? recipientName;
+      } else if (resolved.kind === "AMBIGUOUS") {
+        resolveNote = `More than one teammate matches "${recipientName}". Open Work Comms to pick the right one.`;
+      } else if (resolved.kind === "NOT_FOUND") {
+        resolveNote = `"${recipientName}" isn't in your organization. Open Work Comms to pick a teammate.`;
+      } else {
+        resolveNote =
+          "Resolving teammates from voice needs the org roster (not available to you here). Open Work Comms to pick the recipient.";
+      }
+    } else {
+      resolveNote = "Tell me who it's for, then Confirm to propose.";
+    }
+
+    const status = external
+      ? "Local draft — external send not wired"
+      : recipientEntityId !== undefined
+        ? "Draft — Confirm to propose"
+        : "Local draft — pick a recipient";
+    const runtimeNote = external
+      ? "External send (Slack/email) isn't wired yet. This stays a local draft until that bridge lands — it is never auto-sent."
+      : resolveNote;
+
+    setPendingArtifact({
+      kind: action.kind,
+      title: `${isSend ? "Send" : "Draft"} message${label !== undefined ? ` → ${label}` : ""}`,
+      ...(label !== undefined ? { targetLabel: label } : {}),
+      channel,
+      body,
+      status,
+      ...(recipientEntityId !== undefined ? { recipientEntityId } : {}),
+      externalChannel: external,
+      sourceCommand: action.heard,
+      // Open routes to the Work Comms DRAFT surface — it never confirms
+      // or proposes. Once proposed, Confirm rewrites the route to the
+      // focused Action Center entry.
+      route: COMMS_ROUTE,
+      ...(runtimeNote !== undefined ? { runtimeNote } : {}),
+    });
+
+    const msg = external
+      ? "Draft created. External send isn't wired — nothing is sent. Edit, then Confirm to keep it for review."
+      : recipientEntityId !== undefined
+        ? `Draft to ${label} created. Review it, then Confirm to propose — nothing is sent yet.`
+        : "Draft created. Pick the recipient, then Confirm to propose — nothing is sent.";
+    setActionResult(msg);
+    setActionStatus(status);
+    appendConversationEntry({ role: "action", text: msg, at, kind: action.kind, status });
+    speakConfirmation(msg);
+    recordVoiceAction({
+      at,
+      transcript: action.heard,
+      actionType: action.kind,
+      target: action.targetEntity ?? null,
+      result: "needs_confirmation",
+    });
+    // NOTE: deliberately NO navigate() — the draft stays in view; the
+    // user opens it explicitly.
+  }
+
+  // Phase 1269 — CONFIRM is the only operation that proposes/creates a
+  // governed action. Open never reaches here.
+  async function confirmArtifact(body: string): Promise<void> {
+    const a = pendingArtifact;
+    if (a === null) return;
+    const now = new Date().toISOString();
+    if (body !== a.body) {
+      recordArtifactEdit({
+        at: now,
+        kind: a.kind,
+        originalChars: a.body.length,
+        editedChars: body.length,
+        confirmed: true,
+      });
+    }
+    // Already proposed → Confirm just opens the focused action; never
+    // re-creates.
+    if (a.proposed === true && a.actionId !== undefined) {
+      navigate(`${ACTION_CENTER_ROUTE}?focus=${encodeURIComponent(a.actionId)}`);
+      return;
+    }
+    // Meeting proposals: Confirm ATTEMPTS a GATED create via the real
+    // backend. It never auto-creates — the backend returns the precise
+    // unmet gate (no selected time / needs confirmation / needs Google
+    // reconnect for event creation / …) which we surface honestly. No
+    // event is created and no invite sent while any gate is unmet.
+    if (a.kind === "SCHEDULE_MEETING") {
+      // Phase 1274/1275 Task E — an unresolved participant blocks the
+      // whole lifecycle: never call event-create; ask to resolve first.
+      if (a.status === "Participant unresolved") {
+        setPendingArtifact({ ...a, body, status: "Resolve participant first." });
+        return;
+      }
+      // Phase 1274/1275 Task D — if the user GAVE an explicit time, do NOT
+      // send selected_time: null and then say "Choose a time". We have the
+      // clock time but converting "tomorrow" + timezone to a concrete
+      // datetime is a separate bridge — say so honestly, don't pretend.
+      if (a.explicitTime !== undefined) {
+        setPendingArtifact({
+          ...a,
+          body,
+          status: "Selected-time normalization not wired",
+          runtimeNote: `I have the time (${a.proposedTime ?? a.explicitTime}), but converting "tomorrow" + timezone to a concrete datetime isn't wired yet. No event created, no invite sent.`,
+        });
+        return;
+      }
+      const gateStatus: Record<string, string> = {
+        NEEDS_SELECTED_TIME: "Choose a time.",
+        PARTICIPANT_UNRESOLVED: a.targetLabel
+          ? `Needs ${a.targetLabel} resolved.`
+          : "Needs a participant.",
+        NEEDS_PARTICIPANT_CONFIRMATION: a.prerequisite ?? "Needs confirmation.",
+        NEEDS_APPROVAL: "Needs approval.",
+        NEEDS_CALLER_CONFIRMATION: "Confirm the proposal to continue.",
+        POLICY_BLOCKED: "Blocked by policy.",
+        GOOGLE_RECONNECT_REQUIRED:
+          "Needs Google reconnect for event creation.",
+        EVENT_WRITE_SCOPE_MISSING:
+          "Needs Google reconnect for event creation (event-write scope).",
+        CALENDAR_PROVIDER_UNAVAILABLE: "Ready to create — create runtime pending.",
+      };
+      const r = await api.connectorData.calendarEventCreate({
+        title: a.title,
+        participants:
+          a.targetLabel !== undefined
+            ? [{ label: a.targetLabel, resolved: a.recipientEntityId !== undefined }]
+            : [],
+        selected_time: null, // slot-selection UI is the next bridge
+        caller_confirmed: true, // the user clicked Confirm
+        ...(a.prerequisite !== undefined
+          ? { prerequisite: a.prerequisite, participant_confirmations_satisfied: false }
+          : { participant_confirmations_satisfied: true }),
+        source_command: a.sourceCommand ?? body,
+      });
+      const status = r.ok
+        ? "Created."
+        : (gateStatus[r.code] ?? "Proposal saved (gated).");
+      // Drop the prior runtimeNote on success (exactOptionalPropertyTypes
+      // forbids assigning undefined — omit the key instead).
+      const { runtimeNote: _priorNote, ...rest } = a;
+      void _priorNote;
+      setPendingArtifact({
+        ...rest,
+        body,
+        status,
+        ...(r.ok
+          ? {}
+          : {
+              runtimeNote:
+                "No event was created — the proposal is held at the gate above. No invite sent.",
+            }),
+      });
+      return;
+    }
+    if (a.externalChannel === true) {
+      setPendingArtifact({
+        ...a,
+        body,
+        status: "Local draft — external send not wired",
+        runtimeNote:
+          "Slack/email send isn't wired yet, so this can't be proposed for external send. Saved as a local draft.",
+      });
+      return;
+    }
+    if (a.recipientEntityId === undefined) {
+      // No resolved recipient → can't propose; route to the picker.
+      navigate(COMMS_ROUTE);
+      return;
+    }
+    // Internal, resolved recipient → CREATE the governed ProposedAction.
+    const idem =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `voice-msg-${now}-${a.recipientEntityId}`;
+    const r = await api.actions.sendInternalNotification({
+      recipient_entity_id: a.recipientEntityId,
+      draft_text: body,
+      idempotency_key: idem,
+      payload_summary: a.title,
+    });
+    if (r.ok) {
+      const actionId = r.data.action.action_id;
+      const status = humanizeActionStatus(r.data.action.status);
+      // Persist the human-readable detail so the Action Center shows
+      // recipient/channel/body — not a generic "internal note".
+      setActionDetails(actionId, {
+        title: a.title,
+        ...(a.targetLabel !== undefined ? { recipientLabel: a.targetLabel } : {}),
+        channel: a.channel ?? "internal",
+        body,
+        ...(a.sourceCommand !== undefined ? { sourceCommand: a.sourceCommand } : {}),
+      });
+      // Drop any prior runtimeNote (exactOptionalPropertyTypes: omit).
+      const { runtimeNote: _clearedNote, ...rest } = a;
+      void _clearedNote;
+      setPendingArtifact({
+        ...rest,
+        body,
+        proposed: true,
+        actionId,
+        status,
+        route: `${ACTION_CENTER_ROUTE}?focus=${encodeURIComponent(actionId)}`,
+      });
+      appendConversationEntry({
+        role: "action",
+        text: `Proposed: internal message to ${a.targetLabel ?? "recipient"} — ${status}.`,
+        at: now,
+        kind: a.kind,
+        status,
+      });
+      speakConfirmation(
+        `Proposed your message to ${a.targetLabel ?? "your teammate"} — ${status}.`,
+      );
+    } else {
+      setPendingArtifact({
+        ...a,
+        body,
+        status: "Blocked by policy",
+        runtimeNote: humanizeActionError(r.code),
+      });
+    }
+  }
+
+  // Edit-Save revises the body locally; if already proposed, re-propose
+  // a new governed action with the edits.
+  async function reviseArtifact(body: string): Promise<void> {
+    const a = pendingArtifact;
+    if (a === null) return;
+    if (body !== a.body) {
+      recordArtifactEdit({
+        at: new Date().toISOString(),
+        kind: a.kind,
+        originalChars: a.body.length,
+        editedChars: body.length,
+        confirmed: false,
+      });
+    }
+    if (a.proposed === true) {
+      // Re-propose with the edited body (a new governed action).
+      await confirmArtifact(body);
+      return;
+    }
+    setPendingArtifact({ ...a, body });
+  }
+
+  // Phase 1264 Voice Action Runtime — voice OPERATES the app. Every
+  // utterance (spoken OR typed) is classified into a SAFE action:
+  // internal navigation, connector-status navigation, a safe external
+  // URL open, a draft-only (approval-gated) action, or a fall-through
+  // to the SAME governed chat path as typed input. Each is audited
+  // (safe metadata only) and confirmed in premium voice.
+  // Phase 1273 — map a planned-action kind to its backend Work OS action.
+  function workOsActionFor(kind: PlannedAction["kind"]): string {
+    if (kind === "SCHEDULE_MEETING") return "CREATE_INTERNAL_MEETING";
+    if (kind === "TASK") return "ASSIGN_TASK";
+    return "CREATE_FOLLOW_UP_NOTE";
+  }
+
+  function statusForDecision(decision: string): string {
+    switch (decision) {
+      case "ALLOW":
+        return "Ready";
+      case "ALLOW_WITH_CONFIRMATION":
+        return "Ready to confirm";
+      case "ALLOW_WITH_STANDING_AUTHORITY":
+        return "Ready (standing authority)";
+      case "REQUIRES_TARGET_CONFIRMATION":
+        return "Needs participant confirmation";
+      case "REQUIRES_APPROVAL":
+        return "Needs approval";
+      case "REQUIRES_DUAL_CONTROL":
+        return "Needs dual control";
+      case "BLOCKED":
+        return "Blocked";
+      case "RUNTIME_MISSING":
+        return "Runtime not wired";
+      default:
+        return "Draft · needs confirmation";
+    }
+  }
+
+  // Build one inspectable WorkArtifact from a planned action, enriching
+  // it with the REAL backend authority decision (never a generic draft;
+  // never a guessed target). The target is resolved server-side — an
+  // unknown name surfaces as an honest "unresolved" status.
+  async function buildArtifactFromAction(
+    action: PlannedAction,
+    sourceCommand: string,
+    planId: string | undefined,
+  ): Promise<WorkArtifact> {
+    const target = action.target_name;
+    let authorityNote: string | undefined;
+    let status = "Draft · needs confirmation";
+
+    // Phase 1274 — explicit proposed time on a meeting action.
+    const proposedTime =
+      action.kind === "SCHEDULE_MEETING" && action.explicit_time !== undefined
+        ? formatProposedTime(action.explicit_time, action.explicit_timezone_label)
+        : undefined;
+    const tzInterp =
+      action.explicit_timezone_label !== undefined
+        ? interpretTimezoneLabel(action.explicit_timezone_label)
+        : null;
+    const timezoneNote =
+      action.explicit_timezone_label !== undefined && tzInterp !== null
+        ? `Interpreted ${action.explicit_timezone_label.toUpperCase()} as ${tzInterp.display}.`
+        : undefined;
+
+    let targetEntityId: string | undefined;
+    let targetUnresolved = false;
+    if (target !== undefined) {
+      const r = await api.workOs.authorityContext({
+        target_name: target,
+        actions: [workOsActionFor(action.kind)],
+      });
+      if (r.ok) {
+        const a = r.data.authority;
+        const pol = r.data.policies[0];
+        if (a.target_entity_id !== null) targetEntityId = a.target_entity_id;
+        if (a.target_resolution === "NOT_FOUND") {
+          status = "Participant unresolved";
+          targetUnresolved = true;
+          authorityNote = `I don't know which ${target}. Choose a teammate or enter an email/calendar.`;
+        } else if (a.target_resolution === "AMBIGUOUS") {
+          status = "Participant ambiguous";
+          targetUnresolved = true;
+          authorityNote = `More than one teammate matches "${target}" — pick one.`;
+        } else if (pol !== undefined) {
+          status =
+            action.kind === "SCHEDULE_MEETING" && proposedTime !== undefined
+              ? action.prerequisite !== undefined
+                ? "Time proposed · needs confirmation"
+                : "Time proposed · event creation gated"
+              : statusForDecision(pol.decision);
+          const who = a.target_display_name ?? target;
+          const tzDisplay =
+            a.target_timezone !== null
+              ? displayForIana(a.target_timezone)
+              : `using org default (${displayForIana(a.org_default_timezone)}) — ${who}'s timezone not configured`;
+          authorityNote = a.caller_is_manager_of_target
+            ? `Manager authority over ${who}. ${pol.reason} ${who} local time: ${tzDisplay}.`
+            : `${pol.reason} ${who} local time: ${tzDisplay}.`;
+        }
+      }
+    }
+
+    const title =
+      action.kind === "SCHEDULE_MEETING"
+        ? target
+          ? `Meeting proposal → ${target}`
+          : "Meeting proposal"
+        : action.kind === "TASK"
+          ? target
+            ? `Task → ${target}`
+            : "Task proposal"
+          : target
+            ? `Follow up with ${target}`
+            : "Follow-up note";
+    const channel = action.kind === "SCHEDULE_MEETING" ? "calendar" : "internal";
+    const body =
+      action.kind === "FOLLOW_UP_NOTE"
+        ? `Follow up with ${target ?? "them"}${
+            action.context_label !== undefined
+              ? ` about ${action.context_label}`
+              : ""
+          }.`
+        : action.source_segment;
+
+    const artifact: WorkArtifact = {
+      kind: action.kind,
+      title,
+      ...(target !== undefined ? { targetLabel: target } : {}),
+      channel,
+      body,
+      status,
+      ...(action.prerequisite !== undefined
+        ? { prerequisite: `Requires ${action.prerequisite}` }
+        : {}),
+      ...(action.context_label !== undefined
+        ? { contextLabel: action.context_label }
+        : {}),
+      weight: action.weight,
+      ...(authorityNote !== undefined ? { authorityNote } : {}),
+      ...(proposedTime !== undefined ? { proposedTime } : {}),
+      ...(action.explicit_time !== undefined
+        ? { explicitTime: action.explicit_time }
+        : {}),
+      ...(timezoneNote !== undefined ? { timezoneNote } : {}),
+      ...(action.evidence.length > 0 ? { evidence: action.evidence } : {}),
+      extractionSource: extractionSourceLabel(pythonRuntimeRef.current),
+      sourceCommand,
+      ...(planId !== undefined ? { planId } : {}),
+      runtimeNote:
+        action.kind === "SCHEDULE_MEETING"
+          ? getCalendarCreateGateCopy({
+              status,
+              ...(action.prerequisite !== undefined
+                ? { prerequisite: `Requires ${action.prerequisite}` }
+                : {}),
+              ...(action.explicit_time !== undefined
+                ? { explicitTime: action.explicit_time }
+                : {}),
+              ...(proposedTime !== undefined ? { proposedTime } : {}),
+              ...(target !== undefined ? { targetLabel: target } : {}),
+            })
+          : action.kind === "TASK"
+            ? "Task proposal — not assigned until you confirm; no fake completion."
+            : "Follow-up draft — nothing is sent. Edit and confirm when ready.",
+    };
+
+    // Phase 1279 — persist to the durable Work Ledger (tenant-scoped,
+    // runtime-attributed). Honest: ledger status is data, not execution;
+    // failure shows a safe note and NEVER claims saved.
+    const persisted = await persistArtifactToLedger({
+      kind: action.kind,
+      title,
+      sourceCommand,
+      contextLabel: action.context_label,
+      evidence: action.evidence,
+      targetEntityId,
+      targetUnresolved,
+      workPlanId: planId,
+      prerequisite: action.prerequisite,
+    });
+    if (persisted.ledgerEntryId !== undefined) {
+      artifact.ledgerEntryId = persisted.ledgerEntryId;
+      if (persisted.coordinationRuntime !== undefined) {
+        artifact.coordinationRuntime = persisted.coordinationRuntime;
+      }
+    } else {
+      artifact.ledgerError = "Could not save to Work Ledger.";
+    }
+    return artifact;
+  }
+
+  // Map a conversation-to-work artifact to a durable ledger entry and
+  // persist it via Foundation. Returns the ledger id on success. Never
+  // fakes persistence; the caller surfaces a safe error if it fails.
+  async function persistArtifactToLedger(args: {
+    kind: PlannedAction["kind"];
+    title: string;
+    sourceCommand: string;
+    contextLabel: string | undefined;
+    evidence: PlannedAction["evidence"];
+    targetEntityId: string | undefined;
+    targetUnresolved: boolean;
+    workPlanId: string | undefined;
+    prerequisite: string | undefined;
+  }): Promise<{ ledgerEntryId?: string; coordinationRuntime?: string }> {
+    const ledgerType =
+      args.kind === "FOLLOW_UP_NOTE"
+        ? "FOLLOW_UP"
+        : args.kind === "TASK"
+          ? "TASK"
+          : args.kind === "SCHEDULE_MEETING"
+            ? "MEETING"
+            : "COMMITMENT";
+    const status = args.targetUnresolved
+      ? "NEEDS_TARGET_RESOLUTION"
+      : args.prerequisite !== undefined
+        ? "NEEDS_PARTICIPANT_CONFIRMATION"
+        : "PROPOSED";
+    const r = await api.workOs.createLedgerEntry({
+      ledger_type: ledgerType,
+      title: args.title,
+      source_type: "VOICE_COMMAND",
+      source_command: args.sourceCommand,
+      status,
+      extraction_source: "TYPESCRIPT_DETERMINISTIC",
+      evidence: args.evidence,
+      ...(args.contextLabel !== undefined
+        ? { details: { context_label: args.contextLabel } }
+        : {}),
+      ...(args.targetEntityId !== undefined
+        ? { target_entity_id: args.targetEntityId }
+        : {}),
+      ...(args.workPlanId !== undefined ? { work_plan_id: args.workPlanId } : {}),
+    });
+    return r.ok
+      ? {
+          ledgerEntryId: r.data.entry.ledger_entry_id,
+          ...(r.data.entry.coordination_runtime !== undefined
+            ? { coordinationRuntime: r.data.entry.coordination_runtime }
+            : {}),
+        }
+      : {};
+  }
+
+  // Render a multi-intent plan as several linked, inspectable cards.
+  async function renderWorkPlan(
+    actions: PlannedAction[],
+    sourceCommand: string,
+    at: string,
+  ): Promise<void> {
+    const planId = `plan-${at}`;
+    const planned = actions.filter(
+      (a) =>
+        a.kind === "SCHEDULE_MEETING" ||
+        a.kind === "FOLLOW_UP_NOTE" ||
+        a.kind === "TASK",
+    );
+    const artifacts = await Promise.all(
+      planned.map((a) => buildArtifactFromAction(a, sourceCommand, planId)),
+    );
+    setPlanArtifacts(artifacts);
+    const summary = `I split that into ${artifacts.length} linked actions: ${artifacts
+      .map((x) => x.title)
+      .join("; ")}.`;
+    setActionResult(summary);
+    setActionStatus("Plan · review each");
+    appendConversationEntry({
+      role: "action",
+      text: summary,
+      at,
+      kind: "WORK_PLAN",
+      status: "Plan",
+    });
+    speakConfirmation("I split that into linked actions — review each below.");
+    recordVoiceAction({
+      at,
+      transcript: sourceCommand,
+      actionType: "WORK_PLAN",
+      target: null,
+      result: "needs_confirmation",
+    });
+  }
+
+  // Render a single follow-up commitment as one inspectable artifact.
+  async function renderFollowUp(
+    action: PlannedAction,
+    sourceCommand: string,
+    at: string,
+  ): Promise<void> {
+    const artifact = await buildArtifactFromAction(action, sourceCommand, undefined);
+    setPendingArtifact(artifact);
+    setActionResult(artifact.title);
+    setActionStatus(artifact.status);
+    appendConversationEntry({
+      role: "action",
+      text: `${artifact.title} — ${artifact.status}.`,
+      at,
+      kind: "FOLLOW_UP_NOTE",
+      status: artifact.status,
+    });
+    speakConfirmation(`I created a follow-up draft: ${artifact.title}.`);
+    recordVoiceAction({
+      at,
+      transcript: sourceCommand,
+      actionType: "FOLLOW_UP_NOTE",
+      target: action.target_name ?? null,
+      result: "needs_confirmation",
+    });
+  }
+
+  // Confirm ONE artifact within a plan — never the others (Phase 1273).
+  // A meeting attempts the gated create (which blocks honestly); a
+  // follow-up/task is confirmed as a local draft (no send, no fake
+  // completion). Persistent task/collab substrate is the next bridge.
+  async function confirmPlanArtifact(index: number, body: string): Promise<void> {
+    const a = planArtifacts[index];
+    if (a === undefined) return;
+    let status: string;
+    let note: string | undefined;
+    // Task E — unresolved participant blocks the lifecycle (no create).
+    if (a.kind === "SCHEDULE_MEETING" && a.status === "Participant unresolved") {
+      setPlanArtifacts((prev) =>
+        prev.map((x, j) =>
+          j === index ? { ...x, body, status: "Resolve participant first." } : x,
+        ),
+      );
+      return;
+    }
+    // Task D — explicit time given: don't send null + say "Choose a time".
+    if (a.kind === "SCHEDULE_MEETING" && a.explicitTime !== undefined) {
+      setPlanArtifacts((prev) =>
+        prev.map((x, j) =>
+          j === index
+            ? {
+                ...x,
+                body,
+                status: "Selected-time normalization not wired",
+                runtimeNote: `I have the time (${a.proposedTime ?? a.explicitTime}), but converting "tomorrow" + timezone to a concrete datetime isn't wired yet. No event created.`,
+              }
+            : x,
+        ),
+      );
+      return;
+    }
+    if (a.kind === "SCHEDULE_MEETING") {
+      const r = await api.connectorData.calendarEventCreate({
+        title: a.title,
+        participants:
+          a.targetLabel !== undefined
+            ? [{ label: a.targetLabel, resolved: true }]
+            : [],
+        selected_time: null,
+        caller_confirmed: true,
+        ...(a.prerequisite !== undefined
+          ? { prerequisite: a.prerequisite, participant_confirmations_satisfied: false }
+          : { participant_confirmations_satisfied: true }),
+        source_command: a.sourceCommand ?? body,
+      });
+      if (r.ok) {
+        status = "Created.";
+      } else if (r.code === "NEEDS_SELECTED_TIME") {
+        status = "Choose a time.";
+      } else if (
+        r.code === "EVENT_WRITE_SCOPE_MISSING" ||
+        r.code === "GOOGLE_RECONNECT_REQUIRED"
+      ) {
+        status = "Needs Google reconnect for event creation.";
+      } else if (r.code === "NEEDS_PARTICIPANT_CONFIRMATION") {
+        status = a.prerequisite ?? "Needs participant confirmation.";
+      } else {
+        status = "Held at gate.";
+      }
+      note = r.ok ? undefined : "No event created — held at the gate. No invite sent.";
+    } else {
+      // Follow-up / task: confirm as a local governed draft. No send,
+      // no fake completion — real persistence is the next bridge.
+      status =
+        a.kind === "TASK"
+          ? "Task proposal confirmed (local)"
+          : "Follow-up confirmed (local draft)";
+      note = "Saved locally — no message sent, no task marked complete.";
+    }
+    setPlanArtifacts((prev) =>
+      prev.map((x, j) => {
+        if (j !== index) return x;
+        const { runtimeNote: _drop, ...rest } = x;
+        void _drop;
+        return {
+          ...rest,
+          body,
+          status,
+          ...(note !== undefined ? { runtimeNote: note } : {}),
+        };
+      }),
+    );
+  }
+
+  async function handleSendText(raw: string): Promise<void> {
+    const text = raw.trim();
+    if (text.length === 0 || intent.processing) return;
+    // A new prompt cancels any current speech cleanly — no double-speak.
+    cancelVoicePlayback();
+    setExternalLinkPending(null);
+    setActionVoicePath(null);
+    setActionStatus(null);
+    setPendingArtifact(null);
+    setPlanArtifacts([]);
+    // Typed input has no transcription engine; the desktop-voice effect
+    // re-sets this after calling handleSendText.
+    setTranscriptionProvider(null);
+
+    // Phase 1273 — multi-intent + commitment interception. A compound
+    // command becomes a WorkPlan of linked cards; a stated commitment
+    // ("I told X I would follow up") becomes a follow-up artifact. Single
+    // meeting/draft/navigation commands fall through to the existing
+    // classifier (which carries the free/busy + gated-create flow).
+    {
+      const plan = planWorkCommand(text);
+      const nonTrivial = plan.actions.filter(
+        (a) =>
+          a.kind === "SCHEDULE_MEETING" ||
+          a.kind === "FOLLOW_UP_NOTE" ||
+          a.kind === "TASK",
+      );
+      const at0 = new Date().toISOString();
+      if (plan.multi_intent && nonTrivial.length > 1) {
+        setActionHeard(text);
+        setActionLabel("Work plan");
+        setDraft("");
+        appendConversationEntry({ role: "user", text, at: at0 });
+        await renderWorkPlan(plan.actions, text, at0);
+        return;
+      }
+      if (
+        plan.actions.length === 1 &&
+        plan.actions[0]!.kind === "FOLLOW_UP_NOTE"
+      ) {
+        setActionHeard(text);
+        setActionLabel(
+          plan.actions[0]!.target_name !== undefined
+            ? `Follow up → ${plan.actions[0]!.target_name}`
+            : "Follow-up note",
+        );
+        setDraft("");
+        appendConversationEntry({ role: "user", text, at: at0 });
+        await renderFollowUp(plan.actions[0]!, text, at0);
+        return;
+      }
+    }
+
+    const action = classifyVoiceAction(text, capabilities);
+    setActionHeard(action.heard);
+    setActionLabel(action.actionLabel);
+    setDraft("");
+    setRouterAck(null);
+    const at = new Date().toISOString();
+    // Persist the prompt to the scrollable Otzar conversation thread.
+    appendConversationEntry({ role: "user", text, at });
+    // Local helper to log a terminal Work-OS result to the thread.
+    const logAction = (resultText: string, status?: string): void =>
+      appendConversationEntry({
+        role: "action",
+        text: resultText,
+        at,
+        kind: action.kind,
+        ...(status !== undefined ? { status } : {}),
+      });
+
+    switch (action.kind) {
+      case "INTERNAL_NAVIGATION":
+      case "CONNECTOR_STATUS_NAVIGATION": {
+        const dest = action.actionLabel.replace(/^.*→\s*/, "");
+        setActionResult(`Opened ${dest}.`);
+        logAction(`Opened ${dest}.`, "Navigated");
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result: "success",
+        });
+        if (action.route !== undefined) navigate(action.route);
+        return;
+      }
+      case "EXTERNAL_URL_OPEN": {
+        const url = action.url ?? "";
+        const opened = safeOpenExternalUrl(url);
+        if (opened === "OPENED") {
+          setActionResult(action.spoken);
+          speakConfirmation(action.spoken);
+          recordVoiceAction({
+            at,
+            transcript: text,
+            actionType: action.kind,
+            target: url,
+            result: "success",
+          });
+        } else {
+          // Never silently fail: surface a clickable link instead.
+          setExternalLinkPending(url);
+          setActionResult("Tap the link below to open it in your browser.");
+          speakConfirmation("Here's the link — tap it to open in your browser.");
+          recordVoiceAction({
+            at,
+            transcript: text,
+            actionType: action.kind,
+            target: url,
+            result: "needs_confirmation",
+          });
+        }
+        return;
+      }
+      case "BLOCKED_URL": {
+        setActionResult(
+          `Blocked: ${action.blockedReason ?? "unsafe link"}.`,
+        );
+        logAction(`Blocked: ${action.blockedReason ?? "unsafe link"}.`, "Blocked");
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "blocked",
+        });
+        return;
+      }
+      case "UNSUPPORTED": {
+        // A navigation/work request we can't satisfy. Handle it HERE
+        // with honest copy — never hand it to the Twin.
+        setActionResult(action.spoken);
+        setActionStatus("Blocked");
+        logAction(action.spoken, "Blocked");
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "blocked",
+        });
+        return;
+      }
+      case "CONNECTOR_STATUS_SUMMARY": {
+        // Real read-only summary of connector/OAuth state — no fake green.
+        setActionStatus("Read-only");
+        setActionResult("Checking what's connected…");
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "success",
+        });
+        void buildConnectorSummary().then((summary) => {
+          setActionResult(summary);
+          appendConversationEntry({
+            role: "action",
+            text: summary,
+            at,
+            kind: action.kind,
+            status: "Read-only",
+          });
+          speakConfirmation(
+            summary.length > 220 ? "Here's your connector status." : summary,
+          );
+        });
+        return;
+      }
+      case "APPROVALS_REVIEW": {
+        // Navigate to Action Center AND fetch the REAL pending count.
+        setActionStatus("Read-only");
+        if (action.route !== undefined) navigate(action.route);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result: "success",
+        });
+        void api.escalations.pending({ limit: 50 }).then((r) => {
+          let msg: string;
+          if (r.ok) {
+            const n = r.data.escalations.length;
+            msg =
+              n === 0
+                ? "I opened Action Center. Nothing is waiting on your approval right now."
+                : `I opened Action Center. You have ${n} item${n === 1 ? "" : "s"} waiting on your approval.`;
+          } else {
+            msg =
+              "I opened Action Center. The pending-approval summary isn't available right now.";
+          }
+          setActionResult(msg);
+          appendConversationEntry({
+            role: "action",
+            text: msg,
+            at,
+            kind: action.kind,
+            status: "Read-only",
+          });
+          speakConfirmation(msg);
+        });
+        return;
+      }
+      case "DRAFT_MESSAGE":
+      case "SEND_REQUIRES_APPROVAL": {
+        // REAL execution bridge: resolve the recipient and create a
+        // governed ProposedAction (SEND_INTERNAL_NOTIFICATION) that
+        // enters the ADR-0057 policy pipeline. NEVER sends externally;
+        // the Action lands PROPOSED/approval-gated unless standing
+        // authority auto-approves it. If the recipient can't be
+        // resolved, fall back to a draft + target picker (no fake id).
+        void executeMessageAction(action, at);
+        return;
+      }
+      case "SCHEDULE_MEETING": {
+        // A VISIBLE meeting-proposal card — NEVER routes to transcripts,
+        // NEVER creates a calendar event. Preserves any "after X
+        // confirms" prerequisite.
+        const prereqMatch = action.spoken.match(
+          /requires ([A-Za-z]+'s? confirmation[^.]*)/i,
+        );
+        // Phase 1274 — parse an explicit time ("at 11am pst") so the card
+        // shows a Proposed time, not just "Choose a time".
+        const explicit = extractExplicitTime(text);
+        const proposedTime =
+          explicit !== undefined
+            ? formatProposedTime(explicit.time, explicit.timezone_label)
+            : undefined;
+        const tzInterp =
+          explicit?.timezone_label !== undefined
+            ? interpretTimezoneLabel(explicit.timezone_label)
+            : null;
+        const tzNote =
+          explicit?.timezone_label !== undefined && tzInterp !== null
+            ? `Interpreted ${explicit.timezone_label.toUpperCase()} as ${tzInterp.display}.`
+            : undefined;
+        const baseStatus =
+          explicit !== undefined
+            ? prereqMatch !== null
+              ? "Time proposed · needs confirmation"
+              : "Time proposed · event creation gated"
+            : "Draft · choose a time";
+        setPendingArtifact({
+          kind: action.kind,
+          title: action.targetEntity
+            ? `Meeting proposal → ${action.targetEntity}`
+            : "Meeting proposal",
+          ...(action.targetEntity !== undefined
+            ? { targetLabel: action.targetEntity }
+            : {}),
+          channel: "calendar",
+          body: action.heard,
+          status: baseStatus,
+          ...(prereqMatch !== null
+            ? { prerequisite: `Requires ${prereqMatch[1]}` }
+            : {}),
+          ...(proposedTime !== undefined ? { proposedTime } : {}),
+          ...(explicit !== undefined ? { explicitTime: explicit.time } : {}),
+          ...(tzNote !== undefined ? { timezoneNote: tzNote } : {}),
+          runtimeNote: getCalendarCreateGateCopy({
+            ...(prereqMatch !== null
+              ? { prerequisite: `Requires ${prereqMatch[1]}` }
+              : {}),
+            ...(explicit !== undefined ? { explicitTime: explicit.time } : {}),
+            ...(proposedTime !== undefined ? { proposedTime } : {}),
+            ...(action.targetEntity !== undefined
+              ? { targetLabel: action.targetEntity }
+              : {}),
+          }),
+        });
+        setActionResult(action.spoken);
+        setActionStatus(baseStatus);
+        logAction(action.spoken, baseStatus);
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.targetEntity ?? null,
+          result: "needs_confirmation",
+        });
+        // Phase 1273/1274 — REAL authority context FIRST. Free/busy is
+        // gated on resolution: an unresolved participant NEVER triggers a
+        // free/busy read and NEVER shows candidate windows (the Alex bug).
+        if (action.targetEntity !== undefined) {
+          void api.workOs
+            .authorityContext({
+              target_name: action.targetEntity,
+              actions: ["CREATE_INTERNAL_MEETING", "READ_CALENDAR_FREEBUSY_TARGET"],
+            })
+            .then((r) => {
+              if (!r.ok) return;
+              const a = r.data.authority;
+              const meetingPol = r.data.policies.find(
+                (p) => p.action === "CREATE_INTERNAL_MEETING",
+              );
+              const who = a.target_display_name ?? action.targetEntity;
+              if (
+                a.target_resolution === "NOT_FOUND" ||
+                a.target_resolution === "AMBIGUOUS"
+              ) {
+                const note =
+                  a.target_resolution === "AMBIGUOUS"
+                    ? `More than one teammate matches "${action.targetEntity}" — pick one.`
+                    : `I don't know which ${action.targetEntity}. Choose a teammate or enter an email/calendar.`;
+                // Unresolved → no availability, no free/busy call.
+                setPendingArtifact((prev) =>
+                  prev !== null && prev.kind === "SCHEDULE_MEETING"
+                    ? {
+                        ...prev,
+                        authorityNote: note,
+                        status: "Participant unresolved",
+                        runtimeNote: getCalendarCreateGateCopy({
+                          status: "Participant unresolved",
+                        }),
+                      }
+                    : prev,
+                );
+                return;
+              }
+              // Resolved: surface authority + target local time honestly.
+              const tzDisplay =
+                a.target_timezone !== null
+                  ? displayForIana(a.target_timezone)
+                  : `using org default (${displayForIana(a.org_default_timezone)}) — ${who}'s timezone not configured`;
+              const note = a.caller_is_manager_of_target
+                ? `Manager authority over ${who} — internal scheduling allowed. ${who} local time: ${tzDisplay}.`
+                : `${meetingPol?.reason ?? "Peer scheduling needs the teammate's confirmation."} ${who} local time: ${tzDisplay}.`;
+              setPendingArtifact((prev) =>
+                prev !== null && prev.kind === "SCHEDULE_MEETING"
+                  ? { ...prev, authorityNote: note }
+                  : prev,
+              );
+              // Free/busy ONLY now (resolved). Labelled honestly as the
+              // caller's own calendar (target calendar address not wired).
+              const win = tomorrowWorkWindow();
+              void api.connectorData
+                .calendarFreeBusy({ time_min: win.time_min, time_max: win.time_max })
+                .then((fb) => {
+                  let avail: string;
+                  if (fb.ok) {
+                    const free = freeWindowsFromBusy(
+                      fb.data.busy,
+                      win.time_min,
+                      win.time_max,
+                      DEFAULT_MEETING_MINUTES,
+                    );
+                    avail =
+                      free.length === 0
+                        ? `Checked your calendar only — no open ${DEFAULT_MEETING_MINUTES}-min slot in tomorrow's work hours.`
+                        : `Checked your calendar only (${who}'s calendar address not wired):\n` +
+                          free.slice(0, 3).map((w) => `• ${w}`).join("\n");
+                  } else if (
+                    fb.code === "SCOPE_REAUTH_REQUIRED" ||
+                    fb.code === "NOT_CONNECTED" ||
+                    fb.code === "TOKEN_REFRESH_FAILED"
+                  ) {
+                    avail =
+                      "Google reconnect required for calendar availability.";
+                  } else {
+                    avail = "Couldn't check calendar availability right now.";
+                  }
+                  setPendingArtifact((prev) =>
+                    prev !== null && prev.kind === "SCHEDULE_MEETING"
+                      ? { ...prev, availabilityNote: avail }
+                      : prev,
+                  );
+                });
+            });
+        }
+        return;
+      }
+      case "ZOOM_RECORDINGS": {
+        // REAL read-only bridge (Phase 1270): fetch the org's actual
+        // Zoom cloud recordings via GET /api/v1/zoom/recordings. Honest
+        // empty / reconnect / error states — never a faked recording.
+        setActionStatus("Read-only");
+        setActionResult("Pulling your Zoom cloud recordings…");
+        if (action.route !== undefined) navigate(action.route);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result: "success",
+        });
+        void api.connectorData.zoomRecordings({ page_size: 10 }).then((r) => {
+          let msg: string;
+          if (r.ok) {
+            const recs = r.data.recordings;
+            if (recs.length === 0) {
+              msg =
+                "Zoom is connected, but there are no cloud recordings on this account yet.";
+            } else {
+              const lines = recs.slice(0, 5).map((rec) => {
+                const when = rec.start_time
+                  ? new Date(rec.start_time).toLocaleString()
+                  : "unknown time";
+                return `• ${rec.topic} — ${when} · ${rec.duration_minutes} min`;
+              });
+              const more =
+                recs.length > 5 ? `\n…and ${recs.length - 5} more.` : "";
+              msg = `You have ${recs.length} Zoom recording${recs.length === 1 ? "" : "s"}:\n${lines.join("\n")}${more}`;
+            }
+          } else if (
+            r.code === "NOT_CONNECTED" ||
+            r.code === "TOKEN_REFRESH_FAILED" ||
+            r.code === "SCOPE_REAUTH_REQUIRED"
+          ) {
+            msg =
+              "Your Zoom connection needs a reconnect before I can read recordings. Open Workspace connections to fix it.";
+          } else {
+            msg =
+              "I couldn't reach Zoom for your recordings right now. Try again in a moment.";
+          }
+          setActionResult(msg);
+          appendConversationEntry({
+            role: "action",
+            text: msg,
+            at,
+            kind: action.kind,
+            status: "Read-only",
+          });
+          speakConfirmation(
+            msg.length > 220 ? "Here are your Zoom recordings." : msg,
+          );
+        });
+        return;
+      }
+      case "ASK_TWIN":
+      case "MEETING_NOTES_TO_ACTIONS":
+      case "WORKFLOW_START":
+      case "READ_ONLY_SUMMARY": {
+        // Governed work: drafted / proposed / routed / honestly blocked.
+        // NEVER an external write, NEVER a faked agent answer.
+        const result: "success" | "blocked" | "needs_confirmation" =
+          action.requiresApproval === true || action.needsConfirmation === true
+            ? "needs_confirmation"
+            : action.blockedReason !== undefined && action.route === undefined
+              ? "blocked"
+              : "success";
+        runWorkAction(action, at, result);
+        return;
+      }
+      case "ADMIN_BLOCKED": {
+        setActionResult(action.spoken);
+        setRouterAck(action.spoken);
+        logAction(action.spoken, "Blocked");
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: null,
+          result: "blocked",
+        });
+        return;
+      }
+      case "DRAFT_ONLY": {
+        setActionResult(action.spoken);
+        logAction(
+          action.spoken,
+          action.needsConfirmation === true ? "Approval required" : "Draft only",
+        );
+        speakConfirmation(action.spoken);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: action.kind,
+          target: action.route ?? null,
+          result:
+            action.needsConfirmation === true ? "needs_confirmation" : "success",
+        });
+        if (action.route !== undefined) navigate(action.route);
+        return;
+      }
+      case "GOVERNED_CHAT":
+      default: {
+        setActionResult(null);
+        recordVoiceAction({
+          at,
+          transcript: text,
+          actionType: "GOVERNED_CHAT",
+          target: null,
+          result: "success",
+        });
+        // Same governed path as typed input; auto-speak effect voices
+        // the response (premium-first) when enabled.
+        const resp = await intent.send(text);
+        if (resp !== null) {
+          const answer =
+            resp.speech_ready_text.length > 0
+              ? resp.speech_ready_text
+              : resp.response;
+          appendConversationEntry({
+            role: "otzar",
+            text: answer,
+            at: new Date().toISOString(),
+          });
+        } else if (intent.error !== null) {
+          appendConversationEntry({
+            role: "error",
+            text: llmErrorCopy(intent.error),
+            at: new Date().toISOString(),
+          });
+        }
+        return;
+      }
+    }
+  }
+
+  async function handleSend(): Promise<void> {
+    await handleSendText(draft);
+  }
+
+  // Phase 1264 — when the desktop (Whisper) transcript lands, submit it
+  // through the SAME governed action/chat path as typed input. A ref
+  // keeps the effect mount-stable while always calling the latest
+  // handler.
+  const handleSendTextRef = useRef(handleSendText);
+  handleSendTextRef.current = handleSendText;
+  useEffect(() => {
+    const t = desktopCap.transcript.trim();
+    if (t.length === 0) return;
+    // Capture which engine transcribed BEFORE reset() clears it.
+    const prov = desktopCapRef.current.provider;
+    setDraft(t);
+    void handleSendTextRef.current(t);
+    // handleSendText clears transcriptionProvider for typed input;
+    // re-set it AFTER so the desktop-voice provider wins.
+    setTranscriptionProvider(prov);
+    desktopCapRef.current.reset();
+  }, [desktopCap.transcript]);
+
+  // Phase 1266 — keep the conversation transcript scrolled to the
+  // newest message as the thread grows.
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ block: "end" });
+  }, [conversation.length]);
 
   function handleReplay(): void {
     if (intent.response === null) return;
@@ -385,27 +1857,49 @@ export function AmbientOtzarBar(): JSX.Element {
   }
 
   // ────────────────────────────────────────────────────────────
-  // Status copy. Closed-vocab + safety-honest. NEVER claims
-  // Sesame is active.
+  // Status copy — the canonical orb state vocabulary (Phase 1264):
+  // Idle / Listening / Transcribing / Thinking / Speaking / Error.
+  // Closed-vocab + safety-honest. NEVER claims Sesame is active.
   // ────────────────────────────────────────────────────────────
+  const hasVoiceError =
+    desktopCap.state === "error" ||
+    recognition.error !== null ||
+    intent.error !== null;
   let status: string;
   let statusClass = "text-muted-foreground";
-  if (recognition.listening) {
+  if (recognition.listening || desktopCap.state === "recording") {
     status = "Listening…";
     statusClass = "text-primary";
+  } else if (desktopCap.state === "transcribing") {
+    status = "Transcribing…";
+    statusClass = "text-primary";
   } else if (intent.processing) {
-    status = "Processing…";
+    status = "Thinking…";
     statusClass = "text-primary";
-  } else if (synthesis.speaking) {
-    status = "Otzar is speaking…";
+  } else if (premiumSpeaking || synthesis.speaking) {
+    status = "Speaking…";
     statusClass = "text-primary";
+  } else if (hasVoiceError) {
+    status = "Error";
+    statusClass = "text-destructive";
   } else if (synthesis.muted) {
     status = "Muted";
-  } else if (intent.response !== null) {
-    status = "Ready";
+  } else if (intent.response !== null || actionResult !== null) {
+    status = "Idle";
   } else {
-    status = "Ambient. Speak or type.";
+    status = "Idle · speak or type";
   }
+
+  // Phase 1264 — unified mic availability across shells. Desktop uses
+  // MediaRecorder→Whisper; browser uses the local Web Speech API.
+  const voiceInputAvailable = useDesktopCapture || recognition.supported;
+  const micActive =
+    recognition.listening || desktopCap.state === "recording";
+  const micEnabled =
+    !quiet &&
+    voiceInputAvailable &&
+    micPerm.state !== "denied" &&
+    desktopCap.state !== "transcribing";
 
   const response = intent.response;
   const approvalBadge =
@@ -495,7 +1989,7 @@ export function AmbientOtzarBar(): JSX.Element {
       role="region"
       aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
-      className="fixed bottom-6 right-6 z-[60] w-[min(92vw,440px)] rounded-2xl border-2 border-primary/30 bg-background/95 backdrop-blur shadow-2xl supports-[backdrop-filter]:bg-background/85"
+      className="fixed bottom-6 right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-2xl border-2 border-primary/30 bg-background/95 backdrop-blur shadow-2xl supports-[backdrop-filter]:bg-background/85"
     >
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -552,7 +2046,7 @@ export function AmbientOtzarBar(): JSX.Element {
       </div>
 
       {(
-        <div className="px-3 pb-3 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-2">
           {quiet ? (
             <div
               className="rounded-md border border-border bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground"
@@ -594,6 +2088,31 @@ export function AmbientOtzarBar(): JSX.Element {
               calm copy, and the real OS permission prompt. */}
           {(() => {
             const shell = detectShellMode();
+            if (shell === "tauri_webview" && desktopCap.supported) {
+              // Phase 1264 — desktop voice is LIVE: record → transcribe
+              // (Whisper) → governed action/chat. Honest copy by state.
+              const desktopCopy =
+                desktopCap.state === "error" && desktopCap.errorCode !== null
+                  ? transcribeErrorCopy(desktopCap.errorCode)
+                  : desktopCap.state === "recording"
+                    ? "Listening on desktop — tap the mic again to send."
+                    : desktopCap.state === "transcribing"
+                      ? "Transcribing your audio…"
+                      : "Desktop voice is on. Tap the mic and talk — Otzar transcribes and routes it the same way as typing.";
+              const tone =
+                desktopCap.state === "error" ? "error" : "muted";
+              return (
+                <div
+                  className={`flex items-start gap-2 text-xs ${toneClass(tone)}`}
+                  data-testid="ambient-permission-state"
+                  data-native-mic={nativeMic}
+                  data-desktop-capture={desktopCap.state}
+                >
+                  <Mic className="h-3 w-3 mt-0.5 shrink-0" aria-hidden />
+                  <div className="flex-1 min-w-0">{desktopCopy}</div>
+                </div>
+              );
+            }
             if (shell === "tauri_webview" && nativeMic !== "UNSUPPORTED") {
               return (
                 <div
@@ -656,35 +2175,32 @@ export function AmbientOtzarBar(): JSX.Element {
           <div className="flex gap-2 items-center">
             <Button
               type="button"
-              variant={recognition.listening ? "destructive" : "default"}
+              variant={micActive ? "destructive" : "default"}
               onClick={() => void handleMicToggle()}
+              data-testid="ambient-mic-button"
+              data-mic-active={micActive ? "true" : "false"}
               aria-label={
                 quiet
                   ? "Voice is paused in quiet mode"
-                  : recognition.listening
+                  : micActive
                     ? "Stop listening"
-                    : recognition.supported
+                    : voiceInputAvailable
                       ? "Start listening"
                       : "Voice input unavailable"
               }
               title={
                 quiet
                   ? "Voice is paused in quiet mode"
-                  : recognition.supported
-                    ? recognition.listening
+                  : voiceInputAvailable
+                    ? micActive
                       ? "Stop listening"
                       : "Speak to Otzar"
                     : "Voice input unavailable in this shell. Type instead."
               }
-              disabled={
-                quiet ||
-                !recognition.supported ||
-                micPerm.state === "denied" ||
-                detectShellMode() === "tauri_webview"
-              }
+              disabled={!micEnabled}
               className="h-12 w-12 rounded-full p-0 shrink-0"
             >
-              {recognition.supported ? (
+              {voiceInputAvailable ? (
                 <Mic className="h-6 w-6" />
               ) : (
                 <MicOff className="h-6 w-6" />
@@ -695,7 +2211,7 @@ export function AmbientOtzarBar(): JSX.Element {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder={
-                recognition.supported
+                voiceInputAvailable
                   ? "Speak or type…"
                   : "Voice input unavailable. Type to Otzar."
               }
@@ -721,7 +2237,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </Button>
           </div>
 
-          {!recognition.supported ? (
+          {!voiceInputAvailable ? (
             <p className="text-xs text-muted-foreground">
               Voice input unavailable in this shell. Type to Otzar instead.
             </p>
@@ -729,6 +2245,14 @@ export function AmbientOtzarBar(): JSX.Element {
           {!synthesis.supported ? (
             <p className="text-xs text-muted-foreground">
               Speech output unavailable. Showing speech-ready text.
+            </p>
+          ) : null}
+          {desktopCap.state === "error" && desktopCap.errorCode !== null ? (
+            <p
+              className="text-xs text-destructive"
+              data-testid="desktop-capture-error"
+            >
+              {transcribeErrorCopy(desktopCap.errorCode)}
             </p>
           ) : null}
           {recognition.error !== null ? (
@@ -748,6 +2272,179 @@ export function AmbientOtzarBar(): JSX.Element {
             >
               {routerAck}
             </p>
+          ) : null}
+
+          {/* Phase 1266 — the persistent, scrollable Otzar conversation
+              thread. Survives navigation + reloads (localStorage). Shows
+              prompts, Otzar answers, Work-OS action results, and errors
+              with ordering — so messages never disappear. */}
+          {conversation.length > 0 ? (
+            <div
+              className="rounded-md border border-border bg-background/60"
+              data-testid="otzar-conversation"
+            >
+              <div className="flex items-center justify-between px-2 py-1 border-b border-border">
+                <span className="text-[11px] font-medium text-foreground">
+                  Conversation
+                </span>
+                <button
+                  type="button"
+                  onClick={() => clearConversation()}
+                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  data-testid="otzar-conversation-clear"
+                  aria-label="Clear conversation"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="max-h-44 overflow-y-auto px-2 py-1 space-y-1 text-xs">
+                {conversation.map((m) => (
+                  <div
+                    key={m.id}
+                    data-testid="otzar-conversation-entry"
+                    data-role={m.role}
+                    className={
+                      m.role === "user"
+                        ? "text-foreground"
+                        : m.role === "error"
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    <span className="font-medium">
+                      {m.role === "user"
+                        ? "You: "
+                        : m.role === "otzar"
+                          ? "Otzar: "
+                          : m.role === "error"
+                            ? "Error: "
+                            : "Action: "}
+                    </span>
+                    <span className="whitespace-pre-wrap break-words">
+                      {m.text}
+                    </span>
+                    {m.status !== undefined ? (
+                      <span className="ml-1 text-[10px] opacity-70">
+                        [{m.status}]
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+                <div ref={transcriptEndRef} />
+              </div>
+            </div>
+          ) : null}
+
+          {/* Phase 1264 Voice Action Runtime — Heard / Action / Result /
+              Voice. Shows what Otzar heard, what it decided, what it did,
+              and which voice path spoke. Blocked actions + external links
+              are surfaced explicitly (never a silent fail). */}
+          {actionHeard !== null ? (
+            <div
+              className="rounded-md border border-border bg-muted/40 px-2 py-1.5 text-xs space-y-1"
+              data-testid="voice-action-panel"
+            >
+              <div>
+                <span className="font-medium text-foreground">Heard:</span>{" "}
+                <span className="text-muted-foreground">“{actionHeard}”</span>
+              </div>
+              {transcriptionProvider !== null ? (
+                <div data-testid="voice-transcription-provider">
+                  <span className="font-medium text-foreground">
+                    Transcription:
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    {transcriptionProvider === "deepgram"
+                      ? "Deepgram"
+                      : transcriptionProvider === "openai-whisper"
+                        ? "OpenAI Whisper"
+                        : transcriptionProvider}
+                  </span>
+                </div>
+              ) : null}
+              {actionLabel !== null ? (
+                <div>
+                  <span className="font-medium text-foreground">Action:</span>{" "}
+                  <span className="text-muted-foreground">{actionLabel}</span>
+                </div>
+              ) : null}
+              {actionResult !== null ? (
+                <div>
+                  <span className="font-medium text-foreground">Result:</span>{" "}
+                  <span className="text-muted-foreground">{actionResult}</span>
+                </div>
+              ) : null}
+              {actionStatus !== null ? (
+                <div data-testid="voice-action-status">
+                  <span className="font-medium text-foreground">Status:</span>{" "}
+                  <span className="text-muted-foreground">{actionStatus}</span>
+                </div>
+              ) : null}
+              {externalLinkPending !== null ? (
+                <div>
+                  <a
+                    href={externalLinkPending}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline break-all"
+                    data-testid="voice-external-link"
+                  >
+                    {externalLinkPending}
+                  </a>
+                </div>
+              ) : null}
+              {actionVoicePath !== null ? (
+                <div>
+                  <span className="font-medium text-foreground">Voice:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {actionVoicePath === "premium_voice"
+                      ? "Premium voice"
+                      : actionVoicePath === "fallback_device_voice"
+                        ? "Device fallback (premium unavailable)"
+                        : actionVoicePath === "muted"
+                          ? "Muted"
+                          : "No audio"}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Phase 1267 — the VISIBLE, EDITABLE work artifact (draft /
+              proposed action / meeting proposal). No more hearsay UI. */}
+          {pendingArtifact !== null ? (
+            <WorkArtifactCard
+              artifact={pendingArtifact}
+              onConfirm={(body) => void confirmArtifact(body)}
+              onCancel={() => setPendingArtifact(null)}
+              onEdit={(body) => void reviseArtifact(body)}
+              onOpen={(route) => navigate(route)}
+            />
+          ) : null}
+
+          {/* Phase 1273 — a multi-intent plan renders as several linked
+              cards. Confirming/cancelling one NEVER touches the others. */}
+          {planArtifacts.length > 0 ? (
+            <div className="space-y-1.5" data-testid="work-plan">
+              <div className="text-[11px] font-medium text-muted-foreground">
+                Plan · {planArtifacts.length} linked actions
+              </div>
+              {planArtifacts.map((pa, i) => (
+                <WorkArtifactCard
+                  key={`${pa.planId ?? "plan"}-${i}`}
+                  artifact={pa}
+                  onConfirm={(body) => void confirmPlanArtifact(i, body)}
+                  onCancel={() =>
+                    setPlanArtifacts((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  onEdit={(body) =>
+                    setPlanArtifacts((prev) =>
+                      prev.map((x, j) => (j === i ? { ...x, body } : x)),
+                    )
+                  }
+                />
+              ))}
+            </div>
           ) : null}
 
           {response !== null ? (
@@ -852,17 +2549,17 @@ export function AmbientOtzarBar(): JSX.Element {
           </div>
 
           <p className="text-[10px] text-muted-foreground">
-            Voice input: {recognition.supported ? "browser STT (local)" : "text only"}
+            Voice input:{" "}
+            {useDesktopCapture
+              ? "desktop mic → transcription"
+              : recognition.supported
+                ? "browser STT (local)"
+                : "text only"}
             {" · "}
             Voice output:{" "}
-            {synthesis.supported
-              ? synthesis.muted
-                ? "muted"
-                : "browser/device TTS"
-              : "speech-ready text"}
-            {response !== null && !response.voice_output_supported ? (
-              <span> · Live Sesame voice not enabled yet.</span>
-            ) : null}
+            {synthesis.muted
+              ? "muted"
+              : "premium voice · device fallback only if premium fails"}
             {" · "}
             No raw audio is stored.
           </p>

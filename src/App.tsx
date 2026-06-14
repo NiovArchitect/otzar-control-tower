@@ -41,6 +41,9 @@ import { MeetingCaptures } from "@/pages/app/MeetingCaptures";
 import { OnboardingReadiness } from "@/pages/app/OnboardingReadiness";
 import { VoiceCaptures } from "@/pages/app/VoiceCaptures";
 import { WorkProjects } from "@/pages/app/WorkProjects";
+import { MyWork } from "@/pages/app/MyWork";
+import { TeamWork } from "@/pages/app/TeamWork";
+import { BlindSpots } from "@/pages/app/BlindSpots";
 import { VoiceReady } from "@/pages/app/VoiceReady";
 import { Voice } from "@/pages/app/Voice";
 
@@ -125,6 +128,9 @@ export function App() {
               <Route path="onboarding-readiness" element={<OnboardingReadiness />} />
               <Route path="voice-captures" element={<VoiceCaptures />} />
               <Route path="work-projects" element={<WorkProjects />} />
+              <Route path="my-work" element={<MyWork />} />
+              <Route path="team-work" element={<TeamWork />} />
+              <Route path="blind-spots" element={<BlindSpots />} />
               <Route path="voice-ready" element={<VoiceReady />} />
               <Route path="voice" element={<Voice />} />
               <Route path="conversations" element={<Conversations />} />

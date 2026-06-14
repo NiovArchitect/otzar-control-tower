@@ -31,6 +31,7 @@ import {
 import type {
   HandoffReadinessResponse,
   PlatformHealth,
+  RuntimeCapabilitiesResponse,
 } from "@/lib/types/foundation";
 
 export function SystemHealthPage(): JSX.Element {
@@ -40,6 +41,9 @@ export function SystemHealthPage(): JSX.Element {
     HandoffReadinessResponse["readiness"]["runtimes"]
   >([]);
   const [nativeMic, setNativeMic] = useState<NativeMicStatus | null>(null);
+  const [fabric, setFabric] = useState<
+    RuntimeCapabilitiesResponse["runtimes"] | null
+  >(null);
   const shell = detectShellMode();
   const capabilities = getDesktopCapabilities();
 
@@ -66,6 +70,14 @@ export function SystemHealthPage(): JSX.Element {
     void detectNativeMicCapability().then((cap) => {
       if (!cancelled) setNativeMic(cap.status);
     });
+    api.system
+      .runtimeCapabilities()
+      .then((r) => {
+        if (!cancelled && r.ok) setFabric(r.data.runtimes);
+      })
+      .catch(() => {
+        /* stays honest-empty */
+      });
     return () => {
       cancelled = true;
     };
@@ -109,6 +121,51 @@ export function SystemHealthPage(): JSX.Element {
               </p>
               <p className="text-muted-foreground">
                 Last check: {new Date(health.timestamp).toLocaleTimeString()}
+              </p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="system-health-runtime-fabric">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Activity className="h-4 w-4" aria-hidden /> Runtime Fabric
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-xs">
+          {fabric === null ? (
+            <p className="text-muted-foreground">Checking runtimes…</p>
+          ) : (
+            <>
+              {(
+                [
+                  ["Foundation API (governance)", fabric.typescript_api],
+                  ["Python Intelligence Worker", fabric.python_worker],
+                  ["BEAM Coordination Fabric", fabric.beam_fabric],
+                  ["Desktop Native", fabric.desktop_native],
+                  ["Queue / Event Bus", fabric.queue_event_bus],
+                ] as const
+              ).map(([label, rt]) => (
+                <div key={label} className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium">{label}</div>
+                    <div className="text-[10px] text-muted-foreground line-clamp-2">
+                      {rt.note}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="shrink-0 text-[9px]">
+                    {rt.status.replace(/_/g, " ")}
+                  </Badge>
+                </div>
+              ))}
+              <p
+                className="pt-1 text-[10px] text-muted-foreground"
+                data-testid="runtime-fabric-fallback"
+              >
+                {fabric.fallback_active
+                  ? "Fallback active: Foundation's deterministic TypeScript path is serving intelligence/coordination where Python/BEAM are unavailable."
+                  : "All configured runtimes healthy."}
               </p>
             </>
           )}

@@ -12,6 +12,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { NotificationBell } from "@/components/otzar/NotificationBell";
@@ -70,10 +71,20 @@ beforeEach(() => {
   setAuth();
 });
 
+// Phase 1266 — the bell now uses useNavigate (notification click
+// routing), so it must render inside a Router.
+function renderBell(): void {
+  render(
+    <MemoryRouter>
+      <NotificationBell pollIntervalMs={0} />
+    </MemoryRouter>,
+  );
+}
+
 describe("NotificationBell — unread badge", () => {
   it("does not render the badge when there are no notifications", async () => {
     mockList([]);
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() => {
       const btn = screen.getByTestId("notification-bell-button");
       expect(btn.getAttribute("data-unread-count")).toBe("0");
@@ -90,7 +101,7 @@ describe("NotificationBell — unread badge", () => {
         read_at: new Date().toISOString(),
       }),
     ]);
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() => {
       const badge = screen.getByTestId("notification-bell-badge");
       // 2 unread (n-1, n-2); n-3 is read.
@@ -121,7 +132,7 @@ describe("NotificationBell — unread badge", () => {
       buildNotification({ notification_id: `n-${i}`, read_at: null }),
     );
     mockList(items100);
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() => {
       expect(screen.getByTestId("notification-bell-badge").textContent).toBe(
         "99+",
@@ -140,7 +151,7 @@ describe("NotificationBell — dropdown", () => {
       }),
     ]);
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -154,7 +165,7 @@ describe("NotificationBell — dropdown", () => {
   it("shows the 'caught up' empty state when there are zero notifications", async () => {
     mockList([]);
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -187,7 +198,7 @@ describe("NotificationBell — mark as read", () => {
     );
 
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -212,7 +223,7 @@ describe("NotificationBell — mark as read", () => {
     );
 
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -237,7 +248,7 @@ describe("NotificationBell — error / loading", () => {
       ),
     );
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     // Wait for the failed fetch to settle, then open.
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
@@ -259,7 +270,7 @@ describe("NotificationBell — privacy invariants (RULE 0)", () => {
       }),
     ]);
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -286,7 +297,7 @@ describe("NotificationBell — reply-to-note round trip (Phase 1215)", () => {
       }),
     ]);
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -306,7 +317,7 @@ describe("NotificationBell — reply-to-note round trip (Phase 1215)", () => {
       }),
     );
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -338,7 +349,7 @@ describe("NotificationBell — reply-to-note round trip (Phase 1215)", () => {
     );
 
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -372,7 +383,7 @@ describe("NotificationBell — reply-to-note round trip (Phase 1215)", () => {
   it("Send button is disabled while text is empty", async () => {
     mockList([buildNotification({})]);
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -393,7 +404,7 @@ describe("NotificationBell — reply-to-note round trip (Phase 1215)", () => {
       ),
     );
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -427,7 +438,7 @@ describe("NotificationBell — reply-to-note round trip (Phase 1215)", () => {
       }),
     ]);
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -461,7 +472,7 @@ describe("NotificationBell — roster-aware (not David-only)", () => {
       }),
     ]);
     const user = userEvent.setup();
-    render(<NotificationBell pollIntervalMs={0} />);
+    renderBell();
     await waitFor(() =>
       expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
     );
@@ -473,5 +484,40 @@ describe("NotificationBell — roster-aware (not David-only)", () => {
     expect(
       screen.getByTestId("notification-bell-dropdown").outerHTML,
     ).not.toMatch(/\bDavid\b/);
+  });
+});
+
+describe("NotificationBell — click routing (Phase 1266)", () => {
+  it("clicking a notification routes (no raw error) and closes the panel", async () => {
+    mockList([
+      buildNotification({
+        notification_id: "n-1",
+        action_id: "act-9",
+        read_at: null,
+      }),
+    ]);
+    server.use(
+      http.put(`${API_BASE}/notifications/:id/read`, () =>
+        HttpResponse.json({
+          ok: true,
+          notification: buildNotification({
+            notification_id: "n-1",
+            read_at: new Date().toISOString(),
+          }),
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderBell();
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    await user.click(screen.getByTestId("notification-open"));
+    // Routed + panel closed; no raw error surfaced (no dead click).
+    await waitFor(() =>
+      expect(screen.queryByTestId("notification-bell-dropdown")).toBeNull(),
+    );
+    expect(screen.queryByTestId("notification-bell-error")).toBeNull();
   });
 });

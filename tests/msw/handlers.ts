@@ -2830,7 +2830,120 @@ const complianceStateHandler = http.get(
     ),
 );
 
+// Phase 1273 — authority context (hierarchy/RBAC/ABAC). Default mirrors
+// the live demo: the caller is an org admin (manager authority); known
+// teammates resolve; an unknown name (Alex) is NOT_FOUND. Tests override
+// with server.use for peer / ambiguous cases.
+const KNOWN_TEAMMATES: Record<string, { id: string; name: string; role: string }> = {
+  vishesh: { id: "ent-vishesh", name: "Vishesh Sharma", role: "AI UI ENGINEER" },
+  samiksha: { id: "ent-samiksha", name: "Samiksha Sharma", role: "AI/NLP ENGINEER" },
+  david: { id: "ent-david", name: "David Odie", role: "TECH LEAD" },
+};
+const workOsAuthorityHandler = http.post(
+  `${API_BASE}/work-os/authority-context`,
+  async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as {
+      target_name?: string;
+      actions?: string[];
+    };
+    const key = (body.target_name ?? "").trim().toLowerCase();
+    const hit = KNOWN_TEAMMATES[key];
+    const resolved = hit !== undefined;
+    const authority = {
+      caller_can_admin_org: true,
+      target_resolution: resolved ? "RESOLVED_INTERNAL_ENTITY" : "NOT_FOUND",
+      target_entity_id: hit?.id ?? null,
+      target_display_name: hit?.name ?? null,
+      target_role_title: hit?.role ?? null,
+      caller_is_manager_of_target: resolved,
+      caller_can_view_target_calendar: resolved,
+      caller_can_schedule_with_target: resolved,
+      caller_can_assign_task_to_target: resolved,
+      caller_timezone: "America/Los_Angeles",
+      target_timezone: null,
+      org_default_timezone: "America/Los_Angeles",
+    };
+    const policies = (body.actions ?? []).map((action) => {
+      if (!resolved) {
+        return {
+          action,
+          decision: "BLOCKED",
+          reason_code: "TARGET_NOT_FOUND",
+          reason: "The participant could not be resolved in your organization.",
+        };
+      }
+      const decision =
+        action === "CREATE_INTERNAL_MEETING" || action === "ASSIGN_TASK"
+          ? "ALLOW_WITH_CONFIRMATION"
+          : "ALLOW";
+      return {
+        action,
+        decision,
+        reason_code: "MANAGER_AUTHORITY",
+        reason: "Manager authority allows internal action after you confirm.",
+      };
+    });
+    return HttpResponse.json({ ok: true, authority, policies }, { status: 200 });
+  },
+);
+
+// Phase 1277 — runtime fabric default: honest NOT_CONFIGURED (no live
+// Python/BEAM in tests); env KEY NAMES only, never values.
+function runtimeView(status: string, env_key: string | null, configured: boolean) {
+  return { status, env_key, configured, capabilities: [], note: "", last_checked_at: null };
+}
+const runtimeCapabilitiesHandler = http.get(
+  `${API_BASE}/system/runtime-capabilities`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      runtimes: {
+        typescript_api: runtimeView("HEALTHY", null, true),
+        python_worker: runtimeView("NOT_CONFIGURED", "PYTHON_INTELLIGENCE_RUNTIME_URL", false),
+        beam_fabric: runtimeView("DISABLED", "BEAM_RUNTIME_URL", false),
+        desktop_native: runtimeView("CONFIGURED_UNVERIFIED", null, true),
+        queue_event_bus: runtimeView("NOT_CONFIGURED", null, false),
+        fallback_active: true,
+      },
+    }),
+);
+
+// Phase 1279 — durable Work Ledger create default (echoes a saved entry).
+const workLedgerCreateHandler = http.post(
+  `${API_BASE}/work-os/ledger`,
+  async ({ request }) => {
+    const b = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ok: true,
+        entry: {
+          ledger_entry_id: "led-test-1",
+          ledger_type: typeof b.ledger_type === "string" ? b.ledger_type : "TASK",
+          source_type: "VOICE_COMMAND",
+          source_command: typeof b.source_command === "string" ? b.source_command : null,
+          work_plan_id: typeof b.work_plan_id === "string" ? b.work_plan_id : null,
+          owner_entity_id: null,
+          target_entity_id: typeof b.target_entity_id === "string" ? b.target_entity_id : null,
+          title: typeof b.title === "string" ? b.title : "Work item",
+          status: typeof b.status === "string" ? b.status : "PROPOSED",
+          priority: "ROUTINE",
+          extraction_source: "TYPESCRIPT_DETERMINISTIC",
+          next_action: null,
+          due_at: null,
+          created_at: "2026-06-13T18:00:00.000Z",
+          coordination_runtime: "BEAM_DISPATCHED",
+          coordination_watcher: "none",
+        },
+      },
+      { status: 201 },
+    );
+  },
+);
+
 export const handlers = [
+  workOsAuthorityHandler,
+  runtimeCapabilitiesHandler,
+  workLedgerCreateHandler,
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
   // Section 7 Full Audit Viewer (ADR-0071 + earlier Section 7 waves)

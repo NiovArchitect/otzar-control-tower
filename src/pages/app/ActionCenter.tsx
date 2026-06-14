@@ -31,13 +31,15 @@
 //     "Blocked" -- no developer terms. action_type / risk_tier are
 //     translated to friendly labels.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import { api } from "@/lib/api";
+import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView } from "@/lib/types/foundation";
 
 type Tab = "pending" | "approved" | "completed" | "blocked";
@@ -150,14 +152,31 @@ export function ActionCenter(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("pending");
+  // Phase 1268 — per-action approve/reject busy + error so the
+  // Action Center is a real execution control plane.
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const focusCardRef = useRef<HTMLLIElement | null>(null);
+  const tabPinnedRef = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  // Phase 1268 — the action to focus/highlight, from the WorkArtifactCard
+  // "Open" route (?focus=<action_id> / ?action_id=<id>). Read from the
+  // URL directly so the page works in any render context.
+  const focusId = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return p.get("focus") ?? p.get("action_id") ?? "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const load = useCallback(() => {
     setLoading(true);
-    api.actions
+    return api.actions
       .list({ page_size: 50 })
       .then((result) => {
-        if (cancelled) return;
         if (result.ok) {
           setItems(result.data.items);
           setError(null);
@@ -167,14 +186,14 @@ export function ActionCenter(): JSX.Element {
         setLoading(false);
       })
       .catch(() => {
-        if (cancelled) return;
         setError("NETWORK_ERROR");
         setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const grouped: Record<Tab, SafeActionView[]> = {
     pending: [],
@@ -186,6 +205,41 @@ export function ActionCenter(): JSX.Element {
     const t = STATUS_TO_TAB[item.status] ?? "blocked";
     grouped[t].push(item);
   }
+
+  // When a focused action loads, switch to the tab that contains it and
+  // scroll/highlight it — so an opened draft is never "lost".
+  useEffect(() => {
+    if (focusId.length === 0 || tabPinnedRef.current) return;
+    const focused = items.find((a) => a.action_id === focusId);
+    if (focused === undefined) return;
+    tabPinnedRef.current = true;
+    setTab(STATUS_TO_TAB[focused.status] ?? "blocked");
+  }, [focusId, items]);
+
+  useEffect(() => {
+    if (focusId.length > 0 && focusCardRef.current !== null) {
+      focusCardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [focusId, tab, items]);
+
+  async function decide(
+    escalationId: string,
+    decision: "approve" | "reject",
+  ): Promise<void> {
+    setBusyId(escalationId);
+    setDecisionError(null);
+    const r =
+      decision === "approve"
+        ? await api.escalations.approve(escalationId)
+        : await api.escalations.reject(escalationId);
+    setBusyId(null);
+    if (r.ok) {
+      await load();
+    } else {
+      setDecisionError(r.code);
+    }
+  }
+
   const current = grouped[tab];
 
   return (
@@ -263,17 +317,32 @@ export function ActionCenter(): JSX.Element {
         <ul className="space-y-2" data-testid="action-center-list">
           {current.map((a) => {
             const t = STATUS_TO_TAB[a.status] ?? "blocked";
+            const isFocused = focusId.length > 0 && a.action_id === focusId;
+            // Phase 1269 — the human-readable artifact detail the user
+            // authored (recipient/channel/body/source), if we have it.
+            const details = getActionDetails(a.action_id);
             return (
-              <li key={a.action_id}>
+              <li
+                key={a.action_id}
+                ref={isFocused ? focusCardRef : undefined}
+              >
                 <Card
                   data-testid="action-center-card"
                   data-action-id={a.action_id}
                   data-action-status={a.status}
                   data-action-type={a.action_type}
+                  data-focused={isFocused ? "true" : "false"}
+                  className={
+                    isFocused ? "ring-2 ring-primary ring-offset-2" : undefined
+                  }
                 >
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center justify-between gap-2 text-sm">
-                      <span>{friendlyActionType(a.action_type)}</span>
+                      <span>
+                        {details?.recipientLabel !== undefined
+                          ? `${friendlyActionType(a.action_type)} → ${details.recipientLabel}`
+                          : friendlyActionType(a.action_type)}
+                      </span>
                       <div className="flex items-center gap-2">
                         <Badge variant={t === "blocked" ? "destructive" : "outline"}>
                           {friendlyStatus(a.status)}
@@ -308,6 +377,41 @@ export function ActionCenter(): JSX.Element {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1 pt-0 text-xs text-muted-foreground">
+                    {/* Phase 1269 — full human-readable detail, available
+                        for EVERY status (incl. approved/executed) so an
+                        action is always inspectable, never a generic
+                        "internal note". */}
+                    {details !== null ? (
+                      <div
+                        className="rounded border border-border bg-muted/30 p-1.5 space-y-0.5"
+                        data-testid="action-detail"
+                      >
+                        {details.recipientLabel !== undefined ? (
+                          <div>
+                            <span className="font-medium text-foreground">
+                              Recipient:
+                            </span>{" "}
+                            {details.recipientLabel}
+                            {details.channel !== undefined
+                              ? ` · ${details.channel}`
+                              : ""}
+                          </div>
+                        ) : null}
+                        <div data-testid="action-detail-body">
+                          <span className="font-medium text-foreground">
+                            Message:
+                          </span>{" "}
+                          <span className="whitespace-pre-wrap break-words">
+                            {details.body}
+                          </span>
+                        </div>
+                        {details.sourceCommand !== undefined ? (
+                          <div className="text-[10px] opacity-70 break-words">
+                            From: “{details.sourceCommand}”
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       <span>{friendlyRisk(a.risk_tier)}</span>
                       <span aria-hidden>·</span>
@@ -321,6 +425,54 @@ export function ActionCenter(): JSX.Element {
                         <span className="text-foreground">
                           {humanDecisionReason(a.decision_reason)}
                         </span>
+                      </p>
+                    ) : null}
+                    {/* Phase 1268 — real governed decision controls. A
+                        pending action with a linked escalation can be
+                        approved/rejected here (api.escalations). */}
+                    {t === "pending" &&
+                    a.escalation_id !== undefined &&
+                    a.escalation_id.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="default"
+                          className="h-6 px-2 text-[11px]"
+                          data-testid="action-approve"
+                          disabled={busyId === a.escalation_id}
+                          onClick={() =>
+                            void decide(a.escalation_id as string, "approve")
+                          }
+                        >
+                          {busyId === a.escalation_id ? "Approving…" : "Approve"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[11px]"
+                          data-testid="action-reject"
+                          disabled={busyId === a.escalation_id}
+                          onClick={() =>
+                            void decide(a.escalation_id as string, "reject")
+                          }
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    ) : t === "pending" ? (
+                      <p className="pt-1 text-[11px]">
+                        Otzar is routing this through your organization's
+                        approval policy.
+                      </p>
+                    ) : null}
+                    {isFocused && decisionError !== null ? (
+                      <p
+                        className="pt-1 text-destructive"
+                        data-testid="action-decision-error"
+                      >
+                        Couldn't complete that decision. ({decisionError})
                       </p>
                     ) : null}
                   </CardContent>

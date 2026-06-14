@@ -73,6 +73,14 @@ import type {
   ConnectorAdaptersResponse,
   OAuthStatusResponse,
   OAuthStartResponse,
+  ZoomRecordingsResponse,
+  CalendarFreeBusyResponse,
+  CalendarEventProposalBody,
+  AuthorityContextResponse,
+  RuntimeCapabilitiesResponse,
+  WorkLedgerCreateResponse,
+  WorkLedgerListResponse,
+  ExecutionAttemptListResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1037,6 +1045,24 @@ export class ApiClient {
           { method: "POST", body },
         ),
     },
+
+    // Phase 1264 — desktop voice input. The Tauri WKWebView has no Web
+    // Speech API; the desktop app records audio with MediaRecorder and
+    // POSTs it here for real provider transcription (OpenAI Whisper).
+    // Audio is never stored server-side; the transcript then rides the
+    // SAME governed chat path as typed input.
+    voice: {
+      transcribe: (body: {
+        audio_base64: string;
+        mime_type: string;
+      }): Promise<
+        ApiResult<{ ok: true; transcript: string; provider: string }>
+      > =>
+        this.request<{ ok: true; transcript: string; provider: string }>(
+          "/otzar/voice/transcribe",
+          { method: "POST", body },
+        ),
+    },
   };
 
   // ──────────────────────────────────────────────────────────────
@@ -1087,6 +1113,115 @@ export class ApiClient {
           body: { body_summary, idempotency_key },
         },
       ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // connectorData.* (Phase 1270) — read-only bridges that turn a
+  // verified OAuth connection into live data the Work OS can act on.
+  // Both are READ-ONLY; neither creates/sends/mutates provider data.
+  // The backend SAFE-projects (no recording download URLs, no event
+  // titles) and audits every read as CONNECTOR_DATA_READ.
+  // ──────────────────────────────────────────────────────────────
+  connectorData = {
+    /** GET /api/v1/zoom/recordings — the org's Zoom cloud recordings.
+     *  SAFE projection only (topic/when/duration/file-types). */
+    zoomRecordings: (
+      params: { from?: string; to?: string; page_size?: number } = {},
+    ): Promise<ApiResult<ZoomRecordingsResponse>> => {
+      const query: Record<string, string> = {};
+      if (params.from !== undefined) query.from = params.from;
+      if (params.to !== undefined) query.to = params.to;
+      if (params.page_size !== undefined)
+        query.page_size = String(params.page_size);
+      return this.request<ZoomRecordingsResponse>(
+        `/zoom/recordings${qs(query)}`,
+      );
+    },
+
+    /** POST /api/v1/calendar/freebusy — busy intervals for a window.
+     *  time_min/time_max are RFC3339. Never returns event titles. */
+    calendarFreeBusy: (body: {
+      time_min: string;
+      time_max: string;
+      calendar_id?: string;
+    }): Promise<ApiResult<CalendarFreeBusyResponse>> =>
+      this.request<CalendarFreeBusyResponse>("/calendar/freebusy", {
+        method: "POST",
+        body,
+      }),
+
+    /** POST /api/v1/calendar/events/create — Phase 1272 GATED create.
+     *  Never auto-creates: returns { ok:false, code } with a precise
+     *  gate blocker (EVENT_WRITE_SCOPE_MISSING / NEEDS_SELECTED_TIME /
+     *  …) until every gate passes AND an event-write scope is granted.
+     *  No event is created and no invite sent while gated. */
+    calendarEventCreate: (
+      body: CalendarEventProposalBody,
+    ): Promise<ApiResult<{ ok: true; status: "CREATED" }>> =>
+      this.request<{ ok: true; status: "CREATED" }>(
+        "/calendar/events/create",
+        { method: "POST", body },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // workOs.* (Phase 1273) — authority context (hierarchy/RBAC/ABAC).
+  // Resolves a target in the caller's org and returns the authority
+  // context + per-action policy decisions. The source of truth for
+  // "what can Otzar do now" lives in the backend; the UI displays it.
+  // ──────────────────────────────────────────────────────────────
+  workOs = {
+    /** POST /api/v1/work-os/authority-context — resolve target + policy. */
+    authorityContext: (body: {
+      target_name?: string;
+      actions?: string[];
+    }): Promise<ApiResult<AuthorityContextResponse>> =>
+      this.request<AuthorityContextResponse>("/work-os/authority-context", {
+        method: "POST",
+        body,
+      }),
+
+    /** POST /api/v1/work-os/ledger — persist a durable work object. */
+    createLedgerEntry: (
+      body: Record<string, unknown>,
+    ): Promise<ApiResult<WorkLedgerCreateResponse>> =>
+      this.request<WorkLedgerCreateResponse>("/work-os/ledger", {
+        method: "POST",
+        body,
+      }),
+
+    /** GET /api/v1/work-os/my-work — the caller's durable work items. */
+    myWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
+      this.request<WorkLedgerListResponse>("/work-os/my-work"),
+
+    /** GET /api/v1/work-os/blind-spots — attention-needing items. */
+    blindSpots: (): Promise<ApiResult<WorkLedgerListResponse>> =>
+      this.request<WorkLedgerListResponse>("/work-os/blind-spots"),
+
+    /** GET /api/v1/work-os/team-work — manager/admin team view; 403 with
+     *  TEAM_SCOPE_NOT_CONFIGURED when the caller lacks team authority. */
+    teamWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
+      this.request<WorkLedgerListResponse>("/work-os/team-work"),
+
+    /** GET /api/v1/work-os/ledger/:id/execution-attempts — durable
+     *  evidence that runtime steps happened for one ledger entry
+     *  (tenant-scoped; an attempt is evidence, never an action). */
+    executionAttempts: (
+      ledgerEntryId: string,
+    ): Promise<ApiResult<ExecutionAttemptListResponse>> =>
+      this.request<ExecutionAttemptListResponse>(
+        `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/execution-attempts`,
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // system.* (Phase 1277) — honest polyglot runtime fabric status.
+  // ──────────────────────────────────────────────────────────────
+  system = {
+    /** GET /api/v1/system/runtime-capabilities — TS/Python/BEAM/desktop
+     *  runtime truth (env KEY NAMES only; NOT_CONFIGURED never faked). */
+    runtimeCapabilities: (): Promise<ApiResult<RuntimeCapabilitiesResponse>> =>
+      this.request<RuntimeCapabilitiesResponse>("/system/runtime-capabilities"),
   };
 
   // ──────────────────────────────────────────────────────────────
