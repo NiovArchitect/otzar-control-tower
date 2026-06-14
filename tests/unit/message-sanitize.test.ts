@@ -49,6 +49,36 @@ describe("stripCommandWrapper — command instruction is never delivered", () =>
   });
 });
 
+describe("greeting glue normalization (natural, not command-cleaned)", () => {
+  it("the EXACT phrase → 'Good afternoon, the 4th of July is very near.'", () => {
+    const b = stripCommandWrapper(
+      "Tell David, Good Afternoon and that the 4th of July is very near.",
+      "David",
+    );
+    expect(b).toBe("Good afternoon, the 4th of July is very near.");
+    expect(b!.toLowerCase()).not.toContain("and that");
+    expect(b!.toLowerCase()).not.toContain("tell david");
+  });
+
+  it("'Tell David good morning and that the build passed.' → 'Good morning, the build passed.'", () => {
+    expect(stripCommandWrapper("Tell David good morning and that the build passed.", "David")).toBe(
+      "Good morning, the build passed.",
+    );
+  });
+
+  it("'good afternoon and let him know that the report is ready' → 'Good afternoon, the report is ready.'", () => {
+    expect(
+      stripCommandWrapper("Tell David good afternoon and let him know that the report is ready.", "David"),
+    ).toBe("Good afternoon, the report is ready.");
+  });
+
+  it("KEEPS real 'and that' content when there is NO greeting", () => {
+    const b = stripCommandWrapper("Tell David the policy changed and that impacts the launch.", "David");
+    expect(b!.toLowerCase()).toContain("and that impacts the launch");
+    expect(b!.toLowerCase()).not.toContain("tell david");
+  });
+});
+
 describe("sanitizeOutboundMessage — natural workplace punctuation", () => {
   it("replaces a spaced em dash with a sentence break and capitalizes", () => {
     expect(sanitizeOutboundMessage("Good afternoon — the 4th of July is near.")).toBe(
