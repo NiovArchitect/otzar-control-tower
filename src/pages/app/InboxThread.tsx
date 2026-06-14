@@ -149,7 +149,6 @@ export function InboxThread(): JSX.Element {
               {m.signal !== undefined ? (
                 <ThreadSignalChip
                   signalType={m.signal.signal_type}
-                  body={m.body}
                   sourceMessageId={m.message_id}
                 />
               ) : null}

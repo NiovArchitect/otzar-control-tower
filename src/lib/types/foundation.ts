@@ -4340,6 +4340,22 @@ export interface DirectThreadResponse {
   code?: string;
 }
 
+// Phase 1285 slice 4 — waiting-on relationship (derived from Work Ledger).
+export interface WaitingOnItemView {
+  ledger_entry_id: string;
+  ledger_type: string;
+  title: string;
+  status: string;
+  due_at: string | null;
+  source_message_id: string | null;
+}
+export interface WaitingOnResponse {
+  ok: boolean;
+  waiting_on_them?: WaitingOnItemView[];
+  pending_from_them?: WaitingOnItemView[];
+  code?: string;
+}
+
 // Phase 1284 — human-authority direct internal message result.
 export interface InternalMessageResponse {
   ok: boolean;

@@ -4,7 +4,7 @@
 // CONNECTS TO: src/lib/work-os/thread-query.ts
 
 import { describe, expect, it } from "vitest";
-import { classifyThreadQuery, composeThreadAnswer } from "@/lib/work-os/thread-query";
+import { classifyThreadQuery, composeThreadAnswer, composeWaitingOnAnswer } from "@/lib/work-os/thread-query";
 import type { DirectThreadMessageView } from "@/lib/types/foundation";
 
 function msg(over: Partial<DirectThreadMessageView>): DirectThreadMessageView {
@@ -42,9 +42,29 @@ describe("classifyThreadQuery", () => {
     });
     expect(classifyThreadQuery("what did I tell Vishesh")?.type).toBe("LATEST_TO");
   });
+  it("WAITING_ON", () => {
+    expect(classifyThreadQuery("What am I waiting on from David?")).toEqual({
+      type: "WAITING_ON",
+      person: "David",
+    });
+    expect(classifyThreadQuery("what does Samiksha owe me")?.type).toBe("WAITING_ON");
+  });
   it("returns null for non-thread questions", () => {
     expect(classifyThreadQuery("what is the weather")).toBeNull();
     expect(classifyThreadQuery("open my work")).toBeNull();
+  });
+});
+
+describe("composeWaitingOnAnswer (durable, never faked)", () => {
+  it("lists what you're waiting on", () => {
+    const a = composeWaitingOnAnswer("David Odie", [
+      { ledger_entry_id: "l1", ledger_type: "TASK", title: "Send proof-layer notes", status: "PROPOSED", due_at: null, source_message_id: "m1" },
+    ]);
+    expect(a).toContain("waiting on David Odie");
+    expect(a).toContain("Send proof-layer notes");
+  });
+  it("honest empty", () => {
+    expect(composeWaitingOnAnswer("David Odie", []).toLowerCase()).toContain("not waiting on anything");
   });
 });
 

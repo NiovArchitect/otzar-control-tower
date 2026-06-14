@@ -8,9 +8,9 @@
 // CONNECTS TO: src/components/otzar/AmbientOtzarBar.tsx (handleSendText
 //          intercept), api.workOs.thread, tests/unit/thread-query.test.ts.
 
-import type { DirectThreadMessageView } from "@/lib/types/foundation";
+import type { DirectThreadMessageView, WaitingOnItemView } from "@/lib/types/foundation";
 
-export type ThreadQueryType = "RECEIVED_FROM" | "LATEST_FROM" | "LATEST_TO";
+export type ThreadQueryType = "RECEIVED_FROM" | "LATEST_FROM" | "LATEST_TO" | "WAITING_ON";
 
 export interface ThreadQuery {
   type: ThreadQueryType;
@@ -27,6 +27,12 @@ function cleanName(raw: string): string {
 //      (LATEST_TO) is checked before "what did X say" (LATEST_FROM).
 export function classifyThreadQuery(text: string): ThreadQuery | null {
   const t = text.trim();
+
+  // "what am I waiting on from David" / "what does David owe me"
+  const waiting = t.match(
+    /\bwhat (?:am i|are we)\s+waiting on\b[^?]*?\bfrom\s+([A-Za-z][A-Za-z'’-]*)|\bwhat does\s+([A-Za-z][A-Za-z'’-]*)\s+owe me\b/i,
+  );
+  if (waiting) return { type: "WAITING_ON", person: cleanName(waiting[1] ?? waiting[2] ?? "") };
 
   // "did I receive a message from David" / "any messages from David" /
   // "do I have anything from David"
@@ -82,4 +88,17 @@ export function composeThreadAnswer(
   return m === undefined
     ? `You have not messaged ${personDisplay} yet.`
     : `You last told ${personDisplay}: "${m.body}"`;
+}
+
+// WHAT: compose the "what am I waiting on from X" answer from durable
+//        waiting-on records (never faked — empty means nothing tracked).
+export function composeWaitingOnAnswer(
+  personDisplay: string,
+  waitingOnThem: WaitingOnItemView[],
+): string {
+  if (waitingOnThem.length === 0) {
+    return `You're not waiting on anything tracked from ${personDisplay} right now.`;
+  }
+  const titles = waitingOnThem.slice(0, 5).map((w) => w.title).join("; ");
+  return `You're waiting on ${personDisplay} for: ${titles}`;
 }

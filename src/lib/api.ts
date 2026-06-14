@@ -83,6 +83,7 @@ import type {
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
+  WaitingOnResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1232,6 +1233,24 @@ export class ApiClient {
     thread: (entityId: string): Promise<ApiResult<DirectThreadResponse>> =>
       this.request<DirectThreadResponse>(
         `/work-os/threads/with/${encodeURIComponent(entityId)}`,
+      ),
+
+    /** POST /api/v1/work-os/threads/messages/:id/track-signal — promote a
+     *  detected thread signal into a directional Work Ledger entry. */
+    trackSignal: (
+      messageId: string,
+      ledgerType: string,
+    ): Promise<ApiResult<{ ok: boolean; ledger_entry_id?: string; code?: string }>> =>
+      this.request(`/work-os/threads/messages/${encodeURIComponent(messageId)}/track-signal`, {
+        method: "POST",
+        body: { ledger_type: ledgerType },
+      }),
+
+    /** GET /api/v1/work-os/waiting-on/with/:entityId — waiting-on (both
+     *  directions) derived from durable Work Ledger entries. */
+    waitingOn: (entityId: string): Promise<ApiResult<WaitingOnResponse>> =>
+      this.request<WaitingOnResponse>(
+        `/work-os/waiting-on/with/${encodeURIComponent(entityId)}`,
       ),
   };
 

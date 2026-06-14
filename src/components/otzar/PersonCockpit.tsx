@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import { ThreadSignalChip } from "@/components/otzar/ThreadSignalChip";
-import type { DirectThreadMessageView } from "@/lib/types/foundation";
+import type { DirectThreadMessageView, WaitingOnItemView } from "@/lib/types/foundation";
 
 export function PersonCockpit({
   entityId,
@@ -38,6 +38,8 @@ export function PersonCockpit({
 }): JSX.Element {
   const [messages, setMessages] = useState<DirectThreadMessageView[] | null>(null);
   const [loadingThread, setLoadingThread] = useState(true);
+  const [waitingOnThem, setWaitingOnThem] = useState<WaitingOnItemView[]>([]);
+  const [pendingFromThem, setPendingFromThem] = useState<WaitingOnItemView[]>([]);
   const [compose, setCompose] = useState("");
   const [sending, setSending] = useState(false);
   const [sendState, setSendState] = useState<{ kind: "idle" | "sent" | "error"; note?: string }>({
@@ -53,10 +55,17 @@ export function PersonCockpit({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const t = await api.workOs.thread(entityId);
+      const [t, w] = await Promise.all([
+        api.workOs.thread(entityId),
+        api.workOs.waitingOn(entityId),
+      ]);
       if (cancelled) return;
       setMessages(t.ok && t.data.ok && t.data.messages != null ? t.data.messages : []);
       setLoadingThread(false);
+      if (w.ok && w.data.ok) {
+        setWaitingOnThem(w.data.waiting_on_them ?? []);
+        setPendingFromThem(w.data.pending_from_them ?? []);
+      }
     })();
     return () => {
       cancelled = true;
@@ -98,6 +107,24 @@ export function PersonCockpit({
       </div>
       <div className="text-[11px] text-muted-foreground">{roleTitle}</div>
 
+      {/* Waiting-on relationship — durable Work Ledger records only. */}
+      {waitingOnThem.length > 0 || pendingFromThem.length > 0 ? (
+        <div className="mt-2 border-t border-border/50 pt-2" data-testid="person-cockpit-waiting-on">
+          {waitingOnThem.length > 0 ? (
+            <div className="text-[11px]">
+              <span className="font-medium text-amber-600">Waiting on {displayName.split(" ")[0]}:</span>{" "}
+              {waitingOnThem.map((w) => w.title).slice(0, 3).join("; ")}
+            </div>
+          ) : null}
+          {pendingFromThem.length > 0 ? (
+            <div className="text-[11px]">
+              <span className="font-medium text-foreground/80">{displayName.split(" ")[0]} is waiting on you:</span>{" "}
+              {pendingFromThem.map((w) => w.title).slice(0, 3).join("; ")}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Real thread preview — latest + recent, from durable records. */}
       <div className="mt-2 border-t border-border/50 pt-2" data-testid="person-cockpit-thread">
         <div className="text-[11px] font-medium text-foreground/80">Recent messages</div>
@@ -116,7 +143,6 @@ export function PersonCockpit({
                   {m.signal !== undefined ? (
                     <ThreadSignalChip
                       signalType={m.signal.signal_type}
-                      body={m.body}
                       sourceMessageId={m.message_id}
                     />
                   ) : null}
