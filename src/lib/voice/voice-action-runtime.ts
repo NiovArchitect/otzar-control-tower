@@ -25,7 +25,10 @@
 import type { AuthCapabilities } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { routeVoiceCommand } from "@/lib/voice/command-router";
-import { stripCommandWrapper } from "@/lib/work-os/message-sanitize";
+import {
+  stripCommandWrapper,
+  stripLeadingRecipient,
+} from "@/lib/work-os/message-sanitize";
 
 export type VoiceActionKind =
   // Navigation
@@ -310,6 +313,55 @@ function extractBody(text: string): string | undefined {
 // is removed and the delivered text is sentence-cased + dash-sanitized.
 function extractTellBody(text: string, recipient: string): string | undefined {
   return stripCommandWrapper(text, recipient);
+}
+
+// Phase 1285 — leading tokens that are NOT a teammate's name. When an
+// utterance STARTS with one of these it is a command/question/greeting, not
+// direct address, so the direct-address path must not claim it. (Lower-cased
+// comparison; STT often de-capitalizes, so we rely on this set + a trailing
+// request cue rather than capitalization alone.)
+const DIRECT_ADDRESS_LEADING_STOPWORDS = new Set([
+  "please", "can", "could", "would", "will", "shall",
+  "send", "draft", "write", "prepare", "tell", "message", "msg", "remind",
+  "ping", "notify", "email", "dm", "post", "pass", "share",
+  "schedule", "book", "set", "put", "add", "assign", "create", "make",
+  "start", "run", "open", "show", "find", "search", "summarize", "summarise",
+  "give", "get", "let", "let's", "lets", "help",
+  "what", "who", "when", "where", "why", "how", "is", "are", "do", "does",
+  "did", "was", "were", "have", "has", "the", "a", "an", "my", "our", "your",
+  "their", "his", "her", "its", "hey", "hi", "hello", "good", "thanks",
+  "thank", "ok", "okay", "yes", "no", "yeah", "yep", "i", "we", "you", "it",
+  "this", "that", "and", "also", "then", "there", "here", "need", "want",
+]);
+
+// Phase 1285 — the request cue that must FOLLOW the leading name for an
+// utterance to count as a work-bearing direct address. Keeps casual address
+// ("David, good to see you") and questions ("David, what time is it?") out of
+// the internal-message path while covering natural ask phrasings.
+const DIRECT_ADDRESS_CUE =
+  /^(?:please|can\s+you|could\s+you|would\s+you|will\s+you|can\s+i|could\s+i|i\s+need|i\s+want|i'?d\s+(?:like|appreciate)|i\s+would\s+(?:like|appreciate)|when\s+you|whenever\s+you|once\s+you|do\s+you\s+mind|mind\s+\w+ing|help\s+me|send\s+me|get\s+me|share|review|check|take\s+a\s+look|look\s+at|make\s+sure|follow\s+up|let\s+me\s+know)\b/i;
+
+// WHAT: Parse a natural direct-address utterance ("<Name>, please …",
+//        "<Name> can you …", "<Name> I need …") into { recipient, body }.
+// INPUT: the raw utterance.
+// OUTPUT: the leading name token + the recipient-facing body with the address
+//         stripped, or null when the utterance is not a direct address.
+// WHY: Phase 1285 — the live front door only understood "Tell David …".
+//      People naturally lead with the name ("David, please send me the
+//      notes"); this routes that to the same human-authority internal path.
+//      The NAME TOKEN is extracted here; the org roster RESOLUTION (unique /
+//      ambiguous / unknown / external) is the resolver's job downstream — no
+//      teammate is hardcoded.
+function parseDirectAddress(
+  text: string,
+): { recipient: string; body: string | undefined } | null {
+  const m = text.match(/^\s*([A-Za-z][a-zA-Z'’-]+)\s*,?\s+(.+)$/s);
+  if (m === null) return null;
+  const name = m[1]!;
+  const rest = m[2]!;
+  if (DIRECT_ADDRESS_LEADING_STOPWORDS.has(name.toLowerCase())) return null;
+  if (!DIRECT_ADDRESS_CUE.test(rest.trim())) return null;
+  return { recipient: name, body: stripLeadingRecipient(text, name) };
 }
 
 /** Best-effort channel ("slack", "email", else internal). */
@@ -693,6 +745,37 @@ export function classifyVoiceAction(
   ) {
     const recipient = tellMatch[1]!;
     const body = extractTellBody(heard, recipient);
+    return {
+      kind: "SEND_REQUIRES_APPROVAL",
+      heard,
+      actionLabel: `Message → ${recipient}`,
+      spoken: `Drafted a direct internal note to ${recipient}. Review it and Confirm (or say "I confirm") to deliver — internal Otzar message only, nothing is sent until you confirm.`,
+      route: COMMS_ROUTE,
+      connector: "internal",
+      targetEntity: recipient,
+      ...(body !== undefined ? { draftPayload: body } : {}),
+      backendActionType: "SEND_INTERNAL_NOTIFICATION",
+      requiresApproval: false,
+      needsConfirmation: false,
+    };
+  }
+
+  // 5f-ter) Direct-address internal note — "<Name>, please …" / "<Name> can
+  // you …" / "<Name> I need …". Phase 1285: natural workplace direct address
+  // where the utterance LEADS with a teammate's name then a request. Routes
+  // to the SAME human-authority internal-message path as "Tell David …" — the
+  // recipient is the leading name (the resolver + backend resolve + govern
+  // it). Internal Otzar inbox ONLY; never Slack/email/calendar; never the AI
+  // dual-control ladder. Guarded so explicit draft/external/meeting verbs fall
+  // through to their own handlers below.
+  const directAddress = parseDirectAddress(heard);
+  if (
+    directAddress !== null &&
+    !/\bdraft\b|\bslack\b|\bemail\b|\be-mail\b|\bcalendar\b|\binvite\b|\bschedule\b|\bmeeting\b/.test(
+      lower,
+    )
+  ) {
+    const { recipient, body } = directAddress;
     return {
       kind: "SEND_REQUIRES_APPROVAL",
       heard,

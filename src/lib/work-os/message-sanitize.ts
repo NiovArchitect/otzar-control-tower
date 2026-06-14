@@ -82,3 +82,30 @@ export function stripCommandWrapper(
   const body = sanitizeOutboundMessage(normalizeGreetingGlue(stripped));
   return body.length >= 2 ? body : undefined;
 }
+
+// WHAT: Strip a LEADING recipient name (direct address) from the front of an
+//        utterance so the delivered note never echoes the address.
+//        "David, please send me the notes." → "Please send me the notes."
+//        "David please send me the notes."  → "Please send me the notes."
+//        "David can you check the UI?"       → "Can you check the UI?"
+//        "David I need the notes by Friday." → "I need the notes by Friday."
+// WHY: Phase 1285 — natural workplace direct address ("<Name>, please …")
+//      routes to the human-authority internal message path; the recipient's
+//      own name must not appear inside the body they receive.
+// INPUT: the raw utterance + the resolved recipient name token.
+// OUTPUT: the cleaned, sentence-cased body, or undefined when nothing
+//         meaningful remains. When the text does NOT lead with the recipient,
+//         the (sanitized) text is returned unchanged.
+export function stripLeadingRecipient(
+  text: string,
+  recipient: string,
+): string | undefined {
+  const escaped = recipient.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Only strip when the body STARTS with the recipient name, optionally
+  // followed by a comma + whitespace. A trailing space is required so a name
+  // that is also a real word can't swallow adjacent content mid-sentence.
+  const re = new RegExp(`^\\s*${escaped}\\s*,?\\s+`, "i");
+  const stripped = re.test(text) ? text.replace(re, "") : text;
+  const body = sanitizeOutboundMessage(stripped);
+  return body.length >= 2 ? body : undefined;
+}

@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   sanitizeOutboundMessage,
   stripCommandWrapper,
+  stripLeadingRecipient,
 } from "@/lib/work-os/message-sanitize";
 
 describe("stripCommandWrapper — command instruction is never delivered", () => {
@@ -76,6 +77,41 @@ describe("greeting glue normalization (natural, not command-cleaned)", () => {
     const b = stripCommandWrapper("Tell David the policy changed and that impacts the launch.", "David");
     expect(b!.toLowerCase()).toContain("and that impacts the launch");
     expect(b!.toLowerCase()).not.toContain("tell david");
+  });
+});
+
+describe("stripLeadingRecipient — direct address is never echoed in the body", () => {
+  it("'David, please send me the proof-layer notes.' → 'Please send me the proof-layer notes.'", () => {
+    expect(
+      stripLeadingRecipient("David, please send me the proof-layer notes.", "David"),
+    ).toBe("Please send me the proof-layer notes.");
+  });
+  it("no comma: 'David please send me the notes.' → 'Please send me the notes.'", () => {
+    expect(stripLeadingRecipient("David please send me the notes.", "David")).toBe(
+      "Please send me the notes.",
+    );
+  });
+  it("'David can you check the UI?' → 'Can you check the UI?'", () => {
+    expect(stripLeadingRecipient("David can you check the UI?", "David")).toBe(
+      "Can you check the UI?",
+    );
+  });
+  it("'David I need the notes by Friday.' → 'I need the notes by Friday.'", () => {
+    expect(stripLeadingRecipient("David I need the notes by Friday.", "David")).toBe(
+      "I need the notes by Friday.",
+    );
+  });
+  it("delivered body does not start with the recipient's name", () => {
+    const body = stripLeadingRecipient("Samiksha, please review the onboarding flow.", "Samiksha");
+    expect(body).toBeDefined();
+    expect(body!.toLowerCase().startsWith("samiksha")).toBe(false);
+    expect(body).toBe("Please review the onboarding flow.");
+  });
+  it("leaves a non-leading mention untouched", () => {
+    // "David" appears mid-sentence, not as a leading address → not stripped.
+    expect(stripLeadingRecipient("Please ask David for the notes.", "David")).toBe(
+      "Please ask David for the notes.",
+    );
   });
 });
 

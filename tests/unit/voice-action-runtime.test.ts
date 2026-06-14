@@ -94,6 +94,56 @@ describe("Phase 1284 Wave 2 — 'tell X …' routes to the human-authority draft
   });
 });
 
+describe("Phase 1285 — natural direct address ('<Name>, please …') routes to the internal path", () => {
+  // The reported front-door bug: leading-name utterances fell through to the
+  // generic send/draft path with NO recipient ("pick a recipient" dead end).
+  const DIRECT_CASES: Array<[string, string]> = [
+    ["David, please send me the proof-layer notes.", "David"],
+    ["David please send me the proof-layer notes.", "David"],
+    ["David can you send me the proof-layer notes?", "David"],
+    ["David, can you send me the proof-layer notes?", "David"],
+    ["Samiksha, please review the AI developer onboarding flow.", "Samiksha"],
+    ["Vishesh can you check the UI?", "Vishesh"],
+    ["Annie, please review the compliance risk.", "Annie"],
+    ["David I need the notes by Friday.", "David"],
+    ["David could you send me the proof-layer notes by Friday?", "David"],
+  ];
+  for (const [utterance, expectedName] of DIRECT_CASES) {
+    it(`resolves "${utterance}" to the internal direct message for ${expectedName}`, () => {
+      const a = classifyVoiceAction(utterance, EMPLOYEE);
+      expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
+      expect(a.targetEntity).toBe(expectedName);
+      expect(a.connector).toBe("internal");
+      expect(a.backendActionType).toBe("SEND_INTERNAL_NOTIFICATION");
+      // Human-authority: never approval-required, never a pick-recipient stall.
+      expect(a.requiresApproval).toBe(false);
+      expect(a.needsConfirmation).toBe(false);
+      // The recipient's own name is stripped from the delivered body.
+      expect(a.draftPayload).toBeDefined();
+      expect(a.draftPayload!.toLowerCase()).not.toMatch(
+        new RegExp(`^${expectedName.toLowerCase()}[ ,]`),
+      );
+    });
+  }
+
+  it("does NOT fabricate a name for a non-name leading word ('Please review …')", () => {
+    const a = classifyVoiceAction("Please review the onboarding flow.", EMPLOYEE);
+    // "Please" is not a teammate; the direct-address path must not claim it.
+    expect(a.targetEntity).not.toBe("Please");
+  });
+
+  it("a casual direct address with no request cue is NOT an internal message", () => {
+    const a = classifyVoiceAction("David, good to see you today.", EMPLOYEE);
+    // No "please/can you/I need …" cue → not a work-bearing message path.
+    expect(a.connector).not.toBe("internal");
+  });
+
+  it("'David can you schedule a meeting' stays on the scheduling path", () => {
+    const a = classifyVoiceAction("David can you schedule a meeting tomorrow.", EMPLOYEE);
+    expect(a.kind).toBe("SCHEDULE_MEETING");
+  });
+});
+
 describe("classifyVoiceAction — navigation + actions", () => {
   it("'take me to connectors' → internal navigation to Workspace connections", () => {
     const a = classifyVoiceAction("Take me to connectors.", ADMIN);
