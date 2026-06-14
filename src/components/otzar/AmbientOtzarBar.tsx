@@ -81,6 +81,10 @@ import {
   useConversationStore,
 } from "@/lib/work-os/conversation-store";
 import { resolveTarget } from "@/lib/work-os/target-resolution";
+import {
+  isPendingConfirmPhrase,
+  isExplicitActionCenterNav,
+} from "@/lib/work-os/pending-confirm";
 import { setActionDetails } from "@/lib/work-os/action-details-store";
 import {
   tomorrowWorkWindow,
@@ -823,63 +827,54 @@ export function AmbientOtzarBar(): JSX.Element {
       });
       return;
     }
-    if (a.recipientEntityId === undefined) {
-      // No resolved recipient → can't propose; route to the picker.
-      navigate(COMMS_ROUTE);
-      return;
-    }
-    // Internal, resolved recipient → CREATE the governed ProposedAction.
-    const idem =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `voice-msg-${now}-${a.recipientEntityId}`;
-    const r = await api.actions.sendInternalNotification({
-      recipient_entity_id: a.recipientEntityId,
-      draft_text: body,
-      idempotency_key: idem,
-      payload_summary: a.title,
-    });
-    if (r.ok) {
-      const actionId = r.data.action.action_id;
-      const status = humanizeActionStatus(r.data.action.status);
-      // Persist the human-readable detail so the Action Center shows
-      // recipient/channel/body — not a generic "internal note".
-      setActionDetails(actionId, {
-        title: a.title,
-        ...(a.targetLabel !== undefined ? { recipientLabel: a.targetLabel } : {}),
-        channel: a.channel ?? "internal",
-        body,
-        ...(a.sourceCommand !== undefined ? { sourceCommand: a.sourceCommand } : {}),
-      });
-      // Drop any prior runtimeNote (exactOptionalPropertyTypes: omit).
+    // Internal direct note → deliver under the sender's OWN human authority
+    // via the human-authority path (Phase 1284 Wave 2). The recipient ref is
+    // the resolved entity_id when we have it, else the typed name (the
+    // backend resolves + governs either way; nothing external is sent).
+    const recipientRef = a.recipientEntityId ?? a.targetLabel ?? a.sourceCommand ?? "";
+    const r = await api.workOs.internalMessage(recipientRef, body);
+    if (r.ok && r.data.status === "DELIVERED") {
+      const to = r.data.recipient_display_name ?? a.targetLabel ?? "your teammate";
+      const status = `Delivered to ${to}`;
+      const proofBits = [
+        r.data.notification_id !== undefined ? `msg ${r.data.notification_id.slice(0, 8)}` : null,
+        r.data.ledger_entry_id ? `ledger ${r.data.ledger_entry_id.slice(0, 8)}` : null,
+      ].filter((x): x is string => x !== null);
       const { runtimeNote: _clearedNote, ...rest } = a;
       void _clearedNote;
       setPendingArtifact({
         ...rest,
         body,
         proposed: true,
-        actionId,
         status,
-        route: `${ACTION_CENTER_ROUTE}?focus=${encodeURIComponent(actionId)}`,
+        ...(r.data.notification_id !== undefined ? { actionId: r.data.notification_id } : {}),
+        ...(proofBits.length > 0 ? { runtimeNote: `Proof: ${proofBits.join(" · ")} · ${now}` } : {}),
       });
       appendConversationEntry({
         role: "action",
-        text: `Proposed: internal message to ${a.targetLabel ?? "recipient"} — ${status}.`,
+        text: `Delivered your note to ${to}. ${proofBits.join(" · ")}`,
         at: now,
         kind: a.kind,
         status,
       });
-      speakConfirmation(
-        `Proposed your message to ${a.targetLabel ?? "your teammate"} — ${status}.`,
-      );
-    } else {
-      setPendingArtifact({
-        ...a,
-        body,
-        status: "Blocked by policy",
-        runtimeNote: humanizeActionError(r.code),
-      });
+      speakConfirmation(`Delivered your note to ${to}.`);
+      return;
     }
+    // Honest non-delivered states — never a dead end.
+    const status =
+      r.ok && r.data.status === "NEEDS_RESOLUTION"
+        ? "Pick a recipient"
+        : r.ok && r.data.status === "GATED"
+          ? "Needs approval"
+          : "Blocked";
+    const note =
+      r.ok && r.data.resolution !== undefined
+        ? r.data.resolution.reason
+        : r.ok && r.data.reason !== undefined
+          ? r.data.reason
+          : "The note could not be delivered.";
+    setPendingArtifact({ ...a, body, status, runtimeNote: note });
+    appendConversationEntry({ role: "action", text: note, at: now, kind: a.kind, status });
   }
 
   // Edit-Save revises the body locally; if already proposed, re-propose
@@ -1313,6 +1308,26 @@ export function AmbientOtzarBar(): JSX.Element {
     // Typed input has no transcription engine; the desktop-voice effect
     // re-sets this after calling handleSendText.
     setTranscriptionProvider(null);
+
+    // Phase 1284 Wave 2 — natural-language confirmation of an ACTIVE pending
+    // draft. "I approve" / "send it" / "confirm" / "go ahead" applies to the
+    // pending internal-message draft and delivers it — it does NOT navigate
+    // to Action Center (only an explicit "open Action Center" does). This
+    // runs before any classification so the confirmation can't be swallowed
+    // as a navigation/approvals-review intent.
+    if (
+      pendingArtifact !== null &&
+      pendingArtifact.proposed !== true &&
+      pendingArtifact.externalChannel !== true &&
+      isPendingConfirmPhrase(text) &&
+      !isExplicitActionCenterNav(text)
+    ) {
+      const at0 = new Date().toISOString();
+      setDraft("");
+      appendConversationEntry({ role: "user", text, at: at0 });
+      await confirmArtifact(pendingArtifact.body);
+      return;
+    }
 
     // Phase 1273 — multi-intent + commitment interception. A compound
     // command becomes a WorkPlan of linked cards; a stated commitment

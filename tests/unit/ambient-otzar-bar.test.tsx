@@ -363,8 +363,13 @@ describe("AmbientOtzarBar — privacy / safety copy", () => {
 // ── Phase 1265 Work OS commands — never fall into the Twin chatbot ───
 describe("AmbientOtzarBar — Work OS commands", () => {
   const actionPosts: Array<Record<string, unknown>> = [];
+  // Phase 1284 Wave 2 — Confirm on a human direct note now uses the
+  // human-authority path (POST /work-os/internal-messages), not the gated
+  // Action ladder. Capture those posts.
+  const internalMessagePosts: Array<Record<string, unknown>> = [];
   beforeEach(() => {
     actionPosts.length = 0;
+    internalMessagePosts.length = 0;
     // Founder is an org admin; admin destinations + OAuth status read.
     useAuthStore.setState({
       token: "tok",
@@ -416,6 +421,22 @@ describe("AmbientOtzarBar — Work OS commands", () => {
               action_type: "SEND_INTERNAL_NOTIFICATION",
               status: "PROPOSED",
             },
+          },
+          { status: 201 },
+        );
+      }),
+      // Phase 1284 Wave 2 — human-authority direct internal message.
+      http.post(`${API_BASE}/work-os/internal-messages`, async ({ request }) => {
+        internalMessagePosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          {
+            ok: true,
+            status: "DELIVERED",
+            notification_id: "notif-1",
+            ledger_entry_id: "led-1",
+            recipient_entity_id: "ent-david",
+            recipient_display_name: "David Odie",
+            sender_display_name: "Sadeil Lewis",
           },
           { status: 201 },
         );
@@ -594,19 +615,20 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0); // no Twin chat
   });
 
-  it("Confirm on the draft creates the REAL governed internal-notification action (no external send)", async () => {
+  it("Confirm on the draft delivers via the human-authority path (no external send, no gated Action)", async () => {
     await speak("Draft a message to David saying we need to review this.");
     await waitFor(() =>
       expect(screen.getByTestId("work-artifact-confirm")).toBeInTheDocument(),
     );
     await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
-    await waitFor(() => expect(actionPosts.length).toBe(1));
-    const body = actionPosts[0]!;
-    expect(body.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
-    expect((body.payload_redacted as Record<string, unknown>).recipient_entity_id).toBe(
-      "ent-david",
-    );
-    expect(recordedBodies.length).toBe(0);
+    // Phase 1284 Wave 2: Confirm delivers a human note directly — it POSTs to
+    // the human-authority endpoint, NOT the gated Action ladder.
+    await waitFor(() => expect(internalMessagePosts.length).toBe(1));
+    const body = internalMessagePosts[0]!;
+    expect(body.recipient).toBe("ent-david");
+    expect(typeof body.message).toBe("string");
+    expect(actionPosts.length).toBe(0); // no gated Action created
+    expect(recordedBodies.length).toBe(0); // no external send
   });
 
   it("'Draft a Slack message…' stays a LOCAL draft — never auto-routes, never auto-submits", async () => {
@@ -624,16 +646,16 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(actionPosts.length).toBe(0);
   });
 
-  it("'Send David this message' is a draft until Confirm; Confirm proposes, never sends", async () => {
+  it("'Send David this message' is a draft until Confirm; Confirm delivers via human-authority path", async () => {
     await speak("Send David this message.");
     await waitFor(() =>
       expect(screen.getByTestId("work-artifact-confirm")).toBeInTheDocument(),
     );
-    expect(actionPosts.length).toBe(0); // not sent/proposed on the command
+    expect(internalMessagePosts.length).toBe(0); // not delivered on the command
     await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
-    await waitFor(() => expect(actionPosts.length).toBe(1));
-    expect(actionPosts[0]!.action_type).toBe("SEND_INTERNAL_NOTIFICATION");
-    expect(recordedBodies.length).toBe(0);
+    await waitFor(() => expect(internalMessagePosts.length).toBe(1));
+    expect(actionPosts.length).toBe(0); // not the gated Action path
+    expect(recordedBodies.length).toBe(0); // no external send
   });
 
   it("'Schedule a meeting with Vishesh tomorrow' renders a meeting proposal card and NEVER routes to transcripts/creates an event", async () => {

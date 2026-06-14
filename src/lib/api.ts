@@ -81,6 +81,7 @@ import type {
   WorkLedgerCreateResponse,
   WorkLedgerListResponse,
   ExecutionAttemptListResponse,
+  InternalMessageResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1212,6 +1213,18 @@ export class ApiClient {
       this.request<ExecutionAttemptListResponse>(
         `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/execution-attempts`,
       ),
+
+    /** POST /api/v1/work-os/internal-messages — human-authority direct
+     *  internal note. Delivers under the sender's own authority when policy
+     *  allows; honest DELIVERED / NEEDS_RESOLUTION / GATED / BLOCKED. */
+    internalMessage: (
+      recipient: string,
+      message: string,
+    ): Promise<ApiResult<InternalMessageResponse>> =>
+      this.request<InternalMessageResponse>("/work-os/internal-messages", {
+        method: "POST",
+        body: { recipient, message },
+      }),
   };
 
   // ──────────────────────────────────────────────────────────────

@@ -412,6 +412,18 @@ export function NotificationBell({
                         data-testid="notification-open"
                         aria-label="Open notification"
                       >
+                        {n.sender != null ? (
+                          <p
+                            className="text-[11px] font-medium text-foreground/80"
+                            data-testid="notification-sender"
+                          >
+                            From: {n.sender.display_name}
+                            {n.sender.role_title != null ? ` · ${n.sender.role_title}` : ""}
+                            {n.sender.source_kind !== "HUMAN"
+                              ? ` · ${n.sender.authority_label}`
+                              : ""}
+                          </p>
+                        ) : null}
                         <p className="whitespace-pre-wrap break-words text-foreground">
                           {n.body_summary}
                         </p>

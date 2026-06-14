@@ -1103,19 +1103,23 @@ export interface ProposedAction {
 
 export interface SafeNotificationView {
   notification_id: string;
-  // Foundation's SafeNotificationView projection excludes
-  // org_entity_id / recipient_entity_id / source_entity_id /
-  // body_redacted / deleted_at by design per
-  // notification-read.service.ts:225-228. The CT consumer cannot
-  // see who sent a notification directly -- reply goes through the
-  // Phase 1215 POST /notifications/:id/reply mediator which
-  // resolves the source server-side.
+  // Phase 1284: the projection now includes a GOVERNED sender object for the
+  // intended recipient (workplace accountability) — display fields only, no
+  // private context. body_redacted / org / recipient / deleted_at remain
+  // excluded.
   action_id: string | null;
   notification_class: string;
   body_summary: string;
   created_at: string;
   read_at: string | null;
   status?: "READ" | "UNREAD";
+  sender?: {
+    entity_id: string;
+    display_name: string;
+    role_title: string | null;
+    source_kind: "HUMAN" | "AI_TWIN" | "AI_EMPLOYEE" | "SYSTEM";
+    authority_label: string;
+  } | null;
 }
 
 export interface NotificationListResponse {
@@ -4309,6 +4313,23 @@ export interface ExecutionAttemptView {
 export interface ExecutionAttemptListResponse {
   ok: boolean;
   attempts?: ExecutionAttemptView[];
+}
+
+// Phase 1284 — human-authority direct internal message result.
+export interface InternalMessageResponse {
+  ok: boolean;
+  status: "DELIVERED" | "NEEDS_RESOLUTION" | "GATED" | "BLOCKED";
+  notification_id?: string;
+  ledger_entry_id?: string | null;
+  recipient_entity_id?: string;
+  recipient_display_name?: string;
+  sender_display_name?: string;
+  reason?: string;
+  resolution?: {
+    kind: string;
+    reason: string;
+    candidates?: Array<{ entity_id: string; display_name: string; role_title: string | null }>;
+  };
 }
 
 export interface WorkLedgerCreateResponse {
