@@ -24,6 +24,40 @@ export function sanitizeOutboundMessage(input: string): string {
   return out;
 }
 
+// Canonical casing for recognized greetings.
+const GREETING_CANONICAL: Record<string, string> = {
+  "good morning": "Good morning",
+  "good afternoon": "Good afternoon",
+  "good evening": "Good evening",
+  "good night": "Good night",
+  hello: "Hello",
+  hi: "Hi",
+  hey: "Hey",
+};
+
+// WHAT: When the body STARTS with a greeting, strip the speech-command glue
+//        that follows it ("and that", "and tell him that", "and let her know
+//        that", a bare leading "that") and canonicalize the greeting. This is
+//        scoped to greeting-led bodies ONLY, so real content like "The policy
+//        changed and that impacts the launch" is left untouched.
+export function normalizeGreetingGlue(text: string): string {
+  const m = text.match(
+    /^\s*(good\s+(?:morning|afternoon|evening|night)|hello|hi|hey)\b[,.!]?\s*/i,
+  );
+  if (m === null) return text;
+  const canonical = GREETING_CANONICAL[m[1]!.toLowerCase().replace(/\s+/g, " ")] ?? m[1]!;
+  let rest = text.slice(m[0].length);
+  // Strip the connector glue immediately after the greeting.
+  rest = rest.replace(
+    /^and\s+(?:tell\s+(?:him|her|them)\s+that\s+|let\s+(?:him|her|them)\s+know\s+that\s+|that\s+)/i,
+    "",
+  );
+  // A bare leading "that " right after the greeting is also glue.
+  rest = rest.replace(/^that\s+/i, "");
+  rest = rest.trim();
+  return rest.length === 0 ? `${canonical}.` : `${canonical}, ${rest}`;
+}
+
 // Command-wrapper prefixes for the "tell/message/let X know" family. Used to
 // strip the instruction from the outbound body (so "Tell David, good
 // afternoon" delivers "Good afternoon.").
@@ -44,6 +78,7 @@ export function stripCommandWrapper(
     `^\\s*(?:tell|message|msg|remind|let|ping|notify|send|pass)\\s+(?:this\\s+to\\s+)?${escaped}\\s*[,:]?\\s*${WRAPPER_LEADINS}`,
     "i",
   );
-  const body = sanitizeOutboundMessage(text.replace(re, ""));
+  const stripped = text.replace(re, "");
+  const body = sanitizeOutboundMessage(normalizeGreetingGlue(stripped));
   return body.length >= 2 ? body : undefined;
 }
