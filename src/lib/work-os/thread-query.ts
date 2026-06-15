@@ -28,11 +28,36 @@ function cleanName(raw: string): string {
 export function classifyThreadQuery(text: string): ThreadQuery | null {
   const t = text.trim();
 
-  // "what am I waiting on from David" / "what does David owe me"
-  const waiting = t.match(
-    /\bwhat (?:am i|are we)\s+waiting on\b[^?]*?\bfrom\s+([A-Za-z][A-Za-z'’-]*)|\bwhat does\s+([A-Za-z][A-Za-z'’-]*)\s+owe me\b/i,
-  );
-  if (waiting) return { type: "WAITING_ON", person: cleanName(waiting[1] ?? waiting[2] ?? "") };
+  // WAITING_ON — durable directional work the caller is OWED by X. Covers
+  // natural + imperfect human phrasing, not just the textbook "waiting on …
+  // from X". Each pattern captures the teammate's name in group 1. Checked
+  // FIRST so a waiting-on intent is never swallowed by LATEST_TO/RECEIVED_FROM.
+  const waitingPatterns: RegExp[] = [
+    // "what am I waiting [on] from David" / "what work is waiting from David"
+    /\bwaiting(?:\s+on)?\b[^?]*?\bfrom\s+([A-Za-z][A-Za-z'’-]*)/i,
+    // "what am I waiting on David for"
+    /\bwaiting on\s+([A-Za-z][A-Za-z'’-]*)\s+for\b/i,
+    // "what do I need from David"
+    /\bneed\b[^?]*?\bfrom\s+([A-Za-z][A-Za-z'’-]*)/i,
+    // "what does David owe me" / "what David owes me"
+    /\b([A-Za-z][A-Za-z'’-]*)\s+owes?\s+me\b/i,
+    // "what is David supposed/going to send me"
+    /\b([A-Za-z][A-Za-z'’-]*)\s+(?:is\s+)?(?:supposed|going)\s+to\b/i,
+    // "what did I ask David for"
+    /\bask(?:ed)?\s+([A-Za-z][A-Za-z'’-]*)\s+for\b/i,
+    // "what is pending/outstanding from David" / "what tasks are pending from David"
+    /\b(?:pending|outstanding|owed)\b[^?]*?\bfrom\s+([A-Za-z][A-Za-z'’-]*)/i,
+  ];
+  for (const re of waitingPatterns) {
+    const m = t.match(re);
+    if (m) {
+      const p = cleanName(m[1] ?? "");
+      const lp = p.toLowerCase();
+      if (p.length > 0 && lp !== "i" && lp !== "me" && lp !== "we" && lp !== "you") {
+        return { type: "WAITING_ON", person: p };
+      }
+    }
+  }
 
   // "did I receive a message from David" / "any messages from David" /
   // "do I have anything from David"

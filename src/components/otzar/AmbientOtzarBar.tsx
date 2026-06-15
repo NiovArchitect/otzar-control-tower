@@ -1316,25 +1316,12 @@ export function AmbientOtzarBar(): JSX.Element {
         setDraft("");
         appendConversationEntry({ role: "user", text, at: at0 });
         const resolved = await resolveTarget(tq.person);
-        if (
-          (resolved.kind === "RESOLVED_HUMAN" || resolved.kind === "RESOLVED_AI_AGENT") &&
-          resolved.entityId !== undefined
-        ) {
-          const display = resolved.displayName ?? tq.person;
-          let answer: string;
-          if (tq.type === "WAITING_ON") {
-            const w = await api.workOs.waitingOn(resolved.entityId);
-            const items = w.ok && w.data.ok ? w.data.waiting_on_them ?? [] : [];
-            answer = composeWaitingOnAnswer(display, items);
-          } else {
-            const t = await api.workOs.thread(resolved.entityId);
-            const messages = t.ok && t.data.ok && t.data.messages != null ? t.data.messages : [];
-            answer = composeThreadAnswer(tq, display, messages);
-          }
-          setActionResult(answer);
-          appendConversationEntry({ role: "otzar", text: answer, at: at0 });
-          speakConfirmation(answer);
-        } else {
+        const resolvedOk =
+          (resolved.kind === "RESOLVED_HUMAN" ||
+            resolved.kind === "RESOLVED_AI_AGENT") &&
+          resolved.entityId !== undefined;
+        const display = resolvedOk ? resolved.displayName ?? tq.person : tq.person;
+        const sayMiss = (): void => {
           const miss =
             resolved.kind === "AMBIGUOUS"
               ? `More than one teammate matches "${tq.person}". Who do you mean?`
@@ -1342,6 +1329,37 @@ export function AmbientOtzarBar(): JSX.Element {
           setActionResult(miss);
           appendConversationEntry({ role: "otzar", text: miss, at: at0 });
           speakConfirmation(miss);
+        };
+        const sayAnswer = (answer: string): void => {
+          setActionResult(answer);
+          appendConversationEntry({ role: "otzar", text: answer, at: at0 });
+          speakConfirmation(answer);
+        };
+
+        if (tq.type === "WAITING_ON") {
+          // Durable-only: answer strictly from real Work Ledger waiting-on
+          // records. When the caller can't read the roster client-side, the
+          // BACKEND resolves the name + governs the read — we NEVER fall back
+          // to memory / priming / LLM context. Only an empty durable result
+          // produces the honest "nothing tracked" answer.
+          const ref = resolvedOk ? resolved.entityId! : tq.person;
+          const w = await api.workOs.waitingOn(ref);
+          if (w.ok && w.data.ok) {
+            sayAnswer(composeWaitingOnAnswer(display, w.data.waiting_on_them ?? []));
+          } else {
+            sayMiss();
+          }
+          return;
+        }
+
+        // RECEIVED_FROM / LATEST_FROM / LATEST_TO read the durable thread.
+        if (resolvedOk) {
+          const t = await api.workOs.thread(resolved.entityId!);
+          const messages =
+            t.ok && t.data.ok && t.data.messages != null ? t.data.messages : [];
+          sayAnswer(composeThreadAnswer(tq, display, messages));
+        } else {
+          sayMiss();
         }
         return;
       }
