@@ -39,7 +39,17 @@ export function isPendingConfirmPhrase(text: string): boolean {
     "send",
     "yes",
     "yep",
+    "yeah",
     "yes please",
+    "ok",
+    "okay",
+    "ok send it",
+    "okay send it",
+    "looks good",
+    "that works",
+    "correct",
+    "perfect",
+    "sounds good",
   ].includes(t);
 }
 
