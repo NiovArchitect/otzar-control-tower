@@ -21,8 +21,22 @@ describe("isPendingConfirmPhrase", () => {
       "go ahead",
       "confirm",
       "do it",
+      // Phase 1285-F — short natural confirmations after a draft.
+      "yes",
+      "yes.",
+      "yes please",
+      "yep",
+      "yeah",
+      "ok",
+      "okay",
+      "looks good",
+      "that works",
+      "correct",
+      "sounds good",
+      "send",
+      "approved",
     ]) {
-      expect(isPendingConfirmPhrase(p)).toBe(true);
+      expect(isPendingConfirmPhrase(p), `"${p}"`).toBe(true);
     }
   });
 

@@ -109,9 +109,12 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
     loginError: null,
 
     login: async (
-      email: string,
+      rawEmail: string,
       password: string,
     ): Promise<{ ok: boolean; message?: string }> => {
+      // Phase 1285-F — normalize email before submit (trim + lowercase) so
+      // casing never gates access; the backend lookup is also case-insensitive.
+      const email = rawEmail.trim().toLowerCase();
       set({ isLoading: true, loginError: null });
       const result = await api.auth.login(email, password);
       if (!result.ok) {

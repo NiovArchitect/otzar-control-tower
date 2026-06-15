@@ -364,6 +364,46 @@ function parseDirectAddress(
   return { recipient: name, body: stripLeadingRecipient(text, name) };
 }
 
+// Phase 1285-F — relational/social message intents ("thank X for Y",
+// "congratulate X on Y", "apologize to X for Y", "welcome X"). These lead with
+// a social VERB + a teammate name, so they are NOT direct address (handled
+// above) and must not fall to the generic LLM (which only *describes* a draft
+// and leaves nothing to confirm). We compose a natural recipient-facing body
+// DETERMINISTICALLY (no LLM, no em dashes) and route to the same human-
+// authority internal-message path so the draft is a real, confirmable card.
+// WHAT: parse a relational message into { recipient, body }.
+// OUTPUT: null when the utterance is not a relational message.
+function parseRelationalMessage(
+  text: string,
+): { recipient: string; body: string } | null {
+  const m = text
+    .trim()
+    .match(
+      /^(thank|thanks|congratulate|congrats|apologi[sz]e|welcome)\s+(?:to\s+)?([A-Za-z][a-zA-Z'’-]+)\b([\s\S]*)$/i,
+    );
+  if (m === null) return null;
+  const verb = m[1]!.toLowerCase();
+  const recipient = m[2]!;
+  // Remainder after the name, with a leading connector/punctuation trimmed.
+  const rest = (m[3] ?? "").trim().replace(/^[,:–—-]\s*/, "");
+  // Strip a leading "for"/"on" so we can re-prefix cleanly.
+  const clause = rest.replace(/^(for|on)\s+/i, "").trim();
+  let body: string;
+  if (verb === "thank" || verb === "thanks") {
+    body = clause.length > 0 ? `Thank you for ${clause}.` : "Thank you so much.";
+  } else if (verb === "congratulate" || verb === "congrats") {
+    body = clause.length > 0 ? `Congratulations on ${clause}.` : "Congratulations!";
+  } else if (verb.startsWith("apolog")) {
+    body = clause.length > 0 ? `I'm sorry for ${clause}.` : "I'm sorry.";
+  } else {
+    // welcome
+    body = clause.length > 0 ? `Welcome ${clause}.` : "Welcome to the team!";
+  }
+  // Tidy any double spaces / dangling punctuation; never emit em/en dashes.
+  body = body.replace(/\s{2,}/g, " ").replace(/\s+([.,!?])/g, "$1").replace(/[—–]/g, ", ").trim();
+  return { recipient, body };
+}
+
 /** Best-effort channel ("slack", "email", else internal). */
 function detectChannel(lower: string): "slack" | "email" | "internal" {
   if (lower.includes("slack")) return "slack";
@@ -785,6 +825,32 @@ export function classifyVoiceAction(
       connector: "internal",
       targetEntity: recipient,
       ...(body !== undefined ? { draftPayload: body } : {}),
+      backendActionType: "SEND_INTERNAL_NOTIFICATION",
+      requiresApproval: false,
+      needsConfirmation: false,
+    };
+  }
+
+  // 5f-quater) Relational/social message — "thank/congratulate/apologize/
+  // welcome <Name> …". Phase 1285-F: composes a natural body deterministically
+  // and routes to the SAME human-authority internal-message path so the draft
+  // is a real, confirmable pending card (then "yes/ok/send it" delivers it).
+  // Internal Otzar inbox ONLY; never external; guarded against draft/slack/
+  // email/calendar verbs which have their own handlers.
+  const relational = parseRelationalMessage(heard);
+  if (
+    relational !== null &&
+    !/\bdraft\b|\bslack\b|\bemail\b|\be-mail\b|\bcalendar\b|\binvite\b/.test(lower)
+  ) {
+    return {
+      kind: "SEND_REQUIRES_APPROVAL",
+      heard,
+      actionLabel: `Message → ${relational.recipient}`,
+      spoken: `Drafted a note to ${relational.recipient}. Review it and Confirm (or say "yes") to deliver — internal Otzar message only, nothing is sent until you confirm.`,
+      route: COMMS_ROUTE,
+      connector: "internal",
+      targetEntity: relational.recipient,
+      draftPayload: relational.body,
       backendActionType: "SEND_INTERNAL_NOTIFICATION",
       requiresApproval: false,
       needsConfirmation: false,

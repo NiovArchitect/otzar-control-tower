@@ -144,6 +144,48 @@ describe("Phase 1285 — natural direct address ('<Name>, please …') routes to
   });
 });
 
+describe("Phase 1285-F — relational/social messages become a confirmable internal draft", () => {
+  it("'Thank Sadeil for being an amazing boss' → internal draft to Sadeil with a natural body", () => {
+    const a = classifyVoiceAction("Thank Sadeil for being an amazing boss", EMPLOYEE);
+    expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
+    expect(a.connector).toBe("internal");
+    expect(a.targetEntity).toBe("Sadeil");
+    expect(a.backendActionType).toBe("SEND_INTERNAL_NOTIFICATION");
+    expect(a.requiresApproval).toBe(false);
+    expect(a.needsConfirmation).toBe(false);
+    expect(a.draftPayload).toBe("Thank you for being an amazing boss.");
+    // The recipient's name must not appear in the delivered body.
+    expect(a.draftPayload!.toLowerCase()).not.toContain("sadeil");
+    // No em/en dashes in recipient-facing generated copy.
+    expect(a.draftPayload!).not.toMatch(/[—–]/);
+  });
+
+  it("'Congratulate David on the launch' → 'Congratulations on the launch.'", () => {
+    const a = classifyVoiceAction("Congratulate David on the launch", EMPLOYEE);
+    expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
+    expect(a.targetEntity).toBe("David");
+    expect(a.draftPayload).toBe("Congratulations on the launch.");
+  });
+
+  it("'Apologize to Samiksha for the delay' → \"I'm sorry for the delay.\"", () => {
+    const a = classifyVoiceAction("Apologize to Samiksha for the delay", EMPLOYEE);
+    expect(a.targetEntity).toBe("Samiksha");
+    expect(a.draftPayload).toBe("I'm sorry for the delay.");
+  });
+
+  it("'thanks David' (no clause) → a natural thank-you, internal path", () => {
+    const a = classifyVoiceAction("thanks David", EMPLOYEE);
+    expect(a.connector).toBe("internal");
+    expect(a.targetEntity).toBe("David");
+    expect(a.draftPayload).toBe("Thank you so much.");
+  });
+
+  it("'Thank David on slack' is NOT the internal path (external stays gated)", () => {
+    const a = classifyVoiceAction("Thank David on slack", EMPLOYEE);
+    expect(a.connector).not.toBe("internal");
+  });
+});
+
 describe("classifyVoiceAction — navigation + actions", () => {
   it("'take me to connectors' → internal navigation to Workspace connections", () => {
     const a = classifyVoiceAction("Take me to connectors.", ADMIN);
