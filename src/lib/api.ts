@@ -80,6 +80,7 @@ import type {
   RuntimeCapabilitiesResponse,
   WorkLedgerCreateResponse,
   WorkLedgerListResponse,
+  WorkLedgerEntryView,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
@@ -1200,6 +1201,19 @@ export class ApiClient {
     /** GET /api/v1/work-os/blind-spots — attention-needing items. */
     blindSpots: (): Promise<ApiResult<WorkLedgerListResponse>> =>
       this.request<WorkLedgerListResponse>("/work-os/blind-spots"),
+
+    /** PATCH /api/v1/work-os/ledger/:id — update status / next_action /
+     *  priority. Completion authority is enforced server-side (only the
+     *  owner/manager may mark EXECUTED/VERIFIED; owner/requester may CANCEL).
+     *  403 FORBIDDEN when the caller lacks authority for the status change. */
+    patchLedger: (
+      ledgerEntryId: string,
+      patch: { status?: string; next_action?: string; priority?: string },
+    ): Promise<ApiResult<{ ok: boolean; entry?: WorkLedgerEntryView; code?: string; message?: string }>> =>
+      this.request(`/work-os/ledger/${encodeURIComponent(ledgerEntryId)}`, {
+        method: "PATCH",
+        body: patch,
+      }),
 
     /** GET /api/v1/work-os/team-work — manager/admin team view; 403 with
      *  TEAM_SCOPE_NOT_CONFIGURED when the caller lacks team authority. */

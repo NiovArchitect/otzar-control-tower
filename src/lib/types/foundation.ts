@@ -4294,6 +4294,11 @@ export interface WorkLedgerEntryView {
   // verification failure (vs a ledger-status blind spot).
   blind_spot_reason?: string;
   blind_spot_severity?: string;
+  // Phase 1285-E — the thread message this work was tracked from (proof link).
+  source_message_id?: string;
+  // Phase 1285-E — server-computed: the caller owns this active task and may
+  // mark it complete (My Work only). Drives the "Mark complete" control.
+  can_complete?: boolean;
 }
 
 // Phase 1282 — durable execution evidence for a ledger entry. An attempt is

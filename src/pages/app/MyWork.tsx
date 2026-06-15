@@ -19,6 +19,14 @@ export function MyWork(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
   const [failed, setFailed] = useState(false);
 
+  // Reload My Work — used on mount AND after a status change (Mark complete)
+  // so a completed task drops out / updates without an app restart.
+  async function reload(): Promise<void> {
+    const r = await api.workOs.myWork();
+    if (r.ok) setItems(r.data.items ?? r.data.entries ?? []);
+    else setFailed(true);
+  }
+
   useEffect(() => {
     let cancelled = false;
     api.workOs
@@ -71,7 +79,7 @@ export function MyWork(): JSX.Element {
                 {bucket} ({group.length})
               </h2>
               {group.map((e) => (
-                <WorkLedgerItem key={e.ledger_entry_id} entry={e} />
+                <WorkLedgerItem key={e.ledger_entry_id} entry={e} onChanged={() => void reload()} />
               ))}
             </section>
           );
