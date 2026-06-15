@@ -17,11 +17,22 @@ import { signalLabel, ledgerTypeForSignal, isAddable } from "@/lib/work-os/threa
 export function ThreadSignalChip({
   signalType,
   sourceMessageId,
+  tracked = false,
+  onTracked,
 }: {
   signalType: string;
   sourceMessageId: string;
+  /** Server-derived: this message is already in the Work Ledger. */
+  tracked?: boolean;
+  /** Called after a successful Add so the parent can refresh waiting-on. */
+  onTracked?: () => void;
 }): JSX.Element {
-  const [state, setState] = useState<"idle" | "adding" | "added" | "dismissed" | "corrected" | "error">("idle");
+  // Persist the "already tracked" state from the server so the chip never
+  // re-offers "Add" for a message already in the Work Ledger (across reloads /
+  // both participants' views). The backend track call is idempotent.
+  const [state, setState] = useState<"idle" | "adding" | "added" | "dismissed" | "corrected" | "error">(
+    tracked ? "added" : "idle",
+  );
   const label = signalLabel(signalType);
   const addable = isAddable(signalType);
 
@@ -33,8 +44,14 @@ export function ThreadSignalChip({
     setState("adding");
     // Track-signal derives the DIRECTION on the backend from the source
     // message (requester=sender, owner=the asked person) → waiting-on state.
+    // Idempotent: a repeat call returns the existing entry (no duplicate).
     const r = await api.workOs.trackSignal(sourceMessageId, ledgerType);
-    setState(r.ok && r.data.ok ? "added" : "error");
+    if (r.ok && r.data.ok) {
+      setState("added");
+      onTracked?.();
+    } else {
+      setState("error");
+    }
   }
 
   async function notWork(): Promise<void> {

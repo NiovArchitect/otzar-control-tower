@@ -49,6 +49,32 @@ describe("classifyThreadQuery", () => {
     });
     expect(classifyThreadQuery("what does Samiksha owe me")?.type).toBe("WAITING_ON");
   });
+  it("WAITING_ON — imperfect/natural human phrasing", () => {
+    // The exact live-failure phrase (no "on") + the variants Sadeil may say.
+    const cases: Array<[string, string]> = [
+      ["what am I waiting from David", "David"],
+      ["what work am I waiting from David", "David"],
+      ["what work is waiting from David", "David"],
+      ["what am I waiting on David for", "David"],
+      ["what do I need from David", "David"],
+      ["what does David owe me", "David"],
+      ["what is David supposed to send me", "David"],
+      ["what did I ask David for", "David"],
+      ["what is pending from David", "David"],
+      ["what is outstanding from David", "David"],
+      ["what tasks are pending from David", "David"],
+    ];
+    for (const [q, person] of cases) {
+      const r = classifyThreadQuery(q);
+      expect(r, `"${q}" should be WAITING_ON`).not.toBeNull();
+      expect(r!.type, `"${q}"`).toBe("WAITING_ON");
+      expect(r!.person, `"${q}"`).toBe(person);
+    }
+  });
+  it("'what did I ask David to do?' stays LATEST_TO (not WAITING_ON)", () => {
+    // "ask X to do" is a sent-message lookup; only "ask X for" is waiting-on.
+    expect(classifyThreadQuery("What did I ask David to do?")?.type).toBe("LATEST_TO");
+  });
   it("returns null for non-thread questions", () => {
     expect(classifyThreadQuery("what is the weather")).toBeNull();
     expect(classifyThreadQuery("open my work")).toBeNull();

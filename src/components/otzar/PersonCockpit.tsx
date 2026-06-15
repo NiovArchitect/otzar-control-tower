@@ -46,10 +46,20 @@ export function PersonCockpit({
     kind: "idle",
   });
 
-  async function loadThread(): Promise<void> {
-    const t = await api.workOs.thread(entityId);
+  // Load BOTH the thread and the waiting-on relationship together. Reused on
+  // mount AND after any state-changing action (send, Add to Work Ledger) so the
+  // cockpit reflects durable state without an app restart (Phase 1285-C).
+  async function loadAll(): Promise<void> {
+    const [t, w] = await Promise.all([
+      api.workOs.thread(entityId),
+      api.workOs.waitingOn(entityId),
+    ]);
     setMessages(t.ok && t.data.ok && t.data.messages != null ? t.data.messages : []);
     setLoadingThread(false);
+    if (w.ok && w.data.ok) {
+      setWaitingOnThem(w.data.waiting_on_them ?? []);
+      setPendingFromThem(w.data.pending_from_them ?? []);
+    }
   }
 
   useEffect(() => {
@@ -81,7 +91,7 @@ export function PersonCockpit({
     if (r.ok && r.data.status === "DELIVERED") {
       setCompose("");
       setSendState({ kind: "sent", note: `Delivered to ${r.data.recipient_display_name ?? displayName}.` });
-      void loadThread();
+      void loadAll();
     } else {
       setSendState({
         kind: "error",
@@ -144,6 +154,8 @@ export function PersonCockpit({
                     <ThreadSignalChip
                       signalType={m.signal.signal_type}
                       sourceMessageId={m.message_id}
+                      tracked={m.signal.tracked ?? false}
+                      onTracked={() => void loadAll()}
                     />
                   ) : null}
                 </div>

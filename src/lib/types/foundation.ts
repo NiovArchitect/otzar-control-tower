@@ -4329,6 +4329,9 @@ export interface DirectThreadMessageView {
     signal_type: string;
     confidence: string;
     evidence_phrase: string;
+    // Phase 1285-C — true when this message is already tracked in the Work
+    // Ledger; the chip renders an "Already tracked" terminal state.
+    tracked?: boolean;
   };
 }
 export interface DirectThreadResponse {
