@@ -57,12 +57,34 @@ function statusWord(s: string): string {
 
 export function WorkLedgerItem({
   entry,
+  onChanged,
 }: {
   entry: WorkLedgerEntryView;
+  /** Called after a status change (e.g. Mark complete) so the parent reloads. */
+  onChanged?: () => void;
 }): JSX.Element {
   const [open, setOpen] = useState(false);
   const [attempts, setAttempts] = useState<ExecutionAttemptView[] | null>(null);
   const [proofState, setProofState] = useState<"idle" | "loading" | "error" | "loaded">("idle");
+  const [completing, setCompleting] = useState(false);
+  const [completeErr, setCompleteErr] = useState<string | null>(null);
+
+  // Mark complete — owner-only (server-computed entry.can_complete). PATCHes
+  // the status to EXECUTED; the requester's waiting-on then clears. The backend
+  // re-enforces authority, so this control never bypasses policy.
+  async function markComplete(): Promise<void> {
+    setCompleting(true);
+    setCompleteErr(null);
+    const r = await api.workOs.patchLedger(entry.ledger_entry_id, { status: "EXECUTED" });
+    setCompleting(false);
+    if (r.ok && r.data.ok) {
+      onChanged?.();
+    } else {
+      setCompleteErr(
+        r.ok && r.data.message ? r.data.message : "Couldn't mark complete right now.",
+      );
+    }
+  }
 
   // Lazy-load execution proof only when the user opens View/Why — never
   // upfront for every card. Read-only; sends/executes nothing.
@@ -113,6 +135,17 @@ export function WorkLedgerItem({
           <Badge variant="outline" className="text-[9px]">
             {entry.status.replace(/_/g, " ")}
           </Badge>
+          {entry.can_complete === true ? (
+            <button
+              type="button"
+              className="rounded border border-emerald-500/50 px-1 text-[10px] text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50"
+              data-testid="work-ledger-item-complete"
+              disabled={completing}
+              onClick={() => void markComplete()}
+            >
+              {completing ? "Marking…" : "Mark complete"}
+            </button>
+          ) : null}
           <button
             type="button"
             className="rounded px-1 text-[10px] text-muted-foreground hover:text-foreground"
@@ -123,6 +156,11 @@ export function WorkLedgerItem({
           </button>
         </div>
       </div>
+      {completeErr !== null ? (
+        <p className="mt-1 text-[10px] text-amber-600" data-testid="work-ledger-item-complete-error">
+          {completeErr}
+        </p>
+      ) : null}
       {open ? (
         <div
           className="mt-1 space-y-0.5 rounded bg-muted/40 p-1.5 text-[11px] text-muted-foreground"
@@ -135,6 +173,7 @@ export function WorkLedgerItem({
           {detail("Owner", entry.owner_entity_id)}
           {detail("Requester", entry.requester_entity_id)}
           {detail("Target", entry.target_entity_id)}
+          {detail("Source message", entry.source_message_id)}
           {detail("Plan", entry.work_plan_id)}
           {detail("Due", entry.due_at)}
 
