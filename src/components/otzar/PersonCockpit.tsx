@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import { ThreadSignalChip } from "@/components/otzar/ThreadSignalChip";
+import { emitWorkStateChanged, useWorkStateChanged } from "@/lib/events/work-state";
 import type { DirectThreadMessageView, WaitingOnItemView } from "@/lib/types/foundation";
 
 export function PersonCockpit({
@@ -82,6 +83,14 @@ export function PersonCockpit({
     };
   }, [entityId]);
 
+  // Additive cross-surface sync (Phase 1285-K): refresh the cockpit's thread +
+  // waiting-on when work state changes anywhere, alongside the existing
+  // loadAll/onTracked paths.
+  useWorkStateChanged(
+    ["MESSAGE_CREATED", "THREAD_UPDATED", "WAITING_ON_CHANGED", "SIGNAL_TRACKED", "TASK_COMPLETED"],
+    () => void loadAll(),
+  );
+
   async function sendMessage(): Promise<void> {
     const text = compose.trim();
     if (text.length === 0) return;
@@ -91,7 +100,10 @@ export function PersonCockpit({
     if (r.ok && r.data.status === "DELIVERED") {
       setCompose("");
       setSendState({ kind: "sent", note: `Delivered to ${r.data.recipient_display_name ?? displayName}.` });
-      void loadAll();
+      void loadAll(); // existing path (kept)
+      // Additive (Phase 1285-K): a new message propagates to other thread views.
+      emitWorkStateChanged({ type: "MESSAGE_CREATED", entity_id: entityId });
+      emitWorkStateChanged({ type: "THREAD_UPDATED", entity_id: entityId });
     } else {
       setSendState({
         kind: "error",

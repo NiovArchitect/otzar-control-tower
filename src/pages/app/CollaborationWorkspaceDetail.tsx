@@ -31,6 +31,7 @@ import {
   Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { UNRESOLVED_LABEL } from "@/lib/identity/canonical-entity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -152,7 +153,7 @@ export function CollaborationWorkspaceDetail(): JSX.Element {
   // Group internal commitments by owner.
   const commitmentsByOwner = new Map<string, CollaborationCommitmentView[]>();
   for (const c of detail.commitments) {
-    const key = c.owner_display_name || "(unresolved)";
+    const key = c.owner_display_name || UNRESOLVED_LABEL;
     const arr = commitmentsByOwner.get(key) ?? [];
     arr.push(c);
     commitmentsByOwner.set(key, arr);

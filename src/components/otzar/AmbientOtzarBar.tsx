@@ -81,6 +81,7 @@ import {
   useConversationStore,
 } from "@/lib/work-os/conversation-store";
 import { resolveTarget } from "@/lib/work-os/target-resolution";
+import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
   isExplicitActionCenterNav,
@@ -810,7 +811,7 @@ export function AmbientOtzarBar(): JSX.Element {
     // delivered note, even if the draft body was edited in the card.
     const r = await api.workOs.internalMessage(recipientRef, sanitizeOutboundMessage(body));
     if (r.ok && r.data.status === "DELIVERED") {
-      const to = r.data.recipient_display_name ?? a.targetLabel ?? "your teammate";
+      const to = entityLabel(r.data.recipient_display_name ?? a.targetLabel);
       const status = `Delivered to ${to}`;
       const proofBits = [
         r.data.notification_id !== undefined ? `msg ${r.data.notification_id.slice(0, 8)}` : null,
