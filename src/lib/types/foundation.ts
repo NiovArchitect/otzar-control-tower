@@ -4299,6 +4299,10 @@ export interface WorkLedgerEntryView {
   // Phase 1285-E — server-computed: the caller owns this active task and may
   // mark it complete (My Work only). Drives the "Mark complete" control.
   can_complete?: boolean;
+  // Phase 1285-G — human-readable participant names (Team Work enrichment).
+  owner_display_name?: string;
+  requester_display_name?: string;
+  target_display_name?: string;
 }
 
 // Phase 1282 — durable execution evidence for a ledger entry. An attempt is

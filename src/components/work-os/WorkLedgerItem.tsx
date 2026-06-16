@@ -170,9 +170,9 @@ export function WorkLedgerItem({
           {detail("Source", entry.source_command !== null ? `“${entry.source_command}”` : null)}
           {detail("Extraction", entry.extraction_source)}
           {detail("Priority", entry.priority)}
-          {detail("Owner", entry.owner_entity_id)}
-          {detail("Requester", entry.requester_entity_id)}
-          {detail("Target", entry.target_entity_id)}
+          {detail("Owner", entry.owner_display_name ?? entry.owner_entity_id)}
+          {detail("Requester", entry.requester_display_name ?? entry.requester_entity_id)}
+          {detail("Target", entry.target_display_name ?? entry.target_entity_id)}
           {detail("Source message", entry.source_message_id)}
           {detail("Plan", entry.work_plan_id)}
           {detail("Due", entry.due_at)}
