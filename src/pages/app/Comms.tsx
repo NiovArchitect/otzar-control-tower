@@ -31,8 +31,14 @@ import {
   AlertCircle,
   Brain,
   CheckCircle2,
+  Flag,
+  HelpCircle,
+  Handshake,
+  Lightbulb,
+  ListTodo,
   Loader2,
   Mic,
+  Send,
   Sparkles,
   Square,
   Upload,
@@ -258,6 +264,10 @@ export function Comms(): JSX.Element {
         </Card>
       ) : null}
 
+      {/* Phase 1285-L2 — conversation intelligence cockpit (default state). Makes
+          Comms's operating role clear BEFORE any capture/import exists. */}
+      {phase === "READY" ? <CommsCockpit /> : null}
+
       {/* CAPTURING state: Otzar is listening */}
       {phase === "CAPTURING" ? (
         <Card data-testid="comms-capturing">
@@ -469,6 +479,25 @@ function ExtractionView({
         </Card>
       ) : null}
 
+      {/* Phase 1285-L2 — blockers/risks now surfaced (was extracted but not
+          rendered). One of the four conversation-intelligence categories. */}
+      {extraction.risks_or_blockers.length > 0 ? (
+        <Card data-testid="comms-blockers">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Blockers &amp; risks</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc space-y-1 pl-5 text-sm">
+              {extraction.risks_or_blockers.map((b, i) => (
+                <li key={i} data-testid="comms-blocker">
+                  {b}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {extraction.suggested_actions.length > 0 ? (
         <div className="space-y-2" data-testid="comms-follow-ups">
           <h3 className="text-sm font-medium">Follow-ups Otzar drafted</h3>
@@ -494,6 +523,92 @@ function ExtractionView({
           Start a new capture
         </Button>
       </div>
+    </div>
+  );
+}
+
+// Phase 1285-L2 — the default Comms cockpit: what Otzar turns conversations
+// into, how the flow works, and an honest "recent intelligence" state. No fake
+// artifacts — there is no recent-artifacts endpoint yet (documented gap).
+function CommsCockpit(): JSX.Element {
+  const listensFor: ReadonlyArray<{
+    label: string;
+    desc: string;
+    icon: typeof Flag;
+    wired: boolean;
+  }> = [
+    { label: "Follow-ups", desc: "Drafted internal notes you approve", icon: Send, wired: true },
+    { label: "Decisions", desc: "What the group decided", icon: Lightbulb, wired: true },
+    { label: "Blockers", desc: "What's stuck or at risk", icon: Flag, wired: true },
+    { label: "Commitments", desc: "Who committed to what", icon: Handshake, wired: true },
+    { label: "Questions", desc: "Open questions raised", icon: HelpCircle, wired: false },
+    { label: "Tasks / Work Ledger", desc: "Turn talk into tracked work", icon: ListTodo, wired: false },
+  ];
+  const flow = [
+    "Capture / Import",
+    "Extract signals",
+    "Review drafts",
+    "Approve / correct",
+    "Add to Work Ledger or send internally",
+    "Proof preserved",
+  ];
+  return (
+    <div className="space-y-4" data-testid="comms-cockpit">
+      {/* What Otzar turns conversations into */}
+      <section className="space-y-2" data-testid="comms-listens-for">
+        <h3 className="text-sm font-medium">What Otzar turns conversations into</h3>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {listensFor.map((c) => {
+            const Icon = c.icon;
+            return (
+              <div
+                key={c.label}
+                className="flex items-start gap-2 rounded-md border border-border bg-card p-2 text-xs"
+                data-testid="comms-listens-item"
+              >
+                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-foreground">{c.label}</span>
+                    {!c.wired ? (
+                      <Badge variant="outline" className="text-[9px]">
+                        coming next
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-muted-foreground">{c.desc}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* How conversation becomes governed work */}
+      <section className="space-y-1" data-testid="comms-flow">
+        <h3 className="text-sm font-medium">How it flows</h3>
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+          {flow.map((step, i) => (
+            <span key={step} className="flex items-center gap-1.5">
+              <span className="rounded bg-muted px-1.5 py-0.5">{step}</span>
+              {i < flow.length - 1 ? <span aria-hidden>→</span> : null}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* Recent conversation intelligence — honest empty state (no recent-
+          artifacts endpoint yet; see backlog/semantic-reconciliation). */}
+      <section className="space-y-1" data-testid="comms-recent">
+        <h3 className="text-sm font-medium">Recent conversation intelligence</h3>
+        <div
+          className="rounded-md border border-border p-3 text-xs text-muted-foreground"
+          data-testid="comms-recent-empty"
+        >
+          No captured conversation artifacts yet. Start capture or import notes to
+          generate follow-ups, decisions, blockers, and commitments.
+        </div>
+      </section>
     </div>
   );
 }

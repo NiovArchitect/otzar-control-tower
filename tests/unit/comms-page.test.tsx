@@ -152,6 +152,73 @@ describe("Comms — HERO flow", () => {
   });
 });
 
+describe("Comms — default cockpit (Phase 1285-L2)", () => {
+  it("shows the conversation-intelligence cockpit, not just two buttons", () => {
+    mockExtract();
+    renderPage();
+    // Capture controls present...
+    expect(screen.getByTestId("comms-start")).toBeInTheDocument();
+    expect(screen.getByTestId("comms-import-toggle")).toBeInTheDocument();
+    // ...PLUS the cockpit: what Otzar turns conversations into + the flow.
+    expect(screen.getByTestId("comms-cockpit")).toBeInTheDocument();
+    expect(screen.getByTestId("comms-listens-for")).toBeInTheDocument();
+    expect(screen.getAllByTestId("comms-listens-item").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByTestId("comms-flow")).toBeInTheDocument();
+  });
+
+  it("names the four conversation-intelligence categories", () => {
+    mockExtract();
+    renderPage();
+    const html = screen.getByTestId("comms-listens-for").outerHTML;
+    expect(html).toContain("Follow-ups");
+    expect(html).toContain("Decisions");
+    expect(html).toContain("Blockers");
+    expect(html).toContain("Commitments");
+  });
+
+  it("shows an honest 'recent conversation intelligence' empty state (no fake artifacts)", () => {
+    mockExtract();
+    renderPage();
+    expect(screen.getByTestId("comms-recent-empty")).toHaveTextContent(
+      "No captured conversation artifacts yet",
+    );
+  });
+
+  it("the cockpit is gone once a capture review is showing", async () => {
+    mockExtract();
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByTestId("comms-start"));
+    await user.click(screen.getByTestId("comms-end"));
+    await waitFor(() => expect(screen.getByTestId("comms-review")).toBeInTheDocument());
+    expect(screen.queryByTestId("comms-cockpit")).toBeNull();
+  });
+});
+
+describe("Comms — follow-up View/Why (Phase 1285-L)", () => {
+  it("a follow-up exposes a Why disclosure with source + confidence + extraction", async () => {
+    mockExtract();
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByTestId("comms-start"));
+    await user.click(screen.getByTestId("comms-end"));
+    await waitFor(() =>
+      expect(screen.getAllByTestId("comms-follow-up-row").length).toBeGreaterThan(0),
+    );
+    // Open the first follow-up's Why.
+    const whyButtons = screen.getAllByTestId("comms-follow-up-why");
+    await user.click(whyButtons[0]!);
+    const panels = screen.getAllByTestId("comms-follow-up-view-why");
+    const html = panels[0]!.outerHTML;
+    // Source excerpt, confidence, and extraction mode are surfaced.
+    expect(html).toContain("Source");
+    expect(html.toLowerCase()).toContain("confidence");
+    expect(html).toContain("Extraction");
+    // No raw UUID leaked as a label.
+    expect(html).not.toContain("id-david");
+  });
+});
+
 describe("Comms — end capture posts canonical text + renders extraction", () => {
   it("end-capture posts assembled captured_text and renders summary/decisions/commitments/follow-ups", async () => {
     let capturedBody: { captured_text?: string } | null = null;
