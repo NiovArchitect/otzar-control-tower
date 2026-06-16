@@ -110,9 +110,23 @@ describe("Team Work cockpit", () => {
   });
 });
 
+function blindSpot(over: Record<string, unknown> = {}) {
+  return {
+    blind_spot_id: "bs-1", type: "OVERDUE_WORK", title: "Overdue: Send proof notes",
+    summary: "Past due by 9 days.", severity: "HIGH", ledger_entry_id: "led-9",
+    ledger_type: "TASK", status: "PROPOSED", owner_entity_id: "me",
+    requester_entity_id: "ent-david", owner_display_name: "You",
+    requester_display_name: "David Odie", due_at: "2026-06-01T00:00:00.000Z",
+    age_days: 12, source_message_id: "msg-3",
+    recommended_action: "Complete this overdue work or renegotiate the due date.",
+    detection_rule: "due_at < now", ...over,
+  };
+}
+
 describe("Blind Spots cockpit", () => {
-  it("renders ledger-derived blocked/unresolved items", async () => {
+  it("renders ledger-derived blocked/unresolved items (legacy section)", async () => {
     server.use(
+      http.get(`${API_BASE}/work-os/blind-spots/feed`, () => HttpResponse.json({ ok: true, items: [] })),
       http.get(`${API_BASE}/work-os/blind-spots`, () =>
         HttpResponse.json({ ok: true, items: [entry({ status: "NEEDS_TARGET_RESOLUTION", title: "Unknown Alex" })] }),
       ),
@@ -120,6 +134,60 @@ describe("Blind Spots cockpit", () => {
     renderPage(<BlindSpots />);
     await waitFor(() => expect(screen.getByTestId("work-ledger-item")).toBeInTheDocument());
     expect(screen.getByTestId("blind-spots-page").textContent).toMatch(/Unknown Alex/i);
+  });
+});
+
+describe("Blind Spots typed risk feed (Phase 1285-N)", () => {
+  it("renders the real feed grouped by type with severity + owner + recommended action", async () => {
+    server.use(
+      http.get(`${API_BASE}/work-os/blind-spots/feed`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [
+            blindSpot(),
+            blindSpot({ blind_spot_id: "bs-2", type: "UNRESOLVED_BLOCKER", title: "Blocker: API key", severity: "HIGH", ledger_entry_id: "led-10", recommended_action: "Resolve or escalate this blocker." }),
+          ],
+        }),
+      ),
+      http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    renderPage(<BlindSpots />);
+    await waitFor(() => expect(screen.getByTestId("blind-spots-feed")).toBeInTheDocument());
+    const cards = screen.getAllByTestId("blind-spot-card");
+    expect(cards.length).toBe(2);
+    // grouped under canonical labels
+    const page = screen.getByTestId("blind-spots-page").textContent ?? "";
+    expect(page).toMatch(/Overdue/);
+    expect(page).toMatch(/Blockers/);
+    // severity badge + recommended action + canonical owner (never raw UUID)
+    expect(screen.getAllByTestId("blind-spot-severity")[0]!.textContent).toMatch(/high/i);
+    expect(screen.getAllByTestId("blind-spot-recommended")[0]!.textContent).toMatch(/Complete this overdue work/);
+    expect(page).toMatch(/David Odie/);
+    expect(page).not.toMatch(/ent-david/);
+  });
+
+  it("opens View/Why with the detection rule and proof (no fake)", async () => {
+    server.use(
+      http.get(`${API_BASE}/work-os/blind-spots/feed`, () => HttpResponse.json({ ok: true, items: [blindSpot()] })),
+      http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    renderPage(<BlindSpots />);
+    const why = await screen.findByTestId("blind-spot-why");
+    why.click();
+    await waitFor(() => expect(screen.getByTestId("blind-spot-view-why")).toBeInTheDocument());
+    const detail = screen.getByTestId("blind-spot-view-why").textContent ?? "";
+    expect(detail).toMatch(/due_at < now/); // the deterministic detection rule
+    expect(detail).toMatch(/msg-3/); // source proof
+  });
+
+  it("shows the honest empty state when there are no blind spots", async () => {
+    server.use(
+      http.get(`${API_BASE}/work-os/blind-spots/feed`, () => HttpResponse.json({ ok: true, items: [] })),
+      http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    renderPage(<BlindSpots />);
+    await waitFor(() => expect(screen.getByTestId("blind-spots-empty")).toBeInTheDocument());
+    expect(screen.getByTestId("blind-spots-empty").textContent).toMatch(/No blind spots detected right now/i);
   });
 });
 

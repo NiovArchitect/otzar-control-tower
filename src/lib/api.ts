@@ -81,6 +81,7 @@ import type {
   WorkLedgerCreateResponse,
   WorkLedgerListResponse,
   WorkLedgerEntryView,
+  BlindSpotFeedResponse,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
@@ -1202,6 +1203,11 @@ export class ApiClient {
     /** GET /api/v1/work-os/blind-spots — attention-needing items. */
     blindSpots: (): Promise<ApiResult<WorkLedgerListResponse>> =>
       this.request<WorkLedgerListResponse>("/work-os/blind-spots"),
+
+    /** GET /api/v1/work-os/blind-spots/feed — typed risk feed (overdue / stale
+     *  waiting-on / unresolved blocker / no-next-action) with severity. */
+    blindSpotsFeed: (): Promise<ApiResult<BlindSpotFeedResponse>> =>
+      this.request<BlindSpotFeedResponse>("/work-os/blind-spots/feed"),
 
     /** PATCH /api/v1/work-os/ledger/:id — update status / next_action /
      *  priority. Completion authority is enforced server-side (only the

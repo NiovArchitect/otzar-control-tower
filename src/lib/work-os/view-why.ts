@@ -15,6 +15,7 @@ import type {
   SafeNotificationView,
   SafeActionView,
   CommsSuggestedAction,
+  BlindSpotFeedItem,
 } from "@/lib/types/foundation";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import { entityLabel } from "@/lib/identity/canonical-entity";
@@ -241,4 +242,32 @@ export function viewWhyFromCommsFollowUp(
     model.proofNote = "No source excerpt captured for this follow-up.";
   }
   return model;
+}
+
+const BLIND_SPOT_TYPE_LABEL: Record<string, string> = {
+  OVERDUE_WORK: "Overdue work",
+  STALE_WAITING_ON: "Stale waiting-on",
+  UNRESOLVED_BLOCKER: "Unresolved blocker",
+  NO_NEXT_ACTION: "No next action",
+};
+
+// WHAT: shared View/Why for a Blind Spot — why Otzar flagged it, severity, the
+//        participants (canonical), age/due, source proof, recommended action,
+//        and the deterministic detection rule (Phase 1285-N).
+export function viewWhyFromBlindSpot(b: BlindSpotFeedItem): ViewWhyModel {
+  const rows: ViewWhyRow[] = [
+    { label: "Type", value: BLIND_SPOT_TYPE_LABEL[b.type] ?? b.type },
+    { label: "Severity", value: b.severity },
+    { label: "Why flagged", value: b.summary },
+    { label: "Owner", value: b.owner_entity_id !== null ? entityLabel(b.owner_display_name) : null },
+    { label: "Requester", value: b.requester_entity_id !== null ? entityLabel(b.requester_display_name) : null },
+    { label: "Status", value: b.status?.replace(/_/g, " ") },
+    { label: "Due", value: b.due_at },
+    { label: "Age", value: `${b.age_days}d` },
+    { label: "Source message", value: b.source_message_id },
+    { label: "Ledger id", value: b.ledger_entry_id },
+    { label: "Recommended", value: b.recommended_action },
+    { label: "Detection rule", value: b.detection_rule },
+  ];
+  return { rows };
 }
