@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import type { SafeNotificationView, DirectThreadMessageView } from "@/lib/types/foundation";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import { ThreadSignalChip } from "@/components/otzar/ThreadSignalChip";
+import { entityLabel } from "@/lib/identity/canonical-entity";
 
 type Phase = "loading" | "ready" | "not-found" | "error";
 
@@ -124,7 +125,7 @@ export function InboxThread(): JSX.Element {
       <div className="text-[11px] text-muted-foreground">
         Conversation with{" "}
         <span className="font-medium text-foreground">
-          {sender?.display_name ?? "teammate"}
+          {entityLabel(sender?.display_name)}
           {sender?.role_title != null ? ` · ${sender.role_title}` : ""}
         </span>
       </div>
@@ -142,7 +143,7 @@ export function InboxThread(): JSX.Element {
               data-testid="inbox-thread-message"
             >
               <div className="text-[10px] text-muted-foreground">
-                {m.from_me ? "You" : m.sender_display_name}
+                {m.from_me ? "You" : entityLabel(m.sender_display_name)}
                 {!m.from_me && m.sender_role_title != null ? ` · ${m.sender_role_title}` : ""}
               </div>
               <p className="whitespace-pre-wrap break-words text-foreground">{m.body}</p>
@@ -161,7 +162,7 @@ export function InboxThread(): JSX.Element {
       ) : (
         <div className="rounded-md border border-border bg-background/70 p-3 text-sm" data-testid="inbox-thread-single">
           <div className="text-[11px] font-medium text-foreground" data-testid="inbox-thread-from">
-            From: {sender?.display_name ?? "Unknown sender"}
+            From: {entityLabel(sender?.display_name)}
             {sender?.role_title != null ? ` · ${sender.role_title}` : ""}
           </div>
           <p className="mt-2 whitespace-pre-wrap break-words text-foreground" data-testid="inbox-thread-body">

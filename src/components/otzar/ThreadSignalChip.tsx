@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { signalLabel, ledgerTypeForSignal, isAddable } from "@/lib/work-os/thread-signal";
+import { emitWorkStateChanged } from "@/lib/events/work-state";
 
 export function ThreadSignalChip({
   signalType,
@@ -48,7 +49,14 @@ export function ThreadSignalChip({
     const r = await api.workOs.trackSignal(sourceMessageId, ledgerType);
     if (r.ok && r.data.ok) {
       setState("added");
-      onTracked?.();
+      onTracked?.(); // existing path (kept; build-forward)
+      // Additive: propagate to any other mounted surface (My Work / Team Work).
+      emitWorkStateChanged({
+        type: "SIGNAL_TRACKED",
+        source_message_id: sourceMessageId,
+        ...(r.data.ledger_entry_id !== undefined ? { ledger_entry_id: r.data.ledger_entry_id } : {}),
+      });
+      emitWorkStateChanged({ type: "WAITING_ON_CHANGED" });
     } else {
       setState("error");
     }

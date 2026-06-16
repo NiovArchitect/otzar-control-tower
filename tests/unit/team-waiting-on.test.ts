@@ -81,10 +81,11 @@ describe("groupWaitingByOwner", () => {
     const sami = groups.find((g) => g.owner_entity_id === "sami")!;
     expect(sami.name).toBe("Samiksha Sharma");
   });
-  it("falls back to a neutral name (never a raw UUID label) when unresolved", () => {
+  it("falls back to the canonical label (never a raw UUID) when unresolved", () => {
     // No owner_display_name set on the entry (server didn't resolve it).
     const groups = groupWaitingByOwner([entry({})]);
-    expect(groups[0]!.name).toBe("a teammate");
+    expect(groups[0]!.name).toBe("Unknown entity");
+    expect(groups[0]!.name).not.toBe(groups[0]!.owner_entity_id);
   });
 });
 
