@@ -14,6 +14,7 @@ import {
   bucketFor,
   BUCKET_ORDER,
 } from "@/components/work-os/WorkLedgerItem";
+import { useWorkStateChanged } from "@/lib/events/work-state";
 
 export function MyWork(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
@@ -43,6 +44,11 @@ export function MyWork(): JSX.Element {
       cancelled = true;
     };
   }, []);
+
+  // Additive cross-surface sync (Phase 1285-H): refresh when work state changes
+  // anywhere (e.g. a task tracked/completed elsewhere), alongside the existing
+  // onChanged callback path.
+  useWorkStateChanged(["TASK_COMPLETED", "LEDGER_UPDATED", "SIGNAL_TRACKED"], () => void reload());
 
   return (
     <div className="space-y-4" data-testid="my-work-page">

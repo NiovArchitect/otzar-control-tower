@@ -7,6 +7,7 @@
 // CONNECTS TO: src/pages/app/TeamWork.tsx, tests/unit/team-waiting-on.test.ts.
 
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
+import { UNRESOLVED_LABEL } from "@/lib/identity/canonical-entity";
 
 // Directional work types — one person waiting on another (mirrors the backend
 // TRACKABLE_LEDGER_TYPES set).
@@ -51,7 +52,7 @@ export function groupWaitingByOwner(entries: WorkLedgerEntryView[]): OwnerGroup[
     if (!byOwner.has(key)) {
       byOwner.set(key, {
         owner_entity_id: key,
-        name: e.owner_display_name ?? "a teammate",
+        name: e.owner_display_name ?? UNRESOLVED_LABEL,
         items: [],
       });
     }

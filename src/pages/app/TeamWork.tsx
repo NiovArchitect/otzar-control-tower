@@ -13,6 +13,8 @@ import { api } from "@/lib/api";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
 import { WorkLedgerItem, bucketFor, BUCKET_ORDER } from "@/components/work-os/WorkLedgerItem";
 import { isWaitingOnItem, groupWaitingByOwner, ageOf } from "@/lib/work-os/team-waiting-on";
+import { entityLabel } from "@/lib/identity/canonical-entity";
+import { useWorkStateChanged } from "@/lib/events/work-state";
 
 export function TeamWork(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
@@ -45,6 +47,14 @@ export function TeamWork(): JSX.Element {
       cancelled = true;
     };
   }, []);
+
+  // Additive cross-surface sync (Phase 1285-H): when a task is completed /
+  // tracked anywhere, the team waiting-on panel refreshes without a manual
+  // reload — alongside the existing onChanged callback path.
+  useWorkStateChanged(
+    ["TASK_COMPLETED", "LEDGER_UPDATED", "SIGNAL_TRACKED", "WAITING_ON_CHANGED"],
+    () => void reload(),
+  );
 
   // Directional waiting-on items grouped by owner (the person being waited on).
   const waitingOn = items === null ? [] : items.filter(isWaitingOnItem);
@@ -100,7 +110,7 @@ export function TeamWork(): JSX.Element {
                   {group.items.map((e) => (
                     <div key={e.ledger_entry_id} className="ml-2">
                       <div className="text-[11px] text-muted-foreground">
-                        requested by {e.requester_display_name ?? "a teammate"}
+                        requested by {entityLabel(e.requester_display_name)}
                         {" · "}
                         {e.status.replace(/_/g, " ").toLowerCase()}
                         {" · "}

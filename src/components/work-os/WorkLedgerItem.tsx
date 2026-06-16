@@ -13,6 +13,8 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type { WorkLedgerEntryView, ExecutionAttemptView } from "@/lib/types/foundation";
+import { entityLabel } from "@/lib/identity/canonical-entity";
+import { emitWorkStateChanged } from "@/lib/events/work-state";
 
 function detail(label: string, value: string | null | undefined): JSX.Element | null {
   if (value === null || value === undefined || value === "") return null;
@@ -78,7 +80,12 @@ export function WorkLedgerItem({
     const r = await api.workOs.patchLedger(entry.ledger_entry_id, { status: "EXECUTED" });
     setCompleting(false);
     if (r.ok && r.data.ok) {
-      onChanged?.();
+      onChanged?.(); // existing path (kept; build-forward)
+      // Additive: a completed task clears the requester's waiting-on across
+      // surfaces (e.g. Team Work) without each surface knowing about the other.
+      emitWorkStateChanged({ type: "TASK_COMPLETED", ledger_entry_id: entry.ledger_entry_id });
+      emitWorkStateChanged({ type: "LEDGER_UPDATED", ledger_entry_id: entry.ledger_entry_id });
+      emitWorkStateChanged({ type: "WAITING_ON_CHANGED" });
     } else {
       setCompleteErr(
         r.ok && r.data.message ? r.data.message : "Couldn't mark complete right now.",
@@ -170,9 +177,11 @@ export function WorkLedgerItem({
           {detail("Source", entry.source_command !== null ? `“${entry.source_command}”` : null)}
           {detail("Extraction", entry.extraction_source)}
           {detail("Priority", entry.priority)}
-          {detail("Owner", entry.owner_display_name ?? entry.owner_entity_id)}
-          {detail("Requester", entry.requester_display_name ?? entry.requester_entity_id)}
-          {detail("Target", entry.target_display_name ?? entry.target_entity_id)}
+          {/* Phase 1285-H — canonical identity: render the display name or the
+              canonical "Unknown entity" label; NEVER the raw entity_id. */}
+          {entry.owner_entity_id !== null ? detail("Owner", entityLabel(entry.owner_display_name)) : null}
+          {entry.requester_entity_id !== null ? detail("Requester", entityLabel(entry.requester_display_name)) : null}
+          {entry.target_entity_id !== null ? detail("Target", entityLabel(entry.target_display_name)) : null}
           {detail("Source message", entry.source_message_id)}
           {detail("Plan", entry.work_plan_id)}
           {detail("Due", entry.due_at)}
