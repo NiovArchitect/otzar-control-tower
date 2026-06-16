@@ -9,8 +9,80 @@
 // CONNECTS TO: src/components/work-os/ViewWhyPanel.tsx, WorkLedgerItem,
 //          PersonCockpit, InboxThread; tests/unit/view-why.test.ts.
 
-import type { WorkLedgerEntryView, DirectThreadMessageView } from "@/lib/types/foundation";
+import type {
+  WorkLedgerEntryView,
+  DirectThreadMessageView,
+  SafeNotificationView,
+  SafeActionView,
+  CommsSuggestedAction,
+} from "@/lib/types/foundation";
+import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import { entityLabel } from "@/lib/identity/canonical-entity";
+
+// ── Shared label helpers (Phase 1285-L) ─────────────────────────────────────
+// Title-case an UPPER_SNAKE token into human words.
+function titleCase(s: string): string {
+  return s
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+    .join(" ");
+}
+
+const NOTIFICATION_KIND_LABEL: Record<string, string> = {
+  DIRECT_MESSAGE: "Direct message",
+  ACTION_REQUIRED: "Needs your decision",
+  APPROVAL_REQUIRED: "Approval needed",
+  WORK_ASSIGNED: "Work assigned",
+  SYSTEM: "System notice",
+};
+export function notificationKindLabel(c: string): string {
+  return NOTIFICATION_KIND_LABEL[c] ?? titleCase(c);
+}
+
+// Human-readable action title — robust to DUAL_CONTROL / colon-prefixed types
+// so a raw "DUAL_CONTROL:ACTION_CREATE_SEND_INTERNAL_NOTIFICATION" never shows
+// as a primary label (Phase 1285-L).
+export function actionTypeLabel(actionType: string): string {
+  const dual = /^DUAL_CONTROL[:_]/i.test(actionType);
+  const core = actionType
+    .replace(/^DUAL_CONTROL[:_]/i, "")
+    .replace(/^ACTION_CREATE_/i, "");
+  const base = (() => {
+    switch (core.toUpperCase()) {
+      case "SEND_INTERNAL_NOTIFICATION":
+        return "Internal note";
+      case "INVOKE_CONNECTOR":
+        return "Connected tool call";
+      case "RECORD_CAPSULE":
+        return "Memory record";
+      case "PROPOSE_PERMISSION_GRANT":
+        return "Permission grant request";
+      default:
+        return titleCase(core);
+    }
+  })();
+  return dual ? `Second approval: ${base.toLowerCase()}` : base;
+}
+
+const RISK_LABEL: Record<string, string> = {
+  LOW: "Low risk",
+  MEDIUM: "Medium risk",
+  HIGH: "High risk",
+  CRITICAL: "Critical",
+};
+export function riskLabel(risk: string): string {
+  return RISK_LABEL[risk] ?? risk;
+}
+
+const EXTRACTION_LABEL: Record<string, string> = {
+  DEMO_SCRIPTED: "demo capture",
+  LLM: "AI (Python/LLM)",
+  LOCAL_FALLBACK: "deterministic fallback",
+};
+function extractionLabel(mode: string): string {
+  return EXTRACTION_LABEL[mode] ?? mode;
+}
 
 export interface ViewWhyRow {
   label: string;
@@ -85,6 +157,88 @@ export function viewWhyFromThreadMessage(m: DirectThreadMessageView): ViewWhyMod
     };
   } else {
     model.proofNote = "No work signal detected on this message.";
+  }
+  return model;
+}
+
+// WHAT: shared View/Why for a notification. Sender via canonical label; carries
+//        type, route destination, ids, read state. Adds an internal-only policy
+//        note for direct messages (Phase 1285-L).
+export function viewWhyFromNotification(
+  n: SafeNotificationView,
+  routeDestination?: string,
+): ViewWhyModel {
+  const isDirect =
+    n.notification_class.toLowerCase().includes("direct") ||
+    n.notification_class.toLowerCase().includes("message");
+  const rows: ViewWhyRow[] = [
+    { label: "Type", value: notificationKindLabel(n.notification_class) },
+    { label: "From", value: n.sender != null ? entityLabel(n.sender.display_name) : null },
+    { label: "Sender role", value: n.sender?.role_title ?? null },
+    {
+      label: "Source",
+      value:
+        n.sender != null && n.sender.source_kind !== "HUMAN" ? n.sender.authority_label : null,
+    },
+    { label: "Status", value: n.status ?? (n.read_at !== null ? "Read" : "Unread") },
+    { label: "Route", value: routeDestination ?? null },
+    { label: "Policy", value: isDirect ? "Internal Otzar inbox only — no external send" : null },
+    { label: "Notification id", value: n.notification_id },
+    { label: "Action id", value: n.action_id },
+    { label: "Created", value: n.created_at },
+  ];
+  return { rows };
+}
+
+// WHAT: shared View/Why for a governed Action (Action Center). Uses ONLY the
+//        SAFE projection fields + the locally-stored human detail; requester/
+//        target/policy-envelope are deliberately governed (secrecy allowlist),
+//        so an honest note states that instead of leaking or showing a blank.
+export function viewWhyFromAction(
+  a: SafeActionView,
+  details?: ActionDetails | null,
+): ViewWhyModel {
+  const rows: ViewWhyRow[] = [
+    { label: "Kind", value: actionTypeLabel(a.action_type) },
+    { label: "Status", value: titleCase(a.status) },
+    { label: "Risk", value: riskLabel(a.risk_tier) },
+    { label: "Requires approval", value: a.requires_approval ? "Yes" : "No" },
+    {
+      label: "Recipient",
+      value: details?.recipientLabel != null ? entityLabel(details.recipientLabel) : null,
+    },
+    { label: "Channel", value: details?.channel ?? null },
+    { label: "Policy reason", value: a.decision_reason != null ? titleCase(a.decision_reason) : null },
+    { label: "Approval id", value: a.escalation_id ?? null },
+    { label: "Action id", value: a.action_id },
+    { label: "Created", value: a.created_at },
+    { label: "Updated", value: a.updated_at },
+  ];
+  return {
+    rows,
+    proofNote:
+      "Requester, target, and policy envelope are governed and not exposed on this surface.",
+  };
+}
+
+// WHAT: shared View/Why for a Comms extracted follow-up. Surfaces the source
+//        excerpt, confidence, resolution, and extraction mode (Phase 1285-L).
+export function viewWhyFromCommsFollowUp(
+  s: CommsSuggestedAction,
+  extractionMode: string,
+): ViewWhyModel {
+  const rows: ViewWhyRow[] = [
+    { label: "Kind", value: "Follow-up (internal note)" },
+    { label: "Target", value: entityLabel(s.target.display_name) },
+    { label: "Reason", value: s.reason },
+    { label: "Source", value: s.source_excerpt !== null ? `“${s.source_excerpt}”` : null },
+    { label: "Confidence", value: s.confidence.toLowerCase() },
+    { label: "Resolution", value: titleCase(s.resolution_status) },
+    { label: "Extraction", value: extractionLabel(extractionMode) },
+  ];
+  const model: ViewWhyModel = { rows };
+  if (s.source_excerpt === null) {
+    model.proofNote = "No source excerpt captured for this follow-up.";
   }
   return model;
 }
