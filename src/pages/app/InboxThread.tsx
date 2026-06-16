@@ -17,6 +17,7 @@ import type { SafeNotificationView, DirectThreadMessageView } from "@/lib/types/
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import { ThreadSignalChip } from "@/components/otzar/ThreadSignalChip";
 import { entityLabel } from "@/lib/identity/canonical-entity";
+import { emitWorkStateChanged, useWorkStateChanged } from "@/lib/events/work-state";
 
 type Phase = "loading" | "ready" | "not-found" | "error";
 
@@ -63,6 +64,13 @@ export function InboxThread(): JSX.Element {
     };
   }, [id]);
 
+  // Additive cross-surface sync (Phase 1285-K): refresh the thread when a
+  // message/thread/track event fires, alongside the existing reloadThread path.
+  useWorkStateChanged(
+    ["MESSAGE_CREATED", "THREAD_UPDATED", "SIGNAL_TRACKED"],
+    () => void reloadThread(),
+  );
+
   async function reloadThread(): Promise<void> {
     if (item?.sender == null) return;
     const t = await api.workOs.thread(item.sender.entity_id);
@@ -82,7 +90,12 @@ export function InboxThread(): JSX.Element {
       setReply("");
       setReplyState({ kind: "sent", to: r.data.recipient_display_name ?? item.sender.display_name });
       // Append the new message by reloading the persistent thread.
-      void reloadThread();
+      void reloadThread(); // existing path (kept)
+      // Additive (Phase 1285-K): propagate to other thread views.
+      if (item.sender != null) {
+        emitWorkStateChanged({ type: "MESSAGE_CREATED", entity_id: item.sender.entity_id });
+        emitWorkStateChanged({ type: "THREAD_UPDATED", entity_id: item.sender.entity_id });
+      }
     } else {
       setReplyState({
         kind: "error",
