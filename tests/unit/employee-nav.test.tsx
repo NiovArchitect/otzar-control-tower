@@ -54,6 +54,8 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "My Day",
       "Talk to Otzar",
       "Action Center",
+      "My Work",
+      "Team Work",
       "Comms",
       "My Twin",
       "People & Collaboration",
@@ -131,8 +133,11 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
     const moreCount = links.filter(
       (l) => l.getAttribute("data-nav-group") === "more",
     ).length;
-    expect(primaryCount).toBe(PRIMARY_EMPLOYEE_NAV.length);
-    // Non-admin viewers do not see adminOnly entries.
+    // Non-admin viewers do not see adminOnly entries in EITHER group
+    // (Team Work is an adminOnly primary entry).
+    expect(primaryCount).toBe(
+      PRIMARY_EMPLOYEE_NAV.filter((i) => i.adminOnly !== true).length,
+    );
     expect(moreCount).toBe(
       MORE_EMPLOYEE_NAV.filter((i) => i.adminOnly !== true).length,
     );
@@ -148,6 +153,33 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
     renderNav();
     await openMore();
     expect(screen.getByText("Production readiness")).toBeInTheDocument();
+  });
+
+  it("My Work is visible to every user; Team Work is visible only to managers/admins", async () => {
+    // Non-admin: My Work present, Team Work hidden.
+    renderNav();
+    expect(screen.getByText("My Work")).toBeInTheDocument();
+    expect(screen.queryByText("Team Work")).toBeNull();
+
+    // Manager/admin (can_admin_org): both present + prominent (primary group).
+    cleanup();
+    setAuth(true);
+    renderNav();
+    expect(screen.getByText("My Work")).toBeInTheDocument();
+    const teamWork = screen.getByText("Team Work");
+    expect(teamWork).toBeInTheDocument();
+    // Team Work is a PRIMARY entry (not buried in More).
+    const link = teamWork.closest('[data-testid="employee-nav-link"]');
+    expect(link?.getAttribute("data-nav-group")).toBe("primary");
+  });
+
+  it("My Work + Team Work route to /app/my-work and /app/team-work", () => {
+    const myWork = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "My Work");
+    const teamWork = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Team Work");
+    expect(myWork?.to).toBe("/app/my-work");
+    expect(myWork?.adminOnly).toBeUndefined();
+    expect(teamWork?.to).toBe("/app/team-work");
+    expect(teamWork?.adminOnly).toBe(true);
   });
 
   it("never surfaces 'Voice envelope' in the rendered nav", () => {
