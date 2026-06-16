@@ -14,12 +14,16 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { signalLabel, ledgerTypeForSignal, isAddable } from "@/lib/work-os/thread-signal";
 import { emitWorkStateChanged } from "@/lib/events/work-state";
+import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { viewWhyFromThreadMessage } from "@/lib/work-os/view-why";
+import type { DirectThreadMessageView } from "@/lib/types/foundation";
 
 export function ThreadSignalChip({
   signalType,
   sourceMessageId,
   tracked = false,
   onTracked,
+  message,
 }: {
   signalType: string;
   sourceMessageId: string;
@@ -27,7 +31,10 @@ export function ThreadSignalChip({
   tracked?: boolean;
   /** Called after a successful Add so the parent can refresh waiting-on. */
   onTracked?: () => void;
+  /** The full message, so the chip can render the shared View/Why (Phase 1285-J). */
+  message?: DirectThreadMessageView;
 }): JSX.Element {
+  const [whyOpen, setWhyOpen] = useState(false);
   // Persist the "already tracked" state from the server so the chip never
   // re-offers "Add" for a message already in the Work Ledger (across reloads /
   // both participants' views). The backend track call is idempotent.
@@ -80,7 +87,25 @@ export function ThreadSignalChip({
       <div className="flex items-center gap-1">
         <Badge variant="outline" className="text-[9px]">Otzar detected</Badge>
         <span className="font-medium text-foreground/80">{label}</span>
+        {message !== undefined ? (
+          <button
+            type="button"
+            className="ml-auto rounded px-1 text-[10px] text-muted-foreground hover:text-foreground"
+            data-testid="thread-signal-why"
+            onClick={() => setWhyOpen((v) => !v)}
+          >
+            {whyOpen ? "Hide" : "Why"}
+          </button>
+        ) : null}
       </div>
+      {whyOpen && message !== undefined ? (
+        <div
+          className="mt-1 rounded bg-muted/40 p-1.5 text-[11px] text-muted-foreground"
+          data-testid="thread-signal-view-why"
+        >
+          <ViewWhyPanel model={viewWhyFromThreadMessage(message)} />
+        </div>
+      ) : null}
       {state === "added" ? (
         <p className="mt-1 text-emerald-600" data-testid="thread-signal-added">Tracked in your Work Ledger.</p>
       ) : state === "corrected" ? (
