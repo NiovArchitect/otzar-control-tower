@@ -156,6 +156,7 @@ export function PersonCockpit({
                       sourceMessageId={m.message_id}
                       tracked={m.signal.tracked ?? false}
                       onTracked={() => void loadAll()}
+                      message={m}
                     />
                   ) : null}
                 </div>

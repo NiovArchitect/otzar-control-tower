@@ -153,6 +153,7 @@ export function InboxThread(): JSX.Element {
                   sourceMessageId={m.message_id}
                   tracked={m.signal.tracked ?? false}
                   onTracked={() => void reloadThread()}
+                  message={m}
                 />
               ) : null}
               <p className="text-[9px] text-muted-foreground">{m.created_at}</p>

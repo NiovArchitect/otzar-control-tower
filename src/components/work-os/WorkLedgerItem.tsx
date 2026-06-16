@@ -13,17 +13,9 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type { WorkLedgerEntryView, ExecutionAttemptView } from "@/lib/types/foundation";
-import { entityLabel } from "@/lib/identity/canonical-entity";
 import { emitWorkStateChanged } from "@/lib/events/work-state";
-
-function detail(label: string, value: string | null | undefined): JSX.Element | null {
-  if (value === null || value === undefined || value === "") return null;
-  return (
-    <div>
-      <span className="text-muted-foreground">{label}:</span> {value}
-    </div>
-  );
-}
+import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { viewWhyFromLedger } from "@/lib/work-os/view-why";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
 //        summarizeExecutionProof) so the badge + section agree.
@@ -173,18 +165,10 @@ export function WorkLedgerItem({
           className="mt-1 space-y-0.5 rounded bg-muted/40 p-1.5 text-[11px] text-muted-foreground"
           data-testid="work-ledger-item-detail"
         >
-          {detail("Ledger id", entry.ledger_entry_id)}
-          {detail("Source", entry.source_command !== null ? `“${entry.source_command}”` : null)}
-          {detail("Extraction", entry.extraction_source)}
-          {detail("Priority", entry.priority)}
-          {/* Phase 1285-H — canonical identity: render the display name or the
-              canonical "Unknown entity" label; NEVER the raw entity_id. */}
-          {entry.owner_entity_id !== null ? detail("Owner", entityLabel(entry.owner_display_name)) : null}
-          {entry.requester_entity_id !== null ? detail("Requester", entityLabel(entry.requester_display_name)) : null}
-          {entry.target_entity_id !== null ? detail("Target", entityLabel(entry.target_display_name)) : null}
-          {detail("Source message", entry.source_message_id)}
-          {detail("Plan", entry.work_plan_id)}
-          {detail("Due", entry.due_at)}
+          {/* Phase 1285-J — shared View/Why model: identity (canonical labels,
+              never UUIDs), work, and provenance rows render identically on My
+              Work, Team Work, Thread, and People cockpit. */}
+          <ViewWhyPanel model={viewWhyFromLedger(entry)} />
 
           {/* Python enrichment truth */}
           {entry.python_enrichment !== undefined ? (
