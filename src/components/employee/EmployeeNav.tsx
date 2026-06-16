@@ -64,6 +64,12 @@ export function EmployeeNav({ onNavigate }: { onNavigate?: () => void }) {
   // the employee asks for more.
   const [moreOpen, setMoreOpen] = useState(false);
 
+  // adminOnly entries (e.g. Team Work — can_admin_org) are gated in BOTH groups
+  // so a manager-only primary item stays prominent for managers and hidden for
+  // non-managers (matches the backend team-work authority gate).
+  const primaryItems = PRIMARY_EMPLOYEE_NAV.filter(
+    (i) => i.adminOnly !== true || admin,
+  );
   const moreItems = MORE_EMPLOYEE_NAV.filter(
     (i) => i.adminOnly !== true || admin,
   );
@@ -87,7 +93,7 @@ export function EmployeeNav({ onNavigate }: { onNavigate?: () => void }) {
       </div>
       <ScrollArea className="flex-1 px-2 pb-4">
         <ul className="space-y-1" data-testid="employee-nav-primary">
-          {PRIMARY_EMPLOYEE_NAV.map((item) => (
+          {primaryItems.map((item) => (
             <NavRow key={item.to} item={item} onNavigate={onNavigate} />
           ))}
         </ul>

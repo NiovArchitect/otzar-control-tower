@@ -30,7 +30,9 @@ import {
   Headphones,
   KeyRound,
   ListChecks,
+  ListTodo,
   Mic,
+  Network,
   MessageSquare,
   MessagesSquare,
   PencilLine,
@@ -75,6 +77,27 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     description:
       "Decisions Otzar is making on your behalf — pending, approved, completed, blocked.",
     group: "primary",
+  },
+  {
+    label: "My Work",
+    to: "/app/my-work",
+    icon: ListTodo,
+    description:
+      "Durable work tracked for you — what you owe, what's waiting, and what's blocked. Mark items complete here.",
+    group: "primary",
+  },
+  {
+    // Manager/admin authority (can_admin_org) — the team relationship view of
+    // who is waiting on whom. Gated via adminOnly so it stays prominent for
+    // managers (Sadeil) and hidden for non-managers (matches the backend
+    // team-work gate; a non-manager would get TEAM_SCOPE_NOT_CONFIGURED).
+    label: "Team Work",
+    to: "/app/team-work",
+    icon: Network,
+    description:
+      "Who is waiting on whom across your team — pending work, source, status, and what's stale.",
+    group: "primary",
+    adminOnly: true,
   },
   {
     label: "Comms",
