@@ -4394,6 +4394,37 @@ export interface RelationshipWorkResponse {
   code?: string;
 }
 
+// Phase 1285-N — Blind Spots typed risk feed.
+export type BlindSpotType =
+  | "OVERDUE_WORK"
+  | "STALE_WAITING_ON"
+  | "UNRESOLVED_BLOCKER"
+  | "NO_NEXT_ACTION";
+export interface BlindSpotFeedItem {
+  blind_spot_id: string;
+  type: BlindSpotType;
+  title: string;
+  summary: string;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  ledger_entry_id: string;
+  ledger_type: string;
+  status: string;
+  owner_entity_id: string | null;
+  requester_entity_id: string | null;
+  owner_display_name: string | null;
+  requester_display_name: string | null;
+  due_at: string | null;
+  age_days: number;
+  source_message_id: string | null;
+  recommended_action: string;
+  detection_rule: string;
+}
+export interface BlindSpotFeedResponse {
+  ok: boolean;
+  items?: BlindSpotFeedItem[];
+  code?: string;
+}
+
 // Phase 1284 — human-authority direct internal message result.
 export interface InternalMessageResponse {
   ok: boolean;
