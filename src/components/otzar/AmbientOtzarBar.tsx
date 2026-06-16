@@ -91,6 +91,8 @@ import {
   classifyThreadQuery,
   composeThreadAnswer,
   composeWaitingOnAnswer,
+  composeRelationshipAnswer,
+  RELATIONSHIP_QUERY_TYPES,
 } from "@/lib/work-os/thread-query";
 import {
   tomorrowWorkWindow,
@@ -1337,16 +1339,28 @@ export function AmbientOtzarBar(): JSX.Element {
           speakConfirmation(answer);
         };
 
+        // Durable-only ref: client-resolved entity id, else the raw name (the
+        // backend resolves + governs it). We NEVER fall back to memory/LLM for
+        // a recognized relationship/work query.
+        const ref = resolvedOk ? resolved.entityId! : tq.person;
+
         if (tq.type === "WAITING_ON") {
-          // Durable-only: answer strictly from real Work Ledger waiting-on
-          // records. When the caller can't read the roster client-side, the
-          // BACKEND resolves the name + governs the read — we NEVER fall back
-          // to memory / priming / LLM context. Only an empty durable result
-          // produces the honest "nothing tracked" answer.
-          const ref = resolvedOk ? resolved.entityId! : tq.person;
           const w = await api.workOs.waitingOn(ref);
           if (w.ok && w.data.ok) {
             sayAnswer(composeWaitingOnAnswer(display, w.data.waiting_on_them ?? []));
+          } else {
+            sayMiss();
+          }
+          return;
+        }
+
+        // Relationship work-graph queries (Phase 1285-M) — completed / blockers
+        // / decisions / inverse-waiting-on / overdue / changed / summary, all
+        // from durable records.
+        if (RELATIONSHIP_QUERY_TYPES.includes(tq.type)) {
+          const r = await api.workOs.relationship(ref);
+          if (r.ok && r.data.ok) {
+            sayAnswer(composeRelationshipAnswer(tq.type, r.data.other_display_name ?? display, r.data));
           } else {
             sayMiss();
           }

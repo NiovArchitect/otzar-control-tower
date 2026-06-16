@@ -4,8 +4,17 @@
 // CONNECTS TO: src/lib/work-os/thread-query.ts
 
 import { describe, expect, it } from "vitest";
-import { classifyThreadQuery, composeThreadAnswer, composeWaitingOnAnswer } from "@/lib/work-os/thread-query";
-import type { DirectThreadMessageView } from "@/lib/types/foundation";
+import {
+  classifyThreadQuery,
+  composeThreadAnswer,
+  composeWaitingOnAnswer,
+  composeRelationshipAnswer,
+} from "@/lib/work-os/thread-query";
+import type {
+  DirectThreadMessageView,
+  RelationshipItemView,
+  RelationshipWorkResponse,
+} from "@/lib/types/foundation";
 
 function msg(over: Partial<DirectThreadMessageView>): DirectThreadMessageView {
   return {
@@ -74,6 +83,87 @@ describe("classifyThreadQuery", () => {
   it("'what did I ask David to do?' stays LATEST_TO (not WAITING_ON)", () => {
     // "ask X to do" is a sent-message lookup; only "ask X for" is waiting-on.
     expect(classifyThreadQuery("What did I ask David to do?")?.type).toBe("LATEST_TO");
+  });
+
+  it("relationship work-graph queries (Phase 1285-M)", () => {
+    const cases: Array<[string, string, string]> = [
+      ["what did David complete?", "COMPLETED_BY", "David"],
+      ["what has David finished", "COMPLETED_BY", "David"],
+      ["what blockers involve David", "BLOCKERS_WITH", "David"],
+      ["what is blocking Samiksha", "BLOCKERS_WITH", "Samiksha"],
+      ["what decisions did David and I make", "DECISIONS_WITH", "David"],
+      ["what did David and I decide", "DECISIONS_WITH", "David"],
+      ["what is David waiting on me for", "WAITING_ON_ME", "David"],
+      ["what does David need from me", "WAITING_ON_ME", "David"],
+      ["what tasks are overdue from David", "OVERDUE_FROM", "David"],
+      ["what changed since yesterday with David", "CHANGED_SINCE", "David"],
+      ["show my work with David", "RELATIONSHIP_SUMMARY", "David"],
+    ];
+    for (const [q, type, person] of cases) {
+      const r = classifyThreadQuery(q);
+      expect(r, `"${q}" should classify`).not.toBeNull();
+      expect(r!.type, `"${q}"`).toBe(type);
+      expect(r!.person, `"${q}"`).toBe(person);
+    }
+  });
+});
+
+describe("composeRelationshipAnswer (durable, never faked)", () => {
+  function item(over: Partial<RelationshipItemView>): RelationshipItemView {
+    return {
+      ledger_entry_id: "l1",
+      ledger_type: "TASK",
+      title: "Send the proof-layer notes",
+      status: "EXECUTED",
+      requester_entity_id: "sadeil",
+      owner_entity_id: "david",
+      requester_display_name: "Sadeil",
+      owner_display_name: "David Odie",
+      due_at: null,
+      updated_at: "2026-06-16T00:00:00.000Z",
+      source_message_id: "m1",
+      ...over,
+    };
+  }
+  const NOW = Date.parse("2026-06-16T12:00:00.000Z");
+  function rel(over: Partial<RelationshipWorkResponse>): RelationshipWorkResponse {
+    return { ok: true, other_display_name: "David Odie", ...over };
+  }
+
+  it("COMPLETED_BY lists completed titles; empty → durable empty", () => {
+    expect(
+      composeRelationshipAnswer("COMPLETED_BY", "David Odie", rel({ completed: [item({})] }), NOW),
+    ).toContain("Send the proof-layer notes");
+    expect(
+      composeRelationshipAnswer("COMPLETED_BY", "David Odie", rel({ completed: [] }), NOW).toLowerCase(),
+    ).toContain("don't see anything");
+  });
+
+  it("BLOCKERS_WITH / DECISIONS_WITH / WAITING_ON_ME render or give honest empty", () => {
+    expect(composeRelationshipAnswer("BLOCKERS_WITH", "David Odie", rel({ blockers: [] }), NOW).toLowerCase()).toContain("don't see any blockers");
+    expect(composeRelationshipAnswer("DECISIONS_WITH", "David Odie", rel({ decisions: [item({ title: "Ship Friday" })] }), NOW)).toContain("Ship Friday");
+    expect(composeRelationshipAnswer("WAITING_ON_ME", "David Odie", rel({ pending_from_them: [item({ title: "Approve PR" })] }), NOW)).toContain("waiting on you for");
+  });
+
+  it("OVERDUE_FROM only counts past-due items", () => {
+    const overdue = item({ title: "Overdue task", due_at: "2026-06-15T00:00:00.000Z" });
+    const future = item({ title: "Future task", due_at: "2026-06-20T00:00:00.000Z" });
+    const a = composeRelationshipAnswer("OVERDUE_FROM", "David Odie", rel({ waiting_on_them: [overdue, future] }), NOW);
+    expect(a).toContain("Overdue task");
+    expect(a).not.toContain("Future task");
+  });
+
+  it("RELATIONSHIP_SUMMARY summarizes counts; fully empty → durable empty", () => {
+    const a = composeRelationshipAnswer(
+      "RELATIONSHIP_SUMMARY",
+      "David Odie",
+      rel({ waiting_on_them: [item({})], completed: [item({})], blockers: [item({})] }),
+      NOW,
+    );
+    expect(a).toContain("Your work with David Odie");
+    expect(
+      composeRelationshipAnswer("RELATIONSHIP_SUMMARY", "David Odie", rel({}), NOW).toLowerCase(),
+    ).toContain("don't see any tracked work");
   });
   it("returns null for non-thread questions", () => {
     expect(classifyThreadQuery("what is the weather")).toBeNull();

@@ -4368,6 +4368,32 @@ export interface WaitingOnResponse {
   code?: string;
 }
 
+// Phase 1285-M — relationship work graph (durable answers for completed /
+// blockers / decisions / both waiting-on directions).
+export interface RelationshipItemView {
+  ledger_entry_id: string;
+  ledger_type: string;
+  title: string;
+  status: string;
+  requester_entity_id: string | null;
+  owner_entity_id: string | null;
+  requester_display_name: string;
+  owner_display_name: string;
+  due_at: string | null;
+  updated_at: string;
+  source_message_id: string | null;
+}
+export interface RelationshipWorkResponse {
+  ok: boolean;
+  other_display_name?: string;
+  waiting_on_them?: RelationshipItemView[];
+  pending_from_them?: RelationshipItemView[];
+  completed?: RelationshipItemView[];
+  blockers?: RelationshipItemView[];
+  decisions?: RelationshipItemView[];
+  code?: string;
+}
+
 // Phase 1284 — human-authority direct internal message result.
 export interface InternalMessageResponse {
   ok: boolean;

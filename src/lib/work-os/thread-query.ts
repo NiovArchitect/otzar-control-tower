@@ -8,9 +8,37 @@
 // CONNECTS TO: src/components/otzar/AmbientOtzarBar.tsx (handleSendText
 //          intercept), api.workOs.thread, tests/unit/thread-query.test.ts.
 
-import type { DirectThreadMessageView, WaitingOnItemView } from "@/lib/types/foundation";
+import type {
+  DirectThreadMessageView,
+  WaitingOnItemView,
+  RelationshipItemView,
+  RelationshipWorkResponse,
+} from "@/lib/types/foundation";
 
-export type ThreadQueryType = "RECEIVED_FROM" | "LATEST_FROM" | "LATEST_TO" | "WAITING_ON";
+export type ThreadQueryType =
+  | "RECEIVED_FROM"
+  | "LATEST_FROM"
+  | "LATEST_TO"
+  | "WAITING_ON"
+  | "COMPLETED_BY"
+  | "BLOCKERS_WITH"
+  | "DECISIONS_WITH"
+  | "WAITING_ON_ME"
+  | "OVERDUE_FROM"
+  | "CHANGED_SINCE"
+  | "RELATIONSHIP_SUMMARY";
+
+// Relationship query types resolve against the relationship work graph
+// (GET /work-os/relationship/with/:id) rather than the raw thread.
+export const RELATIONSHIP_QUERY_TYPES: ReadonlyArray<ThreadQueryType> = [
+  "COMPLETED_BY",
+  "BLOCKERS_WITH",
+  "DECISIONS_WITH",
+  "WAITING_ON_ME",
+  "OVERDUE_FROM",
+  "CHANGED_SINCE",
+  "RELATIONSHIP_SUMMARY",
+];
 
 export interface ThreadQuery {
   type: ThreadQueryType;
@@ -21,12 +49,40 @@ function cleanName(raw: string): string {
   return raw.replace(/[^A-Za-z'’-].*$/, "").trim();
 }
 
+const NAME = "([A-Za-z][A-Za-z'’-]*)";
+
 // WHAT: Classify a thread/relationship question into {type, person}, or null.
-// WHY: lets the ambient bar answer from real thread records instead of
+// WHY: lets the ambient bar answer from real thread/work records instead of
 //      routing to the LLM/navigation. Order matters — "what did I ask X"
 //      (LATEST_TO) is checked before "what did X say" (LATEST_FROM).
 export function classifyThreadQuery(text: string): ThreadQuery | null {
   const t = text.trim();
+
+  // ── Relationship work-graph queries (Phase 1285-M) ─ checked FIRST so a
+  //    specific intent ("what did David complete") isn't swallowed by a generic
+  //    waiting/latest pattern. Each captures the teammate name in group 1.
+  const relationshipPatterns: Array<[ThreadQueryType, RegExp]> = [
+    ["RELATIONSHIP_SUMMARY", new RegExp(`\\b(?:show (?:me )?my work with|my work with|work summary with|summary with|catch me up on)\\s+${NAME}`, "i")],
+    ["COMPLETED_BY", new RegExp(`\\bwhat (?:did|has)\\s+${NAME}\\s+(?:complete|completed|finish|finished|get done|got done|done)\\b`, "i")],
+    ["BLOCKERS_WITH", new RegExp(`\\bblockers?\\b[^?]*?\\b(?:involve|involving|with|on|from|for)\\s+${NAME}`, "i")],
+    ["BLOCKERS_WITH", new RegExp(`\\bwhat(?:'s| is)\\s+blocking\\s+${NAME}`, "i")],
+    ["DECISIONS_WITH", new RegExp(`\\bdecisions?\\b[^?]*?\\b(?:did|with|involving|made with|between me and|me and)\\s+${NAME}`, "i")],
+    ["DECISIONS_WITH", new RegExp(`\\bwhat did\\s+${NAME}\\s+and i (?:decide|agree)`, "i")],
+    ["WAITING_ON_ME", new RegExp(`\\b${NAME}\\s+(?:is\\s+)?waiting on me\\b`, "i")],
+    ["WAITING_ON_ME", new RegExp(`\\bwhat does\\s+${NAME}\\s+(?:need|want|expect)\\s+from me\\b`, "i")],
+    ["OVERDUE_FROM", new RegExp(`\\b(?:what(?:'s| is| tasks are)?\\s+)?overdue\\b[^?]*?\\bfrom\\s+${NAME}`, "i")],
+    ["CHANGED_SINCE", new RegExp(`\\bwhat(?:'s| has)?\\s+changed\\b[^?]*?\\bwith\\s+${NAME}`, "i")],
+  ];
+  for (const [type, re] of relationshipPatterns) {
+    const m = t.match(re);
+    if (m) {
+      const p = cleanName(m[1] ?? "");
+      const lp = p.toLowerCase();
+      if (p.length > 0 && lp !== "i" && lp !== "me" && lp !== "my" && lp !== "the") {
+        return { type, person: p };
+      }
+    }
+  }
 
   // WAITING_ON — durable directional work the caller is OWED by X. Covers
   // natural + imperfect human phrasing, not just the textbook "waiting on …
@@ -126,4 +182,75 @@ export function composeWaitingOnAnswer(
   }
   const titles = waitingOnThem.slice(0, 5).map((w) => w.title).join("; ");
   return `You're waiting on ${personDisplay} for: ${titles}`;
+}
+
+// WHAT: compose a durable answer for a relationship work-graph query from the
+//        REAL /work-os/relationship records. Empty → honest durable empty; never
+//        faked, never vague-memory. Titles only (no raw ids as primary labels).
+function titlesOf(items: RelationshipItemView[]): string {
+  return items.slice(0, 5).map((i) => i.title).join("; ");
+}
+
+export function composeRelationshipAnswer(
+  type: ThreadQueryType,
+  personDisplay: string,
+  rel: RelationshipWorkResponse,
+  now: number = Date.now(),
+): string {
+  const completed = rel.completed ?? [];
+  const blockers = rel.blockers ?? [];
+  const decisions = rel.decisions ?? [];
+  const waitingOnThem = rel.waiting_on_them ?? [];
+  const pendingFromThem = rel.pending_from_them ?? [];
+
+  switch (type) {
+    case "COMPLETED_BY": {
+      const done = completed.filter((c) => c.owner_display_name === personDisplay || c.owner_entity_id !== null);
+      return done.length === 0
+        ? `I don't see anything ${personDisplay} has completed with you yet.`
+        : `${personDisplay} completed: ${titlesOf(done)}`;
+    }
+    case "BLOCKERS_WITH":
+      return blockers.length === 0
+        ? `I don't see any blockers involving ${personDisplay} right now.`
+        : `Blockers involving ${personDisplay}: ${titlesOf(blockers)}`;
+    case "DECISIONS_WITH":
+      return decisions.length === 0
+        ? `I don't see any decisions tracked with ${personDisplay} yet.`
+        : `Decisions with ${personDisplay}: ${titlesOf(decisions)}`;
+    case "WAITING_ON_ME":
+      return pendingFromThem.length === 0
+        ? `${personDisplay} isn't waiting on you for anything tracked right now.`
+        : `${personDisplay} is waiting on you for: ${titlesOf(pendingFromThem)}`;
+    case "OVERDUE_FROM": {
+      const overdue = waitingOnThem.filter(
+        (w) => w.due_at !== null && Date.parse(w.due_at) < now,
+      );
+      return overdue.length === 0
+        ? `Nothing is overdue from ${personDisplay} right now.`
+        : `Overdue from ${personDisplay}: ${titlesOf(overdue)}`;
+    }
+    case "CHANGED_SINCE": {
+      const cutoff = now - 24 * 60 * 60 * 1000;
+      const recent = [...waitingOnThem, ...pendingFromThem, ...completed, ...blockers, ...decisions].filter(
+        (i) => Date.parse(i.updated_at) >= cutoff,
+      );
+      return recent.length === 0
+        ? `Nothing tracked with ${personDisplay} changed in the last day.`
+        : `Recently changed with ${personDisplay}: ${titlesOf(recent)}`;
+    }
+    case "RELATIONSHIP_SUMMARY":
+    default: {
+      const parts: string[] = [];
+      if (waitingOnThem.length > 0) parts.push(`waiting on ${personDisplay} for ${waitingOnThem.length}`);
+      if (pendingFromThem.length > 0) parts.push(`${personDisplay} waiting on you for ${pendingFromThem.length}`);
+      if (completed.length > 0) parts.push(`${completed.length} completed`);
+      if (blockers.length > 0) parts.push(`${blockers.length} blocker${blockers.length === 1 ? "" : "s"}`);
+      if (decisions.length > 0) parts.push(`${decisions.length} decision${decisions.length === 1 ? "" : "s"}`);
+      if (parts.length === 0) {
+        return `I don't see any tracked work with ${personDisplay} yet.`;
+      }
+      return `Your work with ${personDisplay}: ${parts.join(" · ")}.`;
+    }
+  }
 }

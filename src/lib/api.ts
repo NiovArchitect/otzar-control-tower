@@ -85,6 +85,7 @@ import type {
   InternalMessageResponse,
   DirectThreadResponse,
   WaitingOnResponse,
+  RelationshipWorkResponse,
   HandoffReadinessResponse,
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
@@ -1265,6 +1266,13 @@ export class ApiClient {
     waitingOn: (entityId: string): Promise<ApiResult<WaitingOnResponse>> =>
       this.request<WaitingOnResponse>(
         `/work-os/waiting-on/with/${encodeURIComponent(entityId)}`,
+      ),
+
+    /** GET /api/v1/work-os/relationship/with/:entityId — durable relationship
+     *  work graph (completed / blockers / decisions / both waiting-on dirs). */
+    relationship: (entityId: string): Promise<ApiResult<RelationshipWorkResponse>> =>
+      this.request<RelationshipWorkResponse>(
+        `/work-os/relationship/with/${encodeURIComponent(entityId)}`,
       ),
   };
 
