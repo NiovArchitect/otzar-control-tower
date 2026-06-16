@@ -7,9 +7,22 @@
 
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { viewWhyFromLedger, viewWhyFromThreadMessage } from "@/lib/work-os/view-why";
+import {
+  viewWhyFromLedger,
+  viewWhyFromThreadMessage,
+  viewWhyFromNotification,
+  viewWhyFromAction,
+  viewWhyFromCommsFollowUp,
+  actionTypeLabel,
+} from "@/lib/work-os/view-why";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
-import type { WorkLedgerEntryView, DirectThreadMessageView } from "@/lib/types/foundation";
+import type {
+  WorkLedgerEntryView,
+  DirectThreadMessageView,
+  SafeNotificationView,
+  SafeActionView,
+  CommsSuggestedAction,
+} from "@/lib/types/foundation";
 
 const UUID = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -117,5 +130,103 @@ describe("ViewWhyPanel — renders consistently, no UUID, honest missing state",
   it("shows the honest proof note when there is no richer proof", () => {
     render(<ViewWhyPanel model={viewWhyFromThreadMessage(msg({}))} />);
     expect(screen.getByTestId("view-why-proof-note")).toBeInTheDocument();
+  });
+});
+
+describe("actionTypeLabel — robust to DUAL_CONTROL / colon types", () => {
+  it("never returns the raw DUAL_CONTROL:... string", () => {
+    const label = actionTypeLabel("DUAL_CONTROL:ACTION_CREATE_SEND_INTERNAL_NOTIFICATION");
+    expect(label).toBe("Second approval: internal note");
+    // The raw machine type never leaks (the only colon is the human "approval:").
+    expect(label).not.toContain("DUAL_CONTROL");
+    expect(label).not.toContain("ACTION_CREATE");
+    expect(label).not.toContain("_");
+  });
+  it("humanizes plain types", () => {
+    expect(actionTypeLabel("SEND_INTERNAL_NOTIFICATION")).toBe("Internal note");
+    expect(actionTypeLabel("INVOKE_CONNECTOR")).toBe("Connected tool call");
+  });
+});
+
+describe("viewWhyFromNotification", () => {
+  function notif(over: Partial<SafeNotificationView>): SafeNotificationView {
+    return {
+      notification_id: UUID,
+      action_id: null,
+      notification_class: "DIRECT_MESSAGE",
+      body_summary: "Please send the notes",
+      created_at: "2026-06-16T00:00:00.000Z",
+      read_at: null,
+      status: "UNREAD",
+      sender: { entity_id: UUID, display_name: "David Odie", role_title: null, source_kind: "HUMAN", authority_label: "" },
+      ...over,
+    };
+  }
+  it("direct message: From is a canonical name, Type + Policy + Route present", () => {
+    const m = viewWhyFromNotification(notif({}), "/app/inbox/abc");
+    const byLabel = (l: string) => m.rows.find((r) => r.label === l)?.value;
+    expect(byLabel("From")).toBe("David Odie");
+    expect(byLabel("Type")).toBe("Direct message");
+    expect(byLabel("Route")).toBe("/app/inbox/abc");
+    expect(byLabel("Policy")).toContain("Internal Otzar inbox only");
+  });
+  it("unresolved sender → canonical label, never a UUID", () => {
+    const m = viewWhyFromNotification(
+      notif({ sender: { entity_id: UUID, display_name: "", role_title: null, source_kind: "HUMAN", authority_label: "" } }),
+    );
+    const from = m.rows.find((r) => r.label === "From");
+    expect(from?.value).toBe("Unknown entity");
+    expect(from?.value).not.toBe(UUID);
+  });
+});
+
+describe("viewWhyFromAction — safe fields only, governed note", () => {
+  function action(over: Partial<SafeActionView>): SafeActionView {
+    return {
+      action_id: "act-1",
+      status: "PROPOSED",
+      action_type: "DUAL_CONTROL:ACTION_CREATE_SEND_INTERNAL_NOTIFICATION",
+      risk_tier: "MEDIUM",
+      requires_approval: true,
+      created_at: "2026-06-16T00:00:00.000Z",
+      updated_at: "2026-06-16T00:00:00.000Z",
+      ...over,
+    };
+  }
+  it("kind is human-readable (not raw DUAL_CONTROL); risk + governed note present", () => {
+    const m = viewWhyFromAction(action({}), { title: "Internal note", recipientLabel: "David Odie", body: "hi" });
+    const byLabel = (l: string) => m.rows.find((r) => r.label === l)?.value;
+    expect(byLabel("Kind")).toBe("Second approval: internal note");
+    expect(byLabel("Risk")).toBe("Medium risk");
+    expect(byLabel("Recipient")).toBe("David Odie");
+    expect(m.proofNote?.toLowerCase()).toContain("governed");
+  });
+});
+
+describe("viewWhyFromCommsFollowUp", () => {
+  function follow(over: Partial<CommsSuggestedAction>): CommsSuggestedAction {
+    return {
+      local_id: "f1",
+      action_type: "SEND_INTERNAL_NOTIFICATION",
+      target: { display_name: "David Odie", email: null, entity_id: UUID },
+      draft_text: "Please send the notes",
+      reason: "Otzar drafted this from the capture.",
+      source_excerpt: "send me the notes",
+      confidence: "HIGH",
+      resolution_status: "RESOLVED",
+      ...over,
+    };
+  }
+  it("surfaces target/source/confidence/extraction", () => {
+    const m = viewWhyFromCommsFollowUp(follow({}), "LLM");
+    const byLabel = (l: string) => m.rows.find((r) => r.label === l)?.value;
+    expect(byLabel("Target")).toBe("David Odie");
+    expect(byLabel("Source")).toContain("send me the notes");
+    expect(byLabel("Confidence")).toBe("high");
+    expect(byLabel("Extraction")).toBe("AI (Python/LLM)");
+  });
+  it("honest note when no source excerpt", () => {
+    const m = viewWhyFromCommsFollowUp(follow({ source_excerpt: null }), "LOCAL_FALLBACK");
+    expect(m.proofNote).toBeTruthy();
   });
 });

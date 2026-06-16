@@ -38,6 +38,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
+import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { viewWhyFromAction, actionTypeLabel } from "@/lib/work-os/view-why";
 import { api } from "@/lib/api";
 import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView } from "@/lib/types/foundation";
@@ -64,22 +66,10 @@ const STATUS_TO_TAB: Record<string, Tab> = {
   EXPIRED: "blocked",
 };
 
+// Delegates to the shared actionTypeLabel (Phase 1285-L) so a raw
+// DUAL_CONTROL/colon-prefixed type is NEVER shown as the primary card title.
 function friendlyActionType(action_type: string): string {
-  switch (action_type) {
-    case "SEND_INTERNAL_NOTIFICATION":
-      return "Internal note";
-    case "INVOKE_CONNECTOR":
-      return "Connected tool call";
-    case "RECORD_CAPSULE":
-      return "Memory record";
-    case "PROPOSE_PERMISSION_GRANT":
-      return "Permission grant request";
-    default:
-      return action_type
-        .split("_")
-        .map((p) => p.charAt(0) + p.slice(1).toLowerCase())
-        .join(" ");
-  }
+  return actionTypeLabel(action_type);
 }
 
 function friendlyStatus(status: string): string {
@@ -156,6 +146,8 @@ export function ActionCenter(): JSX.Element {
   // Action Center is a real execution control plane.
   const [busyId, setBusyId] = useState<string | null>(null);
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  // Phase 1285-L — which action's structured View/Why is expanded.
+  const [whyId, setWhyId] = useState<string | null>(null);
   const focusCardRef = useRef<HTMLLIElement | null>(null);
   const tabPinnedRef = useRef(false);
 
@@ -426,6 +418,27 @@ export function ActionCenter(): JSX.Element {
                           {humanDecisionReason(a.decision_reason)}
                         </span>
                       </p>
+                    ) : null}
+                    {/* Phase 1285-L — consistent structured View/Why via the
+                        shared panel (safe SafeActionView fields only; governed
+                        requester/target/policy-envelope stay restricted). */}
+                    <button
+                      type="button"
+                      className="pt-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      data-testid="action-view-why"
+                      onClick={() =>
+                        setWhyId((id) => (id === a.action_id ? null : a.action_id))
+                      }
+                    >
+                      {whyId === a.action_id ? "Hide details" : "View / Why"}
+                    </button>
+                    {whyId === a.action_id ? (
+                      <div
+                        className="rounded border border-border bg-muted/30 p-1.5"
+                        data-testid="action-view-why-panel"
+                      >
+                        <ViewWhyPanel model={viewWhyFromAction(a, details)} />
+                      </div>
                     ) : null}
                     {/* Phase 1268 — real governed decision controls. A
                         pending action with a linked escalation can be

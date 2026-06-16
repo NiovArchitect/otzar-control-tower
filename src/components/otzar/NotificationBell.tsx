@@ -40,6 +40,9 @@ import { notificationRoute } from "@/lib/work-os/notification-routing";
 import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
+import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { viewWhyFromNotification } from "@/lib/work-os/view-why";
+import { entityLabel } from "@/lib/identity/canonical-entity";
 import type { SafeNotificationView } from "@/lib/types/foundation";
 
 function randomIdempotencyKey(): string {
@@ -96,6 +99,8 @@ export function NotificationBell({
     replies: {},
   });
   const mountedRef = useRef(true);
+  // Phase 1285-L — which notification's structured View/Why is expanded.
+  const [whyId, setWhyId] = useState<string | null>(null);
 
   const fetchOnce = useCallback(async (): Promise<void> => {
     if (!authed) return;
@@ -438,7 +443,7 @@ export function NotificationBell({
                             className="text-[11px] font-medium text-foreground/80"
                             data-testid="notification-sender"
                           >
-                            From: {n.sender.display_name}
+                            From: {entityLabel(n.sender.display_name)}
                             {n.sender.role_title != null ? ` · ${n.sender.role_title}` : ""}
                             {n.sender.source_kind !== "HUMAN"
                               ? ` · ${n.sender.authority_label}`
@@ -451,6 +456,18 @@ export function NotificationBell({
                         <p className="mt-1 text-[10px] text-muted-foreground">
                           {formatRelative(n.created_at)} · tap to open
                         </p>
+                      </button>
+                      {/* Phase 1285-L — structured, consistent View/Why (sender,
+                          type, route, ids) via the shared panel. */}
+                      <button
+                        type="button"
+                        className="rounded px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                        data-testid="notification-why"
+                        onClick={() =>
+                          setWhyId((id) => (id === n.notification_id ? null : n.notification_id))
+                        }
+                      >
+                        {whyId === n.notification_id ? "Hide" : "Why"}
                       </button>
                       <div className="flex shrink-0 items-center gap-1">
                         {reply === undefined ? (
@@ -508,6 +525,14 @@ export function NotificationBell({
                         ) : null}
                       </div>
                     </div>
+                    {whyId === n.notification_id ? (
+                      <div
+                        className="mt-2 rounded border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground"
+                        data-testid="notification-view-why"
+                      >
+                        <ViewWhyPanel model={viewWhyFromNotification(n, notificationRoute(n))} />
+                      </div>
+                    ) : null}
                     {reply !== undefined ? (
                       <div
                         className="mt-2 rounded border bg-background p-2"

@@ -42,6 +42,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProposedActionCard } from "@/components/otzar/ProposedActionCard";
+import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { viewWhyFromCommsFollowUp } from "@/lib/work-os/view-why";
 import { api } from "@/lib/api";
 import type {
   CommsExtractionResult,
@@ -475,7 +477,7 @@ function ExtractionView({
             click Send. No external message goes out.
           </p>
           {extraction.suggested_actions.map((s) => (
-            <FollowUpCard key={s.local_id} suggested={s} />
+            <FollowUpCard key={s.local_id} suggested={s} extractionMode={extraction.extraction_mode} />
           ))}
         </div>
       ) : (
@@ -498,9 +500,12 @@ function ExtractionView({
 
 function FollowUpCard({
   suggested,
+  extractionMode,
 }: {
   suggested: CommsSuggestedAction;
+  extractionMode: string;
 }): JSX.Element {
+  const [whyOpen, setWhyOpen] = useState(false);
   return (
     <div data-testid="comms-follow-up-row">
       <ProposedActionCard
@@ -511,10 +516,23 @@ function FollowUpCard({
           reason: suggested.reason,
         }}
       />
-      {suggested.source_excerpt !== null ? (
-        <p className="mt-1 px-3 text-[10px] italic text-muted-foreground">
-          Drafted from: "{suggested.source_excerpt}"
-        </p>
+      {/* Phase 1285-L — consistent structured View/Why: source excerpt,
+          confidence, resolution, extraction mode, via the shared panel. */}
+      <button
+        type="button"
+        className="mt-1 px-3 text-[10px] text-muted-foreground hover:text-foreground"
+        data-testid="comms-follow-up-why"
+        onClick={() => setWhyOpen((v) => !v)}
+      >
+        {whyOpen ? "Hide" : "Why"}
+      </button>
+      {whyOpen ? (
+        <div
+          className="mt-1 mx-3 rounded border border-border bg-muted/30 p-1.5 text-[11px] text-muted-foreground"
+          data-testid="comms-follow-up-view-why"
+        >
+          <ViewWhyPanel model={viewWhyFromCommsFollowUp(suggested, extractionMode)} />
+        </div>
       ) : null}
     </div>
   );
