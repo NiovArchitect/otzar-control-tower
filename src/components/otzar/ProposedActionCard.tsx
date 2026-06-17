@@ -25,7 +25,11 @@
 //     backend call.
 
 import { useState } from "react";
-import type { ProposedAction } from "@/lib/types/foundation";
+import type {
+  ProposedAction,
+  DraftToneAssessment,
+  PythonAdvisoryEnvelope,
+} from "@/lib/types/foundation";
 import { api } from "@/lib/api";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 
@@ -54,17 +58,172 @@ function randomIdempotencyKey(): string {
   return `idem-${hex(Date.now())}-${hex(Math.floor(Math.random() * 0xffffffff))}`;
 }
 
+// Phase 1286-B — advisory DRAFT_TONE state. ADVISORY ONLY: the original draft is
+// never lost (proposedAction.draft_text is immutable; a revision is applied to a
+// local editing buffer the user can revert), nothing is sent or approved here.
+type ToneState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "ready"; assessment: DraftToneAssessment; envelope: PythonAdvisoryEnvelope | undefined }
+  | { kind: "error" };
+
+// WHAT: the advisory tone panel. Shows the original (preserved), the tone read,
+//        and — only for a SAFE, non-downgraded revision — an explicit "Use
+//        suggested revision" choice. Never sends, never approves.
+function ToneAdvisoryPanel({
+  assessment,
+  envelope,
+  currentDraft,
+  onUse,
+  onKeep,
+}: {
+  assessment: DraftToneAssessment;
+  envelope: PythonAdvisoryEnvelope | undefined;
+  currentDraft: string;
+  onUse: (revision: string) => void;
+  onKeep: () => void;
+}): JSX.Element {
+  const downgraded = envelope?.status === "FOUNDATION_DOWNGRADED";
+  const advisory =
+    assessment.provenance.startsWith("python:") && envelope?.authority === "FOUNDATION_VALIDATED";
+  const rev = assessment.suggested_revision;
+  const hasRev = rev !== null && rev.trim().length > 0;
+  // Defensive: a recipient-facing revision must never carry an em/en dash.
+  const unsafe = hasRev && /[—–]/.test(rev as string);
+  const safe = hasRev && !unsafe;
+  const changed = safe && rev !== currentDraft;
+  const canApply = !downgraded && changed;
+  return (
+    <div className="mt-2 rounded border bg-muted/30 p-2 text-xs" data-testid="ctx-tone-panel">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Tone check</span>
+        <span className="text-[10px] text-muted-foreground" data-testid="ctx-tone-advisory-label">
+          {advisory ? "Advisory (Python)" : "Foundation (deterministic)"}
+        </span>
+      </div>
+
+      <div className="mt-1 flex flex-wrap items-center gap-1" data-testid="ctx-tone-meta">
+        <span className="rounded border px-1 text-[10px]" data-testid="ctx-tone-label">
+          tone: {assessment.tone_label.toLowerCase().replace(/_/g, " ")}
+        </span>
+        <span className="rounded border px-1 text-[10px]" data-testid="ctx-tone-quality">
+          quality {assessment.quality_score}
+        </span>
+        {assessment.risk_flags.map((f) => (
+          <span key={f} className="rounded border px-1 text-[10px] text-amber-700 dark:text-amber-400" data-testid="ctx-tone-flag">
+            {f.toLowerCase().replace(/_/g, " ")}
+          </span>
+        ))}
+      </div>
+
+      {/* Original is ALWAYS shown — it is never lost. */}
+      <div className="mt-1.5" data-testid="ctx-tone-original">
+        <span className="text-muted-foreground">Original:</span>{" "}
+        <span className="italic">“{assessment.original_draft}”</span>
+      </div>
+
+      {downgraded ? (
+        <div className="mt-1.5 rounded border border-amber-400/40 bg-amber-500/5 p-1.5" data-testid="ctx-tone-downgraded">
+          Otzar kept your original. {envelope?.warnings && envelope.warnings.length > 0
+            ? envelope.warnings.join(" ")
+            : "The suggested rewrite was not safe to apply."}
+        </div>
+      ) : unsafe ? (
+        <div className="mt-1.5 rounded border border-amber-400/40 bg-amber-500/5 p-1.5" data-testid="ctx-tone-unsafe">
+          Otzar kept your original. The suggested rewrite was not safe to apply.
+        </div>
+      ) : changed ? (
+        <>
+          <div className="mt-1.5" data-testid="ctx-tone-suggested">
+            <span className="text-muted-foreground">Suggested:</span>{" "}
+            <span className="italic">“{rev}”</span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded border px-2 py-0.5 text-[11px] disabled:opacity-50"
+              onClick={() => rev !== null && onUse(rev)}
+              disabled={!canApply}
+              data-testid="ctx-tone-use"
+            >
+              Use suggested revision
+            </button>
+            <button
+              type="button"
+              className="rounded border px-2 py-0.5 text-[11px]"
+              onClick={onKeep}
+              data-testid="ctx-tone-keep"
+            >
+              Keep original
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="mt-1.5 text-muted-foreground" data-testid="ctx-tone-nochange">
+          No tone change suggested — your draft reads clearly.
+        </div>
+      )}
+
+      <div className="mt-1.5 text-muted-foreground" data-testid="ctx-tone-reason">
+        {assessment.reason}
+      </div>
+      {assessment.approval_required ? (
+        <div className="mt-1 text-amber-700 dark:text-amber-400" data-testid="ctx-tone-approval">
+          This send will require approval before it goes out.
+        </div>
+      ) : null}
+      <div className="mt-1 text-[10px] text-muted-foreground" data-testid="ctx-tone-provenance">
+        {advisory ? "Advisory analysis by Python, validated by Foundation." : "Deterministic Foundation analysis."}
+        {envelope ? ` Analysis ${envelope.status.toLowerCase()}.` : ""}
+      </div>
+    </div>
+  );
+}
+
 export function ProposedActionCard({
   proposedAction,
   onSent,
   onCancelled,
 }: Props): JSX.Element {
   const [state, setState] = useState<CardState>({ kind: "idle" });
+  const [tone, setTone] = useState<ToneState>({ kind: "idle" });
 
   const recipientUnresolved = proposedAction.target.entity_id === null;
 
   const currentDraft =
     state.kind === "editing" ? state.editedDraft : proposedAction.draft_text;
+
+  // WHAT: ask Foundation for an advisory tone read on the CURRENT draft.
+  // WHY: Phase 1286-B. Evaluative only — creates nothing, sends nothing. The
+  //      backend preserves the original and downgrades unsafe rewrites.
+  async function handleImproveTone(): Promise<void> {
+    setTone({ kind: "loading" });
+    const result = await api.workOs.evaluateDraftTone({
+      draft_text: currentDraft,
+      channel: "internal_message",
+      recipient_context: { display_name: proposedAction.target.display_name, internal: true },
+    });
+    if (!result.ok || !result.data.assessment) {
+      setTone({ kind: "error" });
+      return;
+    }
+    setTone({ kind: "ready", assessment: result.data.assessment, envelope: result.data.envelope });
+  }
+
+  // WHAT: apply a suggested revision to the LOCAL draft used by the later send.
+  // WHY: this does NOT send and does NOT approve — the user still clicks Send,
+  //      which runs the unchanged ADR-0057 approval pipeline. The original is
+  //      recoverable via "Revert to original" (proposedAction.draft_text is
+  //      immutable).
+  function handleUseSuggested(revision: string): void {
+    setState({ kind: "editing", editedDraft: revision });
+    setTone({ kind: "idle" });
+  }
+
+  function handleRevertOriginal(): void {
+    setState({ kind: "idle" });
+    setTone({ kind: "idle" });
+  }
 
   async function handleSend(): Promise<void> {
     if (proposedAction.target.entity_id === null) {
@@ -243,7 +402,37 @@ export function ProposedActionCard({
             Edit
           </button>
         )}
+        <button
+          type="button"
+          className="rounded border px-3 py-1 text-sm"
+          onClick={handleImproveTone}
+          disabled={state.kind === "sending" || tone.kind === "loading"}
+          data-testid="ctx-improve-tone-button"
+        >
+          {tone.kind === "loading" ? "Checking tone…" : "Improve tone"}
+        </button>
+        {state.kind === "editing" && state.editedDraft !== proposedAction.draft_text ? (
+          <button
+            type="button"
+            className="rounded border px-3 py-1 text-sm"
+            onClick={handleRevertOriginal}
+            data-testid="ctx-revert-original"
+          >
+            Revert to original
+          </button>
+        ) : null}
       </div>
+
+      {tone.kind === "error" ? (
+        <p
+          className="mt-2 rounded border border-amber-400/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-400"
+          data-testid="ctx-tone-error"
+        >
+          Couldn't check the tone right now. Your draft is unchanged.
+        </p>
+      ) : null}
+
+      {tone.kind === "ready" ? <ToneAdvisoryPanel assessment={tone.assessment} envelope={tone.envelope} currentDraft={currentDraft} onUse={handleUseSuggested} onKeep={() => setTone({ kind: "idle" })} /> : null}
 
       {state.kind === "failed" ? (
         <p

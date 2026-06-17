@@ -87,6 +87,9 @@ import type {
   OperationalHealthResponse,
   OperationalScope,
   RiskAssessmentResponse,
+  DraftToneChannel,
+  DraftRecipientContext,
+  DraftToneEvaluateResponse,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
@@ -1248,6 +1251,24 @@ export class ApiClient {
      *  Watchers remain primary; risk_assessment is additive advisory metadata. */
     riskAssessment: (): Promise<ApiResult<RiskAssessmentResponse>> =>
       this.request<RiskAssessmentResponse>("/work-os/risk/assessment"),
+
+    /** POST /api/v1/work-os/draft-tone/evaluate — advisory DRAFT_TONE over a
+     *  PROPOSED message (Phase 1285-Y). Evaluative only: creates nothing, sends
+     *  nothing. The original draft is preserved server-side; the suggested
+     *  revision is advisory (null when downgraded). approval_required is
+     *  Foundation-authoritative. */
+    evaluateDraftTone: (body: {
+      draft_text: string;
+      channel?: DraftToneChannel;
+      recipient_context?: DraftRecipientContext;
+      intent?: string;
+      constraints?: { approval_required?: boolean };
+      draft_id?: string;
+    }): Promise<ApiResult<DraftToneEvaluateResponse>> =>
+      this.request<DraftToneEvaluateResponse>("/work-os/draft-tone/evaluate", {
+        method: "POST",
+        body,
+      }),
 
     /** PATCH /api/v1/work-os/ledger/:id — update status / next_action /
      *  priority. Completion authority is enforced server-side (only the
