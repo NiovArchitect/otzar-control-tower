@@ -19,6 +19,7 @@
 
 import {
   Sparkles,
+  Activity,
   AlertTriangle,
   Bell,
   Bot,
@@ -97,6 +98,19 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: AlertTriangle,
     description:
       "Risk from your real work — overdue, stale waiting-on, blockers, and items with no next action. Managers see the team's.",
+    group: "primary",
+  },
+  {
+    // Phase 1286-A — advisory execution-health surface. Deterministic health
+    // score + counts are primary; the Python narrative + risk scoring are
+    // advisory and labeled. Sits next to Blind Spots as the "how am I doing"
+    // companion to "what's slipping". Visible to every user (backend scopes
+    // personal vs team/org by can_admin_org).
+    label: "Operational Health",
+    to: "/app/operational-health",
+    icon: Activity,
+    description:
+      "A governed read of your execution health — deterministic score and counts, with advisory summary and risk scoring labeled as such.",
     group: "primary",
   },
   {

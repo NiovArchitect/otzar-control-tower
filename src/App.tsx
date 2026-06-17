@@ -45,6 +45,7 @@ import { MyWork } from "@/pages/app/MyWork";
 import { InboxThread } from "@/pages/app/InboxThread";
 import { TeamWork } from "@/pages/app/TeamWork";
 import { BlindSpots } from "@/pages/app/BlindSpots";
+import { OperationalHealth } from "@/pages/app/OperationalHealth";
 import { VoiceReady } from "@/pages/app/VoiceReady";
 import { Voice } from "@/pages/app/Voice";
 
@@ -133,6 +134,7 @@ export function App() {
               <Route path="inbox/:id" element={<InboxThread />} />
               <Route path="team-work" element={<TeamWork />} />
               <Route path="blind-spots" element={<BlindSpots />} />
+              <Route path="operational-health" element={<OperationalHealth />} />
               <Route path="voice-ready" element={<VoiceReady />} />
               <Route path="voice" element={<Voice />} />
               <Route path="conversations" element={<Conversations />} />

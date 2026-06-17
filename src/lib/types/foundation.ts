@@ -4501,6 +4501,82 @@ export interface WatcherFeedResponse {
   code?: string;
 }
 
+// ── Advisory intelligence envelope (Phases 1285-U..Z) ───────────────────────
+// The CT projection of the Foundation PythonIntelligenceEnvelope. Foundation is
+// the authority; this is advisory DISPLAY metadata only. CT labels the narrative
+// "Advisory (Python)" only when authority === "FOUNDATION_VALIDATED"; otherwise
+// the deterministic Foundation value is shown with an honest status.
+export interface PythonAdvisoryEnvelope {
+  status: string; // PENDING | PYTHON_ENRICHED | NOT_CONFIGURED | UNHEALTHY | TIMEOUT | ERROR | NO_SIGNAL | SKIPPED | FOUNDATION_REJECTED | FOUNDATION_DOWNGRADED
+  source: string; // "PYTHON_ADVISORY"
+  authority: string | null; // "FOUNDATION_VALIDATED" | "FOUNDATION_REJECTED" | null
+  capability: string;
+  latency_ms: number | null;
+  provenance: string | null;
+  warnings: string[];
+  updated_at: string;
+}
+
+// ── Operational health (Phase 1285-Z) — advisory OPERATIONAL_ANALYTICS over a
+//    Foundation-scoped execution-health snapshot. health_score / execution_status
+//    / counts are DETERMINISTIC (Foundation-authoritative); the narrative is
+//    advisory. ──
+export type OperationalScope = "personal" | "team" | "org";
+export type ExecutionStatus = "HEALTHY" | "WATCH" | "AT_RISK" | "CRITICAL";
+
+export interface OperationalHealthAssessment {
+  scope: OperationalScope;
+  health_score: number;
+  execution_status: ExecutionStatus;
+  summary: string;
+  top_risks: string[];
+  recurring_blockers: string[];
+  overloaded_people: string[];
+  suggested_focus: string[];
+  recommended_next_actions: string[];
+  total_work: number;
+  overdue_count: number;
+  blocked_count: number;
+  waiting_on_count: number;
+  no_next_action_count: number;
+  stale_work_count: number;
+  high_risk_count: number;
+  critical_risk_count: number;
+  recent_completed_count: number;
+  recent_failed_count: number;
+  confidence: string;
+  reasoning_summary: string | null;
+  human_review_needed: boolean;
+  provenance: string; // "python:operational-analytics" | "foundation:deterministic-analytics"
+}
+export interface OperationalHealthResponse {
+  ok: boolean;
+  health?: OperationalHealthAssessment;
+  envelope?: PythonAdvisoryEnvelope;
+  code?: string;
+}
+
+// ── Risk assessment (Phase 1285-X) — advisory RISK_SCORING enriching the
+//    deterministic watcher findings. Deterministic Blind Spots / Watchers remain
+//    primary; risk_assessment is ADDITIVE advisory metadata. ──
+export interface RiskAssessment {
+  risk_score: number;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  confidence: string;
+  reason: string;
+  contributing_signals: string[];
+  suggested_next_action: string;
+  human_review_needed: boolean;
+  provenance: string; // "python:risk-scoring" | "foundation:deterministic-risk"
+}
+export type RiskAssessedFinding = WatcherFinding & { risk_assessment: RiskAssessment };
+export interface RiskAssessmentResponse {
+  ok: boolean;
+  findings?: RiskAssessedFinding[];
+  envelope?: PythonAdvisoryEnvelope;
+  code?: string;
+}
+
 // ── Comms recent-artifacts feed (Phase 1285-T) — mirrors
 //    apps/api/src/services/work-os/comms-artifacts.service.ts. ──
 export type CommsArtifactType =
