@@ -82,6 +82,7 @@ import type {
   WorkLedgerListResponse,
   WorkLedgerEntryView,
   BlindSpotFeedResponse,
+  WatcherFeedResponse,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
@@ -1208,6 +1209,12 @@ export class ApiClient {
      *  waiting-on / unresolved blocker / no-next-action) with severity. */
     blindSpotsFeed: (): Promise<ApiResult<BlindSpotFeedResponse>> =>
       this.request<BlindSpotFeedResponse>("/work-os/blind-spots/feed"),
+
+    /** GET /api/v1/work-os/watchers/feed — governed watcher findings (Phase
+     *  1285-P): typed risk + canonical participants + source proof + detection
+     *  metadata + recommended next action. */
+    watchersFeed: (): Promise<ApiResult<WatcherFeedResponse>> =>
+      this.request<WatcherFeedResponse>("/work-os/watchers/feed"),
 
     /** PATCH /api/v1/work-os/ledger/:id — update status / next_action /
      *  priority. Completion authority is enforced server-side (only the

@@ -579,8 +579,10 @@ export function classifyVoiceAction(
       label: "My Work",
     },
     {
+      // Phase 1285-P — blind-spot / risk questions route to the real watcher
+      // feed surface (durable findings), never a vague LLM answer.
       patterns:
-        /\b(blind spots?|what am i missing|what(?:'s| is) blocked|what(?:'s| is) slipping)\b/,
+        /\b(blind spots?|what am i missing|what(?:'s| is) blocked|what(?:'s| is) slipping|what(?:'s| is) overdue|what(?:'s| is) at risk|what(?:'s| is) stale|what should i follow up on|what is quietly slipping|unresolved blockers?)\b/,
       route: "/app/blind-spots",
       label: "Blind Spots",
     },

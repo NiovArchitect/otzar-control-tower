@@ -117,6 +117,8 @@ describe("WorkLedgerItem execution proof (lazy)", () => {
 describe("BlindSpots runtime-issues section", () => {
   it("renders a distinct 'Runtime / verification issues' section", async () => {
     server.use(
+      // Watcher feed empty → the legacy runtime/status sections render.
+      http.get(`${API}/work-os/watchers/feed`, () => HttpResponse.json({ ok: true, findings: [] })),
       http.get(`${API}/work-os/blind-spots`, () =>
         HttpResponse.json({
           ok: true,

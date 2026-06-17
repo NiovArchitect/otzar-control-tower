@@ -4431,6 +4431,76 @@ export interface BlindSpotFeedResponse {
   code?: string;
 }
 
+// ── Governed watcher feed (Phase 1285-P) — the richer WatcherFinding contract.
+//    Mirrors apps/api/src/services/work-os/watcher.service.ts. ──
+export type WatcherType =
+  | "STALE_WAITING_ON"
+  | "OVERDUE_WORK"
+  | "UNRESOLVED_BLOCKER"
+  | "NO_NEXT_ACTION"
+  | "UNANSWERED_ASK"
+  | "STALE_COMMITMENT";
+
+export type WatcherActionKind =
+  | "view_thread"
+  | "view_work"
+  | "nudge_owner"
+  | "mark_complete"
+  | "assign_owner"
+  | "review_blocker"
+  | "none";
+
+// A person on a finding, server-resolved. display_name is ALWAYS a human label
+// ("Unknown entity" when unresolved); entity_id is secondary proof only.
+export interface WatcherEntity {
+  entity_id: string | null;
+  display_name: string;
+  unresolved: boolean;
+}
+
+export interface WatcherFinding {
+  finding_id: string;
+  watcher_type: WatcherType;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  title: string;
+  summary: string;
+  org_id: string;
+  owner: WatcherEntity | null;
+  requester: WatcherEntity | null;
+  target: WatcherEntity | null;
+  related_person: WatcherEntity | null;
+  source: {
+    source_system:
+      | "work_ledger"
+      | "thread"
+      | "waiting_on"
+      | "signal"
+      | "relationship_summary";
+    ledger_entry_id: string | null;
+    source_message_id: string | null;
+    source_thread_key: string | null;
+    relationship_key: string | null;
+  };
+  detection: {
+    rule_id: string;
+    detected_at: string;
+    age_hours: number | null;
+    due_at: string | null;
+    threshold_hours: number | null;
+    reason: string;
+  };
+  recommendation: {
+    next_action: string;
+    action_kind: WatcherActionKind;
+  };
+}
+
+export interface WatcherFeedResponse {
+  ok: boolean;
+  findings?: WatcherFinding[];
+  code?: string;
+}
+
 // Phase 1284 — human-authority direct internal message result.
 export interface InternalMessageResponse {
   ok: boolean;

@@ -16,6 +16,7 @@ import type {
   SafeActionView,
   CommsSuggestedAction,
   BlindSpotFeedItem,
+  WatcherFinding,
 } from "@/lib/types/foundation";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import { entityLabel } from "@/lib/identity/canonical-entity";
@@ -307,6 +308,57 @@ const BLIND_SPOT_TYPE_LABEL: Record<string, string> = {
   UNRESOLVED_BLOCKER: "Unresolved blocker",
   NO_NEXT_ACTION: "No next action",
 };
+
+const WATCHER_TYPE_LABEL: Record<string, string> = {
+  OVERDUE_WORK: "Overdue work",
+  STALE_WAITING_ON: "Stale waiting-on",
+  UNRESOLVED_BLOCKER: "Unresolved blocker",
+  NO_NEXT_ACTION: "No next action",
+  UNANSWERED_ASK: "Unanswered ask",
+  STALE_COMMITMENT: "Stale commitment",
+};
+
+// WHAT: shared View/Why for a governed watcher finding (Phase 1285-P) — why
+//        Otzar flagged it, the deterministic rule, participants (canonical),
+//        age/due/threshold, source proof, and the recommended next action.
+//        Uses the SAME ViewWhyPanel as every other surface (no one-off
+//        renderer). Identity is always a canonical label, never a raw UUID.
+export function viewWhyFromWatcher(w: WatcherFinding): ViewWhyModel {
+  const personLabel = (p: WatcherFinding["owner"]): string | null =>
+    p !== null ? entityLabel(p.display_name) : null;
+  const rows: ViewWhyRow[] = [
+    { label: "Type", value: WATCHER_TYPE_LABEL[w.watcher_type] ?? w.watcher_type },
+    { label: "Severity", value: w.severity },
+    { label: "Why flagged", value: w.summary },
+    { label: "Owner", value: personLabel(w.owner) },
+    { label: "Requester", value: personLabel(w.requester) },
+    { label: "Target", value: personLabel(w.target) },
+    { label: "Related person", value: personLabel(w.related_person) },
+    { label: "Due", value: w.detection.due_at },
+    {
+      label: "Age",
+      value: w.detection.age_hours !== null ? `${Math.floor(w.detection.age_hours / 24)}d` : null,
+    },
+    {
+      label: "Threshold",
+      value: w.detection.threshold_hours !== null ? `${w.detection.threshold_hours}h` : null,
+    },
+    { label: "Source", value: w.source.source_system.replace(/_/g, " ") },
+    { label: "Source message", value: w.source.source_message_id },
+    { label: "Ledger id", value: w.source.ledger_entry_id },
+    { label: "Recommended", value: w.recommendation.next_action },
+    { label: "Detection rule", value: w.detection.rule_id },
+  ];
+  return {
+    rows,
+    signal: {
+      signal_type: w.watcher_type,
+      extraction_source: w.detection.reason,
+    },
+    proofNote:
+      "Detected by a governed Foundation watcher over your durable work — scoped to you, audit-aware, never external.",
+  };
+}
 
 // WHAT: shared View/Why for a Blind Spot — why Otzar flagged it, severity, the
 //        participants (canonical), age/due, source proof, recommended action,
