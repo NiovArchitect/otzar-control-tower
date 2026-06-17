@@ -49,6 +49,8 @@ import { api } from "@/lib/api";
 import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView } from "@/lib/types/foundation";
+import { isActionablePending, actionClassLabel } from "@/lib/work-os/action-classify";
+import { useWorkStateChanged } from "@/lib/events/work-state";
 
 type Tab = "pending" | "approved" | "completed" | "blocked";
 
@@ -231,6 +233,13 @@ export function ActionCenter(): JSX.Element {
     void load();
   }, [load]);
 
+  // Phase 1285-S — refresh when work changes (a new action proposed, a task
+  // completed, a notification-linked action) so the cockpit is never stale.
+  useWorkStateChanged(
+    ["LEDGER_UPDATED", "TASK_COMPLETED", "NOTIFICATION_CREATED", "SIGNAL_TRACKED"],
+    () => void load(),
+  );
+
   const grouped: Record<Tab, SafeActionView[]> = {
     pending: [],
     approved: [],
@@ -276,13 +285,26 @@ export function ActionCenter(): JSX.Element {
     }
   }
 
-  const current = grouped[tab];
+  // Phase 1285-S — the "Needs decision" tab leads with truly actionable items
+  // (a real approve/reject); non-actionable proposals (routing/stuck) sort
+  // below and are labeled, but never inflate the actionable count.
+  const current =
+    tab === "pending"
+      ? [...grouped.pending].sort(
+          (x, y) => Number(isActionablePending(y)) - Number(isActionablePending(x)),
+        )
+      : grouped[tab];
+  // The pending badge counts ONLY actionable items.
+  const tabCount = (t: Tab): number =>
+    t === "pending"
+      ? grouped.pending.filter(isActionablePending).length
+      : grouped[t].length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Action Center"
-        description="Decisions Otzar is making on your behalf. Confirm what matters, see what's done, learn what was blocked — and why."
+        description="Decisions Otzar is making on your behalf. Confirm what matters, see what's done, and learn what was blocked and why."
       />
 
       {/* Tab bar */}
@@ -292,7 +314,7 @@ export function ActionCenter(): JSX.Element {
         className="flex flex-wrap gap-2 border-b border-border"
       >
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
-          const count = grouped[t].length;
+          const count = tabCount(t);
           const active = t === tab;
           return (
             <button
@@ -396,6 +418,19 @@ export function ActionCenter(): JSX.Element {
                             recipient unavailable
                           </Badge>
                         ) : null}
+                        {/* Phase 1285-S — honest class label so historical /
+                            low-risk / non-actionable items never read as
+                            requiring action. Actionable items show no label
+                            (they have Approve / Reject controls below). */}
+                        {actionClassLabel(a) !== null ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] text-muted-foreground"
+                            data-testid="action-class-label"
+                          >
+                            {actionClassLabel(a)}
+                          </Badge>
+                        ) : null}
                         <Badge variant={t === "blocked" ? "destructive" : "outline"}>
                           {friendlyStatus(a.status)}
                         </Badge>
@@ -406,7 +441,7 @@ export function ActionCenter(): JSX.Element {
                             points: [
                               {
                                 label: "What this is",
-                                body: `${friendlyActionType(a.action_type)} — ${friendlyRisk(a.risk_tier).toLowerCase()}.`,
+                                body: `${friendlyActionType(a.action_type)} (${friendlyRisk(a.risk_tier).toLowerCase()}).`,
                               },
                               {
                                 label: "Current state",

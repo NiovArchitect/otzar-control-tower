@@ -74,7 +74,8 @@ beforeEach(() => setAuth());
 describe("ActionCenter — tab counts + lifecycle bucket assignment", () => {
   it("buckets statuses into pending / approved / completed / blocked", async () => {
     mockList([
-      action({ action_id: "a-1", status: "PROPOSED" }),
+      // PROPOSED + escalation = a real actionable decision (counts toward pending).
+      action({ action_id: "a-1", status: "PROPOSED", escalation_id: "esc-a1" }),
       action({ action_id: "a-2", status: "APPROVED" }),
       action({ action_id: "a-3", status: "SCHEDULED" }),
       action({ action_id: "a-4", status: "RUNNING" }),
@@ -87,11 +88,13 @@ describe("ActionCenter — tab counts + lifecycle bucket assignment", () => {
     ]);
     renderPage();
     await waitFor(() =>
-      expect(screen.getByTestId("action-tab-pending")).toBeInTheDocument(),
+      expect(screen.getByTestId("action-center-list")).toBeInTheDocument(),
     );
-    expect(
-      screen.getByTestId("action-tab-pending").getAttribute("data-count"),
-    ).toBe("1");
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("action-tab-pending").getAttribute("data-count"),
+      ).toBe("1"),
+    );
     expect(
       screen.getByTestId("action-tab-approved").getAttribute("data-count"),
     ).toBe("3"); // APPROVED + SCHEDULED + RUNNING
@@ -101,6 +104,31 @@ describe("ActionCenter — tab counts + lifecycle bucket assignment", () => {
     expect(
       screen.getByTestId("action-tab-blocked").getAttribute("data-count"),
     ).toBe("5"); // FAILED + REJECTED + CANCELLED + EXPIRED + TIMED_OUT
+  });
+
+  it("pending count excludes non-actionable proposals (Phase 1285-S)", async () => {
+    mockList([
+      action({ action_id: "act-real", status: "PROPOSED", escalation_id: "esc-1" }), // actionable
+      action({ action_id: "act-routing", status: "PROPOSED" }), // no escalation: not actionable
+      action({ action_id: "act-routing-2", status: "PROPOSED" }),
+    ]);
+    renderPage();
+    // Wait for the list to finish loading before asserting the count (the tab
+    // is in the DOM before items arrive).
+    await waitFor(() =>
+      expect(screen.getByTestId("action-center-list")).toBeInTheDocument(),
+    );
+    // Three PROPOSED rows, but only ONE is a real decision.
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("action-tab-pending").getAttribute("data-count"),
+      ).toBe("1"),
+    );
+    // The non-actionable proposals are still shown, but clearly labeled.
+    expect(screen.getAllByTestId("action-class-label").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByTestId("action-center-list").textContent ?? "").toMatch(
+      /No action needed right now/,
+    );
   });
 
   it("clicking a tab swaps the visible list", async () => {
@@ -373,6 +401,43 @@ describe("ActionCenter — specific cards + executable state (Phase 1285-N BLOCK
     await user.click(screen.getByTestId("action-open-details"));
     const panel = await screen.findByTestId("action-view-why-panel");
     expect(panel).toHaveTextContent(/Message body unavailable in safe projection/);
+  });
+});
+
+describe("ActionCenter — stale-artifact cleanup (Phase 1285-S)", () => {
+  it("labels a historical low-risk internal note as non-actionable (Completed tab)", async () => {
+    mockList([
+      action({
+        action_id: "note-1",
+        status: "SUCCEEDED",
+        action_type: "SEND_INTERNAL_NOTIFICATION",
+        risk_tier: "LOW",
+      }),
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId("action-tab-completed")).toBeInTheDocument());
+    await user.click(screen.getByTestId("action-tab-completed"));
+    expect(screen.getByTestId("action-class-label").textContent ?? "").toMatch(
+      /Low-risk internal note/,
+    );
+    // It is not counted as a pending decision.
+    expect(screen.getByTestId("action-tab-pending").getAttribute("data-count")).toBe("0");
+  });
+
+  it("refreshes the list on a WorkStateChanged event", async () => {
+    let getCalls = 0;
+    server.use(
+      http.get(`${API_BASE}/actions`, () => {
+        getCalls += 1;
+        return HttpResponse.json({ ok: true, items: [], page: 1, page_size: 50, total: 0 });
+      }),
+    );
+    const { emitWorkStateChanged } = await import("@/lib/events/work-state");
+    renderPage();
+    await waitFor(() => expect(getCalls).toBe(1));
+    emitWorkStateChanged({ type: "LEDGER_UPDATED" });
+    await waitFor(() => expect(getCalls).toBe(2));
   });
 });
 
