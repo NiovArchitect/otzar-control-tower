@@ -14,6 +14,7 @@ import { TeamWork } from "@/pages/app/TeamWork";
 import { BlindSpots } from "@/pages/app/BlindSpots";
 import { classifyVoiceAction } from "@/lib/voice/voice-action-runtime";
 import { useAuthStore } from "@/lib/stores/auth";
+import { emitWorkStateChanged } from "@/lib/events/work-state";
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -110,23 +111,45 @@ describe("Team Work cockpit", () => {
   });
 });
 
-function blindSpot(over: Record<string, unknown> = {}) {
+function watcherFinding(over: Record<string, unknown> = {}) {
   return {
-    blind_spot_id: "bs-1", type: "OVERDUE_WORK", title: "Overdue: Send proof notes",
-    summary: "Past due by 9 days.", severity: "HIGH", ledger_entry_id: "led-9",
-    ledger_type: "TASK", status: "PROPOSED", owner_entity_id: "me",
-    requester_entity_id: "ent-david", owner_display_name: "You",
-    requester_display_name: "David Odie", due_at: "2026-06-01T00:00:00.000Z",
-    age_days: 12, source_message_id: "msg-3",
-    recommended_action: "Complete this overdue work or renegotiate the due date.",
-    detection_rule: "due_at < now", ...over,
+    finding_id: "OVERDUE_WORK:led-9",
+    watcher_type: "OVERDUE_WORK",
+    severity: "HIGH",
+    title: "Overdue: Send proof notes",
+    summary: "Due 9d ago and still open.",
+    org_id: "org-1",
+    owner: { entity_id: "me", display_name: "You", unresolved: false },
+    requester: { entity_id: "ent-david", display_name: "David Odie", unresolved: false },
+    target: null,
+    related_person: { entity_id: "ent-david", display_name: "David Odie", unresolved: false },
+    source: {
+      source_system: "work_ledger",
+      ledger_entry_id: "led-9",
+      source_message_id: "msg-3",
+      source_thread_key: null,
+      relationship_key: null,
+    },
+    detection: {
+      rule_id: "OVERDUE_WORK_V1",
+      detected_at: "2026-06-16T12:00:00.000Z",
+      age_hours: 216,
+      due_at: "2026-06-01T00:00:00.000Z",
+      threshold_hours: 0,
+      reason: "active item with due_at in the past",
+    },
+    recommendation: {
+      next_action: "Nudge David Odie or reset the due date.",
+      action_kind: "nudge_owner",
+    },
+    ...over,
   };
 }
 
 describe("Blind Spots cockpit", () => {
   it("renders ledger-derived blocked/unresolved items (legacy section)", async () => {
     server.use(
-      http.get(`${API_BASE}/work-os/blind-spots/feed`, () => HttpResponse.json({ ok: true, items: [] })),
+      http.get(`${API_BASE}/work-os/watchers/feed`, () => HttpResponse.json({ ok: true, findings: [] })),
       http.get(`${API_BASE}/work-os/blind-spots`, () =>
         HttpResponse.json({ ok: true, items: [entry({ status: "NEEDS_TARGET_RESOLUTION", title: "Unknown Alex" })] }),
       ),
@@ -137,15 +160,23 @@ describe("Blind Spots cockpit", () => {
   });
 });
 
-describe("Blind Spots typed risk feed (Phase 1285-N)", () => {
-  it("renders the real feed grouped by type with severity + owner + recommended action", async () => {
+describe("Blind Spots watcher feed (Phase 1285-P)", () => {
+  it("renders the real watcher feed grouped by type with severity + owner + recommended action", async () => {
     server.use(
-      http.get(`${API_BASE}/work-os/blind-spots/feed`, () =>
+      http.get(`${API_BASE}/work-os/watchers/feed`, () =>
         HttpResponse.json({
           ok: true,
-          items: [
-            blindSpot(),
-            blindSpot({ blind_spot_id: "bs-2", type: "UNRESOLVED_BLOCKER", title: "Blocker: API key", severity: "HIGH", ledger_entry_id: "led-10", recommended_action: "Resolve or escalate this blocker." }),
+          findings: [
+            watcherFinding(),
+            watcherFinding({
+              finding_id: "UNRESOLVED_BLOCKER:led-10",
+              watcher_type: "UNRESOLVED_BLOCKER",
+              title: "Blocker: API key",
+              severity: "HIGH",
+              source: { source_system: "work_ledger", ledger_entry_id: "led-10", source_message_id: null, source_thread_key: null, relationship_key: null },
+              detection: { rule_id: "UNRESOLVED_BLOCKER_V1", detected_at: "x", age_hours: 48, due_at: null, threshold_hours: null, reason: "active BLOCKER ledger entry" },
+              recommendation: { next_action: "Resolve the blocker or escalate it.", action_kind: "review_blocker" },
+            }),
           ],
         }),
       ),
@@ -161,14 +192,74 @@ describe("Blind Spots typed risk feed (Phase 1285-N)", () => {
     expect(page).toMatch(/Blockers/);
     // severity badge + recommended action + canonical owner (never raw UUID)
     expect(screen.getAllByTestId("blind-spot-severity")[0]!.textContent).toMatch(/high/i);
-    expect(screen.getAllByTestId("blind-spot-recommended")[0]!.textContent).toMatch(/Complete this overdue work/);
+    expect(screen.getAllByTestId("blind-spot-recommended")[0]!.textContent).toMatch(/Nudge David Odie/);
     expect(page).toMatch(/David Odie/);
     expect(page).not.toMatch(/ent-david/);
   });
 
-  it("opens View/Why with the detection rule and proof (no fake)", async () => {
+  it("renders a STALE_WAITING_ON card with owner/requester/age/recommendation", async () => {
     server.use(
-      http.get(`${API_BASE}/work-os/blind-spots/feed`, () => HttpResponse.json({ ok: true, items: [blindSpot()] })),
+      http.get(`${API_BASE}/work-os/watchers/feed`, () =>
+        HttpResponse.json({
+          ok: true,
+          findings: [
+            watcherFinding({
+              finding_id: "STALE_WAITING_ON:led-22",
+              watcher_type: "STALE_WAITING_ON",
+              title: "Proof-layer notes",
+              summary: "Sadeil is waiting on David Odie — no movement in 3d.",
+              severity: "MEDIUM",
+              owner: { entity_id: "ent-david", display_name: "David Odie", unresolved: false },
+              requester: { entity_id: "me", display_name: "Sadeil", unresolved: false },
+              source: { source_system: "waiting_on", ledger_entry_id: "led-22", source_message_id: "msg-9", source_thread_key: null, relationship_key: null },
+              detection: { rule_id: "STALE_WAITING_ON_48H_V1", detected_at: "x", age_hours: 72, due_at: null, threshold_hours: 48, reason: "directional waiting-on with no update in 48h" },
+              recommendation: { next_action: "Nudge David Odie or re-scope the ask.", action_kind: "nudge_owner" },
+            }),
+          ],
+        }),
+      ),
+      http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    renderPage(<BlindSpots />);
+    await waitFor(() => expect(screen.getByTestId("blind-spot-card")).toBeInTheDocument());
+    const card = screen.getByTestId("blind-spot-card");
+    expect(card.getAttribute("data-watcher-type")).toBe("STALE_WAITING_ON");
+    expect(card.textContent).toMatch(/Owner: David Odie/);
+    expect(card.textContent).toMatch(/Requester: Sadeil/);
+    expect(card.textContent).toMatch(/3d old/);
+    expect(screen.getByTestId("blind-spot-recommended").textContent).toMatch(/Nudge David Odie or re-scope/);
+  });
+
+  it("renders a NO_NEXT_ACTION card with its recommendation", async () => {
+    server.use(
+      http.get(`${API_BASE}/work-os/watchers/feed`, () =>
+        HttpResponse.json({
+          ok: true,
+          findings: [
+            watcherFinding({
+              finding_id: "NO_NEXT_ACTION:led-30",
+              watcher_type: "NO_NEXT_ACTION",
+              title: "Follow up with Vishesh",
+              summary: "No next action set.",
+              severity: "LOW",
+              source: { source_system: "work_ledger", ledger_entry_id: "led-30", source_message_id: null, source_thread_key: null, relationship_key: null },
+              detection: { rule_id: "NO_NEXT_ACTION_V1", detected_at: "x", age_hours: 24, due_at: null, threshold_hours: null, reason: "active item with no owner or no next_action" },
+              recommendation: { next_action: "Set a clear next action.", action_kind: "view_work" },
+            }),
+          ],
+        }),
+      ),
+      http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    renderPage(<BlindSpots />);
+    await waitFor(() => expect(screen.getByTestId("blind-spot-card")).toBeInTheDocument());
+    expect(screen.getByTestId("blind-spot-card").getAttribute("data-watcher-type")).toBe("NO_NEXT_ACTION");
+    expect(screen.getByTestId("blind-spot-recommended").textContent).toMatch(/Set a clear next action/);
+  });
+
+  it("opens View/Why showing watcher type, detection rule, source, and recommended action (no fake)", async () => {
+    server.use(
+      http.get(`${API_BASE}/work-os/watchers/feed`, () => HttpResponse.json({ ok: true, findings: [watcherFinding()] })),
       http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
     );
     renderPage(<BlindSpots />);
@@ -176,18 +267,35 @@ describe("Blind Spots typed risk feed (Phase 1285-N)", () => {
     why.click();
     await waitFor(() => expect(screen.getByTestId("blind-spot-view-why")).toBeInTheDocument());
     const detail = screen.getByTestId("blind-spot-view-why").textContent ?? "";
-    expect(detail).toMatch(/due_at < now/); // the deterministic detection rule
+    expect(detail).toMatch(/Overdue work/); // watcher type label
+    expect(detail).toMatch(/OVERDUE_WORK_V1/); // deterministic detection rule id
     expect(detail).toMatch(/msg-3/); // source proof
+    expect(detail).toMatch(/Nudge David Odie or reset the due date/); // recommended action
   });
 
-  it("shows the honest empty state when there are no blind spots", async () => {
+  it("shows the honest empty state when there are no watcher findings", async () => {
     server.use(
-      http.get(`${API_BASE}/work-os/blind-spots/feed`, () => HttpResponse.json({ ok: true, items: [] })),
+      http.get(`${API_BASE}/work-os/watchers/feed`, () => HttpResponse.json({ ok: true, findings: [] })),
       http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
     );
     renderPage(<BlindSpots />);
     await waitFor(() => expect(screen.getByTestId("blind-spots-empty")).toBeInTheDocument());
     expect(screen.getByTestId("blind-spots-empty").textContent).toMatch(/No blind spots detected right now/i);
+  });
+
+  it("refreshes the watcher feed on a WorkStateChanged event", async () => {
+    let feedCalls = 0;
+    server.use(
+      http.get(`${API_BASE}/work-os/watchers/feed`, () => {
+        feedCalls += 1;
+        return HttpResponse.json({ ok: true, findings: [] });
+      }),
+      http.get(`${API_BASE}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    renderPage(<BlindSpots />);
+    await waitFor(() => expect(feedCalls).toBe(1));
+    emitWorkStateChanged({ type: "TASK_COMPLETED" });
+    await waitFor(() => expect(feedCalls).toBe(2));
   });
 });
 
@@ -202,6 +310,23 @@ describe("Voice routing to cockpits (not chat)", () => {
     for (const cmd of ["What am I missing?", "What is blocked?"]) {
       const a = classifyVoiceAction(cmd, ADMIN);
       expect(a.route).toBe("/app/blind-spots");
+    }
+  });
+  it("routes blind-spot / risk / overdue / stale / follow-up questions to /app/blind-spots (Phase 1285-P, deterministic — never the LLM)", () => {
+    const cmds = [
+      "What are my blind spots?",
+      "What is overdue?",
+      "What is at risk?",
+      "What is stale?",
+      "What should I follow up on?",
+      "What is quietly slipping?",
+      "Unresolved blockers",
+    ];
+    for (const cmd of cmds) {
+      const a = classifyVoiceAction(cmd, ADMIN);
+      expect(a.route).toBe("/app/blind-spots");
+      // Deterministic Work-OS classification — NOT a fall-through chat/LLM action.
+      expect(a.kind).not.toBe("GOVERNED_CHAT");
     }
   });
   it("routes 'show team work' to /app/team-work", () => {
