@@ -50,6 +50,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProposedActionCard } from "@/components/otzar/ProposedActionCard";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromCommsFollowUp } from "@/lib/work-os/view-why";
 import { api } from "@/lib/api";
 import { entityLabel } from "@/lib/identity/canonical-entity";
@@ -739,6 +740,9 @@ function CommsRecentArtifacts(): JSX.Element {
                     ) : null}
                   </div>
                 </div>
+                {/* Phase 1286-C — read-only meeting intelligence, only when the
+                    artifact genuinely carries it. Absent → nothing renders. */}
+                <MeetingIntelligencePanel data={a.meeting_intelligence} />
               </li>
             );
           })}
