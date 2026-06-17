@@ -43,6 +43,7 @@ import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { viewWhyFromNotification } from "@/lib/work-os/view-why";
 import { entityLabel } from "@/lib/identity/canonical-entity";
+import { useWorkStateChanged } from "@/lib/events/work-state";
 import type { SafeNotificationView } from "@/lib/types/foundation";
 
 function randomIdempotencyKey(): string {
@@ -139,6 +140,14 @@ export function NotificationBell({
       window.clearInterval(id);
     };
   }, [fetchOnce, pollIntervalMs]);
+
+  // Phase 1285-Q — event-driven refresh so the inbox is never stale after a new
+  // message / work event. Additive to the gentle poll + on-open refresh; keeps
+  // the unread badge + popup (driven by the shared presence store) honest.
+  useWorkStateChanged(
+    ["MESSAGE_CREATED", "NOTIFICATION_CREATED", "WAITING_ON_CHANGED", "TASK_COMPLETED"],
+    () => void fetchOnce(),
+  );
 
   const unread = state.items.filter((n) => n.read_at === null);
   const unreadCount = unread.length;
@@ -281,14 +290,26 @@ export function NotificationBell({
     }));
     const result = await api.notifications.markRead(id);
     if (!result.ok) {
-      // Clean, humanized copy — NEVER a raw network code, and the list
-      // stays usable (we only roll back the optimistic flip).
+      // Honest developer proof — identify the REAL failure (route + code) in
+      // dev without exposing internals to the user. The user-facing copy stays
+      // simple; the list rolls back so we never falsely clear unread state.
+      if (import.meta.env.DEV) {
+        console.debug(
+          `[NotificationBell] mark-read failed PUT /notifications/${id}/read →`,
+          result.code,
+          result.status,
+        );
+      }
       setState((s) => ({
         ...s,
         items: before,
         markError: humanizeMarkError(result.code),
       }));
+      return;
     }
+    // Reconcile with server truth so the unread count is correct after a
+    // refresh/relaunch (not just the optimistic flip). Best-effort.
+    void fetchOnce();
   }
 
   function toggle(): void {
