@@ -55,6 +55,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "Talk to Otzar",
       "Action Center",
       "My Work",
+      "Blind Spots",
       "Team Work",
       "Comms",
       "My Twin",
@@ -171,6 +172,29 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
     // Team Work is a PRIMARY entry (not buried in More).
     const link = teamWork.closest('[data-testid="employee-nav-link"]');
     expect(link?.getAttribute("data-nav-group")).toBe("primary");
+  });
+
+  it("Blind Spots is a visible primary entry routing to /app/blind-spots (Phase 1285-N)", () => {
+    const blindSpots = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Blind Spots");
+    expect(blindSpots).toBeDefined();
+    expect(blindSpots?.to).toBe("/app/blind-spots");
+    // Visible to EVERY user (employee sees own; manager sees team) — never adminOnly.
+    expect(blindSpots?.adminOnly).toBeUndefined();
+  });
+
+  it("Blind Spots renders in the nav for a normal employee AND a manager", () => {
+    // Normal employee — own blind spots.
+    renderNav();
+    const empLink = screen.getByText("Blind Spots").closest('[data-testid="employee-nav-link"]');
+    expect(empLink).not.toBeNull();
+    expect(empLink?.getAttribute("href")).toBe("/app/blind-spots");
+    expect(empLink?.getAttribute("data-nav-group")).toBe("primary");
+
+    // Manager/admin — team/org blind spots (same entry, not buried).
+    cleanup();
+    setAuth(true);
+    renderNav();
+    expect(screen.getByText("Blind Spots")).toBeInTheDocument();
   });
 
   it("My Work + Team Work route to /app/my-work and /app/team-work", () => {

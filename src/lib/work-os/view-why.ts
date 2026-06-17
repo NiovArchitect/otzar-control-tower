@@ -195,20 +195,77 @@ export function viewWhyFromNotification(
 //        SAFE projection fields + the locally-stored human detail; requester/
 //        target/policy-envelope are deliberately governed (secrecy allowlist),
 //        so an honest note states that instead of leaking or showing a blank.
+// WHAT: terminal Action statuses — the action can no longer be approved/run.
+const TERMINAL_ACTION_STATUSES: ReadonlySet<string> = new Set([
+  "SUCCEEDED",
+  "FAILED",
+  "CANCELLED",
+  "TIMED_OUT",
+  "REJECTED",
+  "EXPIRED",
+]);
+
+export interface ActionExecutability {
+  executable: boolean;
+  reason: string;
+}
+
+// WHAT: decide whether an Action can be approved/rejected right now, and the
+//        honest reason when it cannot — so the UI never shows a dead button.
+// INPUT: a SafeActionView.
+// OUTPUT: { executable, reason }.
+// WHY: A pending action with a linked escalation is the only executable case;
+//      terminal actions are historical; a pending action without an escalation
+//      is routing through policy (no human decision available here).
+export function actionExecutability(a: SafeActionView): ActionExecutability {
+  if (TERMINAL_ACTION_STATUSES.has(a.status)) {
+    return { executable: false, reason: "This approval is historical or no longer executable." };
+  }
+  if (a.status === "PROPOSED" && a.escalation_id != null && a.escalation_id.length > 0) {
+    return { executable: true, reason: "Awaiting your approval." };
+  }
+  if (a.status === "PROPOSED") {
+    return { executable: false, reason: "Otzar is routing this through your organization's approval policy." };
+  }
+  return { executable: false, reason: "In flight — no decision needed from you right now." };
+}
+
+// WHAT: the recipient/target display label for an action, preferring the SAFE
+//        server-resolved target_label, then the locally-authored recipient,
+//        else null (→ "recipient unavailable"). NEVER a raw UUID.
+export function actionTargetLabel(
+  a: SafeActionView,
+  details?: ActionDetails | null,
+): string | null {
+  if (a.target_label != null && a.target_label.length > 0) return entityLabel(a.target_label);
+  if (details?.recipientLabel != null && details.recipientLabel.length > 0) {
+    return entityLabel(details.recipientLabel);
+  }
+  return null;
+}
+
 export function viewWhyFromAction(
   a: SafeActionView,
   details?: ActionDetails | null,
 ): ViewWhyModel {
+  const exec = actionExecutability(a);
+  const target = actionTargetLabel(a, details);
+  // Body is local-only draft context (never server-exposed per ADR-0057 §10).
+  const bodyValue =
+    details?.body != null && details.body.length > 0
+      ? details.body
+      : "Message body unavailable in safe projection.";
   const rows: ViewWhyRow[] = [
     { label: "Kind", value: actionTypeLabel(a.action_type) },
     { label: "Status", value: titleCase(a.status) },
     { label: "Risk", value: riskLabel(a.risk_tier) },
     { label: "Requires approval", value: a.requires_approval ? "Yes" : "No" },
-    {
-      label: "Recipient",
-      value: details?.recipientLabel != null ? entityLabel(details.recipientLabel) : null,
-    },
+    { label: "Executable", value: exec.executable ? "Yes — approve or reject below" : `No — ${exec.reason}` },
+    // Recipient: SAFE server label first, then local draft context.
+    { label: "Recipient", value: target ?? "Recipient unavailable" },
+    { label: "Requester", value: a.requester_label != null ? entityLabel(a.requester_label) : null },
     { label: "Channel", value: details?.channel ?? null },
+    { label: "Message", value: bodyValue },
     { label: "Policy reason", value: a.decision_reason != null ? titleCase(a.decision_reason) : null },
     { label: "Approval id", value: a.escalation_id ?? null },
     { label: "Action id", value: a.action_id },
@@ -218,7 +275,7 @@ export function viewWhyFromAction(
   return {
     rows,
     proofNote:
-      "Requester, target, and policy envelope are governed and not exposed on this surface.",
+      "Recipient and requester are shown as safe display names. The message body shown here is local draft context only; the raw payload and policy envelope are governed and never exposed on this surface.",
   };
 }
 

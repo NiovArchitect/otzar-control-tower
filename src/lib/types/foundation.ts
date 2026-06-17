@@ -2613,6 +2613,12 @@ export interface SafeActionView {
   decision_reason?: string;
   created_at: string;
   updated_at: string;
+  // ADR-0057 §10 Amendment 1 — SAFE resolved display-name labels for the
+  // action's recipient + requester (never the entity_id UUID, never the
+  // message body). null/absent when unresolvable → render "recipient
+  // unavailable". Optional because the create-time projection omits them.
+  target_label?: string | null;
+  requester_label?: string | null;
 }
 
 // WHAT: SAFE Action detail view returned by GET

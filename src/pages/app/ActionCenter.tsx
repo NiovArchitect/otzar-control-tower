@@ -39,9 +39,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
-import { viewWhyFromAction, actionTypeLabel } from "@/lib/work-os/view-why";
+import {
+  viewWhyFromAction,
+  actionTypeLabel,
+  actionExecutability,
+  actionTargetLabel,
+} from "@/lib/work-os/view-why";
 import { api } from "@/lib/api";
 import { getActionDetails } from "@/lib/work-os/action-details-store";
+import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView } from "@/lib/types/foundation";
 
 type Tab = "pending" | "approved" | "completed" | "blocked";
@@ -71,6 +77,44 @@ const STATUS_TO_TAB: Record<string, Tab> = {
 function friendlyActionType(action_type: string): string {
   return actionTypeLabel(action_type);
 }
+
+// WHAT: a specific, human-readable card title — "Approve internal note to David
+//        Odie" / "Second approval needed: internal note to Samiksha" /
+//        "Historical internal note approval, recipient unavailable" — built
+//        from the action's executable state + the SAFE recipient label.
+// WHY: BLOCKER 2 — a governed decision cockpit, not a pile of "Internal note"
+//        cards. Never a raw DUAL_CONTROL string; never a raw UUID.
+function buildCardTitle(a: SafeActionView, details: ActionDetails | null): string {
+  const labelled = friendlyActionType(a.action_type); // may be "Second approval: …"
+  const isDual = /^second approval:/i.test(labelled);
+  const kind = labelled.replace(/^second approval:\s*/i, ""); // title-case, e.g. "Internal note"
+  // Lower-cased first letter for mid-sentence use ("Approve internal note …").
+  const midKind = kind.charAt(0).toLowerCase() + kind.slice(1);
+  const target = actionTargetLabel(a, details);
+  const to = target !== null ? ` to ${target}` : ", recipient unavailable";
+  const exec = actionExecutability(a);
+
+  if (TERMINAL_STATUSES.has(a.status)) {
+    return `Historical ${midKind} approval${to}`;
+  }
+  if (exec.executable && isDual) {
+    return `Second approval needed: ${midKind}${to}`;
+  }
+  if (exec.executable) {
+    return `Approve ${midKind}${to}`;
+  }
+  // Pending-but-routing / in-flight — name it specifically, no fake verb.
+  return `${kind}${to}`;
+}
+
+const TERMINAL_STATUSES: ReadonlySet<string> = new Set([
+  "SUCCEEDED",
+  "FAILED",
+  "CANCELLED",
+  "TIMED_OUT",
+  "REJECTED",
+  "EXPIRED",
+]);
 
 function friendlyStatus(status: string): string {
   switch (status) {
@@ -330,12 +374,28 @@ export function ActionCenter(): JSX.Element {
                 >
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center justify-between gap-2 text-sm">
-                      <span>
-                        {details?.recipientLabel !== undefined
-                          ? `${friendlyActionType(a.action_type)} → ${details.recipientLabel}`
-                          : friendlyActionType(a.action_type)}
-                      </span>
+                      {/* Whole title is a clickable affordance that opens the
+                          structured View/Why detail (BLOCKER 2). */}
+                      <button
+                        type="button"
+                        className="flex-1 text-left hover:underline"
+                        data-testid="action-open-details"
+                        onClick={() =>
+                          setWhyId((id) => (id === a.action_id ? null : a.action_id))
+                        }
+                      >
+                        {buildCardTitle(a, details)}
+                      </button>
                       <div className="flex items-center gap-2">
+                        {actionTargetLabel(a, details) === null ? (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/50 text-amber-600 text-[9px]"
+                            data-testid="action-recipient-unavailable"
+                          >
+                            recipient unavailable
+                          </Badge>
+                        ) : null}
                         <Badge variant={t === "blocked" ? "destructive" : "outline"}>
                           {friendlyStatus(a.status)}
                         </Badge>
@@ -369,41 +429,55 @@ export function ActionCenter(): JSX.Element {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1 pt-0 text-xs text-muted-foreground">
-                    {/* Phase 1269 — full human-readable detail, available
-                        for EVERY status (incl. approved/executed) so an
-                        action is always inspectable, never a generic
-                        "internal note". */}
-                    {details !== null ? (
-                      <div
-                        className="rounded border border-border bg-muted/30 p-1.5 space-y-0.5"
-                        data-testid="action-detail"
-                      >
-                        {details.recipientLabel !== undefined ? (
+                    {/* BLOCKER 2 — specific, inspectable detail for EVERY
+                        action (incl. approved/executed/historical). Recipient
+                        prefers the SAFE server label (target_label), then the
+                        locally-authored draft; message body is local-only draft
+                        context and is honestly marked unavailable otherwise. */}
+                    {(() => {
+                      const recipient = actionTargetLabel(a, details);
+                      return (
+                        <div
+                          className="rounded border border-border bg-muted/30 p-1.5 space-y-0.5"
+                          data-testid="action-detail"
+                        >
                           <div>
-                            <span className="font-medium text-foreground">
-                              Recipient:
-                            </span>{" "}
-                            {details.recipientLabel}
-                            {details.channel !== undefined
-                              ? ` · ${details.channel}`
-                              : ""}
+                            <span className="font-medium text-foreground">Recipient:</span>{" "}
+                            {recipient !== null ? (
+                              <>
+                                {recipient}
+                                {details?.channel !== undefined ? ` · ${details.channel}` : ""}
+                              </>
+                            ) : (
+                              <span className="italic">recipient unavailable</span>
+                            )}
                           </div>
-                        ) : null}
-                        <div data-testid="action-detail-body">
-                          <span className="font-medium text-foreground">
-                            Message:
-                          </span>{" "}
-                          <span className="whitespace-pre-wrap break-words">
-                            {details.body}
-                          </span>
+                          {a.requester_label != null && a.requester_label.length > 0 ? (
+                            <div>
+                              <span className="font-medium text-foreground">Requester:</span>{" "}
+                              {a.requester_label}
+                            </div>
+                          ) : null}
+                          <div data-testid="action-detail-body">
+                            <span className="font-medium text-foreground">Message:</span>{" "}
+                            {details?.body != null && details.body.length > 0 ? (
+                              <span className="whitespace-pre-wrap break-words">
+                                {details.body}
+                              </span>
+                            ) : (
+                              <span className="italic">
+                                Message body unavailable in safe projection.
+                              </span>
+                            )}
+                          </div>
+                          {details?.sourceCommand !== undefined ? (
+                            <div className="text-[10px] opacity-70 break-words">
+                              From: “{details.sourceCommand}”
+                            </div>
+                          ) : null}
                         </div>
-                        {details.sourceCommand !== undefined ? (
-                          <div className="text-[10px] opacity-70 break-words">
-                            From: “{details.sourceCommand}”
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
+                      );
+                    })()}
                     <div className="flex flex-wrap gap-2">
                       <span>{friendlyRisk(a.risk_tier)}</span>
                       <span aria-hidden>·</span>
@@ -440,46 +514,51 @@ export function ActionCenter(): JSX.Element {
                         <ViewWhyPanel model={viewWhyFromAction(a, details)} />
                       </div>
                     ) : null}
-                    {/* Phase 1268 — real governed decision controls. A
-                        pending action with a linked escalation can be
-                        approved/rejected here (api.escalations). */}
-                    {t === "pending" &&
-                    a.escalation_id !== undefined &&
-                    a.escalation_id.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="default"
-                          className="h-6 px-2 text-[11px]"
-                          data-testid="action-approve"
-                          disabled={busyId === a.escalation_id}
-                          onClick={() =>
-                            void decide(a.escalation_id as string, "approve")
-                          }
+                    {/* Phase 1268 + BLOCKER 2 — real governed decision
+                        controls, gated on executable state so there are NEVER
+                        dead buttons. Only an executable action (pending +
+                        linked escalation) shows Approve/Reject; otherwise an
+                        honest non-executable explanation. */}
+                    {(() => {
+                      const exec = actionExecutability(a);
+                      if (exec.executable && a.escalation_id != null) {
+                        const esc = a.escalation_id;
+                        return (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="default"
+                              className="h-6 px-2 text-[11px]"
+                              data-testid="action-approve"
+                              disabled={busyId === esc}
+                              onClick={() => void decide(esc, "approve")}
+                            >
+                              {busyId === esc ? "Approving…" : "Approve"}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[11px]"
+                              data-testid="action-reject"
+                              disabled={busyId === esc}
+                              onClick={() => void decide(esc, "reject")}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <p
+                          className="pt-1 text-[11px] italic"
+                          data-testid="action-not-executable"
                         >
-                          {busyId === a.escalation_id ? "Approving…" : "Approve"}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-6 px-2 text-[11px]"
-                          data-testid="action-reject"
-                          disabled={busyId === a.escalation_id}
-                          onClick={() =>
-                            void decide(a.escalation_id as string, "reject")
-                          }
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    ) : t === "pending" ? (
-                      <p className="pt-1 text-[11px]">
-                        Otzar is routing this through your organization's
-                        approval policy.
-                      </p>
-                    ) : null}
+                          {exec.reason}
+                        </p>
+                      );
+                    })()}
                     {isFocused && decisionError !== null ? (
                       <p
                         className="pt-1 text-destructive"
