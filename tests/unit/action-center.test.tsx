@@ -268,6 +268,114 @@ describe("ActionCenter — error + privacy", () => {
   });
 });
 
+describe("ActionCenter — specific cards + executable state (Phase 1285-N BLOCKER 2)", () => {
+  it("card title includes the SAFE target label (not just 'Internal note')", async () => {
+    mockList([
+      action({
+        action_id: "lbl-1",
+        status: "PROPOSED",
+        escalation_id: "esc-1",
+        target_label: "David Odie",
+        requester_label: "Sadeil",
+      }),
+    ]);
+    renderPage();
+    const card = await screen.findByTestId("action-center-card");
+    // Specific, decision-ready title — names the recipient.
+    expect(card).toHaveTextContent(/to David Odie/);
+    expect(card).toHaveTextContent(/Approve internal note to David Odie/);
+    // Never a bare generic card when the recipient is known.
+    expect(card).not.toHaveTextContent(/recipient unavailable/);
+  });
+
+  it("shows 'recipient unavailable' + badge when no target label resolves", async () => {
+    mockList([action({ action_id: "lbl-2", status: "PROPOSED" })]);
+    renderPage();
+    await screen.findByTestId("action-center-card");
+    expect(screen.getByTestId("action-recipient-unavailable")).toBeInTheDocument();
+    expect(screen.getByTestId("action-center-card")).toHaveTextContent(/recipient unavailable/);
+  });
+
+  it("never renders a raw DUAL_CONTROL machine string as the title", async () => {
+    mockList([
+      action({
+        action_id: "dc-1",
+        status: "PROPOSED",
+        escalation_id: "esc-dc",
+        action_type: "DUAL_CONTROL:ACTION_CREATE_SEND_INTERNAL_NOTIFICATION",
+        target_label: "Samiksha Sharma",
+      }),
+    ]);
+    renderPage();
+    const card = await screen.findByTestId("action-center-card");
+    expect(card).not.toHaveTextContent(/DUAL_CONTROL/);
+    expect(card).not.toHaveTextContent(/ACTION_CREATE/);
+    expect(card).toHaveTextContent(/Second approval needed: internal note to Samiksha Sharma/);
+  });
+
+  it("executable action (pending + escalation) shows working Approve/Reject", async () => {
+    mockList([action({ action_id: "ex-1", status: "PROPOSED", escalation_id: "esc-ex" })]);
+    renderPage();
+    await screen.findByTestId("action-center-card");
+    expect(screen.getByTestId("action-approve")).toBeInTheDocument();
+    expect(screen.getByTestId("action-reject")).toBeInTheDocument();
+    expect(screen.queryByTestId("action-not-executable")).toBeNull();
+  });
+
+  it("non-executable historical action explains itself and shows NO dead buttons", async () => {
+    mockList([action({ action_id: "hist-1", status: "SUCCEEDED", escalation_id: "esc-old" })]);
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId("action-tab-completed")).toBeInTheDocument());
+    await user.click(screen.getByTestId("action-tab-completed"));
+    const card = screen.getByTestId("action-center-card");
+    expect(card).toHaveTextContent(/Historical internal note approval/);
+    // No dead buttons: Approve/Reject are not rendered for terminal actions.
+    expect(screen.queryByTestId("action-approve")).toBeNull();
+    expect(screen.queryByTestId("action-reject")).toBeNull();
+    expect(screen.getByTestId("action-not-executable")).toHaveTextContent(
+      /historical or no longer executable/i,
+    );
+  });
+
+  it("the whole title is clickable and opens View/Why with safe labels + risk + status", async () => {
+    mockList([
+      action({
+        action_id: "vw-1",
+        status: "PROPOSED",
+        escalation_id: "esc-vw",
+        risk_tier: "MEDIUM",
+        decision_reason: "org-require-human-approval",
+        target_label: "David Odie",
+        requester_label: "Sadeil",
+      }),
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("action-center-card");
+    await user.click(screen.getByTestId("action-open-details"));
+    const panel = await screen.findByTestId("action-view-why-panel");
+    expect(panel).toHaveTextContent(/David Odie/); // recipient label
+    expect(panel).toHaveTextContent(/Sadeil/); // requester label
+    expect(panel).toHaveTextContent(/Medium risk/);
+    expect(panel).toHaveTextContent(/Needs decision|Proposed|Pending/i);
+    // Safe projection note — body/envelope stay governed; UUID never shown.
+    expect(panel).not.toHaveTextContent(/target_entity_id|payload_redacted/);
+  });
+
+  it("View/Why marks message body unavailable in the safe projection (no fake body)", async () => {
+    mockList([
+      action({ action_id: "nb-1", status: "PROPOSED", escalation_id: "esc-nb", target_label: "David Odie" }),
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("action-center-card");
+    await user.click(screen.getByTestId("action-open-details"));
+    const panel = await screen.findByTestId("action-view-why-panel");
+    expect(panel).toHaveTextContent(/Message body unavailable in safe projection/);
+  });
+});
+
 describe("ActionCenter — roster-aware (not David-only)", () => {
   it("renders an action regardless of who the source/target was", async () => {
     setAuth("annie@niovlabs.com");

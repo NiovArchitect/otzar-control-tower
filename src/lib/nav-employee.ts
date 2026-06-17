@@ -19,6 +19,7 @@
 
 import {
   Sparkles,
+  AlertTriangle,
   Bell,
   Bot,
   BookOpen,
@@ -84,6 +85,18 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: ListTodo,
     description:
       "Durable work tracked for you — what you owe, what's waiting, and what's blocked. Mark items complete here.",
+    group: "primary",
+  },
+  {
+    // Phase 1285-N — risk surface. Visible to EVERY user (NOT adminOnly): a
+    // normal employee sees their own blind spots; a manager/admin sees
+    // team/org blind spots (the backend scopes by can_admin_org). Sits next to
+    // My Work as the "what's slipping" companion to "what I owe".
+    label: "Blind Spots",
+    to: "/app/blind-spots",
+    icon: AlertTriangle,
+    description:
+      "Risk from your real work — overdue, stale waiting-on, blockers, and items with no next action. Managers see the team's.",
     group: "primary",
   },
   {
