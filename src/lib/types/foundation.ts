@@ -4577,6 +4577,44 @@ export interface RiskAssessmentResponse {
   code?: string;
 }
 
+// ── Draft tone (Phase 1285-Y) — advisory DRAFT_TONE over a PROPOSED message.
+//    original_draft is PRESERVED verbatim; suggested_revision is advisory and
+//    null when a Python rewrite was rejected (downgraded). approval_required is
+//    Foundation-authoritative (Python can raise, never lower). ──
+export type DraftToneChannel =
+  | "internal_message"
+  | "email"
+  | "meeting_follow_up"
+  | "action_proposal"
+  | "voice_draft"
+  | "unknown";
+
+export interface DraftRecipientContext {
+  display_name?: string; // display name only — never a raw entity UUID
+  relationship?: string;
+  internal: boolean;
+}
+
+export interface DraftToneAssessment {
+  original_draft: string;
+  channel: DraftToneChannel;
+  quality_score: number;
+  tone_label: string;
+  risk_flags: string[];
+  suggested_revision: string | null;
+  reason: string;
+  confidence: string;
+  approval_required: boolean;
+  preserves_intent: boolean;
+  provenance: string; // "python:draft-tone" | "foundation:deterministic-tone"
+}
+export interface DraftToneEvaluateResponse {
+  ok: boolean;
+  assessment?: DraftToneAssessment;
+  envelope?: PythonAdvisoryEnvelope;
+  code?: string;
+}
+
 // ── Comms recent-artifacts feed (Phase 1285-T) — mirrors
 //    apps/api/src/services/work-os/comms-artifacts.service.ts. ──
 export type CommsArtifactType =
