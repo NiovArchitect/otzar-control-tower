@@ -177,16 +177,32 @@ describe("NotificationBell — dropdown", () => {
 });
 
 describe("NotificationBell — mark as read", () => {
-  it("optimistically flips read_at + calls PUT /notifications/:id/read", async () => {
-    mockList([
-      buildNotification({ notification_id: "n-target", read_at: null }),
-    ]);
+  it("optimistically flips read_at + calls PUT /notifications/:id/read with auth, then reconciles", async () => {
+    // Server truth: the GET reflects READ after the PUT (Phase 1285-Q refetch).
+    let serverRead = false;
     let markReadCalls = 0;
     let markReadId: string | null = null;
+    let markReadAuth: string | null = null;
     server.use(
-      http.put(`${API_BASE}/notifications/:id/read`, ({ params }) => {
+      http.get(`${API_BASE}/notifications`, () =>
+        HttpResponse.json({
+          ok: true,
+          page: 1,
+          page_size: 20,
+          total: 1,
+          notifications: [
+            buildNotification({
+              notification_id: "n-target",
+              read_at: serverRead ? new Date().toISOString() : null,
+            }),
+          ],
+        }),
+      ),
+      http.put(`${API_BASE}/notifications/:id/read`, ({ params, request }) => {
         markReadCalls += 1;
         markReadId = params.id as string;
+        markReadAuth = request.headers.get("authorization");
+        serverRead = true;
         return HttpResponse.json({
           ok: true,
           notification: buildNotification({
@@ -206,9 +222,12 @@ describe("NotificationBell — mark as read", () => {
     await user.click(screen.getByTestId("notification-mark-read"));
     await waitFor(() => expect(markReadCalls).toBe(1));
     expect(markReadId).toBe("n-target");
-    // Badge gone (now 0 unread).
-    expect(screen.queryByTestId("notification-bell-badge")).toBeNull();
-    // Item is no longer "Mark as read"-able.
+    // Correct route was called WITH the bearer auth header.
+    expect(markReadAuth).toMatch(/^Bearer /);
+    // Badge gone (now 0 unread) and stays gone after the server reconcile.
+    await waitFor(() =>
+      expect(screen.queryByTestId("notification-bell-badge")).toBeNull(),
+    );
     expect(screen.queryByTestId("notification-mark-read")).toBeNull();
   });
 
@@ -229,11 +248,65 @@ describe("NotificationBell — mark as read", () => {
     );
     await user.click(screen.getByTestId("notification-bell-button"));
     await user.click(screen.getByTestId("notification-mark-read"));
-    // Eventually the badge re-appears at 1 (rollback).
+    // Eventually the badge re-appears at 1 (rollback — state is NOT falsely cleared).
     await waitFor(() => {
       const badge = screen.getByTestId("notification-bell-badge");
       expect(badge.textContent).toBe("1");
     });
+    // Honest error surfaced; the notification is still markable (not cleared).
+    expect(screen.getByTestId("notification-mark-error")).toBeInTheDocument();
+    expect(screen.getByTestId("notification-mark-read")).toBeInTheDocument();
+  });
+});
+
+describe("NotificationBell — freshness (Phase 1285-Q)", () => {
+  it("refetches the inbox when the panel is opened", async () => {
+    let getCalls = 0;
+    server.use(
+      http.get(`${API_BASE}/notifications`, () => {
+        getCalls += 1;
+        return HttpResponse.json({
+          ok: true, page: 1, page_size: 20, total: 0, notifications: [],
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderBell();
+    await waitFor(() => expect(getCalls).toBe(1)); // mount fetch
+    await user.click(screen.getByTestId("notification-bell-button")); // open
+    await waitFor(() => expect(getCalls).toBe(2)); // refetch on open
+  });
+
+  it("refetches the inbox on a WorkStateChanged event (new message / work event)", async () => {
+    let getCalls = 0;
+    server.use(
+      http.get(`${API_BASE}/notifications`, () => {
+        getCalls += 1;
+        return HttpResponse.json({
+          ok: true, page: 1, page_size: 20, total: 0, notifications: [],
+        });
+      }),
+    );
+    const { emitWorkStateChanged } = await import("@/lib/events/work-state");
+    renderBell();
+    await waitFor(() => expect(getCalls).toBe(1));
+    emitWorkStateChanged({ type: "MESSAGE_CREATED" });
+    await waitFor(() => expect(getCalls).toBe(2));
+  });
+
+  it("renders ONLY the notifications the API returns (tenant isolation is server-enforced; no client injection)", async () => {
+    mockList([
+      buildNotification({ notification_id: "mine-1", body_summary: "Mine only." }),
+    ]);
+    const user = userEvent.setup();
+    renderBell();
+    await waitFor(() =>
+      expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("notification-bell-button"));
+    // Exactly one item — the bell never fabricates or caches cross-tenant rows.
+    expect(screen.getAllByTestId("notification-bell-item")).toHaveLength(1);
+    expect(screen.getByTestId("notification-bell-item").getAttribute("data-notification-id")).toBe("mine-1");
   });
 });
 
