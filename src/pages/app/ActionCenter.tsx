@@ -50,7 +50,7 @@ import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView } from "@/lib/types/foundation";
 import { isActionablePending, actionClassLabel } from "@/lib/work-os/action-classify";
-import { useWorkStateChanged } from "@/lib/events/work-state";
+import { useWorkStateChanged, emitWorkStateChanged } from "@/lib/events/work-state";
 
 type Tab = "pending" | "approved" | "completed" | "blocked";
 
@@ -280,6 +280,10 @@ export function ActionCenter(): JSX.Element {
     setBusyId(null);
     if (r.ok) {
       await load();
+      // Phase 1287-C — a resolved decision drops out of the Needs-decision count
+      // AND refreshes the notification feed + ambient popup across the shell.
+      emitWorkStateChanged({ type: "LEDGER_UPDATED" });
+      emitWorkStateChanged({ type: "WAITING_ON_CHANGED" });
     } else {
       setDecisionError(r.code);
     }
@@ -493,18 +497,28 @@ export function ActionCenter(): JSX.Element {
                               {a.requester_label}
                             </div>
                           ) : null}
-                          <div data-testid="action-detail-body">
-                            <span className="font-medium text-foreground">Message:</span>{" "}
-                            {details?.body != null && details.body.length > 0 ? (
-                              <span className="whitespace-pre-wrap break-words">
-                                {details.body}
-                              </span>
-                            ) : (
+                          {/* Phase 1287-C — honest, class-aware message line.
+                              The body is local-only draft context (never in the
+                              safe projection, ADR-0057 §10). For a non-actionable
+                              / historical item we do NOT present a scary
+                              "unavailable" line as if it were approvable. */}
+                          {details?.body != null && details.body.length > 0 ? (
+                            <div data-testid="action-detail-body">
+                              <span className="font-medium text-foreground">Message:</span>{" "}
+                              <span className="whitespace-pre-wrap break-words">{details.body}</span>
+                            </div>
+                          ) : actionExecutability(a).executable ? (
+                            <div data-testid="action-detail-body">
+                              <span className="font-medium text-foreground">Message:</span>{" "}
                               <span className="italic">
-                                Message body unavailable in safe projection.
+                                Message preview is not in the safe view. Open to review before approving.
                               </span>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <div data-testid="action-detail-body" className="italic">
+                              No message to act on here.
+                            </div>
+                          )}
                           {details?.sourceCommand !== undefined ? (
                             <div className="text-[10px] opacity-70 break-words">
                               From: “{details.sourceCommand}”

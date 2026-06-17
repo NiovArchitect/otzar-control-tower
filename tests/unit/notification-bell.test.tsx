@@ -10,7 +10,7 @@
 // CONNECTS TO: src/components/otzar/NotificationBell.tsx.
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
@@ -592,5 +592,43 @@ describe("NotificationBell — click routing (Phase 1266)", () => {
       expect(screen.queryByTestId("notification-bell-dropdown")).toBeNull(),
     );
     expect(screen.queryByTestId("notification-bell-error")).toBeNull();
+  });
+});
+
+describe("NotificationBell — active vs earlier separation (Phase 1287-C)", () => {
+  it("shows unread in the active list and read items under a collapsed Earlier section; counts active only", async () => {
+    const user = userEvent.setup();
+    mockList([
+      buildNotification({ notification_id: "u1", read_at: null, body_summary: "Active one" }),
+      buildNotification({ notification_id: "r1", read_at: new Date(Date.now() - 3600_000).toISOString(), body_summary: "Resolved earlier one" }),
+    ]);
+    renderBell();
+    await waitFor(() => expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument());
+    // Unread badge counts ACTIVE only (1), not the read item.
+    expect(screen.getByTestId("notification-bell-button").getAttribute("data-unread-count")).toBe("1");
+    await user.click(screen.getByTestId("notification-bell-button"));
+    // Active list shows the unread item.
+    const active = await screen.findByTestId("notification-active-list");
+    expect(within(active).getByText("Active one")).toBeInTheDocument();
+    // The resolved/read item is NOT in the active list (no refill as active).
+    expect(within(active).queryByText("Resolved earlier one")).toBeNull();
+    // It lives under a collapsed "Earlier" section; expanding reveals it.
+    const earlier = screen.getByTestId("notification-earlier");
+    expect(within(earlier).queryByText("Resolved earlier one")).toBeNull(); // collapsed
+    await user.click(within(earlier).getByTestId("collapsible-toggle"));
+    expect(within(earlier).getByText("Resolved earlier one")).toBeInTheDocument();
+  });
+
+  it("shows an honest 'caught up' active state when everything is read", async () => {
+    const user = userEvent.setup();
+    mockList([
+      buildNotification({ notification_id: "r1", read_at: new Date().toISOString(), body_summary: "Only a read one" }),
+    ]);
+    renderBell();
+    await waitFor(() => expect(screen.getByTestId("notification-bell-button")).toBeInTheDocument());
+    expect(screen.getByTestId("notification-bell-button").getAttribute("data-unread-count")).toBe("0");
+    await user.click(screen.getByTestId("notification-bell-button"));
+    expect(await screen.findByTestId("notification-active-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("notification-earlier")).toBeInTheDocument();
   });
 });

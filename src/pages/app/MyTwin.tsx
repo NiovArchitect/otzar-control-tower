@@ -11,7 +11,7 @@
 // not permitted, otherwise -> retryable error. 401 is handled globally
 // (api.ts onUnauthorized -> logout).
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
@@ -311,7 +311,7 @@ function AskYourTwin(): JSX.Element {
         {state.phase === "answered" ? (
           <>
             <AskAnswer data={state.data} />
-            <RelatedWorkPanel query={state.question} />
+            <RelatedWorkPanel query={state.question} autoFind={isLowContext(state.data)} />
           </>
         ) : null}
       </CardContent>
@@ -331,7 +331,18 @@ type RelatedState =
   | { phase: "loaded"; results: SemanticRetrievalResultView[]; advisory: boolean; status: string }
   | { phase: "error" };
 
-function RelatedWorkPanel({ query }: { query: string }): JSX.Element {
+// WHAT: did the governed answer come back with little/no scoped memory?
+// WHY: Phase 1287-C — when the Twin found nothing (or one item), we AUTO-run the
+//      scoped, Foundation-validated related-work retrieval so the Twin does not
+//      feel unaware of recent product/work state. Honest: this never fakes the
+//      governed answer; it only surfaces related scoped work that exists.
+function isLowContext(data: ConversationMessageResponse): boolean {
+  const t = data.transparency;
+  if (t === undefined) return true;
+  return t.retrieval_status === "NO_MATCHES" || t.context_items_used <= 1;
+}
+
+function RelatedWorkPanel({ query, autoFind = false }: { query: string; autoFind?: boolean }): JSX.Element {
   const navigate = useNavigate();
   const [state, setState] = useState<RelatedState>({ phase: "idle" });
 
@@ -352,6 +363,14 @@ function RelatedWorkPanel({ query }: { query: string }): JSX.Element {
       status: env?.status ?? "UNKNOWN",
     });
   }
+
+  // Phase 1287-C — on a low-context governed answer, automatically run the
+  // scoped related retrieval (non-blocking) so the Twin surfaces related work
+  // instead of feeling unaware. Manual "Find related work" stays for the rest.
+  useEffect(() => {
+    if (autoFind) void find();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="rounded-md border border-border bg-muted/20 p-3 text-sm" data-testid="ask-related-work">

@@ -44,6 +44,7 @@ import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { viewWhyFromNotification } from "@/lib/work-os/view-why";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import { useWorkStateChanged } from "@/lib/events/work-state";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import type { SafeNotificationView } from "@/lib/types/foundation";
 
 function randomIdempotencyKey(): string {
@@ -145,7 +146,9 @@ export function NotificationBell({
   // message / work event. Additive to the gentle poll + on-open refresh; keeps
   // the unread badge + popup (driven by the shared presence store) honest.
   useWorkStateChanged(
-    ["MESSAGE_CREATED", "NOTIFICATION_CREATED", "WAITING_ON_CHANGED", "TASK_COMPLETED"],
+    // Phase 1287-C — also refresh after an action is resolved (approve/reject
+    // emits LEDGER_UPDATED) so a handled item leaves the active feed promptly.
+    ["MESSAGE_CREATED", "NOTIFICATION_CREATED", "WAITING_ON_CHANGED", "TASK_COMPLETED", "LEDGER_UPDATED"],
     () => void fetchOnce(),
   );
 
@@ -432,11 +435,14 @@ export function NotificationBell({
               You're all caught up — no notifications yet.
             </p>
           ) : (
-            <ul
-              className="max-h-80 space-y-1 overflow-y-auto"
-              data-testid="notification-bell-list"
-            >
-              {state.items.map((n) => {
+            (() => {
+              // Phase 1287-C — separate ACTIVE (unread) from earlier/read so
+              // resolved notifications never clutter the active feed. Read items
+              // live in a collapsed "Earlier" section (history stays visible,
+              // not active). The unread badge already counts active only.
+              const activeItems = state.items.filter((n) => n.read_at === null);
+              const readItems = state.items.filter((n) => n.read_at !== null);
+              const renderNotification = (n: SafeNotificationView): JSX.Element => {
                 const isUnread = n.read_at === null;
                 const reply = state.replies[n.notification_id];
                 return (
@@ -619,8 +625,28 @@ export function NotificationBell({
                     ) : null}
                   </li>
                 );
-              })}
-            </ul>
+              };
+              return (
+                <div className="max-h-80 space-y-1 overflow-y-auto" data-testid="notification-bell-list">
+                  {activeItems.length > 0 ? (
+                    <ul className="space-y-1" data-testid="notification-active-list">
+                      {activeItems.map(renderNotification)}
+                    </ul>
+                  ) : (
+                    <p className="px-2 py-2 text-xs text-muted-foreground" data-testid="notification-active-empty">
+                      No active notifications. You're caught up.
+                    </p>
+                  )}
+                  {readItems.length > 0 ? (
+                    <CollapsibleSection title="Earlier" count={readItems.length} defaultOpen={false} testId="notification-earlier">
+                      <ul className="space-y-1" data-testid="notification-earlier-list">
+                        {readItems.map(renderNotification)}
+                      </ul>
+                    </CollapsibleSection>
+                  ) : null}
+                </div>
+              );
+            })()
           )}
         </div>
       ) : null}

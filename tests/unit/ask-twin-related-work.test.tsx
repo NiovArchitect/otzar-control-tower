@@ -74,10 +74,13 @@ function mockTwin(): void {
   );
 }
 
-function mockConversation(): void {
+// A HIGH-context governed answer (transparency present, retrieval USED) so the
+// related-work panel stays BUTTON-triggered for these tests. Low-context auto-
+// find is covered by its own test below.
+function mockConversation(transparencyOver: Record<string, unknown> = {}): void {
   server.use(
     http.post(`${API_BASE}/otzar/conversation/message`, () =>
-      HttpResponse.json({ ok: true, response: "Here is what I found in your governed context.", conversation_id: "c1", context_used: 2, tokens_consumed: 10, next_step: "ANSWERED", correction_capture_available: true, speech_ready_text: "x", voice_output_supported: false, clarification_needed: false, action_proposed: false, approval_required: false, policy_blocked: false, dmw_scope_blocked: false, collaboration_suggested: false, memory_used_summary: {} }),
+      HttpResponse.json({ ok: true, response: "Here is what I found in your governed context.", conversation_id: "c1", context_used: 3, tokens_consumed: 10, next_step: "ANSWERED", correction_capture_available: true, speech_ready_text: "x", voice_output_supported: false, clarification_needed: false, action_proposed: false, approval_required: false, policy_blocked: false, dmw_scope_blocked: false, collaboration_suggested: false, memory_used_summary: {}, transparency: { context_items_used: 3, items_skipped_low_relevance: 0, items_skipped_budget: 0, access_limited: false, retrieval_status: "USED", retrieval_source: "COE_ASSEMBLE_CONTEXT", retrieval_reason: "", memory_updated: false, tool_calls: [], approval_required: false, verification_status: "NOT_ACTIVE", ...transparencyOver } }),
     ),
   );
 }
@@ -151,9 +154,22 @@ describe("Ask your Twin — Find related work (advisory, scoped)", () => {
     mockConversation();
     renderPage();
     await askSelfQuestion();
-    // The governed answer is shown; related work is button-triggered (not auto).
+    // High-context answer → related work is button-triggered (not auto).
     expect(screen.getByTestId("ask-related-find")).toBeInTheDocument();
     expect(screen.queryByTestId("ask-related-results")).toBeNull();
+  });
+
+  it("AUTO-runs related retrieval when the governed answer has low/no context (Phase 1287-C)", async () => {
+    // Low-context governed answer (NO_MATCHES) → the Twin should not feel
+    // unaware: it auto-runs the scoped related retrieval without a manual click.
+    mockConversation({ context_items_used: 0, retrieval_status: "NO_MATCHES" });
+    mockSemantic({ ok: true, results: [result()], envelope: VALIDATED_ENV });
+    renderPage();
+    await askSelfQuestion();
+    // No button click — results appear automatically.
+    await waitFor(() => expect(screen.getByTestId("ask-related-results")).toBeInTheDocument());
+    expect(screen.queryByTestId("ask-related-find")).toBeNull();
+    expect(screen.getByTestId("ask-related-item")).toBeInTheDocument();
   });
 
   it("clicking Find related work calls semantic-retrieval/query and renders validated results", async () => {
