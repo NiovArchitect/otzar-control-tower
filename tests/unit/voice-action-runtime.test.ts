@@ -285,7 +285,17 @@ describe("Work OS action classifier", () => {
     const a = classifyVoiceAction("Ask David's Twin what he thinks.", EMPLOYEE);
     expect(a.kind).toBe("ASK_TWIN");
     expect(a.route).toBe("/app/collaboration");
-    expect(a.spoken.toLowerCase()).toContain("won't answer for them");
+    // Disabled-honest: never answers for / impersonates someone else's Twin.
+    expect(a.spoken.toLowerCase()).toContain("won't answer for someone else's twin");
+    expect(a.spoken).not.toContain("—"); // recipient copy is em-dash-free
+  });
+
+  it("'Ask my twin to summarize my open work.' → SELF self-ask falls through to governed chat, NOT Collaboration (Phase 1285-R)", () => {
+    const a = classifyVoiceAction("Ask my twin to summarize my open work.", EMPLOYEE);
+    // Not routed to Collaboration as another-twin; self-ask is handled by the
+    // governed chat path (GOVERNED_CHAT), never faked.
+    expect(a.kind).not.toBe("ASK_TWIN");
+    expect(a.route).not.toBe("/app/collaboration");
   });
 
   it("'Schedule a meeting with Vishesh tomorrow.' → SCHEDULE_MEETING, gate-aware, no auto-create", () => {
