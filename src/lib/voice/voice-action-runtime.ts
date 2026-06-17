@@ -417,6 +417,52 @@ const CONVERSATIONS_ROUTE = "/app/conversations";
 const WORKFLOWS_ROUTE = "/workflows";
 const COLLABORATION_ROUTE = "/app/collaboration";
 
+// WHAT: Work OS cockpit QUERIES (Phase 1279/1285-P) — first-class Work OS
+//       questions (not chat) that route to the durable cockpits even without a
+//       navigation verb. Hoisted to module scope + exported (Phase 1285-R) so
+//       the Ask-your-Twin classifier reuses the SAME deterministic patterns
+//       instead of duplicating them.
+export const WORK_OS_QUERIES: ReadonlyArray<{
+  patterns: RegExp;
+  route: string;
+  label: string;
+}> = [
+  {
+    patterns:
+      /\b(my work|what do i owe|what i owe|what(?:'s| is| are)? waiting on me|what do i need to do)\b/,
+    route: "/app/my-work",
+    label: "My Work",
+  },
+  {
+    // Phase 1285-P — blind-spot / risk questions route to the real watcher
+    // feed surface (durable findings), never a vague LLM answer.
+    patterns:
+      /\b(blind spots?|what am i missing|what(?:'s| is) blocked|what(?:'s| is) slipping|what(?:'s| is) overdue|what(?:'s| is) at risk|what(?:'s| is) stale|what should i follow up on|what is quietly slipping|unresolved blockers?)\b/,
+    route: "/app/blind-spots",
+    label: "Blind Spots",
+  },
+  {
+    patterns: /\b(team work|what does my team owe|who is waiting on whom)\b/,
+    route: "/app/team-work",
+    label: "Team Work",
+  },
+];
+
+// WHAT: match a question against the deterministic Work OS queries.
+// INPUT: raw question text (any case).
+// OUTPUT: { route, label } when it's a known Work OS question, else null.
+// WHY: shared by voice routing AND the Ask-your-Twin box so a known Work OS
+//      question ALWAYS goes to its durable surface, never the LLM.
+export function matchWorkOsQuery(
+  text: string,
+): { route: string; label: string } | null {
+  const lower = text.toLowerCase();
+  for (const q of WORK_OS_QUERIES) {
+    if (q.patterns.test(lower)) return { route: q.route, label: q.label };
+  }
+  return null;
+}
+
 // WHAT: Classify one utterance into a safe VoiceAction.
 // INPUT: the transcript + caller capabilities (for admin gating).
 // OUTPUT: a VoiceAction the orb executes + narrates.
@@ -567,41 +613,19 @@ export function classifyVoiceAction(
     };
   }
 
-  // 2.5) Work OS cockpit QUERIES (Phase 1279) — these are first-class
-  //      Work OS questions, not chat. They route to the durable Work
-  //      Ledger cockpits even WITHOUT a navigation verb ("what am I
-  //      missing", "what is blocked", "what is waiting on me").
-  const WORK_OS_QUERIES: ReadonlyArray<{ patterns: RegExp; route: string; label: string }> = [
-    {
-      patterns:
-        /\b(my work|what do i owe|what i owe|what(?:'s| is| are)? waiting on me|what do i need to do)\b/,
-      route: "/app/my-work",
-      label: "My Work",
-    },
-    {
-      // Phase 1285-P — blind-spot / risk questions route to the real watcher
-      // feed surface (durable findings), never a vague LLM answer.
-      patterns:
-        /\b(blind spots?|what am i missing|what(?:'s| is) blocked|what(?:'s| is) slipping|what(?:'s| is) overdue|what(?:'s| is) at risk|what(?:'s| is) stale|what should i follow up on|what is quietly slipping|unresolved blockers?)\b/,
-      route: "/app/blind-spots",
-      label: "Blind Spots",
-    },
-    {
-      patterns: /\b(team work|what does my team owe|who is waiting on whom)\b/,
-      route: "/app/team-work",
-      label: "Team Work",
-    },
-  ];
-  for (const q of WORK_OS_QUERIES) {
-    if (q.patterns.test(lower)) {
-      return {
-        kind: "INTERNAL_NAVIGATION",
-        heard,
-        actionLabel: `Internal navigation → ${q.label}`,
-        spoken: `Opening ${q.label}.`,
-        route: q.route,
-      };
-    }
+  // 2.5) Work OS cockpit QUERIES (Phase 1279) — first-class Work OS questions,
+  //      not chat. They route to the durable cockpits even WITHOUT a nav verb
+  //      ("what am I missing", "what is blocked", "what is waiting on me").
+  //      Shared matcher (Phase 1285-R) so the Ask-your-Twin box reuses it.
+  const workOsQuery = matchWorkOsQuery(lower);
+  if (workOsQuery !== null) {
+    return {
+      kind: "INTERNAL_NAVIGATION",
+      heard,
+      actionLabel: `Internal navigation → ${workOsQuery.label}`,
+      spoken: `Opening ${workOsQuery.label}.`,
+      route: workOsQuery.route,
+    };
   }
 
   // 3) Explicit named destinations (incl. admin/system surfaces).
@@ -645,10 +669,17 @@ export function classifyVoiceAction(
   //    is executed safely, drafted, proposed, routed to approval, or
   //    honestly blocked with the exact missing runtime.
 
-  // 5a) Ask another Twin / agent — never fake the answer.
+  // 5a) Ask ANOTHER person's Twin / agent — never fake the answer, never
+  //     impersonate. Phase 1285-R: a SELF question ("ask my twin …", "ask
+  //     otzar …") is NOT caught here — it falls through to GOVERNED_CHAT so the
+  //     governed backend (conductSession + COE) answers over the caller's OWN
+  //     scoped context. Only a question aimed at someone ELSE's twin routes to
+  //     Collaboration disabled-honest.
+  const asksSelfTwin = /\bask\b/.test(lower) && /\b(my twin|my own twin|otzar)\b/.test(lower);
   if (
+    !asksSelfTwin &&
     /\bask\b/.test(lower) &&
-    /\b(twin|agent|my twin|the ai|engineer|project manager|david|samiksha|vishesh|annie|maria|carlos)\b/.test(
+    /\b(twin|agent|the ai|engineer|project manager|david|samiksha|vishesh|annie|maria|carlos)\b/.test(
       lower,
     )
   ) {
@@ -658,7 +689,7 @@ export function classifyVoiceAction(
       heard,
       actionLabel: target ? `Ask Twin → ${target}` : "Ask a Twin / agent",
       spoken:
-        "I'll route this to Collaboration. I won't answer for them myself — and resolving a teammate from voice isn't wired yet, so pick them in Collaboration.",
+        "I'll route this to Collaboration. I won't answer for someone else's Twin or speak for them. You can create a governed request there.",
       route: COLLABORATION_ROUTE,
       ...(target !== undefined ? { targetEntity: target } : {}),
       requiresApproval: false,

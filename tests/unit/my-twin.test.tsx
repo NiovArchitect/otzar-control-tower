@@ -6,7 +6,9 @@
 // CONNECTS TO: src/pages/app/MyTwin.tsx, tests/msw/handlers.ts.
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
@@ -34,7 +36,9 @@ function renderMyTwin() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MyTwin />
+      <MemoryRouter>
+        <MyTwin />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -140,6 +144,139 @@ describe("MyTwin (employee Otzar)", () => {
     );
     renderMyTwin();
     expect(await screen.findByTestId("my-twin-empty")).toBeInTheDocument();
+  });
+
+  it("renders the Ask your Twin box without an em dash in its copy", async () => {
+    renderMyTwin();
+    const box = await screen.findByTestId("ask-your-twin");
+    expect(box).toBeInTheDocument();
+    expect(box.textContent ?? "").not.toContain("—");
+  });
+
+  describe("Ask your Twin (Phase 1285-R)", () => {
+    it("routes a known Work OS question to its surface WITHOUT calling the LLM", async () => {
+      let convoCalls = 0;
+      server.use(
+        http.post(`${API_BASE}/otzar/conversation/message`, () => {
+          convoCalls += 1;
+          return HttpResponse.json({ ok: true, response: "x" });
+        }),
+      );
+      const user = userEvent.setup();
+      renderMyTwin();
+      await screen.findByTestId("ask-your-twin");
+      await user.type(screen.getByTestId("ask-your-twin-input"), "what is blocked?");
+      await user.click(screen.getByTestId("ask-your-twin-submit"));
+      // Deterministic route — no governed-chat call, no fake answer rendered.
+      expect(convoCalls).toBe(0);
+      expect(screen.queryByTestId("ask-your-twin-answer")).toBeNull();
+    });
+
+    it("is disabled-honest for another person's Twin (no LLM, no fake answer)", async () => {
+      let convoCalls = 0;
+      server.use(
+        http.post(`${API_BASE}/otzar/conversation/message`, () => {
+          convoCalls += 1;
+          return HttpResponse.json({ ok: true, response: "x" });
+        }),
+      );
+      const user = userEvent.setup();
+      renderMyTwin();
+      await screen.findByTestId("ask-your-twin");
+      await user.type(
+        screen.getByTestId("ask-your-twin-input"),
+        "ask David's twin what he thinks",
+      );
+      await user.click(screen.getByTestId("ask-your-twin-submit"));
+      const other = await screen.findByTestId("ask-your-twin-other");
+      expect(other.textContent ?? "").toMatch(/will not answer for/i);
+      expect(screen.getByTestId("ask-your-twin-collaboration")).toBeInTheDocument();
+      expect(convoCalls).toBe(0); // never calls the LLM for someone else's twin
+      expect(screen.queryByTestId("ask-your-twin-answer")).toBeNull();
+    });
+
+    it("answers a self question from the governed endpoint with attribution + transparency + provenance", async () => {
+      server.use(
+        http.post(`${API_BASE}/otzar/conversation/message`, () =>
+          HttpResponse.json({
+            ok: true,
+            response: "You have two open items due this week.",
+            context_used: 2,
+            tokens_consumed: 120,
+            conversation_id: "conv-1",
+            transparency: {
+              context_items_used: 2,
+              items_skipped_low_relevance: 0,
+              items_skipped_budget: 0,
+              access_limited: false,
+              retrieval_status: "USED",
+              retrieval_source: "COE_ASSEMBLE_CONTEXT",
+              retrieval_reason: "matched",
+              memory_updated: false,
+              tool_calls: [],
+              approval_required: false,
+              verification_status: "NOT_ACTIVE",
+            },
+            context_provenance: [
+              {
+                context_id: "11111111-1111-1111-1111-111111111111",
+                title: "Q3 roadmap notes",
+                source_type: "CAPSULE",
+                scope: "PERSONAL",
+                content_available: true,
+                reason: "keyword match",
+              },
+            ],
+            next_step: "ANSWERED",
+            correction_capture_available: true,
+            speech_ready_text: "You have two open items due this week.",
+            voice_output_supported: false,
+            clarification_needed: false,
+            action_proposed: false,
+            approval_required: false,
+            policy_blocked: false,
+            dmw_scope_blocked: false,
+            collaboration_suggested: false,
+            memory_used_summary: {},
+          }),
+        ),
+      );
+      const user = userEvent.setup();
+      renderMyTwin();
+      await screen.findByTestId("ask-your-twin");
+      await user.type(
+        screen.getByTestId("ask-your-twin-input"),
+        "what should I focus on today?",
+      );
+      await user.click(screen.getByTestId("ask-your-twin-submit"));
+      const answer = await screen.findByTestId("ask-your-twin-answer");
+      expect(answer.textContent ?? "").toMatch(/two open items/);
+      expect(screen.getByTestId("ask-your-twin-attribution").textContent ?? "").toMatch(
+        /from your governed context/i,
+      );
+      expect(screen.getByTestId("ask-your-twin-transparency")).toBeInTheDocument();
+      const prov = screen.getByTestId("ask-your-twin-provenance");
+      expect(prov.textContent ?? "").toMatch(/Q3 roadmap notes/);
+      // Never render the raw context_id UUID as a label.
+      expect(prov.textContent ?? "").not.toContain("11111111-1111-1111-1111-111111111111");
+    });
+
+    it("shows an honest error and no fake answer when the governed endpoint fails", async () => {
+      server.use(
+        http.post(`${API_BASE}/otzar/conversation/message`, () =>
+          HttpResponse.json({ ok: false, code: "INTERNAL_ERROR" }, { status: 500 }),
+        ),
+      );
+      const user = userEvent.setup();
+      renderMyTwin();
+      await screen.findByTestId("ask-your-twin");
+      await user.type(screen.getByTestId("ask-your-twin-input"), "summarize my week");
+      await user.click(screen.getByTestId("ask-your-twin-submit"));
+      await waitFor(() =>
+        expect(screen.getByTestId("ask-your-twin-error")).toBeInTheDocument(),
+      );
+      expect(screen.queryByTestId("ask-your-twin-answer")).toBeNull();
+    });
   });
 
   it("shows the multi-twin note when has_multiple_twins is true", async () => {

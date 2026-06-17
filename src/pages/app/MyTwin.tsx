@@ -11,6 +11,8 @@
 // not permitted, otherwise -> retryable error. 401 is handled globally
 // (api.ts onUnauthorized -> logout).
 
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +28,11 @@ import {
   labelAutonomyMode,
   labelConversationStatus,
 } from "@/lib/labels/conversation";
-import type { MyTwinResponse } from "@/lib/types/foundation";
+import type {
+  MyTwinResponse,
+  ConversationMessageResponse,
+} from "@/lib/types/foundation";
+import { classifyAskTwin, COLLABORATION_ROUTE } from "@/lib/work-os/ask-twin";
 
 export function MyTwin() {
   const query = useQuery({
@@ -38,7 +44,7 @@ export function MyTwin() {
     <div className="space-y-6">
       <PageHeader
         title="My Twin"
-        description="Your aligned AI teammate — its identity, behavior mode, and the skills it can use on your behalf."
+        description="Your aligned AI teammate. Its identity, behavior mode, and the skills it can use on your behalf."
       />
 
       {(query.isLoading || query.data === undefined) && (
@@ -168,11 +174,223 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
         </CardContent>
       </Card>
 
+      <AskYourTwin />
+
       <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
 
       <MyTwinSidecarsPanel twin={t} />
     </div>
   );
+}
+
+// WHAT: the "Ask your Twin" box (Phase 1285-R). Self-scoped, governed, honest.
+//   - A known Work OS question routes to its durable surface (no LLM).
+//   - A question aimed at someone else's Twin is disabled-honest (Otzar will
+//     not answer for or impersonate another person's Twin; offers Collaboration).
+//   - A genuine self question calls the EXISTING governed conductSession
+//     endpoint (COE permission-scoped + audited) and renders the answer with
+//     scoped-context labeling + transparency + provenance. No frontend-only LLM.
+type AskState =
+  | { phase: "idle" }
+  | { phase: "loading" }
+  | { phase: "answered"; data: ConversationMessageResponse }
+  | { phase: "other_twin"; target: string | null }
+  | { phase: "error"; message: string };
+
+function AskYourTwin(): JSX.Element {
+  const navigate = useNavigate();
+  const [text, setText] = useState("");
+  const [state, setState] = useState<AskState>({ phase: "idle" });
+
+  async function ask(): Promise<void> {
+    const question = text.trim();
+    if (question.length === 0) return;
+    const classified = classifyAskTwin(question);
+
+    if (classified.kind === "WORK_OS_ROUTE") {
+      // Deterministic: known Work OS question goes to its real surface.
+      navigate(classified.route);
+      return;
+    }
+    if (classified.kind === "OTHER_TWIN") {
+      // Disabled-honest: never answer for or impersonate someone else's Twin.
+      setState({ phase: "other_twin", target: classified.target });
+      return;
+    }
+
+    // Self question: governed backend over the caller's own scoped context.
+    setState({ phase: "loading" });
+    const result = await api.otzar.conversation.message({ message: question });
+    if (!result.ok) {
+      if (import.meta.env.DEV) {
+        console.debug(
+          "[AskYourTwin] conversation.message failed",
+          result.code,
+          result.status,
+        );
+      }
+      setState({ phase: "error", message: humanizeAskError(result.code) });
+      return;
+    }
+    setState({ phase: "answered", data: result.data });
+  }
+
+  return (
+    <Card data-testid="ask-your-twin">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Ask your Twin</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Ask about your own work. Your Twin answers only from what you are
+          allowed to see, and it will not answer for anyone else.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void ask();
+            }}
+            placeholder="Ask your Twin about your work..."
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            data-testid="ask-your-twin-input"
+          />
+          <Button
+            type="button"
+            onClick={() => void ask()}
+            disabled={state.phase === "loading" || text.trim().length === 0}
+            data-testid="ask-your-twin-submit"
+          >
+            {state.phase === "loading" ? "Asking..." : "Ask"}
+          </Button>
+        </div>
+
+        {state.phase === "loading" ? (
+          <p className="text-sm text-muted-foreground" data-testid="ask-your-twin-loading">
+            Your Twin is checking your governed context...
+          </p>
+        ) : null}
+
+        {state.phase === "other_twin" ? (
+          <div
+            className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm"
+            data-testid="ask-your-twin-other"
+          >
+            <p className="text-amber-700 dark:text-amber-400">
+              Otzar will not answer for{" "}
+              {state.target !== null ? `${state.target}'s` : "someone else's"} Twin
+              or speak on their behalf. You can ask Otzar to create a governed
+              request instead.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(COLLABORATION_ROUTE)}
+              data-testid="ask-your-twin-collaboration"
+            >
+              Go to Collaboration
+            </Button>
+          </div>
+        ) : null}
+
+        {state.phase === "error" ? (
+          <p
+            className="rounded-md border border-rose-400/40 bg-rose-500/5 p-3 text-sm text-rose-700 dark:text-rose-400"
+            role="alert"
+            data-testid="ask-your-twin-error"
+          >
+            {state.message}
+          </p>
+        ) : null}
+
+        {state.phase === "answered" ? (
+          <AskAnswer data={state.data} />
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+// WHAT: render a governed self-Ask answer with honest labeling, transparency,
+//   and provenance. Never a raw UUID as a primary label; body/envelope stay
+//   governed at Foundation. Approval-gated proposals are shown as proposals.
+function AskAnswer({ data }: { data: ConversationMessageResponse }): JSX.Element {
+  const t = data.transparency;
+  const provenance = data.context_provenance ?? [];
+  return (
+    <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3" data-testid="ask-your-twin-answer">
+      <p className="whitespace-pre-wrap break-words text-sm text-foreground">
+        {data.response}
+      </p>
+      <p className="text-[11px] text-muted-foreground" data-testid="ask-your-twin-attribution">
+        Answered by your Twin from your governed context.
+      </p>
+
+      {data.approval_required ? (
+        <p className="text-[11px] text-amber-700 dark:text-amber-400" data-testid="ask-your-twin-approval">
+          This would need your approval before anything happens. Nothing has been
+          done yet.
+        </p>
+      ) : null}
+      {data.proposed_action ? (
+        <p className="text-[11px] text-amber-700 dark:text-amber-400">
+          Otzar drafted a proposed action. Review and approve it in Action
+          Center. Nothing was sent.
+        </p>
+      ) : null}
+
+      {t !== undefined ? (
+        <p className="text-[11px] text-muted-foreground" data-testid="ask-your-twin-transparency">
+          Used {t.context_items_used} context item
+          {t.context_items_used === 1 ? "" : "s"}
+          {t.access_limited ? " (some context was outside your access)" : ""}
+          {t.retrieval_status === "NO_MATCHES"
+            ? ". No matching memory was found."
+            : ""}
+        </p>
+      ) : null}
+
+      {provenance.length > 0 ? (
+        <div className="space-y-1" data-testid="ask-your-twin-provenance">
+          <p className="text-[11px] font-medium text-muted-foreground">
+            Context used
+          </p>
+          <ul className="space-y-0.5">
+            {provenance.map((p, i) => (
+              <li
+                key={`${p.context_id}-${i}`}
+                className="text-[11px] text-muted-foreground"
+                data-scope={p.scope}
+              >
+                {p.title !== null && p.title.length > 0 ? p.title : "Untitled context"}
+                {" · "}
+                {p.scope.toLowerCase()}
+                {p.content_available ? "" : " (not shown)"}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function humanizeAskError(code: string): string {
+  switch (code) {
+    case "NETWORK_ERROR":
+      return "Couldn't reach your Twin just now. Check your connection and try again.";
+    case "SESSION_EXPIRED":
+    case "SESSION_INVALID":
+    case "SESSION_INVALIDATED":
+    case "SESSION_REVOKED":
+    case "OPERATION_NOT_PERMITTED":
+      return "Your session needs to be refreshed. Please sign out and back in.";
+    default:
+      return "Your Twin couldn't answer that just now. Please try again in a moment.";
+  }
 }
 
 function Field({ label, value }: { label: string; value: string }) {
