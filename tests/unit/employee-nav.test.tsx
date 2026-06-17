@@ -56,6 +56,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "Action Center",
       "My Work",
       "Blind Spots",
+      "Operational Health",
       "Team Work",
       "Comms",
       "My Twin",

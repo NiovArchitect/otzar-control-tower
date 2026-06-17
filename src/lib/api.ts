@@ -84,6 +84,9 @@ import type {
   BlindSpotFeedResponse,
   WatcherFeedResponse,
   RecentCommsArtifactsResponse,
+  OperationalHealthResponse,
+  OperationalScope,
+  RiskAssessmentResponse,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
@@ -1227,6 +1230,24 @@ export class ApiClient {
      *  self-scoped + tenant-isolated. Powers the Comms cockpit recent list. */
     commsRecentArtifacts: (): Promise<ApiResult<RecentCommsArtifactsResponse>> =>
       this.request<RecentCommsArtifactsResponse>("/work-os/comms/recent-artifacts"),
+
+    /** GET /api/v1/work-os/operational-health — advisory OPERATIONAL_ANALYTICS
+     *  over a Foundation-scoped execution-health snapshot (Phase 1285-Z).
+     *  health_score / execution_status / counts are deterministic-primary; the
+     *  narrative is advisory only when envelope.authority === FOUNDATION_VALIDATED.
+     *  scope=team|org require manager server-side, else fall back to personal. */
+    operationalHealth: (
+      scope?: OperationalScope,
+    ): Promise<ApiResult<OperationalHealthResponse>> =>
+      this.request<OperationalHealthResponse>(
+        `/work-os/operational-health${scope ? `?scope=${encodeURIComponent(scope)}` : ""}`,
+      ),
+
+    /** GET /api/v1/work-os/risk/assessment — advisory RISK_SCORING enriching the
+     *  deterministic watcher findings (Phase 1285-X). Deterministic Blind Spots /
+     *  Watchers remain primary; risk_assessment is additive advisory metadata. */
+    riskAssessment: (): Promise<ApiResult<RiskAssessmentResponse>> =>
+      this.request<RiskAssessmentResponse>("/work-os/risk/assessment"),
 
     /** PATCH /api/v1/work-os/ledger/:id — update status / next_action /
      *  priority. Completion authority is enforced server-side (only the
