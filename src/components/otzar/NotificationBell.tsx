@@ -634,7 +634,12 @@ function humanizeMarkError(code: string): string {
       return "Couldn't update just now — check your connection and try again.";
     case "SESSION_EXPIRED":
     case "SESSION_INVALID":
-      return "Your session expired. Please sign in again.";
+    case "SESSION_INVALIDATED":
+    case "SESSION_REVOKED":
+    case "OPERATION_NOT_PERMITTED":
+      // A genuine scope/session problem is not transient — guide the user to
+      // re-authenticate instead of looping on "try again".
+      return "Your session needs to be refreshed. Please sign out and back in.";
     case "NOTIFICATION_NOT_FOUND":
       return "That notification is no longer available.";
     default:
