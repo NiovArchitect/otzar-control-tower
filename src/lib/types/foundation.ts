@@ -4501,6 +4501,53 @@ export interface WatcherFeedResponse {
   code?: string;
 }
 
+// ── Comms recent-artifacts feed (Phase 1285-T) — mirrors
+//    apps/api/src/services/work-os/comms-artifacts.service.ts. ──
+export type CommsArtifactType =
+  | "DIRECT_MESSAGE"
+  | "THREAD_REPLY"
+  | "WORK_CAPTURE"
+  | "FOLLOW_UP"
+  | "DECISION"
+  | "BLOCKER"
+  | "MEETING_CAPTURE"
+  | "ACTION_PROPOSAL"
+  | "NOTIFICATION";
+
+export interface CommsArtifactEntity {
+  entity_id: string | null;
+  display_name: string;
+  unresolved: boolean;
+}
+
+export interface RecentCommsArtifact {
+  artifact_id: string;
+  artifact_type: CommsArtifactType;
+  title: string;
+  summary: string | null;
+  created_at: string;
+  updated_at: string;
+  status: string;
+  scope: "personal";
+  related_person: CommsArtifactEntity | null;
+  source: {
+    source_system: string;
+    source_message_id: string | null;
+    ledger_entry_id: string;
+  };
+  destination: {
+    kind: "work" | "thread" | "notification" | "none";
+    route: string | null;
+  };
+}
+
+export interface RecentCommsArtifactsResponse {
+  ok: boolean;
+  artifacts?: RecentCommsArtifact[];
+  next_cursor?: string | null;
+  code?: string;
+}
+
 // Phase 1284 — human-authority direct internal message result.
 export interface InternalMessageResponse {
   ok: boolean;

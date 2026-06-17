@@ -26,7 +26,8 @@
 //   - Renders only the closed-vocab CommsExtractionResult; no TAR
 //     / wallet / clearance / payload internals.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   Brain,
@@ -51,9 +52,13 @@ import { ProposedActionCard } from "@/components/otzar/ProposedActionCard";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { viewWhyFromCommsFollowUp } from "@/lib/work-os/view-why";
 import { api } from "@/lib/api";
+import { entityLabel } from "@/lib/identity/canonical-entity";
+import { useWorkStateChanged } from "@/lib/events/work-state";
 import type {
   CommsExtractionResult,
   CommsSuggestedAction,
+  RecentCommsArtifact,
+  CommsArtifactType,
 } from "@/lib/types/foundation";
 
 // ─────────────────────────────────────────────────────────────
@@ -597,10 +602,95 @@ function CommsCockpit(): JSX.Element {
         </div>
       </section>
 
-      {/* Recent conversation intelligence — honest empty state (no recent-
-          artifacts endpoint yet; see backlog/semantic-reconciliation). */}
-      <section className="space-y-1" data-testid="comms-recent">
-        <h3 className="text-sm font-medium">Recent conversation intelligence</h3>
+      {/* Recent conversation intelligence — real durable artifacts (Phase
+          1285-T) from GET /work-os/comms/recent-artifacts; honest empty/error
+          states; refreshes on work-state changes. */}
+      <CommsRecentArtifacts />
+    </div>
+  );
+}
+
+const ARTIFACT_TYPE_LABEL: Record<CommsArtifactType, string> = {
+  DIRECT_MESSAGE: "Direct message",
+  THREAD_REPLY: "Thread reply",
+  WORK_CAPTURE: "Captured work",
+  FOLLOW_UP: "Follow-up",
+  DECISION: "Decision",
+  BLOCKER: "Blocker",
+  MEETING_CAPTURE: "Meeting capture",
+  ACTION_PROPOSAL: "Action proposal",
+  NOTIFICATION: "Internal note",
+};
+
+function commsRelativeTime(iso: string): string {
+  const t = new Date(iso).getTime();
+  const delta = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (delta < 60) return "just now";
+  if (delta < 3600) return `${Math.floor(delta / 60)}m ago`;
+  if (delta < 86400) return `${Math.floor(delta / 3600)}h ago`;
+  return `${Math.floor(delta / 86400)}d ago`;
+}
+
+// WHAT: the Comms cockpit recent-artifacts list (Phase 1285-T). Real durable
+//        artifacts from the Work Ledger projection; honest empty/error/loading
+//        states; canonical participant labels (never a raw UUID); each card
+//        routes to its real destination. No fake artifacts.
+function CommsRecentArtifacts(): JSX.Element {
+  const navigate = useNavigate();
+  const [artifacts, setArtifacts] = useState<RecentCommsArtifact[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const load = useCallback(async (): Promise<void> => {
+    const r = await api.workOs.commsRecentArtifacts();
+    if (r.ok) {
+      setArtifacts(r.data.artifacts ?? []);
+      setFailed(false);
+    } else {
+      setFailed(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const r = await api.workOs.commsRecentArtifacts();
+      if (cancelled) return;
+      if (r.ok) setArtifacts(r.data.artifacts ?? []);
+      else setFailed(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useWorkStateChanged(
+    [
+      "MESSAGE_CREATED",
+      "NOTIFICATION_CREATED",
+      "LEDGER_UPDATED",
+      "TASK_COMPLETED",
+      "WAITING_ON_CHANGED",
+      "SIGNAL_TRACKED",
+    ],
+    () => void load(),
+  );
+
+  const items = artifacts ?? [];
+  return (
+    <section className="space-y-1" data-testid="comms-recent">
+      <h3 className="text-sm font-medium">Recent conversation intelligence</h3>
+      {failed ? (
+        <div
+          className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400"
+          data-testid="comms-recent-error"
+        >
+          Couldn't load recent artifacts right now. Refresh to try again.
+        </div>
+      ) : artifacts === null ? (
+        <p className="px-1 text-xs text-muted-foreground" data-testid="comms-recent-loading">
+          Loading recent conversation intelligence...
+        </p>
+      ) : items.length === 0 ? (
         <div
           className="rounded-md border border-border p-3 text-xs text-muted-foreground"
           data-testid="comms-recent-empty"
@@ -608,8 +698,53 @@ function CommsCockpit(): JSX.Element {
           No captured conversation artifacts yet. Start capture or import notes to
           generate follow-ups, decisions, blockers, and commitments.
         </div>
-      </section>
-    </div>
+      ) : (
+        <ul className="space-y-1.5" data-testid="comms-recent-list">
+          {items.map((a) => {
+            const related =
+              a.related_person !== null ? entityLabel(a.related_person.display_name) : null;
+            const canOpen = a.destination.route !== null;
+            return (
+              <li
+                key={a.artifact_id}
+                className="rounded-md border border-border bg-card p-2 text-xs"
+                data-testid="comms-recent-item"
+                data-artifact-type={a.artifact_type}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground">{a.title}</div>
+                    {a.summary !== null && a.summary.length > 0 ? (
+                      <div className="text-[11px] text-muted-foreground">{a.summary}</div>
+                    ) : null}
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">
+                      {ARTIFACT_TYPE_LABEL[a.artifact_type]}
+                      {related !== null ? ` · with ${related}` : ""}
+                      {` · ${commsRelativeTime(a.updated_at)}`}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Badge variant="outline" className="text-[9px]">
+                      {ARTIFACT_TYPE_LABEL[a.artifact_type]}
+                    </Badge>
+                    {canOpen ? (
+                      <button
+                        type="button"
+                        className="rounded px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                        data-testid="comms-recent-open"
+                        onClick={() => navigate(a.destination.route as string)}
+                      >
+                        Open
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
