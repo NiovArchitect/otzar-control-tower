@@ -294,9 +294,17 @@ export class ApiClient {
   ): Promise<ApiResult<T>> {
     const method = opts.method ?? "GET";
     const url = this.options.baseUrl.replace(/\/$/, "") + path;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
+    // Phase 1285-Q (real fix): only declare a JSON Content-Type when we actually
+    // send a JSON body. A bodyless PUT/POST (e.g. mark-read, dismiss) that still
+    // advertised application/json made Fastify's JSON parser reject the EMPTY
+    // body with 400 FST_ERR_CTP_EMPTY_JSON_BODY — surfaced to the user as
+    // "Couldn't mark that as read." curl worked because curl sends no
+    // Content-Type without a body.
+    const hasBody = opts.body !== undefined && opts.body !== null;
+    const headers: Record<string, string> = {};
+    if (hasBody) {
+      headers["Content-Type"] = "application/json";
+    }
     const token = this.options.getToken();
     if (token !== null && token.length > 0) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -304,10 +312,7 @@ export class ApiClient {
     const init: RequestInit = {
       method,
       headers,
-      body:
-        opts.body !== undefined && opts.body !== null
-          ? JSON.stringify(opts.body)
-          : null,
+      body: hasBody ? JSON.stringify(opts.body) : null,
     };
 
     // GET-only network-failure retry. 4xx/5xx are NOT retried --
