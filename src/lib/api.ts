@@ -83,6 +83,7 @@ import type {
   WorkLedgerEntryView,
   BlindSpotFeedResponse,
   WatcherFeedResponse,
+  RecentCommsArtifactsResponse,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
@@ -1220,6 +1221,12 @@ export class ApiClient {
      *  metadata + recommended next action. */
     watchersFeed: (): Promise<ApiResult<WatcherFeedResponse>> =>
       this.request<WatcherFeedResponse>("/work-os/watchers/feed"),
+
+    /** GET /api/v1/work-os/comms/recent-artifacts — recent conversation-derived
+     *  artifacts (Phase 1285-T) projected from the durable Work Ledger,
+     *  self-scoped + tenant-isolated. Powers the Comms cockpit recent list. */
+    commsRecentArtifacts: (): Promise<ApiResult<RecentCommsArtifactsResponse>> =>
+      this.request<RecentCommsArtifactsResponse>("/work-os/comms/recent-artifacts"),
 
     /** PATCH /api/v1/work-os/ledger/:id — update status / next_action /
      *  priority. Completion authority is enforced server-side (only the

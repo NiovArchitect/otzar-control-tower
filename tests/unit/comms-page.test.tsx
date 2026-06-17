@@ -120,9 +120,39 @@ function renderPage(): void {
   );
 }
 
+function recentArtifact(over: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    artifact_id: "led-1",
+    artifact_type: "FOLLOW_UP",
+    title: "Follow up with David",
+    summary: "Send the proof notes",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    status: "PROPOSED",
+    scope: "personal",
+    related_person: { entity_id: "ent-david", display_name: "David Odie", unresolved: false },
+    source: { source_system: "work_ledger", source_message_id: "msg-7", ledger_entry_id: "led-1" },
+    destination: { kind: "work", route: "/app/my-work" },
+    ...over,
+  };
+}
+
+function mockRecentArtifacts(
+  artifacts: ReadonlyArray<Record<string, unknown>> = [],
+): void {
+  server.use(
+    http.get(`${API_BASE}/work-os/comms/recent-artifacts`, () =>
+      HttpResponse.json({ ok: true, artifacts, next_cursor: null }),
+    ),
+  );
+}
+
 beforeEach(() => {
   vi.useRealTimers();
   setAuth();
+  // Default: the recent-artifacts feed is mocked empty so the cockpit renders
+  // its honest-empty state unless a test overrides it.
+  mockRecentArtifacts([]);
 });
 
 describe("Comms — HERO flow", () => {
@@ -176,12 +206,60 @@ describe("Comms — default cockpit (Phase 1285-L2)", () => {
     expect(html).toContain("Commitments");
   });
 
-  it("shows an honest 'recent conversation intelligence' empty state (no fake artifacts)", () => {
+  it("shows an honest 'recent conversation intelligence' empty state when the feed is empty (no fake artifacts)", async () => {
     mockExtract();
+    mockRecentArtifacts([]);
     renderPage();
-    expect(screen.getByTestId("comms-recent-empty")).toHaveTextContent(
-      "No captured conversation artifacts yet",
+    expect(
+      await screen.findByTestId("comms-recent-empty"),
+    ).toHaveTextContent("No captured conversation artifacts yet");
+  });
+
+  it("renders REAL recent artifacts from the feed with canonical labels (Phase 1285-T)", async () => {
+    mockExtract();
+    mockRecentArtifacts([
+      recentArtifact({ artifact_id: "a-1", artifact_type: "FOLLOW_UP", title: "Follow up with David" }),
+      recentArtifact({
+        artifact_id: "a-2",
+        artifact_type: "DECISION",
+        title: "Decided on the launch date",
+        related_person: { entity_id: "ent-sam", display_name: "Samiksha Sharma", unresolved: false },
+      }),
+    ]);
+    renderPage();
+    const list = await screen.findByTestId("comms-recent-list");
+    expect(screen.getAllByTestId("comms-recent-item").length).toBe(2);
+    expect(list.textContent ?? "").toMatch(/Follow up with David/);
+    expect(list.textContent ?? "").toMatch(/Decided on the launch date/);
+    // canonical label, never a raw UUID
+    expect(list.textContent ?? "").toMatch(/David Odie/);
+    expect(list.textContent ?? "").not.toContain("ent-david");
+    expect(screen.queryByTestId("comms-recent-empty")).toBeNull();
+  });
+
+  it("shows an honest error state when the feed fails (no fake artifacts)", async () => {
+    mockExtract();
+    server.use(
+      http.get(`${API_BASE}/work-os/comms/recent-artifacts`, () =>
+        HttpResponse.json({ ok: false, code: "INTERNAL_ERROR" }, { status: 500 }),
+      ),
     );
+    renderPage();
+    expect(await screen.findByTestId("comms-recent-error")).toBeInTheDocument();
+    expect(screen.queryByTestId("comms-recent-item")).toBeNull();
+  });
+
+  it("opens an artifact's destination on click", async () => {
+    mockExtract();
+    mockRecentArtifacts([recentArtifact({ artifact_id: "a-1" })]);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("comms-recent-item");
+    // Real navigable destination control is present.
+    expect(screen.getByTestId("comms-recent-open")).toBeInTheDocument();
+    await user.click(screen.getByTestId("comms-recent-open"));
+    // No crash; the card routed (MemoryRouter swallows navigation in test).
+    expect(screen.getByTestId("comms-recent-item")).toBeInTheDocument();
   });
 
   it("the cockpit is gone once a capture review is showing", async () => {
