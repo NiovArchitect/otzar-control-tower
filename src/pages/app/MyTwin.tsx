@@ -31,8 +31,10 @@ import {
 import type {
   MyTwinResponse,
   ConversationMessageResponse,
+  SemanticRetrievalResultView,
 } from "@/lib/types/foundation";
 import { classifyAskTwin, COLLABORATION_ROUTE } from "@/lib/work-os/ask-twin";
+import { entityLabel } from "@/lib/identity/canonical-entity";
 
 export function MyTwin() {
   const query = useQuery({
@@ -193,7 +195,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
 type AskState =
   | { phase: "idle" }
   | { phase: "loading" }
-  | { phase: "answered"; data: ConversationMessageResponse }
+  | { phase: "answered"; data: ConversationMessageResponse; question: string }
   | { phase: "other_twin"; target: string | null }
   | { phase: "error"; message: string };
 
@@ -232,7 +234,7 @@ function AskYourTwin(): JSX.Element {
       setState({ phase: "error", message: humanizeAskError(result.code) });
       return;
     }
-    setState({ phase: "answered", data: result.data });
+    setState({ phase: "answered", data: result.data, question });
   }
 
   return (
@@ -307,10 +309,136 @@ function AskYourTwin(): JSX.Element {
         ) : null}
 
         {state.phase === "answered" ? (
-          <AskAnswer data={state.data} />
+          <>
+            <AskAnswer data={state.data} />
+            <RelatedWorkPanel query={state.question} />
+          </>
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+// WHAT: a non-blocking, button-triggered "Find related work" panel rendered
+//   UNDER a governed self-Ask answer. It calls the Foundation-scoped semantic
+//   retrieval (Phase 1285-W) — Foundation assembles + validates the candidates;
+//   Python only reranks the allowed set. Read-only: creates nothing, sends
+//   nothing, approves nothing. The governed answer above is never replaced. No
+//   raw UUID as a primary label.
+type RelatedState =
+  | { phase: "idle" }
+  | { phase: "loading" }
+  | { phase: "loaded"; results: SemanticRetrievalResultView[]; advisory: boolean; status: string }
+  | { phase: "error" };
+
+function RelatedWorkPanel({ query }: { query: string }): JSX.Element {
+  const navigate = useNavigate();
+  const [state, setState] = useState<RelatedState>({ phase: "idle" });
+
+  async function find(): Promise<void> {
+    setState({ phase: "loading" });
+    const r = await api.workOs.semanticRetrievalQuery({ query, limit: 5 });
+    if (!r.ok) {
+      setState({ phase: "error" });
+      return;
+    }
+    const env = r.data.envelope;
+    const advisory =
+      env?.authority === "FOUNDATION_VALIDATED" && (env?.provenance ?? "").startsWith("python:");
+    setState({
+      phase: "loaded",
+      results: r.data.results ?? [],
+      advisory,
+      status: env?.status ?? "UNKNOWN",
+    });
+  }
+
+  return (
+    <div className="rounded-md border border-border bg-muted/20 p-3 text-sm" data-testid="ask-related-work">
+      {state.phase === "idle" ? (
+        <button
+          type="button"
+          className="rounded border px-2 py-1 text-xs"
+          data-testid="ask-related-find"
+          onClick={() => void find()}
+        >
+          Find related work
+        </button>
+      ) : null}
+      {state.phase === "loading" ? (
+        <p className="text-xs text-muted-foreground" data-testid="ask-related-loading">
+          Finding related work in your scoped context...
+        </p>
+      ) : null}
+      {state.phase === "error" ? (
+        <p className="text-xs text-amber-700 dark:text-amber-400" data-testid="ask-related-error">
+          Couldn't find related work right now.
+        </p>
+      ) : null}
+      {state.phase === "loaded" ? (
+        <div className="space-y-2" data-testid="ask-related-results">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">Related work</span>
+            <Badge variant="outline" className="text-[9px] text-muted-foreground" data-testid="ask-related-label">
+              {state.advisory ? "Advisory rerank, validated by Foundation" : "Related work, Foundation-scoped"}
+            </Badge>
+          </div>
+          {state.results.length === 0 ? (
+            <p className="text-xs text-muted-foreground" data-testid="ask-related-empty">
+              No related work found in your scoped context.
+            </p>
+          ) : (
+            <ul className="space-y-1.5" data-testid="ask-related-list">
+              {state.results.map((res) => {
+                const person =
+                  res.related_person !== null ? entityLabel(res.related_person.display_name) : null;
+                return (
+                  <li
+                    key={res.result_id}
+                    className="rounded border border-border bg-background/70 p-2 text-xs"
+                    data-testid="ask-related-item"
+                    data-result-type={res.result_type}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium text-foreground">{res.title}</div>
+                        {res.summary !== null && res.summary.length > 0 ? (
+                          <div className="text-[11px] text-muted-foreground">{res.summary}</div>
+                        ) : null}
+                        <div className="mt-0.5 text-[10px] text-muted-foreground">
+                          {res.result_type.replace(/_/g, " ").toLowerCase()}
+                          {person !== null ? ` · with ${person}` : ""}
+                          {res.score > 0 ? ` · relevance ${res.score}` : ""}
+                        </div>
+                        {res.reason.length > 0 ? (
+                          <div className="text-[10px] italic text-muted-foreground">{res.reason}</div>
+                        ) : null}
+                      </div>
+                      {res.route.length > 0 ? (
+                        <button
+                          type="button"
+                          className="shrink-0 rounded px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                          data-testid="ask-related-open"
+                          onClick={() => navigate(res.route)}
+                        >
+                          Open
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="text-[9px] italic text-muted-foreground" data-testid="ask-related-provenance">
+            {state.advisory
+              ? "Advisory rerank by Python, validated by Foundation."
+              : "Deterministic Foundation retrieval."}{" "}
+            Scoped to what you can see. Analysis {state.status.toLowerCase()}.
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

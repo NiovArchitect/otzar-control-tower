@@ -4685,6 +4685,31 @@ export interface MeetingIntelligenceView {
   candidates: MeetingIntelligenceCandidateView[];
 }
 
+// ── Semantic retrieval (Phase 1285-W; surfaced in Ask your Twin at Phase
+//    1286-D). Foundation-scoped results only; the title is the primary label
+//    (never a raw UUID). The advisory rerank is validated by Foundation. ──
+export interface SemanticRetrievalResultView {
+  result_id: string;
+  result_type: string;
+  title: string;
+  summary: string | null;
+  score: number;
+  reason: string;
+  source: { source_system: string; ledger_entry_id: string };
+  route: string;
+  related_person: { entity_id: string | null; display_name: string; unresolved: boolean } | null;
+  created_at: string;
+  updated_at: string;
+  scope_label: string;
+  provenance: string; // "python:semantic-rerank" | "foundation:deterministic-lexical"
+}
+export interface SemanticRetrievalQueryResponse {
+  ok: boolean;
+  results?: SemanticRetrievalResultView[];
+  envelope?: PythonAdvisoryEnvelope;
+  code?: string;
+}
+
 // Phase 1284 — human-authority direct internal message result.
 export interface InternalMessageResponse {
   ok: boolean;

@@ -90,6 +90,7 @@ import type {
   DraftToneChannel,
   DraftRecipientContext,
   DraftToneEvaluateResponse,
+  SemanticRetrievalQueryResponse,
   ExecutionAttemptListResponse,
   InternalMessageResponse,
   DirectThreadResponse,
@@ -1266,6 +1267,20 @@ export class ApiClient {
       draft_id?: string;
     }): Promise<ApiResult<DraftToneEvaluateResponse>> =>
       this.request<DraftToneEvaluateResponse>("/work-os/draft-tone/evaluate", {
+        method: "POST",
+        body,
+      }),
+
+    /** POST /api/v1/work-os/semantic-retrieval/query — advisory SEMANTIC_RETRIEVAL
+     *  over a Foundation-scoped candidate set (Phase 1285-W). Foundation assembles
+     *  the scoped candidates; Python reranks ONLY those; Foundation validates every
+     *  returned id. Read-only: creates nothing, sends nothing. */
+    semanticRetrievalQuery: (body: {
+      query: string;
+      source_filter?: string[];
+      limit?: number;
+    }): Promise<ApiResult<SemanticRetrievalQueryResponse>> =>
+      this.request<SemanticRetrievalQueryResponse>("/work-os/semantic-retrieval/query", {
         method: "POST",
         body,
       }),
