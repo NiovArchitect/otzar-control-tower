@@ -4278,6 +4278,9 @@ export interface WorkLedgerEntryView {
     primary_signal: string | null;
     multi_intent: boolean;
   };
+  // Phase 1285-V — the SAFE advisory meeting-intelligence projection (present
+  // only when the row carries it; read-only display surface for Phase 1286-C).
+  meeting_intelligence?: MeetingIntelligenceView;
   // Phase 1283 — persisted coordination summary (read back from the row, not
   // just the create response).
   coordination?: {
@@ -4653,6 +4656,9 @@ export interface RecentCommsArtifact {
     kind: "work" | "thread" | "notification" | "none";
     route: string | null;
   };
+  // Phase 1286-C — the SAFE advisory meeting-intelligence projection, present
+  // only when the underlying ledger row carries it (read-only display).
+  meeting_intelligence?: MeetingIntelligenceView;
 }
 
 export interface RecentCommsArtifactsResponse {
@@ -4660,6 +4666,23 @@ export interface RecentCommsArtifactsResponse {
   artifacts?: RecentCommsArtifact[];
   next_cursor?: string | null;
   code?: string;
+}
+
+// ── Meeting intelligence projection (Phase 1285-V; surfaced read-only in Phase
+//    1286-C). The SAFE shape: short candidates only, never the raw transcript or
+//    chain-of-thought. candidate_type ∈ SUMMARY / DECISION / ACTION_ITEM /
+//    BLOCKER / RISK / OPEN_QUESTION / COMMITMENT / FOLLOW_UP / DRAFT_SUGGESTION. ──
+export interface MeetingIntelligenceCandidateView {
+  candidate_type: string;
+  text: string;
+  confidence: string;
+}
+export interface MeetingIntelligenceView {
+  status: string;
+  authority: string | null;
+  capability: string;
+  summary: string | null;
+  candidates: MeetingIntelligenceCandidateView[];
 }
 
 // Phase 1284 — human-authority direct internal message result.

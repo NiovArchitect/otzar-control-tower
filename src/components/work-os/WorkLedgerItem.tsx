@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import type { WorkLedgerEntryView, ExecutionAttemptView } from "@/lib/types/foundation";
 import { emitWorkStateChanged } from "@/lib/events/work-state";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromLedger } from "@/lib/work-os/view-why";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
@@ -155,6 +156,9 @@ export function WorkLedgerItem({
           </button>
         </div>
       </div>
+      {/* Phase 1286-C — read-only meeting intelligence, only when the row
+          genuinely carries it (absent → nothing renders). */}
+      <MeetingIntelligencePanel data={entry.meeting_intelligence} />
       {completeErr !== null ? (
         <p className="mt-1 text-[10px] text-amber-600" data-testid="work-ledger-item-complete-error">
           {completeErr}
