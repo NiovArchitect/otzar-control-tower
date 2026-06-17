@@ -400,7 +400,9 @@ describe("ActionCenter — specific cards + executable state (Phase 1285-N BLOCK
     await screen.findByTestId("action-center-card");
     await user.click(screen.getByTestId("action-open-details"));
     const panel = await screen.findByTestId("action-view-why-panel");
-    expect(panel).toHaveTextContent(/Message body unavailable in safe projection/);
+    // Phase 1287-C — honest, calmer copy (the body is never in the safe view per
+    // ADR-0057 §10); no scary "unavailable in safe projection" wording.
+    expect(panel).toHaveTextContent(/Message preview is not in the safe view/);
   });
 });
 

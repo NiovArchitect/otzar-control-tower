@@ -164,13 +164,20 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
   });
 
   it("surfaces approvals from the real PROPOSED count, deep-links, and dismisses", async () => {
+    // Phase 1287-C — the popup now counts ACTIONABLE pending (PROPOSED + a live
+    // escalation), not raw PROPOSED total, so a stale/routing-only item never
+    // dead-clicks. Two genuinely actionable items → "2 items waiting".
+    const now = new Date().toISOString();
     server.use(
       http.get(`${API_BASE}/actions`, () =>
         HttpResponse.json({
           ok: true,
-          items: [],
+          items: [
+            { action_id: "a1", status: "PROPOSED", action_type: "SEND_INTERNAL_NOTIFICATION", risk_tier: "LOW", requires_approval: true, escalation_id: "e1", created_at: now, updated_at: now },
+            { action_id: "a2", status: "PROPOSED", action_type: "SEND_INTERNAL_NOTIFICATION", risk_tier: "LOW", requires_approval: true, escalation_id: "e2", created_at: now, updated_at: now },
+          ],
           page: 1,
-          page_size: 10,
+          page_size: 50,
           total: 2,
         }),
       ),
@@ -221,7 +228,7 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId("ambient-card").textContent).toContain(
-      "you can type instead",
+      "You can type instead",
     );
   });
 

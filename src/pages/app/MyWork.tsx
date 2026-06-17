@@ -14,7 +14,17 @@ import {
   bucketFor,
   BUCKET_ORDER,
 } from "@/components/work-os/WorkLedgerItem";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { useWorkStateChanged } from "@/lib/events/work-state";
+
+// Phase 1287-C — ambient readability: urgent / active buckets lead expanded;
+// lower-priority + history buckets collapse by default so a busy My Work stays
+// scannable (and a future lens / voice summary leads with what matters). Urgent
+// work is NEVER collapsed by default.
+const COLLAPSED_BY_DEFAULT: ReadonlySet<string> = new Set([
+  "Meetings / confirmations",
+  "Recently created",
+]);
 
 export function MyWork(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
@@ -80,14 +90,18 @@ export function MyWork(): JSX.Element {
           const group = items.filter((e) => bucketFor(e) === bucket);
           if (group.length === 0) return null;
           return (
-            <section key={bucket} className="space-y-1.5" data-testid={`my-work-group`}>
-              <h2 className="text-xs font-medium text-muted-foreground">
-                {bucket} ({group.length})
-              </h2>
-              {group.map((e) => (
-                <WorkLedgerItem key={e.ledger_entry_id} entry={e} onChanged={() => void reload()} />
-              ))}
-            </section>
+            <div key={bucket} data-testid="my-work-group" data-bucket={bucket}>
+              <CollapsibleSection
+                title={bucket}
+                count={group.length}
+                defaultOpen={!COLLAPSED_BY_DEFAULT.has(bucket)}
+                testId="my-work-section"
+              >
+                {group.map((e) => (
+                  <WorkLedgerItem key={e.ledger_entry_id} entry={e} onChanged={() => void reload()} />
+                ))}
+              </CollapsibleSection>
+            </div>
           );
         })
       )}

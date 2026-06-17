@@ -255,7 +255,7 @@ export function viewWhyFromAction(
   const bodyValue =
     details?.body != null && details.body.length > 0
       ? details.body
-      : "Message body unavailable in safe projection.";
+      : "Message preview is not in the safe view.";
   const rows: ViewWhyRow[] = [
     { label: "Kind", value: actionTypeLabel(a.action_type) },
     { label: "Status", value: titleCase(a.status) },

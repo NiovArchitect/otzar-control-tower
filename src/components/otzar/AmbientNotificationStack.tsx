@@ -22,6 +22,7 @@ import { Link } from "react-router-dom";
 import { BellRing, ListChecks, MicOff, MoonStar, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { usePresenceStore } from "@/lib/stores/presence";
+import { isActionablePending } from "@/lib/work-os/action-classify";
 
 const APPROVALS_POLL_MS = 60_000;
 
@@ -61,9 +62,14 @@ export function AmbientNotificationStack(): JSX.Element | null {
     let cancelled = false;
     async function check(): Promise<void> {
       try {
-        const r = await api.actions.list({ status: "PROPOSED", page_size: 10 });
+        const r = await api.actions.list({ status: "PROPOSED", page_size: 50 });
         if (!cancelled && r.ok) {
-          setSignals({ approvalsCount: r.data.total });
+          // Phase 1287-C — count ONLY truly actionable pending decisions (a live
+          // escalation to approve/reject), not every PROPOSED row. A stale /
+          // routing-only PROPOSED item is NOT a waiting decision, so the popup
+          // suppresses instead of dead-clicking into an empty Action Center.
+          const actionable = (r.data.items ?? []).filter(isActionablePending).length;
+          setSignals({ approvalsCount: actionable });
         }
       } catch {
         // Silent: the ambient layer never invents urgency from errors.
@@ -128,7 +134,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
     cards.push({
       kind: "voice-blocked",
       icon: <MicOff className="h-3.5 w-3.5 text-amber-500" aria-hidden />,
-      text: "Voice needs microphone access — you can type instead.",
+      text: "Voice needs microphone access. You can type instead.",
       to: "/app/voice",
       linkLabel: "Set up",
     });
