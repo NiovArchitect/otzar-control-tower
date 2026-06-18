@@ -6,6 +6,9 @@
 //          the action), connector issues → Connector Rails, collaboration
 //          → Collaboration, etc. There is always a safe real fallback
 //          (Action Center), so a click never dead-ends and never throws.
+//          Phase 1304-A adds forward-looking review → /review-center and
+//          Federation Cloud marketplace → /marketplace mappings (inert until
+//          a backend notification generator emits those classes).
 // CONNECTS TO: src/components/otzar/NotificationBell.tsx,
 //          tests/unit/notification-routing.test.ts.
 
@@ -27,6 +30,22 @@ export function notificationRoute(n: NotificationTarget): string {
     n.notification_id.length > 0
   ) {
     return `/app/inbox/${encodeURIComponent(n.notification_id)}`;
+  }
+  // Phase 1304-A — a high-sensitivity REVIEW notification opens the Review
+  // Center ("Needs review"), NOT the generic Action Center: a review is a
+  // distinct governed object, not an Action Center action (directive C).
+  // This must win over the action_id default below so a review never routes
+  // to Action Center. Forward-looking: no backend generator emits review-class
+  // notifications yet (1304-A pre-code report) — the mapping is inert until one
+  // does, but it is correct now and unit-tested.
+  if (c.includes("review") || c.includes("high_sensitivity") || c.includes("high-sensitivity")) {
+    return "/review-center";
+  }
+  // Phase 1304-A — a Federation Cloud marketplace notification opens the
+  // Marketplace shell (safe metadata browse), not Action Center. Also
+  // forward-looking / inert until a generator exists.
+  if (c.includes("marketplace") || c.includes("listing") || c.includes("federation")) {
+    return "/marketplace";
   }
   // A linked governed Action → Action Center, focused on that action.
   if (n.action_id !== null && n.action_id.length > 0) {

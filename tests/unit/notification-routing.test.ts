@@ -42,3 +42,50 @@ describe("notificationRoute — direct messages open the thread", () => {
     expect(r.startsWith("/app/")).toBe(true);
   });
 });
+
+describe("notificationRoute — Phase 1304-A review + marketplace routing", () => {
+  // Test 11 — a review notification opens Review Center, not Action Center.
+  it("HIGH_SENSITIVITY_REVIEW → /review-center (NOT Action Center)", () => {
+    const r = notificationRoute({
+      action_id: null,
+      notification_class: "HIGH_SENSITIVITY_REVIEW",
+    });
+    expect(r).toBe("/review-center");
+    expect(r).not.toContain("action-center");
+  });
+
+  it("a review-class notification routes to Review Center even with an action_id", () => {
+    // A review is a distinct governed object; it must win over the action_id
+    // default so it never lands in Action Center.
+    expect(
+      notificationRoute({ action_id: "act-9", notification_class: "review_decision" }),
+    ).toBe("/review-center");
+  });
+
+  // Test 12 — a marketplace notification opens the Marketplace shell.
+  it("MARKETPLACE_LISTING → /marketplace", () => {
+    expect(
+      notificationRoute({ action_id: null, notification_class: "MARKETPLACE_LISTING" }),
+    ).toBe("/marketplace");
+  });
+
+  it("a federation-cloud notification opens the Marketplace shell", () => {
+    expect(
+      notificationRoute({ action_id: null, notification_class: "federation_cloud_update" }),
+    ).toBe("/marketplace");
+  });
+
+  // Test 13 — an unknown/missing-object class still resolves to a safe real
+  // in-app route (never a dead page, never a throw).
+  it("an unknown class falls back to a safe real route", () => {
+    const r = notificationRoute({ action_id: null, notification_class: "something_unmapped" });
+    expect(r.startsWith("/app/")).toBe(true);
+  });
+
+  // Regression: a plain approval action is unaffected by the new mappings.
+  it("a plain approval action still focuses Action Center (unchanged)", () => {
+    expect(
+      notificationRoute({ action_id: "act-1", notification_class: "approval" }),
+    ).toBe("/app/action-center?focus=act-1");
+  });
+});
