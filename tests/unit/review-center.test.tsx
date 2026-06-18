@@ -17,6 +17,7 @@ import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router-dom";
 import { server } from "../msw/server";
 import { ReviewCenterPage } from "@/pages/ReviewCenter";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { useAuthStore } from "@/lib/stores/auth";
 import { NAV } from "@/lib/nav";
 
@@ -215,6 +216,103 @@ describe("Review Center — action authority (visibility is NOT approval)", () =
     await screen.findByTestId("review-card");
     expect(screen.queryByTestId("review-approve")).not.toBeInTheDocument();
     expect(screen.getByText("Children data review")).toBeInTheDocument();
+  });
+});
+
+describe("Review Center — 1300-B polish", () => {
+  it("Deny opens a reason input and sends the safe reason to the backend", async () => {
+    let denyBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get(REVIEWS, ({ request }) => {
+        const scope = new URL(request.url).searchParams.get("scope") ?? "mine";
+        return HttpResponse.json({ ok: true, scope, reviews: [review()] });
+      }),
+      http.post(`${REVIEWS}/rev-1/deny`, async ({ request }) => {
+        denyBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ok: true, review: review({ status: "DENIED", denial_reason: "out of scope" }) });
+      }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByTestId("review-deny"));
+    const form = await screen.findByTestId("review-deny-form");
+    fireEvent.change(within(form).getByTestId("review-deny-reason"), { target: { value: "out of scope" } });
+    fireEvent.click(within(form).getByTestId("review-deny-confirm"));
+    await waitFor(() => expect(denyBody).toEqual({ reason: "out of scope" }));
+  });
+
+  it("Deny with no reason omits the reason field (backward-compatible)", async () => {
+    let denyBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get(REVIEWS, ({ request }) => {
+        const scope = new URL(request.url).searchParams.get("scope") ?? "mine";
+        return HttpResponse.json({ ok: true, scope, reviews: [review()] });
+      }),
+      http.post(`${REVIEWS}/rev-1/deny`, async ({ request }) => {
+        denyBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ok: true, review: review({ status: "DENIED" }) });
+      }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByTestId("review-deny"));
+    fireEvent.click(await screen.findByTestId("review-deny-confirm"));
+    await waitFor(() => expect(denyBody).toEqual({}));
+  });
+
+  it("Refresh re-fetches the list", async () => {
+    let calls = 0;
+    server.use(
+      http.get(REVIEWS, ({ request }) => {
+        calls += 1;
+        const scope = new URL(request.url).searchParams.get("scope") ?? "mine";
+        return HttpResponse.json({ ok: true, scope, reviews: [review()] });
+      }),
+    );
+    renderPage();
+    await screen.findByTestId("review-card");
+    const before = calls;
+    fireEvent.click(screen.getByTestId("review-refresh"));
+    await waitFor(() => expect(calls).toBeGreaterThan(before));
+  });
+});
+
+describe("Review Center — nav badge", () => {
+  function renderSidebar(): void {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <AdminSidebar />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+  function mockBadge(pendingReview: number): void {
+    server.use(
+      http.get(`${API_BASE}/org/analytics`, () => HttpResponse.json({ ok: true, pending_approvals_count: 0 })),
+      http.get(REVIEWS, ({ request }) => {
+        const scope = new URL(request.url).searchParams.get("scope") ?? "mine";
+        return HttpResponse.json({
+          ok: true,
+          scope,
+          reviews: [],
+          summary: { ...SUMMARY, pending_review_count: pendingReview },
+        });
+      }),
+    );
+  }
+
+  it("shows the needs-review count when there are pending org reviews", async () => {
+    mockBadge(3);
+    renderSidebar();
+    const badge = await screen.findByTestId("review-nav-badge");
+    expect(badge).toHaveTextContent("3");
+  });
+
+  it("hides the badge when there are no pending org reviews (or unauthorized)", async () => {
+    mockBadge(0);
+    renderSidebar();
+    await screen.findByText("Review Center");
+    expect(screen.queryByTestId("review-nav-badge")).not.toBeInTheDocument();
   });
 });
 

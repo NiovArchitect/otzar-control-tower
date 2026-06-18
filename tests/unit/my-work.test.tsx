@@ -56,10 +56,16 @@ describe("MyWork — ambient collapsible sections", () => {
       entry({ ledger_entry_id: "recent", status: "PROPOSED", ledger_type: "DECISION", title: "A recent decision" }), // "Recently created"
     ]);
     renderPage();
-    await waitFor(() => expect(screen.getByTestId("my-work-page")).toBeInTheDocument());
-
-    // Needs action → expanded → its item is visible.
-    const needsSection = screen.getByTestId("my-work-page").querySelector('[data-bucket="Needs action"]')!;
+    // Wait for the DATA-dependent bucket, not just the always-present page
+    // container — the page div renders during loading before any bucket exists,
+    // so a sync querySelector here races the async /work-os/my-work fetch.
+    const needsSection = (await waitFor(() => {
+      const s = screen
+        .getByTestId("my-work-page")
+        .querySelector('[data-bucket="Needs action"]');
+      expect(s).not.toBeNull();
+      return s;
+    })) as HTMLElement;
     expect(needsSection.getAttribute("data-bucket")).toBe("Needs action");
     expect(within(needsSection as HTMLElement).getByText("Needs an owner")).toBeInTheDocument();
     expect(needsSection.querySelector('[data-testid="my-work-section"]')!.getAttribute("data-open")).toBe("true");
@@ -73,9 +79,15 @@ describe("MyWork — ambient collapsible sections", () => {
   it("expanding a collapsed section reveals its items (nothing is lost)", async () => {
     mockMyWork([entry({ ledger_entry_id: "recent", ledger_type: "MEETING", status: "PROPOSED", title: "Launch sync" })]);
     renderPage();
-    await waitFor(() => expect(screen.getByTestId("my-work-page")).toBeInTheDocument());
-    const section = screen.getByTestId("my-work-page").querySelector('[data-bucket="Meetings / confirmations"]')!;
-    expect(within(section as HTMLElement).queryByText("Launch sync")).toBeNull(); // collapsed
+    // Await the data-dependent bucket (see note above) — not just the page div.
+    const section = (await waitFor(() => {
+      const s = screen
+        .getByTestId("my-work-page")
+        .querySelector('[data-bucket="Meetings / confirmations"]');
+      expect(s).not.toBeNull();
+      return s;
+    })) as HTMLElement;
+    expect(within(section).queryByText("Launch sync")).toBeNull(); // collapsed
     await userEvent.click(within(section as HTMLElement).getByTestId("collapsible-toggle"));
     expect(within(section as HTMLElement).getByText("Launch sync")).toBeInTheDocument(); // revealed
   });
