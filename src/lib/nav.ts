@@ -38,6 +38,7 @@ import {
   Network,
   ScrollText,
   Mic,
+  Store,
   Settings as SettingsIcon,
   Shield,
   Sparkles,
@@ -118,6 +119,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/data-knowledge",
     icon: Database,
     description: "Unified browser over your organization's knowledge items.",
+    group: "Data & Knowledge",
+  },
+  {
+    label: "Marketplace",
+    to: "/marketplace",
+    icon: Store,
+    description: "Cross-org listings other organizations have opted into sharing. Safe metadata browse only — access stays governed by the provider.",
     group: "Data & Knowledge",
   },
   {

@@ -4916,3 +4916,52 @@ export interface ReviewDenyRequest {
 export interface ReviewRevokeRequest {
   reason?: string;
 }
+
+// ════════════════════════════════════════════════════════════════
+// CROSS-ORG MARKETPLACE DISCOVERY (Phase 1301-A backend / 1302-A shell)
+// ════════════════════════════════════════════════════════════════
+// The cross-org discovery catalog is metadata-only: a provider opts a
+// PUBLISHED listing into CROSS_ORG reach, and other orgs can browse its
+// SAFE projection. Browsing GRANTS NOTHING — access is still provider-
+// governed (request-access here only surfaces requirements; it never
+// implies a grant). High-sensitivity data products are never discoverable.
+
+export type MarketplaceListingType =
+  | "AGENT"
+  | "SKILL"
+  | "TOOL"
+  | "DEVICE"
+  | "APP"
+  | "WORLD"
+  | "CONNECTOR"
+  | "SERVICE"
+  | "DATA_PACKAGE";
+
+export type MarketplaceListingStatus = "DRAFT" | "PRIVATE" | "PUBLISHED" | "DELISTED";
+export type MarketplaceDiscoveryScope = "PRIVATE" | "CROSS_ORG";
+
+// SAFE projection of one marketplace listing (mirrors Foundation's
+// SafeListingView — labels + advisory metadata only; never capsules,
+// grants, consent, or raw content).
+export interface DiscoveredListing {
+  listing_id: string;
+  listing_type: MarketplaceListingType;
+  provider_entity_id: string;
+  title: string;
+  description: string;
+  version: string;
+  // Advisory only — no real settlement. e.g. {"model":"PER_USE","amount_usd":0.01}
+  pricing_model: unknown;
+  required_authority: string[];
+  required_memory_scope: string[];
+  trust_metadata: unknown;
+  status: MarketplaceListingStatus;
+  discovery_scope: MarketplaceDiscoveryScope;
+  created_at: string;
+}
+
+// GET /api/v1/foundation/marketplace/discover
+export interface DiscoverListingsResponse {
+  ok: true;
+  listings: DiscoveredListing[];
+}
