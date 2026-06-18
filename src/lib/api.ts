@@ -294,6 +294,11 @@ interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   retries?: number;
+  // Phase 1304-B — set for the UNAUTHENTICATED auth routes (login/logout). On
+  // those routes a 401 means "bad credentials" (INVALID_CREDENTIALS) — NOT a
+  // dead session — so it must NOT trigger onUnauthorized()/logout and must NOT
+  // be flattened to SESSION_INVALID; the real body code is surfaced instead.
+  authRoute?: boolean;
 }
 
 // WHAT: The HTTP client class. Instantiated once via the factory
@@ -342,7 +347,11 @@ export class ApiClient {
       try {
         const response = await fetch(url, init);
 
-        if (response.status === 401) {
+        // A 401 on a PROTECTED route means the session died -> log out + report
+        // SESSION_INVALID. On an UNAUTHENTICATED auth route (login/logout) a 401
+        // means bad credentials, so we skip the logout/flatten and fall through
+        // to parse the real body code (INVALID_CREDENTIALS) — Phase 1304-B.
+        if (response.status === 401 && opts.authRoute !== true) {
           this.options.onUnauthorized();
           return {
             ok: false,
@@ -416,10 +425,12 @@ export class ApiClient {
       this.request<LoginResponse | LoginFailure>("/auth/login", {
         method: "POST",
         body: { email, password, requested_operations },
+        // Unauthenticated route: a 401 is "bad credentials", not a dead session.
+        authRoute: true,
       }),
 
     logout: (): Promise<ApiResult<{ ok: true }>> =>
-      this.request<{ ok: true }>("/auth/logout", { method: "POST" }),
+      this.request<{ ok: true }>("/auth/logout", { method: "POST", authRoute: true }),
   };
 
   // ──────────────────────────────────────────────────────────────
