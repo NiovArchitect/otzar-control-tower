@@ -159,6 +159,14 @@ import type {
   EscalationListResponse,
   EscalationResponse,
   EscalationResolveRequest,
+  // Phase 1300-A Review Center -- /high-sensitivity/reviews/* surface
+  ReviewListScope,
+  ReviewListResponse,
+  ReviewAuditResponse,
+  ReviewActionResponse,
+  ReviewApproveRequest,
+  ReviewDenyRequest,
+  ReviewRevokeRequest,
   // Section 5 Agent Playground -- Wave 4/5/6/7/8/9 (ADR-0077)
   CreateScenarioInput,
   CreateScenarioSuccess,
@@ -1508,6 +1516,61 @@ export class ApiClient {
     ): Promise<ApiResult<EscalationResponse>> =>
       this.request<EscalationResponse>(
         `/escalations/${encodeURIComponent(id)}/reject`,
+        { method: "POST", body },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // reviews.*  (Phase 1300-A Review Center — the high-sensitivity
+  // review GOVERNANCE surface over the shipped Foundation routes
+  // (1297-A workflow + 1298-A retention + 1299-A delegation + 1299-B
+  // visibility/audit). The backend returns SAFE-labels-only views; the
+  // UI never receives raw capsule content. Visibility is NOT approval
+  // authority — approve/deny/revoke re-check eligibility server-side and
+  // surface the backend code on refusal.
+  // ──────────────────────────────────────────────────────────────
+  reviews = {
+    /** GET /high-sensitivity/reviews?scope=mine|org_reviewable|org_history */
+    list: (
+      scope: ReviewListScope = "mine",
+    ): Promise<ApiResult<ReviewListResponse>> =>
+      this.request<ReviewListResponse>(
+        `/foundation/high-sensitivity/reviews${qs({ scope })}`,
+      ),
+
+    /** GET /high-sensitivity/reviews/:id/audit -- safe lifecycle projection. */
+    audit: (id: string): Promise<ApiResult<ReviewAuditResponse>> =>
+      this.request<ReviewAuditResponse>(
+        `/foundation/high-sensitivity/reviews/${encodeURIComponent(id)}/audit`,
+      ),
+
+    /** POST /high-sensitivity/reviews/:id/approve -- safe mode(s) only. */
+    approve: (
+      id: string,
+      body: ReviewApproveRequest = {},
+    ): Promise<ApiResult<ReviewActionResponse>> =>
+      this.request<ReviewActionResponse>(
+        `/foundation/high-sensitivity/reviews/${encodeURIComponent(id)}/approve`,
+        { method: "POST", body },
+      ),
+
+    /** POST /high-sensitivity/reviews/:id/deny */
+    deny: (
+      id: string,
+      body: ReviewDenyRequest = {},
+    ): Promise<ApiResult<ReviewActionResponse>> =>
+      this.request<ReviewActionResponse>(
+        `/foundation/high-sensitivity/reviews/${encodeURIComponent(id)}/deny`,
+        { method: "POST", body },
+      ),
+
+    /** POST /high-sensitivity/reviews/:id/revoke (provider/buyer/org reviewer). */
+    revoke: (
+      id: string,
+      body: ReviewRevokeRequest = {},
+    ): Promise<ApiResult<ReviewActionResponse>> =>
+      this.request<ReviewActionResponse>(
+        `/foundation/high-sensitivity/reviews/${encodeURIComponent(id)}/revoke`,
         { method: "POST", body },
       ),
   };

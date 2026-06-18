@@ -4811,3 +4811,108 @@ export type CalendarEventGateCode =
   | "GOOGLE_RECONNECT_REQUIRED"
   | "EVENT_WRITE_SCOPE_MISSING"
   | "CALENDAR_PROVIDER_UNAVAILABLE";
+
+// ════════════════════════════════════════════════════════════════
+// PHASE 1300-A — High-Sensitivity REVIEW CENTER (governance surface)
+// Consumes the shipped Foundation routes (1297-A / 1298-A / 1299-A /
+// 1299-B). SAFE-LABELS-ONLY: the UI never displays raw capsule body,
+// payload_content, storage_location, embedding, content_hash, medical/
+// biometric/children content, secrets, hidden reasoning, or payment
+// data. Entity-id fields are references the UI must NOT surface as
+// primary labels. Visibility is NOT approval authority — every action
+// honors the backend response code.
+// ════════════════════════════════════════════════════════════════
+
+// The list scopes the backend honors (1299-B).
+export type ReviewListScope = "mine" | "org_reviewable" | "org_history";
+
+// SAFE projection of one high-sensitivity review (mirrors Foundation's
+// SafeReviewView — labels + lifecycle only, never raw content).
+export interface HighSensitivityReview {
+  review_id: string;
+  listing_id: string;
+  data_package_id: string;
+  grant_id: string | null;
+  provider_entity_id: string;
+  provider_org_entity_id: string | null;
+  buyer_entity_id: string;
+  buyer_org_entity_id: string | null;
+  requester_entity_id: string;
+  reviewer_entity_id: string | null;
+  intended_use: string;
+  access_mode: string;
+  sensitivity_class: string;
+  sensitive_categories: string[];
+  policy_decision: string;
+  policy_reason_codes: string[];
+  approved_access_modes: string[];
+  status: string;
+  raw_body_allowed: false;
+  proof_required: boolean;
+  training_allowed: boolean;
+  model_improvement_allowed: boolean;
+  redistribution_allowed: boolean;
+  commercial_use_allowed: boolean;
+  expires_at: string | null;
+  reviewed_at: string | null;
+  revoked_at: string | null;
+  denial_reason: string | null;
+  created_at: string;
+}
+
+// SAFE org-scoped status counts (1299-B summary).
+export interface ReviewSummary {
+  pending_review_count: number;
+  approved_count: number;
+  denied_count: number;
+  revoked_count: number;
+  expired_count: number;
+  expiring_soon_count: number;
+}
+
+// GET /api/v1/foundation/high-sensitivity/reviews?scope=…
+export interface ReviewListResponse {
+  ok: true;
+  scope: ReviewListScope;
+  reviews: HighSensitivityReview[];
+  summary?: ReviewSummary;
+}
+
+// One SAFE lifecycle/eligibility audit row (1299-B projection).
+export interface ReviewAuditEvent {
+  event_type: string;
+  outcome: string;
+  timestamp: string;
+  denial_reason: string | null;
+  status: string | null;
+  access_mode: string | null;
+  candidate_reviewer_entity_id: string | null;
+  reviewer_scope: string | null;
+  reviewer_reason_codes: string[];
+}
+
+// GET /api/v1/foundation/high-sensitivity/reviews/:id/audit
+export interface ReviewAuditResponse {
+  ok: true;
+  review: HighSensitivityReview;
+  audit_events: ReviewAuditEvent[];
+}
+
+// POST approve/deny/revoke → the updated SAFE review.
+export interface ReviewActionResponse {
+  ok: true;
+  review: HighSensitivityReview;
+}
+
+// Optional bodies for the review actions (safe fields only — never raw
+// content; never training/model-improvement/redistribution/commercial).
+export interface ReviewApproveRequest {
+  approved_access_modes?: string[];
+  expires_at?: string;
+}
+export interface ReviewDenyRequest {
+  reason?: string;
+}
+export interface ReviewRevokeRequest {
+  reason?: string;
+}
