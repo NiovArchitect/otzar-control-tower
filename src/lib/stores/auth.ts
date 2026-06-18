@@ -118,7 +118,18 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
       set({ isLoading: true, loginError: null });
       const result = await api.auth.login(email, password);
       if (!result.ok) {
-        const message = `Login request failed (${result.code})`;
+        // Phase 1304-B — honest, recoverable copy. A 401 on the login route is a
+        // CREDENTIAL failure (INVALID_CREDENTIALS), not a dead session; SUSPENDED
+        // is the 5-attempt lockout. Only genuine transport/network problems read
+        // as such. Never show the alarming "SESSION_INVALID" on the login screen.
+        const message =
+          result.code === "INVALID_CREDENTIALS"
+            ? "Incorrect email or password."
+            : result.code === "SUSPENDED"
+              ? "This account is locked after too many attempts. Contact your administrator."
+              : result.code === "NETWORK_ERROR"
+                ? "Couldn't reach the server. Check your connection and try again."
+                : `Login failed (${result.code}). Try again.`;
         set({ isLoading: false, loginError: message });
         return { ok: false, message };
       }
