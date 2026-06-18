@@ -52,6 +52,8 @@ export interface NavItem {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   description: string;
   showApprovalBadge?: boolean;
+  /** Phase 1300-B — drives the Review Center "needs review" count badge. */
+  showReviewBadge?: boolean;
   /** Phase 1255 slice 2 — OS-style admin section. */
   group: NavGroup;
 }
@@ -193,6 +195,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/review-center",
     icon: ClipboardCheck,
     description: "High-sensitivity data decisions you can see or act on. Safe projections only — no raw content.",
+    showReviewBadge: true,
     group: "Security & Governance",
   },
   {

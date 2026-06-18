@@ -33,7 +33,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 
 // ── Safe closed-vocab label helpers (never raw tokens / UUIDs) ──────────────
 
@@ -119,11 +120,15 @@ function AuditDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg" data-testid="review-audit-drawer">
-        <h2 className="text-lg font-semibold tracking-tight">Review audit trail</h2>
-        <p className="mb-4 text-sm text-muted-foreground">
+      <SheetContent
+        side="right"
+        className="w-full overflow-y-auto sm:max-w-lg"
+        data-testid="review-audit-drawer"
+      >
+        <SheetTitle>Review audit trail</SheetTitle>
+        <SheetDescription className="mb-4">
           Safe lifecycle + eligibility decisions. No raw content.
-        </p>
+        </SheetDescription>
         {query.isPending && open ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : !query.data ? null : !query.data.ok ? (
@@ -193,11 +198,25 @@ function blockedReason(code: string | undefined): string {
       return "This review is no longer pending.";
     case "REVIEW_NOT_APPROVED":
       return "This review isn't in an approved state.";
+    case "REVIEW_EXPIRED":
+      return "This review has expired.";
+    case "REVIEW_REVOKED":
+      return "This review was revoked.";
+    case "REVIEW_NOT_APPLICABLE":
+      return "Review doesn't apply to this package.";
+    case "REVIEW_NOT_REQUIRED":
+      return "This package doesn't require a review.";
+    case "REVIEW_REQUIRED":
+      return "This package still requires review approval.";
+    case "REVIEW_MODE_NOT_APPROVED":
+      return "That access mode isn't approved for this review.";
     case "REVIEW_NOT_APPROVABLE":
     case "APPROVED_MODE_NOT_ALLOWED":
       return "That access mode can't be approved for this data.";
     case "SELF_REVIEW_NOT_PERMITTED":
       return "Self-review is limited to proof-only access.";
+    case "INVALID_SCOPE":
+      return "That view isn't available.";
     case "SESSION_INVALID":
       return "Your session expired. Please sign in again.";
     default:
@@ -218,6 +237,8 @@ function ReviewCard({
 }): JSX.Element {
   const qc = useQueryClient();
   const [blocked, setBlocked] = useState<string | null>(null);
+  const [denyOpen, setDenyOpen] = useState(false);
+  const [denyReason, setDenyReason] = useState("");
 
   const refresh = (): void => {
     void qc.invalidateQueries({ queryKey: ["reviews"] });
@@ -232,8 +253,20 @@ function ReviewCard({
     onSuccess: (r) => (r.ok ? (setBlocked(null), refresh()) : setBlocked(blockedReason(r.code))),
   });
   const deny = useMutation({
-    mutationFn: () => api.reviews.deny(review.review_id, {}),
-    onSuccess: (r) => (r.ok ? (setBlocked(null), refresh()) : setBlocked(blockedReason(r.code))),
+    // Optional safe denial reason (free text the reviewer authored — never raw
+    // capsule content). Backend records it as the review's denial_reason.
+    mutationFn: (reason: string) =>
+      api.reviews.deny(review.review_id, reason.trim().length > 0 ? { reason: reason.trim() } : {}),
+    onSuccess: (r) => {
+      if (r.ok) {
+        setBlocked(null);
+        setDenyOpen(false);
+        setDenyReason("");
+        refresh();
+      } else {
+        setBlocked(blockedReason(r.code));
+      }
+    },
   });
   const revoke = useMutation({
     mutationFn: () => api.reviews.revoke(review.review_id, {}),
@@ -283,26 +316,86 @@ function ReviewCard({
             variant="outline"
             size="sm"
             data-testid="review-view-audit"
+            aria-label={`View audit trail for ${reviewTitle(review)}`}
             onClick={() => onViewAudit(review.review_id)}
           >
             View audit
           </Button>
-          {isPending ? (
+          {isPending && !denyOpen ? (
             <>
-              <Button size="sm" data-testid="review-approve" disabled={busy} onClick={() => approve.mutate()}>
+              <Button
+                size="sm"
+                data-testid="review-approve"
+                aria-label="Approve safe access for this review"
+                disabled={busy}
+                onClick={() => approve.mutate()}
+              >
                 Approve safe access
               </Button>
-              <Button variant="outline" size="sm" data-testid="review-deny" disabled={busy} onClick={() => deny.mutate()}>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="review-deny"
+                aria-label="Deny this review"
+                disabled={busy}
+                onClick={() => setDenyOpen(true)}
+              >
                 Deny
               </Button>
             </>
           ) : null}
           {isApproved ? (
-            <Button variant="destructive" size="sm" data-testid="review-revoke" disabled={busy} onClick={() => revoke.mutate()}>
+            <Button
+              variant="destructive"
+              size="sm"
+              data-testid="review-revoke"
+              aria-label="Revoke this approved review"
+              disabled={busy}
+              onClick={() => revoke.mutate()}
+            >
               Revoke
             </Button>
           ) : null}
         </div>
+
+        {isPending && denyOpen ? (
+          <div className="space-y-2 rounded-md border border-border p-3" data-testid="review-deny-form">
+            <label htmlFor={`deny-reason-${review.review_id}`} className="text-sm font-medium">
+              Reason for denial (optional)
+            </label>
+            <Textarea
+              id={`deny-reason-${review.review_id}`}
+              data-testid="review-deny-reason"
+              value={denyReason}
+              maxLength={500}
+              placeholder="A short, safe reason — no sensitive content."
+              onChange={(e) => setDenyReason(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                data-testid="review-deny-confirm"
+                disabled={busy}
+                onClick={() => deny.mutate(denyReason)}
+              >
+                Confirm denial
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="review-deny-cancel"
+                disabled={busy}
+                onClick={() => {
+                  setDenyOpen(false);
+                  setDenyReason("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -382,8 +475,25 @@ function ReviewList({ scope }: { scope: ReviewListScope }): JSX.Element {
     );
   }
 
+  const updated = query.dataUpdatedAt ? fmtDate(new Date(query.dataUpdatedAt).toISOString()) : null;
+
   return (
     <>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground" data-testid="review-last-updated">
+          {query.isFetching ? "Refreshing…" : updated ? `Updated ${updated}` : ""}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          data-testid="review-refresh"
+          aria-label="Refresh reviews"
+          disabled={query.isFetching}
+          onClick={() => void query.refetch()}
+        >
+          Refresh
+        </Button>
+      </div>
       {body}
       <AuditDrawer
         reviewId={auditId}

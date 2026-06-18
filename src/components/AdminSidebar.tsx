@@ -7,12 +7,14 @@
 import { NavLink } from "react-router-dom";
 import { NAV, NAV_GROUP_ORDER } from "@/lib/nav";
 import { usePendingApprovals } from "@/hooks/use-pending-approvals";
+import { useReviewableCount } from "@/hooks/use-reviewable-count";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { data: pendingCount } = usePendingApprovals();
+  const { data: reviewCount } = useReviewableCount();
 
   return (
     <nav
@@ -63,6 +65,17 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     pendingCount > 0 && (
                       <Badge variant="warning" aria-label={`${pendingCount} pending approvals`}>
                         {pendingCount}
+                      </Badge>
+                    )}
+                  {item.showReviewBadge &&
+                    typeof reviewCount === "number" &&
+                    reviewCount > 0 && (
+                      <Badge
+                        variant="warning"
+                        data-testid="review-nav-badge"
+                        aria-label={`${reviewCount} reviews need attention`}
+                      >
+                        {reviewCount}
                       </Badge>
                     )}
                 </NavLink>
