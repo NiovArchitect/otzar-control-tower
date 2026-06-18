@@ -76,6 +76,7 @@ import { DocumentationPage } from "@/pages/Documentation";
 import { IntelligencePage } from "@/pages/Intelligence";
 import { ApprovalsPage } from "@/pages/Approvals";
 import { ReviewCenterPage } from "@/pages/ReviewCenter";
+import { MarketplaceDiscoveryPage } from "@/pages/MarketplaceDiscovery";
 import { NotFoundPage } from "@/pages/NotFound";
 import { VoiceTwinPage } from "@/pages/VoiceTwin";
 
@@ -185,6 +186,7 @@ export function App() {
               <Route path="documentation" element={<DocumentationPage />} />
               <Route path="intelligence" element={<IntelligencePage />} />
               <Route path="review-center" element={<ReviewCenterPage />} />
+              <Route path="marketplace" element={<MarketplaceDiscoveryPage />} />
               {/* Side-section: badge-driven Pending Approvals */}
               <Route path="approvals" element={<ApprovalsPage />} />
               {/* Catch-all inside the chrome so the sidebar still works */}

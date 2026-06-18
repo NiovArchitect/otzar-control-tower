@@ -167,6 +167,8 @@ import type {
   ReviewApproveRequest,
   ReviewDenyRequest,
   ReviewRevokeRequest,
+  // Phase 1302-A — cross-org marketplace discovery shell (read-only catalog)
+  DiscoverListingsResponse,
   // Section 5 Agent Playground -- Wave 4/5/6/7/8/9 (ADR-0077)
   CreateScenarioInput,
   CreateScenarioSuccess,
@@ -1572,6 +1574,28 @@ export class ApiClient {
       this.request<ReviewActionResponse>(
         `/foundation/high-sensitivity/reviews/${encodeURIComponent(id)}/revoke`,
         { method: "POST", body },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // marketplace.*  (Phase 1302-A cross-org discovery shell — the
+  // metadata-only catalog browser over Foundation's 1301-A
+  // /marketplace/discover surface). READ-ONLY: browsing grants
+  // nothing; access stays provider-governed. No request-access
+  // mutation is exposed here (no cross-org access endpoint exists yet
+  // — request-access in the shell only surfaces requirements; it
+  // never implies a grant). High-sensitivity products are never in
+  // this catalog (Foundation enforces set-time + read-time).
+  // ──────────────────────────────────────────────────────────────
+  marketplace = {
+    /** GET /foundation/marketplace/discover — the cross-org catalog
+     *  (PUBLISHED + provider-opted-in to CROSS_ORG; excludes the
+     *  caller's own + same-org listings). Optional listing_type filter. */
+    discover: (
+      listingType?: string,
+    ): Promise<ApiResult<DiscoverListingsResponse>> =>
+      this.request<DiscoverListingsResponse>(
+        `/foundation/marketplace/discover${qs({ listing_type: listingType })}`,
       ),
   };
 
