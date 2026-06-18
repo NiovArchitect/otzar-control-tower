@@ -4965,3 +4965,112 @@ export interface DiscoverListingsResponse {
   ok: true;
   listings: DiscoveredListing[];
 }
+
+// ── Federation Cloud cohort governance (Phase 1310-A) ───────────────────────
+// SAFE projections mirroring Foundation's cohort substrate (1305-A registry +
+// 1307-A access requests + 1308-A delivery + 1309-A metering). The UI never
+// receives raw capsule content, contributor identities, exact eligible counts,
+// or real settlement — cohorts are governed substrate with MOCK-only economics.
+
+export type CohortStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
+
+// Mirrors SafeCohortView (federation-cloud-cohort.service.ts).
+export interface SafeCohort {
+  cohort_product_id: string;
+  provider_entity_id: string;
+  title: string;
+  description: string;
+  cohort_type: string;
+  access_modes: string[];
+  allowed_uses: string[];
+  sensitivity_class: string;
+  sensitive_categories: string[];
+  minimum_cohort_size: number;
+  consent_required: boolean;
+  opt_in_required: boolean;
+  proof_required: boolean;
+  raw_body_excluded: boolean;
+  training_allowed: boolean;
+  commercial_use_allowed: boolean;
+  retention_policy: string | null;
+  metering_unit: string | null;
+  status: CohortStatus;
+  created_at: string;
+  // Honesty markers — accounting/registry only until delivery enforces them.
+  threshold_enforced: boolean;
+  signal_available: boolean;
+}
+
+// GET /api/v1/foundation/cohorts
+export interface CohortListResponse {
+  ok: true;
+  cohorts: SafeCohort[];
+}
+
+// Mirrors CohortMockEconomics (cohort-metering.service.ts). Always a mock.
+export interface CohortMockEconomics {
+  is_mock: boolean;
+  settlement_mode: string;
+  asset: string;
+  metering_unit: string | null;
+  unit_price_usd: number | null;
+  billable_units: number;
+  estimated_amount_usd: number | null;
+  note: string;
+}
+
+// Mirrors CohortUsageView (cohort-metering.service.ts).
+export interface CohortUsage {
+  cohort_product_id: string;
+  total_attempts: number;
+  delivered_count: number;
+  suppressed_count: number;
+  denied_count: number;
+  delivered_by_access_mode: Record<string, number>;
+  mock_economics: CohortMockEconomics;
+  generated_at: string;
+}
+
+// GET /api/v1/foundation/cohorts/:id/usage
+export interface CohortUsageResponse {
+  ok: true;
+  usage: CohortUsage;
+}
+
+export type CohortAccessRequestStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "DENIED"
+  | "REVOKED"
+  | "EXPIRED";
+
+// Mirrors SafeAccessRequestView (cohort-access-request.service.ts).
+export interface SafeCohortAccessRequest {
+  request_id: string;
+  cohort_product_id: string;
+  buyer_entity_id: string;
+  intended_use: string;
+  requested_access_mode: string;
+  status: CohortAccessRequestStatus;
+  requires_review: boolean;
+  proof_required: boolean;
+  retention_policy: string | null;
+  decision_reason: string | null;
+  requested_at: string;
+  decided_at: string | null;
+  expires_at: string | null;
+  signal_available: boolean;
+}
+
+// GET /api/v1/foundation/cohorts/:id/access-requests
+export interface CohortAccessRequestsResponse {
+  ok: true;
+  access_requests: SafeCohortAccessRequest[];
+  is_manager: boolean;
+}
+
+// POST /api/v1/foundation/cohorts/:id/access-requests/:rid/decide
+export interface CohortDecideResponse {
+  ok: true;
+  access_request: SafeCohortAccessRequest;
+}

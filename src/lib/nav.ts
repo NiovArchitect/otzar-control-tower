@@ -26,6 +26,7 @@ import {
   BarChart3,
   Bot,
   BookOpen,
+  Boxes,
   ClipboardCheck,
   Compass,
   CreditCard,
@@ -126,6 +127,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/marketplace",
     icon: Store,
     description: "Cross-org listings other organizations have opted into sharing. Safe metadata browse only — access stays governed by the provider.",
+    group: "Data & Knowledge",
+  },
+  {
+    label: "Federation Cloud Cohorts",
+    to: "/cohorts",
+    icon: Boxes,
+    description: "Govern your organization's data cohorts — usage, mock-only economics, and buyer access requests. Cohorts deliver governed proofs, never raw data.",
     group: "Data & Knowledge",
   },
   {
