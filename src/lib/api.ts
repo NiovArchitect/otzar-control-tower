@@ -169,6 +169,10 @@ import type {
   ReviewRevokeRequest,
   // Phase 1302-A — cross-org marketplace discovery shell (read-only catalog)
   DiscoverListingsResponse,
+  CohortListResponse,
+  CohortUsageResponse,
+  CohortAccessRequestsResponse,
+  CohortDecideResponse,
   // Section 5 Agent Playground -- Wave 4/5/6/7/8/9 (ADR-0077)
   CreateScenarioInput,
   CreateScenarioSuccess,
@@ -1607,6 +1611,47 @@ export class ApiClient {
     ): Promise<ApiResult<DiscoverListingsResponse>> =>
       this.request<DiscoverListingsResponse>(
         `/foundation/marketplace/discover${qs({ listing_type: listingType })}`,
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // cohorts.*  (Phase 1310-A Federation Cloud cohort governance —
+  // provider/admin oversight of DMW data cohorts. Read-mostly: list
+  // cohorts, view usage + MOCK-only economics (no real settlement),
+  // and govern buyer access requests (approve/deny — a HUMAN gate the
+  // backend re-checks). The UI never receives raw capsule content,
+  // contributor identities, exact eligible counts, or numeric cohort
+  // aggregates (delivery returns a governed proof-of-threshold only).
+  // ──────────────────────────────────────────────────────────────
+  cohorts = {
+    /** GET /foundation/cohorts — the caller's cohorts + ACTIVE in-org. */
+    list: (): Promise<ApiResult<CohortListResponse>> =>
+      this.request<CohortListResponse>(`/foundation/cohorts`),
+
+    /** GET /foundation/cohorts/:id/usage — metering + MOCK economics. */
+    usage: (id: string): Promise<ApiResult<CohortUsageResponse>> =>
+      this.request<CohortUsageResponse>(
+        `/foundation/cohorts/${encodeURIComponent(id)}/usage`,
+      ),
+
+    /** GET /foundation/cohorts/:id/access-requests — manager sees all. */
+    accessRequests: (
+      id: string,
+    ): Promise<ApiResult<CohortAccessRequestsResponse>> =>
+      this.request<CohortAccessRequestsResponse>(
+        `/foundation/cohorts/${encodeURIComponent(id)}/access-requests`,
+      ),
+
+    /** POST /foundation/cohorts/:id/access-requests/:rid/decide — a HUMAN
+     *  provider/admin approves or denies (backend re-checks the gate). */
+    decide: (
+      id: string,
+      requestId: string,
+      body: { decision: "APPROVED" | "DENIED"; decision_reason?: string },
+    ): Promise<ApiResult<CohortDecideResponse>> =>
+      this.request<CohortDecideResponse>(
+        `/foundation/cohorts/${encodeURIComponent(id)}/access-requests/${encodeURIComponent(requestId)}/decide`,
+        { method: "POST", body },
       ),
   };
 
