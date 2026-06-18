@@ -189,6 +189,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Security & Governance",
   },
   {
+    label: "Review Center",
+    to: "/review-center",
+    icon: ClipboardCheck,
+    description: "High-sensitivity data decisions you can see or act on. Safe projections only — no raw content.",
+    group: "Security & Governance",
+  },
+  {
     label: "System Health",
     to: "/system-health",
     icon: Activity,
