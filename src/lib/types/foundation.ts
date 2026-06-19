@@ -5074,3 +5074,95 @@ export interface CohortDecideResponse {
   ok: true;
   access_request: SafeCohortAccessRequest;
 }
+
+// ── Data grants: Buyer Access Console + Contributor Sovereignty (1311-B/1312-A)
+// SAFE projections of governed data-access grants. A grant never delivers raw
+// content (raw_body_excluded). Economics are mock-only. Revocation is visible +
+// enforced at read time.
+
+export type DataGrantStatus =
+  | "PENDING_CONSENT"
+  | "ACTIVE"
+  | "REVOKED"
+  | "EXPIRED"
+  | "DENIED";
+
+// Mirrors SafeDataGrantView (marketplace.service.ts).
+export interface SafeDataGrant {
+  grant_id: string;
+  listing_id: string;
+  data_package_id: string;
+  provider_entity_id: string;
+  buyer_entity_id: string;
+  intended_use: string;
+  access_mode: string;
+  status: DataGrantStatus;
+  proof_required: boolean;
+  proof_delivery: string;
+  economic_decision: string | null;
+  raw_body_excluded: boolean;
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+// GET /api/v1/foundation/marketplace/my-data-grants?role=buyer|provider
+export interface DataGrantsListResponse {
+  ok: true;
+  role: "buyer" | "provider";
+  grants: SafeDataGrant[];
+}
+
+export interface DataGrantUsage {
+  read_count: number;
+  denied_count: number;
+  last_accessed_at: string | null;
+}
+
+export interface DataGrantPolicy {
+  allowed_uses: string[];
+  training_allowed: boolean;
+  model_improvement_allowed: boolean;
+  sensitivity_class: string | null;
+  aggregate_only: boolean;
+  depersonalized_only: boolean;
+  raw_body_excluded: boolean;
+}
+
+// GET /api/v1/foundation/marketplace/data-grants/:id/console (buyer)
+export interface BuyerGrantConsoleResponse {
+  ok: true;
+  console: {
+    grant: SafeDataGrant;
+    resource: { listing_title: string | null; listing_type: string | null };
+    policy: DataGrantPolicy;
+    usage: DataGrantUsage;
+    settlement: { is_mock: boolean; economic_decision: string | null; note: string };
+  };
+}
+
+// GET /api/v1/foundation/marketplace/data-grants/:id/sovereignty (provider)
+export interface ProviderGrantSovereigntyResponse {
+  ok: true;
+  sovereignty: {
+    grant: SafeDataGrant;
+    resource: { listing_title: string | null; listing_type: string | null };
+    policy: DataGrantPolicy;
+    usage: DataGrantUsage;
+    sovereignty: {
+      is_active: boolean;
+      revocable: boolean;
+      status: DataGrantStatus;
+      revoked_at: string | null;
+      revocation_reason: string | null;
+      expires_at: string | null;
+      revocation_enforced_at_read: boolean;
+    };
+  };
+}
+
+// POST /api/v1/foundation/marketplace/data-grants/:id/revoke
+export interface RevokeDataGrantResponse {
+  ok: true;
+  grant: SafeDataGrant;
+}

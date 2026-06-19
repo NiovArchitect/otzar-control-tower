@@ -173,6 +173,10 @@ import type {
   CohortUsageResponse,
   CohortAccessRequestsResponse,
   CohortDecideResponse,
+  DataGrantsListResponse,
+  BuyerGrantConsoleResponse,
+  ProviderGrantSovereigntyResponse,
+  RevokeDataGrantResponse,
   // Section 5 Agent Playground -- Wave 4/5/6/7/8/9 (ADR-0077)
   CreateScenarioInput,
   CreateScenarioSuccess,
@@ -1652,6 +1656,47 @@ export class ApiClient {
       this.request<CohortDecideResponse>(
         `/foundation/cohorts/${encodeURIComponent(id)}/access-requests/${encodeURIComponent(requestId)}/decide`,
         { method: "POST", body },
+      ),
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // grants.*  (Phase 1311-C buyer access console + 1312-B contributor
+  // sovereignty — governed data-access grants. A buyer sees WHAT they
+  // purchased + usage + mock economics; a provider sees grants on THEIR
+  // data + can revoke (revocation is visible AND enforced at read time).
+  // A grant never delivers raw content.
+  // ──────────────────────────────────────────────────────────────
+  grants = {
+    /** GET /marketplace/my-data-grants?role=buyer|provider */
+    listByRole: (
+      role: "buyer" | "provider",
+    ): Promise<ApiResult<DataGrantsListResponse>> =>
+      this.request<DataGrantsListResponse>(
+        `/foundation/marketplace/my-data-grants${qs({ role })}`,
+      ),
+
+    /** GET /marketplace/data-grants/:id/console — buyer access console. */
+    buyerConsole: (id: string): Promise<ApiResult<BuyerGrantConsoleResponse>> =>
+      this.request<BuyerGrantConsoleResponse>(
+        `/foundation/marketplace/data-grants/${encodeURIComponent(id)}/console`,
+      ),
+
+    /** GET /marketplace/data-grants/:id/sovereignty — provider sovereignty. */
+    providerSovereignty: (
+      id: string,
+    ): Promise<ApiResult<ProviderGrantSovereigntyResponse>> =>
+      this.request<ProviderGrantSovereigntyResponse>(
+        `/foundation/marketplace/data-grants/${encodeURIComponent(id)}/sovereignty`,
+      ),
+
+    /** POST /marketplace/data-grants/:id/revoke — provider/buyer revocation. */
+    revoke: (
+      id: string,
+      reason?: string,
+    ): Promise<ApiResult<RevokeDataGrantResponse>> =>
+      this.request<RevokeDataGrantResponse>(
+        `/foundation/marketplace/data-grants/${encodeURIComponent(id)}/revoke`,
+        { method: "POST", body: reason !== undefined ? { reason } : {} },
       ),
   };
 
