@@ -177,6 +177,11 @@ import type {
   BuyerGrantConsoleResponse,
   ProviderGrantSovereigntyResponse,
   RevokeDataGrantResponse,
+  MyCohortContributionsResponse,
+  CohortJoinResponse,
+  CohortWithdrawResponse,
+  CohortRequestAccessResponse,
+  CohortRegisterResponse,
   // Section 5 Agent Playground -- Wave 4/5/6/7/8/9 (ADR-0077)
   CreateScenarioInput,
   CreateScenarioSuccess,
@@ -1655,6 +1660,38 @@ export class ApiClient {
     ): Promise<ApiResult<CohortDecideResponse>> =>
       this.request<CohortDecideResponse>(
         `/foundation/cohorts/${encodeURIComponent(id)}/access-requests/${encodeURIComponent(requestId)}/decide`,
+        { method: "POST", body },
+      ),
+
+    /** POST /foundation/cohorts — register a cohort data product (caller = provider). */
+    register: (body: Record<string, unknown>): Promise<ApiResult<CohortRegisterResponse>> =>
+      this.request<CohortRegisterResponse>(`/foundation/cohorts`, { method: "POST", body }),
+
+    /** GET /foundation/cohorts/my-contributions — the caller's OWN participation. */
+    myContributions: (): Promise<ApiResult<MyCohortContributionsResponse>> =>
+      this.request<MyCohortContributionsResponse>(`/foundation/cohorts/my-contributions`),
+
+    /** POST /foundation/cohorts/:id/join — contributor opts in (self-consent). */
+    join: (id: string, contribution_scope: string): Promise<ApiResult<CohortJoinResponse>> =>
+      this.request<CohortJoinResponse>(`/foundation/cohorts/${encodeURIComponent(id)}/join`, {
+        method: "POST",
+        body: { contribution_scope },
+      }),
+
+    /** POST /foundation/cohorts/:id/withdraw — contributor opts out. */
+    withdraw: (id: string): Promise<ApiResult<CohortWithdrawResponse>> =>
+      this.request<CohortWithdrawResponse>(`/foundation/cohorts/${encodeURIComponent(id)}/withdraw`, {
+        method: "POST",
+        body: {},
+      }),
+
+    /** POST /foundation/cohorts/:id/access-requests — buyer requests access. */
+    requestAccess: (
+      id: string,
+      body: { intended_use: string; requested_access_mode: string },
+    ): Promise<ApiResult<CohortRequestAccessResponse>> =>
+      this.request<CohortRequestAccessResponse>(
+        `/foundation/cohorts/${encodeURIComponent(id)}/access-requests`,
         { method: "POST", body },
       ),
   };

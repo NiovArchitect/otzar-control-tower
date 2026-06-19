@@ -39,6 +39,17 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // ── Safe closed-vocab label helpers (never raw tokens / UUIDs) ──────────────
 
@@ -87,6 +98,221 @@ function decideError(code: string): string {
     SESSION_INVALID: "Your session has expired. Sign in again.",
   };
   return m[code] ?? "Could not record that decision. Try again.";
+}
+function actionError(code: string): string {
+  const m: Record<string, string> = {
+    ALREADY_JOINED: "You have already joined this cohort.",
+    NOT_JOINED: "You have not joined this cohort.",
+    INVALID_CONTRIBUTION_SCOPE: "That scope is not accepted by this cohort.",
+    INVALID_REQUEST: "Please choose a use and access mode.",
+    ACCESS_MODE_NOT_OFFERED: "That access mode is not offered.",
+    USE_NOT_PERMITTED: "That use is not permitted by this cohort.",
+    COHORT_NOT_ACTIVE: "This cohort is not active.",
+    SESSION_INVALID: "Your session has expired. Sign in again.",
+  };
+  return m[code] ?? "That action could not be completed. Try again.";
+}
+
+// ── Participation + buyer-request actions (1313-B join/withdraw + 1314-A request)
+
+function CohortActions({ cohort }: { cohort: SafeCohort }): JSX.Element {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [scope, setScope] = useState("PREFERENCE");
+  const [use, setUse] = useState(cohort.allowed_uses[0] ?? "");
+  const [mode, setMode] = useState(cohort.access_modes[0] ?? "");
+
+  const refresh = (): void => {
+    void qc.invalidateQueries({ queryKey: ["my-cohort-contributions"] });
+    void qc.invalidateQueries({ queryKey: ["cohort-access-requests", cohort.cohort_product_id] });
+  };
+  const join = useMutation({
+    mutationFn: () => api.cohorts.join(cohort.cohort_product_id, scope),
+    onSuccess: (r) =>
+      r.ok ? (setMsg("Joined — your participation is self-consented."), refresh()) : setMsg(actionError(r.code)),
+  });
+  const withdraw = useMutation({
+    mutationFn: () => api.cohorts.withdraw(cohort.cohort_product_id),
+    onSuccess: (r) =>
+      r.ok ? (setMsg("Withdrawn — your participation was removed."), refresh()) : setMsg(actionError(r.code)),
+  });
+  const request = useMutation({
+    mutationFn: () =>
+      api.cohorts.requestAccess(cohort.cohort_product_id, {
+        intended_use: use,
+        requested_access_mode: mode,
+      }),
+    onSuccess: (r) =>
+      r.ok ? (setMsg("Access requested — a human provider will decide."), refresh()) : setMsg(actionError(r.code)),
+  });
+  const busy = join.isPending || withdraw.isPending || request.isPending;
+
+  return (
+    <div className="space-y-3" data-testid="cohort-actions">
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={scope}
+          onChange={(e) => setScope(e.target.value)}
+          className="h-8 w-40"
+          aria-label="Contribution scope"
+          data-testid="cohort-join-scope"
+        />
+        <Button size="sm" disabled={busy} onClick={() => join.mutate()} data-testid="cohort-join-button">
+          Join
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => withdraw.mutate()} data-testid="cohort-withdraw-button">
+          Withdraw
+        </Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={use}
+          onChange={(e) => setUse(e.target.value)}
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          aria-label="Intended use"
+          data-testid="cohort-request-use"
+        >
+          {cohort.allowed_uses.map((u) => (
+            <option key={u} value={u}>{sentence(u)}</option>
+          ))}
+        </select>
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value)}
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          aria-label="Access mode"
+          data-testid="cohort-request-mode"
+        >
+          {cohort.access_modes.map((m) => (
+            <option key={m} value={m}>{sentence(m)}</option>
+          ))}
+        </select>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={busy || use === "" || mode === ""}
+          onClick={() => request.mutate()}
+          data-testid="cohort-request-button"
+        >
+          Request access
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Joining contributes your scope under self-consent (revocable any time).
+        Requesting access never grants it — a human provider decides.
+      </p>
+      {msg !== null ? (
+        <p className="text-xs text-foreground" data-testid="cohort-action-msg">{msg}</p>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Register cohort dialog (1313-B create) ──────────────────────────────────
+
+const REGISTER_COHORT_TYPES = ["CONSUMER_BEHAVIOR", "PERSONAL_AI", "WEARABLE_AMBIENT", "ENTERPRISE_WORKFLOW", "CUSTOM"];
+
+function RegisterCohortDialog(): JSX.Element {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [cohortType, setCohortType] = useState(REGISTER_COHORT_TYPES[0]);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const register = useMutation({
+    mutationFn: () =>
+      api.cohorts.register({
+        title,
+        description,
+        cohort_type: cohortType,
+        access_modes: ["AGGREGATED_SIGNAL"],
+        allowed_uses: ["ANALYTICS"],
+        status: "ACTIVE",
+      }),
+    onSuccess: (r) => {
+      if (r.ok) {
+        setMsg(null);
+        setOpen(false);
+        setTitle("");
+        setDescription("");
+        void qc.invalidateQueries({ queryKey: ["cohorts"] });
+      } else {
+        setMsg(actionError(r.code));
+      }
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" data-testid="register-cohort-open">Register cohort</Button>
+      </DialogTrigger>
+      <DialogContent data-testid="register-cohort-dialog">
+        <DialogHeader>
+          <DialogTitle>Register a data cohort</DialogTitle>
+          <DialogDescription>
+            A governed, privacy-preserving cohort. Consent, proof, and revocation
+            are enforced by Foundation; economics are mock-only. Sensible safe
+            defaults are applied (aggregated signal, analytics use, min size 50).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="ct-title">Title</Label>
+            <Input id="ct-title" value={title} onChange={(e) => setTitle(e.target.value)} data-testid="register-cohort-title" />
+          </div>
+          <div>
+            <Label htmlFor="ct-desc">Description</Label>
+            <Input id="ct-desc" value={description} onChange={(e) => setDescription(e.target.value)} data-testid="register-cohort-desc" />
+          </div>
+          <div>
+            <Label htmlFor="ct-type">Cohort type</Label>
+            <select
+              id="ct-type"
+              value={cohortType}
+              onChange={(e) => setCohortType(e.target.value)}
+              className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+              data-testid="register-cohort-type"
+            >
+              {REGISTER_COHORT_TYPES.map((t) => (
+                <option key={t} value={t}>{sentence(t)}</option>
+              ))}
+            </select>
+          </div>
+          {msg !== null ? <p className="text-xs text-destructive">{msg}</p> : null}
+        </div>
+        <DialogFooter>
+          <Button
+            disabled={register.isPending || title.trim().length === 0}
+            onClick={() => register.mutate()}
+            data-testid="register-cohort-submit"
+          >
+            Register
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── My participation summary (1313-B) ───────────────────────────────────────
+
+function MyParticipation(): JSX.Element {
+  const query = useQuery({
+    queryKey: ["my-cohort-contributions"],
+    queryFn: () => api.cohorts.myContributions(),
+  });
+  const active =
+    query.data?.ok === true
+      ? query.data.data.contributions.filter((c) => c.status === "ELIGIBLE").length
+      : 0;
+  return (
+    <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground" data-testid="my-participation">
+      You are actively participating in <span className="font-medium text-foreground">{active}</span>{" "}
+      cohort{active === 1 ? "" : "s"} (self-consented; revocable any time).
+    </div>
+  );
 }
 
 // ── Usage + mock-economics section ──────────────────────────────────────────
@@ -314,6 +540,11 @@ function CohortDrawer({
             </div>
 
             <div>
+              <div className="mb-1 font-medium">Participate or request access</div>
+              <CohortActions cohort={cohort} />
+            </div>
+
+            <div>
               <div className="mb-1 font-medium">Access requests</div>
               <AccessRequestsSection cohortId={cohort.cohort_product_id} />
             </div>
@@ -402,15 +633,21 @@ export function CohortGovernancePage(): JSX.Element {
 
   return (
     <div className="space-y-6" data-testid="cohort-governance-page">
-      <PageHeader
-        title="Federation Cloud Cohorts"
-        description="Govern your organization's data cohorts — usage, mock-only economics, and buyer access requests. Cohorts deliver governed proofs, never raw data."
-      />
+      <div className="flex items-start justify-between gap-2">
+        <PageHeader
+          title="Federation Cloud Cohorts"
+          description="Discover, join, and govern data cohorts — usage, mock-only economics, participation, and buyer access requests. Cohorts deliver governed proofs, never raw data."
+        />
+        <RegisterCohortDialog />
+      </div>
+
+      <MyParticipation />
 
       <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
         Cohorts are governed substrate, not a raw data sale. Economics shown here
-        are mock-only — no funds move and no settlement exists. Access requests are
-        decided by a human; the decision is re-checked and recorded by the backend.
+        are mock-only — no funds move and no settlement exists. Joining is
+        self-consented and revocable; requesting access never grants it — a human
+        decides, and the decision is re-checked and recorded by the backend.
       </div>
 
       {query.isPending ? (

@@ -5166,3 +5166,47 @@ export interface RevokeDataGrantResponse {
   ok: true;
   grant: SafeDataGrant;
 }
+
+// ── Cohort participation + discovery (Phase 1313-B / 1314-A) ─────────────────
+
+// Mirrors MyCohortContributionView (cohort-contribution.service.ts) — the
+// CALLER's own participation only (never other contributors).
+export interface MyCohortContribution {
+  contribution_id: string;
+  cohort_product_id: string;
+  contribution_scope: string;
+  status: string;
+  joined_at: string;
+  withdrawn_at: string | null;
+  self_initiated: boolean;
+}
+
+// GET /api/v1/foundation/cohorts/my-contributions
+export interface MyCohortContributionsResponse {
+  ok: true;
+  contributions: MyCohortContribution[];
+}
+
+// POST /api/v1/foundation/cohorts/:id/join
+export interface CohortJoinResponse {
+  ok: true;
+  contribution: MyCohortContribution;
+}
+
+// POST /api/v1/foundation/cohorts/:id/withdraw
+export interface CohortWithdrawResponse {
+  ok: true;
+  withdrawn_count: number;
+}
+
+// POST /api/v1/foundation/cohorts/:id/access-requests (buyer request)
+export interface CohortRequestAccessResponse {
+  ok: true;
+  access_request: SafeCohortAccessRequest;
+}
+
+// POST /api/v1/foundation/cohorts (register)
+export interface CohortRegisterResponse {
+  ok: true;
+  cohort: SafeCohort;
+}
