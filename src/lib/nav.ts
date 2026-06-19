@@ -137,6 +137,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Data & Knowledge",
   },
   {
+    label: "Access & Grants",
+    to: "/access-grants",
+    icon: KeyRound,
+    description: "What you have access to and who can use your data. Governed access leased under consent and proof — revocation is visible and enforced. Mock-only economics.",
+    group: "Data & Knowledge",
+  },
+  {
     label: "Reports",
     to: "/reports",
     icon: ScrollText,
