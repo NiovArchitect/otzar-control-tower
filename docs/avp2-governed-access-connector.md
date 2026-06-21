@@ -138,6 +138,61 @@ The bridge targets niov-avp's `npm run e2e:otzar-avp2` (`apps/publisher-gateway/
 Otzar later invokes it through a **secure local bridge** (Tauri sidecar / CLI providing
 `nodeProcessRunner`); the browser never spawns a process directly.
 
+## Secure local live runner invocation (OTZAR-E2E-3)
+
+Dry-run remains the **default**. Live-local is **operator-gated** and never runs from the
+browser. `validateAvp2RunnerLiveLocalConfig` requires **all** of: `mode: "live-local"`,
+`allowLiveLocal: true`, `operatorConfirmed: true`, `outputPath`/`evidenceOutputPath` under
+`/tmp`, a safe absolute `avpRepoPath`, and safe optional `intentPath` / `foundationRepoPath`
+/ `port` (no shell metacharacters, no traversal, no secret markers).
+
+### Exact strict command
+
+`buildAvp2RunnerLiveLocalCommand` produces a **fixed**, non-shell command:
+
+```
+npm run e2e:otzar-avp2 -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force
+```
+
+(optional, validated: `--intent <path>`, `--foundation-repo <path>`, `--port <number>`). Run
+with `execFile` (no shell), fixed cwd, hard timeout, bounded buffer.
+
+### Output files (local /tmp only)
+
+- Result: `/tmp/avp2-e2e-result.json`
+- Evidence: `/tmp/avp-positive-evidence.json`
+
+`runAvp2RunnerLiveLocal` prefers the JSON result on **stdout**; if stdout is not parseable
+JSON and a file reader is injected, it falls back to reading the **outputPath** (read-only,
+validated). The evidence path is returned as **metadata only** — Otzar does not upload it.
+
+### Why the browser still does not spawn directly
+
+React/browser cannot safely spawn a local Node process. The bridge is pure + dependency-
+injected (no node imports); the real `nodeProcessRunner` (`execFile`) lives in
+`e2e-runner-node.ts` and is invoked only by a **Node/Tauri sidecar or CLI** — never the
+browser. The Tauri shell currently has `tauri_plugin_shell` initialized but **no custom
+command handler**, so native execution is intentionally not wired here.
+
+### How Otzar validates the result before display
+
+`runAvp2RunnerLiveLocal` → `parseAvp2RunnerStdout` / `loadAvp2RunnerResultFile` →
+`validateAvp2EndToEndResult` (refuses `PRODUCTION_LIVE`, real payment, public listing,
+production/private data, unredacted secrets, and token/raw markers) → `mapAvp2ResultToOtzarArtifact`.
+stderr is marker-scanned but **never echoed**.
+
+### How Federation Cloud consumes the outputs
+
+Load `/tmp/avp-positive-evidence.json` into Federation Cloud at `/avp2/load` (classified +
+re-verified) → it appears at `/avp2/evidence`, `/avp2/evidence/timeline`, and feeds `/avp2`
+and `/avp2/e2e`. The result mirrors what `/avp2/e2e` derives.
+
+### What remains for OTZAR-E2E-4
+
+Wire a **secure Tauri command / local sidecar** that, on an explicit operator action,
+provides `nodeProcessRunner` to `invokeAvp2GovernedAccessLiveLocal` and streams the result
+status back to Otzar. Explicit, local-only, no hosted, no production, no secrets, no fake proof.
+
 ## What is real now
 
 - Otzar can build + validate a safe `AVP2_END_TO_END_INTENT`.

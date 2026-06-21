@@ -52,10 +52,19 @@ describe("Avp2GovernedAccessCard", () => {
     expect(text).not.toContain("submit");
   });
 
-  it("7. shows the runner bridge-ready note (dry-run command, live deferred)", () => {
+  it("7. shows the runner bridge-ready note (dry-run + result-file)", () => {
     render(<Avp2GovernedAccessCard />);
     const note = screen.getByTestId("avp2-bridge-note").textContent ?? "";
     expect(note).toContain("npm run e2e:otzar-avp2 -- --dry-run --json");
-    expect(note).toMatch(/Live-local execution requires an explicit operator bridge/i);
+    expect(note).toMatch(/Result-file mode ready/i);
+  });
+
+  it("8. shows the operator-gated live-local note with command + output paths", () => {
+    render(<Avp2GovernedAccessCard />);
+    const note = screen.getByTestId("avp2-live-local-note").textContent ?? "";
+    expect(note).toMatch(/operator-gated/i);
+    expect(note).toMatch(/no browser execution/i);
+    expect(note).toContain("--strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force");
+    expect(note).toContain("/tmp/avp-positive-evidence.json");
   });
 });

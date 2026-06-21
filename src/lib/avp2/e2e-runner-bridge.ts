@@ -24,6 +24,13 @@ export const DRY_RUN_ARGS: readonly string[] = ["run", RUNNER_NPM_SCRIPT, "--", 
 export const AVP2_DRY_RUN_COMMAND = "npm run e2e:otzar-avp2 -- --dry-run --json";
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
+// Live-local (operator-gated) defaults — outputs are local /tmp files only.
+export const LIVE_LOCAL_OUTPUT_PATH = "/tmp/avp2-e2e-result.json";
+export const LIVE_LOCAL_EVIDENCE_PATH = "/tmp/avp-positive-evidence.json";
+export const AVP2_LIVE_LOCAL_COMMAND =
+  "npm run e2e:otzar-avp2 -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force";
+export const LIVE_LOCAL_DEFAULT_TIMEOUT_MS = 600_000; // 10 min — a real local Foundation boot is slow.
+
 export type BridgeMode = "dry-run" | "result-file";
 
 export interface RunnerConfig {
@@ -143,4 +150,107 @@ export function loadAvp2RunnerResultFile(path: string, deps: ReadDeps): ParsedRe
   const val = validateAvp2EndToEndResult(parsed);
   if (!val.ok) return { ok: false, errors: val.errors.map((e) => e.code) };
   return { ok: true, result: parsed as E2EResult, errors: [] };
+}
+
+// ── Operator-gated live-local (OTZAR-E2E-3) ──────────────────────────────────
+
+export interface LiveLocalConfig {
+  avpRepoPath: string;
+  mode: "live-local";
+  allowLiveLocal: true;
+  operatorConfirmed: true;
+  outputPath: string;
+  evidenceOutputPath: string;
+  intentPath?: string;
+  foundationRepoPath?: string;
+  port?: number;
+}
+
+// A path must be absolute, safe (no shell metachars / markers), and free of traversal.
+function isAbsoluteSafe(p: unknown): p is string {
+  return typeof p === "string" && p.startsWith("/") && !p.includes("..") && pathIsSafe(p);
+}
+function isUnderTmp(p: unknown): p is string {
+  return typeof p === "string" && p.startsWith("/tmp/") && !p.includes("..") && pathIsSafe(p);
+}
+function isSafePort(n: unknown): n is number {
+  return typeof n === "number" && Number.isInteger(n) && n >= 1024 && n <= 65535;
+}
+
+// WHAT: strictly gate a live-local config. ALL of: mode live-local, allowLiveLocal true,
+//       operatorConfirmed true, output + evidence under /tmp, safe absolute repo path, and
+//       safe optional intent/foundation-repo/port. Anything else → refused (no live run).
+export function validateAvp2RunnerLiveLocalConfig(input: unknown): ConfigValidation {
+  const errors: string[] = [];
+  if (typeof input !== "object" || input === null) return { ok: false, errors: ["CONFIG_NOT_OBJECT"] };
+  const c = input as Partial<LiveLocalConfig> & Record<string, unknown>;
+  if (c.mode !== "live-local") errors.push("MODE_NOT_LIVE_LOCAL");
+  if (c.allowLiveLocal !== true) errors.push("LIVE_LOCAL_NOT_ALLOWED");
+  if (c.operatorConfirmed !== true) errors.push("OPERATOR_NOT_CONFIRMED");
+  if (!isAbsoluteSafe(c.avpRepoPath)) errors.push("UNSAFE_AVP_REPO_PATH");
+  if (!isUnderTmp(c.outputPath)) errors.push("OUTPUT_PATH_NOT_UNDER_TMP");
+  if (!isUnderTmp(c.evidenceOutputPath)) errors.push("EVIDENCE_PATH_NOT_UNDER_TMP");
+  if (c.intentPath !== undefined && !isAbsoluteSafe(c.intentPath)) errors.push("UNSAFE_INTENT_PATH");
+  if (c.foundationRepoPath !== undefined && !isAbsoluteSafe(c.foundationRepoPath)) errors.push("UNSAFE_FOUNDATION_REPO_PATH");
+  if (c.port !== undefined && !isSafePort(c.port)) errors.push("UNSAFE_PORT");
+  return { ok: errors.length === 0, errors };
+}
+
+// WHAT: build the FIXED strict live-local command. Never a shell string; only the pinned
+//       npm script + --strict --json --output … --force --evidence-output … --force, plus
+//       validated optional --intent / --foundation-repo / --port. Throws on unsafe config.
+export function buildAvp2RunnerLiveLocalCommand(config: LiveLocalConfig): BuiltCommand {
+  const v = validateAvp2RunnerLiveLocalConfig(config);
+  if (!v.ok) throw new Error(`INVALID_LIVE_LOCAL_CONFIG:${v.errors.join(",")}`);
+  const args = [
+    "run", RUNNER_NPM_SCRIPT, "--",
+    "--strict", "--json",
+    "--output", config.outputPath, "--force",
+    "--evidence-output", config.evidenceOutputPath, "--force",
+  ];
+  if (config.intentPath !== undefined && isAbsoluteSafe(config.intentPath)) args.push("--intent", config.intentPath);
+  if (config.foundationRepoPath !== undefined && isAbsoluteSafe(config.foundationRepoPath)) args.push("--foundation-repo", config.foundationRepoPath);
+  if (config.port !== undefined && isSafePort(config.port)) args.push("--port", String(config.port));
+  return { command: "npm", args, cwd: config.avpRepoPath };
+}
+
+export interface LiveLocalRunDeps { runProcess: ProcessRunner; readFile?: FileReader; timeoutMs?: number }
+export interface LiveLocalResult extends ParsedResult {
+  resultOutputPath?: string;
+  evidenceOutputPath?: string;
+  warnings: string[];
+}
+
+// WHAT: run the operator-gated strict live-local command via the injected process runner.
+//       Prefer the JSON result on stdout; if stdout is not parseable JSON and a file reader
+//       is injected, fall back to reading the (validated) outputPath. Marker-scans
+//       stdout/stderr and NEVER echoes raw stderr. Returns the result + the local output/
+//       evidence paths as metadata only.
+export async function runAvp2RunnerLiveLocal(config: LiveLocalConfig, deps: LiveLocalRunDeps): Promise<LiveLocalResult> {
+  const warnings: string[] = [];
+  const v = validateAvp2RunnerLiveLocalConfig(config);
+  if (!v.ok) return { ok: false, errors: v.errors, warnings };
+  let cmd: BuiltCommand;
+  try { cmd = buildAvp2RunnerLiveLocalCommand(config); } catch (e) { return { ok: false, errors: [e instanceof Error ? e.message : "BUILD_COMMAND_FAILED"], warnings }; }
+
+  let out: ProcessOutput;
+  try { out = await deps.runProcess(cmd, { timeoutMs: deps.timeoutMs ?? LIVE_LOCAL_DEFAULT_TIMEOUT_MS }); }
+  catch { return { ok: false, errors: ["RUNNER_SPAWN_FAILED"], warnings }; }
+
+  if (out.timedOut === true) return { ok: false, errors: ["RUNNER_TIMED_OUT"], warnings };
+  if (typeof out.stderr === "string" && e2eMarkerHits(out.stderr).length > 0) return { ok: false, errors: ["SECRET_MARKER_IN_STDERR"], warnings };
+
+  const meta = { resultOutputPath: config.outputPath, evidenceOutputPath: config.evidenceOutputPath };
+  const fromStdout = parseAvp2RunnerStdout(out.stdout);
+  if (fromStdout.ok && fromStdout.result !== undefined) {
+    return { ok: true, result: fromStdout.result, errors: [], warnings, ...meta };
+  }
+  // Stdout not a full JSON result — fall back to the written output file if a reader exists.
+  if (deps.readFile !== undefined) {
+    warnings.push("STDOUT_NOT_JSON_FELL_BACK_TO_OUTPUT_FILE");
+    const fromFile = loadAvp2RunnerResultFile(config.outputPath, { readFile: deps.readFile });
+    if (fromFile.ok && fromFile.result !== undefined) return { ok: true, result: fromFile.result, errors: [], warnings, ...meta };
+    return { ok: false, errors: fromFile.errors, warnings, ...meta };
+  }
+  return { ok: false, errors: fromStdout.errors, warnings, ...meta };
 }

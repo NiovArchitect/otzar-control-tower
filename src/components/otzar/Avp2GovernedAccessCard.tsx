@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mapAvp2ResultToOtzarArtifact } from "@/lib/avp2/e2e-display";
 import { DEMO_LOCAL_LIVE_RESULT } from "@/lib/connectors/avp2-governed-access";
-import { AVP2_DRY_RUN_COMMAND } from "@/lib/avp2/e2e-runner-bridge";
+import { AVP2_DRY_RUN_COMMAND, AVP2_LIVE_LOCAL_COMMAND, LIVE_LOCAL_OUTPUT_PATH, LIVE_LOCAL_EVIDENCE_PATH } from "@/lib/avp2/e2e-runner-bridge";
 import type { E2EResult, StepStatus } from "@/lib/avp2/e2e-contracts";
 
 function statusVariant(s: "PASS" | "SKIP" | "FAIL"): "default" | "warning" | "destructive" {
@@ -80,7 +80,15 @@ export function Avp2GovernedAccessCard({ result }: { result?: E2EResult }): JSX.
 
         <div className="rounded-md border border-dashed border-border p-3 text-[11px] text-muted-foreground" data-testid="avp2-bridge-note">
           <div>Runner bridge ready: dry-run command available — <code>{AVP2_DRY_RUN_COMMAND}</code></div>
-          <div>Live-local execution requires an explicit operator bridge in the next phase.</div>
+          <div>Result-file mode ready: consume a local result file niov-avp wrote.</div>
+        </div>
+
+        <div className="rounded-md border border-dashed border-border p-3 text-[11px] text-muted-foreground" data-testid="avp2-live-local-note">
+          <div className="font-medium">Live-local: operator-gated (no browser execution)</div>
+          <div className="mt-1">Available only through an explicit operator / Tauri-or-CLI bridge — the browser never spawns a process. Expected command:</div>
+          <code className="mt-1 block break-all">{AVP2_LIVE_LOCAL_COMMAND}</code>
+          <div className="mt-1">Result output: <code>{LIVE_LOCAL_OUTPUT_PATH}</code></div>
+          <div>Evidence output: <code>{LIVE_LOCAL_EVIDENCE_PATH}</code></div>
         </div>
 
         <p className="text-[11px] text-muted-foreground">

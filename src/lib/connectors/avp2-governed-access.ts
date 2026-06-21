@@ -19,8 +19,9 @@ import {
 } from "@/lib/avp2/e2e-contracts";
 import { mapAvp2ResultToOtzarArtifact, type OtzarAvp2Artifact } from "@/lib/avp2/e2e-display";
 import {
-  runAvp2RunnerDryRun, loadAvp2RunnerResultFile,
-  type RunnerConfig, type RunDeps, type ReadDeps,
+  runAvp2RunnerDryRun, loadAvp2RunnerResultFile, runAvp2RunnerLiveLocal,
+  LIVE_LOCAL_OUTPUT_PATH, LIVE_LOCAL_EVIDENCE_PATH,
+  type RunnerConfig, type RunDeps, type ReadDeps, type LiveLocalConfig, type LiveLocalRunDeps,
 } from "@/lib/avp2/e2e-runner-bridge";
 
 export type RunnerMode = "dry-run" | "live-local";
@@ -115,6 +116,52 @@ export function consumeAvp2GovernedAccessResultFile(path: string, deps: ReadDeps
   const parsed = loadAvp2RunnerResultFile(path, deps);
   if (!parsed.ok || parsed.result === undefined) return { ok: false, errors: parsed.errors };
   return { ok: true, result: parsed.result, artifact: mapAvp2ResultToOtzarArtifact(parsed.result), errors: [] };
+}
+
+export interface LiveLocalInvokeConfig {
+  avpRepoPath: string;
+  allowLiveLocal: true;
+  operatorConfirmed: true;
+  outputPath?: string;
+  evidenceOutputPath?: string;
+  intentPath?: string;
+  foundationRepoPath?: string;
+  port?: number;
+}
+export interface LiveLocalBridgeOutcome extends BridgeOutcome {
+  evidenceOutputPath?: string;
+  resultOutputPath?: string;
+  warnings: string[];
+}
+
+// WHAT: OPERATOR-GATED local-live invocation. Requires allowLiveLocal + operatorConfirmed
+//       true; outputs default to local /tmp files. Runs niov-avp --strict via the injected
+//       process runner (browser never spawns), re-validates the result (production proof
+//       refused), and maps it to an Otzar artifact. Returns the local output/evidence paths
+//       as metadata only — Federation Cloud consumes those files; Otzar does not upload them.
+export async function invokeAvp2GovernedAccessLiveLocal(
+  config: LiveLocalInvokeConfig,
+  deps: LiveLocalRunDeps,
+): Promise<LiveLocalBridgeOutcome> {
+  const full: LiveLocalConfig = {
+    avpRepoPath: config.avpRepoPath,
+    mode: "live-local",
+    allowLiveLocal: config.allowLiveLocal,
+    operatorConfirmed: config.operatorConfirmed,
+    outputPath: config.outputPath ?? LIVE_LOCAL_OUTPUT_PATH,
+    evidenceOutputPath: config.evidenceOutputPath ?? LIVE_LOCAL_EVIDENCE_PATH,
+    ...(config.intentPath !== undefined ? { intentPath: config.intentPath } : {}),
+    ...(config.foundationRepoPath !== undefined ? { foundationRepoPath: config.foundationRepoPath } : {}),
+    ...(config.port !== undefined ? { port: config.port } : {}),
+  };
+  const run = await runAvp2RunnerLiveLocal(full, deps);
+  const meta = {
+    warnings: run.warnings,
+    ...(run.resultOutputPath !== undefined ? { resultOutputPath: run.resultOutputPath } : {}),
+    ...(run.evidenceOutputPath !== undefined ? { evidenceOutputPath: run.evidenceOutputPath } : {}),
+  };
+  if (!run.ok || run.result === undefined) return { ok: false, errors: run.errors, ...meta };
+  return { ok: true, result: run.result, artifact: mapAvp2ResultToOtzarArtifact(run.result), errors: [], ...meta };
 }
 
 // ── Safe demo constants (mirror the niov-avp fixtures; no secrets, no raw content) ──
