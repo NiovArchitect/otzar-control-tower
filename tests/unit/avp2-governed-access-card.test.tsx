@@ -6,9 +6,12 @@
 // CONNECTS TO: src/components/otzar/Avp2GovernedAccessCard.tsx.
 
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { Avp2GovernedAccessCard } from "@/components/otzar/Avp2GovernedAccessCard";
-import { DEMO_DRY_RUN_RESULT } from "@/lib/connectors/avp2-governed-access";
+import { DEMO_DRY_RUN_RESULT, DEMO_LOCAL_LIVE_RESULT } from "@/lib/connectors/avp2-governed-access";
+import type { InvokeFn } from "@/lib/avp2/e2e-tauri-bridge";
+
+const tauriDeps = (invoke: InvokeFn) => ({ isTauri: () => true, invoke });
 
 describe("Avp2GovernedAccessCard", () => {
   it("1. renders the default local-live demo as live proof", () => {
@@ -66,5 +69,40 @@ describe("Avp2GovernedAccessCard", () => {
     expect(note).toMatch(/no browser execution/i);
     expect(note).toContain("--strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force");
     expect(note).toContain("/tmp/avp-positive-evidence.json");
+  });
+
+  it("9. live runner is unavailable in web (no button), shows the Founder-auth note", () => {
+    render(<Avp2GovernedAccessCard />);
+    expect(screen.getByTestId("avp2-live-runner-unavailable").textContent).toMatch(/desktop \/ Tauri shell/i);
+    expect(screen.queryByTestId("avp2-run-button")).toBeNull();
+  });
+
+  it("10. in Tauri the run button is disabled until operator confirmation", () => {
+    render(<Avp2GovernedAccessCard avpRepoPath="/Users/x/niov-avp" liveBridgeDeps={tauriDeps(async () => DEMO_LOCAL_LIVE_RESULT)} />);
+    const btn = screen.getByTestId("avp2-run-button") as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    fireEvent.click(screen.getByTestId("avp2-run-confirm"));
+    expect((screen.getByTestId("avp2-run-button") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("11. a confirmed run maps a PASS result to the artifact + FC load note", async () => {
+    render(<Avp2GovernedAccessCard avpRepoPath="/Users/x/niov-avp" liveBridgeDeps={tauriDeps(async () => DEMO_LOCAL_LIVE_RESULT)} />);
+    fireEvent.click(screen.getByTestId("avp2-run-confirm"));
+    fireEvent.click(screen.getByTestId("avp2-run-button"));
+    await waitFor(() => expect(screen.getByTestId("avp2-run-outcome")).toBeInTheDocument());
+    const text = screen.getByTestId("avp2-run-outcome").textContent ?? "";
+    expect(text).toMatch(/Local live proof/i);
+    expect(text).toContain("/avp2/load");
+  });
+
+  it("12. a failed run shows safe error codes only (no raw stderr)", async () => {
+    const throwing: InvokeFn = async () => { throw new Error("Bearer sk_live_x boom"); };
+    render(<Avp2GovernedAccessCard avpRepoPath="/Users/x/niov-avp" liveBridgeDeps={tauriDeps(throwing)} />);
+    fireEvent.click(screen.getByTestId("avp2-run-confirm"));
+    fireEvent.click(screen.getByTestId("avp2-run-button"));
+    await waitFor(() => expect(screen.getByTestId("avp2-run-error")).toBeInTheDocument());
+    const text = screen.getByTestId("avp2-run-error").textContent ?? "";
+    expect(text).toContain("NATIVE_INVOCATION_FAILED");
+    expect(text).not.toContain("sk_live");
   });
 });

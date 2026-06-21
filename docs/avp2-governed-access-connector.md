@@ -187,11 +187,70 @@ Load `/tmp/avp-positive-evidence.json` into Federation Cloud at `/avp2/load` (cl
 re-verified) → it appears at `/avp2/evidence`, `/avp2/evidence/timeline`, and feeds `/avp2`
 and `/avp2/e2e`. The result mirrors what `/avp2/e2e` derives.
 
-### What remains for OTZAR-E2E-4
+## Secure Tauri / local command bridge (OTZAR-E2E-4)
 
-Wire a **secure Tauri command / local sidecar** that, on an explicit operator action,
-provides `nodeProcessRunner` to `invokeAvp2GovernedAccessLiveLocal` and streams the result
-status back to Otzar. Explicit, local-only, no hosted, no production, no secrets, no fake proof.
+This phase adds the **operator-gated invocation path** for the strict live-local proof,
+**without** a browser spawn and **without** an unauthorized native command.
+
+### Native Tauri command — deferred (exact blocker)
+
+A native `run_avp2_e2e_live_local` Tauri command was **not** added. The repo's Rust shell
+(`src-tauri/src/lib.rs`, `main.rs`) documents a hard governance rule:
+
+> Adding native commands here is gated on **Founder authorization** per **RULE 20** (RULES +
+> ADRs only the Founder may modify). "We deliberately do NOT add native commands that bypass
+> the Foundation API." (**ADR-0052 / FOUNDER-AUTH**.)
+
+A command that execs a local process bypasses the Foundation API, so registering it requires
+explicit Founder authorization. Until then the native command stays unregistered.
+
+### Frontend Tauri wrapper (`e2e-tauri-bridge.ts`)
+
+`isAvp2TauriLiveBridgeAvailable()` is true only inside a Tauri webview with an `invoke`
+function present. `runAvp2LiveLocalViaTauri(config, deps?)` gates on `operatorConfirmed`, runs
+the same path-safety validation as the live-local config, builds a **narrow** payload
+(`avp_repo_path`, `operator_confirmed`, optional `foundation_repo_path`/`intent_path`/`port`
+— **no** command/args/output/evidence/url/token), invokes `run_avp2_e2e_live_local`,
+marker-scans the response, validates it (`PRODUCTION_LIVE` refused), and maps it to an Otzar
+artifact. It imports **no** `@tauri-apps/api` package (not a dependency) — it resolves
+`invoke` from the global or an injected one (for tests). With no invoke / unregistered command
+it returns `TAURI_BRIDGE_UNAVAILABLE` / `NATIVE_COMMAND_NOT_REGISTERED` — never a fake run.
+
+### Operator Node sidecar (`scripts/avp2-live-local.mjs`)
+
+The safe, available-today execution path outside the browser:
+
+```
+npm run avp2:live-local -- --avp-repo /abs/path/to/niov-avp --confirm
+#   optional: --foundation-repo <abs> --port <1024-65535> --intent <abs> --dry
+```
+
+It requires `--confirm` + an absolute `--avp-repo`, validates paths (no shell metachars /
+traversal / markers), builds the **fixed** non-shell command (`execFile`, args array), writes
+only the fixed `/tmp` result + evidence files, and prints a **sanitized** summary (status /
+provenance / proof_level read back from the result file) — never raw stdout/stderr, never
+tokens, `PRODUCTION_LIVE` refused.
+
+### UI (guarded, Tauri-only)
+
+`Avp2GovernedAccessCard` shows a "Run local live proof" section: in web it shows
+"requires the Otzar desktop / Tauri shell … native command pending Founder authorization"
+and **no button**; in Tauri it shows a repo-path input, a required confirmation checkbox, and
+a button (disabled until confirmed) that runs via the wrapper. Success shows the validated
+artifact + "Load `/tmp/avp-positive-evidence.json` into Federation Cloud `/avp2/load`";
+failure shows **safe error codes only** (no raw stderr, no tokens). No auto-run.
+
+### How a future authorized command would wire it
+
+Once Founder-authorized, a tightly-scoped `#[tauri::command] run_avp2_e2e_live_local` (or a
+`tauri-plugin-shell` allowlist) would validate the narrow payload in Rust, construct the same
+fixed args, `std::process::Command` (no shell) in `avp_repo_path`, and return the sanitized
+result — the frontend wrapper already targets it by name.
+
+### What remains for OTZAR-E2E-5
+
+Run the bridge/sidecar against the **real** niov-avp runner locally and confirm Otzar
+receives/displays a `LIVE_LOCAL_RUN` PASS while Federation Cloud consumes the evidence file.
 
 ## What is real now
 
