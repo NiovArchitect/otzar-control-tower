@@ -79,6 +79,12 @@ provenance, the step checklist, `delivered` (false is correct once proof resolve
 reference, not the content body), next action, and the Federation Cloud routes. `is_live` is
 true **only** for a `LIVE_LOCAL_RUN` PASS.
 
+**Display field (v0.2):** the canonical client-facing field is **`client_display`**; the
+mapper consumes it via `clientDisplayOf(result)` = `client_display ?? otzar_display`.
+`otzar_display` is a **deprecated identical back-compat alias** kept for v0.1 results — legacy
+results carrying only `otzar_display` still render. Otzar is just one optional client; the
+field name no longer implies an Otzar dependency.
+
 ## Dry-run vs live-local
 
 - **Dry-run (default):** `buildAvp2GovernedAccessDryRun()` returns a descriptor with the

@@ -30,6 +30,11 @@
     "registry_route": "/avp2/registry",
     "e2e_route": "/avp2/e2e"
   },
+  "client_display": {
+    "title": "Governed access completed",
+    "message": "AVP² quote, accept, access receipt, and proof resolved through Foundation. The content itself was not delivered — only a proof reference.",
+    "next_action": "Review evidence in Federation Cloud."
+  },
   "otzar_display": {
     "title": "Governed access completed",
     "message": "AVP² quote, accept, access receipt, and proof resolved through Foundation. The content itself was not delivered — only a proof reference.",

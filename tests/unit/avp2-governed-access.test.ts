@@ -56,6 +56,20 @@ describe("AVP² governed access connector", () => {
     expect(a.steps.length).toBe(9);
     expect(a.steps.find((s) => s.key === "proof")?.status).toBe("PASS");
   });
+  it("15a. mapper prefers client_display over otzar_display when they differ", () => {
+    const r = { ...cloneResult(), client_display: { title: "CLIENT TITLE", message: "cm", next_action: "cn" } };
+    const a = mapAvp2ResultToOtzarArtifact(r);
+    expect(a.title).toBe("CLIENT TITLE");
+    expect(a.summary).toBe("cm");
+    expect(a.next_action).toBe("cn");
+  });
+  it("15b. mapper falls back to legacy otzar_display-only results (no client_display)", () => {
+    const r = cloneResult();
+    delete (r as { client_display?: unknown }).client_display;
+    const a = mapAvp2ResultToOtzarArtifact(r);
+    expect(a.title).toBe("Governed access completed");
+    expect(a.is_live).toBe(true);
+  });
   it("16. artifact includes Federation Cloud links", () => {
     const a = mapAvp2ResultToOtzarArtifact(DEMO_LOCAL_LIVE_RESULT);
     expect(a.federation_cloud_links.evidence_route).toBe("/avp2/evidence");

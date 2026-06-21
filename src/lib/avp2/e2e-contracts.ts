@@ -85,7 +85,9 @@ export interface E2EFederationCloud {
   registry_route: string;
   e2e_route?: string;
 }
-export interface E2EOtzarDisplay { title: string; message: string; next_action: string }
+export interface E2EClientDisplay { title: string; message: string; next_action: string }
+// Deprecated alias of E2EClientDisplay (kept for v0.1 type consumers).
+export type E2EOtzarDisplay = E2EClientDisplay;
 
 export interface E2EResult {
   result_schema: string;
@@ -97,7 +99,17 @@ export interface E2EResult {
   steps: E2EResultSteps;
   summary: E2EResultSummary;
   federation_cloud: E2EFederationCloud;
-  otzar_display: E2EOtzarDisplay;
+  // client_display is the canonical client-facing status (v0.2). Optional so legacy v0.1
+  // results that carry only otzar_display still type-check; consume via clientDisplayOf.
+  client_display?: E2EClientDisplay;
+  // otzar_display is a DEPRECATED back-compat alias of client_display (identical values).
+  otzar_display: E2EClientDisplay;
+}
+
+// WHAT: the canonical client-facing display, tolerant of legacy results that carry only
+//       otzar_display. Prefer client_display; fall back to otzar_display.
+export function clientDisplayOf(result: Pick<E2EResult, "client_display" | "otzar_display">): E2EClientDisplay {
+  return result.client_display ?? result.otzar_display;
 }
 
 export interface Issue { code: string; message: string }

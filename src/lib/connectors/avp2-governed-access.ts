@@ -180,6 +180,11 @@ export const DEMO_LOCAL_LIVE_RESULT: E2EResult = {
   },
   summary: { discovered: true, quoted: true, accepted: true, accessed: true, proof_resolved: true, delivered: false },
   federation_cloud: { evidence_route: "/avp2/evidence", timeline_route: "/avp2/evidence/timeline", registry_route: "/avp2/registry", e2e_route: "/avp2/e2e" },
+  client_display: {
+    title: "Governed access completed",
+    message: "AVP² quote, accept, access receipt, and proof resolved through Foundation. The content itself was not delivered — only a proof reference.",
+    next_action: "Review evidence in Federation Cloud.",
+  },
   otzar_display: {
     title: "Governed access completed",
     message: "AVP² quote, accept, access receipt, and proof resolved through Foundation. The content itself was not delivered — only a proof reference.",
@@ -201,6 +206,11 @@ export const DEMO_DRY_RUN_RESULT: E2EResult = {
   },
   summary: { discovered: false, quoted: false, accepted: false, accessed: false, proof_resolved: false, delivered: false },
   federation_cloud: { evidence_route: "/avp2/evidence", timeline_route: "/avp2/evidence/timeline", registry_route: "/avp2/registry", e2e_route: "/avp2/e2e" },
+  client_display: {
+    title: "Governed access rehearsed (dry-run)",
+    message: "Intent is valid. This is a dry-run — NOT live proof. No Foundation call was made.",
+    next_action: "Run without --dry-run against a local Foundation to produce proof.",
+  },
   otzar_display: {
     title: "Governed access rehearsed (dry-run)",
     message: "Intent is valid. This is a dry-run — NOT live proof. No Foundation call was made.",

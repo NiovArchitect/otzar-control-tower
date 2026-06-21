@@ -30,6 +30,11 @@
     "registry_route": "/avp2/registry",
     "e2e_route": "/avp2/e2e"
   },
+  "client_display": {
+    "title": "Governed access rehearsed (dry-run)",
+    "message": "Intent is valid. This is a dry-run — NOT live proof. No Foundation call was made.",
+    "next_action": "Run without --dry-run against a local Foundation to produce proof."
+  },
   "otzar_display": {
     "title": "Governed access rehearsed (dry-run)",
     "message": "Intent is valid. This is a dry-run — NOT live proof. No Foundation call was made.",

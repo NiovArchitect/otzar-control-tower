@@ -8,7 +8,7 @@
 // CONNECTS TO: src/lib/avp2/e2e-contracts.ts, src/components/otzar/Avp2GovernedAccessCard.tsx.
 
 import {
-  FC_DEFAULT_ROUTES, type E2EResult, type E2EFederationCloud, type StepStatus,
+  FC_DEFAULT_ROUTES, clientDisplayOf, type E2EResult, type E2EFederationCloud, type StepStatus,
 } from "./e2e-contracts";
 
 export interface OtzarStepItem { key: string; label: string; status: StepStatus }
@@ -49,21 +49,23 @@ export function mapAvp2ResultToOtzarArtifact(result: E2EResult): OtzarAvp2Artifa
   const is_live = result.provenance === "LIVE_LOCAL_RUN" && result.status === "PASS";
   const proof_resolved = result.summary.proof_resolved === true;
   const delivered = result.summary.delivered === true;
+  // Prefer the canonical client_display; fall back to the deprecated otzar_display alias.
+  const display = clientDisplayOf(result) as Partial<ReturnType<typeof clientDisplayOf>> | undefined;
 
   return {
     kind: "AVP2_GOVERNED_ACCESS",
-    title: result.otzar_display?.title ?? "AVP² governed access",
+    title: display?.title ?? "AVP² governed access",
     status: result.status,
     is_live,
     provenance: result.provenance,
     proof_level: result.proof_level ?? "—",
-    summary: result.otzar_display?.message ?? "",
+    summary: display?.message ?? "",
     steps,
     proof_resolved,
     delivered,
     // delivered=false is acceptable (correct) once proof resolved — proof reference, not content.
     delivered_ok: proof_resolved && !delivered,
-    next_action: result.otzar_display?.next_action ?? "Review evidence in Federation Cloud.",
+    next_action: display?.next_action ?? "Review evidence in Federation Cloud.",
     federation_cloud_links: result.federation_cloud ?? FC_DEFAULT_ROUTES,
   };
 }
