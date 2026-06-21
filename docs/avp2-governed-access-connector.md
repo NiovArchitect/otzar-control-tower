@@ -1,9 +1,16 @@
-# AVP² Governed Access Connector (Otzar)
+# AVP² Governed Access Connector (Otzar — OPTIONAL CLIENT DEMO)
 
-OTZAR-E2E-1 makes Otzar participate in the vertical AVP² / Foundation / Federation Cloud
-loop. Otzar **creates** a governed-access intent and **displays** a result — it performs no
-external writes, calls no hosted network, uses no real payment, and claims live proof only
-when a result's provenance is `LIVE_LOCAL_RUN`.
+> **Otzar is an OPTIONAL client of AVP², not part of the protocol.** The canonical
+> machine-economy stack is **Foundation → AVP² Gateway/protocol → governed quote/accept/
+> access/proof → evidence pack → Federation Cloud** (registry/evidence/control surface). That
+> loop runs and is proven **without Otzar**. This connector is one example client that can
+> *request* governed access and *display* a result; nothing in the protocol depends on it.
+> See the canonical contract in `niov-federation-cloud/docs/avp2-canonical-integration.md`.
+
+OTZAR-E2E-1 makes Otzar (one optional client) participate in the vertical AVP² / Foundation /
+Federation Cloud loop. Otzar **creates** a governed-access intent and **displays** a result —
+it performs no external writes, calls no hosted network, uses no real payment, and claims live
+proof only when a result's provenance is `LIVE_LOCAL_RUN`.
 
 > **AVP² = Agent Verification & Payment Protocol.**
 >
@@ -251,6 +258,38 @@ result — the frontend wrapper already targets it by name.
 
 Run the bridge/sidecar against the **real** niov-avp runner locally and confirm Otzar
 receives/displays a `LIVE_LOCAL_RUN` PASS while Federation Cloud consumes the evidence file.
+
+## Desktop result import and evidence handoff (OTZAR-E2E-6)
+
+After the operator sidecar runs, niov-avp writes two local files:
+
+- Result: `/tmp/avp2-e2e-result.json` (`AVP2_END_TO_END_RESULT`)
+- Evidence: `/tmp/avp-positive-evidence.json` (`AVP_POSITIVE_EVIDENCE_PACK`)
+
+`src/lib/avp2/e2e-handoff.ts` + the read-only `Avp2EvidenceHandoffPanel` give the operator a
+UX to use them **without** the terminal. Because the browser cannot read `/tmp` directly, the
+operator **pastes** the result JSON; Otzar validates it (`validateAvp2ResultFileText` →
+`validateAvp2EndToEndResult`) and `buildAvp2HandoffSummary` renders:
+
+- proof **status** + **proof level**, with live proof shown only for a `PASS` +
+  `LIVE_LOCAL_RUN` + `LOCAL_LIVE`/`HOSTED_STAGING_LIVE` result;
+- the **checklist** — discovered, quote, accept, access receipt, proof;
+- the **delivered=false** note: *"Delivered false is acceptable when proof resolved. Raw
+  content was not delivered; the governed proof reference was."*;
+- the **evidence file path** and the operator next action:
+  *"Load `/tmp/avp-positive-evidence.json` into Federation Cloud `/avp2/load`."*;
+- the Federation Cloud routes: `/avp2/load`, `/avp2/evidence`, `/avp2/evidence/timeline`,
+  `/avp2/e2e`.
+
+### Safety
+
+- No upload, no network, no persistence — Otzar never sends the result/evidence anywhere; the
+  operator loads the evidence into Federation Cloud via `/avp2/load` themselves.
+- **No production proof** (`PRODUCTION_LIVE` refused), no real payment, no public listing, no
+  secrets — a pasted result carrying a token / raw content body / proof body, or production /
+  payment / listing claims, is refused with safe codes (never echoed back).
+- No native command registration (still pending Founder authorization), no browser shell
+  execution. The result/evidence are local operator artifacts.
 
 ## What is real now
 

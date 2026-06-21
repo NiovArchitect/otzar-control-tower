@@ -21,6 +21,7 @@ import { mapAvp2ResultToOtzarArtifact } from "@/lib/avp2/e2e-display";
 import { DEMO_LOCAL_LIVE_RESULT } from "@/lib/connectors/avp2-governed-access";
 import { AVP2_DRY_RUN_COMMAND, AVP2_LIVE_LOCAL_COMMAND, LIVE_LOCAL_OUTPUT_PATH, LIVE_LOCAL_EVIDENCE_PATH } from "@/lib/avp2/e2e-runner-bridge";
 import { isAvp2TauriLiveBridgeAvailable, runAvp2LiveLocalViaTauri, type TauriBridgeDeps, type TauriRunOutcome } from "@/lib/avp2/e2e-tauri-bridge";
+import { Avp2EvidenceHandoffPanel } from "@/components/otzar/Avp2EvidenceHandoffPanel";
 import type { E2EResult, StepStatus } from "@/lib/avp2/e2e-contracts";
 
 function statusVariant(s: "PASS" | "SKIP" | "FAIL"): "default" | "warning" | "destructive" {
@@ -170,6 +171,8 @@ export function Avp2GovernedAccessCard({ result, avpRepoPath = "", liveBridgeDep
             </div>
           )}
         </div>
+
+        <Avp2EvidenceHandoffPanel />
 
         <p className="text-[11px] text-muted-foreground">
           Otzar creates the governed-access intent and displays the result. The browser performs no external
