@@ -11,7 +11,7 @@
 //          a bounded action. Foundation is the trust substrate; Publisher Gateway is the
 //          AVP² edge adapter; Foundation remains the source of governance truth in live mode.
 // CONNECTS TO: src/lib/avp2/e2e-contracts.ts, src/lib/avp2/e2e-display.ts,
-//          niov-avp `npm run e2e:otzar-avp2`, src/components/otzar/Avp2GovernedAccessCard.tsx.
+//          niov-avp `npm run e2e:avp2-intent`, src/components/otzar/Avp2GovernedAccessCard.tsx.
 
 import {
   createAvp2GovernedAccessIntent, validateAvp2EndToEndIntent, validateAvp2EndToEndResult,
@@ -27,8 +27,8 @@ import {
 export type RunnerMode = "dry-run" | "live-local";
 
 export const RUNNER_COMMANDS: Record<RunnerMode, string> = {
-  "dry-run": "npm run e2e:otzar-avp2 -- --dry-run --json",
-  "live-local": "npm run e2e:otzar-avp2 -- --strict --json",
+  "dry-run": "npm run e2e:avp2-intent -- --dry-run --json",
+  "live-local": "npm run e2e:avp2-intent -- --strict --json",
 };
 
 export interface GovernedAccessRequest {

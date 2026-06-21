@@ -55,7 +55,7 @@ if (port !== undefined && !isSafePort(port)) fail("UNSAFE_PORT");
 
 // FIXED args — never an arbitrary shell string.
 const args = [
-  "run", "e2e:otzar-avp2", "--",
+  "run", "e2e:avp2-intent", "--",
   "--strict", "--json",
   "--output", OUTPUT_PATH, "--force",
   "--evidence-output", EVIDENCE_PATH, "--force",

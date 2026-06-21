@@ -99,12 +99,12 @@ describe("AVP² governed access connector", () => {
   it("20. dry-run descriptor carries the safe command and never executes live", () => {
     const d = buildAvp2GovernedAccessDryRun();
     expect(d.mode).toBe("dry-run");
-    expect(d.command).toBe("npm run e2e:otzar-avp2 -- --dry-run --json");
+    expect(d.command).toBe("npm run e2e:avp2-intent -- --dry-run --json");
     expect(d.executes_live).toBe(false);
     expect(validateAvp2EndToEndIntent(d.intent).ok).toBe(true);
   });
   it("20b. live-local descriptor is explicit-only", () => {
-    expect(buildAvp2GovernedAccessRequest({}, { mode: "live-local" }).command).toBe("npm run e2e:otzar-avp2 -- --strict --json");
+    expect(buildAvp2GovernedAccessRequest({}, { mode: "live-local" }).command).toBe("npm run e2e:avp2-intent -- --strict --json");
     expect(buildAvp2GovernedAccessRequest().executes_live).toBe(false);
   });
   it("20c. parse + map a runner result string into a work artifact", () => {

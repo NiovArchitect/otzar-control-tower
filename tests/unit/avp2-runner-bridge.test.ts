@@ -29,7 +29,7 @@ describe("AVP² local runner bridge", () => {
     expect(cmd.command).toBe("npm");
     expect(cmd.args).toEqual([...DRY_RUN_ARGS]);
     expect(cmd.cwd).toBe(REPO);
-    expect(AVP2_DRY_RUN_COMMAND).toBe("npm run e2e:otzar-avp2 -- --dry-run --json");
+    expect(AVP2_DRY_RUN_COMMAND).toBe("npm run e2e:avp2-intent -- --dry-run --json");
   });
   it("2. rejects arbitrary command injection in the repo path", () => {
     const v = validateAvp2RunnerConfig({ avpRepoPath: "/x; rm -rf /", mode: "dry-run" });

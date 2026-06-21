@@ -32,8 +32,10 @@ proof only when a result's provenance is `LIVE_LOCAL_RUN`.
 
 - **Otzar** (this repo) — user/work interface. Builds the `AVP2_END_TO_END_INTENT`,
   validates it, and renders the `AVP2_END_TO_END_RESULT` as a read-only work artifact/card.
-- **niov-avp** — the executable AVP² runner (`npm run e2e:otzar-avp2`). Accepts the intent,
-  runs the local live path when available, and emits the result + evidence.
+- **niov-avp** — the executable AVP² runner (`npm run e2e:avp2-intent`, the canonical
+  client-agnostic command; `npm run e2e:otzar-avp2` remains a backward-compatible alias in
+  niov-avp). Accepts the intent, runs the local live path when available, and emits the
+  result + evidence.
 - **Foundation** — trust substrate: identity, policy, access, proof, audit.
 - **Federation Cloud** — evidence/registry/control surface (`/avp2/e2e`, `/avp2/evidence`,
   `/avp2/evidence/timeline`, `/avp2/registry`).
@@ -88,10 +90,10 @@ field name no longer implies an Otzar dependency.
 ## Dry-run vs live-local
 
 - **Dry-run (default):** `buildAvp2GovernedAccessDryRun()` returns a descriptor with the
-  command `npm run e2e:otzar-avp2 -- --dry-run --json`. It validates the intent and shows
+  command `npm run e2e:avp2-intent -- --dry-run --json`. It validates the intent and shows
   the intended sequence; it is **not live proof**.
 - **Live-local (explicit, future):** `buildAvp2GovernedAccessRequest(input, { mode: "live-local" })`
-  carries `npm run e2e:otzar-avp2 -- --strict --json`. **This phase never invokes it.**
+  carries `npm run e2e:avp2-intent -- --strict --json`. **This phase never invokes it.**
 
 ## How the connector avoids external writes
 
@@ -113,7 +115,7 @@ real node implementations live in `src/lib/avp2/e2e-runner-node.ts` (`nodeProces
 The bridge builds a **fixed** command — never an arbitrary shell string:
 
 ```
-npm run e2e:otzar-avp2 -- --dry-run --json     # cwd = <avpRepoPath>
+npm run e2e:avp2-intent -- --dry-run --json     # cwd = <avpRepoPath>
 ```
 
 `buildAvp2RunnerCommand` returns `{ command: "npm", args: [...fixed], cwd }` for execution
@@ -147,7 +149,7 @@ needs an explicit operator bridge.
 
 ### How this connects to niov-avp
 
-The bridge targets niov-avp's `npm run e2e:otzar-avp2` (`apps/publisher-gateway/src/avp2-e2e-runner.ts`).
+The bridge targets niov-avp's `npm run e2e:avp2-intent` (`apps/publisher-gateway/src/avp2-e2e-runner.ts`).
 Otzar later invokes it through a **secure local bridge** (Tauri sidecar / CLI providing
 `nodeProcessRunner`); the browser never spawns a process directly.
 
@@ -164,7 +166,7 @@ browser. `validateAvp2RunnerLiveLocalConfig` requires **all** of: `mode: "live-l
 `buildAvp2RunnerLiveLocalCommand` produces a **fixed**, non-shell command:
 
 ```
-npm run e2e:otzar-avp2 -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force
+npm run e2e:avp2-intent -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force
 ```
 
 (optional, validated: `--intent <path>`, `--foundation-repo <path>`, `--port <number>`). Run
@@ -306,7 +308,7 @@ operator **pastes** the result JSON; Otzar validates it (`validateAvp2ResultFile
 
 ## What remains
 
-- **OTZAR-E2E-2:** wire a safe local bridge to invoke `npm run e2e:otzar-avp2 -- --dry-run
+- **OTZAR-E2E-2:** wire a safe local bridge to invoke `npm run e2e:avp2-intent -- --dry-run
   --json` (or load a result file the niov-avp runner wrote), then feed it through
   `parseAvp2RunnerResult` → `mapAvp2RunnerResultToWorkArtifact` → the card. No hosted
   network, no real payment, no fake proof.

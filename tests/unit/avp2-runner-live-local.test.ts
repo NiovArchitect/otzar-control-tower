@@ -30,7 +30,7 @@ describe("AVP² operator-gated live-local bridge", () => {
     const cmd = buildAvp2RunnerLiveLocalCommand(fullConfig);
     expect(cmd.command).toBe("npm");
     expect(cmd.args[0]).toBe("run");
-    expect(cmd.args[1]).toBe("e2e:otzar-avp2");
+    expect(cmd.args[1]).toBe("e2e:avp2-intent");
     expect(cmd.cwd).toBe(REPO);
   });
   it("2. command includes --strict and --json", () => {
@@ -134,7 +134,7 @@ describe("AVP² operator-gated live-local bridge", () => {
 
   it("20. docs mention the exact strict command, no browser spawn, and doctrine", () => {
     const doc = readFileSync(resolve(process.cwd(), "docs/avp2-governed-access-connector.md"), "utf8");
-    expect(doc).toContain("npm run e2e:otzar-avp2 -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force");
+    expect(doc).toContain("npm run e2e:avp2-intent -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force");
     expect(doc).toMatch(/browser still does not spawn directly/i);
     expect(doc).toContain("Foundation is the trust substrate.");
     expect(doc).toContain("Foundation remains the source of governance truth in live mode.");

@@ -58,7 +58,7 @@ describe("Avp2GovernedAccessCard", () => {
   it("7. shows the runner bridge-ready note (dry-run + result-file)", () => {
     render(<Avp2GovernedAccessCard />);
     const note = screen.getByTestId("avp2-bridge-note").textContent ?? "";
-    expect(note).toContain("npm run e2e:otzar-avp2 -- --dry-run --json");
+    expect(note).toContain("npm run e2e:avp2-intent -- --dry-run --json");
     expect(note).toMatch(/Result-file mode ready/i);
   });
 

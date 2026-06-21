@@ -1,7 +1,7 @@
 // FILE: src/lib/avp2/e2e-contracts.ts
 // PURPOSE: OTZAR-E2E-1 — the Otzar-side mirror of the AVP² end-to-end contracts
 //          (AVP2_END_TO_END_INTENT / AVP2_END_TO_END_RESULT) that niov-avp's
-//          `e2e:otzar-avp2` runner emits and Federation Cloud's /avp2/e2e consumes.
+//          `e2e:avp2-intent` runner emits and Federation Cloud's /avp2/e2e consumes.
 //          Otzar is the user/work interface: it CREATES a governed-access intent and
 //          DISPLAYS a result — it performs no external writes, calls no hosted network,
 //          uses no real payment, and claims live proof ONLY when a result's provenance

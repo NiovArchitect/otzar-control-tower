@@ -19,16 +19,16 @@
 
 import { validateAvp2EndToEndResult, e2eMarkerHits, type E2EResult } from "./e2e-contracts";
 
-export const RUNNER_NPM_SCRIPT = "e2e:otzar-avp2";
+export const RUNNER_NPM_SCRIPT = "e2e:avp2-intent"; // canonical (e2e:otzar-avp2 remains a niov-avp alias)
 export const DRY_RUN_ARGS: readonly string[] = ["run", RUNNER_NPM_SCRIPT, "--", "--dry-run", "--json"];
-export const AVP2_DRY_RUN_COMMAND = "npm run e2e:otzar-avp2 -- --dry-run --json";
+export const AVP2_DRY_RUN_COMMAND = "npm run e2e:avp2-intent -- --dry-run --json";
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
 // Live-local (operator-gated) defaults — outputs are local /tmp files only.
 export const LIVE_LOCAL_OUTPUT_PATH = "/tmp/avp2-e2e-result.json";
 export const LIVE_LOCAL_EVIDENCE_PATH = "/tmp/avp-positive-evidence.json";
 export const AVP2_LIVE_LOCAL_COMMAND =
-  "npm run e2e:otzar-avp2 -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force";
+  "npm run e2e:avp2-intent -- --strict --json --output /tmp/avp2-e2e-result.json --force --evidence-output /tmp/avp-positive-evidence.json --force";
 export const LIVE_LOCAL_DEFAULT_TIMEOUT_MS = 600_000; // 10 min — a real local Foundation boot is slow.
 
 export type BridgeMode = "dry-run" | "result-file";
