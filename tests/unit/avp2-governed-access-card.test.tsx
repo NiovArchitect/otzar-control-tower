@@ -45,10 +45,17 @@ describe("Avp2GovernedAccessCard", () => {
     expect(screen.getByTestId("avp2-provenance").textContent).toBe("DRY_RUN");
   });
 
-  it("6. has no send/execute/external-write control", () => {
+  it("6. has no send/external-write control", () => {
     render(<Avp2GovernedAccessCard />);
     const text = (screen.getByTestId("avp2-governed-access-card").textContent ?? "").toLowerCase();
-    expect(text).not.toContain("send");
-    expect(text).not.toContain("execute");
+    expect(text).not.toContain("send to");
+    expect(text).not.toContain("submit");
+  });
+
+  it("7. shows the runner bridge-ready note (dry-run command, live deferred)", () => {
+    render(<Avp2GovernedAccessCard />);
+    const note = screen.getByTestId("avp2-bridge-note").textContent ?? "";
+    expect(note).toContain("npm run e2e:otzar-avp2 -- --dry-run --json");
+    expect(note).toMatch(/Live-local execution requires an explicit operator bridge/i);
   });
 });

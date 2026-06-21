@@ -87,6 +87,57 @@ opens no socket, and writes nothing externally. There are no send/execute contro
 card. The actual local runner invocation is deferred to **OTZAR-E2E-2** (a safe local
 bridge that runs `--dry-run --json` or consumes a provided result file).
 
+## Local runner bridge (OTZAR-E2E-2)
+
+`src/lib/avp2/e2e-runner-bridge.ts` is a **pure, dependency-injected** bridge that runs the
+niov-avp runner in **dry-run** mode or consumes a result file it already wrote. It imports
+**no** node built-ins, so it never leaks `child_process`/`fs` into the browser bundle; the
+real node implementations live in `src/lib/avp2/e2e-runner-node.ts` (`nodeProcessRunner`,
+`nodeFileReader`) and are imported only by a Node/Tauri sidecar or a CLI — never by React.
+
+### Dry-run command
+
+The bridge builds a **fixed** command — never an arbitrary shell string:
+
+```
+npm run e2e:otzar-avp2 -- --dry-run --json     # cwd = <avpRepoPath>
+```
+
+`buildAvp2RunnerCommand` returns `{ command: "npm", args: [...fixed], cwd }` for execution
+with `execFile` (no shell). `runAvp2RunnerDryRun(config, { runProcess })` runs it via the
+injected runner and parses stdout through `parseAvp2RunnerStdout`
+(`validateAvp2EndToEndResult` + marker scan).
+
+### Result-file mode
+
+`loadAvp2RunnerResultFile(path, { readFile })` / `consumeAvp2GovernedAccessResultFile` read a
+result file niov-avp wrote (e.g. `/tmp/avp2-e2e-result.json`), **read-only**: never deletes
+or modifies it, refuses protected paths (`.git/`, `package.json`, `package-lock.json`,
+`.env`, `.ssh/`) and unsafe paths, then parses + re-validates it.
+
+### Why live-local invocation is not default
+
+Live-local (`--strict`) is **refused** by this bridge (`LIVE_LOCAL_NOT_ALLOWED`). A real
+local Foundation run is operator-gated and deferred to **OTZAR-E2E-3** (a secure local
+bridge). The card shows "Runner bridge ready: dry-run command available" and that live-local
+needs an explicit operator bridge.
+
+### Safety rules
+
+- Dry-run only; fixed command + args; no arbitrary command/shell string.
+- `execFile` (no shell), fixed `cwd`, hard timeout, bounded buffer.
+- Config guarded against shell metacharacters / secret markers in repo/intent/result paths.
+- Marker scan over stdout **and** stderr; raw stderr is **never** echoed (a token in stderr
+  fails closed with a code only).
+- Result-file consumption is read-only and refuses protected/unsafe paths.
+- **No external writes, no hosted network, no production, no real payment, no secrets.**
+
+### How this connects to niov-avp
+
+The bridge targets niov-avp's `npm run e2e:otzar-avp2` (`apps/publisher-gateway/src/avp2-e2e-runner.ts`).
+Otzar later invokes it through a **secure local bridge** (Tauri sidecar / CLI providing
+`nodeProcessRunner`); the browser never spawns a process directly.
+
 ## What is real now
 
 - Otzar can build + validate a safe `AVP2_END_TO_END_INTENT`.

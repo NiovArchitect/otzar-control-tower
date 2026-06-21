@@ -18,6 +18,10 @@ import {
   type CreateIntentInput, type E2EIntent, type E2EResult, type Issue,
 } from "@/lib/avp2/e2e-contracts";
 import { mapAvp2ResultToOtzarArtifact, type OtzarAvp2Artifact } from "@/lib/avp2/e2e-display";
+import {
+  runAvp2RunnerDryRun, loadAvp2RunnerResultFile,
+  type RunnerConfig, type RunDeps, type ReadDeps,
+} from "@/lib/avp2/e2e-runner-bridge";
 
 export type RunnerMode = "dry-run" | "live-local";
 
@@ -83,6 +87,35 @@ export function mapAvp2RunnerResultToWorkArtifact(input: string | unknown): Work
 
 // Re-export for convenience to surfaces that only need the intent helpers.
 export { createAvp2GovernedAccessIntent, validateAvp2EndToEndIntent };
+
+// ── Local runner bridge (OTZAR-E2E-2) ────────────────────────────────────────
+
+export interface BridgeOutcome {
+  ok: boolean;
+  result?: E2EResult;
+  artifact?: OtzarAvp2Artifact;
+  errors: string[];
+}
+
+// WHAT: invoke the niov-avp runner in DRY-RUN mode through the injected process runner,
+//       then re-validate + map the result. Dry-run only — never a live-local run, never an
+//       external write, never a hosted call. Caller injects the process runner (Node/Tauri).
+export async function invokeAvp2GovernedAccessDryRun(
+  config: Omit<RunnerConfig, "mode">,
+  deps: RunDeps,
+): Promise<BridgeOutcome> {
+  const parsed = await runAvp2RunnerDryRun({ ...config, mode: "dry-run", allowLiveLocal: false }, deps);
+  if (!parsed.ok || parsed.result === undefined) return { ok: false, errors: parsed.errors };
+  return { ok: true, result: parsed.result, artifact: mapAvp2ResultToOtzarArtifact(parsed.result), errors: [] };
+}
+
+// WHAT: consume a result file niov-avp already wrote (read-only), re-validate, and map it.
+//       Caller injects the file reader. Never deletes/modifies the file; refuses unsafe paths.
+export function consumeAvp2GovernedAccessResultFile(path: string, deps: ReadDeps): BridgeOutcome {
+  const parsed = loadAvp2RunnerResultFile(path, deps);
+  if (!parsed.ok || parsed.result === undefined) return { ok: false, errors: parsed.errors };
+  return { ok: true, result: parsed.result, artifact: mapAvp2ResultToOtzarArtifact(parsed.result), errors: [] };
+}
 
 // ── Safe demo constants (mirror the niov-avp fixtures; no secrets, no raw content) ──
 

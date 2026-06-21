@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mapAvp2ResultToOtzarArtifact } from "@/lib/avp2/e2e-display";
 import { DEMO_LOCAL_LIVE_RESULT } from "@/lib/connectors/avp2-governed-access";
+import { AVP2_DRY_RUN_COMMAND } from "@/lib/avp2/e2e-runner-bridge";
 import type { E2EResult, StepStatus } from "@/lib/avp2/e2e-contracts";
 
 function statusVariant(s: "PASS" | "SKIP" | "FAIL"): "default" | "warning" | "destructive" {
@@ -75,6 +76,11 @@ export function Avp2GovernedAccessCard({ result }: { result?: E2EResult }): JSX.
               <li key={path}><span className="text-muted-foreground">{label}:</span> <code>{path}</code></li>
             ))}
           </ul>
+        </div>
+
+        <div className="rounded-md border border-dashed border-border p-3 text-[11px] text-muted-foreground" data-testid="avp2-bridge-note">
+          <div>Runner bridge ready: dry-run command available — <code>{AVP2_DRY_RUN_COMMAND}</code></div>
+          <div>Live-local execution requires an explicit operator bridge in the next phase.</div>
         </div>
 
         <p className="text-[11px] text-muted-foreground">
