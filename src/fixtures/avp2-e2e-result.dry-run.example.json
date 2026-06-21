@@ -1,0 +1,38 @@
+{
+  "result_schema": "AVP2_END_TO_END_RESULT",
+  "result_schema_version": "0.1",
+  "origin": "otzar",
+  "status": "SKIP",
+  "provenance": "DRY_RUN",
+  "proof_level": null,
+  "steps": {
+    "intent_created": "PASS",
+    "foundation_seed_or_existing_listing": "SKIP",
+    "discover": "SKIP",
+    "quote": "SKIP",
+    "accept": "SKIP",
+    "access_receipt": "SKIP",
+    "proof": "SKIP",
+    "evidence_pack": "SKIP",
+    "federation_cloud_visible": "SKIP"
+  },
+  "summary": {
+    "discovered": false,
+    "quoted": false,
+    "accepted": false,
+    "accessed": false,
+    "proof_resolved": false,
+    "delivered": false
+  },
+  "federation_cloud": {
+    "evidence_route": "/avp2/evidence",
+    "timeline_route": "/avp2/evidence/timeline",
+    "registry_route": "/avp2/registry",
+    "e2e_route": "/avp2/e2e"
+  },
+  "otzar_display": {
+    "title": "Governed access rehearsed (dry-run)",
+    "message": "Intent is valid. This is a dry-run — NOT live proof. No Foundation call was made.",
+    "next_action": "Run without --dry-run against a local Foundation to produce proof."
+  }
+}

@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { Avp2GovernedAccessCard } from "@/components/otzar/Avp2GovernedAccessCard";
 
 // ── Safe closed-vocab label helpers (never raw tokens / UUIDs) ──────────────
 
@@ -245,6 +246,8 @@ export function MarketplaceDiscoveryPage(): JSX.Element {
         title="Marketplace"
         description="Listings other organizations have opted into sharing across orgs. Browse safe metadata only — access stays governed by the provider."
       />
+
+      <Avp2GovernedAccessCard />
 
       <div className="flex flex-wrap gap-2" data-testid="discovery-type-filters">
         {TYPE_FILTERS.map((f) => (

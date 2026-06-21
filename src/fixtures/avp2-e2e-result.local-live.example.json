@@ -1,0 +1,38 @@
+{
+  "result_schema": "AVP2_END_TO_END_RESULT",
+  "result_schema_version": "0.1",
+  "origin": "otzar",
+  "status": "PASS",
+  "provenance": "LIVE_LOCAL_RUN",
+  "proof_level": "LOCAL_LIVE",
+  "steps": {
+    "intent_created": "PASS",
+    "foundation_seed_or_existing_listing": "PASS",
+    "discover": "PASS",
+    "quote": "PASS",
+    "accept": "PASS",
+    "access_receipt": "PASS",
+    "proof": "PASS",
+    "evidence_pack": "PASS",
+    "federation_cloud_visible": "SKIP"
+  },
+  "summary": {
+    "discovered": true,
+    "quoted": true,
+    "accepted": true,
+    "accessed": true,
+    "proof_resolved": true,
+    "delivered": false
+  },
+  "federation_cloud": {
+    "evidence_route": "/avp2/evidence",
+    "timeline_route": "/avp2/evidence/timeline",
+    "registry_route": "/avp2/registry",
+    "e2e_route": "/avp2/e2e"
+  },
+  "otzar_display": {
+    "title": "Governed access completed",
+    "message": "AVP² quote, accept, access receipt, and proof resolved through Foundation. The content itself was not delivered — only a proof reference.",
+    "next_action": "Review evidence in Federation Cloud."
+  }
+}

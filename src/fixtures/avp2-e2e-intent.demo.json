@@ -1,0 +1,21 @@
+{
+  "intent_schema": "AVP2_END_TO_END_INTENT",
+  "intent_schema_version": "0.1",
+  "origin": "otzar",
+  "intent_type": "REQUEST_GOVERNED_ACCESS",
+  "requested_resource": {
+    "gateway_id": "demo-publisher-gateway",
+    "resource_id": "demo-content-fragment",
+    "resource_type": "CONTENT_FRAGMENT",
+    "selector": "paragraph_range:12-15"
+  },
+  "governance": {
+    "foundation_backed": true,
+    "quote_required": true,
+    "proof_required": true,
+    "real_payment": false,
+    "public_listing": false,
+    "production_data": false,
+    "private_user_data": false
+  }
+}
