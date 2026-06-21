@@ -131,6 +131,7 @@ import {
   speechRecognitionErrorCopy,
   transcribeErrorCopy,
 } from "@/lib/voice/diagnostics";
+import { describeAmbientVoiceMode } from "@/lib/voice/ambient-voice-capture";
 
 /**
  * The ambient Otzar dock. Mount once per authenticated employee
@@ -2617,7 +2618,24 @@ export function AmbientOtzarBar(): JSX.Element {
             </label>
           </div>
 
-          <p className="text-[10px] text-muted-foreground">
+          <p
+            className="text-[10px] text-muted-foreground"
+            // Phase OTZAR-RETURN-3 — honest capture copy from the shared ambient
+            // model, on hover. Only for the browser/text path: the desktop Tauri
+            // path transcribes via the backend, so the model's "never raw audio"
+            // copy does not describe it (the visible "no raw audio is stored"
+            // line below stays accurate for both).
+            title={
+              useDesktopCapture
+                ? undefined
+                : describeAmbientVoiceMode({
+                    device_mode: "desktop_browser",
+                    capture_mode: recognition.supported ? "browser_stt" : "text_only",
+                    status: recognition.supported ? "ready" : "unsupported",
+                    browserRecognitionSupported: recognition.supported,
+                  })
+            }
+          >
             Voice input:{" "}
             {useDesktopCapture
               ? "desktop mic → transcription"

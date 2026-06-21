@@ -44,6 +44,14 @@ import {
   micCopyFor,
   speechRecognitionErrorCopy,
 } from "@/lib/voice/diagnostics";
+import {
+  describeAmbientVoiceMode,
+  inferVoiceIntentRoute,
+  ambientVoiceDeviceOptions,
+  ambientVoiceRouteLabel,
+  type AmbientVoiceCaptureMode,
+  type AmbientVoiceCaptureStatus,
+} from "@/lib/voice/ambient-voice-capture";
 
 const TEST_VOICE_PHRASE =
   "Otzar voice is active. I can speak responses back to you.";
@@ -165,6 +173,32 @@ export function Voice() {
   const PermIcon = toneIcon(micCopy.tone);
   const response = intent.response;
 
+  // Phase OTZAR-RETURN-3 — honest ambient capture readiness, sourced from the
+  // shared model so the Voice page and ambient dock describe voice identically.
+  // The current shell is the desktop browser; wearable/tray modes are surfaced
+  // as planned-only (no fake "connect" affordance).
+  const providerBlocked =
+    recognition.error === "service-not-allowed" || recognition.error === "not-allowed";
+  const captureMode: AmbientVoiceCaptureMode = recognition.supported
+    ? "browser_stt"
+    : "text_only";
+  const captureStatus: AmbientVoiceCaptureStatus = providerBlocked
+    ? "provider_blocked"
+    : recognition.supported
+      ? "ready"
+      : "unsupported";
+  const ambientCaptureCopy = describeAmbientVoiceMode({
+    device_mode: "desktop_browser",
+    capture_mode: captureMode,
+    status: captureStatus,
+    browserRecognitionSupported: recognition.supported,
+    providerBlocked,
+  });
+  const trimmedDraft = draft.trim();
+  const routeHint =
+    trimmedDraft.length > 0 ? inferVoiceIntentRoute(trimmedDraft) : null;
+  const deviceOptions = ambientVoiceDeviceOptions();
+
   let status = "Ambient. Click the microphone or type to Otzar.";
   let statusClass = "text-muted-foreground";
   if (recognition.listening) {
@@ -282,6 +316,61 @@ export function Voice() {
               {speechRecognitionErrorCopy(recognition.error)}
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="ambient-capture-card">
+        <CardHeader>
+          <CardTitle className="text-base">Ambient capture readiness</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="ambient-capture-copy"
+          >
+            {ambientCaptureCopy}
+          </p>
+
+          {routeHint !== null ? (
+            <div
+              className="flex items-center gap-2 text-xs"
+              data-testid="ambient-route-hint"
+            >
+              <span className="text-muted-foreground">Intent route:</span>
+              <Badge variant="outline" data-testid="ambient-route-hint-value">
+                {ambientVoiceRouteLabel(routeHint)}
+              </Badge>
+              <span className="text-muted-foreground">
+                A local hint only — Otzar still confirms before any action.
+              </span>
+            </div>
+          ) : null}
+
+          <div className="space-y-1" data-testid="ambient-device-readiness">
+            <div className="text-xs font-medium text-foreground/80">
+              Device readiness
+            </div>
+            <ul className="space-y-1">
+              {deviceOptions.map((d) => (
+                <li
+                  key={d.mode}
+                  className="flex items-start gap-2 text-xs"
+                  data-testid={`ambient-device-${d.mode}`}
+                >
+                  <Badge
+                    variant={d.availability === "current" ? "default" : "secondary"}
+                    className="shrink-0"
+                  >
+                    {d.availability === "current" ? "Available" : "Planned"}
+                  </Badge>
+                  <span>
+                    <span className="font-medium text-foreground">{d.label}</span>
+                    <span className="text-muted-foreground"> — {d.honest_status}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </CardContent>
       </Card>
 
