@@ -89,8 +89,12 @@ describe("MeetingCaptures page", () => {
     await waitFor(() => {
       expect(screen.getByTestId("meeting-captures-page")).toBeInTheDocument();
     });
+    // Pre-existing flake fix (OTZAR-RETURN-2): the empty-state copy renders only
+    // after the captures query resolves, so assert it with the async findByText
+    // (polls) instead of a synchronous getByText that races the in-flight query
+    // under full-suite load. Not related to the InboxThread/Conversations fixes.
     expect(
-      screen.getByText("No captures yet. Use the form above to record one."),
+      await screen.findByText("No captures yet. Use the form above to record one."),
     ).toBeInTheDocument();
   });
 

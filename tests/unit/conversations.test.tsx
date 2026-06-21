@@ -9,6 +9,7 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { Conversations } from "@/pages/app/Conversations";
@@ -35,7 +36,9 @@ function renderConversations() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <Conversations />
+      <MemoryRouter>
+        <Conversations />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -94,6 +97,35 @@ describe("Conversations (employee Otzar)", () => {
     expect(
       await screen.findByTestId("conversations-empty"),
     ).toBeInTheDocument();
+  });
+
+  it("empty state guides the user with real next actions and does not overclaim", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/conversations`, async () =>
+        HttpResponse.json(
+          { ok: true, items: [], total: 0, has_more: false },
+          { status: 200 },
+        ),
+      ),
+    );
+    renderConversations();
+    const empty = await screen.findByTestId("conversations-empty");
+
+    // Guides without overclaiming: it is honest that this is session METADATA,
+    // not saved transcripts/history (the page's governance notice forbids that).
+    expect(empty).toHaveTextContent(/session metadata appears here/i);
+    expect(empty).not.toHaveTextContent(/conversation history will appear/i);
+    expect(empty).not.toHaveTextContent(/transcript/i);
+    // Does not pretend voice works (Whisper/STT is blocked elsewhere).
+    expect(empty).not.toHaveTextContent(/voice/i);
+
+    // Offers ONLY real, existing employee routes — no invented /app/notifications.
+    const actions = within(empty).getByTestId("conversations-empty-actions");
+    const hrefs = within(actions)
+      .getAllByRole("link")
+      .map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual(["/app/chat", "/app/my-twin", "/app/comms"]);
+    expect(hrefs).not.toContain("/app/notifications");
   });
 
   it("opens the look-back drawer from a row and shows the close summary (no raw ids)", async () => {

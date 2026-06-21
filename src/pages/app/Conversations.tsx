@@ -13,6 +13,7 @@
 // returns the ApiResult as-is so the page can branch on ok/status.
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -131,10 +132,27 @@ export function Conversations() {
       {res && res.ok && items.length === 0 && (
         <Card>
           <CardContent
-            className="py-6 text-sm text-muted-foreground"
+            className="space-y-3 py-6 text-sm text-muted-foreground"
             data-testid="conversations-empty"
           >
-            No conversation sessions yet.
+            <p className="font-medium text-foreground">
+              No conversation sessions yet.
+            </p>
+            <p>
+              Session metadata appears here when you start or continue work with
+              your AI teammate — one row per session, for continuity.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1" data-testid="conversations-empty-actions">
+              <Button asChild size="sm" variant="default">
+                <Link to="/app/chat">Talk with your AI teammate</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/app/my-twin">Ask your Twin</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/app/comms">Open Comms</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

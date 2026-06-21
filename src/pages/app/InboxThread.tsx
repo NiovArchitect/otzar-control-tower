@@ -21,6 +21,42 @@ import { emitWorkStateChanged, useWorkStateChanged } from "@/lib/events/work-sta
 
 type Phase = "loading" | "ready" | "not-found" | "error";
 
+// Phase OTZAR-RETURN-2 — there is no GET /notifications/:id by-id route at
+// Foundation (only list + read/reply/dismiss), so the route param is resolved
+// by paging the self-scoped inbox until the notification is found. This is a
+// BOUNDED scan: it stops the instant the item is found (the common recent case
+// is one round-trip), stops once the whole inbox is covered (total), and is
+// hard-capped at MAX_RESOLVE_PAGES so it can never loop — even if a backend
+// ignores `page` and returns the same slice. A page that FAILS to load is a
+// fetch error, NOT a "gone" signal (never falsely report a thread missing).
+const RESOLVE_PAGE_SIZE = 100;
+const MAX_RESOLVE_PAGES = 20;
+
+async function resolveNotification(
+  id: string,
+  isCancelled: () => boolean,
+): Promise<
+  | { kind: "found"; item: SafeNotificationView }
+  | { kind: "not-found" }
+  | { kind: "error" }
+> {
+  let page = 1;
+  let total = Number.POSITIVE_INFINITY;
+  while (page <= MAX_RESOLVE_PAGES && (page - 1) * RESOLVE_PAGE_SIZE < total) {
+    const r = await api.notifications.list({ page, page_size: RESOLVE_PAGE_SIZE });
+    if (isCancelled()) return { kind: "not-found" }; // ignored by caller on cancel
+    if (!r.ok) return { kind: "error" };
+    total = r.data.total;
+    const hit = r.data.notifications.find((n) => n.notification_id === id);
+    if (hit !== undefined) return { kind: "found", item: hit };
+    // Defensive: an empty page means we've run past the end — stop even if the
+    // reported total disagrees with what the backend actually returns.
+    if (r.data.notifications.length === 0) break;
+    page += 1;
+  }
+  return { kind: "not-found" };
+}
+
 export function InboxThread(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -37,21 +73,27 @@ export function InboxThread(): JSX.Element {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const r = await api.notifications.list({ page_size: 100 });
-      if (cancelled) return;
-      if (!r.ok) {
-        setPhase("error");
-        return;
-      }
-      const found = r.data.notifications.find((n) => n.notification_id === id) ?? null;
-      if (found === null) {
+      if (id === undefined) {
         setPhase("not-found");
         return;
       }
+      const resolved = await resolveNotification(id, () => cancelled);
+      if (cancelled) return;
+      if (resolved.kind === "error") {
+        setPhase("error");
+        return;
+      }
+      if (resolved.kind === "not-found") {
+        setPhase("not-found");
+        return;
+      }
+      const found = resolved.item;
       setItem(found);
       setPhase("ready");
       if (found.read_at === null) void api.notifications.markRead(found.notification_id);
-      // Load the full persistent thread with this sender (both directions).
+      // Load the full persistent thread with this sender (both directions). This
+      // entity-keyed thread call is UNCHANGED — it is what preserves the
+      // Sadeil <-> David relationship threading regardless of inbox page.
       if (found.sender != null) {
         const t = await api.workOs.thread(found.sender.entity_id);
         if (!cancelled && t.ok && t.data.ok && t.data.messages != null) {
@@ -117,8 +159,11 @@ export function InboxThread(): JSX.Element {
   if (phase === "not-found" || item === null) {
     return (
       <div className="p-4 text-sm text-muted-foreground" data-testid="inbox-thread-not-found">
-        This message is no longer in your inbox.
-        <div className="mt-2">
+        This thread isn't available in your current inbox view.
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => navigate("/app/comms")}>
+            Open Comms
+          </Button>
           <Button variant="outline" onClick={() => navigate("/app/my-work")}>
             Back to My Work
           </Button>
