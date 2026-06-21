@@ -24,7 +24,7 @@ import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { viewWhyFromWatcher } from "@/lib/work-os/view-why";
 import { entityLabel } from "@/lib/identity/canonical-entity";
-import { useWorkStateChanged } from "@/lib/events/work-state";
+import { emitWorkStateChanged, useWorkStateChanged } from "@/lib/events/work-state";
 
 function isRuntimeIssue(e: WorkLedgerEntryView): boolean {
   return e.blind_spot_reason !== undefined;
@@ -57,6 +57,38 @@ function ageDays(hours: number | null): string | null {
 
 function WatcherCard({ finding }: { finding: WatcherFinding }): JSX.Element {
   const [whyOpen, setWhyOpen] = useState(false);
+  // Phase OTZAR-RETURN-1 — when Otzar's risk feed recommends "mark complete"
+  // AND it knows the exact ledger entry, the recommendation becomes an
+  // actionable button instead of dead text. Reuses the same governed
+  // PATCH-ledger path as WorkLedgerItem. WatcherFinding carries no
+  // can_complete hint, so we let the backend re-enforce authority and surface
+  // any refusal inline — the control self-corrects rather than dead-ending.
+  const [completing, setCompleting] = useState(false);
+  const [completeErr, setCompleteErr] = useState<string | null>(null);
+  const completableLedgerId =
+    finding.recommendation.action_kind === "mark_complete" &&
+    finding.source.ledger_entry_id !== null
+      ? finding.source.ledger_entry_id
+      : null;
+
+  async function markComplete(ledgerEntryId: string): Promise<void> {
+    setCompleting(true);
+    setCompleteErr(null);
+    const r = await api.workOs.patchLedger(ledgerEntryId, { status: "EXECUTED" });
+    setCompleting(false);
+    if (r.ok && r.data.ok) {
+      // These events trigger the page's own useWorkStateChanged reload, and the
+      // requester's waiting-on clears across surfaces (My Work, Team Work).
+      emitWorkStateChanged({ type: "TASK_COMPLETED", ledger_entry_id: ledgerEntryId });
+      emitWorkStateChanged({ type: "LEDGER_UPDATED", ledger_entry_id: ledgerEntryId });
+      emitWorkStateChanged({ type: "WAITING_ON_CHANGED" });
+    } else {
+      setCompleteErr(
+        r.ok && r.data.message ? r.data.message : "Couldn't mark complete right now.",
+      );
+    }
+  }
+
   const owner = finding.owner !== null ? entityLabel(finding.owner.display_name) : null;
   const requester = finding.requester !== null ? entityLabel(finding.requester.display_name) : null;
   const related =
@@ -100,10 +132,34 @@ function WatcherCard({ finding }: { finding: WatcherFinding }): JSX.Element {
         {age !== null ? ` · ${age}` : ""}
         {finding.detection.due_at !== null ? ` · due ${finding.detection.due_at.slice(0, 10)}` : ""}
       </div>
-      <div className="mt-0.5 text-[11px]" data-testid="blind-spot-recommended">
-        <span className="text-muted-foreground">Recommended:</span>{" "}
-        {finding.recommendation.next_action}
+      <div
+        className="mt-0.5 flex items-center justify-between gap-2 text-[11px]"
+        data-testid="blind-spot-recommended"
+      >
+        <span>
+          <span className="text-muted-foreground">Recommended:</span>{" "}
+          {finding.recommendation.next_action}
+        </span>
+        {completableLedgerId !== null ? (
+          <button
+            type="button"
+            className="shrink-0 rounded border border-emerald-500/50 px-1.5 text-[10px] text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50"
+            data-testid="blind-spot-mark-complete"
+            disabled={completing}
+            onClick={() => void markComplete(completableLedgerId)}
+          >
+            {completing ? "Marking…" : "Mark complete"}
+          </button>
+        ) : null}
       </div>
+      {completeErr !== null ? (
+        <p
+          className="mt-0.5 text-[10px] text-amber-600"
+          data-testid="blind-spot-complete-error"
+        >
+          {completeErr}
+        </p>
+      ) : null}
       {whyOpen ? (
         <div
           className="mt-1 rounded bg-muted/40 p-1.5 text-[11px] text-muted-foreground"

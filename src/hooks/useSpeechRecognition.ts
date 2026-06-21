@@ -11,9 +11,12 @@
 //          falls back to push-to-talk text entry.
 //
 // PRIVACY INVARIANT:
-//   - No audio is streamed off the client. The browser performs
-//     STT locally (or via the OS speech service); only the final
-//     transcript string ever crosses an HTTP boundary.
+//   - Otzar never receives raw audio — only the final transcript
+//     string crosses the HTTP boundary to Otzar. NOTE: the browser's
+//     own Web Speech API may stream microphone audio to its vendor's
+//     speech service (e.g. Google / Apple) to produce that transcript;
+//     that is the browser's path, outside Otzar's boundary. This hook
+//     does not perform on-device-only STT and must not claim to.
 //   - The hook does NOT save the transcript to localStorage,
 //     IndexedDB, or any persistent client storage. The transcript
 //     lives in component state only.

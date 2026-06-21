@@ -271,7 +271,7 @@ export function Voice() {
               </div>
               <div className="text-xs text-muted-foreground">
                 {recognition.supported
-                  ? "Browser speech-to-text runs locally; only the transcript string is sent to Otzar."
+                  ? "Your browser transcribes your speech (some browsers use their provider's speech service to do this). Otzar only ever receives the text, never the audio."
                   : "Voice input unavailable in this shell. Type to Otzar."}
               </div>
             </div>
@@ -424,7 +424,7 @@ export function Voice() {
             </div>
             <p className="text-xs text-muted-foreground">
               Voice input:{" "}
-              {recognition.supported ? "browser STT (local)" : "text only"} ·
+              {recognition.supported ? "browser STT" : "text only"} ·
               Voice output:{" "}
               {synthesis.supported
                 ? synthesis.muted

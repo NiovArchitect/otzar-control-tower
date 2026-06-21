@@ -19,8 +19,11 @@
 //     lightweight badges + deep-links into the existing pages.
 //
 // PRIVACY INVARIANT (load-bearing):
-//   - No raw audio crosses the HTTP boundary. Browser STT is
-//     local; only the resulting transcript STRING is sent.
+//   - No raw audio crosses the boundary to Otzar; only the resulting
+//     transcript STRING is sent. NOTE: the browser's own Web Speech API
+//     may stream audio to its vendor's speech service to PRODUCE that
+//     transcript — that is the browser's path, outside Otzar's boundary.
+//     We never claim on-device-only transcription.
 //   - No transcript or response is written to localStorage,
 //     IndexedDB, or any persistent client store.
 //   - No "live Sesame voice" claim is made. The bar shows
@@ -2619,7 +2622,7 @@ export function AmbientOtzarBar(): JSX.Element {
             {useDesktopCapture
               ? "desktop mic → transcription"
               : recognition.supported
-                ? "browser STT (local)"
+                ? "browser STT"
                 : "text only"}
             {" · "}
             Voice output:{" "}

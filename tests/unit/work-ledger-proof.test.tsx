@@ -15,7 +15,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import { BlindSpots } from "@/pages/app/BlindSpots";
-import type { WorkLedgerEntryView } from "@/lib/types/foundation";
+import type { WorkLedgerEntryView, WatcherFinding, WatcherActionKind } from "@/lib/types/foundation";
 
 const API = "http://localhost:3000/api/v1";
 
@@ -137,5 +137,119 @@ describe("BlindSpots runtime-issues section", () => {
     await screen.findByTestId("blind-spots-runtime-issues");
     expect(screen.getByTestId("blind-spots-runtime-issues")).toBeTruthy();
     expect(screen.getByTestId("blind-spots-status")).toBeTruthy();
+  });
+});
+
+// Phase OTZAR-RETURN-1 — a watcher finding whose recommendation is
+// "mark_complete" AND that carries a ledger_entry_id renders an actionable
+// "Mark complete" button (not dead text); clicking it PATCHes the ledger and
+// the completed item drops out of the feed. A finding without a completable
+// ledger keeps the recommendation as plain text.
+function finding(over: Partial<WatcherFinding> = {}): WatcherFinding {
+  return {
+    finding_id: "f-1",
+    watcher_type: "OVERDUE_WORK",
+    severity: "HIGH",
+    title: "Overdue: ship the deck",
+    summary: "This was due yesterday.",
+    org_id: "org-1",
+    owner: null,
+    requester: null,
+    target: null,
+    related_person: null,
+    source: {
+      source_system: "work_ledger",
+      ledger_entry_id: "led-9",
+      source_message_id: null,
+      source_thread_key: null,
+      relationship_key: null,
+    },
+    detection: {
+      rule_id: "overdue",
+      detected_at: "2026-06-20T00:00:00.000Z",
+      age_hours: 48,
+      due_at: "2026-06-19",
+      threshold_hours: 24,
+      reason: "past due",
+    },
+    recommendation: { next_action: "Mark this complete", action_kind: "mark_complete" },
+    ...over,
+  };
+}
+
+describe("BlindSpots — mark_complete recommendation becomes an action", () => {
+  it("renders a Mark complete button when action_kind is mark_complete and a ledger entry exists", async () => {
+    server.use(
+      http.get(`${API}/work-os/watchers/feed`, () =>
+        HttpResponse.json({ ok: true, findings: [finding()] }),
+      ),
+      http.get(`${API}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    render(
+      <MemoryRouter>
+        <BlindSpots />
+      </MemoryRouter>,
+    );
+    const btn = await screen.findByTestId("blind-spot-mark-complete");
+    expect(btn).toBeTruthy();
+    expect(btn.textContent).toContain("Mark complete");
+  });
+
+  it("keeps the recommendation as plain text when it is not completable", async () => {
+    server.use(
+      http.get(`${API}/work-os/watchers/feed`, () =>
+        HttpResponse.json({
+          ok: true,
+          findings: [
+            // no completable ledger: a different verb, and no ledger entry.
+            finding({
+              recommendation: {
+                next_action: "Nudge the owner",
+                action_kind: "nudge_owner" as WatcherActionKind,
+              },
+              source: {
+                source_system: "thread",
+                ledger_entry_id: null,
+                source_message_id: "m-1",
+                source_thread_key: "t-1",
+                relationship_key: null,
+              },
+            }),
+          ],
+        }),
+      ),
+      http.get(`${API}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+    );
+    render(
+      <MemoryRouter>
+        <BlindSpots />
+      </MemoryRouter>,
+    );
+    await screen.findByTestId("blind-spot-recommended");
+    expect(screen.queryByTestId("blind-spot-mark-complete")).toBeNull();
+  });
+
+  it("clicking Mark complete PATCHes the ledger to EXECUTED", async () => {
+    let patched: { id: string; status: string } | null = null;
+    server.use(
+      http.get(`${API}/work-os/watchers/feed`, () =>
+        HttpResponse.json({ ok: true, findings: [finding()] }),
+      ),
+      http.get(`${API}/work-os/blind-spots`, () => HttpResponse.json({ ok: true, items: [] })),
+      http.patch(`${API}/work-os/ledger/:id`, async ({ params, request }) => {
+        const body = (await request.json()) as { status?: string };
+        patched = { id: String(params.id), status: body.status ?? "" };
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <BlindSpots />
+      </MemoryRouter>,
+    );
+    const btn = await screen.findByTestId("blind-spot-mark-complete");
+    fireEvent.click(btn);
+    await waitFor(() => expect(patched).not.toBeNull());
+    expect(patched).toEqual({ id: "led-9", status: "EXECUTED" });
   });
 });

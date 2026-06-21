@@ -64,10 +64,12 @@ describe("notificationRoute — real destinations, safe fallback", () => {
       notificationRoute({ action_id: "act-123", notification_class: "ACTION_PROPOSED" }),
     ).toBe("/app/action-center?focus=act-123");
   });
-  it("connector class → Connector Rails", () => {
+  it("connector class → employee Connector Health (not admin Connector Rails)", () => {
+    // Phase OTZAR-RETURN-1 — the employee chrome must never route a normal
+    // employee into the admin-only Control Tower (AuthGuard → "Access Denied").
     expect(
       notificationRoute({ action_id: null, notification_class: "CONNECTOR_ISSUE" }),
-    ).toBe("/connector-rails");
+    ).toBe("/app/connector-health");
   });
   it("collaboration class → Collaboration", () => {
     expect(

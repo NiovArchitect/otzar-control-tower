@@ -89,3 +89,59 @@ describe("notificationRoute — Phase 1304-A review + marketplace routing", () =
     ).toBe("/app/action-center?focus=act-1");
   });
 });
+
+describe("notificationRoute — Phase OTZAR-RETURN-1: employee-tree routes only", () => {
+  // These classes previously routed to org-admin Control Tower paths
+  // (/connector-rails, /workflows, /system-health) which sit under AuthGuard
+  // (can_admin_org). A normal employee clicking them from the employee chrome
+  // hit the hard "Access Denied" screen — a dead-end. They must now resolve to
+  // employee (/app/*) routes.
+  it("a connector/integration notification opens employee Connector Health (NOT admin Connector Rails)", () => {
+    const r = notificationRoute({
+      action_id: null,
+      notification_class: "CONNECTOR_OAUTH_EXPIRED",
+    });
+    expect(r).toBe("/app/connector-health");
+    expect(r).not.toBe("/connector-rails");
+  });
+
+  it("a workflow notification falls through to the employee Action Center (NOT admin Workflows)", () => {
+    const r = notificationRoute({
+      action_id: null,
+      notification_class: "WORKFLOW_RUN_COMPLETED",
+    });
+    expect(r).toBe("/app/action-center");
+    expect(r).not.toBe("/workflows");
+  });
+
+  it("a system/health notification falls through to the employee Action Center (NOT admin System Health)", () => {
+    const r = notificationRoute({
+      action_id: null,
+      notification_class: "SYSTEM_HEALTH_ALERT",
+    });
+    expect(r).toBe("/app/action-center");
+    expect(r).not.toBe("/system-health");
+  });
+
+  it("every mapped class resolves to an employee-tree (/app/*) route", () => {
+    const classes = [
+      "DIRECT_MESSAGE",
+      "CONNECTOR_OAUTH_EXPIRED",
+      "COLLAB_REQUEST",
+      "WORKFLOW_RUN_COMPLETED",
+      "MEETING_REMINDER",
+      "SYSTEM_HEALTH_ALERT",
+      "COMMS_DRAFT_READY",
+      "APPROVAL_REQUEST",
+      "something_unmapped",
+    ];
+    for (const notification_class of classes) {
+      const r = notificationRoute({
+        action_id: null,
+        notification_class,
+        notification_id: "n1",
+      });
+      expect(r.startsWith("/app/")).toBe(true);
+    }
+  });
+});

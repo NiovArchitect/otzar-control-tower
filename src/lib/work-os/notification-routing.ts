@@ -3,9 +3,12 @@
 //          Before this, clicking a notification did nothing (or errored).
 //          This pure resolver maps a SafeNotificationView to a REAL
 //          in-app route: an action/approval → Action Center (focused on
-//          the action), connector issues → Connector Rails, collaboration
-//          → Collaboration, etc. There is always a safe real fallback
-//          (Action Center), so a click never dead-ends and never throws.
+//          the action), connector issues → the employee Connector Health
+//          page, collaboration → Collaboration, etc. Every branch resolves
+//          to an EMPLOYEE-tree (/app/*) route so a click from the employee
+//          chrome never lands on the admin-only "Access Denied" screen.
+//          There is always a safe real fallback (Action Center), so a click
+//          never dead-ends and never throws.
 //          Phase 1304-A adds forward-looking review → /review-center and
 //          Federation Cloud marketplace → /marketplace mappings (inert until
 //          a backend notification generator emits those classes).
@@ -51,12 +54,19 @@ export function notificationRoute(n: NotificationTarget): string {
   if (n.action_id !== null && n.action_id.length > 0) {
     return `/app/action-center?focus=${encodeURIComponent(n.action_id)}`;
   }
+  // Phase OTZAR-RETURN-1 — these branches must land on EMPLOYEE-tree routes
+  // (/app/*). The org-admin Control Tower routes (/connector-rails, /workflows,
+  // /system-health) live under AuthGuard (can_admin_org); a normal employee
+  // clicking such a notification from the employee chrome would hit the hard
+  // "Access Denied" screen — a dead-end. Connector issues map to the employee's
+  // own Connector Health page; workflow/system/health fall through to the
+  // Action Center (the employee Work-OS inbox).
   if (c.includes("connector") || c.includes("oauth") || c.includes("integration"))
-    return "/connector-rails";
+    return "/app/connector-health";
   if (c.includes("collab")) return "/app/collaboration";
-  if (c.includes("workflow")) return "/workflows";
+  if (c.includes("workflow")) return "/app/action-center";
   if (c.includes("meeting") || c.includes("calendar")) return "/app/my-day";
-  if (c.includes("system") || c.includes("health")) return "/system-health";
+  if (c.includes("system") || c.includes("health")) return "/app/action-center";
   if (c.includes("draft") || c.includes("comms"))
     return "/app/comms";
   if (
