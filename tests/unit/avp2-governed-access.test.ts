@@ -24,6 +24,13 @@ const cloneResult = (): E2EResult => JSON.parse(JSON.stringify(DEMO_LOCAL_LIVE_R
 
 describe("AVP² governed access connector", () => {
   // ── Intent ──
+  it("0. client-agnostic: a non-Otzar origin validates with no UNEXPECTED_ORIGIN warning", () => {
+    const intent = { ...createAvp2GovernedAccessIntent(), origin: "agent" as const };
+    const v = validateAvp2EndToEndIntent(intent);
+    expect(v.ok).toBe(true);
+    expect(v.warnings.some((w) => w.code === "UNEXPECTED_ORIGIN")).toBe(false);
+    expect(validateAvp2EndToEndIntent({ ...createAvp2GovernedAccessIntent(), origin: "mystery" }).warnings.some((w) => w.code === "UNEXPECTED_ORIGIN")).toBe(true);
+  });
   it("1. default intent validates", () => expect(validateAvp2EndToEndIntent(createAvp2GovernedAccessIntent()).ok).toBe(true));
   it("2. invalid schema fails", () => expect(validateAvp2EndToEndIntent({ intent_schema: "X" }).ok).toBe(false));
   it("3. real_payment true fails", () => { const i = createAvp2GovernedAccessIntent(); i.governance.real_payment = true; expect(validateAvp2EndToEndIntent(i).errors.some((e) => e.code === "REAL_PAYMENT_TRUE")).toBe(true); });

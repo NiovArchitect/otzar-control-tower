@@ -31,6 +31,11 @@ export const ALLOWED_PROVENANCES: readonly Provenance[] = [
   "LIVE_LOCAL_RUN", "DRY_RUN", "SKIP_NO_LOCAL_FOUNDATION", "FAIL", "EVIDENCE_DERIVED", "REHEARSAL",
 ];
 
+// A client origin — AVP² is client-agnostic. Otzar is ONE optional client; the canonical
+// Foundation → AVP² → Federation Cloud loop runs without it.
+export type E2EOrigin = "client_app" | "otzar" | "agent" | "device" | "gateway_operator";
+export const E2E_ORIGINS: readonly E2EOrigin[] = ["client_app", "otzar", "agent", "device", "gateway_operator"];
+
 export interface E2ERequestedResource {
   gateway_id: string;
   resource_id: string;
@@ -49,7 +54,7 @@ export interface E2EGovernance {
 export interface E2EIntent {
   intent_schema: string;
   intent_schema_version: string;
-  origin: "otzar";
+  origin: E2EOrigin;
   intent_type: "REQUEST_GOVERNED_ACCESS";
   requested_resource: E2ERequestedResource;
   governance: E2EGovernance;
@@ -85,7 +90,7 @@ export interface E2EOtzarDisplay { title: string; message: string; next_action: 
 export interface E2EResult {
   result_schema: string;
   result_schema_version: string;
-  origin: "otzar";
+  origin: E2EOrigin;
   status: OverallStatus;
   provenance: Provenance;
   proof_level: string | null;
@@ -163,7 +168,7 @@ export function validateAvp2EndToEndIntent(input: unknown): Validation {
   const i = input as Partial<E2EIntent>;
   if (i.intent_schema !== E2E_INTENT_SCHEMA) errors.push({ code: "WRONG_SCHEMA", message: `Expected intent_schema ${E2E_INTENT_SCHEMA}.` });
   if (i.intent_schema_version !== E2E_INTENT_VERSION) warnings.push({ code: "UNSUPPORTED_VERSION", message: `Expected version ${E2E_INTENT_VERSION}.` });
-  if (i.origin !== "otzar") warnings.push({ code: "UNEXPECTED_ORIGIN", message: "origin should be 'otzar'." });
+  if (typeof i.origin !== "string" || !(E2E_ORIGINS as readonly string[]).includes(i.origin)) warnings.push({ code: "UNEXPECTED_ORIGIN", message: `origin should be one of: ${E2E_ORIGINS.join(", ")}.` });
   if (i.intent_type !== "REQUEST_GOVERNED_ACCESS") errors.push({ code: "UNSUPPORTED_INTENT_TYPE", message: "intent_type must be REQUEST_GOVERNED_ACCESS." });
 
   const r = (typeof i.requested_resource === "object" && i.requested_resource !== null ? i.requested_resource : {}) as Partial<E2ERequestedResource>;
