@@ -107,12 +107,50 @@ Twin** before the Chat default. An empty transcript is `unknown`.
 The hint is advisory: it is shown as "Intent route: …" and Otzar still confirms
 before any governed action. It performs no external write.
 
-## 5. Future chunks
+## 5. Push-to-talk capture state machine (RETURN-4)
+
+`src/lib/voice/push-to-talk-state.ts` is the first concrete step from the
+readiness model toward real capture: a small, pure, deterministic state machine
+for **explicit, user-initiated** voice capture.
+
+### States
+`idle`, `permission_required`, `permission_denied`, `arming`, `listening`,
+`captured`, `blocked`, `error`. There is deliberately **no** `background` or
+`always_on` state.
+
+### Events
+`ARM`, `PERMISSION_GRANTED`, `PERMISSION_DENIED`, `START_LISTENING`,
+`TRANSCRIPT_CAPTURED`, `STOP`, `CANCEL`, `BLOCKED`, `ERROR`, `RESET`.
+
+### Invariants
+- `pushToTalkTransition(state, event)` is **total** — an unhandled pair returns
+  the state unchanged, never throws.
+- The **only** path into `listening` is `idle → ARM → arming → (permission) →
+  listening`. There is no transition that begins capture in the background or on
+  a wake word. Wake-word / always-on listening is **not** implemented or
+  modelled.
+- `CANCEL` returns to `idle` from any state; `BLOCKED`/`ERROR` are reachable
+  from any state and clear via `RESET`.
+- `pushToTalkCaptureEvent(transcript)` produces a `push_to_talk`
+  `AmbientVoiceCaptureEvent` — reusing the RETURN-3 model, so `audio_sent_to_otzar`
+  stays false and Otzar receives transcript text only.
+- `describePushToTalkState(state)` copy never claims always-on / wake-word
+  listening; the `idle` copy states plainly that there is no background
+  listening.
+
+The Voice page derives this state from real signals (mic support, permission,
+live listening, captured transcript) and renders it as the honest "Capture
+model: Push-to-talk" indicator — making the existing mic button visibly part of
+an explicit, no-background-listening model.
+
+## 6. Future chunks
 
 This layer is the foundation for, in rough order:
 
 1. Desktop tray microphone permission (honest, OS-prompted).
-2. Push-to-talk / wake-state machine.
+2. ~~Push-to-talk / wake-state machine.~~ **Push-to-talk state machine delivered
+   (RETURN-4).** A real wake-state engine remains future and is intentionally
+   not implemented.
 3. Local transcript buffer (in-memory, non-persistent).
 4. Voice approval safety (confirm-before-act for privileged routes).
 5. Wearable adapter interface (transport-agnostic capture input).

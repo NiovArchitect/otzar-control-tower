@@ -52,6 +52,11 @@ import {
   type AmbientVoiceCaptureMode,
   type AmbientVoiceCaptureStatus,
 } from "@/lib/voice/ambient-voice-capture";
+import {
+  describePushToTalkState,
+  pushToTalkStateLabel,
+  type PushToTalkState,
+} from "@/lib/voice/push-to-talk-state";
 
 const TEST_VOICE_PHRASE =
   "Otzar voice is active. I can speak responses back to you.";
@@ -199,6 +204,22 @@ export function Voice() {
     trimmedDraft.length > 0 ? inferVoiceIntentRoute(trimmedDraft) : null;
   const deviceOptions = ambientVoiceDeviceOptions();
 
+  // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
+  // signals (mic support, permission, live listening, captured transcript). The
+  // machine is explicit-only: there is no background/always-on path, which is
+  // exactly what this surface communicates.
+  const pttState: PushToTalkState = !recognition.supported
+    ? "blocked"
+    : micPerm.state === "denied"
+      ? "permission_denied"
+      : recognition.listening
+        ? "listening"
+        : recognition.error !== null
+          ? "error"
+          : recognition.transcript.trim().length > 0
+            ? "captured"
+            : "idle";
+
   let status = "Ambient. Click the microphone or type to Otzar.";
   let statusClass = "text-muted-foreground";
   if (recognition.listening) {
@@ -324,6 +345,26 @@ export function Voice() {
           <CardTitle className="text-base">Ambient capture readiness</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-1" data-testid="ptt-capture-model">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Capture model:</span>
+              <Badge variant="outline">Push-to-talk</Badge>
+              <Badge
+                variant={pttState === "listening" ? "default" : "secondary"}
+                data-testid="ptt-state-badge"
+                data-ptt-state={pttState}
+              >
+                {pushToTalkStateLabel(pttState)}
+              </Badge>
+            </div>
+            <p
+              className="text-xs text-muted-foreground"
+              data-testid="ptt-state-copy"
+            >
+              {describePushToTalkState(pttState)}
+            </p>
+          </div>
+
           <p
             className="text-sm text-muted-foreground"
             data-testid="ambient-capture-copy"

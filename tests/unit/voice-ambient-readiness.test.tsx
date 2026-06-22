@@ -107,4 +107,26 @@ describe("Voice page — ambient capture readiness", () => {
     await screen.findByTestId("ambient-capture-card");
     expect(screen.queryByTestId("ambient-route-hint")).toBeNull();
   });
+
+  it("surfaces the push-to-talk capture model with an honest state, never always-on/wake-word", async () => {
+    renderVoice();
+    const model = await screen.findByTestId("ptt-capture-model");
+    expect(model).toHaveTextContent(/push-to-talk/i);
+    const copy = (within(model).getByTestId("ptt-state-copy").textContent ?? "").toLowerCase();
+    expect(copy.length).toBeGreaterThan(0);
+    expect(copy).not.toContain("always listening");
+    expect(copy).not.toContain("always-on");
+    expect(copy).not.toContain("wake word");
+    expect(copy).not.toContain("wake-word");
+  });
+
+  it("the whole page never claims always-on or wake-word listening", async () => {
+    const { container } = renderVoice();
+    await screen.findByTestId("ptt-capture-model");
+    const text = (container.textContent ?? "").toLowerCase();
+    expect(text).not.toContain("always listening");
+    expect(text).not.toContain("always-on");
+    expect(text).not.toContain("wake word");
+    expect(text).not.toContain("wake-word");
+  });
 });
