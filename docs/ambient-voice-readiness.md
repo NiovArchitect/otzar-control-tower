@@ -181,7 +181,47 @@ safety layer. It is pure and deterministic, performs **no** API call, and makes
 A future chunk can connect a *confirmed* action to a governed Foundation API
 (through the existing audit-aware action pipeline) — but only behind this gate.
 
-## 7. Future chunks
+## 7. Local transcript buffer + confirmed-action handoff scaffold (RETURN-6)
+
+RETURN-6 adds the session memory layer and the inert execution seam.
+
+### Local voice turn buffer — `src/lib/voice/voice-turn-buffer.ts`
+- An **in-memory, session-only** buffer of `VoiceTurn`s. Each turn holds the
+  transcript text, the `AmbientVoiceCaptureEvent`, the `VoiceProposedAction`,
+  and its confirmation state for the current session.
+- It stores **no raw audio** (`raw_audio_present: false`) and **does not
+  persist** (`persisted: false`, `retention: "in_memory_session_only"`). It
+  never writes to localStorage, sessionStorage, IndexedDB, a backend, or the
+  filesystem — it lives in React state and is gone on reload.
+- `external_write_performed` is always false. The buffer is bounded (`max_turns`,
+  default 10, minimum 1) and immutable (`addVoiceTurn` returns a new buffer).
+- `updateVoiceTurnConfirmation` applies confirm/decline/expire locally; a blocked
+  turn can never become executable.
+
+### Confirmed-action handoff scaffold — `src/lib/voice/confirmed-action-handoff.ts`
+- `createConfirmedVoiceActionHandoff(turn)` produces a typed
+  `ConfirmedVoiceActionHandoff` **only** for a genuinely-confirmed
+  `confirm_required` turn; informational / draft-only / blocked / unconfirmed
+  turns get an honest refusal.
+- The handoff is **inert**: `execution_status: "not_executed"`,
+  `external_write_performed: false`, `governed_api_called: false`,
+  `ready_for_future_governed_execution: true`, `requires_governed_runtime: true`.
+  It is the seam a future chunk would connect to the existing governed /
+  audit-aware action runtime — it does not execute now.
+- Copy: "Confirmed locally and ready for future governed execution. No external
+  write has been performed in this build."
+
+### Voice page
+The Voice page holds the live turn in this buffer, shows the latest turn (route,
+safety level, confirmation state) with the retention line ("in-memory session
+only. No raw audio is stored. No external write has been performed."), and — once
+a privileged turn is confirmed locally — displays the inert handoff copy. A
+"Clear local voice turns" button empties the in-memory buffer only. Nothing is
+persisted, no API is called, nothing is sent/approved/completed/created.
+
+This prepares future governed execution without enabling it.
+
+## 8. Future chunks
 
 This layer is the foundation for, in rough order:
 
@@ -189,7 +229,8 @@ This layer is the foundation for, in rough order:
 2. ~~Push-to-talk / wake-state machine.~~ **Push-to-talk state machine delivered
    (RETURN-4).** A real wake-state engine remains future and is intentionally
    not implemented.
-3. Local transcript buffer (in-memory, non-persistent).
+3. ~~Local transcript buffer (in-memory, non-persistent).~~ **In-memory voice
+   turn buffer + inert confirmed-action handoff delivered (RETURN-6).**
 4. ~~Voice approval safety (confirm-before-act for privileged routes).~~
    **Local confirm-before-act delivered (RETURN-5).** Connecting a confirmed
    action to a governed API remains future.

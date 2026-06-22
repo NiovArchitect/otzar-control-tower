@@ -49,9 +49,22 @@ import {
   inferVoiceIntentRoute,
   ambientVoiceDeviceOptions,
   ambientVoiceRouteLabel,
+  createAmbientVoiceCaptureEvent,
   type AmbientVoiceCaptureMode,
   type AmbientVoiceCaptureStatus,
 } from "@/lib/voice/ambient-voice-capture";
+import {
+  createVoiceTurn,
+  createVoiceTurnBuffer,
+  addVoiceTurn,
+  updateVoiceTurnConfirmation,
+  clearVoiceTurnBuffer,
+  latestVoiceTurn,
+} from "@/lib/voice/voice-turn-buffer";
+import {
+  createConfirmedVoiceActionHandoff,
+  describeConfirmedActionHandoff,
+} from "@/lib/voice/confirmed-action-handoff";
 import {
   describePushToTalkState,
   pushToTalkStateLabel,
@@ -59,7 +72,6 @@ import {
 } from "@/lib/voice/push-to-talk-state";
 import {
   createVoiceProposedAction,
-  applyVoiceConfirmation,
   voiceConfirmationCopy,
   voiceSafetyLevelLabel,
 } from "@/lib/voice/voice-approval-safety";
@@ -210,25 +222,67 @@ export function Voice() {
     trimmedDraft.length > 0 ? inferVoiceIntentRoute(trimmedDraft) : null;
   const deviceOptions = ambientVoiceDeviceOptions();
 
-  // Phase OTZAR-RETURN-5 — voice confirm-before-act. The route hint becomes a
-  // DRAFT proposed action; privileged routes require an explicit local confirm.
-  // The decision is LOCAL UI state only — confirming performs NO send/approve/
-  // complete/reminder and NO external write in this build.
-  const [voiceDecision, setVoiceDecision] = useState<
-    null | "confirm" | "decline"
-  >(null);
-  // Reset the local decision whenever the inferred route changes.
+  // Phase OTZAR-RETURN-5/6 — voice confirm-before-act, backed by a LOCAL,
+  // in-memory, session-only voice turn buffer (RETURN-6). The route hint becomes
+  // a draft VoiceProposedAction held as a turn; privileged routes require an
+  // explicit local confirm. Confirming performs NO send/approve/complete/
+  // reminder and NO external write, and NOTHING is persisted (no localStorage /
+  // sessionStorage / IndexedDB / backend / files; no raw audio).
+  const [turnBuffer, setTurnBuffer] = useState(() => createVoiceTurnBuffer());
+  const [turnsDismissed, setTurnsDismissed] = useState(false);
+  // (Re)build the live turn whenever the transcript or route changes. Typing
+  // resets any prior local decision cleanly (a fresh, unconfirmed turn).
   useEffect(() => {
-    setVoiceDecision(null);
-  }, [routeHint]);
+    if (routeHint === null || trimmedDraft.length === 0) return;
+    const capture = createAmbientVoiceCaptureEvent({
+      transcript: trimmedDraft,
+      device_mode: "desktop_browser",
+      capture_mode: "push_to_talk",
+      status: "ready",
+    });
+    const proposed = createVoiceProposedAction({ transcript: trimmedDraft, route: routeHint });
+    const turn = createVoiceTurn({
+      transcript: trimmedDraft,
+      capture_event: capture,
+      proposed_action: proposed,
+      turn_id: `live-${routeHint}`,
+    });
+    setTurnBuffer(addVoiceTurn(createVoiceTurnBuffer(), turn));
+    setTurnsDismissed(false);
+  }, [trimmedDraft, routeHint]);
+
+  // baseProposed is lag-free (derived from the current route); the buffer turn
+  // overlays the confirmation decision once it matches this exact route+text.
   const baseProposed =
     routeHint !== null && trimmedDraft.length > 0
       ? createVoiceProposedAction({ transcript: trimmedDraft, route: routeHint })
       : null;
+  const bufferTurn = turnsDismissed ? null : latestVoiceTurn(turnBuffer);
+  const decisionApplies =
+    bufferTurn !== null &&
+    baseProposed !== null &&
+    bufferTurn.proposed_action.route === baseProposed.route &&
+    bufferTurn.transcript_text === baseProposed.transcript_text;
   const proposedAction =
-    baseProposed !== null && voiceDecision !== null
-      ? applyVoiceConfirmation(baseProposed, voiceDecision).action
-      : baseProposed;
+    baseProposed === null
+      ? null
+      : decisionApplies && bufferTurn !== null
+        ? bufferTurn.proposed_action
+        : baseProposed;
+  const activeTurn = decisionApplies ? bufferTurn : null;
+
+  function decideVoiceTurn(decision: "confirm" | "decline"): void {
+    if (activeTurn === null) return;
+    setTurnBuffer((prev) => updateVoiceTurnConfirmation(prev, activeTurn.turn_id, decision).buffer);
+  }
+  function clearVoiceTurns(): void {
+    setTurnBuffer((prev) => clearVoiceTurnBuffer(prev));
+    setTurnsDismissed(true);
+  }
+
+  // The inert confirmed-action handoff, only once a privileged turn is confirmed.
+  const handoffResult = activeTurn !== null ? createConfirmedVoiceActionHandoff(activeTurn) : null;
+  const handoff = handoffResult !== null && handoffResult.ok ? handoffResult.handoff : null;
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
   // signals (mic support, permission, live listening, captured transcript). The
@@ -446,7 +500,7 @@ export function Voice() {
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => setVoiceDecision("confirm")}
+                    onClick={() => decideVoiceTurn("confirm")}
                     data-testid="voice-confirm-local"
                   >
                     Confirm locally
@@ -455,11 +509,60 @@ export function Voice() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => setVoiceDecision("decline")}
+                    onClick={() => decideVoiceTurn("decline")}
                     data-testid="voice-decline-local"
                   >
                     Decline
                   </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {activeTurn !== null ? (
+            <div
+              className="space-y-1 rounded-md border border-border bg-background/60 p-2"
+              data-testid="voice-turn-buffer-card"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-foreground/80">
+                  Local voice turn
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={clearVoiceTurns}
+                  data-testid="voice-turn-clear"
+                >
+                  Clear local voice turns
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground" data-testid="voice-turn-latest">
+                "{activeTurn.transcript_text}" · {ambientVoiceRouteLabel(activeTurn.proposed_action.route)} ·{" "}
+                {voiceSafetyLevelLabel(activeTurn.proposed_action.safety_level)} ·{" "}
+                {activeTurn.confirmation_state.replace(/_/g, " ")}
+              </p>
+              <p
+                className="text-[10px] text-muted-foreground"
+                data-testid="voice-turn-retention"
+              >
+                Retention: in-memory session only. No raw audio is stored. No
+                external write has been performed.
+              </p>
+              {handoff !== null ? (
+                <div
+                  className="mt-1 rounded border border-emerald-500/40 bg-emerald-500/5 p-1.5"
+                  data-testid="confirmed-action-handoff"
+                  data-execution-status={handoff.execution_status}
+                >
+                  <p
+                    className="text-[11px] text-emerald-700 dark:text-emerald-400"
+                    data-testid="confirmed-action-handoff-copy"
+                  >
+                    {describeConfirmedActionHandoff(handoff)}
+                  </p>
                 </div>
               ) : null}
             </div>
