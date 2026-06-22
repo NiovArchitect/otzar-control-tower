@@ -40,7 +40,13 @@ export interface VoiceNoteExecutionResult {
   /** Always false. Internal note capture is never an external send. */
   external_write_performed: false;
   internal_note_created: boolean;
+  /** The PRIMARY capsule id (capsule_ids[0]); kept for back-compat. */
   note_id?: string;
+  /** ALL capsule ids minted from this note. A single NOTE observation is an
+   *  extraction that can fan out to MULTIPLE capsules across wallets (decisions
+   *  route to the org wallet, commitments/insights to the caller's). Provenance
+   *  must reflect every one — not just the first. */
+  capsule_ids?: string[];
   audit_id?: string;
   audit_url?: string;
   message: string;
@@ -128,13 +134,15 @@ export async function executeVoiceNoteCapture(
     };
   }
 
-  const note_id = "capsule_ids" in data ? data.capsule_ids[0] : undefined;
+  const capsule_ids = "capsule_ids" in data ? data.capsule_ids : [];
+  const note_id = capsule_ids[0];
   return {
     ...baseResult(turn),
     execution_status: "succeeded",
     governed_api_called: true,
     internal_note_created: true,
     ...(note_id !== undefined ? { note_id } : {}),
+    capsule_ids,
     message: "Internal note saved to your memory. No external message was sent.",
     reason_codes: ["INTERNAL_NOTE_CAPTURED"],
   };

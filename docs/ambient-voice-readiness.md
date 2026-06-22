@@ -250,7 +250,47 @@ turn buffer, inert handoff); RETURN-7 activates exactly one low-risk governed
 - Other privileged routes remain refused/inert until future chunks. No Foundation
   change was required — RETURN-7 consumes the existing internal observe path.
 
-## 9. Future chunks
+## 9. Voice note provenance and undo (RETURN-8)
+
+RETURN-8 closes the loop around the first governed voice write **without widening
+execution** — `note_capture` remains the only voice route that can write.
+
+### A key finding about `note_capture`
+`POST /otzar/observe` is an **LLM extraction pipeline**, not a single-row insert.
+A single `event_type: "NOTE"` can **fan out to multiple memory capsules**, and
+per Foundation's PORTABILITY ROUTING invariant **decisions route to the ORG
+wallet** while commitments/insights route to the caller's wallet. RETURN-7
+recorded only `capsule_ids[0]`; RETURN-8 carries the **full `capsule_ids[]`** so
+provenance is honest.
+
+### Provenance
+After a saved note, the Voice page shows: all capsule ids (and, when >1, that the
+note was extracted into N capsules, some possibly in the org wallet), event type
+`NOTE`, source `voice_note_capture`, "No external message was sent", "No raw
+audio was stored", and an audit link **only if** the endpoint returns one (it
+does not today). `external_message_sent` and `raw_audio_stored` are always false.
+
+### Read-back
+Reported **unavailable**: there is no safe by-id read that spans the caller +
+org wallets a NOTE can mint into (`cosmpCapsules.list` is a paginated,
+caller-wallet-scoped scan and returns a redacted `payload_summary`, not the
+verbatim note). The capsule ids are shown for provenance instead.
+
+### Undo — investigated, intentionally not wired
+A safe undo is **not available** in this build, and RETURN-8 performs **no
+revoke/delete**. The existing revoke (`POST /cosmp/capsules/:id/revoke`) is a
+genuinely safe, audit-aware, owner-scoped **soft** revoke — but it is
+**per-capsule and caller-wallet-scoped**, so it cannot cleanly revoke a fanned-
+out note: org-wallet decision capsules would be `NOT_OWNER` for the caller, and
+revoking one capsule while claiming the note was removed would be a false claim.
+Instead the UI states honestly: "Undo is not available in this build. A governed
+revoke path is required before Otzar can remove this note safely," backed by a
+typed `VoiceNoteUndoContractProposal` (a NOTE-scoped, audited, soft revoke that
+tombstones **every** minted capsule with per-wallet authorization). No fake undo
+button is shown. No external sends, no approval/task/reminder execution, no raw
+audio. No Foundation change was made.
+
+## 10. Future chunks
 
 This layer is the foundation for, in rough order:
 

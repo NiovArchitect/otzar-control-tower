@@ -69,6 +69,11 @@ import {
   executeVoiceNoteCapture,
   type VoiceNoteExecutionResult,
 } from "@/lib/voice/voice-note-execution";
+import {
+  buildVoiceNoteProvenance,
+  voiceNoteReadbackCopy,
+  voiceNoteUndoCopy,
+} from "@/lib/voice/voice-note-provenance";
 import { api } from "@/lib/api";
 import {
   describePushToTalkState,
@@ -307,6 +312,12 @@ export function Voice() {
     setSavingNote(false);
     setNoteResult(result);
   }
+  // Phase OTZAR-RETURN-8 — provenance for the saved note. A NOTE observation can
+  // fan out to multiple capsules across wallets, so read-back has no safe by-id
+  // path and undo needs a governed note-scoped revoke contract (not the existing
+  // per-capsule, caller-wallet revoke). Read-back/undo are reported honestly; NO
+  // revoke/delete is performed in this build.
+  const noteProvenance = noteResult !== null ? buildVoiceNoteProvenance(noteResult) : null;
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
   // signals (mic support, permission, live listening, captured transcript). The
@@ -598,6 +609,73 @@ export function Voice() {
                   ) : null}
                 </div>
               ) : null}
+            </div>
+          ) : null}
+
+          {noteProvenance !== null ? (
+            <div
+              className="space-y-1 rounded-md border border-border bg-background/60 p-2"
+              data-testid="voice-note-provenance"
+            >
+              <div className="text-xs font-medium text-foreground/80">
+                Internal note saved — provenance
+              </div>
+              <p className="text-[11px] text-muted-foreground" data-testid="voice-note-capsule-id">
+                {noteProvenance.capsule_count > 1
+                  ? `Capsule ids (${noteProvenance.capsule_count}): ${noteProvenance.capsule_ids.join(", ")}`
+                  : `Capsule id: ${noteProvenance.note_id ?? "—"}`}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Event type: NOTE · Source: voice note capture · No external message
+                was sent · No raw audio was stored.
+              </p>
+              {noteProvenance.capsule_count > 1 ? (
+                <p className="text-[10px] text-muted-foreground" data-testid="voice-note-fanout">
+                  This note was extracted into {noteProvenance.capsule_count} capsules
+                  (some may sit in your organization's wallet).
+                </p>
+              ) : null}
+              {noteProvenance.audit_url !== undefined ? (
+                <a
+                  className="text-[10px] underline text-muted-foreground hover:text-foreground"
+                  href={noteProvenance.audit_url}
+                  data-testid="voice-note-provenance-audit-link"
+                >
+                  View audit record
+                </a>
+              ) : null}
+              <p
+                className="text-[10px] text-muted-foreground"
+                data-testid="voice-note-readback-status"
+                data-readback-status={noteProvenance.readback_status}
+              >
+                {voiceNoteReadbackCopy(noteProvenance.readback_status)}
+              </p>
+              <p
+                className="text-[10px] text-amber-700 dark:text-amber-400"
+                data-testid="voice-note-undo-status"
+                data-undo-status={noteProvenance.undo_status}
+              >
+                {voiceNoteUndoCopy(noteProvenance.undo_status)}
+              </p>
+              {noteProvenance.undo_status === "available" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  data-testid="voice-note-undo-button"
+                >
+                  Undo / revoke note
+                </Button>
+              ) : (
+                <p
+                  className="text-[10px] text-muted-foreground"
+                  data-testid="voice-note-undo-unavailable"
+                >
+                  A governed revoke path is required before Otzar can remove this
+                  note safely.
+                </p>
+              )}
             </div>
           ) : null}
 
