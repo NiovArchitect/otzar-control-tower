@@ -221,7 +221,36 @@ persisted, no API is called, nothing is sent/approved/completed/created.
 
 This prepares future governed execution without enabling it.
 
-## 8. Future chunks
+## 8. Governed note capture behind the confirm gate (RETURN-7)
+
+RETURN-7 is the **first governed voice EXECUTION** route. Governed voice
+*control* already existed (RETURN-3..6: capture, routing, confirm-before-act,
+turn buffer, inert handoff); RETURN-7 activates exactly one low-risk governed
+*write*.
+
+- **Scope: `note_capture` only.** `src/lib/voice/voice-note-execution.ts`
+  executes a note capture for the `note_capture` route and **refuses every other
+  route** (comms, approval, action_runtime, reminder, chat, ask_twin, unknown) —
+  the governed write is never called for them.
+- **It saves an internal note, not an external message.** It reuses the SAME
+  governed, audit-aware write the Observe page already performs:
+  `POST /api/v1/otzar/observe` with `event_type: "NOTE"`, which writes the
+  caller's own memory capsule and emits a `CAPSULE_CREATED` audit. No external
+  message / email / Slack / calendar. No approval decided, no task completed, no
+  reminder created.
+- **No raw audio.** Transcript text only. `external_write_performed` is always
+  false (internal capture, not an external send). `governed_api_called` is true
+  only when the note API was actually invoked; refused routes never call it.
+- **Behind explicit user confirmation.** The Voice page shows a "Save internal
+  note" button for `note_capture` only; it is click-triggered (never auto-run).
+  Success copy: "Internal note saved to your memory. No external message was
+  sent." Duplicate content is honest ("already captured", `internal_note_created:
+  false`). A note id (capsule) is shown; an audit id/link is shown if the
+  endpoint returns one.
+- Other privileged routes remain refused/inert until future chunks. No Foundation
+  change was required — RETURN-7 consumes the existing internal observe path.
+
+## 9. Future chunks
 
 This layer is the foundation for, in rough order:
 

@@ -66,6 +66,11 @@ import {
   describeConfirmedActionHandoff,
 } from "@/lib/voice/confirmed-action-handoff";
 import {
+  executeVoiceNoteCapture,
+  type VoiceNoteExecutionResult,
+} from "@/lib/voice/voice-note-execution";
+import { api } from "@/lib/api";
+import {
   describePushToTalkState,
   pushToTalkStateLabel,
   type PushToTalkState,
@@ -283,6 +288,25 @@ export function Voice() {
   // The inert confirmed-action handoff, only once a privileged turn is confirmed.
   const handoffResult = activeTurn !== null ? createConfirmedVoiceActionHandoff(activeTurn) : null;
   const handoff = handoffResult !== null && handoffResult.ok ? handoffResult.handoff : null;
+
+  // Phase OTZAR-RETURN-7 — the FIRST governed voice EXECUTION route: an internal
+  // note capture, note_capture ONLY, click-triggered. It calls the SAME governed
+  // audit-aware write the Observe page uses (POST /otzar/observe, event_type
+  // "NOTE"), which writes the caller's own memory capsule. It is internal — no
+  // external message/email/Slack/calendar, no approval/task/reminder.
+  const [noteResult, setNoteResult] = useState<VoiceNoteExecutionResult | null>(null);
+  const [savingNote, setSavingNote] = useState(false);
+  // The note result belongs to one turn; clear it when the turn changes.
+  useEffect(() => {
+    setNoteResult(null);
+  }, [trimmedDraft, routeHint]);
+  async function saveInternalNote(): Promise<void> {
+    if (activeTurn === null || activeTurn.proposed_action.route !== "note_capture") return;
+    setSavingNote(true);
+    const result = await executeVoiceNoteCapture(activeTurn, (req) => api.otzar.observe(req));
+    setSavingNote(false);
+    setNoteResult(result);
+  }
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
   // signals (mic support, permission, live listening, captured transcript). The
@@ -514,6 +538,64 @@ export function Voice() {
                   >
                     Decline
                   </Button>
+                </div>
+              ) : null}
+
+              {/* Phase OTZAR-RETURN-7 — the ONLY governed voice write: save an
+                  internal note. Shown for note_capture ONLY; never for comms /
+                  approval / action_runtime / reminder / chat / ask_twin /
+                  unknown. Click-triggered; internal note, no external send. */}
+              {proposedAction.route === "note_capture" ? (
+                <div className="space-y-2" data-testid="voice-note-capture">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void saveInternalNote()}
+                    disabled={savingNote || noteResult?.internal_note_created === true}
+                    data-testid="voice-save-note"
+                  >
+                    {savingNote ? "Saving…" : "Save internal note"}
+                  </Button>
+                  {noteResult !== null ? (
+                    <div
+                      className={`rounded border p-1.5 ${
+                        noteResult.execution_status === "succeeded"
+                          ? "border-emerald-500/40 bg-emerald-500/5"
+                          : "border-amber-500/40 bg-amber-500/5"
+                      }`}
+                      data-testid="voice-note-result"
+                      data-execution-status={noteResult.execution_status}
+                      data-internal-note-created={String(noteResult.internal_note_created)}
+                    >
+                      <p
+                        className={`text-[11px] ${
+                          noteResult.execution_status === "succeeded"
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : "text-amber-700 dark:text-amber-400"
+                        }`}
+                        data-testid="voice-note-result-copy"
+                      >
+                        {noteResult.message}
+                      </p>
+                      {noteResult.note_id !== undefined ? (
+                        <p
+                          className="text-[10px] text-muted-foreground"
+                          data-testid="voice-note-id"
+                        >
+                          Note id: {noteResult.note_id}
+                        </p>
+                      ) : null}
+                      {noteResult.audit_url !== undefined ? (
+                        <a
+                          className="text-[10px] underline text-muted-foreground hover:text-foreground"
+                          href={noteResult.audit_url}
+                          data-testid="voice-note-audit-link"
+                        >
+                          View audit record
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
