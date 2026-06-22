@@ -143,7 +143,45 @@ live listening, captured transcript) and renders it as the honest "Capture
 model: Push-to-talk" indicator — making the existing mic button visibly part of
 an explicit, no-background-listening model.
 
-## 6. Future chunks
+## 6. Voice approval safety / confirm-before-act (RETURN-5)
+
+Voice must never jump straight from a transcript to an action. The safe path is:
+
+> spoken transcript → deterministic route hint → draft / proposed action →
+> confirmation gate → governed action **only after explicit confirm**.
+
+`src/lib/voice/voice-approval-safety.ts` adds the local confirm-before-act
+safety layer. It is pure and deterministic, performs **no** API call, and makes
+**no** external write (no send, no approve, no task change, no reminder create).
+
+### Safety levels (per route)
+| Route | Safety level | Behavior |
+| --- | --- | --- |
+| chat, ask_twin | `informational` | No privileged action; nothing to confirm. |
+| note_capture | `draft_only` | Draft for review; no external write. |
+| comms, approval, action_runtime, reminder | `confirm_required` | Explicit confirm before any action. |
+| unknown | `blocked` | Otzar asks for clarification; never guesses. |
+
+### Confirmation states
+`not_required`, `required`, `confirmed`, `declined`, `expired`, `blocked`.
+
+### Invariants
+- The route hint is **advisory**. Privileged routes produce a `VoiceProposedAction`
+  with `confirmation_state: "required"` and `can_execute_without_confirmation:
+  false`.
+- `createVoiceProposedAction` / `applyVoiceConfirmation` set
+  `external_write_performed: false` **always**. Confirming is **local-only** in
+  this build — the Voice page's "Confirm locally" / "Decline" buttons update
+  local state and copy ("Confirmed locally. No external write has been performed
+  in this build." / "Voice action declined.") and nothing else.
+- A `blocked` route cannot be confirmed into an executable state; an
+  informational route never becomes an external write on confirm.
+- No raw-audio fields; transcript text only; no AVP²/Federation references.
+
+A future chunk can connect a *confirmed* action to a governed Foundation API
+(through the existing audit-aware action pipeline) — but only behind this gate.
+
+## 7. Future chunks
 
 This layer is the foundation for, in rough order:
 
@@ -152,7 +190,9 @@ This layer is the foundation for, in rough order:
    (RETURN-4).** A real wake-state engine remains future and is intentionally
    not implemented.
 3. Local transcript buffer (in-memory, non-persistent).
-4. Voice approval safety (confirm-before-act for privileged routes).
+4. ~~Voice approval safety (confirm-before-act for privileged routes).~~
+   **Local confirm-before-act delivered (RETURN-5).** Connecting a confirmed
+   action to a governed API remains future.
 5. Wearable adapter interface (transport-agnostic capture input).
 6. Privacy controls (per-device capture consent, retention boundaries).
 7. Background capture policy boundaries (what may ever be captured, and when).

@@ -57,6 +57,12 @@ import {
   pushToTalkStateLabel,
   type PushToTalkState,
 } from "@/lib/voice/push-to-talk-state";
+import {
+  createVoiceProposedAction,
+  applyVoiceConfirmation,
+  voiceConfirmationCopy,
+  voiceSafetyLevelLabel,
+} from "@/lib/voice/voice-approval-safety";
 
 const TEST_VOICE_PHRASE =
   "Otzar voice is active. I can speak responses back to you.";
@@ -203,6 +209,26 @@ export function Voice() {
   const routeHint =
     trimmedDraft.length > 0 ? inferVoiceIntentRoute(trimmedDraft) : null;
   const deviceOptions = ambientVoiceDeviceOptions();
+
+  // Phase OTZAR-RETURN-5 — voice confirm-before-act. The route hint becomes a
+  // DRAFT proposed action; privileged routes require an explicit local confirm.
+  // The decision is LOCAL UI state only — confirming performs NO send/approve/
+  // complete/reminder and NO external write in this build.
+  const [voiceDecision, setVoiceDecision] = useState<
+    null | "confirm" | "decline"
+  >(null);
+  // Reset the local decision whenever the inferred route changes.
+  useEffect(() => {
+    setVoiceDecision(null);
+  }, [routeHint]);
+  const baseProposed =
+    routeHint !== null && trimmedDraft.length > 0
+      ? createVoiceProposedAction({ transcript: trimmedDraft, route: routeHint })
+      : null;
+  const proposedAction =
+    baseProposed !== null && voiceDecision !== null
+      ? applyVoiceConfirmation(baseProposed, voiceDecision).action
+      : baseProposed;
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
   // signals (mic support, permission, live listening, captured transcript). The
@@ -384,6 +410,58 @@ export function Voice() {
               <span className="text-muted-foreground">
                 A local hint only — Otzar still confirms before any action.
               </span>
+            </div>
+          ) : null}
+
+          {proposedAction !== null ? (
+            <div
+              className="space-y-2 rounded-md border border-border bg-background/60 p-2"
+              data-testid="voice-safety-card"
+            >
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Voice safety:</span>
+                <Badge
+                  variant={
+                    proposedAction.safety_level === "confirm_required"
+                      ? "default"
+                      : proposedAction.safety_level === "blocked"
+                        ? "destructive"
+                        : "secondary"
+                  }
+                  data-testid="voice-safety-level"
+                  data-safety-level={proposedAction.safety_level}
+                >
+                  {voiceSafetyLevelLabel(proposedAction.safety_level)}
+                </Badge>
+              </div>
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="voice-confirmation-copy"
+              >
+                {voiceConfirmationCopy(proposedAction)}
+              </p>
+              {proposedAction.safety_level === "confirm_required" &&
+              proposedAction.confirmation_state === "required" ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setVoiceDecision("confirm")}
+                    data-testid="voice-confirm-local"
+                  >
+                    Confirm locally
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setVoiceDecision("decline")}
+                    data-testid="voice-decline-local"
+                  >
+                    Decline
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
