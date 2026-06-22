@@ -45,6 +45,7 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   NEGOTIATE: "Negotiate",
   CONVERSATION_STARTED: "Conversation Started",
   CONVERSATION_CLOSED: "Conversation Closed",
+  VOICE_NOTE_REVOKE_APPLIED: "Voice Note Undo Applied",
 } as const;
 
 // WHAT: Look up the customer-facing label for an AuditEventType.

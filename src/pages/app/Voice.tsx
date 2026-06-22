@@ -78,7 +78,14 @@ import {
   buildVoiceNoteRevokePlan,
   voiceNoteRevokePlanCopy,
 } from "@/lib/voice/voice-note-revoke-plan";
-import type { VoiceNoteRevokePlanResponse } from "@/lib/types/foundation";
+import type {
+  VoiceNoteRevokePlanResponse,
+  VoiceNoteRevokeApplyResponse,
+} from "@/lib/types/foundation";
+import {
+  AuditAwareButton,
+  type AuditAwareButtonResult,
+} from "@/components/audit/AuditAwareButton";
 import { api } from "@/lib/api";
 import {
   describePushToTalkState,
@@ -347,9 +354,17 @@ export function Voice() {
     useState<VoiceNoteRevokePlanResponse | null>(null);
   const [reviewingPlan, setReviewingPlan] = useState(false);
   const [reviewPlanError, setReviewPlanError] = useState(false);
+  // Phase OTZAR-RETURN-12 — the first MUTATING undo step. The governed apply is
+  // OFFERED only when a reviewed plan says the caller can revoke (COMPLETE or
+  // PARTIAL); it soft-revokes the caller-owned capsules and reports the honest
+  // outcome inline. It never hard-deletes and never claims a complete undo when
+  // org/unknown capsules were skipped.
+  const [applyResult, setApplyResult] =
+    useState<VoiceNoteRevokeApplyResponse | null>(null);
   useEffect(() => {
     setReviewedPlan(null);
     setReviewPlanError(false);
+    setApplyResult(null);
   }, [trimmedDraft, routeHint]);
   async function reviewUndoPlan(): Promise<void> {
     const groupId = noteProvenance?.voice_note_id;
@@ -362,6 +377,28 @@ export function Voice() {
     setReviewingPlan(false);
     if (r.ok) setReviewedPlan(r.data);
     else setReviewPlanError(true);
+  }
+  // The apply runs inside AuditAwareButton's 4-stage flow (confirm -> in-flight
+  // -> toast with audit id). We store the full response for the inline status
+  // panel, then map to the button's success/failure result: a real soft-revoke
+  // surfaces its summary audit_id; a no-op (nothing revoked) carries no audit id
+  // per the audit contract, so it reports the honest message without one.
+  async function applyUndo(): Promise<AuditAwareButtonResult> {
+    const groupId = noteProvenance?.voice_note_id;
+    if (groupId === undefined) {
+      return { ok: false, error: "This note can't be identified for undo." };
+    }
+    const r = await api.otzar.voiceNotes.revokeApply(groupId, {
+      reason: "user_requested_undo",
+    });
+    if (!r.ok) {
+      return { ok: false, error: "Couldn't apply the undo right now. No note was changed." };
+    }
+    setApplyResult(r.data);
+    if (r.data.audit_id !== undefined && r.data.revoked_capsule_ids.length > 0) {
+      return { ok: true, audit_event_id: r.data.audit_id };
+    }
+    return { ok: false, error: r.data.message };
   }
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
@@ -778,19 +815,63 @@ export function Voice() {
                       </p>
                       <p className="text-[10px] text-muted-foreground" data-testid="voice-note-reviewed-plan-status">
                         {reviewedPlan.plan_status === "COMPLETE_CAN_APPLY"
-                          ? `All ${reviewedPlan.capsule_count} capsule(s) in this note could be revoked by you in a future governed undo.`
+                          ? `All ${reviewedPlan.capsule_count} knowledge item(s) in this note can be revoked by you.`
                           : reviewedPlan.plan_status === "PARTIAL_REQUIRES_AUTHORITY"
-                            ? "Some capsules require organization authority."
+                            ? "Some items require organization authority and will be left untouched."
                             : reviewedPlan.plan_status === "ALREADY_REVOKED"
                               ? "This note group is already revoked."
                               : reviewedPlan.plan_status === "NOT_FOUND"
                                 ? "This note group isn't available."
                                 : "A safe plan can't be formed for this note yet."}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Apply is not implemented in this build. No external message
-                        was sent. No raw audio was exposed.
-                      </p>
+                      {/* OTZAR-RETURN-12 — the governed APPLY is offered only when
+                          the plan says the caller can revoke (COMPLETE / PARTIAL).
+                          ALREADY_REVOKED / NOT_FOUND / UNSAFE show no apply button:
+                          there is nothing safe to apply. Soft revoke only — never a
+                          hard delete; org/unknown items are skipped, not removed. */}
+                      {applyResult === null &&
+                      (reviewedPlan.plan_status === "COMPLETE_CAN_APPLY" ||
+                        reviewedPlan.plan_status === "PARTIAL_REQUIRES_AUTHORITY") ? (
+                        <div className="pt-1" data-testid="voice-note-apply-affordance">
+                          <AuditAwareButton
+                            variant="destructive"
+                            auditEventType="VOICE_NOTE_REVOKE_APPLIED"
+                            requireConfirmation
+                            confirmationTitle="Apply governed undo?"
+                            confirmationDescription="This soft-revokes the knowledge items you own from this voice note. Nothing is hard-deleted, no message is sent, and items requiring organization authority are left untouched."
+                            targetDescription="Your knowledge items captured from this voice note"
+                            onConfirm={applyUndo}
+                          >
+                            Apply governed undo
+                          </AuditAwareButton>
+                        </div>
+                      ) : null}
+                      {applyResult !== null ? (
+                        <div
+                          className="mt-1 rounded border border-border bg-background/80 p-1.5"
+                          data-testid="voice-note-apply-result"
+                          data-apply-status={applyResult.apply_status}
+                          data-hard-delete={String(applyResult.hard_delete_performed)}
+                        >
+                          <p className="text-[11px] text-foreground/80" data-testid="voice-note-apply-result-message">
+                            {applyResult.message}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Revoked {applyResult.revoked_capsule_ids.length} ·
+                            already revoked {applyResult.already_revoked_capsule_ids.length} ·
+                            left untouched {applyResult.skipped_capsules.length}.
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Soft revoke only. No item was hard-deleted, no external
+                            message was sent, and no raw audio was exposed.
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground">
+                          Soft revoke only. No item is hard-deleted, no external
+                          message is sent, and no raw audio is exposed.
+                        </p>
+                      )}
                     </div>
                   ) : null}
                 </div>

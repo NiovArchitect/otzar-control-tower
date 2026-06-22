@@ -406,10 +406,48 @@ plan. It is the safe prerequisite for a future supervised revoke coordinator
   audio was exposed." **No apply/undo button; no `/revoke`/DELETE/per-capsule
   call.**
 
-Apply (the supervised coordinator) remains a later chunk; personal/capsule data
-stays off-chain (future chain would anchor status/proof roots only).
+## 13. Governed voice note revoke-apply coordinator (RETURN-12)
 
-## 13. Future chunks
+RETURN-12 ships the **first mutating undo step**: a supervised, note-scoped revoke
+**APPLY** keyed on `voice_note_id`. It soft-revokes (`deleted_at` tombstone) only
+the caller-owned, currently-active capsules grouped under the note. It never
+hard-deletes, never returns capsule payload, and reports a partial apply honestly.
+
+### Foundation (`[OTZAR-RETURN-12-FOUNDATION]`, PR #480 — open, not merged)
+- `POST /api/v1/otzar/voice-notes/:voice_note_id/revoke-apply` —
+  `validateSession("write")`, UUID + reason-type `422` guards.
+- `voiceNoteRevokeApplyForCaller` reuses the audited per-capsule
+  `revokeCapsuleForCaller` primitive (each emits `CAPSULE_DELETED`).
+- Status taxonomy: `APPLIED` · `PARTIAL_APPLIED` (org/unknown capsules skipped —
+  never claimed as a complete undo) · `ALREADY_REVOKED` · `NOT_FOUND` (enumeration
+  -safe) · `UNSAFE_TO_APPLY` (refuse-all, mutate nothing, when any active capsule
+  has undetermined authority — mirrors the RETURN-11 plan oracle) · `REFUSED`
+  (DMW inactive, before any read/write).
+- One `VOICE_NOTE_REVOKE_APPLIED` summary audit, emitted **only** when the call
+  soft-revoked ≥ 1 capsule, with SAFE details (counts + status) only. Idempotent
+  re-apply mutates nothing and writes no new summary audit.
+- `hard_delete_performed` / `external_side_effects` / `payload_returned` all
+  false; `raw_audio_scope` `NONE`. 7 unit + 5 integration tests.
+
+### Otzar (`[OTZAR-RETURN-12]`)
+- `api.otzar.voiceNotes.revokeApply(voice_note_id, { reason })`.
+- A new `VoiceNoteRevokeApplyResponse` type + the `VOICE_NOTE_REVOKE_APPLIED`
+  audit label ("Voice Note Undo Applied").
+- The Voice page offers an **"Apply governed undo"** action via `AuditAwareButton`
+  (the universal 4-stage pattern: affordance → confirmation → in-flight → toast
+  with the summary audit id), shown **only** when the reviewed plan is
+  `COMPLETE_CAN_APPLY` or `PARTIAL_REQUIRES_AUTHORITY`. `ALREADY_REVOKED` /
+  `NOT_FOUND` / `UNSAFE_TO_APPLY` show no apply button.
+- The honest result panel reports the status, the revoked / already-revoked /
+  left-untouched counts, and "Soft revoke only. No item was hard-deleted, no
+  external message was sent, and no raw audio was exposed." The **only** mutating
+  call this surface makes is `/revoke-apply` — no `/cosmp/capsules`, no bare
+  `/revoke`, no `DELETE`.
+
+Personal/capsule data stays off-chain (a future chain would anchor status/proof
+roots only).
+
+## 14. Future chunks
 
 This layer is the foundation for, in rough order:
 

@@ -65,6 +65,7 @@ import type {
   ObserveRequest,
   ObserveResponse,
   VoiceNoteRevokePlanResponse,
+  VoiceNoteRevokeApplyResponse,
   CorrectionRequest,
   CorrectionResponse,
   // My Twin + Conversations metadata (read-only)
@@ -768,7 +769,7 @@ export class ApiClient {
         body: input,
       }),
 
-    /** [OTZAR-RETURN-11] Voice-note read-only operations. */
+    /** [OTZAR-RETURN-11/12] Voice-note revoke operations. */
     voiceNotes: {
       /** POST /api/v1/otzar/voice-notes/:voice_note_id/revoke-plan — READ-ONLY.
        *  Returns the governed revoke PLAN for the caller's own voice note. It
@@ -779,6 +780,21 @@ export class ApiClient {
       ): Promise<ApiResult<VoiceNoteRevokePlanResponse>> =>
         this.request<VoiceNoteRevokePlanResponse>(
           `/otzar/voice-notes/${encodeURIComponent(voiceNoteId)}/revoke-plan`,
+          { method: "POST", body: input },
+        ),
+
+      /** [OTZAR-RETURN-12] POST /api/v1/otzar/voice-notes/:voice_note_id/revoke-apply
+       *  — MUTATING. SOFT-revokes only the caller-owned, active capsules grouped
+       *  under the note. Never hard-deletes, never returns capsule payload, and
+       *  reports a partial apply honestly (org/unknown capsules are skipped). Gate
+       *  the call on a prior plan: only offer it for COMPLETE_CAN_APPLY /
+       *  PARTIAL_REQUIRES_AUTHORITY plans. */
+      revokeApply: (
+        voiceNoteId: string,
+        input: { reason: string },
+      ): Promise<ApiResult<VoiceNoteRevokeApplyResponse>> =>
+        this.request<VoiceNoteRevokeApplyResponse>(
+          `/otzar/voice-notes/${encodeURIComponent(voiceNoteId)}/revoke-apply`,
           { method: "POST", body: input },
         ),
     },

@@ -12,6 +12,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Voice } from "@/pages/app/Voice";
 import { useAuthStore } from "@/lib/stores/auth";
 
@@ -35,7 +36,9 @@ function renderVoice() {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <Voice />
+        <TooltipProvider>
+          <Voice />
+        </TooltipProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -145,17 +148,22 @@ describe("Voice page — Review undo plan (RETURN-11, read-only)", () => {
     await user.click(screen.getByTestId("voice-note-review-plan-button"));
     const reviewed = await screen.findByTestId("voice-note-reviewed-plan");
 
-    // It is a PLAN: apply not allowed, partial authority, honest copy.
+    // It is a PLAN: the plan itself revoked nothing (apply_allowed false), partial
+    // authority, honest copy. RETURN-12 now offers a SEPARATE governed apply.
     expect(reviewed).toHaveAttribute("data-plan-status", "PARTIAL_REQUIRES_AUTHORITY");
     expect(reviewed).toHaveAttribute("data-apply-allowed", "false");
     const text = (reviewed.textContent ?? "").toLowerCase();
     expect(text).toContain("no note was removed");
     expect(text).toContain("organization authority");
-    expect(text).toContain("apply is not implemented");
-    expect(text).toContain("no external message was sent");
-    expect(text).toContain("no raw audio was exposed");
+    expect(text).toContain("soft revoke only");
+    expect(text).toContain("no external message is sent");
+    expect(text).toContain("no raw audio is exposed");
 
-    // No apply/undo button ever rendered.
+    // The governed APPLY affordance is offered (RETURN-12) but reviewing the plan
+    // did NOT apply anything yet — no apply-result panel until the user confirms.
+    expect(screen.getByTestId("voice-note-apply-affordance")).toBeInTheDocument();
+    expect(screen.queryByTestId("voice-note-apply-result")).toBeNull();
+    // No legacy one-click undo button.
     expect(screen.queryByTestId("voice-note-undo-button")).toBeNull();
 
     // Network discipline: exactly one revoke-plan read; no forbidden writes.
@@ -169,5 +177,82 @@ describe("Voice page — Review undo plan (RETURN-11, read-only)", () => {
     await screen.findByTestId("voice-safety-card");
     expect(screen.queryByTestId("voice-note-review-plan-button")).toBeNull();
     expect(screen.queryByTestId("voice-note-reviewed-plan")).toBeNull();
+  });
+});
+
+// [OTZAR-RETURN-12] consume the governed, MUTATING revoke-apply endpoint.
+describe("Voice page — governed undo APPLY (RETURN-12, mutating)", () => {
+  // The ONLY mutating call this surface may make for undo is /revoke-apply.
+  // Forbidden: the per-capsule revoke (/cosmp/capsules/:id/revoke), any bare
+  // /revoke that is neither /revoke-plan nor /revoke-apply, and DELETE.
+  function isForbiddenWrite(call: unknown[]): boolean {
+    const url = urlOf(call);
+    const init = call[1] as RequestInit | undefined;
+    if (/DELETE/i.test(String(init?.method ?? ""))) return true;
+    if (/\/cosmp\/capsules/.test(url)) return true;
+    if (/\/revoke\b/.test(url) && !/revoke-plan/.test(url) && !/revoke-apply/.test(url)) return true;
+    return false;
+  }
+
+  async function saveNote(user: ReturnType<typeof userEvent.setup>) {
+    await screen.findByTestId("voice-save-note");
+    await user.click(screen.getByTestId("voice-save-note"));
+    return screen.findByTestId("voice-note-provenance");
+  }
+
+  async function reviewPlan(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByTestId("voice-note-review-plan-button"));
+    return screen.findByTestId("voice-note-reviewed-plan");
+  }
+
+  it("confirming Apply governed undo calls revoke-apply ONCE, shows an honest PARTIAL_APPLIED result, and hard-deletes nothing", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const user = await typeTranscript("note: the contract renews in Q3");
+    await saveNote(user);
+    await reviewPlan(user);
+
+    // Stage 1/2: the affordance is present and opens a confirmation dialog;
+    // nothing is applied yet.
+    expect(screen.getByTestId("voice-note-apply-affordance")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /apply governed undo/i }));
+    expect(
+      screen.getByRole("heading", { name: /apply governed undo\?/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("voice-note-apply-result")).toBeNull();
+
+    // Stage 3/4: Confirm -> the mutating call fires and the honest result shows.
+    await user.click(screen.getByRole("button", { name: /^confirm$/i }));
+    const result = await screen.findByTestId("voice-note-apply-result");
+    expect(result).toHaveAttribute("data-apply-status", "PARTIAL_APPLIED");
+    expect(result).toHaveAttribute("data-hard-delete", "false");
+    const text = (result.textContent ?? "").toLowerCase();
+    expect(text).toContain("left untouched");
+    expect(text).toContain("soft revoke only");
+    expect(text).toContain("no item was hard-deleted");
+
+    // Network discipline: exactly one revoke-apply; no forbidden writes.
+    const applyCalls = fetchSpy.mock.calls.filter((c) => /revoke-apply/.test(urlOf(c)));
+    expect(applyCalls.length).toBe(1);
+    expect(fetchSpy.mock.calls.some(isForbiddenWrite)).toBe(false);
+  });
+
+  it("does NOT call revoke-apply until the user confirms (cancelling the dialog mutates nothing)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const user = await typeTranscript("note: pricing change");
+    await saveNote(user);
+    await reviewPlan(user);
+
+    await user.click(screen.getByRole("button", { name: /apply governed undo/i }));
+    await user.click(await screen.findByRole("button", { name: /^cancel$/i }));
+
+    expect(fetchSpy.mock.calls.some((c) => /revoke-apply/.test(urlOf(c)))).toBe(false);
+    expect(screen.queryByTestId("voice-note-apply-result")).toBeNull();
+  });
+
+  it("a comms transcript shows no apply affordance and no apply result", async () => {
+    await typeTranscript("reply to David about the deck");
+    await screen.findByTestId("voice-safety-card");
+    expect(screen.queryByTestId("voice-note-apply-affordance")).toBeNull();
+    expect(screen.queryByTestId("voice-note-apply-result")).toBeNull();
   });
 });

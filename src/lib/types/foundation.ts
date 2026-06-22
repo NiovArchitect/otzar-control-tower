@@ -160,7 +160,12 @@ export type AuditEventType =
   | "ADMIN_ACTION"
   | "NEGOTIATE"
   | "CONVERSATION_STARTED"
-  | "CONVERSATION_CLOSED";
+  | "CONVERSATION_CLOSED"
+  // [OTZAR-RETURN-12] summary event for a governed voice-note undo APPLY that
+  // actually soft-revoked >= 1 caller-owned capsule (POST .../revoke-apply).
+  // Mirrors the Foundation AuditEventType literal; the apply's returned audit_id
+  // is this event. Per-capsule soft revokes still audit as CAPSULE_DELETED.
+  | "VOICE_NOTE_REVOKE_APPLIED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";
@@ -1317,6 +1322,43 @@ export interface VoiceNoteRevokePlanResponse {
   crypto_erasure_ready: boolean;
   crypto_erasure_status: "NO_KEY_PATH_YET" | "KEY_DISABLE_READY" | "NOT_APPLICABLE";
   audit_preview: { event_type: "VOICE_NOTE_REVOKE_PLANNED" };
+  reason_codes: string[];
+}
+
+// [OTZAR-RETURN-12] mirror of the Foundation MUTATING voice-note revoke APPLY
+// (POST /otzar/voice-notes/:voice_note_id/revoke-apply). This is the first undo
+// step that actually changes state: it SOFT-revokes (deleted_at tombstone) only
+// the caller-owned, active capsules grouped under the note. It never hard-
+// deletes, never returns capsule payload, and reports a partial apply honestly
+// (org/unknown capsules are skipped — never claimed as a complete undo).
+export type VoiceNoteRevokeApplyStatus =
+  | "APPLIED"
+  | "PARTIAL_APPLIED"
+  | "ALREADY_REVOKED"
+  | "NOT_FOUND"
+  | "UNSAFE_TO_APPLY"
+  | "REFUSED";
+export interface VoiceNoteRevokeApplySkippedView {
+  capsule_id: string;
+  wallet_scope: "caller" | "org" | "unknown";
+  reason: "REQUIRES_ORG_AUTHORITY" | "UNKNOWN_AUTHORITY";
+}
+export interface VoiceNoteRevokeApplyResponse {
+  ok: true;
+  mode: "APPLY";
+  voice_note_id: string;
+  event_type: "NOTE";
+  apply_status: VoiceNoteRevokeApplyStatus;
+  capsule_count: number;
+  revoked_capsule_ids: string[];
+  already_revoked_capsule_ids: string[];
+  skipped_capsules: VoiceNoteRevokeApplySkippedView[];
+  audit_id?: string;
+  external_side_effects: false;
+  hard_delete_performed: false;
+  payload_returned: false;
+  raw_audio_scope: "NONE";
+  message: string;
   reason_codes: string[];
 }
 

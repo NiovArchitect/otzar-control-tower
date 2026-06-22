@@ -1246,6 +1246,44 @@ const otzarVoiceNoteRevokePlanHandler = http.post(
   },
 );
 
+// [OTZAR-RETURN-12] MUTATING revoke-apply. Mirrors the plan above: the caller-
+// owned capsule (cap-obs-1) is soft-revoked; the org capsule (cap-obs-2) is
+// skipped (org authority not carried) -> a HONEST PARTIAL_APPLIED. Soft revoke
+// only; no hard delete; no capsule payload; summary audit id surfaced.
+const otzarVoiceNoteRevokeApplyHandler = http.post(
+  `${API_BASE}/otzar/voice-notes/:voice_note_id/revoke-apply`,
+  ({ params }) => {
+    const voiceNoteId = String(params.voice_note_id);
+    return HttpResponse.json(
+      {
+        ok: true,
+        mode: "APPLY",
+        voice_note_id: voiceNoteId,
+        event_type: "NOTE",
+        apply_status: "PARTIAL_APPLIED",
+        capsule_count: 2,
+        revoked_capsule_ids: ["cap-obs-1"],
+        already_revoked_capsule_ids: [],
+        skipped_capsules: [
+          {
+            capsule_id: "cap-obs-2",
+            wallet_scope: "org",
+            reason: "REQUIRES_ORG_AUTHORITY",
+          },
+        ],
+        audit_id: "audit-revoke-apply-1",
+        external_side_effects: false,
+        hard_delete_performed: false,
+        payload_returned: false,
+        raw_audio_scope: "NONE",
+        message: "Revoked 1 of your capsule(s); 1 could not be revoked by you and was left untouched.",
+        reason_codes: ["SOME_CAPSULES_REVOKED", "SOME_CAPSULES_REQUIRE_OTHER_AUTHORITY"],
+      },
+      { status: 200 },
+    );
+  },
+);
+
 // WHAT: Recorder for POST /otzar/correction calls (Wave 2C). Tests use
 //        getRecordedCorrectionCalls() to assert the body shape (e.g. that
 //        the inline Chat correction passes conversation_id while the
@@ -3053,6 +3091,7 @@ export const handlers = [
   otzarCollaborationWorkspacesDefaultHandler,
   otzarObserveHandler,
   otzarVoiceNoteRevokePlanHandler,
+  otzarVoiceNoteRevokeApplyHandler,
   otzarCorrectionHandler,
   // Employee Approvals / Escalations (pending before :id so the literal
   // path wins over the :id param matcher).
