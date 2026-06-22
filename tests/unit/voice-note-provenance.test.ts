@@ -83,6 +83,13 @@ describe("buildVoiceNoteProvenance", () => {
     expect(buildVoiceNoteProvenance(successResult({ internal_note_created: false }))).toBeNull();
   });
 
+  it("carries the voice_note_id grouping id when the result has one (RETURN-10)", () => {
+    const withGroup = buildVoiceNoteProvenance(successResult({ voice_note_id: "11111111-2222-3333-4444-555555555555" }));
+    expect(withGroup?.voice_note_id).toBe("11111111-2222-3333-4444-555555555555");
+    // Backward compatible: absent when the result has none.
+    expect(buildVoiceNoteProvenance(successResult())?.voice_note_id).toBeUndefined();
+  });
+
   it("8. provenance output contains no AVP²/Federation references", () => {
     const blob = JSON.stringify(buildVoiceNoteProvenance(successResult())).toLowerCase();
     expect(blob).not.toContain("avp");

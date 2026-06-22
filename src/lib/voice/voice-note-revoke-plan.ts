@@ -48,6 +48,10 @@ export type VoiceNoteRevokePlanStatus =
   | "COMPLETE_CAN_APPLY"
   | "PARTIAL_REQUIRES_AUTHORITY"
   | "CANNOT_IDENTIFY_GROUP"
+  // [OTZAR-RETURN-10] a durable voice_note_id now groups this note's capsules, so
+  // a future governed plan CAN identify the group — but apply is still not
+  // implemented (no governed revoke-plan/apply endpoint, no coordinator yet).
+  | "GROUPING_READY_APPLY_NOT_IMPLEMENTED"
   | "UNSAFE_TO_APPLY";
 
 export type VoiceNoteCryptoErasureStatus =
@@ -149,30 +153,54 @@ const NO_GROUP_REASONS = [
   "APPLY_DEFERRED_TO_GOVERNED_COORDINATOR",
 ] as const;
 
+// [OTZAR-RETURN-10] a durable voice_note_id groups this note's capsules, so a
+// future governed plan CAN identify the group — but apply still requires the
+// governed revoke-plan/apply endpoints + per-wallet authority + a coordinator.
+const GROUPING_READY_REASONS = [
+  "DURABLE_VOICE_NOTE_ID_PRESENT",
+  "GROUP_IDENTIFIABLE_FOR_FUTURE_PLAN",
+  "APPLY_REQUIRES_GOVERNED_ENDPOINTS_AND_PER_WALLET_AUTHORITY",
+  "APPLY_NOT_IMPLEMENTED_IN_THIS_BUILD",
+] as const;
+
 /** Build an HONEST plan from the capsule ids a client happens to hold. Because
  *  there is no durable grouping id, the plan can never claim it identified the
  *  full group — it is always CANNOT_IDENTIFY_GROUP with apply_allowed false, and
  *  each capsule's wallet/authority is UNKNOWN from the client (only the backend
  *  could resolve it). It mutates nothing and calls nothing. */
+export interface BuildVoiceNoteRevokePlanInput {
+  capsuleIds: string[];
+  /** A correlation label for the plan (e.g. the source turn id). */
+  planLabel: string;
+  /** [OTZAR-RETURN-10] the durable grouping id, when the backend returned one.
+   *  Present -> the group is identifiable (apply still not implemented).
+   *  Absent  -> CANNOT_IDENTIFY_GROUP (old responses / no-grouping backend). */
+  groupingId?: string;
+}
+
 export function buildVoiceNoteRevokePlan(
-  capsuleIds: string[],
-  voiceNoteId: string,
+  input: BuildVoiceNoteRevokePlanInput,
 ): VoiceNoteRevokePlan {
-  const capsules: VoiceNoteRevokeCapsulePlan[] = capsuleIds.map((capsule_id) => ({
+  const hasGrouping = typeof input.groupingId === "string" && input.groupingId.length > 0;
+  const capsules: VoiceNoteRevokeCapsulePlan[] = input.capsuleIds.map((capsule_id) => ({
     capsule_id,
     wallet_scope: "unknown",
     current_status: "ACTIVE",
+    // Even with a grouping id, the CLIENT can't resolve per-capsule wallet
+    // authority — that stays a future governed (server-side) plan.
     authority_status: "UNKNOWN",
     proposed_action: "SKIP_UNAUTHORIZED",
   }));
   return {
     ok: true,
     mode: "PLAN_ONLY",
-    voice_note_id: voiceNoteId,
+    voice_note_id: hasGrouping ? (input.groupingId as string) : input.planLabel,
     event_type: "NOTE",
     capsule_count: capsules.length,
     capsules,
-    plan_status: "CANNOT_IDENTIFY_GROUP",
+    plan_status: hasGrouping
+      ? "GROUPING_READY_APPLY_NOT_IMPLEMENTED"
+      : "CANNOT_IDENTIFY_GROUP",
     apply_allowed: false,
     hard_delete_allowed: false,
     external_side_effects: false,
@@ -180,7 +208,9 @@ export function buildVoiceNoteRevokePlan(
     crypto_erasure_ready: false,
     crypto_erasure_status: "NO_KEY_PATH_YET",
     audit_preview: { event_type: "VOICE_NOTE_REVOKE_PLANNED" },
-    reason_codes: [...NO_GROUP_REASONS],
+    reason_codes: hasGrouping
+      ? [...GROUPING_READY_REASONS]
+      : [...NO_GROUP_REASONS],
   };
 }
 
@@ -253,6 +283,8 @@ export function voiceNoteRevokePlanCopy(plan: VoiceNoteRevokePlan): string {
       return "A complete, authorized revoke plan is available.";
     case "PARTIAL_REQUIRES_AUTHORITY":
       return "A revoke would be partial — some capsules need organization authority. Apply is not available.";
+    case "GROUPING_READY_APPLY_NOT_IMPLEMENTED":
+      return "This note's capsule group is now identifiable (grouping id recorded). Apply is not implemented yet — no note was removed.";
     case "UNSAFE_TO_APPLY":
       return "A safe revoke plan can't be formed yet. Apply is not available.";
     case "CANNOT_IDENTIFY_GROUP":

@@ -47,6 +47,9 @@ export interface VoiceNoteExecutionResult {
    *  route to the org wallet, commitments/insights to the caller's). Provenance
    *  must reflect every one — not just the first. */
   capsule_ids?: string[];
+  // [OTZAR-RETURN-10] the durable grouping id Foundation returns for a voice
+  // note (shared by every capsule). Present only when the backend supports it.
+  voice_note_id?: string;
   audit_id?: string;
   audit_url?: string;
   message: string;
@@ -106,7 +109,13 @@ export async function executeVoiceNoteCapture(
     return refuseVoiceNoteExecution(turn, "EMPTY_TRANSCRIPT", "Nothing to save yet.");
   }
 
-  const req: ObserveRequest = { content, event_type: NOTE_EVENT_TYPE };
+  // [OTZAR-RETURN-10] mark this as a voice-note capture so Foundation groups
+  // every capsule it mints under one voice_note_id and returns it.
+  const req: ObserveRequest = {
+    content,
+    event_type: NOTE_EVENT_TYPE,
+    source: "voice_note_capture",
+  };
   const r = await observe(req);
 
   // From here on the governed API WAS called.
@@ -136,6 +145,7 @@ export async function executeVoiceNoteCapture(
 
   const capsule_ids = "capsule_ids" in data ? data.capsule_ids : [];
   const note_id = capsule_ids[0];
+  const voice_note_id = "voice_note_id" in data ? data.voice_note_id : undefined;
   return {
     ...baseResult(turn),
     execution_status: "succeeded",
@@ -143,6 +153,7 @@ export async function executeVoiceNoteCapture(
     internal_note_created: true,
     ...(note_id !== undefined ? { note_id } : {}),
     capsule_ids,
+    ...(voice_note_id !== undefined ? { voice_note_id } : {}),
     message: "Internal note saved to your memory. No external message was sent.",
     reason_codes: ["INTERNAL_NOTE_CAPTURED"],
   };

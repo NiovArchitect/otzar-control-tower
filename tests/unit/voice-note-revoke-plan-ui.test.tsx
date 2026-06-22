@@ -67,14 +67,20 @@ describe("Voice page — plan-first revoke status (RETURN-9)", () => {
     return screen.findByTestId("voice-note-provenance");
   }
 
-  it("shows an honest plan-only status: cannot identify group, apply not allowed", async () => {
+  it("shows a grouping-ready, apply-not-implemented plan once the backend returns a voice_note_id (RETURN-10)", async () => {
     const user = await typeTranscript("note: the contract renews in Q3");
     await saveNote(user);
+    // The backend (MSW, mirroring Foundation) returns a voice_note_id for a
+    // voice-note capture, so the group is now identifiable.
+    expect(await screen.findByTestId("voice-note-group-id")).toHaveTextContent(
+      /voice note group id/i,
+    );
     const plan = await screen.findByTestId("voice-note-revoke-plan-status");
-    expect(plan).toHaveAttribute("data-plan-status", "CANNOT_IDENTIFY_GROUP");
+    expect(plan).toHaveAttribute("data-plan-status", "GROUPING_READY_APPLY_NOT_IMPLEMENTED");
+    // Apply is STILL not allowed in this build.
     expect(plan).toHaveAttribute("data-apply-allowed", "false");
     const text = (plan.textContent ?? "").toLowerCase();
-    expect(text).toContain("apply is not available");
+    expect(text).toContain("apply is not implemented yet");
     expect(text).toContain("no note was removed");
     expect(text).toContain("never a hard delete");
   });

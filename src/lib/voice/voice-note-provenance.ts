@@ -44,6 +44,9 @@ export interface VoiceNoteProvenance {
   /** Every capsule minted from the note (may span wallets). */
   capsule_ids: string[];
   capsule_count: number;
+  /** [OTZAR-RETURN-10] the durable grouping id, when the backend returned one.
+   *  Its presence is what makes a future note-scoped revoke plan identifiable. */
+  voice_note_id?: string;
   transcript_text: string;
   event_type: "NOTE";
   created_from: "voice_note_capture";
@@ -95,6 +98,7 @@ export function buildVoiceNoteProvenance(
     capsule_id: note_id,
     capsule_ids,
     capsule_count: capsule_ids.length,
+    ...(result.voice_note_id !== undefined ? { voice_note_id: result.voice_note_id } : {}),
     transcript_text: "", // the transcript stays in the local turn; not duplicated here
     event_type: "NOTE",
     created_from: "voice_note_capture",

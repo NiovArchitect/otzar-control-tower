@@ -342,7 +342,37 @@ future governed undo would soft-revoke each capsule with per-wallet authority an
 audit, never a hard delete"). **No apply/undo button. No revoke/delete/plan API
 call.**
 
-## 11. Future chunks
+## 11. Forward-only voice note grouping id (RETURN-10)
+
+RETURN-9 found the blocker: capsules minted from one voice note had no durable
+grouping id, so a note-scoped revoke could never identify the group. RETURN-10
+adds that grouping id — **forward-only**, for new voice notes — so future
+note-scoped revoke planning becomes possible. It does **not** revoke, delete, or
+apply anything, and makes no claim about past notes.
+
+### Foundation (`[OTZAR-RETURN-10-FOUNDATION]`)
+- `MemoryCapsule` gains a nullable, indexed `voice_note_id` (UUID).
+- `POST /otzar/observe` accepts an optional `source` / `voice_note_id`. When
+  `source === "voice_note_capture"`, Foundation generates one `voice_note_id`
+  (or honors a supplied UUID), writes it on **every** capsule the call mints
+  (across the caller + org wallets), and returns it. Non-voice observations are
+  unchanged (null, no id returned) — backward compatible.
+
+### Otzar (`[OTZAR-RETURN-10]`)
+- The voice note save sends `source: "voice_note_capture"`, stores the returned
+  `voice_note_id` on the execution result and provenance, and shows it ("Voice
+  note group id … — recorded for future governed undo planning").
+- The revoke plan gains a `GROUPING_READY_APPLY_NOT_IMPLEMENTED` status: with a
+  grouping id the group is now identifiable, **but `apply_allowed` stays false** —
+  apply still needs the governed revoke-plan/apply endpoints, per-wallet
+  authority, and a coordinator. Old responses without an id keep the
+  `CANNOT_IDENTIFY_GROUP` state (backward compatible).
+- Still **no revoke / delete / apply**, no undo/apply button, no external sends,
+  no raw audio. The blockchain-off-chain and BEAM-coordinator readiness from
+  RETURN-9 are unchanged; the grouping id is exactly the durable key a future
+  coordinator would key on.
+
+## 12. Future chunks
 
 This layer is the foundation for, in rough order:
 

@@ -56,7 +56,11 @@ describe("executeVoiceNoteCapture — note_capture only", () => {
     const observe = okObserve(SUCCESS_DATA);
     const r = await executeVoiceNoteCapture(turn("note_capture"), observe);
     expect(observe).toHaveBeenCalledTimes(1);
-    expect(observe).toHaveBeenCalledWith({ content: "note: the contract renews in Q3", event_type: "NOTE" });
+    expect(observe).toHaveBeenCalledWith({
+      content: "note: the contract renews in Q3",
+      event_type: "NOTE",
+      source: "voice_note_capture",
+    });
     expect(r.execution_status).toBe("succeeded");
     expect(r.internal_note_created).toBe(true);
     expect(r.note_id).toBe("cap-note-1");
@@ -123,6 +127,24 @@ describe("executeVoiceNoteCapture — note_capture only", () => {
     expect(r.internal_note_created).toBe(false);
     expect(r.reason_codes).toContain("DUPLICATE_CONTENT");
     expect(r.message.toLowerCase()).toContain("already captured");
+  });
+
+  it("stores the voice_note_id when the backend returns one (RETURN-10)", async () => {
+    const withGroup: ObserveResponse = {
+      ok: true,
+      capsule_ids: ["cap-obs-1", "cap-obs-2"],
+      voice_note_id: "11111111-2222-3333-4444-555555555555",
+      extracted_summary: { decisions: 1, commitments: 1, work_patterns: 0, external_entities: 0, vocab_growth: 0 },
+    };
+    const r = await executeVoiceNoteCapture(turn("note_capture"), okObserve(withGroup));
+    expect(r.voice_note_id).toBe("11111111-2222-3333-4444-555555555555");
+    expect(r.capsule_ids).toEqual(["cap-obs-1", "cap-obs-2"]);
+  });
+
+  it("stays backward-compatible when the backend returns no voice_note_id", async () => {
+    const r = await executeVoiceNoteCapture(turn("note_capture"), okObserve(SUCCESS_DATA));
+    expect(r.voice_note_id).toBeUndefined();
+    expect(r.internal_note_created).toBe(true);
   });
 
   it("an empty transcript is refused without calling observe", async () => {

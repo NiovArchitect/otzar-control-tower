@@ -328,10 +328,13 @@ export function Voice() {
   // nothing — it explains, truthfully, why undo isn't available yet.
   const noteRevokePlan =
     noteProvenance !== null
-      ? buildVoiceNoteRevokePlan(
-          noteProvenance.capsule_ids,
-          noteProvenance.source_result_id ?? "voice-note",
-        )
+      ? buildVoiceNoteRevokePlan({
+          capsuleIds: noteProvenance.capsule_ids,
+          planLabel: noteProvenance.source_result_id ?? "voice-note",
+          ...(noteProvenance.voice_note_id !== undefined
+            ? { groupingId: noteProvenance.voice_note_id }
+            : {}),
+        })
       : null;
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
@@ -640,6 +643,15 @@ export function Voice() {
                   ? `Capsule ids (${noteProvenance.capsule_count}): ${noteProvenance.capsule_ids.join(", ")}`
                   : `Capsule id: ${noteProvenance.note_id ?? "—"}`}
               </p>
+              {noteProvenance.voice_note_id !== undefined ? (
+                <p
+                  className="text-[10px] text-muted-foreground"
+                  data-testid="voice-note-group-id"
+                >
+                  Voice note group id: {noteProvenance.voice_note_id} — recorded for
+                  future governed undo planning.
+                </p>
+              ) : null}
               <p className="text-[10px] text-muted-foreground">
                 Event type: NOTE · Source: voice note capture · No external message
                 was sent · No raw audio was stored.

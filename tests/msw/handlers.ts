@@ -1174,10 +1174,17 @@ const otzarObserveHandler = http.post(
         { status: 200 },
       );
     }
+    // [OTZAR-RETURN-10] mirror Foundation: a voice-note capture
+    // (source === "voice_note_capture") gets a durable voice_note_id grouping
+    // every capsule; non-voice observes get none (backward compatible).
+    const isVoiceNote = body.source === "voice_note_capture";
     return HttpResponse.json(
       {
         ok: true,
         capsule_ids: ["cap-obs-1", "cap-obs-2"],
+        ...(isVoiceNote
+          ? { voice_note_id: "11111111-2222-3333-4444-555555555555" }
+          : {}),
         extracted_summary: {
           decisions: 1,
           commitments: 2,

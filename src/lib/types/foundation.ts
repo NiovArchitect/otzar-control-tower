@@ -1267,6 +1267,11 @@ export interface ObserveRequest {
   content: string;
   event_type: string;
   org_entity_id?: string;
+  // [OTZAR-RETURN-10] forward-only voice-note grouping. When source is
+  // "voice_note_capture", Foundation groups every capsule minted by this call
+  // under one voice_note_id and returns it.
+  source?: string;
+  voice_note_id?: string;
 }
 
 // WHAT: Per-category extraction counts on a successful observe.
@@ -1285,6 +1290,10 @@ export interface ObserveSuccessResponse {
   ok: true;
   skipped?: false;
   capsule_ids: string[];
+  // [OTZAR-RETURN-10] present only for a voice-note observe (the durable
+  // grouping id shared by every capsule in capsule_ids). Absent for older
+  // backends / non-voice observes (backward compatible).
+  voice_note_id?: string;
   extracted_summary: ObserveExtractedSummary;
 }
 
