@@ -85,15 +85,18 @@ describe("Voice page — plan-first revoke status (RETURN-9)", () => {
     expect(text).toContain("never a hard delete");
   });
 
-  it("keeps the RETURN-8 'governed revoke path required' copy and shows NO undo/apply button", async () => {
+  it("shows NO apply/undo button (the read-only Review undo plan button is allowed)", async () => {
     const user = await typeTranscript("note: remember the renewal");
     await saveNote(user);
     expect(screen.getByTestId("voice-note-undo-unavailable")).toBeInTheDocument();
+    // No APPLY/undo button.
     expect(screen.queryByTestId("voice-note-undo-button")).toBeNull();
-    expect(screen.queryByRole("button", { name: /review undo plan|undo|revoke/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^undo \/ revoke note$/i })).toBeNull();
+    // The read-only Review undo plan button IS present (RETURN-11, grouping ready).
+    expect(screen.getByTestId("voice-note-review-plan-button")).toBeInTheDocument();
   });
 
-  it("saving + viewing the plan calls NO revoke/delete/plan endpoint", async () => {
+  it("saving (before reviewing) calls NO revoke/delete/plan endpoint — only the note capture", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const user = await typeTranscript("note: pricing change");
     await saveNote(user);
@@ -101,9 +104,10 @@ describe("Voice page — plan-first revoke status (RETURN-9)", () => {
       (c) => REVOKE_DELETE_RX.test(urlOf(c)) || /DELETE/i.test(String(c[1]?.method ?? "")),
     );
     expect(hitRevoke).toBe(false);
-    // The only write that fired is the note capture itself.
+    // Only the note capture fired; the plan is fetched only on explicit click.
     const observeCalls = fetchSpy.mock.calls.filter((c) => /\/otzar\/observe(\b|$)/.test(urlOf(c)));
     expect(observeCalls.length).toBe(1);
+    expect(fetchSpy.mock.calls.some((c) => /revoke-plan/.test(urlOf(c)))).toBe(false);
   });
 
   it("a comms transcript shows no provenance or revoke-plan status", async () => {
@@ -112,5 +116,58 @@ describe("Voice page — plan-first revoke status (RETURN-9)", () => {
     expect(screen.queryByTestId("voice-note-revoke-plan-status")).toBeNull();
     expect(screen.queryByTestId("voice-note-provenance")).toBeNull();
     expect(screen.queryByTestId("voice-save-note")).toBeNull();
+  });
+});
+
+// [OTZAR-RETURN-11] consume the real governed read-only revoke-plan endpoint.
+describe("Voice page — Review undo plan (RETURN-11, read-only)", () => {
+  // Forbidden writes: the per-capsule revoke (/cosmp/capsules/:id/revoke), any
+  // bare /revoke (NOT /revoke-plan), and DELETE. The /revoke-plan read is OK.
+  function isForbiddenWrite(call: unknown[]): boolean {
+    const url = urlOf(call);
+    const init = call[1] as RequestInit | undefined;
+    if (/DELETE/i.test(String(init?.method ?? ""))) return true;
+    if (/\/cosmp\/capsules/.test(url)) return true;
+    if (/\/revoke\b/.test(url) && !/revoke-plan/.test(url)) return true;
+    return false;
+  }
+
+  async function saveNote(user: ReturnType<typeof userEvent.setup>) {
+    await screen.findByTestId("voice-save-note");
+    await user.click(screen.getByTestId("voice-save-note"));
+    return screen.findByTestId("voice-note-provenance");
+  }
+
+  it("clicking Review undo plan calls ONLY the revoke-plan endpoint (no /revoke, no DELETE) and shows the real plan", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const user = await typeTranscript("note: the contract renews in Q3");
+    await saveNote(user);
+    await user.click(screen.getByTestId("voice-note-review-plan-button"));
+    const reviewed = await screen.findByTestId("voice-note-reviewed-plan");
+
+    // It is a PLAN: apply not allowed, partial authority, honest copy.
+    expect(reviewed).toHaveAttribute("data-plan-status", "PARTIAL_REQUIRES_AUTHORITY");
+    expect(reviewed).toHaveAttribute("data-apply-allowed", "false");
+    const text = (reviewed.textContent ?? "").toLowerCase();
+    expect(text).toContain("no note was removed");
+    expect(text).toContain("organization authority");
+    expect(text).toContain("apply is not implemented");
+    expect(text).toContain("no external message was sent");
+    expect(text).toContain("no raw audio was exposed");
+
+    // No apply/undo button ever rendered.
+    expect(screen.queryByTestId("voice-note-undo-button")).toBeNull();
+
+    // Network discipline: exactly one revoke-plan read; no forbidden writes.
+    const planCalls = fetchSpy.mock.calls.filter((c) => /revoke-plan/.test(urlOf(c)));
+    expect(planCalls.length).toBe(1);
+    expect(fetchSpy.mock.calls.some(isForbiddenWrite)).toBe(false);
+  });
+
+  it("a comms transcript shows no Review undo plan button", async () => {
+    await typeTranscript("reply to David about the deck");
+    await screen.findByTestId("voice-safety-card");
+    expect(screen.queryByTestId("voice-note-review-plan-button")).toBeNull();
+    expect(screen.queryByTestId("voice-note-reviewed-plan")).toBeNull();
   });
 });

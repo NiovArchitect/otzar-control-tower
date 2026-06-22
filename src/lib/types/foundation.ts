@@ -1286,6 +1286,40 @@ export interface ObserveExtractedSummary {
 }
 
 // WHAT: Success arm of POST /api/v1/otzar/observe (content extracted).
+// [OTZAR-RETURN-11] mirror of the Foundation read-only voice-note revoke PLAN
+// (POST /otzar/voice-notes/:voice_note_id/revoke-plan). PLAN ONLY — apply is
+// never enabled, nothing is revoked/deleted, no capsule payload is returned.
+export interface VoiceNoteRevokeCapsulePlanView {
+  capsule_id: string;
+  wallet_scope: "caller" | "org" | "unknown";
+  current_status: "ACTIVE" | "REVOKED";
+  authority_status: "CAN_REVOKE" | "REQUIRES_ORG_AUTHORITY" | "NOT_OWNER" | "UNKNOWN";
+  proposed_action: "SOFT_REVOKE" | "NOOP_ALREADY_REVOKED" | "SKIP_UNAUTHORIZED";
+}
+export interface VoiceNoteRevokePlanResponse {
+  ok: true;
+  mode: "PLAN_ONLY";
+  voice_note_id: string;
+  event_type: "NOTE";
+  capsule_count: number;
+  capsules: VoiceNoteRevokeCapsulePlanView[];
+  plan_status:
+    | "COMPLETE_CAN_APPLY"
+    | "PARTIAL_REQUIRES_AUTHORITY"
+    | "ALREADY_REVOKED"
+    | "NOT_FOUND"
+    | "UNSAFE_TO_APPLY";
+  apply_allowed: false;
+  hard_delete_allowed: false;
+  external_side_effects: false;
+  raw_audio_scope: "NONE";
+  payload_returned: false;
+  crypto_erasure_ready: boolean;
+  crypto_erasure_status: "NO_KEY_PATH_YET" | "KEY_DISABLE_READY" | "NOT_APPLICABLE";
+  audit_preview: { event_type: "VOICE_NOTE_REVOKE_PLANNED" };
+  reason_codes: string[];
+}
+
 export interface ObserveSuccessResponse {
   ok: true;
   skipped?: false;

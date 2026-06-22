@@ -78,6 +78,7 @@ import {
   buildVoiceNoteRevokePlan,
   voiceNoteRevokePlanCopy,
 } from "@/lib/voice/voice-note-revoke-plan";
+import type { VoiceNoteRevokePlanResponse } from "@/lib/types/foundation";
 import { api } from "@/lib/api";
 import {
   describePushToTalkState,
@@ -336,6 +337,32 @@ export function Voice() {
             : {}),
         })
       : null;
+
+  // Phase OTZAR-RETURN-11 — the REAL, governed, read-only revoke PLAN from
+  // Foundation, fetched on demand. "Review undo plan" calls the read-only
+  // endpoint (POST /otzar/voice-notes/:id/revoke-plan); it revokes/deletes
+  // NOTHING and shows no apply button. Only available once a note has a
+  // voice_note_id grouping (RETURN-10).
+  const [reviewedPlan, setReviewedPlan] =
+    useState<VoiceNoteRevokePlanResponse | null>(null);
+  const [reviewingPlan, setReviewingPlan] = useState(false);
+  const [reviewPlanError, setReviewPlanError] = useState(false);
+  useEffect(() => {
+    setReviewedPlan(null);
+    setReviewPlanError(false);
+  }, [trimmedDraft, routeHint]);
+  async function reviewUndoPlan(): Promise<void> {
+    const groupId = noteProvenance?.voice_note_id;
+    if (groupId === undefined) return;
+    setReviewingPlan(true);
+    setReviewPlanError(false);
+    const r = await api.otzar.voiceNotes.revokePlan(groupId, {
+      reason: "user_requested_undo_plan",
+    });
+    setReviewingPlan(false);
+    if (r.ok) setReviewedPlan(r.data);
+    else setReviewPlanError(true);
+  }
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
   // signals (mic support, permission, live listening, captured transcript). The
@@ -714,6 +741,59 @@ export function Voice() {
                   A future governed undo would soft-revoke (tombstone) each capsule
                   with per-wallet authority and audit — never a hard delete.
                 </p>
+              ) : null}
+
+              {/* Phase OTZAR-RETURN-11 — once the note has a grouping id, the user
+                  can fetch the REAL governed read-only plan. This calls the
+                  revoke-plan endpoint only; it never revokes/deletes/applies and
+                  shows no apply button. */}
+              {noteProvenance.voice_note_id !== undefined ? (
+                <div className="space-y-1 pt-1" data-testid="voice-note-review-plan">
+                  {reviewedPlan === null ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void reviewUndoPlan()}
+                      disabled={reviewingPlan}
+                      data-testid="voice-note-review-plan-button"
+                    >
+                      {reviewingPlan ? "Reviewing…" : "Review undo plan"}
+                    </Button>
+                  ) : null}
+                  {reviewPlanError ? (
+                    <p className="text-[10px] text-amber-600" data-testid="voice-note-review-plan-error">
+                      Couldn't fetch the undo plan right now. No note was removed.
+                    </p>
+                  ) : null}
+                  {reviewedPlan !== null ? (
+                    <div
+                      className="rounded border border-border bg-background/60 p-1.5"
+                      data-testid="voice-note-reviewed-plan"
+                      data-plan-status={reviewedPlan.plan_status}
+                      data-apply-allowed={String(reviewedPlan.apply_allowed)}
+                    >
+                      <p className="text-[11px] text-foreground/80">
+                        Undo plan reviewed. No note was removed.
+                      </p>
+                      <p className="text-[10px] text-muted-foreground" data-testid="voice-note-reviewed-plan-status">
+                        {reviewedPlan.plan_status === "COMPLETE_CAN_APPLY"
+                          ? `All ${reviewedPlan.capsule_count} capsule(s) in this note could be revoked by you in a future governed undo.`
+                          : reviewedPlan.plan_status === "PARTIAL_REQUIRES_AUTHORITY"
+                            ? "Some capsules require organization authority."
+                            : reviewedPlan.plan_status === "ALREADY_REVOKED"
+                              ? "This note group is already revoked."
+                              : reviewedPlan.plan_status === "NOT_FOUND"
+                                ? "This note group isn't available."
+                                : "A safe plan can't be formed for this note yet."}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Apply is not implemented in this build. No external message
+                        was sent. No raw audio was exposed.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ) : null}

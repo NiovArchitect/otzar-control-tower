@@ -64,6 +64,7 @@ import type {
   ConversationCloseResponse,
   ObserveRequest,
   ObserveResponse,
+  VoiceNoteRevokePlanResponse,
   CorrectionRequest,
   CorrectionResponse,
   // My Twin + Conversations metadata (read-only)
@@ -766,6 +767,21 @@ export class ApiClient {
         method: "POST",
         body: input,
       }),
+
+    /** [OTZAR-RETURN-11] Voice-note read-only operations. */
+    voiceNotes: {
+      /** POST /api/v1/otzar/voice-notes/:voice_note_id/revoke-plan — READ-ONLY.
+       *  Returns the governed revoke PLAN for the caller's own voice note. It
+       *  mutates nothing, revokes nothing, and never returns capsule payload. */
+      revokePlan: (
+        voiceNoteId: string,
+        input: { reason: string },
+      ): Promise<ApiResult<VoiceNoteRevokePlanResponse>> =>
+        this.request<VoiceNoteRevokePlanResponse>(
+          `/otzar/voice-notes/${encodeURIComponent(voiceNoteId)}/revoke-plan`,
+          { method: "POST", body: input },
+        ),
+    },
 
     /** POST /api/v1/otzar/correction -- teach/correct the AI within scoped memory. */
     correction: (

@@ -372,7 +372,44 @@ apply anything, and makes no claim about past notes.
   RETURN-9 are unchanged; the grouping id is exactly the durable key a future
   coordinator would key on.
 
-## 12. Future chunks
+## 12. Governed voice note revoke-plan endpoint (RETURN-11)
+
+RETURN-11 turns the client-side plan stub into a **real, server-side, read-only**
+plan. It is the safe prerequisite for a future supervised revoke coordinator
+(apply). It reports; it never revokes, deletes, or applies.
+
+### Foundation (`[OTZAR-RETURN-11-FOUNDATION]`, PR — read-only, no schema change)
+- `POST /api/v1/otzar/voice-notes/:voice_note_id/revoke-plan` — bearer-validated
+  (`read`); `:voice_note_id` must be a UUID.
+- **Enumeration-safe:** the group is visible only to its creator (queried by
+  `voice_note_id` AND `created_by === caller`). An unrelated/guessed id →
+  `NOT_FOUND` with no count and no ids.
+- For each capsule it returns **safe fields only** — `capsule_id`, `wallet_scope`
+  (caller/org/unknown), `current_status` (ACTIVE/REVOKED), `authority_status`
+  (CAN_REVOKE / REQUIRES_ORG_AUTHORITY / UNKNOWN), `proposed_action` (SOFT_REVOKE
+  / NOOP_ALREADY_REVOKED / SKIP_UNAUTHORIZED). **No** `payload_summary` /
+  `content_hash` / `storage_location`.
+- `plan_status` over the active subset (already-revoked are NOOP):
+  `NOT_FOUND` / `ALREADY_REVOKED` / `UNSAFE_TO_APPLY` /
+  `PARTIAL_REQUIRES_AUTHORITY` / `COMPLETE_CAN_APPLY`. `apply_allowed`,
+  `hard_delete_allowed`, `external_side_effects` are always false;
+  `raw_audio_scope` NONE; `payload_returned` false. It **mutates nothing** (no
+  `deleted_at` write, no audit write).
+
+### Otzar (`[OTZAR-RETURN-11]`)
+- `api.otzar.voiceNotes.revokePlan(voice_note_id, { reason })`.
+- The Voice page shows a **"Review undo plan"** button (read-only) once a note has
+  a grouping id. Clicking calls the revoke-plan endpoint and displays the real
+  plan: "Undo plan reviewed. No note was removed.", the plan status (complete /
+  partial-needs-org-authority / already-revoked / not-available / unsafe), and
+  "Apply is not implemented in this build. No external message was sent. No raw
+  audio was exposed." **No apply/undo button; no `/revoke`/DELETE/per-capsule
+  call.**
+
+Apply (the supervised coordinator) remains a later chunk; personal/capsule data
+stays off-chain (future chain would anchor status/proof roots only).
+
+## 13. Future chunks
 
 This layer is the foundation for, in rough order:
 

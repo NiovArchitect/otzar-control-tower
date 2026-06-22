@@ -1198,6 +1198,54 @@ const otzarObserveHandler = http.post(
   },
 );
 
+// [OTZAR-RETURN-11] READ-ONLY voice-note revoke PLAN — mirrors the Foundation
+// service shape exactly (PLAN_ONLY; apply_allowed false; payload_returned false;
+// safe per-capsule fields only). Mutates nothing. The default group is the
+// caller+org fan-out from the observe handler, so plan_status is
+// PARTIAL_REQUIRES_AUTHORITY.
+const otzarVoiceNoteRevokePlanHandler = http.post(
+  `${API_BASE}/otzar/voice-notes/:voice_note_id/revoke-plan`,
+  ({ params }) => {
+    const voiceNoteId = String(params.voice_note_id);
+    return HttpResponse.json(
+      {
+        ok: true,
+        mode: "PLAN_ONLY",
+        voice_note_id: voiceNoteId,
+        event_type: "NOTE",
+        capsule_count: 2,
+        capsules: [
+          {
+            capsule_id: "cap-obs-1",
+            wallet_scope: "caller",
+            current_status: "ACTIVE",
+            authority_status: "CAN_REVOKE",
+            proposed_action: "SOFT_REVOKE",
+          },
+          {
+            capsule_id: "cap-obs-2",
+            wallet_scope: "org",
+            current_status: "ACTIVE",
+            authority_status: "REQUIRES_ORG_AUTHORITY",
+            proposed_action: "SKIP_UNAUTHORIZED",
+          },
+        ],
+        plan_status: "PARTIAL_REQUIRES_AUTHORITY",
+        apply_allowed: false,
+        hard_delete_allowed: false,
+        external_side_effects: false,
+        raw_audio_scope: "NONE",
+        payload_returned: false,
+        crypto_erasure_ready: false,
+        crypto_erasure_status: "NO_KEY_PATH_YET",
+        audit_preview: { event_type: "VOICE_NOTE_REVOKE_PLANNED" },
+        reason_codes: ["SOME_CAPSULES_REQUIRE_ORG_AUTHORITY", "APPLY_NOT_IMPLEMENTED_IN_THIS_BUILD"],
+      },
+      { status: 200 },
+    );
+  },
+);
+
 // WHAT: Recorder for POST /otzar/correction calls (Wave 2C). Tests use
 //        getRecordedCorrectionCalls() to assert the body shape (e.g. that
 //        the inline Chat correction passes conversation_id while the
@@ -3004,6 +3052,7 @@ export const handlers = [
   otzarObserveProvidersHandler,
   otzarCollaborationWorkspacesDefaultHandler,
   otzarObserveHandler,
+  otzarVoiceNoteRevokePlanHandler,
   otzarCorrectionHandler,
   // Employee Approvals / Escalations (pending before :id so the literal
   // path wins over the :id param matcher).
