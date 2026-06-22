@@ -74,6 +74,10 @@ import {
   voiceNoteReadbackCopy,
   voiceNoteUndoCopy,
 } from "@/lib/voice/voice-note-provenance";
+import {
+  buildVoiceNoteRevokePlan,
+  voiceNoteRevokePlanCopy,
+} from "@/lib/voice/voice-note-revoke-plan";
 import { api } from "@/lib/api";
 import {
   describePushToTalkState,
@@ -318,6 +322,17 @@ export function Voice() {
   // per-capsule, caller-wallet revoke). Read-back/undo are reported honestly; NO
   // revoke/delete is performed in this build.
   const noteProvenance = noteResult !== null ? buildVoiceNoteProvenance(noteResult) : null;
+  // Phase OTZAR-RETURN-9 — an HONEST, read-only revoke PLAN (plan-first, never
+  // destructive). With no durable grouping id, the plan is always
+  // CANNOT_IDENTIFY_GROUP with apply_allowed false. It calls nothing and revokes
+  // nothing — it explains, truthfully, why undo isn't available yet.
+  const noteRevokePlan =
+    noteProvenance !== null
+      ? buildVoiceNoteRevokePlan(
+          noteProvenance.capsule_ids,
+          noteProvenance.source_result_id ?? "voice-note",
+        )
+      : null;
 
   // Phase OTZAR-RETURN-4 — derive the push-to-talk capture state from REAL
   // signals (mic support, permission, live listening, captured transcript). The
@@ -676,6 +691,18 @@ export function Voice() {
                   note safely.
                 </p>
               )}
+              {noteRevokePlan !== null ? (
+                <p
+                  className="text-[10px] text-muted-foreground"
+                  data-testid="voice-note-revoke-plan-status"
+                  data-plan-status={noteRevokePlan.plan_status}
+                  data-apply-allowed={String(noteRevokePlan.apply_allowed)}
+                >
+                  Revoke plan (plan only): {voiceNoteRevokePlanCopy(noteRevokePlan)}{" "}
+                  A future governed undo would soft-revoke (tombstone) each capsule
+                  with per-wallet authority and audit — never a hard delete.
+                </p>
+              ) : null}
             </div>
           ) : null}
 

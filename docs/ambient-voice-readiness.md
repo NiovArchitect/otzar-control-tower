@@ -290,7 +290,59 @@ tombstones **every** minted capsule with per-wallet authorization). No fake undo
 button is shown. No external sends, no approval/task/reminder execution, no raw
 audio. No Foundation change was made.
 
-## 10. Future chunks
+## 10. Voice note revoke planning (RETURN-9)
+
+RETURN-9 is a **safety / architecture** phase before any real undo execution. It
+makes voice-note undo *logically correct* — and blockchain-ready, BEAM-ready, and
+non-cascading — **without** hard-deleting, blindly revoking, or calling anything.
+No Foundation change was made.
+
+### What the Foundation audit found
+- **No durable grouping id.** `MemoryCapsule` has no `observation_id` /
+  `source_id` / `correlation_id` / `group_id`; observe does not link the fan-out.
+  So the full capsule group from one NOTE **cannot be re-identified later**.
+- **Cross-wallet fan-out.** Decisions route to the **org wallet**, commitments/
+  insights to the caller's wallet.
+- **Existing revoke is safe but insufficient.** `POST /cosmp/capsules/:id/revoke`
+  is a **soft tombstone** (`deleted_at`), audit-aware (`CAPSULE_DELETED`),
+  owner-scoped (`NOT_OWNER`) — but **per-capsule and caller-wallet-only**, so the
+  caller cannot revoke org-wallet capsules.
+- **No crypto-erasure / key-disable path** today.
+
+### What RETURN-9 ships (Otzar-only, plan-first)
+- A typed `VoiceNoteRevokePlan` (`PLAN_ONLY`): with no grouping id it is always
+  `plan_status: CANNOT_IDENTIFY_GROUP`, `apply_allowed: false`,
+  `hard_delete_allowed: false`, `external_side_effects: false`,
+  `raw_audio_scope: NONE`, `crypto_erasure_status: NO_KEY_PATH_YET`. It mutates
+  nothing and calls nothing.
+- A typed `VoiceNoteRevokeContract` encoding the doctrine: a **forward-only**
+  durable grouping id is the prerequisite (it makes no claim it can group past
+  observations); per-wallet authority (caller's own; org capsules need org
+  authority); soft revoke/tombstone that **preserves audit/proof history**;
+  net-new `VOICE_NOTE_REVOKE_PLANNED` / `_APPLIED` audit events (the existing
+  soft revoke audits as `CAPSULE_DELETED`); crypto-erasure `NO_KEY_PATH_YET`.
+- **Apply remains future**, gated on durable grouping + complete authority +
+  idempotency.
+
+### Blockchain readiness
+Capsule data stays **off-chain**, encrypted, governed, and revocable. A future
+chain would anchor only **non-personal status / revocation / proof roots** — never
+personal data, and never a hash of personal data.
+
+### BEAM / Elixir readiness
+The contract is shaped for a future **supervised revoke coordinator (saga)**: one
+coordinator per `voice_note_id`, idempotent plan/apply, per-wallet authority
+checks, no duplicate jobs, no cascading delete, backpressure for large groups,
+explicit status transitions.
+
+### UI
+The Voice page keeps RETURN-8's "a governed revoke path is required" copy and adds
+a read-only plan-status line ("apply is not available — no note was removed; a
+future governed undo would soft-revoke each capsule with per-wallet authority and
+audit, never a hard delete"). **No apply/undo button. No revoke/delete/plan API
+call.**
+
+## 11. Future chunks
 
 This layer is the foundation for, in rough order:
 
