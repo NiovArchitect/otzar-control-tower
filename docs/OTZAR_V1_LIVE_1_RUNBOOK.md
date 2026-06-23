@@ -94,29 +94,52 @@
 
 ## 3. Org + teammate provisioning (one-time)
 
-1. **Bootstrap the org + founder admin** (server-side, once):
-   - `ALLOW_FOUNDER_BOOTSTRAP=true FOUNDER_BOOTSTRAP_EMAIL=<founder> ... npx tsx scripts/founder-bootstrap.ts`
-   - **Capture the one-time password** printed to stdout (never written to disk).
-2. **Founder logs in** at the Otzar URL with that email + password.
-3. **Create the second teammate** via the admin UI:
-   - Go to **Users → Invite** (the InviteWizard, 3 steps). Set name, email,
-     `is_admin` as appropriate (employee/collaborator → not admin).
-   - On confirm, Foundation creates the member entity + mints their AI Twin and
-     returns an `activation_credential`.
-   - **Capture the `activation_credential`** from the confirmation step
-     (currently returned to the admin's browser; not yet emailed — LIVE-6).
-4. **Hand the teammate their credential out-of-band** (the manual workaround until
-   invite-email lands).
+For a two-or-more-user validation you need **multiple login-able accounts in one
+org**. The verified path is the Foundation provisioning script
+`scripts/provision-demo-team-accounts.ts` — it creates/repairs the **NIOV Labs**
+org, the **Founder** (`sadeil@niovlabs.com`, the only admin), and a fixed
+allowlist of teammates (e.g. `david@niovlabs.com` — Tech Lead), all via the
+canonical `createEntity` path with real org memberships and minted Twins. Every
+account signs in with a single shared password you choose (`DEMO_SHARED_PASSWORD`,
+never printed). This is real provisioning (real entities/memberships/Twins), not
+demo *data* and not demo *intake*.
 
-> If the confirmation UI does not surface a copyable credential, that is a LIVE-1C
-> follow-up (see `docs/OTZAR_V1_LIVE_1_RUNBOOK.md` updates and the LIVE-1C task).
+1. **Dry-run first** (no creds, mutates nothing — prints the exact plan):
+   ```
+   DATABASE_URL=<foundation db> npx tsx scripts/provision-demo-team-accounts.ts --dry-run
+   ```
+2. **Real run** (idempotent CREATE/REPAIR; allowlist only; never deletes / no DDL):
+   ```
+   DATABASE_URL=<foundation db> \
+   DEMO_SHARED_PASSWORD=<choose-a-strong-shared-password> \
+   NIOV_APPROVE_DEMO_TEAM_ACCOUNTS="APPROVE FULL DEMO TEAM ACCOUNTS — exact allowlist only" \
+   npx tsx scripts/provision-demo-team-accounts.ts
+   ```
+3. **Founder = `sadeil@niovlabs.com`** (admin), **second teammate = `david@niovlabs.com`**
+   (Tech Lead, non-admin). Both log in with the shared password.
+4. **Share the shared password out-of-band** with whoever logs in as the teammate
+   (the manual handoff until self-serve onboarding / invite-email lands in LIVE-6).
+
+> Founder-only alternative: `scripts/founder-bootstrap.ts`
+> (`ALLOW_FOUNDER_BOOTSTRAP=true`, prints a one-time founder password) creates just
+> the org + founder. Use the team-provisioning script when you need a second
+> login-able teammate.
+
+> **Honest gap (do not use for login):** the in-app **Users → Invite** wizard
+> creates the member entity + mints the Twin and returns an `activation_credential`,
+> but there is **no redemption flow yet** (no activation-link table; the member's
+> password is random and never surfaced). An invite-wizard teammate therefore
+> **cannot log in** until self-activation lands (LIVE-6). For v1 validation logins,
+> use the provisioning script above.
 
 ---
 
 ## 4. Two-laptop validation steps
 
-1. **Computer A:** founder logs in. Confirm header reads **Otzar**.
-2. **Computer B:** teammate logs in with their credential. Confirm same org.
+1. **Computer A:** founder logs in (`sadeil@niovlabs.com` + shared password).
+   Confirm the browser tab + header read **Otzar**.
+2. **Computer B:** teammate logs in (`david@niovlabs.com` + the same shared
+   password). Confirm the same org.
 3. Founder opens **Users** and sees the teammate listed (shared org hierarchy).
 4. Founder speaks or types a request (browser voice / ambient bar / chat), e.g.
    *"Ask <teammate> to review this client note and prepare the next action."*
