@@ -689,7 +689,7 @@ export function classifyVoiceAction(
       heard,
       actionLabel: target ? `Ask Twin → ${target}` : "Ask a Twin / agent",
       spoken:
-        "I'll route this to Collaboration. I won't answer for someone else's Twin or speak for them. You can create a governed request there.",
+        "Routing your request through Collaboration. I won't answer for someone else's Twin or speak for them. I create the governed request and route it.",
       route: COLLABORATION_ROUTE,
       ...(target !== undefined ? { targetEntity: target } : {}),
       requiresApproval: false,

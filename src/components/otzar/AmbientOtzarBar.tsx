@@ -53,7 +53,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import type { CalendarContextResponse } from "@/lib/types/foundation";
+import type {
+  CalendarContextResponse,
+  CreateCollaborationRequestBody,
+  TwinCollaborationRequestType,
+} from "@/lib/types/foundation";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
@@ -702,6 +706,166 @@ export function AmbientOtzarBar(): JSX.Element {
     });
     // NOTE: deliberately NO navigate() — the draft stays in view; the
     // user opens it explicitly.
+  }
+
+  // Phase 1286 — REAL ambient governed teammate routing for ASK_TWIN.
+  // "Ask David to review this …" resolves David in-org and creates a
+  // governed collaboration request. Prefers the Twin-mediated EMPLOYEE_TWIN
+  // target so the request surfaces to BOTH David and David's Twin (inbound
+  // is an OR over target_entity_id + target_twin_entity_id); falls back to
+  // EMPLOYEE when the teammate's Twin can't be resolved. The request is sent
+  // BY the caller's own Twin (requester_twin_entity_id), and the backend
+  // enforces same-org / RBAC/ABAC/TAR / org-collaboration policy (approval
+  // gating) / audit. NEVER answers AS the teammate or their Twin; never a
+  // fake send — unresolved/blocked yields an honest message.
+  async function executeAskTwinAction(
+    action: VoiceAction,
+    at: string,
+  ): Promise<void> {
+    const collabRoute = action.route ?? "/app/collaboration";
+    const recipientName = action.targetEntity;
+
+    function reportAsk(
+      msg: string,
+      result: "success" | "blocked",
+      status: string,
+      target: string | null,
+    ): void {
+      setActionResult(msg);
+      setActionStatus(status);
+      speakConfirmation(msg);
+      appendConversationEntry({
+        role: "action",
+        text: msg,
+        at,
+        kind: action.kind,
+        status,
+      });
+      recordVoiceAction({
+        at,
+        transcript: action.heard,
+        actionType: action.kind,
+        target,
+        result,
+      });
+    }
+
+    if (recipientName === undefined || recipientName.trim().length === 0) {
+      reportAsk(
+        'Tell me who this is for — e.g. "ask David to review this note" — and I\'ll route a governed request.',
+        "blocked",
+        "Needs a teammate",
+        null,
+      );
+      return;
+    }
+
+    const resolved = await resolveTarget(recipientName);
+    if (
+      resolved.kind !== "RESOLVED_HUMAN" &&
+      resolved.kind !== "RESOLVED_AI_AGENT"
+    ) {
+      const why =
+        resolved.kind === "AMBIGUOUS"
+          ? `More than one teammate matches "${recipientName}". Open Collaboration to pick the right one.`
+          : resolved.kind === "NOT_FOUND"
+            ? `"${recipientName}" isn't in your organization, so I can't route this.`
+            : `I couldn't resolve "${recipientName}" from here. Open Collaboration to pick the teammate.`;
+      reportAsk(why, "blocked", "Blocked", recipientName);
+      navigate(collabRoute);
+      return;
+    }
+
+    const targetHumanId = resolved.entityId;
+    const label = resolved.displayName ?? recipientName;
+    if (targetHumanId === undefined) {
+      reportAsk(
+        `I couldn't resolve "${recipientName}" to a teammate id. Open Collaboration to route it.`,
+        "blocked",
+        "Blocked",
+        recipientName,
+      );
+      navigate(collabRoute);
+      return;
+    }
+
+    // Best-effort: find the teammate's Twin so the request surfaces to BOTH
+    // the teammate AND their Twin. For a standard (non-admin) twin,
+    // TwinConfig.approver_entity_id === the owner human id; fall back to the
+    // canonical "Twin of <owner-id>" display name. Tolerate it being absent.
+    let targetTwinId: string | undefined;
+    const roster = await api.org.aiTeammates.list({ take: 200 });
+    if (roster.ok) {
+      const match = roster.data.items.find(
+        (t) =>
+          t.config?.approver_entity_id === targetHumanId ||
+          t.display_name.includes(targetHumanId),
+      );
+      if (match !== undefined) targetTwinId = match.entity_id;
+    }
+
+    // The request is sent BY the caller's own Twin (twin-mediated), best-effort.
+    let requesterTwinId: string | undefined;
+    const mine = await api.otzar.myTwin();
+    if (mine.ok) requesterTwinId = mine.data.twin.twin_id;
+
+    const requestType: TwinCollaborationRequestType = /\breview\b/i.test(
+      action.heard,
+    )
+      ? "REVIEW_REQUEST"
+      : "FOLLOW_UP";
+    const safeSummary =
+      action.heard.trim().length > 0
+        ? action.heard.trim()
+        : `Request for ${label}`;
+
+    const body: CreateCollaborationRequestBody =
+      targetTwinId !== undefined
+        ? {
+            target_type: "EMPLOYEE_TWIN",
+            target_twin_entity_id: targetTwinId,
+            target_entity_id: targetHumanId,
+            request_type: requestType,
+            safe_summary: safeSummary,
+            requested_by_ai: true,
+            ...(requesterTwinId !== undefined
+              ? { requester_twin_entity_id: requesterTwinId }
+              : {}),
+          }
+        : {
+            target_type: "EMPLOYEE",
+            target_entity_id: targetHumanId,
+            request_type: requestType,
+            safe_summary: safeSummary,
+            requested_by_ai: true,
+            ...(requesterTwinId !== undefined
+              ? { requester_twin_entity_id: requesterTwinId }
+              : {}),
+          };
+
+    const created = await api.otzar.collaboration.create(body);
+    if (!created.ok) {
+      reportAsk(
+        `I couldn't create the request for ${label} (${created.code}). Open Collaboration to route it.`,
+        "blocked",
+        "Blocked",
+        targetTwinId ?? targetHumanId,
+      );
+      navigate(collabRoute);
+      return;
+    }
+
+    const msg =
+      targetTwinId !== undefined
+        ? `I sent this to ${label}'s Twin for review and created the next-action request — I'll track the response here.`
+        : `I sent this to ${label} for review and created the next-action request — I'll track the response here.`;
+    reportAsk(
+      msg,
+      "success",
+      "Routed · approval may be required",
+      targetTwinId ?? targetHumanId,
+    );
+    navigate(collabRoute);
   }
 
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
@@ -1804,7 +1968,15 @@ export function AmbientOtzarBar(): JSX.Element {
         });
         return;
       }
-      case "ASK_TWIN":
+      case "ASK_TWIN": {
+        // Phase 1286 — REAL ambient governed teammate routing. Resolve the
+        // teammate in-org and CREATE a governed collaboration request via the
+        // existing backend (same-org + RBAC/ABAC/TAR + policy approval + audit
+        // enforced server-side). NEVER answers AS the teammate or their Twin —
+        // it only creates a request they can act on under their own authority.
+        void executeAskTwinAction(action, at);
+        return;
+      }
       case "MEETING_NOTES_TO_ACTIONS":
       case "WORKFLOW_START":
       case "READ_ONLY_SUMMARY": {
