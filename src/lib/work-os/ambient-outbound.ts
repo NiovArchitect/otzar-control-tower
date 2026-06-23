@@ -217,7 +217,7 @@ function intentFor(ask: string): {
     return { kind: "COLLABORATION_REQUEST", requestType: "REVIEW_REQUEST" };
   }
   if (
-    /\b(prepare|draft|complete|finish|handle|take\s+care\s+of|work\s+on|build|fix|deliver|coordinate|put\s+together|follow\s+up\s+on)\b/.test(
+    /\b(prepare|draft|complete|finish|handle|take\s+care\s+of|work\s+on|build|fix|deliver|coordinate|put\s+together|follow\s+up\s+on|summari[sz]e|analy[sz]e|extract|recap|digest|look\s+into)\b/.test(
       l,
     )
   ) {

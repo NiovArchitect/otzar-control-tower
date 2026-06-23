@@ -105,6 +105,15 @@ import {
   useCurrentSurfaceContextStore,
   getActiveSurfaceContext,
 } from "@/lib/stores/current-surface-context";
+import {
+  detectTranscriptCommand,
+  extractTranscriptDigest,
+  digestCounts,
+  whyThisMatters,
+  pickItems,
+  type TranscriptDigest,
+  type TranscriptWorkItem,
+} from "@/lib/work-os/transcript-intelligence";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -281,6 +290,10 @@ export function AmbientOtzarBar(): JSX.Element {
   const [actionLabel, setActionLabel] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [actionVoicePath, setActionVoicePath] = useState<string | null>(null);
+  // Phase 3A — the transcript/meeting digest, shown compactly (counts) with the
+  // full sections collapsed behind "View digest".
+  const [transcriptDigest, setTranscriptDigest] =
+    useState<TranscriptDigest | null>(null);
   // Phase 1265 — Work OS status line (Draft only / Approval required /
   // Read-only / Runtime not available / Routed / Blocked).
   const [actionStatus, setActionStatus] = useState<string | null>(null);
@@ -1180,6 +1193,135 @@ export function AmbientOtzarBar(): JSX.Element {
     });
   }
 
+  // Phase 3A — transcript / meeting intelligence on PROVIDED text. Runs on the
+  // active current-surface context (a pasted/selected transcript). Produces a
+  // compact digest, answers "why this matters" from context, or routes the
+  // extracted items to a teammate through the governed collaboration rail.
+  // Returns true when it handled the input. Never captures live audio, never
+  // sends transcript text anywhere except through existing governed rails, and
+  // treats the provided text as UNTRUSTED content (parsed, never executed).
+  async function handleTranscriptCommand(text: string): Promise<boolean> {
+    const cmd = detectTranscriptCommand(text);
+    if (cmd === null) return false;
+    const at = new Date().toISOString();
+    setDraft("");
+    setActionHeard(text);
+    setTranscriptDigest(null);
+    appendConversationEntry({ role: "user", text, at });
+
+    const ctx = getActiveSurfaceContext();
+    const sourceText = (ctx?.text ?? ctx?.summary ?? "").trim();
+    // No provided text → one focused question, never fabricate a digest.
+    if (sourceText.length === 0) {
+      setActionLabel("Transcript");
+      surfaceOutcome({
+        eventKind: "MISSING_CONTEXT",
+        copy: "Paste or select the transcript you want me to use.",
+        status: "Need the transcript",
+        at,
+        heard: text,
+        result: "blocked",
+        target: null,
+      });
+      return true;
+    }
+
+    const digest = extractTranscriptDigest(sourceText);
+
+    if (cmd.kind === "WHY") {
+      // A calm, context-grounded answer — never an internal message.
+      setActionLabel("Why this matters");
+      const answer = whyThisMatters(digest);
+      setActionResult(answer);
+      setActionStatus("Answered");
+      appendConversationEntry({
+        role: "otzar",
+        text: answer,
+        at,
+        status: "Answered",
+      });
+      speakConfirmation(answer);
+      markPresenceSuccess();
+      return true;
+    }
+
+    if (cmd.kind === "ROUTE") {
+      const items = pickItems(digest, cmd.selector);
+      const label = cmd.selector.replace(/_/g, " ");
+      if (items.length === 0) {
+        setActionLabel("Transcript");
+        surfaceOutcome({
+          eventKind: "MISSING_CONTEXT",
+          copy: `I didn't find any ${label} in that transcript. Want me to send something else?`,
+          status: "Nothing to send",
+          at,
+          heard: text,
+          result: "blocked",
+          target: null,
+        });
+        return true;
+      }
+      setActionLabel(`${label} → ${cmd.targetName}`);
+      const summary = items.map((i) => i.text).join("; ");
+      const message = `Here are the ${label} from the meeting: ${summary}`;
+      // Route through the governed collaboration rail (resolves the teammate,
+      // applies authority/approval, attaches the transcript context, tracks).
+      await executeCollaborationRequest(
+        cmd.targetName,
+        message,
+        summary,
+        "FOLLOW_UP",
+        text,
+        at,
+      );
+      return true;
+    }
+
+    // DIGEST — compact counts up top, full sections collapsed behind the digest.
+    setActionLabel("Meeting digest");
+    setTranscriptDigest(digest);
+    surfaceOutcome({
+      eventKind: "DIGEST_READY",
+      copy: digestCounts(digest),
+      status: "Digest ready",
+      at,
+      heard: text,
+      result: "success",
+      target: null,
+    });
+    markPresenceSuccess();
+
+    // "Create follow-ups from this" → persist follow-ups/commitments as durable
+    // PROPOSED Work Ledger items, each linked to the provided context.
+    if (cmd.create) {
+      const followUps = [...digest.followUps, ...digest.commitments];
+      for (const item of followUps) {
+        await api.workOs.createLedgerEntry({
+          ledger_type: "FOLLOW_UP",
+          title: item.text,
+          source_type: "VOICE_COMMAND",
+          source_command: text,
+          status: "PROPOSED",
+          extraction_source: "TYPESCRIPT_DETERMINISTIC",
+          evidence: [],
+          ...(ctx !== null
+            ? {
+                details: {
+                  context_type: ctx.type,
+                  context_ref: ctx.id,
+                  context_label: "the current context",
+                  ...(item.ownerName !== undefined
+                    ? { owner_hint: item.ownerName }
+                    : {}),
+                },
+              }
+            : {}),
+        });
+      }
+    }
+    return true;
+  }
+
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
   // governed action. Open never reaches here.
   async function confirmArtifact(body: string): Promise<void> {
@@ -1856,6 +1998,13 @@ export function AmbientOtzarBar(): JSX.Element {
         return;
       }
     }
+
+    // Phase 3A — transcript/meeting intelligence on PROVIDED text. Runs before
+    // outbound routing so "summarize this transcript", "send William the
+    // decisions", and "why does this matter" use the provided context. A
+    // delegation ("tell Samiksha to summarize this") is NOT intercepted here —
+    // it falls through to the outbound path, which attaches the transcript.
+    if (await handleTranscriptCommand(text)) return;
 
     // Ambient outbound work — recipient-directed natural language ("Ask David
     // to review …", "David, can you confirm …", "Tell the product team …") is
@@ -3113,6 +3262,66 @@ export function AmbientOtzarBar(): JSX.Element {
                 </div>
               </details>
             </div>
+          ) : null}
+
+          {/* Phase 3A — the meeting digest. The compact counts live in the
+              outcome line above; the full sections (decisions / blockers /
+              follow-ups / risks / open questions) stay collapsed here, never a
+              raw transcript dump. */}
+          {transcriptDigest !== null ? (
+            <details
+              className="rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs"
+              data-testid="transcript-digest"
+            >
+              <summary className="cursor-pointer select-none text-[11px] font-medium text-muted-foreground">
+                View digest
+              </summary>
+              <div className="mt-1 space-y-1.5">
+                <div className="text-muted-foreground">
+                  {transcriptDigest.summary}
+                </div>
+                {(
+                  [
+                    ["Decisions", transcriptDigest.decisions],
+                    ["Blockers", transcriptDigest.blockers],
+                    [
+                      "Follow-ups",
+                      [
+                        ...transcriptDigest.followUps,
+                        ...transcriptDigest.commitments,
+                      ],
+                    ],
+                    ["Risks", transcriptDigest.risks],
+                    ["Open questions", transcriptDigest.openQuestions],
+                  ] as Array<[string, TranscriptWorkItem[]]>
+                )
+                  .filter(([, items]) => items.length > 0)
+                  .map(([title, items]) => (
+                    <div key={title}>
+                      <div className="font-medium text-foreground">{title}</div>
+                      <ul className="ml-3 list-disc text-muted-foreground">
+                        {items.map((item, i) => (
+                          <li key={`${title}-${i}`}>
+                            {item.text}
+                            {item.ownerName !== undefined ? (
+                              <span className="opacity-70">
+                                {" "}
+                                · {item.ownerName}
+                              </span>
+                            ) : null}
+                            {item.dueHint !== undefined ? (
+                              <span className="opacity-70">
+                                {" "}
+                                · {item.dueHint}
+                              </span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            </details>
           ) : null}
 
           {/* Phase 1267 — the VISIBLE, EDITABLE work artifact (draft /

@@ -194,11 +194,21 @@ export async function resolveWorkContext(
       : null;
 
   // 1) Explicit current-surface context: wins for a generic deictic, and for a
-  //    typed reference whose type it matches (e.g. a provided transcript).
+  //    typed reference whose type it matches (e.g. a provided transcript). A
+  //    generic provided selection/surface also satisfies a deictic typed ref
+  //    ("this transcript", "this client note") — the user provided the thing
+  //    they're pointing at — EXCEPT the inbox-specific "what I received" /
+  //    "latest message", which always means the actual inbox.
   if (active !== null) {
     if (generic) return currentToWorkContext(active, "this");
-    if (ref !== null && ref.expectedType === active.type) {
-      return currentToWorkContext(active, ref.referenceText);
+    if (ref !== null) {
+      const surfaceSatisfies =
+        (active.type === "selected_text" || active.type === "current_surface") &&
+        ref.expectedType !== "notification" &&
+        ref.expectedType !== "message";
+      if (ref.expectedType === active.type || surfaceSatisfies) {
+        return currentToWorkContext(active, ref.referenceText);
+      }
     }
   }
 

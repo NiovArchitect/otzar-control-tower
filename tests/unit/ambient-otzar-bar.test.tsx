@@ -1661,6 +1661,116 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
   });
 
+  // ── Phase 3A: transcript / meeting intelligence (provided text) ───────
+  const TRANSCRIPT = [
+    "We decided to ship the onboarding flow next week.",
+    "David is blocked on the API keys.",
+    "I will prepare the investor deck by Friday.",
+    "We need to follow up with Samiksha about the pricing.",
+    "There's a risk the demo could slip.",
+  ].join(" ");
+
+  it("'Summarize this transcript' on provided text → compact counts + collapsed digest (no raw dump)", async () => {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: TRANSCRIPT,
+    });
+    await speak("Summarize this transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /I found 1 decision, 2 follow-ups, and 1 blocker\./,
+    );
+    const digest = screen.getByTestId("transcript-digest");
+    expect(digest.textContent).toMatch(/Decisions/);
+    expect(digest.textContent).toMatch(/ship the onboarding flow/);
+    expect(digest.textContent).toMatch(/Blockers/);
+  });
+
+  it("no provided context + transcript command → one focused question, no artifact", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, entry: { ledger_entry_id: "x" } }, { status: 201 });
+      }),
+    );
+    await speak("Summarize this transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /Paste or select the transcript you want me to use\./i,
+    );
+    expect(screen.queryByTestId("transcript-digest")).toBeNull();
+    expect(ledgerPosts.length).toBe(0);
+  });
+
+  it("'send William the decisions' extracts decisions and routes them through the governed rail", async () => {
+    useCurrentSurfaceContextStore.getState().provide({ type: "selected_text", text: TRANSCRIPT });
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/resolve-target`, () =>
+        HttpResponse.json({
+          ok: true,
+          resolution: {
+            code: "RESOLVED_INTERNAL_ENTITY",
+            match: { entity_id: "ent-william", display_name: "William", role_title: "GTM" },
+            candidates: [],
+          },
+        }),
+      ),
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "collab-w", status: "PENDING" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("After this meeting, send William the decisions.");
+    await waitFor(() => expect(collaborationPosts.length).toBe(1));
+    expect(collaborationPosts[0]!.target_entity_id).toBe("ent-william");
+    expect(String(collaborationPosts[0]!.safe_summary)).toMatch(/ship the onboarding flow/);
+    expect(String(collaborationPosts[0]!.safe_summary).toLowerCase()).toContain("decisions");
+  });
+
+  it("'Tell Samiksha to summarize this transcript' delegates through the governed rail with context attached", async () => {
+    useCurrentSurfaceContextStore.getState().provide({ type: "selected_text", text: TRANSCRIPT });
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/resolve-target`, () =>
+        HttpResponse.json({
+          ok: true,
+          resolution: {
+            code: "RESOLVED_INTERNAL_ENTITY",
+            match: { entity_id: "ent-samiksha", display_name: "Samiksha", role_title: "AI" },
+            candidates: [],
+          },
+        }),
+      ),
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "collab-s", status: "PENDING" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("Tell Samiksha to summarize this transcript.");
+    await waitFor(() => expect(collaborationPosts.length).toBe(1));
+    expect(collaborationPosts[0]!.target_entity_id).toBe("ent-samiksha");
+    expect(String(collaborationPosts[0]!.safe_summary).toLowerCase()).toContain(
+      "re: the current context",
+    );
+    expect(internalMessagePosts.length).toBe(0);
+  });
+
+  it("'why does this matter' answers from context — never an internal message or Twin chat", async () => {
+    useCurrentSurfaceContextStore.getState().provide({ type: "selected_text", text: TRANSCRIPT });
+    await speak("ask my twin why this matters");
+    expect(
+      screen.getAllByText(/This matters because/i).length,
+    ).toBeGreaterThan(0);
+    expect(internalMessagePosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+  });
+
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {
     useCurrentSurfaceContextStore.getState().provide({
       type: "selected_text",
