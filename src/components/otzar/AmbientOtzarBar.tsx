@@ -1259,10 +1259,8 @@ export function AmbientOtzarBar(): JSX.Element {
     if (r.ok && r.data.status === "DELIVERED") {
       const to = entityLabel(r.data.recipient_display_name ?? a.targetLabel);
       const status = `Delivered to ${to}`;
-      const proofBits = [
-        r.data.notification_id !== undefined ? `msg ${r.data.notification_id.slice(0, 8)}` : null,
-        r.data.ledger_entry_id ? `ledger ${r.data.ledger_entry_id.slice(0, 8)}` : null,
-      ].filter((x): x is string => x !== null);
+      // Proof (message + ledger ids) is recorded silently — the user sees only
+      // the calm confirmation, never the backend identifiers.
       const { runtimeNote: _clearedNote, ...rest } = a;
       void _clearedNote;
       setPendingArtifact({
@@ -1271,11 +1269,10 @@ export function AmbientOtzarBar(): JSX.Element {
         proposed: true,
         status,
         ...(r.data.notification_id !== undefined ? { actionId: r.data.notification_id } : {}),
-        ...(proofBits.length > 0 ? { runtimeNote: `Proof: ${proofBits.join(" · ")} · ${now}` } : {}),
       });
       appendConversationEntry({
         role: "action",
-        text: `Delivered your note to ${to}. ${proofBits.join(" · ")}`,
+        text: `Delivered your note to ${to}.`,
         at: now,
         kind: a.kind,
         status,
@@ -1483,8 +1480,8 @@ export function AmbientOtzarBar(): JSX.Element {
               ...(target !== undefined ? { targetLabel: target } : {}),
             })
           : action.kind === "TASK"
-            ? "Task proposal — not assigned until you confirm; no fake completion."
-            : "Follow-up draft — nothing is sent. Edit and confirm when ready.",
+            ? "Task proposal"
+            : "Follow-up draft",
     };
 
     // Phase 1279 — persist to the durable Work Ledger (tenant-scoped,
@@ -1507,7 +1504,7 @@ export function AmbientOtzarBar(): JSX.Element {
         artifact.coordinationRuntime = persisted.coordinationRuntime;
       }
     } else {
-      artifact.ledgerError = "Could not save to Work Ledger.";
+      artifact.ledgerError = "Couldn't save that right now. Want me to try again?";
     }
     return artifact;
   }

@@ -197,7 +197,7 @@ export function WorkArtifactCard({
           className="text-[10px] text-emerald-600 dark:text-emerald-400"
           data-testid="work-artifact-ledger-saved"
         >
-          ✓ Saved to Work Ledger
+          ✓ Saved
         </div>
       ) : null}
       {artifact.ledgerError !== undefined ? (
@@ -362,9 +362,6 @@ export function WorkArtifactCard({
             <div data-testid="work-artifact-extraction-source">
               Extraction: {artifact.extractionSource}
             </div>
-          ) : null}
-          {artifact.ledgerEntryId !== undefined ? (
-            <div>Work Ledger id: {artifact.ledgerEntryId}</div>
           ) : null}
           {artifact.coordinationRuntime !== undefined ? (
             <div data-testid="work-artifact-coordination">

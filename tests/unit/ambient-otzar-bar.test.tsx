@@ -937,7 +937,7 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(actionPosts.length).toBe(0);
   });
 
-  it("Follow-up artifact PERSISTS to the durable Work Ledger and shows 'Saved to Work Ledger' (Phase 1279)", async () => {
+  it("Follow-up artifact PERSISTS to the durable Work Ledger and shows 'Saved' (Phase 1279)", async () => {
     await speak(
       "I told Vishesh I would follow up after the meeting about the Otzar voice runtime.",
     );
@@ -946,7 +946,7 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
     expect(
       screen.getByTestId("work-artifact-ledger-saved").textContent,
-    ).toMatch(/Saved to Work Ledger/i);
+    ).toMatch(/Saved/i);
     // Phase 1281 — View/Why shows the governed BEAM coordination result.
     await userEvent.setup().click(screen.getByTestId("work-artifact-open"));
     await waitFor(() =>
@@ -967,9 +967,13 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     await waitFor(() =>
       expect(screen.getByTestId("work-artifact-ledger-error")).toBeInTheDocument(),
     );
+    // Calm, human failure copy — no backend "Work Ledger" term.
     expect(
       screen.getByTestId("work-artifact-ledger-error").textContent,
-    ).toMatch(/Could not save to Work Ledger/i);
+    ).toMatch(/Couldn't save that right now/i);
+    expect(
+      screen.getByTestId("work-artifact-ledger-error").textContent,
+    ).not.toMatch(/Work Ledger/i);
     expect(screen.queryByTestId("work-artifact-ledger-saved")).toBeNull();
   });
 

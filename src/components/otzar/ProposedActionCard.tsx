@@ -275,9 +275,6 @@ export function ProposedActionCard({
           <span aria-hidden>✓</span>
           <span>Sent to {proposedAction.target.display_name}.</span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Action ID: <code>{state.actionId}</code>
-        </p>
       </div>
     );
   }
