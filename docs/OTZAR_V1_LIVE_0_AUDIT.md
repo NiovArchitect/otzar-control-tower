@@ -49,7 +49,7 @@ two-laptop validation** (not external launch).
 | 16 | Provider cards/status | ✅ | env-driven honest status, no fake-green | — | P1 |
 | 17 | Slack/Google/MS365/Zoom | 🟡 | **real OAuth + encrypted tokens** (read), fixture-default; **SMTP = stub, Teams = stub, Cal-write blocked** | Set creds (later) | P1/P2 |
 | 18 | Voice capture path | 🟡 | **browser Web Speech real** → `/otzar/chat`; **desktop `/voice/transcribe` route missing** | Browser works; desktop later | P1 |
-| 19 | ElevenLabs STT/TTS | 🟡 | **TTS code-complete** (needs key); **no STT** (use Deepgram later) | `ELEVENLABS_API_KEY` | P1 |
+| 19 | ElevenLabs STT/TTS | 🟡 | v1 voice provider: **STT via ElevenLabs Scribe** (LIVE-4A route) + TTS; needs `ELEVENLABS_API_KEY`. Deepgram deferred | `ELEVENLABS_API_KEY` | P1 |
 | 20 | Desktop/Tauri tray | 🟡 | shell real (window "Otzar", mic entitlement); **no tray/global-shortcut**; WKWebView no STT | Tray (later) | P1/P2 |
 | 21 | Prod/staging deploy | 🟡 | Dockerfiles + CI exist; **never deployed (`CLOUD_TARGET` unset)**; **`VITE_` var name mismatch** | Deploy + fix var | **P0** |
 | 22 | Secrets/env | 🟡 | `.env.example` thorough; real `.env` gitignored (cloud-sync risk) | Hosted secret store | P1 |
@@ -115,17 +115,21 @@ provision + exercise*, not *build*.
 
 ## 4. ElevenLabs finding (P1, not P0)
 
+> **SUPERSEDED by the LIVE-4 decision (resolved):** **ElevenLabs is the selected v1
+> voice provider for STT *and* TTS** — STT via ElevenLabs Scribe, TTS via ElevenLabs
+> voice output. **Deepgram is optional/deferred** (not the v1 default). LIVE-4A
+> implemented the real `POST /otzar/voice/transcribe` route ElevenLabs-first; see
+> `OTZAR_V1_LIVE_4_VOICE_INPUT.md`. The point-in-time findings below (no STT route
+> at audit time; ElevenLabs only wired for TTS) were true at the LIVE-0 snapshot and
+> are kept for history — the recommendation in them is replaced by this banner.
+
 - **Referenced today: yes** — `ELEVENLABS_TTS` connector + `tts-preview.service.ts`
   (real REST call to ElevenLabs), gated on `ELEVENLABS_API_KEY`, with graceful
-  browser-TTS fallback. **No ElevenLabs STT anywhere.**
-- **ElevenLabs is P1, TTS currently.** Recommended path = Option C (TTS,
-  REST → optional streaming): the only action is setting `ELEVENLABS_API_KEY` in
-  deploy secrets (server-side proxy already exists; browser never holds the key).
-- **Browser voice covers v1.** Browser Web Speech → `/otzar/chat` is real and
-  sufficient for the v1 scenario.
-- **Deepgram is the likely later STT path.** Do **not** use ElevenLabs for STT;
-  the existing Deepgram adapter is the right path for the (later) desktop
-  `POST /otzar/voice/transcribe` route, which is currently a dead call.
+  browser-TTS fallback. (At the LIVE-0 snapshot there was no ElevenLabs STT route;
+  LIVE-4A added one.)
+- **Browser voice covers the browser path.** Browser Web Speech is real and is the
+  zero-secret fallback (HTTPS Chrome); the ElevenLabs server STT covers the rest.
+- **Deepgram is optional/deferred**, not the primary STT path. v1 STT is ElevenLabs.
 
 ---
 
@@ -160,7 +164,7 @@ shared host), which shifts the original LIVE-6 deployment idea earlier.
   exercise + close UX seams of speak → route → deliver; ensure real LLM path).
 - **LIVE-3 — Validate permissioned action loop** (proposed-action → approve →
   execute → audit; real → fill gaps).
-- **LIVE-4 — ElevenLabs TTS activation** (+ optional Deepgram STT).
+- **LIVE-4 — ElevenLabs voice (STT + TTS)** — Scribe STT + speak-back; Deepgram deferred.
 - **LIVE-5 — Two-computer validation harness** (scripted/manual smoke).
 - **LIVE-6 — External self-serve onboarding** (signup + invite activation link +
   self-serve org). P0 for outside users; P1 for controlled validation.
@@ -193,7 +197,7 @@ self-serve launch: ~6.
    connector polish; Twin↔Twin autonomy; desktop/Tauri voice.
 4. **Build next:** LIVE-1 (deploy + reachable multi-user + brand + session).
 5. **Chunks to v1 validation:** ~3 (controlled) / ~6 (external launch).
-6. **ElevenLabs:** P1, TTS-only, set the key in LIVE-4 — off the critical path.
+6. **ElevenLabs:** the selected v1 voice provider for **STT (Scribe) and TTS**; set `ELEVENLABS_API_KEY`. Deepgram optional/deferred.
 7. **Repos:** both. otzar-control-tower (Dockerfile var, session store, brand,
    hide placeholders, deploy config) + niov-foundation (CORS/secrets/LLM key,
    deploy `CLOUD_TARGET`; activation-link table later for LIVE-6). LIVE-1 is
