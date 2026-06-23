@@ -27,7 +27,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/stores/auth";
 import { landingPathFor } from "@/lib/auth/capabilities";
-import { useToast } from "@/hooks/use-toast";
 
 // WHAT: Local-dev-only demo accounts produced by
 //        niov-foundation/scripts/demo-seed.ts (PR #300 substrate).
@@ -71,7 +70,6 @@ const DEMO_ACCOUNTS: ReadonlyArray<{
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { login, isLoading, loginError, isAuthenticated, capabilities } =
     useAuthStore();
   const [email, setEmail] = useState("");
@@ -90,8 +88,8 @@ export function LoginPage() {
     event.preventDefault();
     const result = await login(email, password);
     if (result.ok) {
-      toast.success("Audit event logged: LOGIN_SUCCESS");
-      // Read the freshest capabilities the login just set.
+      // Login is audited server-side; no user-facing success popup — users
+      // know they signed in. Go straight to the app.
       navigate(landingPathFor(useAuthStore.getState().capabilities), {
         replace: true,
       });

@@ -315,6 +315,35 @@ export function NotificationBell({
     void fetchOnce();
   }
 
+  async function handleDismiss(id: string): Promise<void> {
+    // Optimistic UI: remove the row from the visible inbox immediately, roll
+    // back on failure. Dismiss only clears the caller's notification UI state
+    // (PUT /notifications/:id/dismiss) — it never deletes audit records.
+    const before = state.items;
+    setState((s) => ({
+      ...s,
+      markError: null,
+      items: s.items.filter((n) => n.notification_id !== id),
+    }));
+    const result = await api.notifications.dismiss(id);
+    if (!result.ok) {
+      if (import.meta.env.DEV) {
+        console.debug(
+          `[NotificationBell] dismiss failed PUT /notifications/${id}/dismiss →`,
+          result.code,
+          result.status,
+        );
+      }
+      setState((s) => ({
+        ...s,
+        items: before,
+        markError: humanizeMarkError(result.code),
+      }));
+      return;
+    }
+    void fetchOnce();
+  }
+
   function toggle(): void {
     setState((s) => ({ ...s, open: !s.open }));
     // Refresh on open so the operator sees the freshest state.
@@ -550,6 +579,18 @@ export function NotificationBell({
                             <Check className="h-3 w-3" aria-hidden />
                           </button>
                         ) : null}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDismiss(n.notification_id);
+                          }}
+                          className="rounded p-1 hover:bg-accent"
+                          aria-label="Dismiss"
+                          data-testid="notification-dismiss"
+                        >
+                          <X className="h-3 w-3" aria-hidden />
+                        </button>
                       </div>
                     </div>
                     {whyId === n.notification_id ? (

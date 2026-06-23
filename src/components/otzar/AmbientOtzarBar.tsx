@@ -53,11 +53,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import type {
-  CalendarContextResponse,
-  CreateCollaborationRequestBody,
-  TwinCollaborationRequestType,
-} from "@/lib/types/foundation";
+import type { CalendarContextResponse } from "@/lib/types/foundation";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
@@ -760,111 +756,36 @@ export function AmbientOtzarBar(): JSX.Element {
       return;
     }
 
-    const resolved = await resolveTarget(recipientName);
-    if (
-      resolved.kind !== "RESOLVED_HUMAN" &&
-      resolved.kind !== "RESOLVED_AI_AGENT"
-    ) {
-      const why =
-        resolved.kind === "AMBIGUOUS"
-          ? `More than one teammate matches "${recipientName}". Open Collaboration to pick the right one.`
-          : resolved.kind === "NOT_FOUND"
-            ? `"${recipientName}" isn't in your organization, so I can't route this.`
-            : `I couldn't resolve "${recipientName}" from here. Open Collaboration to pick the teammate.`;
-      reportAsk(why, "blocked", "Blocked", recipientName);
-      navigate(collabRoute);
-      return;
-    }
+    // Governed "message a teammate on your behalf": the backend resolves the
+    // recipient org-scoped under the caller's OWN authority, delivers a real
+    // Otzar-inbox notification, and records a durable Work Ledger proof
+    // (RULE 0 cross-org DENY + recipient-active + audit). Never external,
+    // never impersonates the teammate or their Twin.
+    const sent = await api.workOs.internalMessage(recipientName, action.heard);
 
-    const targetHumanId = resolved.entityId;
-    const label = resolved.displayName ?? recipientName;
-    if (targetHumanId === undefined) {
+    if (sent.ok && sent.data.status === "DELIVERED") {
+      const delivered = sent.data.recipient_display_name ?? "";
+      const label = delivered.trim().length > 0 ? delivered : recipientName;
       reportAsk(
-        `I couldn't resolve "${recipientName}" to a teammate id. Open Collaboration to route it.`,
-        "blocked",
-        "Blocked",
-        recipientName,
+        `I sent ${label} a message on your behalf and created the governed record. I'll track the response here.`,
+        "success",
+        "Sent · governed",
+        sent.data.recipient_entity_id ?? recipientName,
       );
-      navigate(collabRoute);
       return;
     }
 
-    // Best-effort: find the teammate's Twin so the request surfaces to BOTH
-    // the teammate AND their Twin. For a standard (non-admin) twin,
-    // TwinConfig.approver_entity_id === the owner human id; fall back to the
-    // canonical "Twin of <owner-id>" display name. Tolerate it being absent.
-    let targetTwinId: string | undefined;
-    const roster = await api.org.aiTeammates.list({ take: 200 });
-    if (roster.ok) {
-      const match = roster.data.items.find(
-        (t) =>
-          t.config?.approver_entity_id === targetHumanId ||
-          t.display_name.includes(targetHumanId),
-      );
-      if (match !== undefined) targetTwinId = match.entity_id;
-    }
-
-    // The request is sent BY the caller's own Twin (twin-mediated), best-effort.
-    let requesterTwinId: string | undefined;
-    const mine = await api.otzar.myTwin();
-    if (mine.ok) requesterTwinId = mine.data.twin.twin_id;
-
-    const requestType: TwinCollaborationRequestType = /\breview\b/i.test(
-      action.heard,
-    )
-      ? "REVIEW_REQUEST"
-      : "FOLLOW_UP";
-    const safeSummary =
-      action.heard.trim().length > 0
-        ? action.heard.trim()
-        : `Request for ${label}`;
-
-    const body: CreateCollaborationRequestBody =
-      targetTwinId !== undefined
-        ? {
-            target_type: "EMPLOYEE_TWIN",
-            target_twin_entity_id: targetTwinId,
-            target_entity_id: targetHumanId,
-            request_type: requestType,
-            safe_summary: safeSummary,
-            requested_by_ai: true,
-            ...(requesterTwinId !== undefined
-              ? { requester_twin_entity_id: requesterTwinId }
-              : {}),
-          }
-        : {
-            target_type: "EMPLOYEE",
-            target_entity_id: targetHumanId,
-            request_type: requestType,
-            safe_summary: safeSummary,
-            requested_by_ai: true,
-            ...(requesterTwinId !== undefined
-              ? { requester_twin_entity_id: requesterTwinId }
-              : {}),
-          };
-
-    const created = await api.otzar.collaboration.create(body);
-    if (!created.ok) {
-      reportAsk(
-        `I couldn't create the request for ${label} (${created.code}). Open Collaboration to route it.`,
-        "blocked",
-        "Blocked",
-        targetTwinId ?? targetHumanId,
-      );
-      navigate(collabRoute);
-      return;
-    }
-
-    const msg =
-      targetTwinId !== undefined
-        ? `I sent this to ${label}'s Twin for review and created the next-action request — I'll track the response here.`
-        : `I sent this to ${label} for review and created the next-action request — I'll track the response here.`;
-    reportAsk(
-      msg,
-      "success",
-      "Routed · approval may be required",
-      targetTwinId ?? targetHumanId,
-    );
+    // Honest failure states — never a silent dead end, never a fabricated send.
+    // NEEDS_RESOLUTION (422) = recipient not uniquely in-org; GATED (409) =
+    // policy needs approval; anything else = surface the real reason.
+    const httpStatus = sent.ok ? sent.data.status : sent.status;
+    const why =
+      httpStatus === 422 || httpStatus === "NEEDS_RESOLUTION"
+        ? `I couldn't identify "${recipientName}" in your organization. Open Collaboration to pick the teammate.`
+        : httpStatus === 409 || httpStatus === "GATED"
+          ? `That message needs approval before it reaches ${recipientName}. Open Collaboration to route it.`
+          : `I couldn't send that to ${recipientName}. Open Collaboration to route it.`;
+    reportAsk(why, "blocked", "Blocked", recipientName);
     navigate(collabRoute);
   }
 

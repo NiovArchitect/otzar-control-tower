@@ -1199,6 +1199,17 @@ export class ApiClient {
           body: { body_summary, idempotency_key },
         },
       ),
+
+    /** PUT /api/v1/notifications/:id/dismiss -- clear/dismiss one from the
+     *  caller's inbox UI. Idempotent at Foundation tier; only changes the
+     *  notification's UI/read state -- it never deletes audit records. */
+    dismiss: (
+      notificationId: string,
+    ): Promise<ApiResult<NotificationReadResponse>> =>
+      this.request<NotificationReadResponse>(
+        `/notifications/${encodeURIComponent(notificationId)}/dismiss`,
+        { method: "PUT" },
+      ),
   };
 
   // ──────────────────────────────────────────────────────────────

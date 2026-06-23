@@ -212,6 +212,9 @@ function AskYourTwin(): JSX.Element {
   async function ask(): Promise<void> {
     const question = text.trim();
     if (question.length === 0) return;
+    // Clear the input immediately on submit so the box doesn't keep the
+    // just-sent text sitting in it. The answer view renders state.question.
+    setText("");
     const classified = classifyAskTwin(question);
 
     if (classified.kind === "WORK_OS_ROUTE") {
@@ -247,8 +250,9 @@ function AskYourTwin(): JSX.Element {
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Ask your Twin</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Ask about your own work. Your Twin answers only from what you are
-          allowed to see, and it will not answer for anyone else.
+          Your Twin acts under your authority. It can answer from your allowed
+          context and route governed work to teammates or their Twins under
+          company policy.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
