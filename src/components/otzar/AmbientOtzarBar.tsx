@@ -83,13 +83,20 @@ import {
   appendConversationEntry,
   useConversationStore,
 } from "@/lib/work-os/conversation-store";
-import { resolveTarget } from "@/lib/work-os/target-resolution";
+import {
+  resolveTarget,
+  resolveTargetGoverned,
+} from "@/lib/work-os/target-resolution";
 import {
   interpretAmbientOutboundWork,
   isSelfKind,
   type AmbientOutboundKind,
   type CollaborationRequestType,
 } from "@/lib/work-os/ambient-outbound";
+import {
+  decideAmbientVisibility,
+  type AmbientEventKind,
+} from "@/lib/work-os/ambient-visibility";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -827,6 +834,47 @@ export function AmbientOtzarBar(): JSX.Element {
     return id;
   }
 
+  // Phase 2.5 — route ONE ambient outcome through the visibility policy:
+  // proof/audit is recorded silently, a low-risk success is a quiet
+  // confirmation, and approval / blocked / ambiguous / failure interrupt. The
+  // voice action is always recorded (the silent proof); the panel + spoken
+  // line follow the decision (quiet mode suppresses a spoken low-risk success,
+  // never an interrupt).
+  function surfaceOutcome(args: {
+    eventKind: AmbientEventKind;
+    copy: string;
+    status: string;
+    at: string;
+    heard: string;
+    result: "success" | "blocked";
+    target: string | null;
+  }): void {
+    const decision = decideAmbientVisibility({
+      kind: args.eventKind,
+      userFacingCopy: args.copy,
+    });
+    if (decision.shouldNotify) {
+      setActionResult(args.copy);
+      setActionStatus(args.status);
+      appendConversationEntry({
+        role: "action",
+        text: args.copy,
+        at: args.at,
+        kind: "ASK_TWIN",
+        status: args.status,
+      });
+    }
+    if (decision.shouldAnnounce) speakConfirmation(args.copy);
+    // The record/proof is always written, regardless of visibility level.
+    recordVoiceAction({
+      at: args.at,
+      transcript: args.heard,
+      actionType: "ASK_TWIN",
+      target: args.target,
+      result: args.result,
+    });
+  }
+
   // SELF rail — a note / task / reminder / memory the user records for
   // themselves. Persisted as a durable Work Ledger entry (TASK for tasks and
   // reminders, COMMITMENT for notes and memory). Confirmation is human and
@@ -859,45 +907,55 @@ export function AmbientOtzarBar(): JSX.Element {
           : kind === "TWIN_MEMORY"
             ? "I'll remember that for you."
             : "I saved that as a note to yourself.";
-    setActionResult(confirm);
-    setActionStatus(ok ? "Saved" : "Couldn't save");
-    speakConfirmation(confirm);
-    appendConversationEntry({
-      role: "action",
-      text: confirm,
-      at,
-      kind: "ASK_TWIN",
+    surfaceOutcome({
+      eventKind: ok ? "SELF_WORK_SAVED" : "ACTION_FAILED",
+      copy: confirm,
       status: ok ? "Saved" : "Couldn't save",
-    });
-    recordVoiceAction({
       at,
-      transcript: heard,
-      actionType: "ASK_TWIN",
-      target: null,
+      heard,
       result: ok ? "success" : "blocked",
+      target: null,
     });
   }
 
   // If a teammate name resolves to the current user (or their own Twin), the
-  // message is really self-directed — reroute to the self rail. Best-effort:
-  // org resolution is admin-scoped, so this fires for admins; for everyone else
-  // resolution returns no match and the message proceeds normally. Returns true
-  // only when it handled the input as self-work.
+  // message is really self-directed — reroute to the self rail with the
+  // FIRST-PERSON body (never "Hey <Name>"). Uses the read-scoped backend
+  // resolver, so this works for standard employees, not only admins. Returns
+  // true only when it handled the input as self-work.
   async function maybeRerouteSelfMessage(
     recipient: string,
-    message: string,
+    selfBody: string,
     heard: string,
     at: string,
   ): Promise<boolean> {
-    const resolved = await resolveTarget(recipient);
+    const resolved = await resolveTargetGoverned(recipient);
     if (resolved.entityId === undefined) return false;
     const me = await getSelfIdentity();
     const isSelf =
       (me.human !== null && resolved.entityId === me.human) ||
       (me.twin !== null && resolved.entityId === me.twin);
     if (!isSelf) return false;
-    await executeSelfWork("SELF_TASK", message, heard, at);
+    await executeSelfWork("SELF_TASK", selfBody, heard, at);
     return true;
+  }
+
+  // ONE focused clarification for an ambiguous recipient — name at most two
+  // candidates (never a long picklist).
+  function focusedAmbiguityCopy(
+    recipient: string,
+    candidates?: Array<{ entityId: string; displayName: string }>,
+  ): string {
+    const names = (candidates ?? [])
+      .map((c) => c.displayName)
+      .filter((n) => n.length > 0);
+    if (names.length === 2) {
+      return `I found more than one ${recipient} — do you mean ${names[0]} or ${names[1]}?`;
+    }
+    if (names.length > 2) {
+      return `I found a few people named ${recipient} — which one do you mean?`;
+    }
+    return `Which ${recipient} do you mean?`;
   }
 
   // COLLABORATION rail — a governed work / review / approval request sent BY the
@@ -909,47 +967,35 @@ export function AmbientOtzarBar(): JSX.Element {
   async function executeCollaborationRequest(
     recipient: string,
     message: string,
+    selfBody: string,
     requestType: CollaborationRequestType,
     heard: string,
     at: string,
   ): Promise<void> {
-    function report(
-      msg: string,
-      result: "success" | "blocked",
-      status: string,
-      target: string | null,
-    ): void {
-      setActionResult(msg);
-      setActionStatus(status);
-      speakConfirmation(msg);
-      appendConversationEntry({ role: "action", text: msg, at, kind: "ASK_TWIN", status });
-      recordVoiceAction({ at, transcript: heard, actionType: "ASK_TWIN", target, result });
-    }
+    const resolved = await resolveTargetGoverned(recipient);
 
-    const resolved = await resolveTarget(recipient);
-
-    // Self-directed → the self rail, never a request to oneself.
+    // Self-directed → the self rail (first-person), never a request to oneself.
     if (resolved.entityId !== undefined) {
       const meSelf = await getSelfIdentity();
       if (
         (meSelf.human !== null && resolved.entityId === meSelf.human) ||
         (meSelf.twin !== null && resolved.entityId === meSelf.twin)
       ) {
-        await executeSelfWork("SELF_TASK", message, heard, at);
+        await executeSelfWork("SELF_TASK", selfBody, heard, at);
         return;
       }
     }
 
     if (resolved.kind === "AMBIGUOUS") {
-      const many = (resolved.candidates?.length ?? 0) > 1;
-      report(
-        many
-          ? `I found more than one ${recipient} — which one do you mean?`
-          : `Which ${recipient} do you mean?`,
-        "blocked",
-        "Which one?",
-        null,
-      );
+      surfaceOutcome({
+        eventKind: "AMBIGUOUS_TARGET",
+        copy: focusedAmbiguityCopy(recipient, resolved.candidates),
+        status: "Which one?",
+        at,
+        heard,
+        result: "blocked",
+        target: null,
+      });
       return;
     }
     const targetEntityId = resolved.entityId;
@@ -957,12 +1003,15 @@ export function AmbientOtzarBar(): JSX.Element {
       (resolved.kind !== "RESOLVED_HUMAN" && resolved.kind !== "RESOLVED_AI_AGENT") ||
       targetEntityId === undefined
     ) {
-      report(
-        `I couldn't find ${recipient} on your team — who do you mean?`,
-        "blocked",
-        "Who is this for?",
-        null,
-      );
+      surfaceOutcome({
+        eventKind: "NEEDS_CLARIFICATION",
+        copy: `I couldn't find ${recipient} on your team — who do you mean?`,
+        status: "Who is this for?",
+        at,
+        heard,
+        result: "blocked",
+        target: null,
+      });
       return;
     }
 
@@ -984,23 +1033,42 @@ export function AmbientOtzarBar(): JSX.Element {
           : requestType === "APPROVAL_REQUEST"
             ? "approval request"
             : "follow-up";
-      report(
-        `I sent ${who} a ${kindword} on your behalf and I'll track their response here.`,
-        "success",
-        "Sent",
-        targetEntityId,
-      );
+      surfaceOutcome({
+        eventKind: "COLLABORATION_SENT",
+        copy: `I sent ${who} a ${kindword} on your behalf and I'll track their response here.`,
+        status: "Sent",
+        at,
+        heard,
+        result: "success",
+        target: targetEntityId,
+      });
       return;
     }
 
-    // Honest, human failure — no backend codes, no page hand-off.
+    // Honest, human outcome — no backend codes, no page hand-off. A 409 here is
+    // the GOVERNED path working (standard twins are approval-required): the
+    // request is queued for approval, not failed.
+    const eventKind: AmbientEventKind =
+      res.status === 409
+        ? "APPROVAL_NEEDED"
+        : res.status === 403
+          ? "BLOCKED_DENIED"
+          : "ACTION_FAILED";
     const why =
       res.status === 409
         ? `That needs approval first — I've queued it for ${who} and I'll keep track of it.`
         : res.status === 403
           ? `I can't reach ${who} — they're outside your organization.`
           : `I couldn't send that to ${who} just now — want me to try again?`;
-    report(why, "blocked", "Held", targetEntityId);
+    surfaceOutcome({
+      eventKind,
+      copy: why,
+      status: res.status === 409 ? "Needs approval" : "Held",
+      at,
+      heard,
+      result: "blocked",
+      target: targetEntityId,
+    });
   }
 
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
@@ -1719,6 +1787,11 @@ export function AmbientOtzarBar(): JSX.Element {
         );
         setRouterAck(null);
         appendConversationEntry({ role: "user", text, at: at0 });
+        // First-person form used only if the named recipient turns out to be
+        // the caller (by-name self reroute): "Validate what I received.", never
+        // "Hey David…". Falls back to the composed body when not derivable.
+        const selfBody =
+          outbound.selfFacingMessage ?? outbound.recipientFacingMessage;
         if (isSelfKind(outbound.kind)) {
           // SELF rail — a note / task / reminder / memory for oneself.
           await executeSelfWork(
@@ -1732,6 +1805,7 @@ export function AmbientOtzarBar(): JSX.Element {
           await executeCollaborationRequest(
             outbound.recipient,
             outbound.recipientFacingMessage,
+            selfBody,
             outbound.requestType ?? "FOLLOW_UP",
             text,
             at0,
@@ -1744,7 +1818,7 @@ export function AmbientOtzarBar(): JSX.Element {
           // current user, reroute to the self rail instead of self-messaging.
           const rerouted = await maybeRerouteSelfMessage(
             outbound.recipient,
-            outbound.recipientFacingMessage,
+            selfBody,
             text,
             at0,
           );

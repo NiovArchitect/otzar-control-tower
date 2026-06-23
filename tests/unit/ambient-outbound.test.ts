@@ -191,6 +191,31 @@ describe("interpretAmbientOutboundWork — work asks route to the governed colla
   });
 });
 
+describe("interpretAmbientOutboundWork — first-person self form for by-name reroute", () => {
+  // Used only if the named recipient turns out to be the caller themselves.
+  it("Message David … validate what he received → selfFacingMessage in first person", () => {
+    const p = interpretAmbientOutboundWork(
+      "Message David and ask him to validate what he received.",
+    );
+    expect(p!.recipientFacingMessage).toMatch(/Hey David,/);
+    expect(p!.selfFacingMessage).toBeDefined();
+    expect(p!.selfFacingMessage!).toMatch(/what I received/i);
+    expect(p!.selfFacingMessage!).not.toMatch(/hey david/i);
+    expect(p!.selfFacingMessage!).not.toMatch(/what he received/i);
+    expect(p!.selfFacingMessage!).not.toMatch(/what you received/i);
+  });
+
+  it("direct-address also derives a first-person self form", () => {
+    const p = interpretAmbientOutboundWork(
+      "David, can you confirm what you received on your side?",
+    );
+    expect(p!.reason).toBe("direct-address");
+    expect(p!.selfFacingMessage).toBeDefined();
+    expect(p!.selfFacingMessage!).toMatch(/what I received on my side/i);
+    expect(p!.selfFacingMessage!).not.toMatch(/your side/i);
+  });
+});
+
 describe("command-planner — never treats pronouns/verbs as participants", () => {
   it('does not produce a participant "you" or "sent" for a confirm-message', () => {
     const plan = planWorkCommand(

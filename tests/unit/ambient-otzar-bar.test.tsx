@@ -409,6 +409,36 @@ describe("AmbientOtzarBar — Work OS commands", () => {
           take: 200,
         }),
       ),
+      // Phase 2.5 — read-scoped governed resolver (works for standard users).
+      // Resolves "David" → the single org teammate; anything else → NOT_FOUND.
+      http.post(`${API_BASE}/work-os/resolve-target`, async ({ request }) => {
+        const body = (await request.json()) as { target_name?: string };
+        const name = (body.target_name ?? "").trim().toLowerCase();
+        if (name.includes("david")) {
+          return HttpResponse.json({
+            ok: true,
+            resolution: {
+              code: "RESOLVED_INTERNAL_ENTITY",
+              match: {
+                entity_id: "ent-david",
+                display_name: "David",
+                role_title: "Engineer",
+              },
+              candidates: [
+                {
+                  entity_id: "ent-david",
+                  display_name: "David",
+                  role_title: "Engineer",
+                },
+              ],
+            },
+          });
+        }
+        return HttpResponse.json({
+          ok: true,
+          resolution: { code: "NOT_FOUND", match: null, candidates: [] },
+        });
+      }),
       // Governed Action create — capture the body; return a PROPOSED
       // (approval-required) action. NEVER an external send.
       http.post(`${API_BASE}/actions`, async ({ request }) => {
@@ -1192,7 +1222,155 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     // Resolved to self → self task ledger, NOT a message delivered to a teammate.
     await waitFor(() => expect(ledgerPosts.length).toBe(1));
     expect(ledgerPosts[0]!.ledger_type).toBe("TASK");
+    // Phase 2.5 — stored in FIRST person, NEVER the "Hey David…" teammate body.
+    const selfTitle = String(ledgerPosts[0]!.title);
+    expect(selfTitle.toLowerCase()).toContain("what i received");
+    expect(selfTitle).not.toMatch(/hey david/i);
+    expect(selfTitle.toLowerCase()).not.toContain("what he received");
     expect(internalMessagePosts.length).toBe(0);
     expect(recordedBodies.length).toBe(0);
+  });
+
+  // ── Phase 2.5: governed resolver (standard users) + visibility/flow ───
+  it("standard (non-admin) user resolves a same-org teammate via the read-scoped resolver — not an admin-only failure", async () => {
+    // Non-admin session: no can_admin_org, so the roster endpoint is forbidden.
+    useAuthStore.setState({
+      capabilities: {
+        can_read_capsules: true,
+        can_write_capsules: true,
+        can_share_capsules: true,
+        can_admin_org: false,
+        can_admin_niov: false,
+      },
+    });
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      // Admin-only roster is forbidden for this caller…
+      http.get(`${API_BASE}/org/entities`, () =>
+        HttpResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 }),
+      ),
+      // …but the read-scoped resolver still resolves David for any employee.
+      http.post(`${API_BASE}/work-os/resolve-target`, () =>
+        HttpResponse.json({
+          ok: true,
+          resolution: {
+            code: "RESOLVED_INTERNAL_ENTITY",
+            match: {
+              entity_id: "ent-david",
+              display_name: "David",
+              role_title: "Engineer",
+            },
+            candidates: [],
+          },
+        }),
+      ),
+      http.get(`${API_BASE}/otzar/my-twin/context-health`, () =>
+        HttpResponse.json({
+          ok: true,
+          status: "READY",
+          identity: {
+            viewer: {
+              user_id: "ent-vishesh",
+              email: "vishesh@niovlabs.com",
+              display_name: "Vishesh",
+              title: "",
+              org_role: "EMPLOYEE",
+              is_founder_admin: false,
+            },
+            org: { org_id: "o-1", name: "NIOV", domain: null },
+            twin: { twin_id: "twin-vishesh", display_name: "Twin", active: true },
+            projects: [],
+          },
+        }),
+      ),
+      http.post(
+        `${API_BASE}/otzar/my-twin/collaboration-requests`,
+        async ({ request }) => {
+          collaborationPosts.push(
+            (await request.json()) as Record<string, unknown>,
+          );
+          return HttpResponse.json(
+            { ok: true, request: { request_id: "collab-2", status: "PENDING" } },
+            { status: 201 },
+          );
+        },
+      ),
+    );
+    await speak("Ask David to review this client note.");
+    // Resolved via the read-scoped resolver → governed request actually sent.
+    await waitFor(() => expect(collaborationPosts.length).toBe(1));
+    expect(collaborationPosts[0]!.target_entity_id).toBe("ent-david");
+    expect(collaborationPosts[0]!.requester_twin_entity_id).toBe("twin-vishesh");
+    expect(
+      screen.getAllByText(/I sent David a review request/i).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("standard user's work request that needs approval → human 'needs approval' copy, no backend codes", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-twin/context-health`, () =>
+        HttpResponse.json({
+          ok: true,
+          status: "READY",
+          identity: {
+            viewer: {
+              user_id: "ent-vishesh",
+              email: "vishesh@niovlabs.com",
+              display_name: "Vishesh",
+              title: "",
+              org_role: "EMPLOYEE",
+              is_founder_admin: false,
+            },
+            org: { org_id: "o-1", name: "NIOV", domain: null },
+            twin: { twin_id: "twin-vishesh", display_name: "Twin", active: true },
+            projects: [],
+          },
+        }),
+      ),
+      // org-collaboration policy → approval required (409) for a standard twin.
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, () =>
+        HttpResponse.json(
+          { ok: false, error: "NEEDS_APPROVAL" },
+          { status: 409 },
+        ),
+      ),
+    );
+    const panel = await speak("Ask David to approve the budget.");
+    // Governed approval path → human "needs approval" copy, never a 409 / code.
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(/needs approval first/i).length,
+      ).toBeGreaterThan(0),
+    );
+    const html = panel.innerHTML;
+    expect(html).not.toContain("NEEDS_APPROVAL");
+    expect(html).not.toContain("409");
+    expect(html).not.toMatch(/collaboration-request/i);
+  });
+
+  it("ambiguous recipient → ONE focused clarification naming at most two people, never a picklist", async () => {
+    server.use(
+      http.post(`${API_BASE}/work-os/resolve-target`, () =>
+        HttpResponse.json({
+          ok: true,
+          resolution: {
+            code: "AMBIGUOUS",
+            match: null,
+            candidates: [
+              { entity_id: "ent-d1", display_name: "David Odie", role_title: "Tech Lead" },
+              { entity_id: "ent-d2", display_name: "David Ramirez", role_title: "Sales" },
+            ],
+          },
+        }),
+      ),
+    );
+    const panel = await speak("Ask David to review this client note.");
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(/do you mean David Odie or David Ramirez\?/i).length,
+      ).toBeGreaterThan(0),
+    );
+    // Focused clarification — not a verbatim send, no governed request fired.
+    expect(panel.innerHTML).not.toMatch(/entity[_-]id/i);
   });
 });

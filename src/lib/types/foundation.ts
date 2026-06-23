@@ -4885,6 +4885,30 @@ export interface AuthorityContextResponse {
   policies: WorkOsPolicyResult[];
 }
 
+// POST /api/v1/work-os/resolve-target — name → org entity, read-scoped so any
+// authenticated employee can resolve a same-org teammate (active membership
+// only; no cross-org). Returns the single match, or all candidates when the
+// name is ambiguous, so the caller can ask ONE focused clarification.
+export interface ResolveTargetMatch {
+  entity_id: string;
+  display_name: string;
+  role_title: string | null;
+}
+
+export interface ResolveTargetResponse {
+  ok: true;
+  resolution: {
+    code:
+      | "RESOLVED_INTERNAL_ENTITY"
+      | "AMBIGUOUS"
+      | "NOT_FOUND"
+      | "NEEDS_EMAIL"
+      | "RUNTIME_MISSING";
+    match: ResolveTargetMatch | null;
+    candidates: ResolveTargetMatch[];
+  };
+}
+
 /** Gate blocker codes returned by the gated create endpoint. */
 export type CalendarEventGateCode =
   | "NEEDS_SELECTED_TIME"

@@ -79,6 +79,7 @@ import type {
   CalendarFreeBusyResponse,
   CalendarEventProposalBody,
   AuthorityContextResponse,
+  ResolveTargetResponse,
   RuntimeCapabilitiesResponse,
   WorkLedgerCreateResponse,
   WorkLedgerListResponse,
@@ -1274,6 +1275,17 @@ export class ApiClient {
       actions?: string[];
     }): Promise<ApiResult<AuthorityContextResponse>> =>
       this.request<AuthorityContextResponse>("/work-os/authority-context", {
+        method: "POST",
+        body,
+      }),
+
+    /** POST /api/v1/work-os/resolve-target — read-scoped name → org entity.
+     *  Works for any authenticated employee (same-org active members), so the
+     *  ambient orb can resolve a teammate without org-admin roster access. */
+    resolveTarget: (body: {
+      target_name?: string;
+    }): Promise<ApiResult<ResolveTargetResponse>> =>
+      this.request<ResolveTargetResponse>("/work-os/resolve-target", {
         method: "POST",
         body,
       }),

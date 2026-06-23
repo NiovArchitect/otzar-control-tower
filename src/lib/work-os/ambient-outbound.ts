@@ -47,6 +47,12 @@ export interface AmbientOutboundPlan {
   recipientType: "PERSON" | "TEAM" | "ROLE";
   userInstruction: string;
   recipientFacingMessage: string;
+  // The SAME work phrased back to the user in FIRST person, used only if the
+  // named recipient turns out to be the caller themselves (by-name self
+  // reroute): "ask David to validate what he received" → "Validate what I
+  // received." Never "Hey David". Absent for relational / team / question
+  // phrasings where a self reroute is not meaningful.
+  selfFacingMessage?: string;
   // Set only for COLLABORATION_REQUEST — selects the governed request_type.
   requestType?: CollaborationRequestType;
   requiresApproval: boolean;
@@ -103,6 +109,24 @@ function toSecondPerson(s: string): string {
     .replace(/\btheir\b/gi, "your");
 }
 
+// WHAT: Re-phrase an already-second-person body into FIRST person, for the
+//        by-name self reroute (the named recipient is the caller). Operates on
+//        the second-person form ("validate what you received") so it only needs
+//        you/your → I/my: "validate what you received" → "validate what I
+//        received"; "confirm what you received on your side" → "…on my side".
+//        EDGE (v1, acceptable): a rare object-position "you" after a preposition
+//        ("send to you") maps via the preposition rule; any residual subject
+//        "you" → "I". Not a general NLG rewriter — the canonical work clauses
+//        ("validate/confirm/review what you …") resolve correctly.
+function toFirstPersonSelf(s: string): string {
+  return s
+    .replace(/\byourself\b/gi, "myself")
+    .replace(/\byours\b/gi, "mine")
+    .replace(/\byour\b/gi, "my")
+    .replace(/\b(to|with|for|at|by|from|of)\s+you\b/gi, "$1 me")
+    .replace(/\byou\b/gi, "I");
+}
+
 // WHAT: Convert a relayed question from third person to a direct question.
 //        "what he thinks" → "what do you think"; "how she wants to proceed" →
 //        "how do you want to proceed". Falls back to plain he/she/they→you.
@@ -141,6 +165,14 @@ function isQuestionBody(s: string): boolean {
   );
 }
 
+// WHAT: Re-phrase a bare work clause as a first-person self artifact, for the
+//        by-name self reroute. Returns "" when nothing meaningful remains.
+function composeSelfFacing(clause: string): string {
+  const first = toFirstPersonSelf(sanitizeOutboundMessage(clause).trim());
+  if (first.length === 0) return "";
+  return ensureTerminal(first.charAt(0).toUpperCase() + first.slice(1), false);
+}
+
 function plan(
   recipient: string,
   recipientType: AmbientOutboundPlan["recipientType"],
@@ -150,6 +182,7 @@ function plan(
   reason: string,
   kind: AmbientOutboundKind = "INTERNAL_MESSAGE",
   requestType?: CollaborationRequestType,
+  selfFacingMessage?: string,
 ): AmbientOutboundPlan {
   return {
     kind,
@@ -157,6 +190,9 @@ function plan(
     recipientType,
     userInstruction,
     recipientFacingMessage,
+    ...(selfFacingMessage !== undefined && selfFacingMessage.length > 0
+      ? { selfFacingMessage }
+      : {}),
     ...(requestType !== undefined ? { requestType } : {}),
     requiresApproval: false,
     confidence,
@@ -406,6 +442,9 @@ export function interpretAmbientOutboundWork(
       `imperative:${verb}`,
       it.kind,
       it.requestType,
+      // First-person form for the by-name self reroute (derive from the bare
+      // clause, not the "can you …"/"Hey <Name>" wrapper).
+      composeSelfFacing(second),
     );
   }
 
@@ -424,6 +463,7 @@ export function interpretAmbientOutboundWork(
       "direct-address",
       it.kind,
       it.requestType,
+      composeSelfFacing(body),
     );
   }
 
