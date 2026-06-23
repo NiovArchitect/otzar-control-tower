@@ -86,6 +86,41 @@ Otzar stores transcript text, not raw audio."*
 - Set the ElevenLabs env on Foundation for the server fallback.
 - Run the §6 voice steps of `OTZAR_V1_TWO_COMPUTER_SMOKE.md`.
 
+## Provider validation result (local, safe — no server boot)
+
+Validated directly against the providers using the **stored backend keys** (read
+from `niov-foundation/.env`, never printed/committed), replicating the exact
+request shapes the service sends:
+
+- **ElevenLabs STT (`scribe_v1`, multipart):** `HTTP 200` — key + model + format all
+  work (sent 0.4 s of synthetic silence → transcript length 0, as expected). The
+  speech-in path functions at the provider level.
+- **Anthropic (`claude-sonnet-4-6`, Foundation's configured model):** `HTTP 200` —
+  key authenticates and a message round-trips. The Twin's LLM brain works.
+
+The full `POST /otzar/voice/transcribe` route was **not** exercised end-to-end
+locally because `DATABASE_URL` in `.env` points at a **remote Supabase** — booting
+the server would run auth/writes against the real DB. The route logic is covered by
+unit + integration tests (CI-green) and delegates to the provider call proven above.
+
+### Verify the route directly (against a running/deployed Foundation)
+
+```bash
+# 1) get a bearer token
+TOKEN=$(curl -s -X POST "$FOUNDATION/api/v1/auth/login" \
+  -H 'content-type: application/json' \
+  -d '{"email":"sadeil@niovlabs.com","password":"<shared-pw>","requested_operations":["read","write"]}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+
+# 2) POST a base64 audio utterance (a real recorded utterance gives real text;
+#    silence returns an empty transcript)
+curl -s -X POST "$FOUNDATION/api/v1/otzar/voice/transcribe" \
+  -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d "{\"audio_base64\":\"$(base64 -i utterance.webm)\",\"mime_type\":\"audio/webm\"}"
+# expect: {"ok":true,"transcript":"…","provider":"ELEVENLABS"}
+# or, if unkeyed: 503 {"ok":false,"code":"VOICE_STT_PROVIDER_NOT_CONFIGURED",…}
+```
+
 ## Final pass/fail checklist
 
 1. [ ] User can speak (mic captures).
