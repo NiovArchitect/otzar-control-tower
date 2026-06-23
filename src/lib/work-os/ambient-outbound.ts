@@ -20,19 +20,51 @@ import {
   parseRelationalMessage,
 } from "@/lib/voice/voice-action-runtime";
 
-export type AmbientOutboundKind = "INTERNAL_MESSAGE" | "CLARIFY";
+export type AmbientOutboundKind =
+  | "INTERNAL_MESSAGE"
+  | "COLLABORATION_REQUEST"
+  | "SELF_NOTE"
+  | "SELF_TASK"
+  | "SELF_REMINDER"
+  | "SELF_REFLECTION"
+  | "TWIN_MEMORY"
+  | "CLARIFY";
+
+// Governed collaboration-request types (subset the orb produces) — match the
+// Foundation TwinCollaborationRequestType closed vocab.
+export type CollaborationRequestType =
+  | "REVIEW_REQUEST"
+  | "FOLLOW_UP"
+  | "APPROVAL_REQUEST";
 
 // WHAT: A structured ambient-outbound plan. The execution layer reads
-//        `recipient` + `recipientFacingMessage` and calls the governed rail.
+//        `recipient` + `recipientFacingMessage` and calls the governed rail
+//        chosen by `kind` (plain message / governed collaboration request /
+//        self work / clarify).
 export interface AmbientOutboundPlan {
   kind: AmbientOutboundKind;
   recipient: string;
   recipientType: "PERSON" | "TEAM" | "ROLE";
   userInstruction: string;
   recipientFacingMessage: string;
+  // Set only for COLLABORATION_REQUEST — selects the governed request_type.
+  requestType?: CollaborationRequestType;
   requiresApproval: boolean;
   confidence: number;
   reason: string;
+}
+
+// SELF kinds route to the self-work / Twin-memory rail, never a teammate message.
+const SELF_KINDS: ReadonlySet<AmbientOutboundKind> = new Set([
+  "SELF_NOTE",
+  "SELF_TASK",
+  "SELF_REMINDER",
+  "SELF_REFLECTION",
+  "TWIN_MEMORY",
+]);
+
+export function isSelfKind(kind: AmbientOutboundKind): boolean {
+  return SELF_KINDS.has(kind);
 }
 
 // Imperative lead verbs that address a teammate/team for outbound work.
@@ -116,16 +148,112 @@ function plan(
   recipientFacingMessage: string,
   confidence: number,
   reason: string,
+  kind: AmbientOutboundKind = "INTERNAL_MESSAGE",
+  requestType?: CollaborationRequestType,
 ): AmbientOutboundPlan {
   return {
-    kind: "INTERNAL_MESSAGE",
+    kind,
     recipient,
     recipientType,
     userInstruction,
     recipientFacingMessage,
+    ...(requestType !== undefined ? { requestType } : {}),
     requiresApproval: false,
     confidence,
     reason,
+  };
+}
+
+// WHAT: Classify the WORK INTENT of a teammate-directed ask by its core verb,
+//        so a governed work/approval request routes to the collaboration rail
+//        instead of a plain internal message.
+// INPUT: the ask clause (the part after "ask X to …" / the direct-address body).
+// OUTPUT: the kind + (for collaboration) the governed request_type.
+function intentFor(ask: string): {
+  kind: AmbientOutboundKind;
+  requestType?: CollaborationRequestType;
+} {
+  const l = ask.toLowerCase();
+  if (/\b(approve|sign[\s-]?off|authori[sz]e|give\s+the\s+go[\s-]?ahead|ok\s+this)\b/.test(l)) {
+    return { kind: "COLLABORATION_REQUEST", requestType: "APPROVAL_REQUEST" };
+  }
+  if (/\b(review|look\s+over|check\s+over)\b/.test(l)) {
+    return { kind: "COLLABORATION_REQUEST", requestType: "REVIEW_REQUEST" };
+  }
+  if (
+    /\b(prepare|draft|complete|finish|handle|take\s+care\s+of|work\s+on|build|fix|deliver|coordinate|put\s+together|follow\s+up\s+on)\b/.test(
+      l,
+    )
+  ) {
+    return { kind: "COLLABORATION_REQUEST", requestType: "FOLLOW_UP" };
+  }
+  return { kind: "INTERNAL_MESSAGE" };
+}
+
+// WHAT: Detect a SELF-directed instruction ("remind me…", "note to self…",
+//        "message myself…") so it becomes a self note/task/reminder instead of
+//        a "Hey <Name>" teammate message. "ask my twin <question>" is NOT self
+//        here — it returns null so the existing governed-chat path answers it.
+// OUTPUT: { kind, body } when self-directed; null otherwise.
+function detectSelf(raw: string): { kind: AmbientOutboundKind; body: string } | null {
+  // "ask my twin / my own twin / my agent / otzar <…>" → defer to governed chat.
+  if (/^(?:please\s+)?ask\s+(?:my\s+(?:own\s+)?twin|my\s+agent|otzar)\b/i.test(raw)) {
+    return null;
+  }
+  let m: RegExpMatchArray | null;
+  if ((m = raw.match(/^(?:please\s+)?remind\s+me\b\s*(?:to|that|about)?\s*(.*)$/i)) !== null) {
+    return { kind: "SELF_REMINDER", body: m[1]!.trim() };
+  }
+  if (
+    (m = raw.match(
+      /^(?:please\s+)?(?:note\s+to\s+self|make\s+a\s+note|write\s+(?:myself\s+)?a\s+note|jot\s+(?:this\s+)?down)\b[:,]?\s*(?:to\s+|that\s+|about\s+)?(.*)$/i,
+    )) !== null
+  ) {
+    return { kind: "SELF_NOTE", body: m[1]!.trim() };
+  }
+  if (
+    (m = raw.match(/^(?:please\s+)?(?:remember|keep\s+in\s+mind|don'?t\s+forget)\b\s*(?:to|that|about)?\s*(.*)$/i)) !== null
+  ) {
+    return { kind: "TWIN_MEMORY", body: m[1]!.trim() };
+  }
+  if ((m = raw.match(/^(?:i\s+(?:need|have|ought)\s+to|i\s+should)\b\s*(.*)$/i)) !== null) {
+    return { kind: "SELF_TASK", body: m[1]!.trim() };
+  }
+  // "message/tell myself [and ask me] to <X>" — explicit "myself"/"self" only
+  // (NOT bare "tell me <question>", which is a query for the chat path).
+  if ((m = raw.match(/^(?:please\s+)?(?:message|msg|tell|note)\s+(?:myself|self)\b(.*)$/i)) !== null) {
+    const rest = (m[1] ?? "")
+      .trim()
+      .replace(/^(?:[,:]\s*)?and\s+(?:ask|tell|remind|let)\s+(?:me)?\s*/i, " ")
+      .replace(/^\s*(?:to|that|if|about)\b\s*/i, "")
+      .replace(/^\s*[,:—–-]\s*/, "")
+      .trim();
+    return { kind: "SELF_TASK", body: rest };
+  }
+  return null;
+}
+
+// WHAT: Build a SELF plan — the recipient-facing message is the self content
+//        kept in FIRST person (it is about the user), capitalized + terminated.
+function selfPlan(
+  kind: AmbientOutboundKind,
+  userInstruction: string,
+  body: string,
+): AmbientOutboundPlan {
+  const clean = sanitizeOutboundMessage(body).trim();
+  if (clean.length === 0) {
+    return clarify(userInstruction, "Do you want this as a reminder, note, or task?");
+  }
+  const msg = ensureTerminal(clean.charAt(0).toUpperCase() + clean.slice(1), false);
+  return {
+    kind,
+    recipient: "yourself",
+    recipientType: "PERSON",
+    userInstruction,
+    recipientFacingMessage: msg,
+    requiresApproval: false,
+    confidence: 0.78,
+    reason: "self",
   };
 }
 
@@ -168,6 +296,20 @@ export function interpretAmbientOutboundWork(
 ): AmbientOutboundPlan | null {
   const raw = text.trim();
   if (raw.length === 0) return null;
+
+  // SELF-directed work ("remind me…", "note to self…", "message myself…") —
+  // route to the self note/task/reminder rail, NEVER a "Hey <Name>" message.
+  const self = detectSelf(raw);
+  if (self !== null) {
+    return selfPlan(self.kind, raw, self.body);
+  }
+
+  // "ask my twin / my own twin / my agent / otzar <…>" is a reflective question
+  // to the user's OWN Twin — defer to the governed-chat path (return null),
+  // never compose it as a teammate message. ("ask David's Twin …" is unaffected.)
+  if (/^(?:please\s+)?ask\s+(?:my\s+(?:own\s+)?twin|my\s+agent|otzar)\b/i.test(raw)) {
+    return null;
+  }
 
   // (d) Relational social message ("thank/congrats/apologize/welcome X …").
   const rel = parseRelationalMessage(raw);
@@ -252,6 +394,9 @@ export function interpretAmbientOutboundWork(
         ? `can you ${second}`
         : second;
     const isQuestion = alreadyQuestion || isRequest;
+    // Intent: a work/approval ask routes to the governed collaboration rail;
+    // a plain ask (validate/confirm/tell) stays a plain internal message.
+    const it = intentFor(rest);
     return plan(
       recipient,
       recipientType,
@@ -259,6 +404,8 @@ export function interpretAmbientOutboundWork(
       composeFor(recipient, recipientType, body, isQuestion),
       0.82,
       `imperative:${verb}`,
+      it.kind,
+      it.requestType,
     );
   }
 
@@ -267,6 +414,7 @@ export function interpretAmbientOutboundWork(
   if (da !== null && da.body !== undefined && da.body.trim().length > 0) {
     if (NON_RECIPIENT.has(da.recipient.toLowerCase())) return null;
     const body = toSecondPerson(da.body);
+    const it = intentFor(da.body);
     return plan(
       da.recipient,
       "PERSON",
@@ -274,6 +422,8 @@ export function interpretAmbientOutboundWork(
       composeFor(da.recipient, "PERSON", body, isQuestionBody(body)),
       0.75,
       "direct-address",
+      it.kind,
+      it.requestType,
     );
   }
 

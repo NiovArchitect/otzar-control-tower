@@ -1074,4 +1074,125 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(html).not.toContain("i cannot navigate");
     expect(html).not.toContain("use the platform navigation");
   });
+
+  // ── Phase 1+2: self-work rail + Twin-mediated collaboration ───────────
+  it("'Remind me to validate what I received' saves a self Work Ledger entry — never a teammate message", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, entry: { ledger_entry_id: "led-self-1" } },
+          { status: 201 },
+        );
+      }),
+    );
+    const panel = await speak("Remind me to validate what I received.");
+    expect(panel.textContent).toMatch(/Reminder to yourself/i);
+    await waitFor(() => expect(ledgerPosts.length).toBe(1));
+    // Self reminder → TASK ledger, title prefixed "Reminder:", first person.
+    expect(ledgerPosts[0]!.ledger_type).toBe("TASK");
+    expect(String(ledgerPosts[0]!.title)).toMatch(/^Reminder: /);
+    expect(String(ledgerPosts[0]!.title).toLowerCase()).toContain("what i received");
+    expect(
+      screen.getAllByText(/I saved that reminder for you\./i).length,
+    ).toBeGreaterThan(0);
+    // Never a teammate message, never a Twin chat.
+    expect(internalMessagePosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+  });
+
+  it("'Ask David to review this client note' sends a governed review request via the caller's Twin — not a plain message", async () => {
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      // Caller is the founder (NOT David) → collaboration proceeds.
+      http.get(`${API_BASE}/otzar/my-twin/context-health`, () =>
+        HttpResponse.json({
+          ok: true,
+          status: "READY",
+          identity: {
+            viewer: {
+              user_id: "ent-founder",
+              email: "founder@niovlabs.com",
+              display_name: "Sadeil",
+              title: "FOUNDER",
+              org_role: "FOUNDER",
+              is_founder_admin: true,
+            },
+            org: { org_id: "o-1", name: "NIOV", domain: null },
+            twin: { twin_id: "twin-founder", display_name: "Otzar", active: true },
+            projects: [],
+          },
+        }),
+      ),
+      http.post(
+        `${API_BASE}/otzar/my-twin/collaboration-requests`,
+        async ({ request }) => {
+          collaborationPosts.push((await request.json()) as Record<string, unknown>);
+          return HttpResponse.json(
+            { ok: true, request: { request_id: "collab-1", status: "PENDING" } },
+            { status: 201 },
+          );
+        },
+      ),
+    );
+    await speak("Ask David to review this client note.");
+    await waitFor(() => expect(collaborationPosts.length).toBe(1));
+    const body = collaborationPosts[0]!;
+    // Target the teammate HUMAN (the org member), mediated by the caller's Twin.
+    expect(body.target_type).toBe("EMPLOYEE");
+    expect(body.target_entity_id).toBe("ent-david");
+    expect(body.request_type).toBe("REVIEW_REQUEST");
+    expect(body.requester_twin_entity_id).toBe("twin-founder");
+    // safe_summary is the COMPOSED message, never the verbatim command.
+    expect(String(body.safe_summary).toLowerCase()).toContain("review this client note");
+    expect(String(body.safe_summary)).not.toContain("Ask David");
+    // Never targets the teammate's Twin directly (cross-org deny risk).
+    expect(body).not.toHaveProperty("target_twin_entity_id");
+    // Governed rail — NOT the plain internal-message rail, NOT Twin chat.
+    expect(internalMessagePosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+    expect(
+      screen.getAllByText(/I sent David a review request/i).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("'Message David…' while signed in AS David reroutes to a self task — never messages oneself", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      // context-health reports the current user IS David (resolved self).
+      http.get(`${API_BASE}/otzar/my-twin/context-health`, () =>
+        HttpResponse.json({
+          ok: true,
+          status: "READY",
+          identity: {
+            viewer: {
+              user_id: "ent-david",
+              email: "david@niovlabs.com",
+              display_name: "David",
+              title: "",
+              org_role: "EMPLOYEE",
+              is_founder_admin: false,
+            },
+            org: { org_id: "o-1", name: "NIOV", domain: null },
+            twin: { twin_id: "twin-david", display_name: "Twin", active: true },
+            projects: [],
+          },
+        }),
+      ),
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, entry: { ledger_entry_id: "led-self-2" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("Message David and ask him to validate what he received.");
+    // Resolved to self → self task ledger, NOT a message delivered to a teammate.
+    await waitFor(() => expect(ledgerPosts.length).toBe(1));
+    expect(ledgerPosts[0]!.ledger_type).toBe("TASK");
+    expect(internalMessagePosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+  });
 });

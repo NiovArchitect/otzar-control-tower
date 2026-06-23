@@ -84,7 +84,12 @@ import {
   useConversationStore,
 } from "@/lib/work-os/conversation-store";
 import { resolveTarget } from "@/lib/work-os/target-resolution";
-import { interpretAmbientOutboundWork } from "@/lib/work-os/ambient-outbound";
+import {
+  interpretAmbientOutboundWork,
+  isSelfKind,
+  type AmbientOutboundKind,
+  type CollaborationRequestType,
+} from "@/lib/work-os/ambient-outbound";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -800,6 +805,204 @@ export function AmbientOtzarBar(): JSX.Element {
     await executeOutboundMessage(recipient, message, action.heard, action.kind, at);
   }
 
+  // ── Phase 1+2: self-work rail + Twin-mediated collaboration ─────────────
+  // Current user's own identity (human entity + own Twin entity), fetched once
+  // and cached. Used to detect a self-directed message ("Message David" while
+  // signed in as David) and route it to the self rail instead of a message to
+  // oneself. context-health.viewer.user_id is the caller's human entity_id and
+  // twin.twin_id is the caller's OWN Twin entity_id (both confirmed server-side).
+  const selfIdentityRef = useRef<{ human: string | null; twin: string | null } | null>(
+    null,
+  );
+  async function getSelfIdentity(): Promise<{ human: string | null; twin: string | null }> {
+    if (selfIdentityRef.current !== null) return selfIdentityRef.current;
+    const health = await api.otzar.contextHealth();
+    const id = health.ok
+      ? {
+          human: health.data.identity.viewer.user_id,
+          twin: health.data.identity.twin.twin_id,
+        }
+      : { human: null, twin: null };
+    selfIdentityRef.current = id;
+    return id;
+  }
+
+  // SELF rail — a note / task / reminder / memory the user records for
+  // themselves. Persisted as a durable Work Ledger entry (TASK for tasks and
+  // reminders, COMMITMENT for notes and memory). Confirmation is human and
+  // inline — never a page hand-off, never a "proposal to confirm".
+  async function executeSelfWork(
+    kind: AmbientOutboundKind,
+    message: string,
+    heard: string,
+    at: string,
+  ): Promise<void> {
+    const ledgerType =
+      kind === "SELF_TASK" || kind === "SELF_REMINDER" ? "TASK" : "COMMITMENT";
+    const title = kind === "SELF_REMINDER" ? `Reminder: ${message}` : message;
+    const res = await api.workOs.createLedgerEntry({
+      ledger_type: ledgerType,
+      title,
+      source_type: "VOICE_COMMAND",
+      source_command: heard,
+      status: "PROPOSED",
+      extraction_source: "TYPESCRIPT_DETERMINISTIC",
+      evidence: [],
+    });
+    const ok = res.ok;
+    const confirm = !ok
+      ? "I couldn't save that just now — want me to try again?"
+      : kind === "SELF_REMINDER"
+        ? "I saved that reminder for you."
+        : kind === "SELF_TASK"
+          ? "I added that as a task for you."
+          : kind === "TWIN_MEMORY"
+            ? "I'll remember that for you."
+            : "I saved that as a note to yourself.";
+    setActionResult(confirm);
+    setActionStatus(ok ? "Saved" : "Couldn't save");
+    speakConfirmation(confirm);
+    appendConversationEntry({
+      role: "action",
+      text: confirm,
+      at,
+      kind: "ASK_TWIN",
+      status: ok ? "Saved" : "Couldn't save",
+    });
+    recordVoiceAction({
+      at,
+      transcript: heard,
+      actionType: "ASK_TWIN",
+      target: null,
+      result: ok ? "success" : "blocked",
+    });
+  }
+
+  // If a teammate name resolves to the current user (or their own Twin), the
+  // message is really self-directed — reroute to the self rail. Best-effort:
+  // org resolution is admin-scoped, so this fires for admins; for everyone else
+  // resolution returns no match and the message proceeds normally. Returns true
+  // only when it handled the input as self-work.
+  async function maybeRerouteSelfMessage(
+    recipient: string,
+    message: string,
+    heard: string,
+    at: string,
+  ): Promise<boolean> {
+    const resolved = await resolveTarget(recipient);
+    if (resolved.entityId === undefined) return false;
+    const me = await getSelfIdentity();
+    const isSelf =
+      (me.human !== null && resolved.entityId === me.human) ||
+      (me.twin !== null && resolved.entityId === me.twin);
+    if (!isSelf) return false;
+    await executeSelfWork("SELF_TASK", message, heard, at);
+    return true;
+  }
+
+  // COLLABORATION rail — a governed work / review / approval request sent BY the
+  // caller's own Twin to a teammate. The target is the teammate's HUMAN (the org
+  // member); the request is mediated by the caller's Twin (requester twin). The
+  // backend enforces same-org / RBAC / ABAC / TAR / org-collaboration policy /
+  // audit. Never targets the teammate's Twin directly (not an org member →
+  // cross-org deny). Copy stays human and inline — no backend terms, no codes.
+  async function executeCollaborationRequest(
+    recipient: string,
+    message: string,
+    requestType: CollaborationRequestType,
+    heard: string,
+    at: string,
+  ): Promise<void> {
+    function report(
+      msg: string,
+      result: "success" | "blocked",
+      status: string,
+      target: string | null,
+    ): void {
+      setActionResult(msg);
+      setActionStatus(status);
+      speakConfirmation(msg);
+      appendConversationEntry({ role: "action", text: msg, at, kind: "ASK_TWIN", status });
+      recordVoiceAction({ at, transcript: heard, actionType: "ASK_TWIN", target, result });
+    }
+
+    const resolved = await resolveTarget(recipient);
+
+    // Self-directed → the self rail, never a request to oneself.
+    if (resolved.entityId !== undefined) {
+      const meSelf = await getSelfIdentity();
+      if (
+        (meSelf.human !== null && resolved.entityId === meSelf.human) ||
+        (meSelf.twin !== null && resolved.entityId === meSelf.twin)
+      ) {
+        await executeSelfWork("SELF_TASK", message, heard, at);
+        return;
+      }
+    }
+
+    if (resolved.kind === "AMBIGUOUS") {
+      const many = (resolved.candidates?.length ?? 0) > 1;
+      report(
+        many
+          ? `I found more than one ${recipient} — which one do you mean?`
+          : `Which ${recipient} do you mean?`,
+        "blocked",
+        "Which one?",
+        null,
+      );
+      return;
+    }
+    const targetEntityId = resolved.entityId;
+    if (
+      (resolved.kind !== "RESOLVED_HUMAN" && resolved.kind !== "RESOLVED_AI_AGENT") ||
+      targetEntityId === undefined
+    ) {
+      report(
+        `I couldn't find ${recipient} on your team — who do you mean?`,
+        "blocked",
+        "Who is this for?",
+        null,
+      );
+      return;
+    }
+
+    const me = await getSelfIdentity();
+    const res = await api.otzar.collaboration.create({
+      target_type: "EMPLOYEE",
+      target_entity_id: targetEntityId,
+      request_type: requestType,
+      safe_summary: message,
+      requested_by_ai: true,
+      ...(me.twin !== null ? { requester_twin_entity_id: me.twin } : {}),
+    });
+
+    const who = resolved.displayName ?? recipient;
+    if (res.ok) {
+      const kindword =
+        requestType === "REVIEW_REQUEST"
+          ? "review request"
+          : requestType === "APPROVAL_REQUEST"
+            ? "approval request"
+            : "follow-up";
+      report(
+        `I sent ${who} a ${kindword} on your behalf and I'll track their response here.`,
+        "success",
+        "Sent",
+        targetEntityId,
+      );
+      return;
+    }
+
+    // Honest, human failure — no backend codes, no page hand-off.
+    const why =
+      res.status === 409
+        ? `That needs approval first — I've queued it for ${who} and I'll keep track of it.`
+        : res.status === 403
+          ? `I can't reach ${who} — they're outside your organization.`
+          : `I couldn't send that to ${who} just now — want me to try again?`;
+    report(why, "blocked", "Held", targetEntityId);
+  }
+
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
   // governed action. Open never reaches here.
   async function confirmArtifact(body: string): Promise<void> {
@@ -1494,23 +1697,66 @@ export function AmbientOtzarBar(): JSX.Element {
         // Surface the action panel (gated on actionHeard) like the other paths.
         setActionHeard(text);
         setActionLabel(
-          outbound.kind === "INTERNAL_MESSAGE" && outbound.recipient.length > 0
-            ? `Message → ${outbound.recipient}`
-            : "Who is this for?",
+          isSelfKind(outbound.kind)
+            ? outbound.kind === "SELF_REMINDER"
+              ? "Reminder to yourself"
+              : outbound.kind === "SELF_TASK"
+                ? "Task for yourself"
+                : outbound.kind === "TWIN_MEMORY"
+                  ? "Remember this"
+                  : "Note to yourself"
+            : outbound.kind === "COLLABORATION_REQUEST"
+              ? `${
+                  outbound.requestType === "REVIEW_REQUEST"
+                    ? "Review request"
+                    : outbound.requestType === "APPROVAL_REQUEST"
+                      ? "Approval request"
+                      : "Follow-up"
+                } → ${outbound.recipient}`
+              : outbound.kind === "INTERNAL_MESSAGE" && outbound.recipient.length > 0
+                ? `Message → ${outbound.recipient}`
+                : "Who is this for?",
         );
         setRouterAck(null);
         appendConversationEntry({ role: "user", text, at: at0 });
-        if (
+        if (isSelfKind(outbound.kind)) {
+          // SELF rail — a note / task / reminder / memory for oneself.
+          await executeSelfWork(
+            outbound.kind,
+            outbound.recipientFacingMessage,
+            text,
+            at0,
+          );
+        } else if (outbound.kind === "COLLABORATION_REQUEST") {
+          // Governed Twin-mediated work / review / approval request.
+          await executeCollaborationRequest(
+            outbound.recipient,
+            outbound.recipientFacingMessage,
+            outbound.requestType ?? "FOLLOW_UP",
+            text,
+            at0,
+          );
+        } else if (
           outbound.kind === "INTERNAL_MESSAGE" &&
           outbound.recipient.length > 0
         ) {
-          await executeOutboundMessage(
+          // Plain teammate message — but if the named person is really the
+          // current user, reroute to the self rail instead of self-messaging.
+          const rerouted = await maybeRerouteSelfMessage(
             outbound.recipient,
             outbound.recipientFacingMessage,
             text,
-            "ASK_TWIN",
             at0,
           );
+          if (!rerouted) {
+            await executeOutboundMessage(
+              outbound.recipient,
+              outbound.recipientFacingMessage,
+              text,
+              "ASK_TWIN",
+              at0,
+            );
+          }
         } else {
           // CLARIFY — ask for the missing detail, never fabricate a send.
           setActionResult(outbound.recipientFacingMessage);

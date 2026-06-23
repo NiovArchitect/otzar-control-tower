@@ -119,6 +119,78 @@ describe("interpretAmbientOutboundWork — composes recipient-facing messages", 
   });
 });
 
+describe("interpretAmbientOutboundWork — self-directed work routes to the self rail", () => {
+  it("Remind me to validate what I received → SELF_REMINDER, first person, no Hey", () => {
+    const p = interpretAmbientOutboundWork("Remind me to validate what I received.");
+    expect(p).not.toBeNull();
+    expect(p!.kind).toBe("SELF_REMINDER");
+    expect(p!.recipientFacingMessage).not.toMatch(/^Hey /);
+    expect(p!.recipientFacingMessage.toLowerCase()).toContain("what i received");
+    // capitalized, self-facing, NOT "Hey David".
+    expect(p!.recipientFacingMessage.charAt(0)).toBe("V");
+  });
+
+  it("Message myself and ask me to validate what I received → SELF_TASK (never Hey <Name>)", () => {
+    const p = interpretAmbientOutboundWork(
+      "Message myself and ask me to validate what I received.",
+    );
+    expect(p!.kind).toBe("SELF_TASK");
+    expect(p!.recipientFacingMessage).not.toMatch(/^Hey /);
+    expect(p!.recipientFacingMessage.toLowerCase()).toContain(
+      "validate what i received",
+    );
+  });
+
+  it("Note to self: follow up with the investor → SELF_NOTE", () => {
+    const p = interpretAmbientOutboundWork("Note to self: follow up with the investor.");
+    expect(p!.kind).toBe("SELF_NOTE");
+    expect(p!.recipientFacingMessage.toLowerCase()).toContain(
+      "follow up with the investor",
+    );
+  });
+
+  it("Remember that the demo is on Friday → TWIN_MEMORY", () => {
+    const p = interpretAmbientOutboundWork("Remember that the demo is on Friday.");
+    expect(p!.kind).toBe("TWIN_MEMORY");
+    expect(p!.recipientFacingMessage.toLowerCase()).toContain("demo is on friday");
+  });
+
+  it("ask my twin / ask Otzar → null (defers to governed chat, not a self note)", () => {
+    expect(interpretAmbientOutboundWork("ask my twin why this matters")).toBeNull();
+    expect(interpretAmbientOutboundWork("Ask Otzar to summarize my day")).toBeNull();
+  });
+});
+
+describe("interpretAmbientOutboundWork — work asks route to the governed collaboration rail", () => {
+  it("Ask David to review this client note → COLLABORATION_REQUEST / REVIEW_REQUEST", () => {
+    const p = interpretAmbientOutboundWork("Ask David to review this client note.");
+    expect(p!.kind).toBe("COLLABORATION_REQUEST");
+    expect(p!.requestType).toBe("REVIEW_REQUEST");
+    expect(p!.recipient).toBe("David");
+    expect(p!.recipientFacingMessage).toBe("Hey David, can you review this client note?");
+  });
+
+  it("Ask David to approve the budget → COLLABORATION_REQUEST / APPROVAL_REQUEST", () => {
+    const p = interpretAmbientOutboundWork("Ask David to approve the budget.");
+    expect(p!.kind).toBe("COLLABORATION_REQUEST");
+    expect(p!.requestType).toBe("APPROVAL_REQUEST");
+  });
+
+  it("Ask Shweta to prepare the GTM deck → COLLABORATION_REQUEST / FOLLOW_UP", () => {
+    const p = interpretAmbientOutboundWork("Ask Shweta to prepare the GTM deck.");
+    expect(p!.kind).toBe("COLLABORATION_REQUEST");
+    expect(p!.requestType).toBe("FOLLOW_UP");
+  });
+
+  it("a plain validate/confirm ask stays a plain message (INTERNAL_MESSAGE)", () => {
+    const p = interpretAmbientOutboundWork(
+      "Message David and ask him to validate what he received.",
+    );
+    expect(p!.kind).toBe("INTERNAL_MESSAGE");
+    expect(p!.requestType).toBeUndefined();
+  });
+});
+
 describe("command-planner — never treats pronouns/verbs as participants", () => {
   it('does not produce a participant "you" or "sent" for a confirm-message', () => {
     const plan = planWorkCommand(
