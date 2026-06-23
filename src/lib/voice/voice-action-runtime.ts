@@ -352,7 +352,7 @@ const DIRECT_ADDRESS_CUE =
 //      The NAME TOKEN is extracted here; the org roster RESOLUTION (unique /
 //      ambiguous / unknown / external) is the resolver's job downstream — no
 //      teammate is hardcoded.
-function parseDirectAddress(
+export function parseDirectAddress(
   text: string,
 ): { recipient: string; body: string | undefined } | null {
   const m = text.match(/^\s*([A-Za-z][a-zA-Z'’-]+)\s*,?\s+(.+)$/s);
@@ -373,7 +373,7 @@ function parseDirectAddress(
 // authority internal-message path so the draft is a real, confirmable card.
 // WHAT: parse a relational message into { recipient, body }.
 // OUTPUT: null when the utterance is not a relational message.
-function parseRelationalMessage(
+export function parseRelationalMessage(
   text: string,
 ): { recipient: string; body: string } | null {
   const m = text

@@ -151,18 +151,35 @@ function extractPrerequisite(text: string): string | undefined {
   return `${m[1]} ${m[2]}`.replace(/\s+/g, " ").trim();
 }
 
+// Tokens that must NEVER be treated as a participant. The "ask/have" verb match
+// below is case-insensitive (so "ask Vishesh" and "Ask vishesh" both resolve),
+// which means a bare pronoun/verb ("ask you", "have sent") would otherwise be
+// captured as a fake recipient. Reject those explicitly.
+const NON_PARTICIPANT = new Set([
+  "you", "your", "yours", "he", "him", "his", "she", "her", "hers", "they",
+  "them", "their", "it", "me", "my", "mine", "i", "us", "we", "this", "that",
+  "what", "who", "sent", "send", "confirm", "confirmed", "received", "receive",
+  "got", "review", "reviewed", "check", "checked", "validate", "validated",
+  "prepare", "prepared", "the", "a", "an",
+]);
+
 // Pull a participant after a preposition/verb in a single segment.
 function extractParticipant(text: string): string | undefined {
+  const ok = (s: string | undefined): string | undefined =>
+    s !== undefined && !NON_PARTICIPANT.has(s.toLowerCase()) ? s : undefined;
   // promise "told X", meeting "with X", note/message "for X"/"to X",
   // task "ask X" / "have X". Check the promise verb first so
   // "I told Vishesh I would follow up" resolves to Vishesh, not a later
   // preposition.
   const told = text.match(/\b(?:told|promised|owe)\s+([A-Z][a-z]+)\b/);
-  if (told !== null) return told[1];
+  const toldOk = told !== null ? ok(told[1]) : undefined;
+  if (toldOk !== undefined) return toldOk;
   const prep = text.match(/\b(?:with|for|to)\s+([A-Z][a-z]+)\b/);
-  if (prep !== null) return prep[1];
+  const prepOk = prep !== null ? ok(prep[1]) : undefined;
+  if (prepOk !== undefined) return prepOk;
   const verb = text.match(/\b(?:ask|have|assign(?:\s+this)?\s+to)\s+([A-Z][a-z]+)\b/i);
-  if (verb !== null) return verb[1];
+  const verbOk = verb !== null ? ok(verb[1]) : undefined;
+  if (verbOk !== undefined) return verbOk;
   return undefined;
 }
 

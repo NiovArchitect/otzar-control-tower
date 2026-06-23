@@ -1022,9 +1022,16 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     });
   });
 
-  it("'Ask David's Twin…' routes to collaboration and never fakes David's answer", async () => {
-    const panel = await speak("Ask David's Twin what he thinks.");
-    expect(panel.textContent).toMatch(/Ask Twin → David/i);
+  it("'Ask David's Twin…' sends David a governed message and never fakes David's answer", async () => {
+    await speak("Ask David's Twin what he thinks.");
+    // New doctrine: the question is routed to David as a GOVERNED internal
+    // message (recipient = the PERSON behind the Twin; body = a composed
+    // second-person question) — never a fabricated answer, never a Twin chat.
+    await waitFor(() => expect(internalMessagePosts.length).toBe(1));
+    const body = internalMessagePosts[0]!;
+    expect(body.recipient).toBe("David");
+    expect(String(body.message).toLowerCase()).toContain("what do you think");
+    expect(String(body.message).toLowerCase()).not.toContain("twin");
     // No fabricated answer and no Twin chat call.
     expect(recordedBodies.length).toBe(0);
     const html = document.body.innerHTML.toLowerCase();

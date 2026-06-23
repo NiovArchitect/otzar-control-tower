@@ -84,6 +84,7 @@ import {
   useConversationStore,
 } from "@/lib/work-os/conversation-store";
 import { resolveTarget } from "@/lib/work-os/target-resolution";
+import { interpretAmbientOutboundWork } from "@/lib/work-os/ambient-outbound";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -714,14 +715,20 @@ export function AmbientOtzarBar(): JSX.Element {
   // enforces same-org / RBAC/ABAC/TAR / org-collaboration policy (approval
   // gating) / audit. NEVER answers AS the teammate or their Twin; never a
   // fake send — unresolved/blocked yields an honest message.
-  async function executeAskTwinAction(
-    action: VoiceAction,
+  // Governed outbound message on the caller's behalf. The backend resolves the
+  // recipient org-scoped under the caller's OWN authority, delivers a real
+  // Otzar-inbox notification, and records a durable Work Ledger proof (RULE 0
+  // cross-org DENY + recipient-active + audit). Never external, never
+  // impersonates the teammate or their Twin. `message` is the COMPOSED,
+  // recipient-facing body — NEVER the raw command verbatim.
+  async function executeOutboundMessage(
+    recipient: string,
+    message: string,
+    heard: string,
+    kind: VoiceAction["kind"],
     at: string,
   ): Promise<void> {
-    const collabRoute = action.route ?? "/app/collaboration";
-    const recipientName = action.targetEntity;
-
-    function reportAsk(
+    function report(
       msg: string,
       result: "success" | "blocked",
       status: string,
@@ -730,63 +737,67 @@ export function AmbientOtzarBar(): JSX.Element {
       setActionResult(msg);
       setActionStatus(status);
       speakConfirmation(msg);
-      appendConversationEntry({
-        role: "action",
-        text: msg,
-        at,
-        kind: action.kind,
-        status,
-      });
-      recordVoiceAction({
-        at,
-        transcript: action.heard,
-        actionType: action.kind,
-        target,
-        result,
-      });
+      appendConversationEntry({ role: "action", text: msg, at, kind, status });
+      recordVoiceAction({ at, transcript: heard, actionType: kind, target, result });
     }
 
-    if (recipientName === undefined || recipientName.trim().length === 0) {
-      reportAsk(
-        'Tell me who this is for — e.g. "ask David to review this note" — and I\'ll route a governed request.',
-        "blocked",
-        "Needs a teammate",
-        null,
-      );
-      return;
-    }
-
-    // Governed "message a teammate on your behalf": the backend resolves the
-    // recipient org-scoped under the caller's OWN authority, delivers a real
-    // Otzar-inbox notification, and records a durable Work Ledger proof
-    // (RULE 0 cross-org DENY + recipient-active + audit). Never external,
-    // never impersonates the teammate or their Twin.
-    const sent = await api.workOs.internalMessage(recipientName, action.heard);
+    const sent = await api.workOs.internalMessage(recipient, message);
 
     if (sent.ok && sent.data.status === "DELIVERED") {
       const delivered = sent.data.recipient_display_name ?? "";
-      const label = delivered.trim().length > 0 ? delivered : recipientName;
-      reportAsk(
+      const label = delivered.trim().length > 0 ? delivered : recipient;
+      report(
         `I sent ${label} a message on your behalf and created the governed record. I'll track the response here.`,
         "success",
         "Sent · governed",
-        sent.data.recipient_entity_id ?? recipientName,
+        sent.data.recipient_entity_id ?? recipient,
       );
       return;
     }
 
     // Honest failure states — never a silent dead end, never a fabricated send.
-    // NEEDS_RESOLUTION (422) = recipient not uniquely in-org; GATED (409) =
-    // policy needs approval; anything else = surface the real reason.
     const httpStatus = sent.ok ? sent.data.status : sent.status;
     const why =
       httpStatus === 422 || httpStatus === "NEEDS_RESOLUTION"
-        ? `I couldn't identify "${recipientName}" in your organization. Open Collaboration to pick the teammate.`
+        ? `I couldn't identify "${recipient}" in your organization. Open Collaboration to pick the teammate.`
         : httpStatus === 409 || httpStatus === "GATED"
-          ? `That message needs approval before it reaches ${recipientName}. Open Collaboration to route it.`
-          : `I couldn't send that to ${recipientName}. Open Collaboration to route it.`;
-    reportAsk(why, "blocked", "Blocked", recipientName);
-    navigate(collabRoute);
+          ? `That message needs approval before it reaches ${recipient}. Open Collaboration to route it.`
+          : `I couldn't send that to ${recipient}. Open Collaboration to route it.`;
+    report(why, "blocked", "Blocked", recipient);
+    navigate("/app/collaboration");
+  }
+
+  // ASK_TWIN execution: compose a recipient-facing message from the command
+  // (never verbatim) via the general ambient-outbound interpreter, then send it
+  // through the governed rail above.
+  async function executeAskTwinAction(
+    action: VoiceAction,
+    at: string,
+  ): Promise<void> {
+    const interp = interpretAmbientOutboundWork(action.heard);
+    const recipient =
+      interp !== null && interp.kind === "INTERNAL_MESSAGE" && interp.recipient.length > 0
+        ? interp.recipient
+        : (action.targetEntity ?? "").trim();
+
+    if (recipient.length === 0) {
+      const msg =
+        interp !== null && interp.kind === "CLARIFY"
+          ? interp.recipientFacingMessage
+          : 'Tell me who this is for — e.g. "ask David to review this note" — and I\'ll route a governed message.';
+      setActionResult(msg);
+      setActionStatus("Needs a teammate");
+      speakConfirmation(msg);
+      appendConversationEntry({ role: "action", text: msg, at, kind: action.kind, status: "Needs a teammate" });
+      recordVoiceAction({ at, transcript: action.heard, actionType: action.kind, target: null, result: "blocked" });
+      return;
+    }
+
+    const message =
+      interp !== null && interp.kind === "INTERNAL_MESSAGE" && interp.recipientFacingMessage.length > 0
+        ? interp.recipientFacingMessage
+        : action.heard;
+    await executeOutboundMessage(recipient, message, action.heard, action.kind, at);
   }
 
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
@@ -1464,6 +1475,59 @@ export function AmbientOtzarBar(): JSX.Element {
           sayAnswer(composeThreadAnswer(tq, display, messages));
         } else {
           sayMiss();
+        }
+        return;
+      }
+    }
+
+    // Ambient outbound work — recipient-directed natural language ("Ask David
+    // to review …", "David, can you confirm …", "Tell the product team …") is
+    // COMPOSED into a clean recipient-facing message and sent through the
+    // governed internal-message rail. This runs BEFORE the generic task planner
+    // so a message to a teammate is never mis-parsed into fake tasks (e.g. a
+    // pronoun "you" / verb "sent" becoming task recipients).
+    {
+      const outbound = interpretAmbientOutboundWork(text);
+      if (outbound !== null) {
+        const at0 = new Date().toISOString();
+        setDraft("");
+        // Surface the action panel (gated on actionHeard) like the other paths.
+        setActionHeard(text);
+        setActionLabel(
+          outbound.kind === "INTERNAL_MESSAGE" && outbound.recipient.length > 0
+            ? `Message → ${outbound.recipient}`
+            : "Who is this for?",
+        );
+        setRouterAck(null);
+        appendConversationEntry({ role: "user", text, at: at0 });
+        if (
+          outbound.kind === "INTERNAL_MESSAGE" &&
+          outbound.recipient.length > 0
+        ) {
+          await executeOutboundMessage(
+            outbound.recipient,
+            outbound.recipientFacingMessage,
+            text,
+            "ASK_TWIN",
+            at0,
+          );
+        } else {
+          // CLARIFY — ask for the missing detail, never fabricate a send.
+          setActionResult(outbound.recipientFacingMessage);
+          setActionStatus("Needs detail");
+          speakConfirmation(outbound.recipientFacingMessage);
+          appendConversationEntry({
+            role: "otzar",
+            text: outbound.recipientFacingMessage,
+            at: at0,
+          });
+          recordVoiceAction({
+            at: at0,
+            transcript: text,
+            actionType: "ASK_TWIN",
+            target: null,
+            result: "blocked",
+          });
         }
         return;
       }
