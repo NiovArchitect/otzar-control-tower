@@ -439,6 +439,39 @@ describe("AmbientOtzarBar — Work OS commands", () => {
           resolution: { code: "NOT_FOUND", match: null, candidates: [] },
         });
       }),
+      // Phase 2.6 — default context sources. The inbox has one recent message
+      // (so "what I received" resolves + links); recent artifacts are empty by
+      // default (so "the transcript" / "this client note" ask unless a test
+      // provides one).
+      http.get(`${API_BASE}/notifications`, () =>
+        HttpResponse.json({
+          ok: true,
+          page: 1,
+          page_size: 20,
+          total: 1,
+          notifications: [
+            {
+              notification_id: "notif-1",
+              action_id: null,
+              notification_class: "DIRECT_MESSAGE",
+              body_summary: "Please validate the figures.",
+              created_at: "2026-06-23T10:00:00.000Z",
+              read_at: null,
+              status: "UNREAD",
+              sender: {
+                entity_id: "ent-sadeil",
+                display_name: "Sadeil",
+                role_title: "Founder",
+                source_kind: "HUMAN",
+                authority_label: "Founder",
+              },
+            },
+          ],
+        }),
+      ),
+      http.get(`${API_BASE}/work-os/comms/recent-artifacts`, () =>
+        HttpResponse.json({ ok: true, artifacts: [], next_cursor: null }),
+      ),
       // Governed Action create — capture the body; return a PROPOSED
       // (approval-required) action. NEVER an external send.
       http.post(`${API_BASE}/actions`, async ({ request }) => {
@@ -1124,15 +1157,20 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(ledgerPosts[0]!.ledger_type).toBe("TASK");
     expect(String(ledgerPosts[0]!.title)).toMatch(/^Reminder: /);
     expect(String(ledgerPosts[0]!.title).toLowerCase()).toContain("what i received");
+    // Phase 2.6 — "what I received" resolved to the inbox message and LINKED
+    // (notification_id set; confirmation names the source).
+    expect(ledgerPosts[0]!.notification_id).toBe("notif-1");
     expect(
-      screen.getAllByText(/I saved that reminder for you\./i).length,
+      screen.getAllByText(
+        /I saved that reminder for you linked to the message you received from Sadeil/i,
+      ).length,
     ).toBeGreaterThan(0);
     // Never a teammate message, never a Twin chat.
     expect(internalMessagePosts.length).toBe(0);
     expect(recordedBodies.length).toBe(0);
   });
 
-  it("'Ask David to review this client note' sends a governed review request via the caller's Twin — not a plain message", async () => {
+  it("'Ask David to review the transcript' sends a governed review request via the caller's Twin, with the transcript context attached", async () => {
     const collaborationPosts: Array<Record<string, unknown>> = [];
     server.use(
       // Caller is the founder (NOT David) → collaboration proceeds.
@@ -1155,6 +1193,32 @@ describe("AmbientOtzarBar — Work OS commands", () => {
           },
         }),
       ),
+      // A recent meeting capture exists → "the transcript" resolves + attaches.
+      http.get(`${API_BASE}/work-os/comms/recent-artifacts`, () =>
+        HttpResponse.json({
+          ok: true,
+          artifacts: [
+            {
+              artifact_id: "art-mtg-1",
+              artifact_type: "MEETING_CAPTURE",
+              title: "Q3 planning meeting",
+              summary: "Roadmap + hiring",
+              created_at: "2026-06-23T09:00:00.000Z",
+              updated_at: "2026-06-23T09:30:00.000Z",
+              status: "ACTIVE",
+              scope: "personal",
+              related_person: null,
+              source: {
+                source_system: "otzar",
+                source_message_id: null,
+                ledger_entry_id: "led-mtg-1",
+              },
+              destination: { kind: "work", route: null },
+            },
+          ],
+          next_cursor: null,
+        }),
+      ),
       http.post(
         `${API_BASE}/otzar/my-twin/collaboration-requests`,
         async ({ request }) => {
@@ -1166,7 +1230,7 @@ describe("AmbientOtzarBar — Work OS commands", () => {
         },
       ),
     );
-    await speak("Ask David to review this client note.");
+    await speak("Ask David to review the transcript.");
     await waitFor(() => expect(collaborationPosts.length).toBe(1));
     const body = collaborationPosts[0]!;
     // Target the teammate HUMAN (the org member), mediated by the caller's Twin.
@@ -1174,8 +1238,10 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(body.target_entity_id).toBe("ent-david");
     expect(body.request_type).toBe("REVIEW_REQUEST");
     expect(body.requester_twin_entity_id).toBe("twin-founder");
-    // safe_summary is the COMPOSED message, never the verbatim command.
-    expect(String(body.safe_summary).toLowerCase()).toContain("review this client note");
+    // safe_summary is the COMPOSED message + the resolved context, never the
+    // verbatim command.
+    expect(String(body.safe_summary).toLowerCase()).toContain("review the transcript");
+    expect(String(body.safe_summary).toLowerCase()).toContain("re: the transcript");
     expect(String(body.safe_summary)).not.toContain("Ask David");
     // Never targets the teammate's Twin directly (cross-org deny risk).
     expect(body).not.toHaveProperty("target_twin_entity_id");
@@ -1183,8 +1249,31 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(internalMessagePosts.length).toBe(0);
     expect(recordedBodies.length).toBe(0);
     expect(
-      screen.getAllByText(/I sent David a review request/i).length,
+      screen.getAllByText(/I sent David a review request for the transcript/i).length,
     ).toBeGreaterThan(0);
+  });
+
+  it("'Ask David to review this client note' with no attachable note asks ONE focused question — never a contextless request", async () => {
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "collab-x", status: "PENDING" } },
+          { status: 201 },
+        );
+      }),
+    );
+    const panel = await speak("Ask David to review this client note.");
+    // No client-note source → one focused question, NOT a sent request.
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(/Which client note should I attach\?/i).length,
+      ).toBeGreaterThan(0),
+    );
+    expect(collaborationPosts.length).toBe(0);
+    expect(internalMessagePosts.length).toBe(0);
+    expect(panel.innerHTML).not.toMatch(/client_note/i);
   });
 
   it("'Message David…' while signed in AS David reroutes to a self task — never messages oneself", async () => {
@@ -1296,7 +1385,8 @@ describe("AmbientOtzarBar — Work OS commands", () => {
         },
       ),
     );
-    await speak("Ask David to review this client note.");
+    // A named object (not a deictic reference) → no context lookup needed.
+    await speak("Ask David to review the budget plan.");
     // Resolved via the read-scoped resolver → governed request actually sent.
     await waitFor(() => expect(collaborationPosts.length).toBe(1));
     expect(collaborationPosts[0]!.target_entity_id).toBe("ent-david");
@@ -1372,5 +1462,62 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
     // Focused clarification — not a verbatim send, no governed request fired.
     expect(panel.innerHTML).not.toMatch(/entity[_-]id/i);
+  });
+
+  // ── Phase 2.6: self-work context resolution (no contextless artifacts) ──
+  it("'Message myself and ask me to validate what I received' → self task LINKED to the inbox message", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, entry: { ledger_entry_id: "led-ctx-1" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("Message myself and ask me to validate what I received.");
+    await waitFor(() => expect(ledgerPosts.length).toBe(1));
+    // Linked to the resolved inbox message via the first-class typed field.
+    expect(ledgerPosts[0]!.ledger_type).toBe("TASK");
+    expect(ledgerPosts[0]!.notification_id).toBe("notif-1");
+    expect(
+      screen.getAllByText(
+        /I added that as a task for you linked to the message you received from Sadeil/i,
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(internalMessagePosts.length).toBe(0);
+  });
+
+  it("self work referencing 'what I received' with an EMPTY inbox asks ONE focused question — never a contextless task", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      // Empty inbox → nothing to link.
+      http.get(`${API_BASE}/notifications`, () =>
+        HttpResponse.json({
+          ok: true,
+          page: 1,
+          page_size: 20,
+          total: 0,
+          notifications: [],
+        }),
+      ),
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, entry: { ledger_entry_id: "led-ctx-2" } },
+          { status: 201 },
+        );
+      }),
+    );
+    const panel = await speak("Remind me to validate what I received.");
+    // No inbox message → focused question, NOT a contextless saved task.
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(/do you mean the latest message in your inbox\?/i).length,
+      ).toBeGreaterThan(0),
+    );
+    expect(ledgerPosts.length).toBe(0);
+    expect(panel.innerHTML).not.toMatch(/notification|NOT_FOUND/);
   });
 });

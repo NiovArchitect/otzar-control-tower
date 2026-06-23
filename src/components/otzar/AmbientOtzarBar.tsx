@@ -97,6 +97,10 @@ import {
   decideAmbientVisibility,
   type AmbientEventKind,
 } from "@/lib/work-os/ambient-visibility";
+import {
+  resolveWorkContext,
+  contextLabel,
+} from "@/lib/work-os/work-context";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -885,9 +889,33 @@ export function AmbientOtzarBar(): JSX.Element {
     heard: string,
     at: string,
   ): Promise<void> {
+    // Phase 2.6 — recover the referenced object so this isn't a contextless
+    // artifact. If the text references something ("what I received") we resolve
+    // it from available context; if it can't be resolved, ask ONE focused
+    // question instead of saving an empty task.
+    const ctx = await resolveWorkContext(message);
+    if (ctx !== null && ctx.needsClarification) {
+      surfaceOutcome({
+        eventKind: "MISSING_CONTEXT",
+        copy:
+          ctx.clarificationQuestion ??
+          "I can save that, but I'm missing what it refers to — can you say which one?",
+        status: "Which one?",
+        at,
+        heard,
+        result: "blocked",
+        target: null,
+      });
+      return;
+    }
+
     const ledgerType =
       kind === "SELF_TASK" || kind === "SELF_REMINDER" ? "TASK" : "COMMITMENT";
     const title = kind === "SELF_REMINDER" ? `Reminder: ${message}` : message;
+    const linkedNotification =
+      ctx !== null && ctx.resolved && ctx.contextType === "notification"
+        ? ctx.contextId
+        : undefined;
     const res = await api.workOs.createLedgerEntry({
       ledger_type: ledgerType,
       title,
@@ -896,17 +924,36 @@ export function AmbientOtzarBar(): JSX.Element {
       status: "PROPOSED",
       extraction_source: "TYPESCRIPT_DETERMINISTIC",
       evidence: [],
+      // Link the resolved context via the route's first-class typed fields so
+      // the work item carries its source (the message it refers to), not a bare
+      // title. notification_id is a validated field; details holds the rest.
+      ...(linkedNotification !== undefined
+        ? { notification_id: linkedNotification }
+        : {}),
+      ...(ctx !== null && ctx.resolved
+        ? {
+            details: {
+              context_type: ctx.contextType,
+              ...(ctx.contextId !== undefined
+                ? { context_ref: ctx.contextId }
+                : {}),
+              context_label: contextLabel(ctx),
+            },
+          }
+        : {}),
     });
     const ok = res.ok;
+    const linked =
+      ctx !== null && ctx.resolved ? ` linked to ${contextLabel(ctx)}` : "";
     const confirm = !ok
       ? "I couldn't save that just now — want me to try again?"
       : kind === "SELF_REMINDER"
-        ? "I saved that reminder for you."
+        ? `I saved that reminder for you${linked}.`
         : kind === "SELF_TASK"
-          ? "I added that as a task for you."
+          ? `I added that as a task for you${linked}.`
           : kind === "TWIN_MEMORY"
             ? "I'll remember that for you."
-            : "I saved that as a note to yourself.";
+            : `I saved that as a note to yourself${linked}.`;
     surfaceOutcome({
       eventKind: ok ? "SELF_WORK_SAVED" : "ACTION_FAILED",
       copy: confirm,
@@ -1015,12 +1062,36 @@ export function AmbientOtzarBar(): JSX.Element {
       return;
     }
 
+    // Phase 2.6 — recover the referenced object ("this client note", "the
+    // transcript") so the request carries its context. If it references
+    // something we can't resolve, ask ONE focused question rather than send a
+    // contextless request.
+    const ctx = await resolveWorkContext(message);
+    if (ctx !== null && ctx.needsClarification) {
+      surfaceOutcome({
+        eventKind: "MISSING_CONTEXT",
+        copy:
+          ctx.clarificationQuestion ??
+          "I can send that, but I'm missing what it refers to — which one do you mean?",
+        status: "Which one?",
+        at,
+        heard,
+        result: "blocked",
+        target: null,
+      });
+      return;
+    }
+    const safeSummary =
+      ctx !== null && ctx.resolved
+        ? `${message} (re: ${contextLabel(ctx)})`
+        : message;
+
     const me = await getSelfIdentity();
     const res = await api.otzar.collaboration.create({
       target_type: "EMPLOYEE",
       target_entity_id: targetEntityId,
       request_type: requestType,
-      safe_summary: message,
+      safe_summary: safeSummary,
       requested_by_ai: true,
       ...(me.twin !== null ? { requester_twin_entity_id: me.twin } : {}),
     });
@@ -1033,9 +1104,11 @@ export function AmbientOtzarBar(): JSX.Element {
           : requestType === "APPROVAL_REQUEST"
             ? "approval request"
             : "follow-up";
+      const forCtx =
+        ctx !== null && ctx.resolved ? ` for ${contextLabel(ctx)}` : "";
       surfaceOutcome({
         eventKind: "COLLABORATION_SENT",
-        copy: `I sent ${who} a ${kindword} on your behalf and I'll track their response here.`,
+        copy: `I sent ${who} a ${kindword}${forCtx} on your behalf and I'll track their response here.`,
         status: "Sent",
         at,
         heard,
