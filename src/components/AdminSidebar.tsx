@@ -15,20 +15,28 @@ import { cn } from "@/lib/utils";
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { data: pendingCount } = usePendingApprovals();
   const { data: reviewCount } = useReviewableCount();
+  // [OTZAR-V1-LIVE-1B] Placeholder screens (comingSoon) are hidden from the nav
+  // by default so v1 validation never walks a teammate into a "reserved screen".
+  // Their routes remain registered (App.tsx) — only the nav entry is hidden.
+  // Set VITE_SHOW_COMING_SOON=true to reveal them (e.g. during admin dev work).
+  const showComingSoon = import.meta.env.VITE_SHOW_COMING_SOON === "true";
+  const visibleNav = showComingSoon
+    ? NAV
+    : NAV.filter((item) => item.comingSoon !== true);
 
   return (
     <nav
-      aria-label="Control Tower navigation"
+      aria-label="Otzar Admin navigation"
       className="flex h-full flex-col border-r border-border bg-card"
     >
       <div className="flex items-center gap-2 px-4 py-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
-          N
+          O
         </div>
         <div>
-          <div className="text-sm font-semibold leading-tight">NIOV</div>
+          <div className="text-sm font-semibold leading-tight">Otzar</div>
           <div className="text-xs leading-tight text-muted-foreground">
-            Control Tower
+            Admin
           </div>
         </div>
       </div>
@@ -41,7 +49,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
               {group}
             </p>
             <ul className="space-y-1">
-              {NAV.filter((item) => item.group === group).map((item) => {
+              {visibleNav.filter((item) => item.group === group).map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.to}>

@@ -7,17 +7,18 @@
 #   docker run --rm -p 8080:80 niov/control-tower:dev
 #   # open http://localhost:8080
 #
-# The Vite bundle is built with VITE_API_BASE_URL baked in at build time.
-# In production this is normally overridden via a build-time --build-arg
-# (or a deploy-time runtime config layer; the substrate-honest first
-# pass uses build-time config since Vite SPAs cannot read env vars at
-# runtime in the browser).
+# The Vite bundle is built with VITE_FOUNDATION_API_URL baked in at build time
+# (the canonical var the app source reads; see src/lib/api.ts + .env.example).
+# In production this is overridden via a build-time --build-arg, e.g.
+#   docker build --build-arg VITE_FOUNDATION_API_URL=https://api.example.com/api/v1 .
+# (Vite SPAs cannot read env vars at runtime in the browser, so the API origin
+# must be baked at build time.)
 
 # --- Stage 1: build --------------------------------------------------------
 FROM node:22.11-bookworm-slim AS build
 
-ARG VITE_API_BASE_URL=http://localhost:3000/api/v1
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ARG VITE_FOUNDATION_API_URL=http://localhost:3000/api/v1
+ENV VITE_FOUNDATION_API_URL=${VITE_FOUNDATION_API_URL}
 
 WORKDIR /app
 

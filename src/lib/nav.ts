@@ -58,6 +58,10 @@ export interface NavItem {
   showReviewBadge?: boolean;
   /** Phase 1255 slice 2 — OS-style admin section. */
   group: NavGroup;
+  /** [OTZAR-V1-LIVE-1B] Placeholder screen ("reserved screen" notice). Hidden
+   *  from the sidebar by default so v1 validation never lands on a stub; the
+   *  route stays registered. Reveal with VITE_SHOW_COMING_SOON=true. */
+  comingSoon?: boolean;
 }
 
 export type NavGroup =
@@ -170,6 +174,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: BarChart3,
     description: "Usage trends, intelligence-score history, and monetization roll-ups.",
     group: "Work",
+    comingSoon: true,
   },
   {
     label: "Conversations",
@@ -177,6 +182,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: MessagesSquare,
     description: "Otzar conversations with audit-traceable AI activity per turn.",
     group: "Work",
+    comingSoon: true,
   },
   {
     label: "Workflows",
@@ -184,6 +190,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: Workflow,
     description: "Multi-step orchestrations spanning people and AI teammates.",
     group: "Work",
+    comingSoon: true,
   },
   {
     label: "Playground",
@@ -191,6 +198,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: FlaskConical,
     description: "Stage a NEGOTIATE end to end -- the patent claims, made tangible for buyers.",
     group: "Work",
+    comingSoon: true,
   },
   {
     label: "Agent Playground",
@@ -234,6 +242,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: SettingsIcon,
     description: "API keys, monetization payouts, branding, integration credentials.",
     group: "System",
+    comingSoon: true,
   },
   {
     label: "Onboarding",
@@ -283,6 +292,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: BookOpen,
     description: "In-product runbooks and API references, scoped to your org's enabled features.",
     group: "System",
+    comingSoon: true,
   },
   {
     label: "Intelligence",
@@ -290,6 +300,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: Sparkles,
     description: "Curated org-level intelligence the COE has assembled across knowledge items.",
     group: "Organization",
+    comingSoon: true,
   },
   // ────────────────────────────────────────────────────────────────
   // Side-section below the main nav -- Pending Approvals is reached

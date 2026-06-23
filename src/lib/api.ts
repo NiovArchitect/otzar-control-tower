@@ -2849,8 +2849,14 @@ function qs(params: Record<string, string | number | undefined>): string {
 //      Tests construct their own ApiClient with mock callbacks.
 import { useAuthStore } from "./stores/auth";
 
+// [OTZAR-V1-LIVE-1B] VITE_FOUNDATION_API_URL is the canonical build-time var
+// (matches .env.example + the Dockerfile build arg). VITE_API_BASE_URL is kept
+// only as a backward-compatible fallback for any older deploy pipeline. Local
+// dev (neither set) defaults to the niov-foundation localhost origin.
 const baseUrl =
-  import.meta.env.VITE_FOUNDATION_API_URL ?? "http://localhost:3000/api/v1";
+  import.meta.env.VITE_FOUNDATION_API_URL ??
+  import.meta.env.VITE_API_BASE_URL ??
+  "http://localhost:3000/api/v1";
 
 export const api: ApiClient = new ApiClient({
   baseUrl,

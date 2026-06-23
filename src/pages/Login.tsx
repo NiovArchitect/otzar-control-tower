@@ -102,7 +102,7 @@ export function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>NIOV Control Tower</CardTitle>
+          <CardTitle>Otzar</CardTitle>
           <CardDescription>
             Sign in with your org-admin credentials. Every action you take is
             recorded in your organization's audit trail.
