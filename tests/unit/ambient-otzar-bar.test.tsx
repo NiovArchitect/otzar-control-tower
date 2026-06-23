@@ -35,6 +35,7 @@ import { server } from "../msw/server";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
+import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -371,6 +372,8 @@ describe("AmbientOtzarBar — Work OS commands", () => {
   beforeEach(() => {
     actionPosts.length = 0;
     internalMessagePosts.length = 0;
+    // Phase 2.9 — no current-surface context leaks between tests.
+    useCurrentSurfaceContextStore.getState().clear();
     // Founder is an org admin; admin destinations + OAuth status read.
     useAuthStore.setState({
       token: "tok",
@@ -1566,5 +1569,114 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       expect(usePresenceStore.getState().lastFailureAt).not.toBeNull(),
     );
     expect(usePresenceStore.getState().lastSuccessAt).toBeNull();
+  });
+
+  // ── Phase 2.9: permissioned current-surface context ───────────────────
+  it("active provided context resolves 'this' → governed request with the current context attached, no clarification", async () => {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: "Client asked for revised pricing by Friday.",
+    });
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "collab-ctx", status: "PENDING" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("Ask David to review this.");
+    await waitFor(() => expect(collaborationPosts.length).toBe(1));
+    expect(String(collaborationPosts[0]!.safe_summary).toLowerCase()).toContain(
+      "re: the current context",
+    );
+    expect(
+      screen.getAllByText(/I sent David a review request for the current context/i).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("no active context → 'review this' asks ONE focused question, never a contextless request", async () => {
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "collab-x", status: "PENDING" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("Ask David to review this.");
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(/What should I use as the current context\?/i).length,
+      ).toBeGreaterThan(0),
+    );
+    expect(collaborationPosts.length).toBe(0);
+  });
+
+  it("self-work links the current context ('follow up on this')", async () => {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: "Client asked for revised pricing by Friday.",
+    });
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, entry: { ledger_entry_id: "led-ctx" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("Remind me to follow up on this.");
+    await waitFor(() => expect(ledgerPosts.length).toBe(1));
+    // Linked to the provided context (details carry the reference), not empty.
+    const details = ledgerPosts[0]!.details as Record<string, unknown> | undefined;
+    expect(details?.context_type).toBe("selected_text");
+    expect(
+      screen.getAllByText(/linked to the current context/i).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("clearing context makes a later 'this' ask again — never reuses stale context", async () => {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: "stale selection",
+    });
+    useCurrentSurfaceContextStore.getState().clear();
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, () =>
+        HttpResponse.json({ ok: true }, { status: 201 }),
+      ),
+    );
+    await speak("Ask David to review this.");
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(/What should I use as the current context\?/i).length,
+      ).toBeGreaterThan(0),
+    );
+  });
+
+  it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: "Client asked for revised pricing by Friday.",
+    });
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const chip = screen.getByTestId("surface-context-chip");
+    expect(chip.textContent).toMatch(/Using current context/i);
+    expect(screen.getByTestId("surface-context-clear")).toBeInTheDocument();
+    const html = document.body.innerHTML.toLowerCase();
+    expect(html).not.toContain("watched");
+    expect(html).not.toContain("monitored");
+    expect(html).not.toContain("surveillance");
+    expect(html).not.toContain("screen captured");
+    expect(html).not.toContain("screen capture");
   });
 });

@@ -101,6 +101,10 @@ import {
   resolveWorkContext,
   contextLabel,
 } from "@/lib/work-os/work-context";
+import {
+  useCurrentSurfaceContextStore,
+  getActiveSurfaceContext,
+} from "@/lib/stores/current-surface-context";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -304,6 +308,26 @@ export function AmbientOtzarBar(): JSX.Element {
   const setPresenceSignals = usePresenceStore((s) => s.setSignals);
   const markPresenceSuccess = usePresenceStore((s) => s.markSuccess);
   const markPresenceFailure = usePresenceStore((s) => s.markFailure);
+  // Phase 2.9 — the explicitly-provided current-surface context ("use what I'm
+  // looking at"). Visible while active, easy to clear; never auto-captured.
+  const surfaceContext = useCurrentSurfaceContextStore((s) => s.context);
+  const provideSurfaceContext = useCurrentSurfaceContextStore((s) => s.provide);
+  const clearSurfaceContext = useCurrentSurfaceContextStore((s) => s.clear);
+  function handleAddContext(): void {
+    const selection =
+      typeof window !== "undefined"
+        ? (window.getSelection()?.toString() ?? "")
+        : "";
+    const text = selection.trim();
+    if (text.length === 0) return; // nothing selected — never capture silently
+    provideSurfaceContext({
+      type: "selected_text",
+      text,
+      ...(typeof document !== "undefined" && document.title.length > 0
+        ? { sourceLabel: document.title }
+        : {}),
+    });
+  }
   useEffect(() => {
     setPresenceSignals({
       listening: recognition.listening || desktopCap.state === "recording",
@@ -905,7 +929,7 @@ export function AmbientOtzarBar(): JSX.Element {
     // artifact. If the text references something ("what I received") we resolve
     // it from available context; if it can't be resolved, ask ONE focused
     // question instead of saving an empty task.
-    const ctx = await resolveWorkContext(message);
+    const ctx = await resolveWorkContext(message, getActiveSurfaceContext());
     if (ctx !== null && ctx.needsClarification) {
       surfaceOutcome({
         eventKind: "MISSING_CONTEXT",
@@ -1078,7 +1102,7 @@ export function AmbientOtzarBar(): JSX.Element {
     // transcript") so the request carries its context. If it references
     // something we can't resolve, ask ONE focused question rather than send a
     // contextless request.
-    const ctx = await resolveWorkContext(message);
+    const ctx = await resolveWorkContext(message, getActiveSurfaceContext());
     if (ctx !== null && ctx.needsClarification) {
       surfaceOutcome({
         eventKind: "MISSING_CONTEXT",
@@ -2864,6 +2888,43 @@ export function AmbientOtzarBar(): JSX.Element {
             >
               <Send className="h-4 w-4" />
             </Button>
+          </div>
+
+          {/* Phase 2.9 — permissioned current-surface context. The user
+              EXPLICITLY provides what they're looking at; it is visibly
+              indicated and easy to clear. Not screen capture, not surveillance. */}
+          <div className="flex items-center gap-2 text-xs">
+            {surfaceContext !== null && surfaceContext.active ? (
+              <div
+                className="flex items-center gap-1.5 rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-0.5"
+                data-testid="surface-context-chip"
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-teal-500"
+                  aria-hidden
+                />
+                <span className="text-muted-foreground">
+                  Using current context
+                </span>
+                <button
+                  type="button"
+                  className="text-muted-foreground/70 underline hover:text-foreground"
+                  onClick={() => clearSurfaceContext()}
+                  data-testid="surface-context-clear"
+                >
+                  Clear
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="text-muted-foreground/70 hover:text-foreground"
+                onClick={handleAddContext}
+                data-testid="surface-context-add"
+              >
+                Add current context
+              </button>
+            )}
           </div>
 
           {!voiceInputAvailable ? (

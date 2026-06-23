@@ -18,6 +18,7 @@
 //          api.workOs.commsRecentArtifacts, tests/unit/work-context.test.ts.
 
 import { api } from "@/lib/api";
+import type { CurrentSurfaceContext } from "@/lib/stores/current-surface-context";
 
 export type WorkContextType =
   | "message"
@@ -32,6 +33,9 @@ export type WorkContextType =
   | "approval"
   | "work_item"
   | "calendar_event"
+  // Phase 2.9 — explicitly-provided current-surface context.
+  | "selected_text"
+  | "current_surface"
   | "unknown";
 
 export interface WorkContextRef {
@@ -122,17 +126,98 @@ export function detectWorkReference(text: string): DetectedReference | null {
   return null;
 }
 
-// WHAT: Resolve a referenced work object from available, read-scoped context.
-// INPUT: the work text (composed body or original utterance).
-// OUTPUT: a WorkContextRef when the text REFERENCES an object — resolved (with
-//         the source object) or needing one focused clarification. Returns null
-//         when the text references nothing deictic (the caller proceeds as
-//         normal — no extra round-trip).
+// WHAT: A bare/generic deictic ("use this", "review this", "summarize that",
+//        "current context", "what I'm looking at", "what I selected") that
+//        points at the CURRENT surface the user is working on, rather than a
+//        typed object like the inbox or a transcript.
+export function isGenericDeictic(text: string): boolean {
+  const t = text.toLowerCase();
+  if (/\b(current context|what i'?m looking at|what i selected)\b/.test(t)) {
+    return true;
+  }
+  if (
+    /\b(?:review|summari[sz]e|use|attach|send|share|check|validate|confirm|prepare|approve|look at|follow up on)\s+(?:this|that|it)\b/.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  // A bare deictic object trailing the clause ("…about this.", "…on it?").
+  return /\b(?:this|that|it)\b[.?!]?\s*$/.test(t);
+}
+
+// WHAT: Project the explicitly-provided current-surface context into a resolved
+//        WorkContextRef so it attaches/links exactly like an inbox/meeting ref.
+function currentToWorkContext(
+  ctx: CurrentSurfaceContext,
+  referenceText: string,
+): WorkContextRef {
+  const display = ctx.title ?? ctx.summary ?? ctx.text ?? "the current context";
+  return {
+    referenceText,
+    resolved: true,
+    confidence: 0.8,
+    contextType: ctx.type,
+    contextId: ctx.id,
+    displayName: display,
+    ...(ctx.summary !== undefined
+      ? { summary: ctx.summary }
+      : ctx.text !== undefined
+        ? { summary: ctx.text }
+        : {}),
+    sourceSurface: "current_surface",
+    allowedByPolicy: true,
+    needsClarification: false,
+  };
+}
+
+// WHAT: Resolve a referenced work object from available context.
+// INPUT: the work text + the EXPLICIT current-surface context, if the user
+//        provided one.
+// OUTPUT: a WorkContextRef when the text REFERENCES an object — resolved or
+//         needing one focused clarification. Returns null when the text
+//         references nothing deictic (caller proceeds as normal).
+// ORDER: explicit current-surface context wins for a generic deictic (and for a
+//        typed deictic whose type it matches) — PRD-04: resolve "this" from what
+//        the user is looking at BEFORE inbox / recent artifacts / asking.
 export async function resolveWorkContext(
   text: string,
+  currentContext?: CurrentSurfaceContext | null,
 ): Promise<WorkContextRef | null> {
   const ref = detectWorkReference(text);
-  if (ref === null) return null;
+  const generic = ref === null && isGenericDeictic(text);
+  const active =
+    currentContext !== undefined &&
+    currentContext !== null &&
+    currentContext.active
+      ? currentContext
+      : null;
+
+  // 1) Explicit current-surface context: wins for a generic deictic, and for a
+  //    typed reference whose type it matches (e.g. a provided transcript).
+  if (active !== null) {
+    if (generic) return currentToWorkContext(active, "this");
+    if (ref !== null && ref.expectedType === active.type) {
+      return currentToWorkContext(active, ref.referenceText);
+    }
+  }
+
+  // 2) A generic deictic with no active context → ask what to use. Never reuse
+  //    stale context, never a contextless artifact.
+  if (ref === null) {
+    if (generic) {
+      return {
+        referenceText: "this",
+        resolved: false,
+        confidence: 0,
+        contextType: "unknown",
+        allowedByPolicy: true,
+        needsClarification: true,
+        clarificationQuestion: "What should I use as the current context?",
+      };
+    }
+    return null;
+  }
 
   // Received message / notification → the caller's own inbox (read-scoped).
   if (ref.expectedType === "notification" || ref.expectedType === "message") {
@@ -211,6 +296,9 @@ export function contextLabel(ctx: WorkContextRef): string {
       return "the client note";
     case "document":
       return "the document";
+    case "selected_text":
+    case "current_surface":
+      return "the current context";
     default:
       return "the related work";
   }
