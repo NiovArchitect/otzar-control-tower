@@ -120,6 +120,13 @@ import {
   type TranscriptProposedAction,
 } from "@/lib/work-os/transcript-actions";
 import { TranscriptActionReview } from "@/components/otzar/TranscriptActionReview";
+import {
+  detectTrackingCommand,
+  deriveTrackingFromActions,
+  composeTrackingAnswer,
+  type WorkTrackingSummary,
+  type WorkTrackingItem,
+} from "@/lib/work-os/work-tracking";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -305,6 +312,10 @@ export function AmbientOtzarBar(): JSX.Element {
   const [transcriptActions, setTranscriptActions] = useState<
     TranscriptProposedAction[]
   >([]);
+  // Phase 3C — a derived, read-only tracking summary (blockers / follow-ups /
+  // waiting / needs-attention) over the current proposed actions.
+  const [trackingSummary, setTrackingSummary] =
+    useState<WorkTrackingSummary | null>(null);
   // Phase 1265 — Work OS status line (Draft only / Approval required /
   // Read-only / Runtime not available / Routed / Blocked).
   const [actionStatus, setActionStatus] = useState<string | null>(null);
@@ -1219,6 +1230,7 @@ export function AmbientOtzarBar(): JSX.Element {
     setActionHeard(text);
     setTranscriptDigest(null);
     setTranscriptActions([]);
+    setTrackingSummary(null);
     appendConversationEntry({ role: "user", text, at });
 
     const ctx = getActiveSurfaceContext();
@@ -1499,6 +1511,71 @@ export function AmbientOtzarBar(): JSX.Element {
       result: "blocked",
       target: null,
     });
+  }
+
+  // Phase 3C — answer tracking questions ("what is blocked?", "who is waiting
+  // on whom?", "what follow-ups came out?") from the CURRENT proposed actions,
+  // or derive fresh from the active transcript/context. Read-only and honest:
+  // no completion is faked, no staleness is invented. Returns true when handled.
+  async function handleTrackingCommand(text: string): Promise<boolean> {
+    const cmd = detectTrackingCommand(text);
+    if (cmd === null) return false;
+    const at = new Date().toISOString();
+    setDraft("");
+    setActionHeard(text);
+    appendConversationEntry({ role: "user", text, at });
+
+    // Prefer the live proposed actions (they reflect saves/sends); else derive
+    // from the current digest or the provided transcript.
+    let actions: TranscriptProposedAction[] = transcriptActions;
+    if (actions.length === 0) {
+      const ctx = getActiveSurfaceContext();
+      const contextRef =
+        ctx !== null
+          ? { type: ctx.type, id: ctx.id, label: "the current context" }
+          : undefined;
+      if (transcriptDigest !== null) {
+        actions = digestToProposedActions(transcriptDigest, contextRef);
+      } else {
+        const sourceText = (ctx?.text ?? ctx?.summary ?? "").trim();
+        if (sourceText.length > 0) {
+          actions = digestToProposedActions(
+            extractTranscriptDigest(sourceText),
+            contextRef,
+          );
+        }
+      }
+    }
+
+    if (actions.length === 0) {
+      setActionLabel("Tracking");
+      setTrackingSummary(null);
+      surfaceOutcome({
+        eventKind: "MISSING_CONTEXT",
+        copy: "Which meeting or transcript should I track?",
+        status: "Need a meeting",
+        at,
+        heard: text,
+        result: "blocked",
+        target: null,
+      });
+      return true;
+    }
+
+    const summary = deriveTrackingFromActions(actions);
+    setActionLabel("Tracking");
+    setTrackingSummary(summary);
+    surfaceOutcome({
+      eventKind: "DIGEST_READY",
+      copy: composeTrackingAnswer(summary, cmd.focus),
+      status: "Tracking",
+      at,
+      heard: text,
+      result: "success",
+      target: null,
+    });
+    markPresenceSuccess();
+    return true;
   }
 
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
@@ -2177,6 +2254,10 @@ export function AmbientOtzarBar(): JSX.Element {
         return;
       }
     }
+
+    // Phase 3C — tracking questions ("what is blocked?", "who is waiting on
+    // whom?") answered from the current proposed actions / transcript.
+    if (await handleTrackingCommand(text)) return;
 
     // Phase 3A — transcript/meeting intelligence on PROVIDED text. Runs before
     // outbound routing so "summarize this transcript", "send William the
@@ -3493,6 +3574,57 @@ export function AmbientOtzarBar(): JSX.Element {
                                 {" "}
                                 · {item.dueHint}
                               </span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            </details>
+          ) : null}
+
+          {/* Phase 3C — derived, read-only tracking. Compact answer is in the
+              outcome line; the breakdown stays collapsed here. Honest: no faked
+              completion, no invented staleness. */}
+          {trackingSummary !== null ? (
+            <details
+              className="rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs"
+              data-testid="work-tracking"
+            >
+              <summary className="cursor-pointer select-none text-[11px] font-medium text-muted-foreground">
+                View tracking
+              </summary>
+              <div className="mt-1 space-y-1.5">
+                {(
+                  [
+                    ["Blocked", trackingSummary.blockers],
+                    ["Follow-ups", trackingSummary.followUps],
+                    ["Waiting on", trackingSummary.waiting],
+                    ["Needs attention", trackingSummary.needsAttention],
+                  ] as Array<[string, WorkTrackingItem[]]>
+                )
+                  .filter(([, items]) => items.length > 0)
+                  .map(([title, items]) => (
+                    <div key={title}>
+                      <div className="font-medium text-foreground">{title}</div>
+                      <ul className="ml-3 list-disc text-muted-foreground">
+                        {items.map((item) => (
+                          <li key={`${title}-${item.id}`}>
+                            {item.title}
+                            {item.waitingOn !== undefined ? (
+                              <span className="opacity-70">
+                                {" "}
+                                · waiting on {item.waitingOn}
+                              </span>
+                            ) : item.ownerName !== undefined ? (
+                              <span className="opacity-70">
+                                {" "}
+                                · {item.ownerName}
+                              </span>
+                            ) : null}
+                            {item.dueHint !== undefined ? (
+                              <span className="opacity-70"> · {item.dueHint}</span>
                             ) : null}
                           </li>
                         ))}

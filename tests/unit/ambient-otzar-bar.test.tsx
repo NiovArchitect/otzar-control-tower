@@ -1881,6 +1881,84 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(collaborationPosts.length).toBe(0);
   });
 
+  // ── Phase 3C: derived work tracking ──────────────────────────────────
+  // Type a follow-up command into the ALREADY-rendered bar (don't re-render).
+  async function ask(text: string): Promise<void> {
+    const user = userEvent.setup();
+    const input = screen.getByLabelText(/Message to Otzar/i);
+    await user.clear(input);
+    await user.type(input, text);
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+  }
+
+  it("'What is blocked?' answers from the current actions, with a calm breakdown", async () => {
+    await reviewActions();
+    await ask("What is blocked?");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /I found \d+ blocker/,
+      ),
+    );
+    const tracking = screen.getByTestId("work-tracking");
+    expect(tracking.textContent).toMatch(/Blocked/);
+    expect(tracking.textContent).toMatch(/API keys/i);
+    expect(screen.queryByTestId("transcript-digest")).toBeNull();
+  });
+
+  it("'Who is waiting on whom?' reflects a sent request", async () => {
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, () =>
+        HttpResponse.json(
+          { ok: true, request: { request_id: "c", status: "PENDING" } },
+          { status: 201 },
+        ),
+      ),
+    );
+    await reviewActions();
+    const user = userEvent.setup();
+    await user.click(screen.getAllByTestId("transcript-action-send")[0]!);
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("transcript-action-status").some((n) =>
+          /Sent/i.test(n.textContent ?? ""),
+        ),
+      ).toBe(true),
+    );
+    await ask("Who is waiting on whom?");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /waiting/i,
+      ),
+    );
+    expect(screen.getByTestId("work-tracking").textContent).toMatch(/David/);
+  });
+
+  it("'What follow-ups came out of this meeting?' lists them without mutating the Work Ledger", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, entry: { ledger_entry_id: "x" } }, { status: 201 });
+      }),
+    );
+    await reviewActions();
+    await ask("What follow-ups came out of this meeting?");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /follow-up/i,
+      ),
+    );
+    expect(ledgerPosts.length).toBe(0);
+  });
+
+  it("no transcript/context → tracking asks one focused question", async () => {
+    await speak("What is blocked?");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /Which meeting or transcript should I track\?/i,
+    );
+    expect(screen.queryByTestId("work-tracking")).toBeNull();
+  });
+
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {
     useCurrentSurfaceContextStore.getState().provide({
       type: "selected_text",
