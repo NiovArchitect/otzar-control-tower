@@ -202,13 +202,29 @@ export function llmErrorCopy(code: string): string {
 }
 
 /**
- * Phase 1264 — honest copy for the desktop (MediaRecorder → Whisper)
- * transcription path. Closed-vocab failure codes from the Foundation
- * /otzar/voice/transcribe route + the client-side capture states.
- * Never a raw provider/stack message; never a fake "configured".
+ * Phase 1264 / [OTZAR-V1-LIVE-4] — honest copy for the server-side
+ * (MediaRecorder → Foundation → ElevenLabs Scribe) transcription path.
+ * Closed-vocab failure codes from the Foundation /otzar/voice/transcribe
+ * route + the client-side capture states. Never a raw provider/stack
+ * message; never a fake "configured". Typing always remains available.
  */
 export function transcribeErrorCopy(code: string): string {
   switch (code) {
+    // [OTZAR-V1-LIVE-4] Foundation /otzar/voice/transcribe codes.
+    case "VOICE_STT_PROVIDER_NOT_CONFIGURED":
+      return "Voice transcription is not configured on this deployment yet. Text input remains available.";
+    case "UNSUPPORTED_STT_PROVIDER":
+      return "The configured speech provider isn't supported. An admin can set ElevenLabs in the deployment. Typing works today.";
+    case "PROVIDER_ERROR":
+      return "The speech provider couldn't transcribe that. Try again in a moment, or type your message.";
+    case "INVALID_AUDIO_TYPE":
+      return "That recording's format isn't supported. Try again, or type your message.";
+    case "AUDIO_TOO_LARGE":
+      return "That recording was too long. Try a shorter utterance, or type your message.";
+    case "EMPTY_AUDIO":
+      return "I didn't catch any audio. Try again, a little closer to the mic.";
+    case "INVALID_REQUEST":
+      return "That recording didn't come through. Try again, or type your message.";
     case "STT_NOT_CONFIGURED":
       return "Speech transcription isn't configured yet. An admin can add the provider key in Integrations — typing works fully today.";
     case "STT_PROVIDER_AUTH_FAILED":
@@ -236,6 +252,29 @@ export function transcribeErrorCopy(code: string): string {
     default:
       return `Voice transcription couldn't finish — try again or type your message. (ref: ${code})`;
   }
+}
+
+/**
+ * [OTZAR-V1-LIVE-4] Honest disclosure shown when the server-side speech path is
+ * the active transcription engine (i.e. not the in-browser Web Speech API).
+ * Surfaces, in plain language, that audio leaves the browser to the configured
+ * provider and that Otzar keeps only the transcript text — never raw audio.
+ */
+export const SERVER_STT_DISCLOSURE =
+  "Audio is sent to the configured ElevenLabs speech provider for transcription. Otzar stores transcript text, not raw audio.";
+
+/** Honest disclosure shown when the browser's own Web Speech API produces the
+ *  transcript (no Otzar/provider key involved; the browser's vendor does STT). */
+export const BROWSER_STT_DISCLOSURE =
+  "Your browser provides speech recognition. Otzar receives transcript text.";
+
+// WHAT: pick the right speech disclosure for the active transcription engine.
+// INPUT: the provider label the bar recorded ("LOCAL_BROWSER" vs a server one).
+// OUTPUT: honest one-line copy.
+export function sttDisclosureCopy(provider: string | null): string {
+  return provider === "LOCAL_BROWSER" || provider === null
+    ? BROWSER_STT_DISCLOSURE
+    : SERVER_STT_DISCLOSURE;
 }
 
 export interface TtsHealth {
