@@ -86,14 +86,19 @@ describe("pickItems", () => {
 });
 
 describe("detectTranscriptCommand", () => {
-  it("DIGEST for summarize/extract/what-were/create", () => {
+  it("DIGEST for summarize/extract/what-were", () => {
     expect(detectTranscriptCommand("Summarize this transcript.")?.kind).toBe("DIGEST");
     expect(detectTranscriptCommand("Summarize this meeting.")?.kind).toBe("DIGEST");
     expect(detectTranscriptCommand("Extract decisions from this.")?.kind).toBe("DIGEST");
     expect(detectTranscriptCommand("What were the blockers?")?.kind).toBe("DIGEST");
-    const c = detectTranscriptCommand("Create follow-ups from this.");
-    expect(c?.kind).toBe("DIGEST");
-    expect(c?.kind === "DIGEST" && c.create).toBe(true);
+  });
+
+  it("ACTIONS for create/turn-into/make-actionable/what-next (Phase 3B review)", () => {
+    expect(detectTranscriptCommand("Create follow-ups from this.")?.kind).toBe("ACTIONS");
+    expect(detectTranscriptCommand("Create action items from this meeting.")?.kind).toBe("ACTIONS");
+    expect(detectTranscriptCommand("Turn this into actions.")?.kind).toBe("ACTIONS");
+    expect(detectTranscriptCommand("Make this actionable.")?.kind).toBe("ACTIONS");
+    expect(detectTranscriptCommand("What should we do next?")?.kind).toBe("ACTIONS");
   });
 
   it("WHY for why-this-matters (incl. ask my twin)", () => {

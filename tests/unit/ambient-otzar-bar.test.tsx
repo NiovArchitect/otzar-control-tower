@@ -1771,6 +1771,116 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
+  // ── Phase 3B: transcript-derived proposed-action review flow ──────────
+  async function reviewActions(): Promise<void> {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: `${TRANSCRIPT} It's unclear who owns the launch checklist.`,
+    });
+    await speak("Create action items from this meeting.");
+    await waitFor(() =>
+      expect(screen.getByTestId("transcript-action-review")).toBeInTheDocument(),
+    );
+  }
+
+  it("'Create action items' → compact count + a review section (no raw dump, no auto-save)", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, entry: { ledger_entry_id: "x" } }, { status: 201 });
+      }),
+    );
+    await reviewActions();
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /I found \d+ proposed actions from this meeting\./,
+    );
+    // A calm review section, not the raw digest dump, and nothing auto-saved.
+    expect(screen.queryByTestId("transcript-digest")).toBeNull();
+    expect(screen.getAllByTestId("transcript-action").length).toBeGreaterThan(0);
+    expect(ledgerPosts.length).toBe(0);
+  });
+
+  it("Save on a follow-up → governed Work Ledger PROPOSED entry with context; card becomes Saved", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, entry: { ledger_entry_id: "led-pa" } }, { status: 201 });
+      }),
+    );
+    await reviewActions();
+    const user = userEvent.setup();
+    await user.click(screen.getAllByTestId("transcript-action-save")[0]!);
+    await waitFor(() => expect(ledgerPosts.length).toBe(1));
+    expect(ledgerPosts[0]!.status).toBe("PROPOSED");
+    const details = ledgerPosts[0]!.details as Record<string, unknown> | undefined;
+    expect(details?.context_type).toBe("selected_text");
+    expect(screen.getAllByTestId("transcript-action-status").some((n) => /Saved/i.test(n.textContent ?? ""))).toBe(true);
+  });
+
+  it("Send request on an owned item → governed collaboration request; card becomes Sent", async () => {
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "collab-pa", status: "PENDING" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await reviewActions();
+    const user = userEvent.setup();
+    // The blocker "David is blocked…" is owned → a Send request card.
+    await user.click(screen.getAllByTestId("transcript-action-send")[0]!);
+    await waitFor(() => expect(collaborationPosts.length).toBe(1));
+    expect(collaborationPosts[0]!.target_entity_id).toBe("ent-david");
+    expect(String(collaborationPosts[0]!.safe_summary)).toMatch(/blocked on the API keys/i);
+    expect(internalMessagePosts.length).toBe(0);
+  });
+
+  it("Dismiss → no Work Ledger, no request; the card leaves the review calmly", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, entry: { ledger_entry_id: "x" } }, { status: 201 });
+      }),
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true }, { status: 201 });
+      }),
+    );
+    await reviewActions();
+    const user = userEvent.setup();
+    const before = screen.getAllByTestId("transcript-action").length;
+    await user.click(screen.getAllByTestId("transcript-action-dismiss")[0]!);
+    await waitFor(() =>
+      expect(screen.getAllByTestId("transcript-action").length).toBe(before - 1),
+    );
+    expect(ledgerPosts.length).toBe(0);
+    expect(collaborationPosts.length).toBe(0);
+  });
+
+  it("Ask on an open question → one focused question, nothing sent", async () => {
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true }, { status: 201 });
+      }),
+    );
+    await reviewActions();
+    const user = userEvent.setup();
+    await user.click(screen.getAllByTestId("transcript-action-ask")[0]!);
+    await waitFor(() =>
+      expect(screen.getAllByText(/Open question:/i).length).toBeGreaterThan(0),
+    );
+    expect(collaborationPosts.length).toBe(0);
+  });
+
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {
     useCurrentSurfaceContextStore.getState().provide({
       type: "selected_text",

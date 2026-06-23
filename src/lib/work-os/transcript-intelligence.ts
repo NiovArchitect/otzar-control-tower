@@ -64,9 +64,12 @@ function splitSentences(text: string): string[] {
 }
 
 function ownerOf(sentence: string): string | undefined {
-  // "Samiksha will…", "David is going to…", "we need David to…", "ask William to…"
+  // "Samiksha will…", "David is going to…", "David is blocked/waiting…",
+  // "we need David to…", "ask William to…"
   const m =
-    sentence.match(/\b([A-Z][a-z]+)\s+(?:will|is\s+going\s+to|agreed\s+to|to\s+take|owns?)\b/) ??
+    sentence.match(
+      /\b([A-Z][a-z]+)\s+(?:will|is\s+going\s+to|agreed\s+to|to\s+take|owns?|is\s+(?:blocked|waiting|stuck)|needs?\s+to)\b/,
+    ) ??
     sentence.match(/\b(?:need|ask|tell|assign(?:ed)?(?:\s+to)?|have)\s+([A-Z][a-z]+)\s+to\b/);
   return m?.[1];
 }
@@ -233,7 +236,8 @@ export function pickItems(
 }
 
 export type TranscriptCommand =
-  | { kind: "DIGEST"; create: boolean }
+  | { kind: "DIGEST" }
+  | { kind: "ACTIONS" }
   | { kind: "WHY" }
   | { kind: "ROUTE"; targetName: string; selector: TranscriptItemSelector };
 
@@ -272,17 +276,30 @@ export function detectTranscriptCommand(text: string): TranscriptCommand | null 
     return { kind: "WHY" };
   }
 
+  // Turn the meeting into REVIEWABLE proposed actions (Phase 3B) — not invisible
+  // automation. "create follow-ups/action items", "turn this into actions",
+  // "make this actionable", "prepare the follow-ups", "what should we do next".
+  if (
+    /\bcreate\s+(?:the\s+)?(?:follow[\s-]?ups?|action\s+items?|next\s+actions?|tasks?)\b/i.test(t) ||
+    /\bturn\s+(?:this|that|it)\s+into\s+(?:actions?|action\s+items?|tasks?|follow[\s-]?ups?)\b/i.test(t) ||
+    /\bmake\s+(?:this|that|it)\s+actionable\b/i.test(t) ||
+    /\bprepare\s+(?:the\s+)?follow[\s-]?ups?\b/i.test(t) ||
+    // "what should WE do next" (meeting/collaborative); the personal "what
+    // should I do next" stays a general Twin question.
+    /\bwhat\s+should\s+we\s+do\s+next\b/i.test(t)
+  ) {
+    return { kind: "ACTIONS" };
+  }
+
   // Local digest / extraction. The summarize/digest verb must point at a
   // transcript/meeting/deictic object so it never captures "summarize my open
   // work" or other non-transcript intents.
-  const create = /\bcreate\s+(?:the\s+)?follow[\s-]?ups?\b/i.test(t);
   if (
     /\b(?:summari[sz]e|digest|recap)\b\s+(?:the\s+|this\s+|that\s+)?(?:transcript|meeting|note|conversation|thread|call|this|that|it|current\s+context)\b/i.test(t) ||
     /\bextract\s+(?:the\s+)?(?:decisions?|blockers?|follow[\s-]?ups?|action\s+items?|commitments?)\b/i.test(t) ||
-    /\bwhat\s+(?:were|are)\s+the\s+(?:decisions?|blockers?|follow[\s-]?ups?|risks?|open\s+questions?)\b/i.test(t) ||
-    create
+    /\bwhat\s+(?:were|are)\s+the\s+(?:decisions?|blockers?|follow[\s-]?ups?|risks?|open\s+questions?)\b/i.test(t)
   ) {
-    return { kind: "DIGEST", create };
+    return { kind: "DIGEST" };
   }
 
   return null;

@@ -114,6 +114,12 @@ import {
   type TranscriptDigest,
   type TranscriptWorkItem,
 } from "@/lib/work-os/transcript-intelligence";
+import {
+  digestToProposedActions,
+  proposedActionsCount,
+  type TranscriptProposedAction,
+} from "@/lib/work-os/transcript-actions";
+import { TranscriptActionReview } from "@/components/otzar/TranscriptActionReview";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -294,6 +300,11 @@ export function AmbientOtzarBar(): JSX.Element {
   // full sections collapsed behind "View digest".
   const [transcriptDigest, setTranscriptDigest] =
     useState<TranscriptDigest | null>(null);
+  // Phase 3B — transcript-derived proposed actions the user reviews
+  // (save / send / dismiss). Nothing is "done" until a governed rail confirms.
+  const [transcriptActions, setTranscriptActions] = useState<
+    TranscriptProposedAction[]
+  >([]);
   // Phase 1265 — Work OS status line (Draft only / Approval required /
   // Read-only / Runtime not available / Routed / Blocked).
   const [actionStatus, setActionStatus] = useState<string | null>(null);
@@ -1207,6 +1218,7 @@ export function AmbientOtzarBar(): JSX.Element {
     setDraft("");
     setActionHeard(text);
     setTranscriptDigest(null);
+    setTranscriptActions([]);
     appendConversationEntry({ role: "user", text, at });
 
     const ctx = getActiveSurfaceContext();
@@ -1277,6 +1289,30 @@ export function AmbientOtzarBar(): JSX.Element {
       return true;
     }
 
+    // ACTIONS — turn the meeting into REVIEWABLE proposed actions (Phase 3B).
+    // The user saves / sends / dismisses each; nothing is auto-sent, nothing is
+    // faked as done.
+    if (cmd.kind === "ACTIONS") {
+      const contextRef =
+        ctx !== null
+          ? { type: ctx.type, id: ctx.id, label: "the current context" }
+          : undefined;
+      const proposals = digestToProposedActions(digest, contextRef);
+      setActionLabel("Proposed actions");
+      setTranscriptActions(proposals);
+      surfaceOutcome({
+        eventKind: "DIGEST_READY",
+        copy: proposedActionsCount(proposals),
+        status: "Ready for review",
+        at,
+        heard: text,
+        result: "success",
+        target: null,
+      });
+      markPresenceSuccess();
+      return true;
+    }
+
     // DIGEST — compact counts up top, full sections collapsed behind the digest.
     setActionLabel("Meeting digest");
     setTranscriptDigest(digest);
@@ -1290,36 +1326,179 @@ export function AmbientOtzarBar(): JSX.Element {
       target: null,
     });
     markPresenceSuccess();
-
-    // "Create follow-ups from this" → persist follow-ups/commitments as durable
-    // PROPOSED Work Ledger items, each linked to the provided context.
-    if (cmd.create) {
-      const followUps = [...digest.followUps, ...digest.commitments];
-      for (const item of followUps) {
-        await api.workOs.createLedgerEntry({
-          ledger_type: "FOLLOW_UP",
-          title: item.text,
-          source_type: "VOICE_COMMAND",
-          source_command: text,
-          status: "PROPOSED",
-          extraction_source: "TYPESCRIPT_DETERMINISTIC",
-          evidence: [],
-          ...(ctx !== null
-            ? {
-                details: {
-                  context_type: ctx.type,
-                  context_ref: ctx.id,
-                  context_label: "the current context",
-                  ...(item.ownerName !== undefined
-                    ? { owner_hint: item.ownerName }
-                    : {}),
-                },
-              }
-            : {}),
-        });
-      }
-    }
     return true;
+  }
+
+  // Phase 3B — proposed-action handlers. Update the card to a real status only
+  // after a governed rail confirms; never fake completion.
+  function updateActionStatus(
+    id: string,
+    status: TranscriptProposedAction["status"],
+  ): void {
+    setTranscriptActions((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status } : a)),
+    );
+  }
+
+  async function handleSaveAction(a: TranscriptProposedAction): Promise<void> {
+    const at = new Date().toISOString();
+    const ledgerType =
+      a.sourceKind === "blocker" || a.sourceKind === "risk" ? "TASK" : "FOLLOW_UP";
+    const title = a.sourceKind === "blocker" ? `Blocker: ${a.body}` : a.body;
+    const res = await api.workOs.createLedgerEntry({
+      ledger_type: ledgerType,
+      title,
+      source_type: "VOICE_COMMAND",
+      source_command: a.body,
+      status: "PROPOSED",
+      extraction_source: "TYPESCRIPT_DETERMINISTIC",
+      evidence: [],
+      ...(a.contextRef !== undefined
+        ? {
+            details: {
+              context_type: a.contextRef.type,
+              context_ref: a.contextRef.id,
+              context_label: a.contextRef.label,
+              ...(a.ownerName !== undefined ? { owner_hint: a.ownerName } : {}),
+              ...(a.dueHint !== undefined ? { due_hint: a.dueHint } : {}),
+            },
+          }
+        : {}),
+    });
+    if (res.ok) {
+      updateActionStatus(a.id, "saved");
+      surfaceOutcome({
+        eventKind: "SELF_WORK_SAVED",
+        copy: "Saved.",
+        status: "Saved",
+        at,
+        heard: a.body,
+        result: "success",
+        target: null,
+      });
+    } else {
+      surfaceOutcome({
+        eventKind: "ACTION_FAILED",
+        copy: "I couldn't save that just now — want me to try again?",
+        status: "Couldn't save",
+        at,
+        heard: a.body,
+        result: "blocked",
+        target: null,
+      });
+    }
+  }
+
+  async function handleSendAction(a: TranscriptProposedAction): Promise<void> {
+    const at = new Date().toISOString();
+    const target = a.targetName ?? a.ownerName;
+    if (target === undefined) {
+      surfaceOutcome({
+        eventKind: "NEEDS_CLARIFICATION",
+        copy: "Who should own this? Tell me a name, or I can save it for you.",
+        status: "Who is this for?",
+        at,
+        heard: a.body,
+        result: "blocked",
+        target: null,
+      });
+      return;
+    }
+    const resolved = await resolveTargetGoverned(target);
+    if (resolved.kind === "AMBIGUOUS") {
+      surfaceOutcome({
+        eventKind: "AMBIGUOUS_TARGET",
+        copy: focusedAmbiguityCopy(target, resolved.candidates),
+        status: "Which one?",
+        at,
+        heard: a.body,
+        result: "blocked",
+        target: null,
+      });
+      return;
+    }
+    const targetId = resolved.entityId;
+    if (
+      (resolved.kind !== "RESOLVED_HUMAN" && resolved.kind !== "RESOLVED_AI_AGENT") ||
+      targetId === undefined
+    ) {
+      surfaceOutcome({
+        eventKind: "NEEDS_CLARIFICATION",
+        copy: `I couldn't find ${target} on your team — who do you mean?`,
+        status: "Who is this for?",
+        at,
+        heard: a.body,
+        result: "blocked",
+        target: null,
+      });
+      return;
+    }
+    const me = await getSelfIdentity();
+    const safeSummary =
+      a.contextRef !== undefined ? `${a.body} (re: ${a.contextRef.label})` : a.body;
+    const res = await api.otzar.collaboration.create({
+      target_type: "EMPLOYEE",
+      target_entity_id: targetId,
+      request_type: "FOLLOW_UP",
+      safe_summary: safeSummary,
+      requested_by_ai: true,
+      ...(me.twin !== null ? { requester_twin_entity_id: me.twin } : {}),
+    });
+    const who = resolved.displayName ?? target;
+    if (res.ok) {
+      updateActionStatus(a.id, "sent");
+      surfaceOutcome({
+        eventKind: "COLLABORATION_SENT",
+        copy: `I sent ${who} a follow-up on your behalf and I'll track their response here.`,
+        status: "Sent",
+        at,
+        heard: a.body,
+        result: "success",
+        target: targetId,
+      });
+    } else if (res.status === 409) {
+      updateActionStatus(a.id, "blocked");
+      surfaceOutcome({
+        eventKind: "APPROVAL_NEEDED",
+        copy: `That needs approval first — I've queued it for ${who} and I'll keep track of it.`,
+        status: "Needs approval",
+        at,
+        heard: a.body,
+        result: "blocked",
+        target: targetId,
+      });
+    } else {
+      surfaceOutcome({
+        eventKind: "ACTION_FAILED",
+        copy: `I couldn't send that to ${who} just now — want me to try again?`,
+        status: "Held",
+        at,
+        heard: a.body,
+        result: "blocked",
+        target: targetId,
+      });
+    }
+  }
+
+  function handleDismissAction(a: TranscriptProposedAction): void {
+    updateActionStatus(a.id, "dismissed");
+  }
+
+  function handleAskAction(a: TranscriptProposedAction): void {
+    const at = new Date().toISOString();
+    const q =
+      a.sourceKind === "open_question"
+        ? `Open question: ${a.body} Want me to send it to someone, or save it for you?`
+        : "Who should own this? Tell me a name, or I can save it for you.";
+    surfaceOutcome({
+      eventKind: "NEEDS_CLARIFICATION",
+      copy: q,
+      status: "One question",
+      at,
+      heard: a.body,
+      result: "blocked",
+      target: null,
+    });
   }
 
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
@@ -3322,6 +3501,18 @@ export function AmbientOtzarBar(): JSX.Element {
                   ))}
               </div>
             </details>
+          ) : null}
+
+          {/* Phase 3B — transcript-derived proposed actions, reviewed calmly:
+              save / send / dismiss, governed, no fake completion. */}
+          {transcriptActions.length > 0 ? (
+            <TranscriptActionReview
+              actions={transcriptActions}
+              onSave={(a) => void handleSaveAction(a)}
+              onSend={(a) => void handleSendAction(a)}
+              onDismiss={(a) => handleDismissAction(a)}
+              onAsk={(a) => handleAskAction(a)}
+            />
           ) : null}
 
           {/* Phase 1267 — the VISIBLE, EDITABLE work artifact (draft /
