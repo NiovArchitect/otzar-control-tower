@@ -1,27 +1,39 @@
 // FILE: ambient-visibility.ts
-// PURPOSE: Phase 2.5 — the ambient attention / visibility policy, in CODE
-//          (not just doctrine). Backend real ≠ frontend loud. Every surfaced
-//          ambient outcome is classified into ONE level so the orb stays calm:
-//          audit/proof is SILENT, a low-risk success is a quiet CONFIRMATION,
-//          and only judgment / ambiguity / failure / approval INTERRUPTS.
+// PURPOSE: Phase 2.5 (deepened) — the ambient attention / visibility policy, in
+//          CODE. Visibility IS intelligence, not decoration: it decides whether
+//          Otzar feels like another app to operate, or a calm teammate that
+//          carries work forward without distracting people. The real question is
+//          never "what text do we show?" but "what does the human actually need
+//          to see, feel, approve, know, or do RIGHT NOW?" — everything else is
+//          handled silently / summarized / grouped / deferred / tracked / shown
+//          only on demand. Backend real ≠ frontend loud.
 //
 // CONTRACT:
-//   decideAmbientVisibility(event, userContext) → a decision the surfacing
-//   layer applies: whether to announce (speak), notify (panel), badge, and how
-//   the proof is recorded. The caller composes the human copy; this module
-//   never invents backend wording and `findBackendTermLeak` guards that copy
-//   stays human (no route names, rail names, request ids, policy codes).
+//   decideAmbientVisibility(event, userContext) → a decision the surfacing layer
+//   applies: speak? show inline? notify/badge? group into a digest? interrupt
+//   focus? ask one clarification? record proof silently? The caller composes the
+//   human copy; this module never invents backend wording, and findBackendTermLeak
+//   guards that copy stays human (no route names / ids / policy codes / hand-offs).
 // CONNECTS TO: AmbientOtzarBar (self / collaboration / message executors),
 //          tests/unit/ambient-visibility.test.ts.
 
-// Five ambient visibility levels (see doctrine: silent / confirmation /
-// interrupt / digest / detail_on_demand).
+// Five ambient visibility levels.
 export type AmbientVisibility =
   | "silent"
   | "confirmation"
   | "interrupt"
   | "digest"
   | "detail_on_demand";
+
+// How much the event matters — drives the level + whether focus is broken.
+export type AmbientEventImportance =
+  | "routine"
+  | "useful"
+  | "requires_attention"
+  | "urgent"
+  | "blocked"
+  | "approval_required"
+  | "sensitive";
 
 // The ambient outcomes the orb can produce. Kept closed so the mapping is
 // exhaustive at compile time.
@@ -33,6 +45,7 @@ export type AmbientEventKind =
   | "APPROVAL_NEEDED" // higher-risk action queued for approval
   | "BLOCKED_DENIED" // policy / authority blocked the action
   | "AMBIGUOUS_TARGET" // recipient ambiguous — one focused clarification
+  | "MISSING_CONTEXT" // referenced object unresolved — one focused clarification
   | "ACTION_FAILED" // transient / unexpected failure
   | "NEEDS_CLARIFICATION" // missing detail — one focused question
   | "DIGEST_READY"; // a summary (e.g. meeting decisions/blockers)
@@ -41,159 +54,272 @@ export interface AmbientEvent {
   kind: AmbientEventKind;
   // The human-facing copy the caller already composed (never a backend code).
   userFacingCopy?: string;
+  // The focused question to ask, when the event needs one.
+  clarificationQuestion?: string;
 }
 
 export interface AmbientUserContext {
-  // Reserved for role-aware tuning (Phase 4/5). Unused in v1 routing but part
-  // of the stable signature so callers can pass it without a later breaking
-  // change.
+  // Role-aware tuning (digest grouping / what reaches a given role). Reserved
+  // hook — present in the stable signature so callers pass it without a later
+  // breaking change.
   roleTitle?: string | null;
-  // Voice-first quiet mode: suppress spoken confirmations for low-risk success
-  // (still announce interrupts — the user needs those).
+  // Voice-first quiet mode: suppress spoken low-risk confirmations (still speak
+  // interrupts — the user needs those).
   quietMode?: boolean;
+  // The user is in a focus session: hold routine confirmations into a digest;
+  // only true interrupts break focus.
+  focusMode?: boolean;
 }
 
 export interface AmbientVisibilityDecision {
   visibility: AmbientVisibility;
+  importance: AmbientEventImportance;
   reason: string;
   userFacingCopy?: string;
-  shouldNotify: boolean; // surface in the action panel / conversation
-  shouldBadge: boolean; // passive badge (e.g. bell) rather than interrupt
+  shouldSpeak: boolean; // voice confirmation aloud
+  shouldShowInline: boolean; // show in the orb panel / conversation
+  shouldNotify: boolean; // a passive inbox notification (not the active panel)
+  shouldBadge: boolean; // a passive badge (e.g. bell count)
+  shouldGroupIntoDigest: boolean; // fold into a "what changed" digest
   shouldPersistToLedger: boolean; // a durable proof exists for this outcome
   shouldShowInAuditOnly: boolean; // visible only under "why" / "show proof"
-  shouldAnnounce: boolean; // speak aloud (voice confirmation)
+  shouldInterruptFocus: boolean; // break a focus session
+  shouldAskClarification: boolean; // the user must answer one focused question
+  clarificationQuestion?: string;
+  detailLabel?: "Why" | "Show proof" | "What changed" | "View thread";
 }
 
 interface BaseRule {
   visibility: AmbientVisibility;
+  importance: AmbientEventImportance;
   reason: string;
+  shouldSpeak: boolean;
+  shouldShowInline: boolean;
   shouldNotify: boolean;
   shouldBadge: boolean;
+  shouldGroupIntoDigest: boolean;
   shouldPersistToLedger: boolean;
   shouldShowInAuditOnly: boolean;
-  shouldAnnounce: boolean;
+  shouldInterruptFocus: boolean;
+  shouldAskClarification: boolean;
+  detailLabel?: AmbientVisibilityDecision["detailLabel"];
 }
 
-// The policy table. Proof/audit silent by default; low-risk success quiet
-// confirmation; approval / blocked / ambiguous / failure clear interrupt.
+// The policy table. Proof/audit silent; low-risk success calm confirmation;
+// approval / blocked / ambiguous / missing-context / failure clear interrupt;
+// summaries fold into a digest.
 const RULES: Record<AmbientEventKind, BaseRule> = {
   MESSAGE_SENT: {
     visibility: "confirmation",
-    reason: "low-risk delivery — quiet confirmation",
-    shouldNotify: true,
+    importance: "useful",
+    reason: "low-risk delivery — calm confirmation",
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: true,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: false,
+    shouldAskClarification: false,
+    detailLabel: "Show proof",
   },
   COLLABORATION_SENT: {
     visibility: "confirmation",
-    reason: "governed request sent — quiet confirmation, tracked",
-    shouldNotify: true,
+    importance: "useful",
+    reason: "governed request sent — calm confirmation, tracked to endpoint",
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: true,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: false,
+    shouldAskClarification: false,
+    detailLabel: "Show proof",
   },
   SELF_WORK_SAVED: {
     visibility: "confirmation",
-    reason: "self work recorded — quiet confirmation",
-    shouldNotify: true,
+    importance: "useful",
+    reason: "self work recorded — calm confirmation",
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: true,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: false,
+    shouldAskClarification: false,
   },
   LEDGER_PROOF: {
     visibility: "silent",
+    importance: "routine",
     reason: "audit / proof — record silently, available on demand",
+    shouldSpeak: false,
+    shouldShowInline: false,
     shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: true,
     shouldShowInAuditOnly: true,
-    shouldAnnounce: false,
+    shouldInterruptFocus: false,
+    shouldAskClarification: false,
+    detailLabel: "Show proof",
   },
   APPROVAL_NEEDED: {
     visibility: "interrupt",
+    importance: "approval_required",
     reason: "needs human approval — surface clearly with the reason",
+    shouldSpeak: true,
+    shouldShowInline: true,
     shouldNotify: true,
     shouldBadge: true,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: true,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: true,
+    shouldAskClarification: false,
+    detailLabel: "Why",
   },
   BLOCKED_DENIED: {
     visibility: "interrupt",
+    importance: "blocked",
     reason: "blocked by authority / policy — explain in human terms",
-    shouldNotify: true,
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: false,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: true,
+    shouldAskClarification: false,
+    detailLabel: "Why",
   },
   AMBIGUOUS_TARGET: {
     visibility: "interrupt",
+    importance: "requires_attention",
     reason: "recipient ambiguous — one focused clarification",
-    shouldNotify: true,
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: false,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: true,
+    shouldAskClarification: true,
+  },
+  MISSING_CONTEXT: {
+    visibility: "interrupt",
+    importance: "requires_attention",
+    reason: "referenced object unresolved — one focused clarification",
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
+    shouldBadge: false,
+    shouldGroupIntoDigest: false,
+    shouldPersistToLedger: false,
+    shouldShowInAuditOnly: false,
+    shouldInterruptFocus: true,
+    shouldAskClarification: true,
   },
   ACTION_FAILED: {
     visibility: "interrupt",
-    reason: "action failed — surface clearly, offer to retry",
-    shouldNotify: true,
+    importance: "requires_attention",
+    reason: "action failed — surface clearly, offer the best next step",
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: false,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: true,
+    shouldAskClarification: false,
   },
   NEEDS_CLARIFICATION: {
     visibility: "interrupt",
+    importance: "requires_attention",
     reason: "missing detail — one focused question",
-    shouldNotify: true,
+    shouldSpeak: true,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: false,
+    shouldGroupIntoDigest: false,
     shouldPersistToLedger: false,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: true,
+    shouldInterruptFocus: true,
+    shouldAskClarification: true,
   },
   DIGEST_READY: {
     visibility: "digest",
-    reason: "summary ready — surface compactly, not as raw dump",
-    shouldNotify: true,
+    importance: "useful",
+    reason: "summary ready — surface compactly, not as a raw dump",
+    shouldSpeak: false,
+    shouldShowInline: true,
+    shouldNotify: false,
     shouldBadge: true,
+    shouldGroupIntoDigest: true,
     shouldPersistToLedger: false,
     shouldShowInAuditOnly: false,
-    shouldAnnounce: false,
+    shouldInterruptFocus: false,
+    shouldAskClarification: false,
+    detailLabel: "What changed",
   },
 };
 
 // WHAT: Classify one ambient outcome into a single visibility decision.
-// INPUT: the event (+ optional copy) and the user's ambient context.
-// OUTPUT: the decision the surfacing layer applies (announce / notify / badge /
-//         record). Quiet mode suppresses spoken low-risk confirmations but
-//         never silences an interrupt.
+// INPUT: the event (+ optional copy / clarification) and the user's ambient
+//        context (role / quiet mode / focus mode).
+// OUTPUT: the decision the surfacing layer applies. Quiet mode suppresses a
+//         spoken low-risk success; focus mode folds a routine confirmation into
+//         a digest instead of showing it inline — but neither EVER silences an
+//         interrupt the human must act on.
 export function decideAmbientVisibility(
   event: AmbientEvent,
   userContext?: AmbientUserContext,
 ): AmbientVisibilityDecision {
   const rule = RULES[event.kind];
+  const isInterrupt = rule.visibility === "interrupt";
+
   // Quiet mode: keep the panel confirmation but don't speak a low-risk success.
-  const announce =
-    rule.shouldAnnounce &&
+  const shouldSpeak =
+    rule.shouldSpeak &&
     !(userContext?.quietMode === true && rule.visibility === "confirmation");
+
+  // Focus mode: a routine confirmation folds into a digest rather than showing
+  // inline mid-focus; interrupts always still show.
+  const foldForFocus =
+    userContext?.focusMode === true && rule.visibility === "confirmation";
+  const shouldShowInline = foldForFocus ? false : rule.shouldShowInline;
+  const shouldGroupIntoDigest = foldForFocus
+    ? true
+    : rule.shouldGroupIntoDigest;
+
   return {
     visibility: rule.visibility,
+    importance: rule.importance,
     reason: rule.reason,
     ...(event.userFacingCopy !== undefined
       ? { userFacingCopy: event.userFacingCopy }
       : {}),
+    shouldSpeak,
+    shouldShowInline,
     shouldNotify: rule.shouldNotify,
     shouldBadge: rule.shouldBadge,
+    shouldGroupIntoDigest,
     shouldPersistToLedger: rule.shouldPersistToLedger,
     shouldShowInAuditOnly: rule.shouldShowInAuditOnly,
-    shouldAnnounce: announce,
+    // An interrupt always breaks focus, regardless of focus mode.
+    shouldInterruptFocus: rule.shouldInterruptFocus || isInterrupt,
+    shouldAskClarification: rule.shouldAskClarification,
+    ...(rule.shouldAskClarification && event.clarificationQuestion !== undefined
+      ? { clarificationQuestion: event.clarificationQuestion }
+      : {}),
+    ...(rule.detailLabel !== undefined ? { detailLabel: rule.detailLabel } : {}),
   };
 }
 

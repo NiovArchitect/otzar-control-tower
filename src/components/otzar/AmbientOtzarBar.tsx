@@ -853,7 +853,7 @@ export function AmbientOtzarBar(): JSX.Element {
       kind: args.eventKind,
       userFacingCopy: args.copy,
     });
-    if (decision.shouldNotify) {
+    if (decision.shouldShowInline) {
       setActionResult(args.copy);
       setActionStatus(args.status);
       appendConversationEntry({
@@ -864,7 +864,7 @@ export function AmbientOtzarBar(): JSX.Element {
         status: args.status,
       });
     }
-    if (decision.shouldAnnounce) speakConfirmation(args.copy);
+    if (decision.shouldSpeak) speakConfirmation(args.copy);
     // The record/proof is always written, regardless of visibility level.
     recordVoiceAction({
       at: args.at,
