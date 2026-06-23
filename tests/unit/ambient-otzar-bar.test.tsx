@@ -34,6 +34,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { useAuthStore } from "@/lib/stores/auth";
+import { usePresenceStore } from "@/lib/stores/presence";
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -1523,5 +1524,47 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
     expect(ledgerPosts.length).toBe(0);
     expect(panel.innerHTML).not.toMatch(/notification|NOT_FOUND/);
+  });
+
+  // ── Phase 2.8: orb compression + ambient presence wiring ──────────────
+  it("successful save shows ONE compact outcome (machinery collapsed), and flashes presence SUCCESS", async () => {
+    usePresenceStore.getState().reset();
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, entry: { ledger_entry_id: "led-2-8" } },
+          { status: 201 },
+        );
+      }),
+    );
+    await speak("Note to self: simplify the approval flow.");
+    await waitFor(() => expect(ledgerPosts.length).toBe(1));
+    // The compact outcome IS the human result — no Heard/Status wall on top.
+    const outcome = screen.getByTestId("voice-action-outcome");
+    expect(outcome.textContent).toMatch(/I saved that as a note to yourself/i);
+    expect(outcome.textContent).not.toMatch(/Heard:|Status:|Action:/);
+    // Machinery (Heard / Status / Voice) is collapsed behind <details>.
+    const panel = screen.getByTestId("voice-action-panel");
+    expect(panel.querySelector("details")).not.toBeNull();
+    expect(panel.querySelector("summary")?.textContent).toMatch(/Details/i);
+    // The edge-presence layer flashed SUCCESS (auto-fades; drives the glow).
+    expect(usePresenceStore.getState().lastSuccessAt).not.toBeNull();
+    expect(usePresenceStore.getState().lastFailureAt).toBeNull();
+  });
+
+  it("a failed save flashes presence FAILURE (not SUCCESS)", async () => {
+    usePresenceStore.getState().reset();
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, () =>
+        HttpResponse.json({ ok: false, error: "INTERNAL" }, { status: 500 }),
+      ),
+    );
+    await speak("Note to self: simplify the approval flow.");
+    await waitFor(() =>
+      expect(usePresenceStore.getState().lastFailureAt).not.toBeNull(),
+    );
+    expect(usePresenceStore.getState().lastSuccessAt).toBeNull();
   });
 });

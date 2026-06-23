@@ -857,6 +857,18 @@ export function AmbientOtzarBar(): JSX.Element {
       kind: args.eventKind,
       userFacingCopy: args.copy,
     });
+    // Phase 2.8 — drive the ambient presence layer (edge glow). A confirmation
+    // flashes the calm SUCCESS state (auto-fades); a real block/failure flashes
+    // FAILURE. Interrupts that need a focused answer (approval / ambiguity /
+    // missing context) stay in the panel and do NOT mis-tint the glow red.
+    if (
+      args.eventKind === "BLOCKED_DENIED" ||
+      args.eventKind === "ACTION_FAILED"
+    ) {
+      markPresenceFailure();
+    } else if (decision.visibility === "confirmation") {
+      markPresenceSuccess();
+    }
     if (decision.shouldShowInline) {
       setActionResult(args.copy);
       setActionStatus(args.status);
@@ -2952,53 +2964,21 @@ export function AmbientOtzarBar(): JSX.Element {
             </div>
           ) : null}
 
-          {/* Phase 1264 Voice Action Runtime — Heard / Action / Result /
-              Voice. Shows what Otzar heard, what it decided, what it did,
-              and which voice path spoke. Blocked actions + external links
-              are surfaced explicitly (never a silent fail). */}
+          {/* Phase 2.8 — compress the Voice Action Runtime into ONE calm
+              outcome. The default surface is the human result; the machinery
+              (Heard / Transcription / Action / Status / Voice) collapses behind
+              "Details" so it stays available for recall + proof without making
+              the orb a debug log. An actionable external link stays visible. */}
           {actionHeard !== null ? (
             <div
-              className="rounded-md border border-border bg-muted/40 px-2 py-1.5 text-xs space-y-1"
+              className="rounded-md border border-border bg-muted/40 px-2 py-1.5 text-xs"
               data-testid="voice-action-panel"
             >
-              <div>
-                <span className="font-medium text-foreground">Heard:</span>{" "}
-                <span className="text-muted-foreground">“{actionHeard}”</span>
+              <div className="text-foreground" data-testid="voice-action-outcome">
+                {actionResult ?? actionLabel ?? `“${actionHeard}”`}
               </div>
-              {transcriptionProvider !== null ? (
-                <div data-testid="voice-transcription-provider">
-                  <span className="font-medium text-foreground">
-                    Transcription:
-                  </span>{" "}
-                  <span className="text-muted-foreground">
-                    {transcriptionProvider === "deepgram"
-                      ? "Deepgram"
-                      : transcriptionProvider === "openai-whisper"
-                        ? "OpenAI Whisper"
-                        : transcriptionProvider}
-                  </span>
-                </div>
-              ) : null}
-              {actionLabel !== null ? (
-                <div>
-                  <span className="font-medium text-foreground">Action:</span>{" "}
-                  <span className="text-muted-foreground">{actionLabel}</span>
-                </div>
-              ) : null}
-              {actionResult !== null ? (
-                <div>
-                  <span className="font-medium text-foreground">Result:</span>{" "}
-                  <span className="text-muted-foreground">{actionResult}</span>
-                </div>
-              ) : null}
-              {actionStatus !== null ? (
-                <div data-testid="voice-action-status">
-                  <span className="font-medium text-foreground">Status:</span>{" "}
-                  <span className="text-muted-foreground">{actionStatus}</span>
-                </div>
-              ) : null}
               {externalLinkPending !== null ? (
-                <div>
+                <div className="mt-1">
                   <a
                     href={externalLinkPending}
                     target="_blank"
@@ -3010,20 +2990,67 @@ export function AmbientOtzarBar(): JSX.Element {
                   </a>
                 </div>
               ) : null}
-              {actionVoicePath !== null ? (
-                <div>
-                  <span className="font-medium text-foreground">Voice:</span>{" "}
-                  <span className="text-muted-foreground">
-                    {actionVoicePath === "premium_voice"
-                      ? "Premium voice"
-                      : actionVoicePath === "fallback_device_voice"
-                        ? "Device fallback (premium unavailable)"
-                        : actionVoicePath === "muted"
-                          ? "Muted"
-                          : "No audio"}
-                  </span>
+              <details className="mt-1">
+                <summary className="cursor-pointer select-none text-[10px] text-muted-foreground/70 hover:text-muted-foreground">
+                  Details
+                </summary>
+                <div className="mt-1 space-y-1">
+                  <div>
+                    <span className="font-medium text-foreground">Heard:</span>{" "}
+                    <span className="text-muted-foreground">“{actionHeard}”</span>
+                  </div>
+                  {transcriptionProvider !== null ? (
+                    <div data-testid="voice-transcription-provider">
+                      <span className="font-medium text-foreground">
+                        Transcription:
+                      </span>{" "}
+                      <span className="text-muted-foreground">
+                        {transcriptionProvider === "deepgram"
+                          ? "Deepgram"
+                          : transcriptionProvider === "openai-whisper"
+                            ? "OpenAI Whisper"
+                            : transcriptionProvider}
+                      </span>
+                    </div>
+                  ) : null}
+                  {/* Only when the compact line is showing the RESULT — else the
+                      label is already the compact outcome (avoid duplication). */}
+                  {actionLabel !== null && actionResult !== null ? (
+                    <div>
+                      <span className="font-medium text-foreground">
+                        Action:
+                      </span>{" "}
+                      <span className="text-muted-foreground">{actionLabel}</span>
+                    </div>
+                  ) : null}
+                  {actionStatus !== null ? (
+                    <div data-testid="voice-action-status">
+                      <span className="font-medium text-foreground">
+                        Status:
+                      </span>{" "}
+                      <span className="text-muted-foreground">
+                        {actionStatus}
+                      </span>
+                    </div>
+                  ) : null}
+                  {actionVoicePath !== null ? (
+                    <div>
+                      <span className="font-medium text-foreground">
+                        Voice:
+                      </span>{" "}
+                      <span className="text-muted-foreground">
+                        {actionVoicePath === "premium_voice"
+                          ? "Premium voice"
+                          : actionVoicePath === "fallback_device_voice"
+                            ? "Device fallback (premium unavailable)"
+                            : actionVoicePath === "muted"
+                              ? "Muted"
+                              : "No audio"}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+              </details>
             </div>
           ) : null}
 
