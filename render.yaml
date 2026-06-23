@@ -1,0 +1,28 @@
+# Render Blueprint — Otzar frontend (app.otzar.ai). [OTZAR-LIVE-DEPLOY-1]
+#
+# Use it: Render dashboard → New + → Blueprint → connect this repo
+# (otzar-control-tower) → Render reads this file → Apply.
+#
+# No secrets here: VITE_FOUNDATION_API_URL is a PUBLIC build-time value (it is
+# baked into the static bundle and visible to the browser — that is expected).
+# A Vite SPA cannot read env at runtime, so the API origin is fixed at build time
+# to the deployed Foundation API.
+#
+# After the site is created, add the custom domain app.otzar.ai in the service's
+# Settings → Custom Domains; Render will show the exact CNAME target for Namecheap.
+services:
+  - type: web
+    runtime: static
+    name: otzar-app
+    branch: main
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_FOUNDATION_API_URL
+        value: https://api.otzar.ai/api/v1
+    routes:
+      # SPA fallback: client-side routes resolve to index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html
