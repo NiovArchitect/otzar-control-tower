@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoleScopeProfilePanel } from "@/components/employee/RoleScopeProfilePanel";
+import { TwinScopePanel } from "@/components/employee/TwinScopePanel";
 import { MyTwinSidecarsPanel } from "@/components/employee/MyTwinSidecarsPanel";
 import { api } from "@/lib/api";
 import type { ApiResult } from "@/lib/api";
@@ -179,6 +180,10 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       <AskYourTwin />
 
       <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
+
+      {/* [OTZAR-V1-LIVE-2B] The governed "what your Twin can — and cannot — do"
+          scope view, sourced from Foundation's context-health. */}
+      <TwinScopePanel />
 
       <MyTwinSidecarsPanel twin={t} />
     </div>

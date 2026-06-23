@@ -1674,6 +1674,56 @@ const otzarMyTwinHandler = http.get(
   },
 );
 
+// [OTZAR-V1-LIVE-2B] Default context-health so any surface that reads the
+// governed Twin scope (TwinScopePanel on My Twin, MyMemory) has a handler under
+// onUnhandledRequest:"error". Tests needing specific values override via
+// server.use().
+const otzarContextHealthHandler = http.get(
+  `${API_BASE}/otzar/my-twin/context-health`,
+  () =>
+    HttpResponse.json(
+      {
+        ok: true,
+        status: "READY",
+        identity: {
+          viewer: {
+            user_id: "u-default",
+            email: "sadeil@niovlabs.com",
+            display_name: "Sadeil Lewis",
+            title: "FOUNDER",
+            org_role: "FOUNDER",
+            is_founder_admin: true,
+          },
+          org: { org_id: "o-default", name: "NIOV Labs", domain: null },
+          twin: { twin_id: "t-default", display_name: "Otzar", active: true },
+          projects: [],
+          authority: {
+            can_admin_org: true,
+            can_read_capsules: true,
+            can_write_capsules: true,
+            can_share_capsules: true,
+            can_access_external_api: false,
+            external_write_policy: "APPROVAL_REQUIRED",
+          },
+          context_signals: {
+            memory_capsules_count: 0,
+            transcript_summaries_count: 0,
+            collaboration_inbound_count: 0,
+            collaboration_outbound_count: 0,
+          },
+          org_roster: [],
+          safety: {
+            no_external_write_without_approval: true,
+            no_private_data_to_unauthorized_users: true,
+            no_raw_audio_storage: true,
+            no_raw_transcript_default: true,
+          },
+        },
+      },
+      { status: 200 },
+    ),
+);
+
 const otzarConversationsHandler = http.get(
   `${API_BASE}/otzar/conversations`,
   async ({ request }) => {
@@ -3102,6 +3152,7 @@ export const handlers = [
   // Employee My Twin + Conversations metadata (list before :id so the
   // literal path wins over the :id param matcher).
   otzarMyTwinHandler,
+  otzarContextHealthHandler,
   otzarConversationsHandler,
   otzarConversationDetailHandler,
   otzarConversationCorrectionsHandler,
