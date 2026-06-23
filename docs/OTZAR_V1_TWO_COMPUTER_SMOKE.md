@@ -124,26 +124,23 @@ Both sign in with the shared `DEMO_SHARED_PASSWORD`.
 
 ---
 
-## §6 — Voice input status (KNOWN GAP — do not claim hands-free yet)
+## §6 — Voice input status (LIVE-4 wired; live-verify before claiming hands-free)
 
-Otzar is pronounced **"OatZar."** Current reported state: **text input works**,
-**Otzar speaks back (TTS) works**, but **user speech INPUT does not work
-reliably.** Until a user can speak and have the spoken intent route into the
-governed loop above, **do not claim ambient/hands-free voice is complete.**
+Otzar is pronounced **"OatZar."** Text input works; Otzar speaks back (TTS) works.
+The user-speech-input gap is **addressed in LIVE-4** — see
+`OTZAR_V1_LIVE_4_VOICE_INPUT.md`:
+- **Root cause fixed:** `POST /otzar/voice/transcribe` previously had **no
+  Foundation handler** (a dead call); it is now real (LIVE-4A).
+- **v1 provider:** **ElevenLabs (Scribe)** for server STT (and TTS for speak-back).
+  Browser Web Speech remains the zero-secret fallback **but requires an HTTPS
+  secure context** (plain HTTP breaks it — a common "voice doesn't work" cause).
+- **No raw audio stored** (transcript text only); provider keys are backend-only.
+- **Still pending:** a **live** check on an HTTPS deployment with
+  `ELEVENLABS_API_KEY` set. **Do not claim ambient/hands-free until that live check
+  passes** (a user actually speaks → transcript → governed loop).
 
-To diagnose when the voice phase (LIVE-4) begins — inspect, do not fake with copy:
-- `src/hooks/useSpeechRecognition.ts`, `useSpeechSynthesis.ts`,
-  `src/pages/app/Voice.tsx`, `src/components/otzar/AmbientOtzarBar.tsx`.
-- `POST /otzar/voice/transcribe` — **the LIVE-0 audit found no Foundation handler**
-  (the desktop-STT path is a likely dead call). Fix the route when voice begins.
-- Browser Web Speech (works in Chrome; **not** in Tauri WKWebView), mic permission.
-- STT providers already in the repo: **Deepgram / AssemblyAI / OpenAI realtime**
-  (prefer the repo-native path — likely Deepgram — for production STT).
-- **ElevenLabs** is wired for **TTS** (set `ELEVENLABS_API_KEY`); it is **not** the
-  STT choice. Never expose provider keys in the frontend (server-side proxy);
-  store transcript text, not raw audio.
-
-For this smoke, drive intake by **typing** until user speech input is fixed.
+For this smoke, browser voice works in **HTTPS Chrome**; otherwise set the
+ElevenLabs key for the server path, or drive intake by **typing**.
 
 ---
 
@@ -172,3 +169,55 @@ For this smoke, drive intake by **typing** until user speech input is fixed.
 - Do not claim ambient/hands-free voice until §6 is resolved.
 - Do not claim autonomous AI execution — every step is human-driven or
   human-approved, and Foundation proves it.
+
+---
+
+## Live Validation Result (LIVE-5)
+
+| Field | Value |
+|---|---|
+| Date/time | Not executed (see status below) |
+| Foundation commit | `f301762` (main) — includes LIVE-1A, LIVE-2A, LIVE-4A |
+| Otzar commit | `ff56596` (main) — includes LIVE-0…LIVE-4 |
+| Foundation URL | — (not deployed) |
+| Otzar URL | — (not deployed) |
+| Users | — |
+| **Status** | ⛔ **MANUAL CREDENTIALS REQUIRED — live run NOT executed by the autonomous agent** |
+
+**Why not executed (honest):** the autonomous agent has **no deployment target and
+no live secrets** — `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, a hosted
+Foundation/Otzar origin, a database, and cloud credentials are all absent in this
+environment. Per the v1 directive, live validation is **not faked**. Everything
+that can be proven locally is green (see "test-proven" above and the per-phase CI);
+the live two-computer run is the one remaining step and it requires a human with
+deploy access.
+
+### Exact checklist to run the live validation (hand to whoever has credentials)
+
+1. **Provision** Postgres + Redis.
+2. **Deploy Foundation** (`niov-foundation/Dockerfile`) with env:
+   `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `ENCRYPTION_KEY`, `REDIS_URL`,
+   `ANTHROPIC_API_KEY` (real LLM), `CONTROL_TOWER_URL` (the Otzar origin, for CORS),
+   `NODE_ENV=production` (activates the demo guard + the action scheduler),
+   and for voice: `VOICE_STT_PROVIDER=elevenlabs` + `ELEVENLABS_API_KEY`
+   (+ `ELEVENLABS_STT_MODEL=scribe_v1`). Run `prisma db push`. Leave
+   `ALLOW_DEMO_MODE` unset.
+3. **Build + deploy Otzar** over **HTTPS** (required for browser Web Speech) with
+   build arg `VITE_FOUNDATION_API_URL=https://<foundation-origin>/api/v1`.
+4. **Provision users**: `ALLOW_FOUNDER_BOOTSTRAP=true DEMO_SHARED_PASSWORD=… NIOV_APPROVE_DEMO_TEAM_ACCOUNTS="APPROVE FULL DEMO TEAM ACCOUNTS — exact allowlist only" npx tsx scripts/provision-demo-team-accounts.ts` → founder `sadeil@niovlabs.com` + teammate `david@niovlabs.com`.
+5. **Run steps §1–§10 above** on two computers and tick each box. Record blockers
+   here; any true validation blocker becomes a focused LIVE-6 fix (no new features).
+
+### LIVE-4 voice result (what is known without a live run)
+
+- **Browser Web Speech (Chrome, HTTPS):** real — the hook is correct and produces
+  a transcript into the governed loop. **Requires a secure (HTTPS) context**; plain
+  HTTP breaks it (a common cause of "voice doesn't work" in the browser).
+- **Server STT (`POST /otzar/voice/transcribe`, ElevenLabs Scribe):** now real and
+  wired (was a dead route). Returns transcript text; needs `ELEVENLABS_API_KEY` on
+  the backend, else an honest 503 `VOICE_STT_PROVIDER_NOT_CONFIGURED` (typing still
+  works). No raw audio stored.
+- **TTS (speak-back):** works (browser/device; ElevenLabs TTS when keyed).
+- **Can the user speak to Otzar?** **Code path is real both ways; not yet verified
+  on a live HTTPS deployment with the ElevenLabs key set.** Do not claim hands-free
+  until that live check passes.
