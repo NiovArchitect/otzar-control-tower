@@ -121,3 +121,40 @@ export function usePresenceState(): OtzarPresenceState {
     }),
   );
 }
+
+// ────────────────────────────────────────────────────────────────────
+// [OTZAR-LIVE-6] Presence-intensity model — presence must be KNOWN but
+// CALIBRATED. Every ambient surface (glow, bloom, chip, cards, edges)
+// scales its visual intensity by HUMAN NEED, not by decoration. Four
+// tiers:
+//   ambient   — idle / available / background; barely-there. "I'm here if
+//               you need me."
+//   working   — listening / thinking / routing / drafting / tracking;
+//               softly noticeable, alive. "I'm working on this."
+//   attention — needs one answer / approval / a reply came / a blocker
+//               appeared; clearly visible but still non-blocking. "I need
+//               you, or something changed."
+//   critical  — failure / denial / unable to send; contained, never
+//               alarming. "I know exactly what's blocked and what to do."
+// This is the single mapping the whole interface reads from so intensity
+// is consistent, not scattered per-component.
+// ────────────────────────────────────────────────────────────────────
+export type PresenceIntensity = "ambient" | "working" | "attention" | "critical";
+
+export function presenceIntensity(state: OtzarPresenceState): PresenceIntensity {
+  switch (state) {
+    case "IDLE":
+    case "QUIET":
+      return "ambient";
+    case "LISTENING":
+    case "THINKING":
+    case "RECOMMENDATION":
+    case "SUCCESS":
+      return "working";
+    case "APPROVAL_REQUIRED":
+    case "BLOCKED":
+      return "attention";
+    case "FAILURE":
+      return "critical";
+  }
+}

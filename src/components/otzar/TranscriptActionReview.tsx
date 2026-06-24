@@ -56,7 +56,7 @@ export function TranscriptActionReview({
 
   return (
     <div
-      className="rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs"
+      className="rounded-lg border border-white/60 bg-white/45 supports-[backdrop-filter]:bg-white/30 backdrop-blur-md ring-1 ring-black/[0.04] px-2 py-1.5 text-xs"
       data-testid="transcript-action-review"
     >
       <div className="mb-1">

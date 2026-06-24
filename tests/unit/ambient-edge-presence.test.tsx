@@ -194,6 +194,11 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
     expect(card.textContent).toContain(
       "2 items are waiting for your decision.",
     );
+    // [OTZAR-LIVE-6] A decision is ATTENTION intensity (visible priority), and
+    // the card is the frosted-glass material (not a flat SaaS card).
+    expect(card.getAttribute("data-intensity")).toBe("attention");
+    expect(card.className).toMatch(/backdrop-blur/);
+    expect(card.className).toMatch(/bg-white\//);
     const link = screen.getByRole("link", { name: "Review" });
     expect(link.getAttribute("href")).toBe("/app/action-center");
     // Keyboard-accessible dismiss with a real label.

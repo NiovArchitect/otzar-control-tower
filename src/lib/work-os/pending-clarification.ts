@@ -23,10 +23,20 @@
 // collaboration request reuses the same recipient gathering).
 export type PendingClarificationKind =
   | "outbound_message"
-  | "collaboration_request";
+  | "collaboration_request"
+  | "work_clarification";
 
-// The slot Otzar is waiting for the user to supply on the next turn.
-export type ClarificationSlot = "recipient" | "confirm";
+// The slot Otzar is waiting for the user to supply on the next turn. "recipient"
+// and "confirm" are wired today; "context"/"owner"/"which_item"/"approver"/"due"
+// are the generalized continuity slots.
+export type ClarificationSlot =
+  | "recipient"
+  | "confirm"
+  | "context"
+  | "owner"
+  | "which_item"
+  | "approver"
+  | "due";
 
 export interface PendingClarification {
   /** Opaque id (caller-supplied; only for keying the UI chip). */
@@ -122,6 +132,49 @@ export function parseRecipientList(text: string): string[] {
   void framed;
   const deduped = dedupe(names);
   return deduped.slice(0, 8);
+}
+
+// WHAT: Recognize the recipients of an outbound request ON THE FIRST TURN, when
+//       they are explicitly named — e.g. "I need David and Samiksha to send me
+//       their updates", "ask David and Samiksha to review", "I need updates from
+//       David and Samiksha" — so Otzar can resolve and route to BOTH without
+//       needing the extra "they are the recipients" clarification turn.
+// OUTPUT: { recipients, body } when >= 1 clean name is found in a recipient-
+//         directed construction; null otherwise (fall through to the existing
+//         single-recipient interpreter). The CALLER decides to act only on a
+//         multi (>= 2) match, so single-recipient flows stay on their tested path.
+// WHY: closes the gap where a single-recipient interpreter dropped the 2nd name.
+export function detectFirstTurnRecipients(
+  text: string,
+): { recipients: string[]; body: string } | null {
+  const t = text.trim();
+  // A NAME is a single word token — NOT a multi-word span, so a verb clause
+  // ("…and ask him to…") can never be swallowed as a "recipient".
+  const NAME = "[A-Za-z][A-Za-z'’-]*";
+  // A recipient LIST is two or more names joined by commas / "and" / "&"
+  // (requiring the conjunction is what makes this MULTI-recipient and what stops
+  // a single name + trailing verb clause from matching).
+  const SEP = "(?:\\s*,\\s*and\\s+|\\s*,\\s*|\\s+and\\s+|\\s*&\\s*)";
+  const LIST = `${NAME}(?:${SEP}${NAME})+`;
+  // Construction A: "<lead> <list> to <predicate>" OR "<lead> <list> <predicate
+  // verb>" (no "to", e.g. "have David and Samiksha send me …").
+  const reA = new RegExp(
+    `\\b(?:need|want|'?d like|would like|get|have|ask|tell|remind|message|msg|notify)\\s+(${LIST})\\s+(?:to|send|sends|share|review|confirm|prepare|update|provide|give|submit|complete|finish|check|follow|reply|respond|sign|approve)\\b`,
+    "i",
+  );
+  // Construction B: "… from <list>" (e.g. "updates from David and Samiksha").
+  const reB = new RegExp(`\\bfrom\\s+(${LIST})\\b`, "i");
+  let namesPart = "";
+  const mA = t.match(reA);
+  if (mA && mA[1] !== undefined) namesPart = mA[1];
+  else {
+    const mB = t.match(reB);
+    if (mB && mB[1] !== undefined) namesPart = mB[1];
+  }
+  if (namesPart.trim().length === 0) return null;
+  const recipients = parseRecipientList(namesPart);
+  if (recipients.length === 0) return null;
+  return { recipients, body: composeRequestBody(t) };
 }
 
 // "okay never mind" / "cancel" / "forget it" / "stop" / "don't send" — abandon

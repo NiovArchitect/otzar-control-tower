@@ -118,7 +118,7 @@ export function WorkArtifactCard({
 
   return (
     <div
-      className="rounded-md border border-primary/30 bg-background/80 p-2 text-xs space-y-1.5"
+      className="rounded-lg border border-white/60 bg-white/55 supports-[backdrop-filter]:bg-white/40 backdrop-blur-md ring-1 ring-black/[0.04] p-2 text-xs space-y-1.5"
       data-testid="work-artifact-card"
       data-kind={artifact.kind}
       data-action-id={artifact.actionId ?? ""}

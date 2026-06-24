@@ -13,6 +13,7 @@ import {
   composeRequestBody,
   formatRecipientList,
   isClarificationExpired,
+  detectFirstTurnRecipients,
   CLARIFICATION_TTL_MS,
   type PendingClarification,
 } from "@/lib/work-os/pending-clarification";
@@ -70,6 +71,46 @@ describe("parseRecipientList — recipient slot-fill", () => {
 
   it("dedupes repeated names", () => {
     expect(parseRecipientList("David and David")).toEqual(["David"]);
+  });
+});
+
+describe("detectFirstTurnRecipients — recognize both on the first turn", () => {
+  it("recognizes the founder's two recipients + preserves the objective", () => {
+    const r = detectFirstTurnRecipients(
+      "I need David and Samiksha to send me their updates",
+    );
+    expect(r).not.toBeNull();
+    expect(r!.recipients).toEqual(["David", "Samiksha"]);
+    expect(r!.body).toBe("Please send me your updates.");
+  });
+
+  it("handles lowercase + a lead verb ('ask X and Y to …')", () => {
+    const r = detectFirstTurnRecipients("ask david and samiksha to review the deck");
+    expect(r!.recipients).toEqual(["David", "Samiksha"]);
+    expect(r!.body).toBe("Please review the deck.");
+  });
+
+  it("handles the 'from X and Y' construction", () => {
+    const r = detectFirstTurnRecipients("I need updates from David and Samiksha");
+    expect(r!.recipients).toEqual(["David", "Samiksha"]);
+  });
+
+  it("handles three recipients", () => {
+    const r = detectFirstTurnRecipients(
+      "have David, Samiksha, and William send me their status",
+    );
+    expect(r!.recipients).toEqual(["David", "Samiksha", "William"]);
+  });
+
+  it("returns null when there is no recipient-directed construction", () => {
+    expect(detectFirstTurnRecipients("what is blocked right now")).toBeNull();
+    expect(detectFirstTurnRecipients("I need to send the report")).toBeNull();
+    expect(detectFirstTurnRecipients("summarize the latest meeting")).toBeNull();
+  });
+
+  it("never hardcodes specific people (works for any names)", () => {
+    const r = detectFirstTurnRecipients("ask Priya and Chen to confirm the rollout");
+    expect(r!.recipients).toEqual(["Priya", "Chen"]);
   });
 });
 

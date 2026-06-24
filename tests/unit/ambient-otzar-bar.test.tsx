@@ -628,34 +628,165 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       /pick the recipient|draft created/i,
     );
 
-    // Turn 3 — "I need david and samiksha to send me their updates" arms a
-    // pending recipient clarification (draft with no recipient yet).
+    // Turn 3 — "I need david and samiksha to send me their updates". With
+    // first-turn multi-recipient recognition this now resolves BOTH and routes
+    // immediately — the dead end is impossible, and no extra "they are the
+    // recipients" turn is needed.
     await user.clear(input);
     await user.type(
       input,
       "I need david and samiksha to send me their updates",
     );
     await send();
-    await waitFor(() => expect(outcome()).toMatch(/recipient/i));
-    expect(internalMessagePosts.length, "no send before recipients are known").toBe(0);
+    await waitFor(() =>
+      expect(internalMessagePosts.length).toBeGreaterThanOrEqual(2),
+    );
+    expect(outcome()).not.toMatch(/pick the recipient/i);
+    expect(outcome()).not.toMatch(/what would you like me to do/i);
+    expect(outcome()).toMatch(/sent/i);
+    expect(outcome()).toMatch(/David/);
+    expect(outcome()).toMatch(/Samiksha/);
+    const bodies = internalMessagePosts.map((p) => String(p.message ?? ""));
+    expect(bodies.every((b) => /update/i.test(b))).toBe(true);
+    expect(bodies.some((b) => /I need david/i.test(b))).toBe(false);
 
-    // Turn 4 — the recipient answer RESUMES the request and sends to BOTH.
+    // Turn 4 — restating the recipients after the send is harmless: it must
+    // NEVER produce the founder's "what would you like me to do regarding David
+    // and Samiksha?" dead end.
     await user.clear(input);
     await user.type(input, "david and samiksha are the recipients");
+    await send();
+    await waitFor(() => expect(outcome().length).toBeGreaterThan(0));
+    expect(outcome()).not.toMatch(/what would you like me to do/i);
+  });
+
+  it("[OTZAR-LIVE-6] recipient-less draft → memory chip → recipient answer resumes the send", async () => {
+    server.use(
+      http.post(`${API_BASE}/work-os/resolve-target`, async ({ request }) => {
+        const body = (await request.json()) as { target_name?: string };
+        const name = (body.target_name ?? "").trim().toLowerCase();
+        const match = name.includes("david")
+          ? { entity_id: "ent-david", display_name: "David", role_title: "Eng" }
+          : name.includes("samiksha")
+            ? { entity_id: "ent-samiksha", display_name: "Samiksha", role_title: "PM" }
+            : null;
+        return HttpResponse.json({
+          ok: true,
+          resolution: match
+            ? { code: "RESOLVED_INTERNAL_ENTITY", match, candidates: [match] }
+            : { code: "NOT_FOUND", match: null, candidates: [] },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const input = screen.getByLabelText(/Message to Otzar/i);
+    const send = (): Promise<void> =>
+      user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    // A recipient-less draft arms the pending clarification + the memory chip.
+    await user.type(input, "Draft a message saying we should sync on the launch");
+    await send();
+    await waitFor(() =>
+      expect(screen.getByTestId("ambient-memory-chip")).toHaveTextContent(
+        /recipient/i,
+      ),
+    );
+    expect(screen.getByTestId("ambient-memory-chip")).toHaveAttribute(
+      "data-chip-intensity",
+      "attention",
+    );
+    expect(internalMessagePosts.length).toBe(0);
+
+    // The recipient answer RESUMES the held draft and sends to both.
+    await user.clear(input);
+    await user.type(input, "David and Samiksha are the recipients");
     await send();
     await waitFor(() =>
       expect(internalMessagePosts.length).toBeGreaterThanOrEqual(2),
     );
-    // The dead end the founder hit must NOT recur.
-    expect(outcome()).not.toMatch(/what would you like me to do/i);
-    // Calm, real, governed outcome naming both recipients.
-    expect(outcome()).toMatch(/sent/i);
-    expect(outcome()).toMatch(/David/);
-    expect(outcome()).toMatch(/Samiksha/);
-    // Both governed sends carried the PRESERVED objective, not the raw command.
+    expect(
+      screen.getByTestId("voice-action-outcome").textContent ?? "",
+    ).not.toMatch(/what would you like me to do/i);
+    // Chip clears once resolved — real state, not sticky decoration.
+    await waitFor(() =>
+      expect(screen.queryByTestId("ambient-memory-chip")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("[OTZAR-LIVE-6] first turn recognizes BOTH recipients and routes to both (no extra turn)", async () => {
+    server.use(
+      http.post(`${API_BASE}/work-os/resolve-target`, async ({ request }) => {
+        const body = (await request.json()) as { target_name?: string };
+        const name = (body.target_name ?? "").trim().toLowerCase();
+        const match = name.includes("david")
+          ? { entity_id: "ent-david", display_name: "David", role_title: "Engineer" }
+          : name.includes("samiksha")
+            ? { entity_id: "ent-samiksha", display_name: "Samiksha", role_title: "PM" }
+            : null;
+        return HttpResponse.json({
+          ok: true,
+          resolution: match
+            ? { code: "RESOLVED_INTERNAL_ENTITY", match, candidates: [match] }
+            : { code: "NOT_FOUND", match: null, candidates: [] },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const input = screen.getByLabelText(/Message to Otzar/i);
+    await user.type(input, "I need David and Samiksha to send me their updates");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    // ONE turn → BOTH governed sends, no "pick the recipient" clarification.
+    await waitFor(() =>
+      expect(internalMessagePosts.length).toBeGreaterThanOrEqual(2),
+    );
+    const outcome =
+      screen.getByTestId("voice-action-outcome").textContent ?? "";
+    expect(outcome).not.toMatch(/pick the recipient/i);
+    expect(outcome).toMatch(/David/);
+    expect(outcome).toMatch(/Samiksha/);
+    // Preserved objective, not the raw command.
     const bodies = internalMessagePosts.map((p) => String(p.message ?? ""));
     expect(bodies.every((b) => /update/i.test(b))).toBe(true);
-    expect(bodies.some((b) => /I need david/i.test(b))).toBe(false);
+  });
+
+  it("[OTZAR-LIVE-6] context slot-fill: 'what context?' → the answer sets the current context", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const input = screen.getByLabelText(/Message to Otzar/i);
+    const send = (): Promise<void> =>
+      user.click(screen.getByRole("button", { name: /^send$/i }));
+    const outcome = (): string =>
+      screen.getByTestId("voice-action-outcome").textContent ?? "";
+
+    // A vague, context-less command asks for context and remembers it asked.
+    await user.type(input, "Handle this");
+    await send();
+    await waitFor(() => expect(outcome()).toMatch(/current context/i));
+    await waitFor(() =>
+      expect(screen.getByTestId("ambient-memory-chip")).toHaveTextContent(
+        /need context/i,
+      ),
+    );
+
+    // The answer IS the context — it binds and sets it, not re-classified.
+    await user.clear(input);
+    await user.type(input, "the latest meeting note");
+    await send();
+    await waitFor(() => expect(outcome()).toMatch(/current context/i));
+    expect(outcome()).toMatch(/latest meeting note/i);
+    // The current-context chip is now active in the orb.
+    await waitFor(() =>
+      expect(screen.getByTestId("surface-context-chip")).toBeInTheDocument(),
+    );
+    // Memory chip cleared once resolved.
+    await waitFor(() =>
+      expect(screen.queryByTestId("ambient-memory-chip")).not.toBeInTheDocument(),
+    );
   });
 
   it("'What's connected?' summarizes real connector state — never the Twin", async () => {

@@ -290,6 +290,31 @@ no surveillance) and was left intact. Honest remaining: the dense admin catalog 
 is unchanged (it serves admin activation); demo names still live in MSW test fixtures (not
 production copy) — a separate test-hygiene cleanup.
 
+## Deferred-closure scope — increment 2 (2026-06-24)
+
+Founder direction (governing): ambient AI is intelligence-backed, not decoration — every
+visible element must reduce a real human uncertainty, scaled by a **presence-intensity model**
+(ambient / working / attention / critical), Apple-glass calm, reduced-motion-safe, tested.
+
+| Area | Change | Status | Evidence |
+|---|---|---|---|
+| Presence-intensity model | Single named mapping the whole surface scales from (idle→ambient, work→working, approval/blocker→attention, failure→critical) | ✅ | `presenceIntensity()` in `presence.ts`; `presence-intensity.test.ts` |
+| A2 living bloom | Slow Siri-like bloom drift ONLY while working (motion-safe); idle nearly still; attention/critical hold steady | ✅ | `bloom-breathe` keyframe; `bloomShouldLive(intensity)` |
+| A3 memory chip | Glass chip proving "Otzar remembers": real `pendingClarification`/draft state, named recipients, intensity rises to attention when it needs an answer, clears on resolve/cancel/expire | ✅ | `memoryChipLabel`+`memoryChipIntensity`; founder + recipient-less-draft + context tests assert appear/clear + `data-chip-intensity` |
+| A1 glass surfaces | Notification stack + in-orb cards (`WorkArtifactCard`/`TranscriptActionReview`) on the frosted-glass material with a per-card intensity accent (decision/blocker=attention amber, notes=working teal) | ✅ | `cardClass(intensity)`; `ambient-edge-presence` test asserts `data-intensity` + glass classes |
+| A4 edge-collapse | Orb collapses to a glass edge-pill whose presence-driven glow pulses to attention when something needs the user; non-blocking, expand-on-demand | ✅ satisfied (existing + intensity) | collapsed pill uses `presenceRing`; pulses amber on APPROVAL_REQUIRED |
+| A5 node topology | — | 🔭 deferred (honest) | a real persistent node model would risk the "decorative node bubbles" the doctrine forbids; real node signals already ship via the memory chip (person/draft) + notification stack (approval/reply/blocker) |
+| B1 first-turn multi-recipient | "I need David and Samiksha to send me their updates" resolves BOTH and routes immediately — no extra "they are the recipients" turn; resolve-all-before-send; honest partial | ✅ | `detectFirstTurnRecipients`; founder transcript now sends at turn 3; +unit + component tests |
+| B2 slot-fill continuity | Context slot wired end-to-end ("what context?" → the answer sets it); type/chip/intensity generalized to owner/item/due/approver | ✅ context (owner/item/due/approver = same mechanism, deferred for handler-specific apply) | consume branch `awaiting:"context"`; context slot-fill component test |
+| C1 admin catalog | Founder-readable setup orientation (topology/people/roles/authority/tools/governed flows/approvals/propagation) framing the catalog; real capability kept, truthful | ✅ | `AdminSetupOrientation`; onboarding test |
+| C2 demo-name hygiene | Guard test: resolution/outbound rails contain NO demo person name in code; demo names live only in the labeled Comms demo-capture script (coupled to the Foundation demo fixture) | ✅ | `no-demo-name-fallback.test.ts` |
+
+Discipline held: response-roundtrip re-verified PASS before and the loop preserved; no dark/black
+UI regression (glass direction intact); no faked nodes; no global/permanent-memory; voice path
+stays honest (browser-STT, no fake hands-free). Deferred honestly: A5 node-topology; B2
+owner/item/due/approver apply; live "David replied" named card in the notification stack (today
+it's a truthful count + Open).
+
 ## Triage of the 2 remaining "fails" (classified, not patched-blindly)
 
 1. **L · hard refresh → /login** — *known/intentional.* In-memory auth by design (code: "NO

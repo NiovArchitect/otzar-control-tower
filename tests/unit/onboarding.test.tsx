@@ -161,6 +161,20 @@ describe("[OTZAR-LIVE-6] ambient AI Work OS doctrine hero", () => {
     );
   });
 
+  it("frames the admin setup by founder-readable concepts (not a raw console)", () => {
+    renderPage();
+    const orientation = screen.getByTestId("admin-setup-orientation");
+    expect(orientation).toHaveTextContent(/Set up your organization/i);
+    expect(orientation).toHaveTextContent(/nothing is activated until you authorize it/i);
+    for (const id of ["topology", "people", "roles", "authority", "tools", "flows", "approvals", "propagation"]) {
+      expect(screen.getByTestId(`setup-concept-${id}`)).toBeInTheDocument();
+    }
+    // Propagation reads as governed root-first, never mass invites.
+    expect(screen.getByTestId("setup-concept-propagation")).toHaveTextContent(
+      /never mass invites/i,
+    );
+  });
+
   it("uses presence-not-surveillance language and never claims permanent/global learning", () => {
     renderPage();
     const doctrine = screen.getByTestId("ambient-workos-doctrine");

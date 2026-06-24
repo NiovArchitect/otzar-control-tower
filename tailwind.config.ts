@@ -87,6 +87,14 @@ const config: Config = {
           "30%": { opacity: "1" },
           "100%": { opacity: "0.5" },
         },
+        // [OTZAR-LIVE-6] Living glass bloom — a slow, low-opacity drift of the
+        // ambient color field under the orb glass, for active states only
+        // (listening / thinking / success / recommendation). Siri-like, calm;
+        // never used for idle/blocked. motion-safe at the call site.
+        "bloom-breathe": {
+          "0%, 100%": { opacity: "0.65", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.06)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -94,6 +102,7 @@ const config: Config = {
         "edge-pulse": "edge-pulse 2.4s ease-in-out infinite",
         "edge-breathe": "edge-breathe 3.2s ease-in-out infinite",
         "edge-shimmer": "edge-shimmer 1.2s ease-out",
+        "bloom-breathe": "bloom-breathe 6s ease-in-out infinite",
       },
     },
   },

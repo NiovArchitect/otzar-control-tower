@@ -27,13 +27,34 @@ import { isActionablePending } from "@/lib/work-os/action-classify";
 const APPROVALS_POLL_MS = 60_000;
 
 type CardKind = "approvals" | "notes" | "quiet" | "voice-blocked";
+// [OTZAR-LIVE-6] Each ambient card carries a presence INTENSITY so priority is
+// visible, not flat: a decision/blocker is "attention" (forward, amber accent);
+// new notes are "working" (calm teal); quiet is "ambient" (recede).
+type CardIntensity = "ambient" | "working" | "attention";
 
 interface AmbientCard {
   kind: CardKind;
+  intensity: CardIntensity;
   icon: JSX.Element;
   text: string;
   to: string | null;
   linkLabel: string | null;
+}
+
+// Frosted-glass card base shared with the orb, plus a calm left accent by
+// intensity. Never a hard neon border; the accent recedes for ambient signals.
+function cardClass(intensity: CardIntensity): string {
+  const base =
+    "rounded-xl border border-white/60 bg-white/75 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 ring-1 ring-black/[0.04] shadow-lg border-l-2";
+  switch (intensity) {
+    case "attention":
+      return `${base} border-l-amber-400/70`;
+    case "working":
+      return `${base} border-l-teal-400/60`;
+    case "ambient":
+    default:
+      return `${base} border-l-slate-300/60`;
+  }
 }
 
 function quietCopy(reason: "IN_MEETING" | "FOCUS_TIME" | "OTHER" | null): string {
@@ -100,6 +121,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
   if (approvalsCount > 0 && !dismissed.has("approvals")) {
     cards.push({
       kind: "approvals",
+      intensity: "attention",
       icon: <ListChecks className="h-3.5 w-3.5 text-amber-500" aria-hidden />,
       text:
         approvalsCount === 1
@@ -112,6 +134,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
   if (quiet && !dismissed.has("quiet")) {
     cards.push({
       kind: "quiet",
+      intensity: "ambient",
       icon: <MoonStar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />,
       text: quietCopy(quietReason),
       to: null,
@@ -121,6 +144,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
     // Notes stay out of the way during quiet mode — approvals only.
     cards.push({
       kind: "notes",
+      intensity: "working",
       icon: <BellRing className="h-3.5 w-3.5 text-teal-500" aria-hidden />,
       text:
         unreadCount === 1
@@ -133,6 +157,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
   if (voiceBlocked && !quiet && !dismissed.has("voice-blocked")) {
     cards.push({
       kind: "voice-blocked",
+      intensity: "attention",
       icon: <MicOff className="h-3.5 w-3.5 text-amber-500" aria-hidden />,
       text: "Voice needs microphone access. You can type instead.",
       to: "/app/voice",
@@ -156,15 +181,16 @@ export function AmbientNotificationStack(): JSX.Element | null {
           key={card.kind}
           data-testid="ambient-card"
           data-kind={card.kind}
-          className="flex items-start gap-2 rounded-xl border border-border/70 bg-background/85 p-3 text-xs shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/70"
+          data-intensity={card.intensity}
+          className={`flex items-start gap-2 p-3 text-xs ${cardClass(card.intensity)}`}
         >
           <span className="mt-0.5 shrink-0">{card.icon}</span>
-          <span className="flex-1 leading-snug text-foreground">
+          <span className="flex-1 leading-snug text-slate-800">
             {card.text}{" "}
             {card.to !== null && card.linkLabel !== null ? (
               <Link
                 to={card.to}
-                className="font-medium text-primary underline-offset-2 hover:underline"
+                className="font-medium text-slate-900 underline-offset-2 hover:underline"
               >
                 {card.linkLabel}
               </Link>
@@ -173,7 +199,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
           <button
             type="button"
             aria-label={`Dismiss: ${card.text}`}
-            className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50"
             onClick={() =>
               setDismissed((prev) => new Set(prev).add(card.kind))
             }

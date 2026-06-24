@@ -61,7 +61,9 @@ import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import {
   usePresenceStore,
   usePresenceState,
+  presenceIntensity,
   type OtzarPresenceState,
+  type PresenceIntensity,
 } from "@/lib/stores/presence";
 import {
   detectNativeMicCapability,
@@ -160,6 +162,7 @@ import {
   composeRequestBody,
   formatRecipientList,
   isClarificationExpired,
+  detectFirstTurnRecipients,
   type PendingClarification,
 } from "@/lib/work-os/pending-clarification";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
@@ -277,6 +280,89 @@ export function presenceRing(state: OtzarPresenceState): {
     default:
       return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(186,200,224,0.18),transparent_70%)]", glow: "shadow-[0_8px_40px_-14px_rgba(15,23,42,0.22)]", dot: "bg-slate-400" };
   }
+}
+
+// [OTZAR-LIVE-6] The living bloom drifts only when Otzar is actively WORKING
+// (listening / thinking / routing / drafting) — Siri-like, calm. Idle is nearly
+// still; attention/critical hold steady so the glow itself carries the signal.
+function bloomShouldLive(intensity: PresenceIntensity): boolean {
+  return intensity === "working";
+}
+
+// Glass styling for the ambient memory chip, scaled by intensity: quiet when
+// Otzar is passively holding a draft (working), forward when it NEEDS the
+// human's answer (attention), contained when something failed (critical).
+function chipIntensityClass(intensity: PresenceIntensity): string {
+  switch (intensity) {
+    case "attention":
+      return "bg-white/80 text-slate-900 ring-1 ring-black/[0.06] shadow-sm";
+    case "critical":
+      return "bg-rose-50/80 text-rose-900 ring-1 ring-rose-200/70";
+    case "working":
+      return "bg-white/55 text-slate-700";
+    case "ambient":
+    default:
+      return "bg-white/40 text-slate-600";
+  }
+}
+
+// [OTZAR-LIVE-6] The visible ambient "memory" chip — a calm, plain-language
+// reflection of what Otzar is currently holding in EPHEMERAL working memory (the
+// pending clarification it asked for, or a draft awaiting confirm). Real state
+// only; returns null when nothing is pending so the chip disappears on
+// resolve/cancel/expire. Never fabricated.
+function memoryChipLabel(
+  clar: PendingClarification | null,
+  artifact: WorkArtifact | null,
+): string | null {
+  if (clar !== null) {
+    switch (clar.awaiting) {
+      case "recipient":
+        // Name the teammates already gathered (partial multi-recipient hold),
+        // else the generic prompt.
+        return clar.recipients.length > 0
+          ? `Waiting for ${formatRecipientList(clar.recipients)}`
+          : "Waiting for recipient";
+      case "confirm":
+        return clar.recipients.length > 0
+          ? `Ready to send to ${formatRecipientList(clar.recipients)}`
+          : "Ready to send";
+      case "context":
+        return "Need context";
+      case "owner":
+        return "Need owner";
+      case "which_item":
+        return "Which item?";
+      case "approver":
+        return "Need approver";
+      case "due":
+        return "Need due date";
+      default:
+        return "Holding this";
+    }
+  }
+  if (artifact !== null && artifact.proposed !== true) {
+    if (artifact.externalChannel === true) return "Draft (local)";
+    return artifact.targetLabel !== undefined
+      ? `Ready to send to ${artifact.targetLabel}`
+      : "Draft ready";
+  }
+  if (artifact !== null && artifact.proposed === true) {
+    return "Pending approval";
+  }
+  return null;
+}
+
+// Chip intensity from REAL state: when Otzar is waiting on the human for a slot
+// (or an approval is pending) it rises to "attention"; a draft it's merely
+// holding stays "working".
+function memoryChipIntensity(
+  clar: PendingClarification | null,
+  artifact: WorkArtifact | null,
+): PresenceIntensity {
+  if (clar !== null && clar.awaiting !== "confirm") return "attention";
+  if (artifact !== null && artifact.proposed === true) return "attention";
+  return "working";
 }
 
 export function AmbientOtzarBar(): JSX.Element {
@@ -440,15 +526,19 @@ export function AmbientOtzarBar(): JSX.Element {
   // the awaited slot and RESUMES the action instead of being re-classified from
   // scratch (founder live failure). A ref is the synchronous logic
   // source-of-truth read inside the async handler (mirrors the pendingArtifact
-  // closure discipline); the calm "Waiting for…" feedback rides the existing
-  // actionStatus line. (The visible ambient memory chip lands with the Ambient
-  // Node Interface work.)
+  // closure discipline); the `pendingClarUi` state mirror drives the visible
+  // ambient "memory" chip so the user can SEE that Otzar remembers what it asked.
   const pendingClarRef = useRef<PendingClarification | null>(null);
+  const [pendingClarUi, setPendingClarUi] = useState<PendingClarification | null>(
+    null,
+  );
   function setPendingClar(c: PendingClarification | null): void {
     pendingClarRef.current = c;
+    setPendingClarUi(c);
   }
   function clearPendingClar(): void {
     pendingClarRef.current = null;
+    setPendingClarUi(null);
   }
   // Which STT engine produced the spoken command's transcript
   // (desktop path only): "openai-whisper" or "deepgram".
@@ -466,6 +556,21 @@ export function AmbientOtzarBar(): JSX.Element {
   // [OTZAR-LIVE-6] The orb's frosted edge ring + status dot for the CURRENT
   // presence state — same color language as the edge glow.
   const ring = presenceRing(presenceState);
+  // Calibrated presence: the whole surface scales by this, not per-component.
+  const intensity = presenceIntensity(presenceState);
+  // Living bloom drift only while actively working (calm, motion-safe at span).
+  const bloomLiving = bloomShouldLive(intensity);
+  // The visible "memory" chip — what Otzar is holding right now (real ephemeral
+  // working-memory state; null when nothing is pending, gone once the
+  // clarification TTL lapses). Its own intensity rises when Otzar needs an answer.
+  const memoryClar =
+    pendingClarUi !== null && !isClarificationExpired(pendingClarUi, Date.now())
+      ? pendingClarUi
+      : null;
+  const memoryChipText = memoryChipLabel(memoryClar, pendingArtifact);
+  const memoryChipTone = chipIntensityClass(
+    memoryChipIntensity(memoryClar, pendingArtifact),
+  );
   const setPresenceSignals = usePresenceStore((s) => s.setSignals);
   const markPresenceSuccess = usePresenceStore((s) => s.markSuccess);
   const markPresenceFailure = usePresenceStore((s) => s.markFailure);
@@ -2025,6 +2130,20 @@ export function AmbientOtzarBar(): JSX.Element {
       result: "blocked",
       target: null,
     });
+    // [OTZAR-LIVE-6] Slot-fill continuity for the CONTEXT question: remember that
+    // we asked "what context?", so the next turn ("the latest meeting note")
+    // binds and sets the current context instead of being re-classified.
+    if (!hasContext) {
+      setPendingClar({
+        id: `clar-${at}`,
+        kind: "work_clarification",
+        awaiting: "context",
+        originalText: text,
+        draftMessage: "",
+        recipients: [],
+        createdAt: Date.now(),
+      });
+    }
     return true;
   }
 
@@ -2774,6 +2893,28 @@ export function AmbientOtzarBar(): JSX.Element {
             return;
           }
         }
+        if (clar.awaiting === "context") {
+          // The answer to "what context?" IS the context — set it explicitly
+          // (user-provided provenance) and confirm. A short, real reference like
+          // "the latest meeting note" / "today's standup".
+          const ref = text.trim();
+          if (ref.length > 0 && !/^\?+$/.test(ref)) {
+            clearPendingClar();
+            setDraft("");
+            appendConversationEntry({ role: "user", text, at: at0 });
+            provideSurfaceContext({
+              type: "unknown",
+              title: ref,
+              sourceLabel: "You told Otzar",
+            });
+            const msg = `Got it. I'll use "${ref}" as the current context.`;
+            setActionResult(msg);
+            setActionStatus("Context set");
+            appendConversationEntry({ role: "otzar", text: msg, at: at0 });
+            speakConfirmation(msg);
+            return;
+          }
+        }
         // Not an answer to the pending question — abandon it (TTL-bounded too)
         // so a later bare name can't accidentally bind to a stale ask.
         clearPendingClar();
@@ -2800,6 +2941,38 @@ export function AmbientOtzarBar(): JSX.Element {
     // delegation ("tell Samiksha to summarize this") is NOT intercepted here —
     // it falls through to the outbound path, which attaches the transcript.
     if (await handleTranscriptCommand(text)) return;
+
+    // [OTZAR-LIVE-6] First-turn MULTI-recipient recognition. "I need David and
+    // Samiksha to send me their updates" / "ask David and Samiksha to review"
+    // names BOTH recipients up front — resolve them now and route to both,
+    // instead of dropping the 2nd name and asking "pick the recipient". Only
+    // fires for 2+ names (single-recipient stays on the existing tested
+    // interpreter below); resolve-all-before-send + honest partial via the same
+    // resume path as the clarification flow.
+    {
+      const firstTurn = detectFirstTurnRecipients(text);
+      if (firstTurn !== null && firstTurn.recipients.length >= 2) {
+        const at0 = new Date().toISOString();
+        setDraft("");
+        setActionHeard(text);
+        setActionLabel(`Request → ${formatRecipientList(firstTurn.recipients)}`);
+        await resumeOutboundToRecipients(
+          {
+            id: `clar-${at0}`,
+            kind: "outbound_message",
+            awaiting: "recipient",
+            originalText: text,
+            draftMessage: firstTurn.body,
+            recipients: [],
+            createdAt: Date.now(),
+          },
+          firstTurn.recipients,
+          text,
+          at0,
+        );
+        return;
+      }
+    }
 
     // Ambient outbound work — recipient-directed natural language ("Ask David
     // to review …", "David, can you confirm …", "Tell the product team …") is
@@ -3587,7 +3760,9 @@ export function AmbientOtzarBar(): JSX.Element {
         >
           <span
             aria-hidden
-            className={`pointer-events-none absolute inset-0 -z-10 ${ring.bloom}`}
+            className={`pointer-events-none absolute inset-0 -z-10 ${ring.bloom} ${
+              bloomLiving ? "motion-safe:animate-bloom-breathe" : ""
+            }`}
           />
           <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${ring.dot} ${quiet ? "" : "motion-safe:animate-pulse"}`} />
           {quiet ? <MoonStar className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -3609,10 +3784,14 @@ export function AmbientOtzarBar(): JSX.Element {
       className={`group fixed bottom-6 right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
     >
       {/* Siri-like ambient color field, diffused UNDER the glass — the state
-          color blooms through the frost, it is not a hard border. */}
+          color blooms through the frost, it is not a hard border. Active states
+          get a slow living drift (motion-safe). */}
       <span
         aria-hidden
-        className={`pointer-events-none absolute inset-0 -z-10 transition-opacity duration-1000 ${ring.bloom}`}
+        data-bloom={presenceState}
+        className={`pointer-events-none absolute inset-0 -z-10 transition-opacity duration-1000 ${ring.bloom} ${
+          bloomLiving ? "motion-safe:animate-bloom-breathe" : ""
+        }`}
       />
       <div className="relative flex items-center justify-between gap-2 border-b border-black/[0.06] px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -3673,6 +3852,25 @@ export function AmbientOtzarBar(): JSX.Element {
           </Button>
         </div>
       </div>
+
+      {/* [OTZAR-LIVE-6] Ambient memory chip — a calm, plain-language reflection
+          of what Otzar is holding in working memory right now. Driven by real
+          pendingClarification / draft state; disappears on resolve/cancel/expire.
+          So the user can SEE that Otzar remembers what it just asked. */}
+      {memoryChipText !== null ? (
+        <div
+          className={`relative flex items-center gap-1.5 border-b border-black/[0.06] px-3 py-1.5 transition-colors duration-500 ${memoryChipTone}`}
+          data-testid="ambient-memory-chip"
+          data-chip-intensity={memoryChipIntensity(memoryClar, pendingArtifact)}
+        >
+          <span
+            aria-hidden
+            className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${ring.dot} motion-safe:animate-pulse`}
+          />
+          <span className="text-[11px] font-medium">{memoryChipText}</span>
+          <span className="text-[10px] opacity-60">· Otzar is holding this</span>
+        </div>
+      ) : null}
 
       {(
         <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-2">

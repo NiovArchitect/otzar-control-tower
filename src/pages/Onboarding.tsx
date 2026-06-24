@@ -242,6 +242,47 @@ function AmbientWorkOsDoctrine() {
   );
 }
 
+// [OTZAR-LIVE-6] Founder-readable orientation for the admin setup below. The
+// catalog/activation cards are a real, truthful admin console; this frames them
+// by the concepts an admin actually reasons about — topology, people, roles,
+// authority, tools, governed flows, approvals, propagation — so the dense
+// technical surface reads as an organized setup, not a raw console. Presentational
+// only; no data, no activation.
+function AdminSetupOrientation() {
+  const concepts: Array<{ id: string; label: string; body: string }> = [
+    { id: "topology", label: "Topology", body: "The shape of your org — departments, teams, and how work flows between them." },
+    { id: "people", label: "People", body: "The members and the AI Twins that work alongside them." },
+    { id: "roles", label: "Roles", body: "What each role is responsible for and allowed to do." },
+    { id: "authority", label: "Authority", body: "Who can approve, escalate, and act — the governance boundaries." },
+    { id: "tools", label: "Tools", body: "The connectors and sources Otzar may use, once you authorize them." },
+    { id: "flows", label: "Governed flows", body: "The work paths Otzar can move along — safe by default, gated where sensitive." },
+    { id: "approvals", label: "Approvals", body: "Where human judgment is required before work proceeds." },
+    { id: "propagation", label: "Propagation", body: "How Dandelion spreads awareness root-first to the right people — never mass invites." },
+  ];
+  return (
+    <Card data-testid="admin-setup-orientation">
+      <CardHeader>
+        <CardTitle className="text-base">Set up your organization</CardTitle>
+        <CardDescription>
+          Otzar routes work through the organization you define. Below is the
+          governed setup, organized by what you actually decide. Nothing is
+          activated until you authorize it.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+          {concepts.map((c) => (
+            <div key={c.id} data-testid={`setup-concept-${c.id}`}>
+              <dt className="text-sm font-medium text-foreground">{c.label}</dt>
+              <dd className="text-xs text-muted-foreground">{c.body}</dd>
+            </div>
+          ))}
+        </dl>
+      </CardContent>
+    </Card>
+  );
+}
+
 function CatalogCountsCard() {
   return (
     <Card data-testid="dandelion-counts-card">
@@ -1868,6 +1909,7 @@ export function OnboardingPage() {
         description={PREVIEW_DOCTRINE_LINE}
       />
       <AmbientWorkOsDoctrine />
+      <AdminSetupOrientation />
       <DoctrineCard />
       <DandelionActivationCard />
       <TeamActivationCard />
