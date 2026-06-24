@@ -15,6 +15,49 @@ Otzar's job: understand what work is happening, who can do what, what should hap
 next, and move it safely toward its endpoint with minimal human friction — the user
 feels the magic, never the machinery.
 
+## Extreme Polarity Ability: Communication → Governed Work Movement
+
+The single thing Otzar must become extraordinarily good at — its domain-general wedge:
+
+**Otzar turns messy human communication into governed, context-aware,
+completion-oriented work movement.**
+
+| From (messy input) | To (governed work movement) |
+|---|---|
+| scattered messages, meetings, transcripts | clear work structure |
+| ambiguous "this"/"that"/"what I received" | resolved context |
+| unclear ownership / authority | identified owners + authority-checked routing |
+| hidden blockers / forgotten follow-ups | identified blockers + tracked follow-ups (owner/due/context) |
+| decisions trapped in words | decisions + proposed next actions |
+| notifications that don't earn attention | role/person/team-aware visibility, proof without noise |
+| people waiting on each other | "who's waiting on whom", completion tracking |
+
+Contrast: consumer AI browsers operate browsers/computers — **Otzar operates work**.
+Generic assistants answer questions — **Otzar understands and moves work**. Task apps
+store tasks — **Otzar recovers work from communication and carries it forward**. Meeting
+tools summarize — **Otzar turns meetings into governed work movement**. Dashboards show
+state — **Otzar changes state safely**. Enterprise software makes humans operate software
+— **Otzar reduces the software humans must operate**.
+
+**The judging question for every slice:** does this make Otzar better at turning
+communication/context into governed work movement? If yes, build it. If it creates more
+human work, compress it. If it creates contextless artifacts, block it. If it hides
+something needing human judgment, surface it. If it surfaces noise, digest/hide it. If it
+uses backend proof, keep it available but out of normal flow. If it routes work, govern
+it. If it interprets work, allow correction. If it tracks work, don't fake completion.
+
+**Doctrine acceptance checks (apply across phases):**
+1. A transcript becomes digest + proposed actions + tracking, not just a summary. (3A/3B/3C)
+2. A correction updates interpretation, not a new disconnected task. (3D)
+3. "This/that/what I received" resolves context before action. (2.6/2.9)
+4. A blocker becomes a visible blocker state, not a generic note. (3C)
+5. A follow-up retains owner/due/context hints. (3B/3C)
+6. A send/request routes through governance. (1+2/3B)
+7. A low-value proof event stays silent. (2.5/2.7)
+8. An approval need interrupts. (2.5)
+9. Missing context asks one focused question. (2.6/2.9/3A)
+10. The user doesn't need to operate a dashboard to understand what changed. (2.8/3C)
+
 ## The differentiator — governed enterprise work (PRD area 6)
 
 Consumer AI agents operate browsers/computers. **Otzar operates governed enterprise

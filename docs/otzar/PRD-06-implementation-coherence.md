@@ -40,6 +40,13 @@ completion-oriented, low-friction, presence-first, enterprise-safe.** The user f
 magic, never the machinery. When a change is "technically green" but feels like an
 enterprise app to operate, it is wrong — fix it before shipping.
 
+**The one question every slice must pass (the Extreme Polarity Ability, `PRD-00`):**
+does this make Otzar better at turning **communication/context into governed work
+movement**? If yes, build it. If it creates more human work → compress. Contextless
+artifacts → block. Hides human-judgment needs → surface. Surfaces noise → digest/hide.
+Backend proof → available but out of normal flow. Routes work → govern. Interprets work
+→ allow correction. Tracks work → never fake completion.
+
 ## Phase map (source of truth: `PRD-00`)
 
 2.5 visibility+resolver · 2.5+ deepened visibility · 2.6 work-context · 2.7 calm-

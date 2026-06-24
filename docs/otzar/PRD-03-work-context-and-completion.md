@@ -4,6 +4,11 @@ Areas 4 + 5. Code: `lib/work-os/work-context.ts` (`resolveWorkContext`,
 `detectWorkReference`, `contextLabel`). Tests: `tests/unit/work-context.test.ts`,
 `ambient-otzar-bar.test.tsx`.
 
+This PRD is the heart of the **Extreme Polarity Ability** (`PRD-00`): communication →
+governed work movement. Context resolution (no contextless artifacts) + completion
+tracking (no faked completion) are what turn "this/that/what I received" and meetings
+into *moving, owned, tracked* work rather than dead summaries or empty tasks.
+
 ## Part A — Work context resolution (no contextless artifacts)
 
 **Otzar must understand what work the words REFERENCE, not just route them.** When a
