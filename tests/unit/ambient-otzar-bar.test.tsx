@@ -159,6 +159,30 @@ describe("AmbientOtzarBar — voice-input capability fallback", () => {
   });
 });
 
+describe("AmbientOtzarBar — ambient node surface", () => {
+  it("the expanded orb carries the presence-state attribute (state-driven glow)", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const dock = screen.getByTestId("ambient-otzar-bar");
+    expect(dock).toHaveAttribute("data-presence");
+    // Ambient enterprise GLASS: translucent frosted material, not a black slab
+    // and not the old opaque SaaS card.
+    expect(dock.className).toMatch(/backdrop-blur/);
+    expect(dock.className).toMatch(/bg-white\//);
+    expect(dock.className).not.toMatch(/bg-slate-950/);
+  });
+
+  it("does NOT render the redundant bottom nav-link row (fewer clicks)", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    // The duplicate deep-link row (it pointed at a debug Voice page) is gone;
+    // the orb is not a second navigation bar.
+    expect(screen.queryByText(/Open full Voice page/i)).not.toBeInTheDocument();
+  });
+});
+
 describe("AmbientOtzarBar — send flow", () => {
   it("sends transcript_text to /voice-intents and renders the response", async () => {
     const user = userEvent.setup();

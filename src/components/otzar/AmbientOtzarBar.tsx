@@ -58,7 +58,11 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
 import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
-import { usePresenceStore, usePresenceState } from "@/lib/stores/presence";
+import {
+  usePresenceStore,
+  usePresenceState,
+  type OtzarPresenceState,
+} from "@/lib/stores/presence";
 import {
   detectNativeMicCapability,
   nativeMicCopy,
@@ -237,6 +241,41 @@ function toneIcon(tone: "ok" | "warn" | "error" | "muted"): typeof ShieldCheck {
     case "muted":
     default:
       return ShieldQuestion;
+  }
+}
+
+// [OTZAR-LIVE-6] Ambient Enterprise Glass Interface — the orb is a translucent
+// frosted-glass intelligence layer, and its presence state is expressed as
+// Siri-like AMBIENT COLOR diffused THROUGH the glass, never a hard neon border.
+// Speaks the SAME nine-state language as AmbientEdgeGlow so a glow always means a
+// real state. Returns: `bloom` — a soft radial color field painted under the
+// glass (the Siri aura); `glow` — a low-opacity outer luminance (depth + state
+// hint); `dot` — the small status-dot accent. Calm, low-opacity, blurred.
+export function presenceRing(state: OtzarPresenceState): {
+  bloom: string;
+  glow: string;
+  dot: string;
+} {
+  switch (state) {
+    case "LISTENING":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(56,189,248,0.30),transparent_70%)]", glow: "shadow-[0_8px_48px_-12px_rgba(56,189,248,0.45)]", dot: "bg-sky-400" };
+    case "THINKING":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(129,140,248,0.28),transparent_70%)]", glow: "shadow-[0_8px_48px_-12px_rgba(129,140,248,0.42)]", dot: "bg-indigo-400" };
+    case "RECOMMENDATION":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(45,212,191,0.24),transparent_70%)]", glow: "shadow-[0_8px_44px_-14px_rgba(45,212,191,0.4)]", dot: "bg-teal-400" };
+    case "APPROVAL_REQUIRED":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(251,191,36,0.30),transparent_70%)]", glow: "shadow-[0_8px_50px_-12px_rgba(251,191,36,0.45)]", dot: "bg-amber-400" };
+    case "SUCCESS":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(52,211,153,0.26),transparent_70%)]", glow: "shadow-[0_8px_48px_-12px_rgba(52,211,153,0.42)]", dot: "bg-emerald-400" };
+    case "BLOCKED":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(245,158,11,0.22),transparent_70%)]", glow: "shadow-[0_8px_40px_-14px_rgba(245,158,11,0.36)]", dot: "bg-amber-500" };
+    case "FAILURE":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(251,113,133,0.24),transparent_70%)]", glow: "shadow-[0_8px_44px_-14px_rgba(251,113,133,0.4)]", dot: "bg-rose-400" };
+    case "QUIET":
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(148,163,184,0.12),transparent_70%)]", glow: "shadow-[0_8px_36px_-16px_rgba(15,23,42,0.3)]", dot: "bg-slate-400" };
+    case "IDLE":
+    default:
+      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(186,200,224,0.18),transparent_70%)]", glow: "shadow-[0_8px_40px_-14px_rgba(15,23,42,0.22)]", dot: "bg-slate-400" };
   }
 }
 
@@ -424,6 +463,9 @@ export function AmbientOtzarBar(): JSX.Element {
   // Phase 1251 — publish ambient signals to the presence store so
   // the edge glow + ambient cards speak the same state language.
   const presenceState = usePresenceState();
+  // [OTZAR-LIVE-6] The orb's frosted edge ring + status dot for the CURRENT
+  // presence state — same color language as the edge glow.
+  const ring = presenceRing(presenceState);
   const setPresenceSignals = usePresenceStore((s) => s.setSignals);
   const markPresenceSuccess = usePresenceStore((s) => s.markSuccess);
   const markPresenceFailure = usePresenceStore((s) => s.markFailure);
@@ -3539,13 +3581,16 @@ export function AmbientOtzarBar(): JSX.Element {
           data-quiet={quiet ? "true" : "false"}
           data-presence={presenceState}
           onClick={() => setExpanded(true)}
-          className={
-            quiet
-              ? "relative flex items-center gap-2 rounded-full border border-border bg-card/90 px-4 py-2 text-xs font-medium text-muted-foreground shadow-md backdrop-blur hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-              : "relative flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          }
+          className={`relative flex items-center gap-2 overflow-hidden rounded-full border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 ${ring.glow} px-5 py-3 text-sm font-semibold text-slate-900 ring-1 ring-black/[0.04] backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow] duration-700 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-sky-400/40 ${
+            quiet ? "px-4 py-2 text-xs text-slate-600" : ""
+          }`}
         >
-          {quiet ? <MoonStar className="h-4 w-4" /> : <Mic className="h-5 w-5" />}
+          <span
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 -z-10 ${ring.bloom}`}
+          />
+          <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${ring.dot} ${quiet ? "" : "motion-safe:animate-pulse"}`} />
+          {quiet ? <MoonStar className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           <span>{collapsedLabel}</span>
         </button>
       </div>
@@ -3560,11 +3605,24 @@ export function AmbientOtzarBar(): JSX.Element {
       role="region"
       aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
-      className="fixed bottom-6 right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-2xl border-2 border-primary/30 bg-background/95 backdrop-blur shadow-2xl supports-[backdrop-filter]:bg-background/85"
+      data-presence={presenceState}
+      className={`group fixed bottom-6 right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+      {/* Siri-like ambient color field, diffused UNDER the glass — the state
+          color blooms through the frost, it is not a hard border. */}
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-0 -z-10 transition-opacity duration-1000 ${ring.bloom}`}
+      />
+      <div className="relative flex items-center justify-between gap-2 border-b border-black/[0.06] px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${ring.dot} ${
+              presenceState === "IDLE" || presenceState === "QUIET"
+                ? ""
+                : "motion-safe:animate-pulse"
+            }`}
+          />
           <span className="text-sm font-semibold">Talk to Otzar</span>
           <span className={`text-xs ${statusClass} truncate`}>{status}</span>
         </div>
@@ -4434,23 +4492,11 @@ export function AmbientOtzarBar(): JSX.Element {
             No raw audio is stored.
           </p>
 
-          <div className="flex flex-wrap gap-1 pt-1">
-            <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs">
-              <Link to="/app/my-twin">My Twin</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs">
-              <Link to="/app/approvals">Approvals</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs">
-              <Link to="/app/collaboration">Collaboration</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs">
-              <Link to="/app/corrections">Corrections</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs">
-              <Link to="/app/voice-ready">Open full Voice page</Link>
-            </Button>
-          </div>
+          {/* [OTZAR-LIVE-6] Removed the bottom deep-link row (My Twin / Approvals
+              / Collaboration / Corrections / full Voice page) — it duplicated the
+              left nav and pointed at a debug page. The ambient surface routes by
+              voice/text ("show my approvals", "open collaboration"); it is not a
+              second navigation bar. */}
         </div>
       )}
     </div>

@@ -227,6 +227,43 @@ and resume-not-dead-end). Discipline: no hardcoded David/Samiksha (dynamic resol
 parallel draft store (reuses pendingArtifact + adds an ephemeral clarification ref), no
 durable-memory claim, no fake sends.
 
+## Ambient Enterprise Glass Interface for Governed Intelligence (2026-06-24, increment 1)
+
+Founder feedback: the UI was a bright, noisy, button-heavy white card — not the calm,
+non-blocking ambient presence the product is meant to be. Founder direction (corrected):
+NOT a black/dark SaaS widget — an **Apple-style translucent frosted-glass** intelligence
+layer (Siri-like ambient color bloom, luminous, works over light or dark), enterprise-grade
+and readable. Increment 1 transforms the **ambient surfaces themselves** (the orb) into that
+glass layer, verified by screenshot (a local preview against the deployed backend — the
+visual is invisible to unit tests, so it's gated on eyes, not assertions, and decoupled from
+the production push).
+
+| Change | Status | Evidence |
+|---|---|---|
+| Translucent frosted-glass orb (`bg-white/70 backdrop-blur-2xl backdrop-saturate-150`, dark readable text) — not a black slab, not the old opaque card | ✅ | before/after screenshots; component test asserts `bg-white/` + `backdrop-blur`, NOT `bg-slate-950` |
+| Siri-like ambient state color DIFFUSED through the glass (radial bloom + soft aura), not a hard neon border | ✅ | active-state screenshot shows a teal/emerald bloom through the frost; `presenceRing()` returns a per-state radial `bloom` + `glow`; `presence-ring.test.ts` locks it |
+| Every bloom means a real presence state (9-state language shared with the edge glow) | ✅ | `presenceRing` maps sky/indigo/teal/amber/emerald/rose to LISTENING/THINKING/RECOMMENDATION/APPROVAL/SUCCESS/FAILURE |
+| Orb carries `data-presence` for the live state | ✅ | component test asserts the attribute |
+| Removed the redundant bottom nav-link row (5 dup deep-links → a debug page) | ✅ | orb is not a second nav bar; component test asserts it's gone |
+| Thread/inbound answers surface in the calm outcome line (not chat-only) | ✅ | `setActionHeard` in the thread-query branch |
+
+Verified-before-cut (advisor discipline): "Recent" vs "Saved" corrections and Mute vs Quiet
+were NOT merged — they encode different things (session vs cross-session+revoke; TTS-mute vs
+ambient product state). Test-voice / always-on Stop-voice were KEPT (real capability + test
+coverage); only the truly-redundant nav row was removed.
+
+Screenshot harness: `OTZAR_SMOKE_BASE_URL=http://localhost:4173 … npm run
+test:e2e:screenshots` (build → preview → capture orb states + mobile; `--disable-web-security`
+for the local→prod-backend origin only, never against prod).
+
+Remaining ambient-interface gaps (honest, deferred): extend the glass material to the
+notification stack + the in-orb work/transcript cards (still the older flat style); a visible
+pending-action "memory" chip; richer Siri-style motion (the bloom is static-per-state today,
+not yet a living gradient); edge-collapsing panels; node-topology visualization (intentionally
+deferred — doctrine says "collapsed by default, not a noisy graph"). The glass is designed to
+read over the light workspace (no global dark-theme flip needed). Voice/earbud path is honest
+(browser-STT, no fake hands-free claim).
+
 ## Triage of the 2 remaining "fails" (classified, not patched-blindly)
 
 1. **L · hard refresh → /login** — *known/intentional.* In-memory auth by design (code: "NO
