@@ -49,6 +49,10 @@ const RULES: ReadonlyArray<{
   { kind: "blocker", re: /\b(blocked\b|blocker\b|waiting\s+on|stuck\s+on|can'?t\s+proceed|cannot\s+proceed|held\s+up|depends\s+on)\b/i, confidence: 0.8 },
   { kind: "commitment", re: /\b(i\s+will|i'?ll|we\s+will|we'?ll|i'?m\s+going\s+to|committed\s+to|i\s+can\s+take|i'?ll\s+own)\b/i, confidence: 0.78 },
   { kind: "follow_up", re: /\b(follow[\s-]?up|next\s+step|action\s+item|to[\s-]?do|need\s+to|needs\s+to|should\s+(?:send|prepare|review|share)|let'?s\b)\b/i, confidence: 0.66 },
+  // [OTZAR-LIVE-6] per-person responsibility ("Samiksha owns the summary",
+  // "William needs the decisions") → an OWNED follow-up so team-scale context
+  // keeps owners per action instead of dropping them. ownerOf extracts the name.
+  { kind: "follow_up", re: /\b[A-Z][a-z]+\s+(?:owns?|is\s+responsible|will\s+own|needs?)\b/, confidence: 0.7 },
   { kind: "risk", re: /\b(risk\b|concern\b|worried|might\s+(?:fail|slip)|could\s+slip|at\s+risk)\b/i, confidence: 0.68 },
   { kind: "open_question", re: /\b(open\s+(?:item|question)|unclear|tbd\b|to\s+be\s+decided|not\s+sure|still\s+deciding)\b/i, confidence: 0.62 },
 ];
@@ -63,15 +67,20 @@ function splitSentences(text: string): string[] {
     .filter((s) => s.length > 0);
 }
 
+// Capitalized tokens that look like a name but are NOT a person — so "We need…",
+// "There is…", "Team owns…" never become a false owner.
+const NOT_A_PERSON_OWNER =
+  /^(?:we|i|you|they|there|team|it|this|that|the|he|she|someone|somebody|anyone|everyone|nobody|people|management|leadership|who)$/i;
 function ownerOf(sentence: string): string | undefined {
-  // "Samiksha will…", "David is going to…", "David is blocked/waiting…",
-  // "we need David to…", "ask William to…"
+  // "Samiksha will/owns/needs/should…", "David is going to…", "David is
+  // blocked/waiting…", "we need David to…", "ask William to…"
   const m =
     sentence.match(
-      /\b([A-Z][a-z]+)\s+(?:will|is\s+going\s+to|agreed\s+to|to\s+take|owns?|is\s+(?:blocked|waiting|stuck)|needs?\s+to)\b/,
+      /\b([A-Z][a-z]+)\s+(?:will|is\s+going\s+to|agreed\s+to|to\s+take|owns?|is\s+responsible|is\s+(?:blocked|waiting|stuck)|needs?|should)\b/,
     ) ??
     sentence.match(/\b(?:need|ask|tell|assign(?:ed)?(?:\s+to)?|have)\s+([A-Z][a-z]+)\s+to\b/);
-  return m?.[1];
+  const name = m?.[1];
+  return name !== undefined && !NOT_A_PERSON_OWNER.test(name) ? name : undefined;
 }
 
 function dueOf(sentence: string): string | undefined {
