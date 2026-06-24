@@ -290,6 +290,22 @@ no surveillance) and was left intact. Honest remaining: the dense admin catalog 
 is unchanged (it serves admin activation); demo names still live in MSW test fixtures (not
 production copy) — a separate test-hygiene cleanup.
 
+## Deferred-closure scope — increment 3 (2026-06-24)
+
+Closes the three honest gaps from increment 2 — grounded in real state only, no decoration,
+no fake intelligence.
+
+| Gap | Change | Status | Evidence |
+|---|---|---|---|
+| A5 real node topology | A small REAL node model (`work-nodes.ts`) built ONLY from current state — people in the request, the draft, approvals, replies, context, corrections. Collapsed-by-default glass "Work nodes · N" strip; each chip's intensity says whether it needs the human; nothing renders when nothing is in flight. NOT a graph dashboard. | ✅ | `work-nodes.test.ts` (9: empty→none, per-rail nodes, intensity order, no blank nodes); component tests (no nodes on idle; appears collapsed during a real draft; clears on resolve) |
+| B2 approver apply | "Who should approve this?" → the named answer resolves through the org resolver and routes a **governed APPROVAL_REQUEST** through the existing collaboration/approval rail (not a fabricated approval). Context slot also wired (increment 2). | ✅ approver + context | approver slot-fill component test asserts `request_type: APPROVAL_REQUEST` + resolved target + chip "Need approver" + clear |
+| B2 owner/which_item/due | — | 🔭 deferred (honest) | no grounded apply: vague "who should own this?" has no current work item to assign; item-selection is internal to the correction handler; no "when is it due?" emitter exists to continue. The pendingClarification type + chip already support them; documented, not faked. |
+| Named live reply card | Notification stack names the most-recent unread sender from real data — "David replied" (1) / "N replies tracked" (>1) — with a truthful **count fallback** when no human sender is known. Never hardcodes a name. | ✅ | `ambient-edge-presence` tests: "Priya replied" from real fixture; count fallback with no fake name; working intensity |
+
+Discipline held: every node/card grounded in real state; no decorative bubbles; presence
+intensity governs priority; glass direction intact; response-roundtrip / conversation-memory /
+response-reconciliation / first-turn multi-recipient preserved.
+
 ## Deferred-closure scope — increment 2 (2026-06-24)
 
 Founder direction (governing): ambient AI is intelligence-backed, not decoration — every

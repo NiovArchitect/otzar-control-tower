@@ -165,6 +165,7 @@ import {
   detectFirstTurnRecipients,
   type PendingClarification,
 } from "@/lib/work-os/pending-clarification";
+import { buildWorkNodes } from "@/lib/work-os/work-nodes";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import {
   detectVagueWorkIntent,
@@ -287,6 +288,21 @@ export function presenceRing(state: OtzarPresenceState): {
 // still; attention/critical hold steady so the glow itself carries the signal.
 function bloomShouldLive(intensity: PresenceIntensity): boolean {
   return intensity === "working";
+}
+
+// Small status-dot color per intensity for the work-node chips.
+function intensityDot(intensity: PresenceIntensity): string {
+  switch (intensity) {
+    case "attention":
+      return "bg-amber-400";
+    case "critical":
+      return "bg-rose-400";
+    case "working":
+      return "bg-sky-400";
+    case "ambient":
+    default:
+      return "bg-slate-300";
+  }
 }
 
 // Glass styling for the ambient memory chip, scaled by intensity: quiet when
@@ -579,6 +595,31 @@ export function AmbientOtzarBar(): JSX.Element {
   const surfaceContext = useCurrentSurfaceContextStore((s) => s.context);
   const provideSurfaceContext = useCurrentSurfaceContextStore((s) => s.provide);
   const clearSurfaceContext = useCurrentSurfaceContextStore((s) => s.clear);
+  // [OTZAR-LIVE-6] Real work-node model — built ONLY from current state the orb
+  // already holds (active recipients, the draft, approvals, replies, context,
+  // saved corrections). No node exists without its backing state; nothing renders
+  // when nothing is in flight. Collapsed by default in the UI below.
+  const approvalsCount = usePresenceStore((s) => s.approvalsCount);
+  const unreadCount = usePresenceStore((s) => s.unreadCount);
+  const workNodes = buildWorkNodes({
+    recipients: memoryClar?.recipients ?? [],
+    awaitingRecipient: memoryClar?.awaiting === "recipient",
+    draft:
+      pendingArtifact !== null
+        ? {
+            targetLabel: pendingArtifact.targetLabel ?? null,
+            proposed: pendingArtifact.proposed === true,
+            externalChannel: pendingArtifact.externalChannel === true,
+          }
+        : null,
+    contextTitle:
+      surfaceContext !== null && surfaceContext.active
+        ? surfaceContext.title ?? surfaceContext.summary ?? "Current context"
+        : null,
+    approvalsCount,
+    unreadCount,
+    correctionsActive: savedCorrections.filter((c) => c.state !== "REVOKED").length,
+  });
   function handleAddContext(): void {
     const selection =
       typeof window !== "undefined"
@@ -2893,6 +2934,25 @@ export function AmbientOtzarBar(): JSX.Element {
             return;
           }
         }
+        if (clar.awaiting === "approver") {
+          // The answer to "who should approve this?" is an APPROVER — resolve the
+          // named person and route a governed APPROVAL_REQUEST through the
+          // existing collaboration/approval rail (never a fabricated approval).
+          const names = parseRecipientList(text);
+          if (names.length > 0) {
+            clearPendingClar();
+            setDraft("");
+            await executeCollaborationRequest(
+              names[0]!,
+              clar.draftMessage,
+              "approve this",
+              "APPROVAL_REQUEST",
+              text,
+              at0,
+            );
+            return;
+          }
+        }
         if (clar.awaiting === "context") {
           // The answer to "what context?" IS the context — set it explicitly
           // (user-provided provenance) and confirm. A short, real reference like
@@ -3071,14 +3131,21 @@ export function AmbientOtzarBar(): JSX.Element {
             target: null,
             result: "blocked",
           });
-          // [OTZAR-LIVE-6] Remember we asked WHO this is for, with the objective
-          // preserved — so the next turn's recipient answer resumes the send.
+          // [OTZAR-LIVE-6] Remember WHAT we asked for, with the objective
+          // preserved — so the next turn resumes. If we asked "who should
+          // APPROVE this?", the awaited slot is an APPROVER (routed through the
+          // governed approval rail); otherwise it's a recipient (a message).
+          const askedForApprover = /\bapprove\b/i.test(
+            outbound.recipientFacingMessage,
+          );
           setPendingClar({
             id: `clar-${at0}`,
-            kind: "outbound_message",
-            awaiting: "recipient",
+            kind: askedForApprover ? "collaboration_request" : "outbound_message",
+            awaiting: askedForApprover ? "approver" : "recipient",
             originalText: text,
-            draftMessage: composeRequestBody(text),
+            draftMessage: askedForApprover
+              ? "Can you approve this?"
+              : composeRequestBody(text),
             recipients: [],
             createdAt: Date.now(),
           });
@@ -3870,6 +3937,49 @@ export function AmbientOtzarBar(): JSX.Element {
           <span className="text-[11px] font-medium">{memoryChipText}</span>
           <span className="text-[10px] opacity-60">· Otzar is holding this</span>
         </div>
+      ) : null}
+
+      {/* [OTZAR-LIVE-6] Related work nodes — a small, REAL node cluster grounded
+          only in current state (people in the request, the draft, approvals,
+          replies, context, corrections). Collapsed by default; nothing renders
+          when nothing is in flight. Not a graph dashboard — a glanceable strip
+          where each chip's intensity says whether it needs the human. */}
+      {workNodes.length > 0 ? (
+        <details
+          className="group relative border-b border-black/[0.06]"
+          data-testid="ambient-work-nodes"
+        >
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-[11px] text-slate-600 hover:text-slate-900">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden />
+            <span className="font-medium">Work nodes</span>
+            <span className="opacity-60">· {workNodes.length}</span>
+            <ChevronDown
+              className="ml-auto h-3 w-3 opacity-50 transition-transform group-open:rotate-180"
+              aria-hidden
+            />
+          </summary>
+          <div
+            className="flex flex-wrap gap-1.5 px-3 pb-2"
+            data-testid="ambient-work-nodes-list"
+          >
+            {workNodes.map((n) => (
+              <span
+                key={n.id}
+                data-testid="work-node"
+                data-kind={n.kind}
+                data-intensity={n.intensity}
+                title={n.detail}
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] ${chipIntensityClass(n.intensity)}`}
+              >
+                <span
+                  aria-hidden
+                  className={`inline-block h-1 w-1 rounded-full ${intensityDot(n.intensity)}`}
+                />
+                {n.label}
+              </span>
+            ))}
+          </div>
+        </details>
       ) : null}
 
       {(

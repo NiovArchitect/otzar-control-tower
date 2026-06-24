@@ -76,6 +76,11 @@ export function AmbientNotificationStack(): JSX.Element | null {
   const voiceBlocked = usePresenceStore((s) => s.voiceBlocked);
   const setSignals = usePresenceStore((s) => s.setSignals);
   const [dismissed, setDismissed] = useState<Set<CardKind>>(new Set());
+  // [OTZAR-LIVE-6] The real display name of the most-recent unread sender (a
+  // teammate who replied), when the notification rail provides one — so the
+  // card can say "David replied" instead of a bare count. Null when no human
+  // sender is known; the card then falls back to the count. Never hardcoded.
+  const [replySender, setReplySender] = useState<string | null>(null);
 
   // Poll proposed actions so "needs your decision" is real, not
   // guessed. Failures add no card and change no state.
@@ -103,6 +108,34 @@ export function AmbientNotificationStack(): JSX.Element | null {
       clearInterval(timer);
     };
   }, [setSignals]);
+
+  // Poll the inbox for the most-recent UNREAD sender, so a reply can be named
+  // ("David replied") instead of shown as a bare count. Grounded only in real
+  // notification data; a fetch failure names no one (falls back to the count).
+  useEffect(() => {
+    let cancelled = false;
+    async function check(): Promise<void> {
+      try {
+        const r = await api.notifications.list({ unread_only: true, page: 1, page_size: 5 });
+        if (cancelled || !r.ok) return;
+        const items = r.data.notifications ?? [];
+        // Most-recent unread with a real human sender name.
+        const named = items.find((n) => {
+          const name = n.sender?.display_name?.trim() ?? "";
+          return name.length > 0 && n.sender?.source_kind !== "SYSTEM";
+        });
+        setReplySender(named?.sender?.display_name?.trim() ?? null);
+      } catch {
+        // Silent: never invent a sender from an error.
+      }
+    }
+    void check();
+    const timer = setInterval(() => void check(), APPROVALS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   // Dismissals clear when the signal clears, so a card can return
   // the next time the situation genuinely recurs.
@@ -146,10 +179,16 @@ export function AmbientNotificationStack(): JSX.Element | null {
       kind: "notes",
       intensity: "working",
       icon: <BellRing className="h-3.5 w-3.5 text-teal-500" aria-hidden />,
+      // Name the reply when the rail gives a real sender ("David replied");
+      // otherwise the truthful count fallback.
       text:
-        unreadCount === 1
-          ? "1 new note for you."
-          : `${unreadCount} new notes for you.`,
+        replySender !== null
+          ? unreadCount === 1
+            ? `${replySender} replied.`
+            : `${unreadCount} replies tracked.`
+          : unreadCount === 1
+            ? "1 new note for you."
+            : `${unreadCount} new notes for you.`,
       to: "/app/comms",
       linkLabel: "Open",
     });

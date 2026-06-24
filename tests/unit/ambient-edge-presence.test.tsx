@@ -237,6 +237,80 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
     );
   });
 
+  it("[OTZAR-LIVE-6] names the reply from real notification data ('Priya replied')", async () => {
+    usePresenceStore.getState().setSignals({ unreadCount: 1 });
+    server.use(
+      http.get(`${API_BASE}/notifications`, () =>
+        HttpResponse.json({
+          ok: true,
+          page: 1,
+          page_size: 5,
+          total: 1,
+          notifications: [
+            {
+              notification_id: "n-1",
+              notification_class: "OTZAR_INTERNAL_NOTE",
+              body_summary: "On it.",
+              created_at: "2026-06-24T10:00:00.000Z",
+              read_at: null,
+              status: "UNREAD",
+              sender: { entity_id: "ent-priya", display_name: "Priya", source_kind: "HUMAN" },
+            },
+          ],
+        }),
+      ),
+    );
+    render(
+      <MemoryRouter>
+        <AmbientNotificationStack />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("ambient-card").textContent).toContain("Priya replied"),
+    );
+    // It's a working-intensity card (a reply, not a decision).
+    expect(screen.getByTestId("ambient-card").getAttribute("data-intensity")).toBe("working");
+  });
+
+  it("[OTZAR-LIVE-6] falls back to the count when no human sender is known (no fake name)", async () => {
+    usePresenceStore.getState().setSignals({ unreadCount: 2 });
+    server.use(
+      http.get(`${API_BASE}/notifications`, () =>
+        HttpResponse.json({
+          ok: true,
+          page: 1,
+          page_size: 5,
+          total: 2,
+          notifications: [
+            {
+              notification_id: "n-2",
+              notification_class: "SYSTEM",
+              body_summary: "Scheduled digest.",
+              created_at: "2026-06-24T10:00:00.000Z",
+              read_at: null,
+              status: "UNREAD",
+              sender: { entity_id: "system", display_name: "", source_kind: "SYSTEM" },
+            },
+          ],
+        }),
+      ),
+    );
+    render(
+      <MemoryRouter>
+        <AmbientNotificationStack />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("ambient-card").textContent).toContain(
+        "2 new notes for you",
+      ),
+    );
+    // Never a fabricated/demo name in the fallback.
+    expect(screen.getByTestId("ambient-card").textContent).not.toMatch(
+      /\b(David|Samiksha|Vishesh)\b/,
+    );
+  });
+
   it("ambient cards never speak developer vocabulary", () => {
     usePresenceStore.getState().setSignals({
       quiet: true,

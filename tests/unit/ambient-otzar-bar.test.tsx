@@ -181,6 +181,14 @@ describe("AmbientOtzarBar — ambient node surface", () => {
     // the orb is not a second navigation bar.
     expect(screen.queryByText(/Open full Voice page/i)).not.toBeInTheDocument();
   });
+
+  it("shows NO work-node cluster when there is no real state (never decorative)", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    // A fresh orb with nothing in flight has no nodes — the strip is absent.
+    expect(screen.queryByTestId("ambient-work-nodes")).not.toBeInTheDocument();
+  });
 });
 
 describe("AmbientOtzarBar — send flow", () => {
@@ -698,6 +706,15 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       "attention",
     );
     expect(internalMessagePosts.length).toBe(0);
+    // The real work-node cluster appears (grounded in the draft), collapsed by
+    // default, with a request node — not a decorative graph.
+    const nodes = await screen.findByTestId("ambient-work-nodes");
+    expect(nodes).not.toHaveAttribute("open"); // collapsed by default
+    expect(screen.getByTestId("ambient-work-nodes-list")).toBeInTheDocument();
+    const reqNode = screen
+      .getAllByTestId("work-node")
+      .find((n) => n.getAttribute("data-kind") === "request");
+    expect(reqNode).toBeDefined();
 
     // The recipient answer RESUMES the held draft and sends to both.
     await user.clear(input);
@@ -712,6 +729,10 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     // Chip clears once resolved — real state, not sticky decoration.
     await waitFor(() =>
       expect(screen.queryByTestId("ambient-memory-chip")).not.toBeInTheDocument(),
+    );
+    // The work-node cluster also clears — nodes are real state, not decoration.
+    await waitFor(() =>
+      expect(screen.queryByTestId("ambient-work-nodes")).not.toBeInTheDocument(),
     );
   });
 
@@ -784,6 +805,70 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       expect(screen.getByTestId("surface-context-chip")).toBeInTheDocument(),
     );
     // Memory chip cleared once resolved.
+    await waitFor(() =>
+      expect(screen.queryByTestId("ambient-memory-chip")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("[OTZAR-LIVE-6] approver slot-fill: 'who should approve?' → routes a governed APPROVAL_REQUEST", async () => {
+    const collabPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/resolve-target`, async ({ request }) => {
+        const body = (await request.json()) as { target_name?: string };
+        const name = (body.target_name ?? "").trim().toLowerCase();
+        const match = name.includes("sadeil")
+          ? { entity_id: "ent-sadeil", display_name: "Sadeil", role_title: "Founder" }
+          : null;
+        return HttpResponse.json({
+          ok: true,
+          resolution: match
+            ? { code: "RESOLVED_INTERNAL_ENTITY", match, candidates: [match] }
+            : { code: "NOT_FOUND", match: null, candidates: [] },
+        });
+      }),
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collabPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "cr-1", status: "PROPOSED" } },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    // Give the orb a real current context so the governed approval rail has
+    // something to attach (an approval references a work item).
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "unknown",
+      title: "the launch plan",
+    });
+    const input = screen.getByLabelText(/Message to Otzar/i);
+    const send = (): Promise<void> =>
+      user.click(screen.getByRole("button", { name: /^send$/i }));
+
+    // Escalation with no named approver → asks who, and remembers it asked.
+    await user.type(input, "Escalate this for approval");
+    await send();
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome")).toHaveTextContent(
+        /who should approve/i,
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("ambient-memory-chip")).toHaveTextContent(
+        /need approver/i,
+      ),
+    );
+
+    // The named answer resolves the approver and routes a governed APPROVAL_REQUEST.
+    await user.clear(input);
+    await user.type(input, "Sadeil");
+    await send();
+    await waitFor(() => expect(collabPosts.length).toBeGreaterThanOrEqual(1));
+    expect(collabPosts[0]!.request_type).toBe("APPROVAL_REQUEST");
+    expect(collabPosts[0]!.target_entity_id).toBe("ent-sadeil");
+    // Memory chip clears once the approval is routed.
     await waitFor(() =>
       expect(screen.queryByTestId("ambient-memory-chip")).not.toBeInTheDocument(),
     );
