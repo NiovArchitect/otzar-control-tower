@@ -919,7 +919,7 @@ export function AmbientOtzarBar(): JSX.Element {
       const msg =
         interp !== null && interp.kind === "CLARIFY"
           ? interp.recipientFacingMessage
-          : 'Tell me who this is for — e.g. "ask David to review this note" — and I\'ll route a governed message.';
+          : 'Tell me who this is for — e.g. "ask a teammate to review this note" — and I\'ll route a governed message.';
       setActionResult(msg);
       setActionStatus("Needs a teammate");
       speakConfirmation(msg);

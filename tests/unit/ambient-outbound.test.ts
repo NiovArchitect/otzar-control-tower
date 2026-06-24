@@ -9,6 +9,25 @@ import { describe, expect, it } from "vitest";
 import { interpretAmbientOutboundWork } from "@/lib/work-os/ambient-outbound";
 import { planWorkCommand } from "@/lib/work-os/command-planner";
 
+describe("[OTZAR-LIVE-6] tenant isolation — no demo-name fallback", () => {
+  // Resolution must be dynamic (backend /work-os/resolve-target). The outbound
+  // interpreter must NEVER inject a demo person (David/Sadeil/…) as a fallback
+  // recipient when the target is missing/unresolvable — it asks instead.
+  const DEMO = /\b(David|Samiksha|William|Vishesh|Sadeil|Annie|Shweta|Walter)\b/;
+  it("missing/unresolvable recipient asks — never a hardcoded demo name", () => {
+    for (const phrase of [
+      "Ask to review this.",
+      "Send this for approval.",
+      "This needs approval.",
+      "Can you review this?",
+    ]) {
+      const p = interpretAmbientOutboundWork(phrase);
+      const surfaced = `${p?.recipient ?? ""} ${p?.recipientFacingMessage ?? ""}`;
+      expect(DEMO.test(surfaced), phrase).toBe(false);
+    }
+  });
+});
+
 describe("[OTZAR-LIVE-6] escalation / approval intent", () => {
   it("named approver routes through the governed approval rail", () => {
     for (const phrase of [

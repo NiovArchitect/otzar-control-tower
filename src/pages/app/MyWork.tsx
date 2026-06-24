@@ -82,8 +82,8 @@ export function MyWork(): JSX.Element {
         <p className="text-xs text-muted-foreground">Loading your work…</p>
       ) : items.length === 0 ? (
         <div className="rounded-md border border-border p-3 text-xs text-muted-foreground" data-testid="my-work-empty">
-          No durable work yet. When you say things like “I told Vishesh I'd
-          follow up” or “Ask David to review this,” Otzar saves them here.
+          No durable work yet. When you say things like “I told a teammate I'd
+          follow up” or “Ask a teammate to review this,” Otzar saves them here.
         </div>
       ) : (
         BUCKET_ORDER.map((bucket) => {
