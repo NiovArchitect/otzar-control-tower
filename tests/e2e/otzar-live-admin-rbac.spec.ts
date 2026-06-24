@@ -1,0 +1,115 @@
+// FILE: tests/e2e/otzar-live-admin-rbac.spec.ts
+// PURPOSE: [OTZAR-LIVE-6] Close the admin-positive RBAC gap from the Live
+//          Collaboration Verification Matrix. Proves, against the DEPLOYED app:
+//          a standard user is denied the org-admin Control Tower; a demo ADMIN
+//          (can_admin_org) reaches it; admin/member asymmetry is real; and no
+//          backend machinery leaks. DIAGNOSTIC + sanitized. The admin-positive
+//          rows SKIP cleanly unless OTZAR_SMOKE_ADMIN_EMAIL (+ a password) is set,
+//          so this never fakes admin verification with a standard user.
+// RUN: OTZAR_SMOKE_EMAIL=<std> DEMO_SHARED_PASSWORD=<pw> \
+//      OTZAR_SMOKE_ADMIN_EMAIL=<admin> [OTZAR_SMOKE_ADMIN_PASSWORD=<pw>] \
+//      npm run test:e2e:live:admin
+// CONNECTS TO: playwright.live.config.ts, AuthGuard, AdminSidebar, EmployeeLayout.
+import { test, expect, type Page, type Browser } from "@playwright/test";
+
+const STD_EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
+const STD_PW = process.env.DEMO_SHARED_PASSWORD;
+const ADMIN_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL;
+// Admin may share the demo password or use a dedicated one; never logged.
+const ADMIN_PW = process.env.OTZAR_SMOKE_ADMIN_PASSWORD ?? process.env.DEMO_SHARED_PASSWORD;
+const haveAdmin = Boolean(ADMIN_EMAIL && ADMIN_PW);
+
+test.describe.configure({ retries: 0, timeout: 300_000 });
+
+type Status = "PASS" | "FAIL" | "SKIP";
+const rows: Array<{ name: string; status: Status; cls: string; detail: string }> = [];
+function sanitize(s: string): string {
+  return s
+    .replace(/\b[0-9a-f]{8}-[0-9a-f-]{20,}\b/gi, "<uuid>")
+    .replace(/\b(ent|org|usr|tar)_[0-9a-z]{6,}\b/gi, "<id>")
+    .replace(/\s+/g, " ").trim().slice(0, 180);
+}
+function record(name: string, status: Status, cls: string, detail: string): void {
+  const clean = sanitize(detail);
+  rows.push({ name, status, cls, detail: clean });
+  console.log(`[admin-rbac] ${status} | ${cls} | ${name} :: ${clean}`);
+}
+
+async function login(page: Page, email: string, pw: string): Promise<{ path: string; adminShell: boolean; employeeShell: boolean }> {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(pw);
+  await page.getByRole("button", { name: /sign in/i }).click();
+  await page.waitForURL((u) => !/\/login$/.test(u.pathname), { timeout: 25_000 }).catch(() => undefined);
+  await page.waitForTimeout(1500);
+  return {
+    path: new URL(page.url()).pathname,
+    adminShell: (await page.getByTestId("admin-nav-group").count()) > 0,
+    employeeShell: (await page.getByTestId("employee-nav").count()) > 0 || /\/app/.test(page.url()),
+  };
+}
+
+// Backend machinery that must never appear in normal UX (the AccessDenied screen
+// names `can_admin_org` deliberately, so that token is excluded).
+async function leakCheck(page: Page): Promise<{ ok: boolean; hit: string }> {
+  const html = await page.locator("body").innerHTML().catch(() => "");
+  const leaks = [/Traceback \(most recent/, /\bInternalServerError\b/, /\b(ent|org|usr|tar)_[0-9a-z]{8,}\b/, /CROSS_ORG_DENIED/, /\bPOLICY_[A-Z_]+\b/, /\/api\/v1\/[\w/-]+/];
+  for (const re of leaks) { const m = html.match(re); if (m) return { ok: false, hit: m[0] }; }
+  return { ok: true, hit: "" };
+}
+
+test("Live admin RBAC / ABAC verification", async ({ browser }: { browser: Browser }) => {
+  test.skip(!STD_PW, "Set DEMO_SHARED_PASSWORD (standard-user negative needs it).");
+
+  // ── A. Standard-user NEGATIVE — denied the org-admin Control Tower ──────
+  const stdCtx = await browser.newContext();
+  const stdPage = await stdCtx.newPage();
+  let stdAdminShell = true;
+  try {
+    const s = await login(stdPage, STD_EMAIL, STD_PW as string);
+    stdAdminShell = s.adminShell;
+    record("A: standard login reaches employee shell, NOT admin", !s.adminShell && s.employeeShell ? "PASS" : "FAIL", !s.adminShell ? "rbac-expected" : "product-bug", `landed ${s.path} adminShell=${s.adminShell} employeeShell=${s.employeeShell}`);
+    // Direct admin route is blocked (redirect/login/AccessDenied — never admin UI).
+    await stdPage.goto("/admin/users").catch(() => undefined);
+    await stdPage.waitForTimeout(1200);
+    const reachedAdmin = (await stdPage.getByTestId("admin-nav-group").count()) > 0;
+    const denied = (await stdPage.getByRole("heading", { name: /access denied/i }).count()) > 0;
+    const onLogin = /\/login/.test(stdPage.url());
+    record("A: standard blocked from /admin/users", !reachedAdmin ? "PASS" : "FAIL", !reachedAdmin ? "rbac-expected" : "product-bug", `reachedAdminUI=${reachedAdmin} accessDenied=${denied} login=${onLogin} at=${new URL(stdPage.url()).pathname}`);
+    const leak = await leakCheck(stdPage);
+    record("A: no backend leakage on the denial path", leak.ok ? "PASS" : "FAIL", leak.ok ? "ok" : "product-bug", leak.ok ? "clean" : `leak: ${leak.hit}`);
+  } finally { await stdCtx.close(); }
+
+  // ── B–H. Admin-POSITIVE — only with a real admin credential ────────────
+  if (!haveAdmin) {
+    record("B: admin-positive verification", "SKIP", "cred-gap", "set OTZAR_SMOKE_ADMIN_EMAIL (+ password) to verify admin-positive; NOT faked with a standard user");
+    record("E: cross-org isolation", "SKIP", "data-gap", "no second-org fixture/credential");
+    record("G: approval-positive", "SKIP", "data-gap", "no seeded approval-required scenario");
+  } else {
+    const adminCtx = await browser.newContext();
+    const adminPage = await adminCtx.newPage();
+    try {
+      const a = await login(adminPage, ADMIN_EMAIL as string, ADMIN_PW as string);
+      // B. admin reaches the Control Tower (admin shell), no auth/raw error.
+      record("B: admin login reaches org-admin Control Tower", a.adminShell ? "PASS" : "FAIL", a.adminShell ? "ok" : a.path.includes("login") ? "auth" : "product-bug", `landed ${a.path} adminShell=${a.adminShell}`);
+      // C. admin reaches an admin-only route the standard user could not.
+      await adminPage.goto("/admin/users").catch(() => undefined);
+      await adminPage.waitForTimeout(1200);
+      const adminRouteOk = (await adminPage.getByTestId("admin-nav-group").count()) > 0 && /\/admin/.test(adminPage.url());
+      record("C: admin-only route loads for admin", adminRouteOk ? "PASS" : "FAIL", adminRouteOk ? "ok" : "product-bug", `at ${new URL(adminPage.url()).pathname} adminShell=${(await adminPage.getByTestId("admin-nav-group").count()) > 0}`);
+      // D. admin/member ASYMMETRY — the discriminating proof.
+      record("D: admin/member asymmetry (admin sees admin shell, standard does not)", a.adminShell && !stdAdminShell ? "PASS" : "FAIL", a.adminShell && !stdAdminShell ? "ok" : "product-bug", `admin.adminShell=${a.adminShell} standard.adminShell=${stdAdminShell}`);
+      // F. Twin/authority parity — admin's admin surfaces are governed (no leak).
+      const leak = await leakCheck(adminPage);
+      record("H: no backend leakage in admin UX", leak.ok ? "PASS" : "FAIL", leak.ok ? "ok" : "product-bug", leak.ok ? "clean" : `leak: ${leak.hit}`);
+      record("E: cross-org isolation", "SKIP", "data-gap", "no second-org fixture — admin scope-to-org not adversarially tested");
+      record("G: approval-positive", "SKIP", "data-gap", "no seeded approval-required scenario in demo org");
+    } finally { await adminCtx.close(); }
+  }
+
+  console.log("ADMIN_RBAC_JSON_BEGIN" + JSON.stringify(rows) + "ADMIN_RBAC_JSON_END");
+  const by = (s: Status) => rows.filter((r) => r.status === s).length;
+  console.log(`[admin-rbac] TOTALS pass=${by("PASS")} fail=${by("FAIL")} skip=${by("SKIP")}`);
+  // The standard-user negative MUST pass even without admin creds.
+  expect(rows.filter((r) => r.name.startsWith("A:") && r.status === "FAIL").length).toBe(0);
+});
