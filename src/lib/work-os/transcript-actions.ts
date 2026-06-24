@@ -24,6 +24,10 @@ export type TranscriptProposedActionKind =
 
 export type TranscriptProposedActionStatus =
   | "proposed"
+  // [OTZAR-LIVE-6] in-flight states — give the card immediate feedback while the
+  // governed save/send round-trips, then resolve to a terminal status.
+  | "saving"
+  | "sending"
   | "approved"
   | "saved"
   | "sent"

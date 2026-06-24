@@ -1484,6 +1484,7 @@ export function AmbientOtzarBar(): JSX.Element {
 
   async function handleSaveAction(a: TranscriptProposedAction): Promise<void> {
     const at = new Date().toISOString();
+    updateActionStatus(a.id, "saving"); // [OTZAR-LIVE-6] immediate feedback
     const ledgerType =
       a.sourceKind === "blocker" || a.sourceKind === "risk" ? "TASK" : "FOLLOW_UP";
     const title = a.sourceKind === "blocker" ? `Blocker: ${a.body}` : a.body;
@@ -1519,6 +1520,7 @@ export function AmbientOtzarBar(): JSX.Element {
         target: null,
       });
     } else {
+      updateActionStatus(a.id, "proposed"); // failed — let the user retry
       surfaceOutcome({
         eventKind: "ACTION_FAILED",
         copy: "I couldn't save that just now — want me to try again?",
@@ -1534,7 +1536,11 @@ export function AmbientOtzarBar(): JSX.Element {
   async function handleSendAction(a: TranscriptProposedAction): Promise<void> {
     const at = new Date().toISOString();
     const target = a.targetName ?? a.ownerName;
+    // [OTZAR-LIVE-6] immediate in-flight feedback; reset to "proposed" on any
+    // early-return so the card's buttons come back (never a stuck "Sending…").
+    updateActionStatus(a.id, "sending");
     if (target === undefined) {
+      updateActionStatus(a.id, "proposed");
       surfaceOutcome({
         eventKind: "NEEDS_CLARIFICATION",
         copy: "Who should own this? Tell me a name, or I can save it for you.",
@@ -1548,6 +1554,7 @@ export function AmbientOtzarBar(): JSX.Element {
     }
     const resolved = await resolveTargetGoverned(target);
     if (resolved.kind === "AMBIGUOUS") {
+      updateActionStatus(a.id, "proposed");
       surfaceOutcome({
         eventKind: "AMBIGUOUS_TARGET",
         copy: focusedAmbiguityCopy(target, resolved.candidates),
@@ -1564,6 +1571,7 @@ export function AmbientOtzarBar(): JSX.Element {
       (resolved.kind !== "RESOLVED_HUMAN" && resolved.kind !== "RESOLVED_AI_AGENT") ||
       targetId === undefined
     ) {
+      updateActionStatus(a.id, "proposed");
       surfaceOutcome({
         eventKind: "NEEDS_CLARIFICATION",
         copy: `I couldn't find ${target} on your team — who do you mean?`,
@@ -1610,6 +1618,7 @@ export function AmbientOtzarBar(): JSX.Element {
         target: targetId,
       });
     } else {
+      updateActionStatus(a.id, "proposed"); // failed — let the user retry
       surfaceOutcome({
         eventKind: "ACTION_FAILED",
         copy: `I couldn't send that to ${who} just now — want me to try again?`,

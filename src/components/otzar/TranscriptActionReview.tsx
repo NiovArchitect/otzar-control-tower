@@ -22,6 +22,10 @@ interface TranscriptActionReviewProps {
 
 function statusLabel(status: TranscriptProposedActionStatus): string | null {
   switch (status) {
+    case "saving":
+      return "Saving…";
+    case "sending":
+      return "Sending…";
     case "saved":
       return "Saved";
     case "sent":
