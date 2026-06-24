@@ -2143,6 +2143,116 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(html).not.toContain("training updated");
   });
 
+  // ── Phase 3F: end-to-end employee flow (Communication → Governed Work
+  //    Movement). One render, walked step by step. Deterministic, MSW-only. ──
+  it("end-to-end: context → digest → actions → save → send → tracking → correction → history → missing-context", async () => {
+    const FLOW_TRANSCRIPT = [
+      "Team, we decided to ship the onboarding flow next week.",
+      "David is blocked on the API keys.",
+      "I will prepare the action list by Friday.",
+      "We need to follow up with William about the investor demo decisions.",
+      "There is a risk the demo could slip if API access is not resolved.",
+      "It is unclear who owns the launch checklist.",
+    ].join(" ");
+
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, entry: { ledger_entry_id: "led-f" } }, { status: 201 });
+      }),
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(
+          { ok: true, request: { request_id: "collab-f", status: "PENDING" } },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+
+    // Step 1 — permissioned current context.
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: FLOW_TRANSCRIPT,
+    });
+
+    // Step 2 — digest (first command renders + expands the bar).
+    await speak("Summarize this transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /I found .*decision.*follow-up.*blocker/i,
+    );
+    expect(screen.getByTestId("transcript-digest")).toBeInTheDocument();
+
+    // Step 3 — proposed actions.
+    await ask("Create action items from this meeting.");
+    await waitFor(() =>
+      expect(screen.getByTestId("transcript-action-review")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /proposed actions from this meeting/i,
+    );
+
+    // Step 4 — save a follow-up → governed PROPOSED Work Ledger entry.
+    await user.click(screen.getAllByTestId("transcript-action-save")[0]!);
+    await waitFor(() => expect(ledgerPosts.length).toBe(1));
+    expect(ledgerPosts[0]!.status).toBe("PROPOSED");
+
+    // Step 5 — send an owned item → governed collaboration request.
+    await user.click(screen.getAllByTestId("transcript-action-send")[0]!);
+    await waitFor(() => expect(collaborationPosts.length).toBe(1));
+    expect(collaborationPosts[0]!.target_entity_id).toBe("ent-david");
+
+    // Step 6 — tracking.
+    await ask("What is blocked?");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /blocker|Nothing is blocked/i,
+      ),
+    );
+    await ask("Who is waiting on whom?");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /waiting/i,
+      ),
+    );
+
+    // Step 7 — correction with ambiguous "that" across items → one focused question.
+    await ask("No, Samiksha owns that.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /Which item should I update\?/i,
+      ),
+    );
+
+    // Step 8 — a clear preference correction → applied + recorded honestly.
+    await ask("Don't interrupt me for that.");
+    await waitFor(() =>
+      expect(screen.getByTestId("correction-history")).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("correction-history-item")[0]!.textContent,
+      ).toMatch(/Saved as preference evidence/i),
+    );
+
+    // Step 9 — missing context: clear it, then a deictic ask → one focused question.
+    useCurrentSurfaceContextStore.getState().clear();
+    await ask("Ask David to review this.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /What should I use as the current context\?/i,
+      ),
+    );
+
+    // Step 10 — across the whole flow: no backend machinery in normal UX.
+    const html = document.body.innerHTML;
+    expect(html).not.toMatch(/CROSS_ORG_DENIED|RUNTIME_MISSING|entity_id|collaboration-requests|ledger_entry_id|correction_capsule_id/);
+    expect(html.toLowerCase()).not.toContain("learned globally");
+    expect(html.toLowerCase()).not.toContain("surveillance");
+  });
+
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {
     useCurrentSurfaceContextStore.getState().provide({
       type: "selected_text",

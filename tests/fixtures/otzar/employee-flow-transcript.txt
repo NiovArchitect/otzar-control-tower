@@ -1,0 +1,6 @@
+Team, we decided to ship the onboarding flow next week.
+David is blocked on the API keys.
+I will prepare the action list by Friday.
+We need to follow up with William about the investor demo decisions.
+There is a risk the demo could slip if API access is not resolved.
+It is unclear who owns the launch checklist.
