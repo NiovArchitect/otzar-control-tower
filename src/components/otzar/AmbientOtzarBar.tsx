@@ -127,6 +127,11 @@ import {
   type WorkTrackingSummary,
   type WorkTrackingItem,
 } from "@/lib/work-os/work-tracking";
+import {
+  detectCorrection,
+  applyCorrection,
+  type WorkCorrection,
+} from "@/lib/work-os/work-corrections";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -1578,6 +1583,68 @@ export function AmbientOtzarBar(): JSX.Element {
     return true;
   }
 
+  // Phase 3D — capture a CORRECTION to Otzar's work interpretation and apply it
+  // to the current proposed actions / tracking. Item corrections only fire when
+  // there's an active flow to correct; preferences fire anytime. Best-effort
+  // governed persistence to the employee's own wallet; never auto-sends, never
+  // fakes global learning. Returns true when handled.
+  async function handleCorrectionCommand(text: string): Promise<boolean> {
+    const correction = detectCorrection(text);
+    if (correction === null) return false;
+    const isPreference = correction.scope === "future_preference_candidate";
+    if (!isPreference && transcriptActions.length === 0) return false;
+
+    const at = new Date().toISOString();
+    setDraft("");
+    setActionHeard(text);
+    setActionLabel("Correction");
+    appendConversationEntry({ role: "user", text, at });
+
+    const result = applyCorrection(correction, transcriptActions);
+    if (result.needsClarification === true) {
+      surfaceOutcome({
+        eventKind: "NEEDS_CLARIFICATION",
+        copy: result.clarificationQuestion ?? "Which item should I correct?",
+        status: "Which one?",
+        at,
+        heard: text,
+        result: "blocked",
+        target: null,
+      });
+      return true;
+    }
+    if (result.actions !== undefined) {
+      const updated = result.actions;
+      setTranscriptActions(updated);
+      // Recompute tracking only if it was already on screen.
+      setTrackingSummary((prev) =>
+        prev !== null ? deriveTrackingFromActions(updated) : prev,
+      );
+    }
+    // Best-effort governed persistence (the employee's own wallet, ADR-0055).
+    // Never blocks the local update; local-only is acceptable if it fails.
+    void persistCorrection(correction);
+    surfaceOutcome({
+      eventKind: "SELF_WORK_SAVED",
+      copy: result.message,
+      status: "Updated",
+      at,
+      heard: text,
+      result: "success",
+      target: null,
+    });
+    markPresenceSuccess();
+    return true;
+  }
+
+  async function persistCorrection(c: WorkCorrection): Promise<void> {
+    // Minimal, governed correction evidence — no raw transcript, no ids.
+    await api.otzar.correction({
+      incorrect_description: `Work interpretation (${c.kind})`,
+      correct_behavior: c.rawText,
+    });
+  }
+
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
   // governed action. Open never reaches here.
   async function confirmArtifact(body: string): Promise<void> {
@@ -2254,6 +2321,11 @@ export function AmbientOtzarBar(): JSX.Element {
         return;
       }
     }
+
+    // Phase 3D — a correction to Otzar's work interpretation ("No, David owns
+    // that", "that's not blocked anymore", "this is due next Friday"). Runs
+    // first so it's applied to the active flow, never mis-routed as a message.
+    if (await handleCorrectionCommand(text)) return;
 
     // Phase 3C — tracking questions ("what is blocked?", "who is waiting on
     // whom?") answered from the current proposed actions / transcript.

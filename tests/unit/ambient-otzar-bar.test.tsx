@@ -476,6 +476,13 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       http.get(`${API_BASE}/work-os/comms/recent-artifacts`, () =>
         HttpResponse.json({ ok: true, artifacts: [], next_cursor: null }),
       ),
+      // Phase 3D — governed correction persistence (best-effort).
+      http.post(`${API_BASE}/otzar/correction`, () =>
+        HttpResponse.json(
+          { ok: true, correction_capsule_id: "corr-1" },
+          { status: 201 },
+        ),
+      ),
       // Governed Action create — capture the body; return a PROPOSED
       // (approval-required) action. NEVER an external send.
       http.post(`${API_BASE}/actions`, async ({ request }) => {
@@ -1957,6 +1964,99 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       /Which meeting or transcript should I track\?/i,
     );
     expect(screen.queryByTestId("work-tracking")).toBeNull();
+  });
+
+  // ── Phase 3D: correction capture ──────────────────────────────────────
+  // A single provided line → exactly one proposed action (an obvious "that").
+  async function reviewOneAction(): Promise<void> {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "selected_text",
+      text: "David is blocked on the API keys.",
+    });
+    await speak("Create action items from this meeting.");
+    await waitFor(() =>
+      expect(screen.getByTestId("transcript-action-review")).toBeInTheDocument(),
+    );
+  }
+
+  it("owner correction updates the single obvious item, governed-persisted", async () => {
+    const corrections: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/otzar/correction`, async ({ request }) => {
+        corrections.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, correction_capsule_id: "c1" }, { status: 201 });
+      }),
+    );
+    await reviewOneAction();
+    await ask("No, Samiksha owns that.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /Samiksha owns that/,
+      ),
+    );
+    expect(screen.getByTestId("transcript-action-review").textContent).toMatch(/Samiksha/);
+    // best-effort governed persistence happened (employee's own wallet).
+    await waitFor(() => expect(corrections.length).toBe(1));
+  });
+
+  it("ambiguous 'that' across multiple items → one focused question", async () => {
+    await reviewActions();
+    await ask("No, David owns that.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /Which item should I update\?/i,
+      ),
+    );
+  });
+
+  it("due-date correction updates the hint locally", async () => {
+    await reviewOneAction();
+    await ask("That's due next Friday.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /due next Friday/i,
+      ),
+    );
+    expect(screen.getByTestId("transcript-action-review").textContent).toMatch(/next Friday/i);
+  });
+
+  it("'not blocked anymore' reclassifies the blocker without faking completion", async () => {
+    await reviewOneAction();
+    await ask("That's not blocked anymore.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /won't treat that as blocked/i,
+      ),
+    );
+    expect(screen.getByTestId("transcript-action-review").textContent).toMatch(/Follow-up/);
+  });
+
+  it("target correction retargets but does NOT send", async () => {
+    const collaborationPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/collaboration-requests`, async ({ request }) => {
+        collaborationPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true }, { status: 201 });
+      }),
+    );
+    await reviewOneAction();
+    await ask("Send that to Samiksha, not William.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /I'll send that to Samiksha/i,
+      ),
+    );
+    expect(collaborationPosts.length).toBe(0);
+  });
+
+  it("a preference correction confirms calmly (no global-learning claim), works with no active flow", async () => {
+    await speak("Don't interrupt me for that.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /preference for this workflow/i,
+    );
+    const html = document.body.innerHTML.toLowerCase();
+    expect(html).not.toContain("learned globally");
+    expect(html).not.toContain("permanently");
   });
 
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {
