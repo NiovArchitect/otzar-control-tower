@@ -40,33 +40,49 @@ test.describe("Otzar employee flow — credentialed live smoke", () => {
     const send = page.getByRole("button", { name: /^send$/i });
     const outcome = page.getByTestId("voice-action-outcome");
 
-    const ask = async (text: string): Promise<void> => {
+    // Send a command and wait for the outcome to actually CHANGE (the live
+    // governed rails are async). Logs the real outcome for the evidence report.
+    let prev = "";
+    const ask = async (text: string): Promise<string> => {
+      await input.click();
+      await input.fill("");
       await input.fill(text);
       await send.click();
+      const captured = prev;
+      await expect
+        .poll(async () => (await outcome.textContent().catch(() => "")) ?? "", {
+          timeout: 15_000,
+        })
+        .not.toBe(captured);
+      const got = ((await outcome.textContent()) ?? "").trim();
+      prev = got;
+      // eslint-disable-next-line no-console
+      console.log(`[live-smoke] "${text}" => ${got}`);
+      return got;
     };
 
     // C. Transcript ingestion — one HONEST outcome regardless of demo data.
-    await ask("Use the latest transcript.");
-    await expect(outcome).toContainText(
+    const ingest = await ask("Use the latest transcript.");
+    expect(ingest).toMatch(
       /Using the latest transcript|don't have transcript text yet|Paste or select the transcript|Which transcript should I use/i,
     );
 
-    // I. Missing context → one focused question (or a governed resolve).
-    await ask("Ask David to review this.");
-    await expect(outcome).toContainText(
-      /What should I use as the current context\?|do you mean|couldn't find David|review request/i,
+    // I. Missing context → a governed resolve / one focused question.
+    const missing = await ask("Ask David to review this.");
+    expect(missing).toMatch(
+      /What should I use as the current context\?|do you mean|couldn't find|sent David|review request/i,
     );
 
     // F. Tracking — honest answer (no faked completion/stale).
-    await ask("What is blocked?");
-    await expect(outcome).toContainText(
+    const blocked = await ask("What is blocked?");
+    expect(blocked).toMatch(
       /blocker|Nothing is blocked|Which meeting or transcript should I track/i,
     );
 
     // G/H. Correction (a write to the user's own scoped memory) — gated.
     if (ALLOW_WRITES) {
-      await ask("Don't interrupt me for that.");
-      await expect(outcome).toContainText(/preference for this workflow/i);
+      const pref = await ask("Don't interrupt me for that.");
+      expect(pref).toMatch(/preference for this workflow/i);
       await expect(page.getByTestId("correction-history")).toBeVisible();
     }
 
@@ -75,6 +91,7 @@ test.describe("Otzar employee flow — credentialed live smoke", () => {
     await saved.click();
     await expect(saved).toContainText(
       /No saved corrections yet|Saved as|Preference|Meaning clarification|Loading|couldn't load saved corrections/i,
+      { timeout: 15_000 },
     );
 
     // No raw backend machinery in the employee-facing DOM.

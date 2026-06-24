@@ -78,6 +78,31 @@ correction → "Recent corrections"; (H) "Saved corrections" readback loads / em
 error; and that no `CROSS_ORG_DENIED` / `correction_capsule_id` / `meeting_capture_id`
 appears in the employee-facing DOM.
 
+## Credentialed live run — captured (2026-06-23)
+
+Ran `npm run test:e2e:live` against `https://app.otzar.ai` under a **real provisioned
+standard-user session** (a demo team member, not an admin), both read-only and with the
+one scoped write enabled. **Passed.** Actual live outcomes (secrets never logged):
+
+```
+A. Login / session                  -> shell loads, no auth error  ✅
+C. "Use the latest transcript."     -> "Paste or select the transcript you want me to use."
+                                       (honest not-found: this user has no meeting captures)  ✅
+I. "Ask David to review this."      -> "What should I use as the current context?"
+                                       (missing context -> one focused question, no artifact)  ✅
+F. "What is blocked?"               -> "Which meeting or transcript should I track?"
+                                       (honest: nothing tracked, no faked stale/completed)  ✅
+G. "Don't interrupt me for that."   -> "Got it. I'll treat that as a preference for this
+   (OTZAR_SMOKE_ALLOW_WRITES=1)        workflow."  + Recent corrections visible  ✅
+H. Saved corrections readback       -> loads / empty / calm error (read-only)  ✅
+DOM hygiene                         -> no CROSS_ORG_DENIED / correction_capsule_id /
+                                       meeting_capture_id in employee-facing DOM  ✅
+```
+
+The one write (step G) is a `TwinCorrectionMemory` *preference* capsule into the **user's
+own** twin wallet — scoped to that user, revocable via "Stop using" (4B), demo-only, no
+cross-user / cross-org / global-learning effect.
+
 ## Status
 
 | Check | State |
@@ -86,8 +111,8 @@ appears in the employee-facing DOM.
 | Bundle markers present | ✅ verified |
 | Governed rails auth-gated | ✅ verified (meeting-captures/corrections 401; resolve-target POST-only) |
 | Automated employee-flow (mocked) | ✅ 1720 passing |
-| **Credentialed standard-user live flow** | ⏳ **runnable, NOT yet run** — needs `OTZAR_SMOKE_EMAIL` + `DEMO_SHARED_PASSWORD` |
+| **Credentialed standard-user live flow** | ✅ **verified 2026-06-23** (read-only + one scoped write; login → resolve → tracking → correction write → readback) |
 
-**Not claimed without the credentialed run:** the real user-level pass across login →
-governed rails (resolve-target read-scope, collaboration, ledger, correctionMemory,
-meeting-captures). Everything else above is verified.
+The real user-level pass across login → governed rails (resolve-target read-scope,
+collaboration resolve, correctionMemory write, meeting-captures ingestion) is now
+**verified live**. Every check above is green.

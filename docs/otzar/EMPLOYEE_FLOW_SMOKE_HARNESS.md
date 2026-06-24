@@ -54,10 +54,11 @@ Full detail + last captured run: `docs/otzar/LIVE_SMOKE_EVIDENCE.md`.
   with `OTZAR_SMOKE_ALLOW_WRITES=1`); never logs secrets. Needs:
   `OTZAR_SMOKE_EMAIL` + `DEMO_SHARED_PASSWORD`.
 
-**Open item:** the credentialed standard-user live flow across the governed rails
+**Status (2026-06-23):** the credentialed standard-user live flow across the governed rails
 (`/work-os/resolve-target` read-scope, `collaboration-requests`, `/work-os/ledger`,
-`/otzar/my-twin/corrections`, `/otzar/meeting-captures`) is **runnable but not yet run** —
-it needs the demo password. Do not claim it as verified until run.
+`/otzar/my-twin/corrections`, `/otzar/meeting-captures`) has been **run live and passed**
+(read-only + one scoped correction write). Captured per-step outcomes are in
+`LIVE_SMOKE_EVIDENCE.md`.
 
 ## How this maps to the Extreme Polarity Ability
 

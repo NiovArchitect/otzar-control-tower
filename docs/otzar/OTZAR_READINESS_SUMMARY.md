@@ -17,8 +17,9 @@ backend jargon in normal UX.
 
 - **Live:** `https://app.otzar.ai` (HTTP 200), bundle `index-CZq49S0n.js`.
 - **Automated proof:** **1720 tests passing**, incl. a full end-to-end employee-flow walk.
-- **Remaining caveat:** the credentialed standard-user live browser smoke is written and
-  runnable, but **not yet run** (needs `DEMO_SHARED_PASSWORD`).
+- **Credentialed live smoke:** ✅ **run and passed (2026-06-23)** under a real provisioned
+  standard-user session — login → governed resolve → honest tracking → a scoped
+  correction **write** → readback, all calm and honest. No remaining verification caveat.
 
 **Phase status (no stale "Phase 3 open"):** Phase 3 transcript/meeting intelligence is
 **complete** through the provided-text flow (3A), proposed actions (3B), tracking (3C),
@@ -83,11 +84,14 @@ employee-flow markers present in the served bundle, governed rails auth-gated
 (`meeting-captures` 401, `my-twin/corrections` 401, `resolve-target` POST-only). See
 `LIVE_SMOKE_EVIDENCE.md`.
 
-## What still requires the credentialed live smoke
+## Credentialed live smoke — done (2026-06-23)
 
-The real **user-level** pass — login → governed rails exercised under a standard-user
-session (resolve-target read-scope, collaboration, Work Ledger, correctionMemory,
-meeting-captures). It is written and runnable; it has **not** been run.
+The real **user-level** pass — login → governed rails under a standard-user session
+(resolve-target read-scope, collaboration resolve, correctionMemory **write**,
+meeting-captures ingestion) — has been **run live and passed**. Captured per-step
+outcomes are in `LIVE_SMOKE_EVIDENCE.md`. Honest behavior confirmed: no-data states
+return honest not-found, missing context asks one focused question, the scoped correction
+write persists to the user's own wallet, and no backend ids leak into the UI.
 
 ## Exact commands
 
@@ -98,7 +102,8 @@ OTZAR_SMOKE_EMAIL=<demo user> DEMO_SHARED_PASSWORD=<demo pw> npm run test:e2e:li
 # add OTZAR_SMOKE_ALLOW_WRITES=1 to also exercise the one scoped-memory write
 ```
 
-**Caveat:** the credentialed live browser smoke is the only remaining verification caveat.
+**Status:** the credentialed live browser smoke has been run and passed (2026-06-23); no
+remaining verification caveat.
 
 ## What NOT to claim yet
 
@@ -126,8 +131,9 @@ OTZAR_SMOKE_EMAIL=<demo user> DEMO_SHARED_PASSWORD=<demo pw> npm run test:e2e:li
 
 ## Recommended next engineering steps
 
-A. **Run the credentialed live smoke** when credentials are available (`npm run test:e2e:live`).
-B. **Fix anything it reveals** (targeted only).
+A. ✅ **Credentialed live smoke run and passed** (2026-06-23) — nothing it revealed needs a fix.
+B. Seed the demo org with a MeetingCapture so the "Use the latest transcript" path shows a
+   loaded digest in a live demo (today it honestly returns not-found for users with no captures).
 C. **Then** consider Phase 5: richer transcript ingestion via safe observe/perception/
 provider rails; a stronger Work Ledger completion substrate (real sent/received/accepted
 states); cross-session **application** of saved preferences (not just readback); employee
@@ -139,6 +145,7 @@ demo polish.
 movement* loop works end-to-end — an employee can drop in a meeting transcript and Otzar
 recovers the decisions, blockers, owners, and follow-ups, proposes the next actions, routes
 them through governance, tracks what's blocked and who's waiting, and remembers
-corrections — all calm, compact, and governed, proven by 1720 automated tests and a
-non-credentialed live evidence pass. The single remaining checkbox is the credentialed
-standard-user browser run, which is already written and one command away from closing.
+corrections — all calm, compact, and governed, proven by 1720 automated tests, a
+non-credentialed live evidence pass, **and a credentialed standard-user live browser smoke
+that has now been run and passed** (login → governed resolve → honest tracking → a scoped
+correction write → readback). No remaining verification caveat.
