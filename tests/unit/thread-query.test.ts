@@ -9,6 +9,7 @@ import {
   composeThreadAnswer,
   composeWaitingOnAnswer,
   composeRelationshipAnswer,
+  replyStatusNote,
 } from "@/lib/work-os/thread-query";
 import type {
   DirectThreadMessageView,
@@ -28,6 +29,66 @@ function msg(over: Partial<DirectThreadMessageView>): DirectThreadMessageView {
     ...over,
   };
 }
+
+describe("[OTZAR-LIVE-6] RESPONSE_STATUS — did they respond / are they ready", () => {
+  it("classifies natural response-status questions", () => {
+    for (const q of [
+      "Did David respond?",
+      "Did David reply?",
+      "Has David confirmed?",
+      "Any update from David?",
+      "Is David ready?",
+      "What did David reply?",
+      "What was David's response?",
+      "Did David get the message?",
+      "Did David get back to me?",
+      "What's the status of David's request?",
+    ]) {
+      const r = classifyThreadQuery(q);
+      expect(r?.type, q).toBe("RESPONSE_STATUS");
+      expect(r?.person, q).toBe("David");
+    }
+  });
+
+  it("does not swallow canonical thread/tracking questions (regression)", () => {
+    expect(classifyThreadQuery("What did David just say?")?.type).toBe("LATEST_FROM");
+    expect(classifyThreadQuery("What did I ask David to do?")?.type).toBe("LATEST_TO");
+    expect(classifyThreadQuery("What am I waiting on from David?")?.type).toBe("WAITING_ON");
+    expect(classifyThreadQuery("What is blocked?")).toBeNull();
+    expect(classifyThreadQuery("good morning")).toBeNull();
+  });
+
+  it("composes the exact founder scenario: time + confirmed read (not 'I don't see it')", () => {
+    const now = Date.parse("2026-06-14T00:04:00.000Z");
+    const ans = composeThreadAnswer(
+      { type: "RESPONSE_STATUS", person: "David" },
+      "David Odie",
+      [msg({ body: "I validate what I received and I will be ready for todays meeting happening in 1 hour.", from_me: false, created_at: "2026-06-14T00:00:00.000Z" })],
+      now,
+    );
+    expect(ans).toMatch(/David Odie replied 4 minutes ago/);
+    expect(ans).toMatch(/will be ready/);
+    expect(ans).toMatch(/treat that as confirmed/i);
+    expect(ans).not.toMatch(/don'?t see/i);
+  });
+
+  it("honest no-reply state when only the caller's outbound exists", () => {
+    const ans = composeThreadAnswer(
+      { type: "RESPONSE_STATUS", person: "David" },
+      "David",
+      [msg({ body: "Tell David to get ready", from_me: true })],
+    );
+    expect(ans).toMatch(/don'?t see a reply from David yet/i);
+  });
+
+  it("replyStatusNote reads blocked / declined / question / confirmed", () => {
+    expect(replyStatusNote("I'm blocked on the API keys")).toMatch(/blocked/i);
+    expect(replyStatusNote("I can't make it")).toMatch(/can'?t take it|reassign/i);
+    expect(replyStatusNote("Which one?")).toMatch(/question/i);
+    expect(replyStatusNote("Done, reviewed it")).toMatch(/confirmed/i);
+    expect(replyStatusNote("ok")).toBe("");
+  });
+});
 
 describe("classifyThreadQuery", () => {
   it("RECEIVED_FROM", () => {

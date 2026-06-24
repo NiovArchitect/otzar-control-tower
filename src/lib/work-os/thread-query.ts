@@ -19,6 +19,11 @@ export type ThreadQueryType =
   | "RECEIVED_FROM"
   | "LATEST_FROM"
   | "LATEST_TO"
+  // [OTZAR-LIVE-6] response reconciliation — "Did David respond?", "any update
+  // from David?", "is David ready?", "what did David reply?". Reads the latest
+  // message FROM the person in the governed thread and reports it + a light
+  // ready/blocked/declined/question read.
+  | "RESPONSE_STATUS"
   | "WAITING_ON"
   | "COMPLETED_BY"
   | "BLOCKERS_WITH"
@@ -46,7 +51,9 @@ export interface ThreadQuery {
 }
 
 function cleanName(raw: string): string {
-  return raw.replace(/[^A-Za-z'’-].*$/, "").trim();
+  // Cut at the first non-name char, then drop a trailing possessive
+  // ("David's response" → "David") so the resolver gets the base name.
+  return raw.replace(/[^A-Za-z'’-].*$/, "").replace(/['’]s$/i, "").trim();
 }
 
 const NAME = "([A-Za-z][A-Za-z'’-]*)";
@@ -80,6 +87,31 @@ export function classifyThreadQuery(text: string): ThreadQuery | null {
       const lp = p.toLowerCase();
       if (p.length > 0 && lp !== "i" && lp !== "me" && lp !== "my" && lp !== "the") {
         return { type, person: p };
+      }
+    }
+  }
+
+  // [OTZAR-LIVE-6] RESPONSE_STATUS — "Did David respond?", "any update from
+  // David?", "is David ready?", "has he confirmed?", "what did David reply?".
+  // Checked before WAITING/RECEIVED so a response question isn't swallowed. Reads
+  // the latest message FROM the person in the governed thread.
+  const responsePatterns: RegExp[] = [
+    new RegExp(`\\bdid\\s+${NAME}\\s+(?:respond|reply|answer|get\\s+back|confirm|acknowledge|accept|see\\s+(?:it|this|my))`, "i"),
+    new RegExp(`\\bhas\\s+${NAME}\\s+(?:responded|replied|answered|confirmed|acknowledged|gotten\\s+back|seen)`, "i"),
+    new RegExp(`\\b(?:any|an|some)\\s+(?:update|reply|response|word|news)\\b[^?]*?\\bfrom\\s+${NAME}`, "i"),
+    new RegExp(`\\bis\\s+${NAME}\\s+ready\\b`, "i"),
+    new RegExp(`\\bwhat(?:'s| is| was)\\s+(?:the\\s+)?status\\b[^?]*?\\b(?:of\\s+)?(?:the\\s+)?${NAME}(?:'s)?\\b`, "i"),
+    new RegExp(`\\bwhat\\s+(?:did|was)\\s+${NAME}(?:'s)?\\s+(?:reply|response|answer)\\b`, "i"),
+    new RegExp(`\\bdid\\s+${NAME}\\s+get\\s+(?:the\\s+|my\\s+)?(?:message|note|request|it)\\b`, "i"),
+    new RegExp(`\\bwhat happened\\b[^?]*?\\bsent\\s+(?:to\\s+)?${NAME}`, "i"),
+  ];
+  for (const re of responsePatterns) {
+    const m = t.match(re);
+    if (m) {
+      const p = cleanName(m[1] ?? "");
+      const lp = p.toLowerCase();
+      if (p.length > 0 && !/^(?:i|me|my|we|you|he|she|they|it|the|this|that|there|team|people|everyone|anyone|someone|nobody|today|tomorrow)$/i.test(lp)) {
+        return { type: "RESPONSE_STATUS", person: p };
       }
     }
   }
@@ -143,14 +175,53 @@ export function classifyThreadQuery(text: string): ThreadQuery | null {
 // INPUT: the query, the resolved person's display name, the thread messages
 //        (ordered ascending). from_me marks the caller's own messages.
 // OUTPUT: a natural, speech-ready answer derived ONLY from real records.
+// WHAT: relative "x minutes ago" for a reply timestamp (speech-ready, no raw ISO).
+function relativeTime(iso: string, now: number): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "recently";
+  const sec = Math.max(0, Math.round((now - t) / 1000));
+  if (sec < 45) return "just now";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min} minute${min === 1 ? "" : "s"} ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr} hour${hr === 1 ? "" : "s"} ago`;
+  const day = Math.round(hr / 24);
+  return `${day} day${day === 1 ? "" : "s"} ago`;
+}
+
+// WHAT: a light, honest read of what a reply means for the work state. Returns ""
+//        when the reply doesn't clearly signal anything (never overclaims done).
+export function replyStatusNote(body: string): string {
+  const b = body.toLowerCase();
+  if (/\b(?:blocked|waiting on|can'?t proceed|cannot proceed|need access|need approval|stuck)\b/.test(b))
+    return "Sounds blocked — you may need to clear that.";
+  if (/\b(?:can'?t make it|cannot make it|can'?t do|not available|won'?t be able|unable to|decline|not mine|not the owner|ask someone else)\b/.test(b))
+    return "Sounds like they can't take it — it may need reassigning.";
+  if (/\?\s*$|\b(?:which one|what do you mean|who is this for|what should i)\b/.test(b))
+    return "They asked a question — you owe a reply.";
+  if (/\b(?:done|completed|finished|reviewed|sent it|handled it|ready|confirm|on it|validate|received|got it|understood|i'?ll be ready|will be ready|i'?m on it)\b/.test(b))
+    return "I'll treat that as confirmed.";
+  return "";
+}
+
 export function composeThreadAnswer(
   q: ThreadQuery,
   personDisplay: string,
   messages: DirectThreadMessageView[],
+  now: number = Date.now(),
 ): string {
   const fromThem = messages.filter((m) => !m.from_me);
   const fromMe = messages.filter((m) => m.from_me);
   const latest = <T,>(arr: T[]): T | undefined => (arr.length > 0 ? arr[arr.length - 1] : undefined);
+
+  // [OTZAR-LIVE-6] response reconciliation — quote the latest reply + a light
+  // ready/blocked/declined/question read, or an honest "no reply yet".
+  if (q.type === "RESPONSE_STATUS") {
+    const m = latest(fromThem);
+    if (m === undefined) return `I don't see a reply from ${personDisplay} yet.`;
+    const note = replyStatusNote(m.body);
+    return `Yes — ${personDisplay} replied ${relativeTime(m.created_at, now)}: "${m.body}".${note ? " " + note : ""}`;
+  }
 
   if (q.type === "RECEIVED_FROM") {
     const m = latest(fromThem);
