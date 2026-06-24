@@ -18,7 +18,7 @@ evidence**.
 | Admin coverage | **CRED gap** — probed `sadeil`/`david`/`vishesh`; **none holds `can_admin_org`** |
 | Writes | **enabled** (`OTZAR_SMOKE_ALLOW_WRITES=1`) — demo-scoped collaboration requests + correction preferences only |
 | Harness | `tests/e2e/otzar-live-collaboration-matrix.spec.ts` (diagnostic, never-abort, sanitized) |
-| Result | **60 PASS / 2 FAIL / 8 SKIP** across A–Z + AA–AH after the [OTZAR-LIVE-6] intent-coverage repair (was 57/3/10). The 2 "fails" are 1 known-intentional (in-memory session) + 1 harness limitation (card-Send; capability proven by E/CO). See the repair section. |
+| Result | **64 PASS / 1 FAIL / 5 SKIP** across A–Z + AA–AH + CO (Phase 6; was 60/2/8 → 57/3/10 originally). The **1 FAIL is the known-intentional in-memory session** (hard refresh → re-login). SKIPs are honest data/cred gaps (cross-org second-org fixture, approval-positive seed, admin-positive — covered by the dedicated `test:e2e:live:admin` 7/0/2). Plus standard `test:e2e:live` PASS + `smoke:evidence` PASS. |
 
 Secrets were never logged, written, or committed. Outcomes are sanitized (id/route tokens
 stripped). No raw IDs appear below.
@@ -128,7 +128,7 @@ Legend: ✅ PASS · ⚠️ gap/observation (SKIP) · ❌ fail · 🔒 RBAC-as-ex
 | W | Race / double-action | ✅ | double-send + rapid commands: orb survives, no crash |
 | X | Accessibility basics | ✅ | input + send labeled; **Enter submits** |
 | Y | Responsive | ✅ | orb usable + answers at 390×844 mobile viewport |
-| CO | **Two-human round-trip** | ✅/⚠️ | vishesh → **"I sent David Odie a review request…"** (real governed send); but David's session showed **no inbound signal** on action-center/approvals/my-work — recipient-side visibility **unconfirmed** (data/observation) |
+| CO | **Two-human round-trip** | ✅ | vishesh → **"I sent David Odie a review request…"** (real governed send); **David's session shows the inbound request** on People & Collaboration (*"Hey david, can you review the launch checklist? · Accept · Reject"*) — recipient-side visibility **verified live** |
 
 ## Triage of the 2 remaining "fails" (classified, not patched-blindly)
 
