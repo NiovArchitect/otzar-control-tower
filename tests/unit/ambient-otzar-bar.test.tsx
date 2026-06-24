@@ -2380,6 +2380,106 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
   });
 
+  // ── Phase 4C: safe transcript ingestion from the MeetingCapture rail ──
+  function meetingCapture(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      meeting_capture_id: "mc-1",
+      provider: "MANUAL",
+      provider_meeting_id: null,
+      title: "Q3 planning",
+      scheduled_start: null,
+      scheduled_end: null,
+      recorded_start: null,
+      recorded_end: null,
+      participant_count: 2,
+      status: "READY",
+      workspace_id: null,
+      source_conversation_id: null,
+      summary:
+        "We decided to ship onboarding. David is blocked on the API keys. I will prepare the deck by Friday.",
+      has_transcript: true,
+      created_at: "2026-06-23T09:00:00Z",
+      updated_at: "2026-06-23T09:30:00Z",
+      ...overrides,
+    };
+  }
+
+  it("'Use the latest transcript' loads the governed meeting transcript into context", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures`, () =>
+        HttpResponse.json({ ok: true, meeting_captures: [meetingCapture()] }),
+      ),
+    );
+    await speak("Use the latest transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /Using the latest transcript\./i,
+    );
+    // The context chip now shows the loaded meeting (its title), not a raw id.
+    expect(screen.getByTestId("surface-context-chip").textContent).toMatch(/Q3 planning/);
+    expect(document.body.innerHTML).not.toMatch(/mc-1|meeting_capture_id/);
+  });
+
+  it("'Summarize the latest transcript' loads then digests, no manual paste", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures`, () =>
+        HttpResponse.json({ ok: true, meeting_captures: [meetingCapture()] }),
+      ),
+    );
+    await speak("Summarize the latest transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /I found .*decision.*blocker/i,
+    );
+    expect(screen.getByTestId("transcript-digest")).toBeInTheDocument();
+  });
+
+  it("multiple meeting transcripts (no 'latest') → one focused question", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures`, () =>
+        HttpResponse.json({
+          ok: true,
+          meeting_captures: [
+            meetingCapture({ meeting_capture_id: "mc-1", title: "Standup" }),
+            meetingCapture({ meeting_capture_id: "mc-2", title: "Roadmap" }),
+          ],
+        }),
+      ),
+    );
+    await speak("Use the meeting transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /Which transcript should I use\?/i,
+    );
+  });
+
+  it("a meeting with no transcript text → honest message, no fake digest", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures`, () =>
+        HttpResponse.json({
+          ok: true,
+          meeting_captures: [meetingCapture({ summary: null, has_transcript: true })],
+        }),
+      ),
+    );
+    await speak("Use the latest transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /I found the meeting, but I don't have transcript text yet\./i,
+    );
+    expect(screen.queryByTestId("transcript-digest")).toBeNull();
+  });
+
+  it("no meeting captures → asks to paste/select (no contextless artifact)", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures`, () =>
+        HttpResponse.json({ ok: true, meeting_captures: [] }),
+      ),
+    );
+    await speak("Use the latest transcript.");
+    expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+      /Paste or select the transcript you want me to use\./i,
+    );
+  });
+
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {
     useCurrentSurfaceContextStore.getState().provide({
       type: "selected_text",

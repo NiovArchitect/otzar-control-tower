@@ -128,6 +128,11 @@ import {
   type WorkTrackingItem,
 } from "@/lib/work-os/work-tracking";
 import {
+  detectIngestionCommand,
+  meetingCapturesToCandidates,
+  ingestFromCandidates,
+} from "@/lib/work-os/transcript-ingestion";
+import {
   detectCorrection,
   applyCorrection,
   correctionTypeFor,
@@ -1273,6 +1278,76 @@ export function AmbientOtzarBar(): JSX.Element {
   // Returns true when it handled the input. Never captures live audio, never
   // sends transcript text anywhere except through existing governed rails, and
   // treats the provided text as UNTRUSTED content (parsed, never executed).
+  // Phase 4C — bring an EXISTING governed meeting transcript into the current
+  // context, then reuse the same digest/actions/tracking flow. Only safe
+  // summary text from the consent-gated MeetingCapture rail; no recording, no
+  // raw transcript, no faked text. Returns true when handled.
+  async function handleTranscriptIngestion(text: string): Promise<boolean> {
+    const cmd = detectIngestionCommand(text);
+    if (cmd === null) return false;
+    const res = await api.meetingCaptures.list();
+    const candidates = meetingCapturesToCandidates(
+      res.ok ? res.data.meeting_captures : [],
+    );
+    const result = ingestFromCandidates(candidates, cmd.latest);
+
+    if (
+      result.kind === "loaded" &&
+      result.candidate !== undefined &&
+      result.candidate.text !== undefined
+    ) {
+      // Load the safe transcript text into explicit, visible current context.
+      provideSurfaceContext({
+        type: "meeting",
+        text: result.candidate.text,
+        sourceLabel: result.candidate.title,
+      });
+      // Chain into the existing flow on the freshly-loaded context.
+      if (cmd.followOn === "digest") {
+        return handleTranscriptCommand("Summarize this transcript.");
+      }
+      if (cmd.followOn === "actions") {
+        return handleTranscriptCommand("Create action items from this meeting.");
+      }
+      if (cmd.followOn === "tracking") {
+        return handleTrackingCommand("What is blocked?");
+      }
+      const at = new Date().toISOString();
+      setDraft("");
+      setActionHeard(text);
+      setActionLabel("Transcript");
+      appendConversationEntry({ role: "user", text, at });
+      surfaceOutcome({
+        eventKind: "DIGEST_READY",
+        copy: result.message,
+        status: "Loaded",
+        at,
+        heard: text,
+        result: "success",
+        target: null,
+      });
+      markPresenceSuccess();
+      return true;
+    }
+
+    // needs_choice / missing_text / not_found — one calm message, no fake digest.
+    const at = new Date().toISOString();
+    setDraft("");
+    setActionHeard(text);
+    setActionLabel("Transcript");
+    appendConversationEntry({ role: "user", text, at });
+    surfaceOutcome({
+      eventKind: "MISSING_CONTEXT",
+      copy: result.message,
+      status: result.kind === "needs_choice" ? "Which one?" : "Need a transcript",
+      at,
+      heard: text,
+      result: "blocked",
+      target: null,
+    });
+    return true;
+  }
+
   async function handleTranscriptCommand(text: string): Promise<boolean> {
     const cmd = detectTranscriptCommand(text);
     if (cmd === null) return false;
@@ -2410,6 +2485,11 @@ export function AmbientOtzarBar(): JSX.Element {
     // that", "that's not blocked anymore", "this is due next Friday"). Runs
     // first so it's applied to the active flow, never mis-routed as a message.
     if (await handleCorrectionCommand(text)) return;
+
+    // Phase 4C — bring an EXISTING governed meeting transcript into context
+    // ("use/summarize the latest transcript"). Runs before the provided-text
+    // handlers so "the latest transcript" loads the artifact, not asks to paste.
+    if (await handleTranscriptIngestion(text)) return;
 
     // Phase 3C — tracking questions ("what is blocked?", "who is waiting on
     // whom?") answered from the current proposed actions / transcript.

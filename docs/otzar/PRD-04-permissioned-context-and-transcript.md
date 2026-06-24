@@ -51,6 +51,19 @@ Live rails to use (already exist server-side): `comms/extract` (real LLM),
 `perception/capture` (transcript/notes → MEETING ledger + intelligence). Ask for the
 transcript/context only if missing, else act.
 
+**Ingestion rail (verified 2026-06-23, Phase 4C).** The governed, consent-gated
+**MeetingCapture** rail (Phase 1222) is the chosen transcript source:
+`api.meetingCaptures.list` → `GET /otzar/meeting-captures` returns
+`MeetingCaptureSafeView[]` whose SAFE projection exposes `summary` (safe text) +
+`has_transcript` (boolean) — **never the raw transcript**. "Use/Summarize/Create action
+items from the latest transcript" loads the safe `summary` into the Phase 2.9 current
+context (type `meeting`), then reuses the Phase 3A/3B/3C flow. When a meeting exists but
+the safe view has no `summary` text → "I found the meeting, but I don't have transcript
+text yet." (no fake digest). Multiple → one focused question (unless "latest" → most
+recent). **Future:** richer text via `observe`/`perception` captures, and
+provider-specific (Zoom/Meet/Calendar) ingestion — only after those rails are verified
+safe; no new OAuth/recording in this seed.
+
 ### Part B acceptance
 1. Provided transcript → decisions/blockers/owners/follow-ups digest, not a raw dump.
 2. "After this meeting, send William the decisions" → extract + send/queue if context
