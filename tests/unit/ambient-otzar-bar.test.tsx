@@ -476,10 +476,26 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       http.get(`${API_BASE}/work-os/comms/recent-artifacts`, () =>
         HttpResponse.json({ ok: true, artifacts: [], next_cursor: null }),
       ),
-      // Phase 3D — governed correction persistence (best-effort).
+      // Phase 3D — generic governed correction persistence (best-effort).
       http.post(`${API_BASE}/otzar/correction`, () =>
         HttpResponse.json(
           { ok: true, correction_capsule_id: "corr-1" },
+          { status: 201 },
+        ),
+      ),
+      // Phase 3E — typed TwinCorrectionMemory persistence (best-effort).
+      http.post(`${API_BASE}/otzar/my-twin/corrections`, () =>
+        HttpResponse.json(
+          {
+            ok: true,
+            correction: {
+              correction_id: "tc-1",
+              scope_type: "PERSONAL",
+              scope_id: null,
+              correction_type: "MEANING_CLARIFICATION",
+              state: "ACTIVE",
+            },
+          },
           { status: 201 },
         ),
       ),
@@ -1979,12 +1995,24 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
   }
 
-  it("owner correction updates the single obvious item, governed-persisted", async () => {
+  it("owner correction updates the single obvious item, governed-persisted via the typed rail", async () => {
     const corrections: Array<Record<string, unknown>> = [];
     server.use(
-      http.post(`${API_BASE}/otzar/correction`, async ({ request }) => {
+      http.post(`${API_BASE}/otzar/my-twin/corrections`, async ({ request }) => {
         corrections.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json({ ok: true, correction_capsule_id: "c1" }, { status: 201 });
+        return HttpResponse.json(
+          {
+            ok: true,
+            correction: {
+              correction_id: "tc-x",
+              scope_type: "PERSONAL",
+              scope_id: null,
+              correction_type: "MEANING_CLARIFICATION",
+              state: "ACTIVE",
+            },
+          },
+          { status: 201 },
+        );
       }),
     );
     await reviewOneAction();
@@ -1995,8 +2023,12 @@ describe("AmbientOtzarBar — Work OS commands", () => {
       ),
     );
     expect(screen.getByTestId("transcript-action-review").textContent).toMatch(/Samiksha/);
-    // best-effort governed persistence happened (employee's own wallet).
+    // Typed governed persistence — self-scoped, safe_summary only (no transcript).
     await waitFor(() => expect(corrections.length).toBe(1));
+    expect(corrections[0]!.scope_type).toBe("PERSONAL");
+    expect(corrections[0]!.correction_type).toBe("MEANING_CLARIFICATION");
+    expect(String(corrections[0]!.safe_summary)).toMatch(/Samiksha owns that/i);
+    expect(String(corrections[0]!.safe_summary)).not.toMatch(/API keys/i); // no transcript body
   });
 
   it("ambiguous 'that' across multiple items → one focused question", async () => {
@@ -2057,6 +2089,58 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     const html = document.body.innerHTML.toLowerCase();
     expect(html).not.toContain("learned globally");
     expect(html).not.toContain("permanently");
+  });
+
+  // ── Phase 3E: correction history + persistence status ─────────────────
+  it("a correction appears in Recent corrections and becomes 'Saved as correction evidence'", async () => {
+    await reviewOneAction();
+    await ask("No, Samiksha owns that.");
+    await waitFor(() =>
+      expect(screen.getByTestId("correction-history")).toBeInTheDocument(),
+    );
+    const item = screen.getAllByTestId("correction-history-item")[0]!;
+    expect(item.textContent).toMatch(/Samiksha owns that/);
+    // Status resolves to the saved-evidence label once persistence succeeds.
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("correction-history-item")[0]!.textContent,
+      ).toMatch(/Saved as correction evidence/i),
+    );
+    // No raw correction id leaks into the UI.
+    expect(screen.getByTestId("correction-history").textContent).not.toMatch(/tc-/);
+  });
+
+  it("persistence failure keeps the local correction and says so honestly", async () => {
+    server.use(
+      http.post(`${API_BASE}/otzar/my-twin/corrections`, () =>
+        HttpResponse.json({ ok: false, error: "INTERNAL" }, { status: 500 }),
+      ),
+    );
+    await reviewOneAction();
+    await ask("No, Samiksha owns that.");
+    // Local correction still applied to the card.
+    expect(screen.getByTestId("transcript-action-review").textContent).toMatch(/Samiksha/);
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("correction-history-item")[0]!.textContent,
+      ).toMatch(/couldn't save evidence/i),
+    );
+  });
+
+  it("a preference correction is saved as preference evidence, with no global-learning claim", async () => {
+    await speak("Don't interrupt me for that.");
+    await waitFor(() =>
+      expect(screen.getByTestId("correction-history")).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("correction-history-item")[0]!.textContent,
+      ).toMatch(/Saved as preference evidence/i),
+    );
+    const html = document.body.innerHTML.toLowerCase();
+    expect(html).not.toContain("learned globally");
+    expect(html).not.toContain("permanently");
+    expect(html).not.toContain("training updated");
   });
 
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {

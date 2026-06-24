@@ -11,6 +11,7 @@
 //          tests/unit/work-corrections.test.ts.
 
 import type { TranscriptProposedAction } from "./transcript-actions";
+import type { TwinCorrectionType } from "@/lib/types/foundation";
 
 export type WorkCorrectionKind =
   | "owner_correction"
@@ -43,6 +44,56 @@ export interface CorrectionApplyResult {
   actions?: TranscriptProposedAction[];
   needsClarification?: boolean;
   clarificationQuestion?: string;
+}
+
+// Phase 3E — local, in-session correction history with honest persistence state.
+export type CorrectionPersistenceStatus =
+  | "local_applied"
+  | "persisted"
+  | "persistence_failed"
+  | "preference_candidate"
+  | "typed_preference_persisted";
+
+export interface WorkCorrectionHistoryItem {
+  id: string;
+  correctionKind: WorkCorrectionKind;
+  rawText: string;
+  appliedMessage: string;
+  scope: "current_flow" | "future_preference_candidate";
+  persistenceStatus: CorrectionPersistenceStatus;
+  createdAt: string;
+}
+
+// WHAT: Map a work correction to the governed TwinCorrectionMemory type so it
+//        persists with the right typed meaning (EDX-5 / Foundation #274).
+export function correctionTypeFor(kind: WorkCorrectionKind): TwinCorrectionType {
+  switch (kind) {
+    case "tone_preference":
+      return "TONE_PREFERENCE";
+    case "interruption_preference":
+      return "PREFERENCE";
+    case "context_alias":
+      return "TERMINOLOGY_DEFINITION";
+    default:
+      return "MEANING_CLARIFICATION";
+  }
+}
+
+// WHAT: A human, honest label for a persistence status (no backend terms,
+//        no global-learning claims).
+export function persistenceStatusLabel(s: CorrectionPersistenceStatus): string {
+  switch (s) {
+    case "local_applied":
+      return "Applied here";
+    case "persisted":
+      return "Saved as correction evidence";
+    case "typed_preference_persisted":
+      return "Saved as preference evidence";
+    case "preference_candidate":
+      return "Preference for this workflow";
+    case "persistence_failed":
+      return "Applied here (couldn't save evidence)";
+  }
 }
 
 // WHAT: Detect and classify a correction. Returns null when the text is not a

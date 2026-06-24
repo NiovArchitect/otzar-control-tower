@@ -130,7 +130,11 @@ import {
 import {
   detectCorrection,
   applyCorrection,
+  correctionTypeFor,
+  persistenceStatusLabel,
   type WorkCorrection,
+  type WorkCorrectionHistoryItem,
+  type CorrectionPersistenceStatus,
 } from "@/lib/work-os/work-corrections";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
@@ -321,6 +325,11 @@ export function AmbientOtzarBar(): JSX.Element {
   // waiting / needs-attention) over the current proposed actions.
   const [trackingSummary, setTrackingSummary] =
     useState<WorkTrackingSummary | null>(null);
+  // Phase 3E — in-session history of corrections + their honest persistence
+  // status (local / saved as evidence / preference candidate).
+  const [correctionHistory, setCorrectionHistory] = useState<
+    WorkCorrectionHistoryItem[]
+  >([]);
   // Phase 1265 — Work OS status line (Draft only / Approval required /
   // Read-only / Runtime not available / Routed / Blocked).
   const [actionStatus, setActionStatus] = useState<string | null>(null);
@@ -1621,9 +1630,26 @@ export function AmbientOtzarBar(): JSX.Element {
         prev !== null ? deriveTrackingFromActions(updated) : prev,
       );
     }
-    // Best-effort governed persistence (the employee's own wallet, ADR-0055).
-    // Never blocks the local update; local-only is acceptable if it fails.
-    void persistCorrection(correction);
+
+    // Record it in the in-session history (applied locally first), then attempt
+    // governed persistence and update the status honestly.
+    const historyId = `corr-${at}-${correctionHistory.length}`;
+    const initialStatus: CorrectionPersistenceStatus = isPreference
+      ? "preference_candidate"
+      : "local_applied";
+    setCorrectionHistory((prev) => [
+      {
+        id: historyId,
+        correctionKind: correction.kind,
+        rawText: text,
+        appliedMessage: result.message,
+        scope: correction.scope,
+        persistenceStatus: initialStatus,
+        createdAt: at,
+      },
+      ...prev,
+    ]);
+
     surfaceOutcome({
       eventKind: "SELF_WORK_SAVED",
       copy: result.message,
@@ -1634,15 +1660,36 @@ export function AmbientOtzarBar(): JSX.Element {
       target: null,
     });
     markPresenceSuccess();
+
+    // Best-effort governed persistence via the typed TwinCorrectionMemory rail
+    // (EDX-5 / Foundation #274): minimal safe_summary only — NO raw transcript,
+    // self-scoped (PERSONAL). Never blocks the local update; never retries.
+    void persistCorrection(correction, historyId, isPreference);
     return true;
   }
 
-  async function persistCorrection(c: WorkCorrection): Promise<void> {
-    // Minimal, governed correction evidence — no raw transcript, no ids.
-    await api.otzar.correction({
-      incorrect_description: `Work interpretation (${c.kind})`,
-      correct_behavior: c.rawText,
+  async function persistCorrection(
+    c: WorkCorrection,
+    historyId: string,
+    isPreference: boolean,
+  ): Promise<void> {
+    const res = await api.otzar.correctionMemory.create({
+      scope_type: "PERSONAL",
+      correction_type: correctionTypeFor(c.kind),
+      // The correction text the user spoke — never the transcript/context body.
+      safe_summary: c.rawText,
+      retention_class: "STANDARD",
     });
+    const status: CorrectionPersistenceStatus = res.ok
+      ? isPreference
+        ? "typed_preference_persisted"
+        : "persisted"
+      : "persistence_failed";
+    setCorrectionHistory((prev) =>
+      prev.map((h) =>
+        h.id === historyId ? { ...h, persistenceStatus: status } : h,
+      ),
+    );
   }
 
   // Phase 1269 — CONFIRM is the only operation that proposes/creates a
@@ -3704,6 +3751,30 @@ export function AmbientOtzarBar(): JSX.Element {
                     </div>
                   ))}
               </div>
+            </details>
+          ) : null}
+
+          {/* Phase 3E — recent corrections + honest persistence status, so the
+              employee sees Otzar heard and applied their correction. Collapsed,
+              calm; no raw ids, no global-learning claims. */}
+          {correctionHistory.length > 0 ? (
+            <details
+              className="rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs"
+              data-testid="correction-history"
+            >
+              <summary className="cursor-pointer select-none text-[11px] font-medium text-muted-foreground">
+                Recent corrections
+              </summary>
+              <ul className="mt-1 space-y-1">
+                {correctionHistory.slice(0, 6).map((h) => (
+                  <li key={h.id} data-testid="correction-history-item">
+                    <span className="text-foreground">{h.appliedMessage}</span>{" "}
+                    <span className="opacity-70">
+                      · {persistenceStatusLabel(h.persistenceStatus)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </details>
           ) : null}
 
