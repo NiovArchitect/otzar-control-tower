@@ -20,6 +20,13 @@ backend jargon in normal UX.
 - **Remaining caveat:** the credentialed standard-user live browser smoke is written and
   runnable, but **not yet run** (needs `DEMO_SHARED_PASSWORD`).
 
+**Phase status (no stale "Phase 3 open"):** Phase 3 transcript/meeting intelligence is
+**complete** through the provided-text flow (3A), proposed actions (3B), tracking (3C),
+correction capture (3D), correction persistence/history (3E), and the employee-flow smoke
+harness (3F). Phase 4C adds safe MeetingCapture summary ingestion. Phases 4A/4B/4D are
+complete. Remaining caveat: the credentialed live standard-user browser smoke still
+requires credentials.
+
 ## What is live now (by shipped phase)
 
 | Phase | Capability |
