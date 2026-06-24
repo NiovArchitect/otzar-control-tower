@@ -12,7 +12,7 @@ evidence**.
 |---|---|
 | Date | 2026-06-23 |
 | Target | `https://app.otzar.ai` (HTTP 200) |
-| Bundle | `assets/index-C4TpCNel.js` (deploy `dep-d8tmnhgg4nts73d379gg`, commit `1263781` — intent-coverage repair) |
+| Bundle | `assets/index-D4ZZRLi7.js` (deploy `dep-d8to6f3tqb8s73eiu54g` — Phase 6: card-send feedback + per-action owner attribution) |
 | User / role tested | `vishesh@niovlabs.com` — **standard employee** (not org-admin) |
 | Second human | `david@niovlabs.com` (two-party collaboration) |
 | Admin coverage | **CRED gap** — probed `sadeil`/`david`/`vishesh`; **none holds `can_admin_org`** |
@@ -316,7 +316,7 @@ real remaining gaps are demo *seeding/credential* gaps, not missing product.
 |---|---|---|
 | **Admin user create/invite/permission** | ✅ EXISTS — `api.org.members.create/bulk` → `POST /org/members` (`org.routes.ts`); admin can create/invite + assign role | Rail present + admin RBAC verified. Live *write* verification deferred — creating a durable user is a real mutation (Rule 10: no hard delete); not run autonomously. Verifiable via a sanctioned demo-scoped user with approval. |
 | **Approval-positive (approver acts)** | ✅ EXISTS — `api.escalations.pending/approve/reject` + Approvals page; dual-control (caller ≠ source) | 🌱 DATA gap: needs a *seeded* governed action that triggers an escalation. Rail is real; not faked. |
-| **Recipient inbound visibility** | ✅ EXISTS — `GET /notifications` (self-scoped) + `api.otzar.collaboration.inbound()` (People & Collaboration `inbound-card`) | ✅ Harness now checks the **right** surface (was a harness gap, not a product gap). |
+| **Recipient inbound visibility** | ✅ EXISTS — `api.otzar.collaboration.inbound()` (People & Collaboration `inbound-card`) | ✅ **VERIFIED** via a focused two-user probe: after vishesh sends, **David sees** *"Hey david, can you review the launch checklist? · Created less than a minute ago · Accept · Reject"*. (The matrix's earlier "no inbound" was reading before the inbound query populated — harness timing, fixed.) |
 | **Dynamic people resolution** | ✅ EXISTS — `resolveTargetInOrg` filters by org `parent_id`, returns NOT_FOUND/AMBIGUOUS, **no hardcoded fallback** (`authority-context.service.ts`) | ✅ Org-scoped + demo-name isolation verified. Production-ready for org-scoped routing. |
 | **Card Send feedback** | ✅ FIXED + deployed — `sending`/`saving` in-flight states | ✅ Closed. |
 | **Per-action owner attribution** | ✅ IMPROVED + deployed — owned-responsibility parsing ("X owns/needs Y") + owner stop-list | ✅ Closed (was a parser under-extraction). |
