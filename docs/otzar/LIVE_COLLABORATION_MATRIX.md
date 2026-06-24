@@ -264,6 +264,32 @@ deferred — doctrine says "collapsed by default, not a noisy graph"). The glass
 read over the light workspace (no global dark-theme flip needed). Voice/earbud path is honest
 (browser-STT, no fake hands-free claim).
 
+## Dandelion onboarding doctrine repair (2026-06-24)
+
+Founder feedback: the onboarding page didn't make Dandelion attractive/clear and missed the
+point of ambient autonomous governed behavior. Per docs, Dandelion = governed propagation of
+work awareness/action through the org ("Dandelion maps the territory; admins approve the map;
+Foundation governs; AI Twins operate inside the approved terrain"; Propagation Law: root-first,
+never mass-invite). The `/onboarding` page opened as a dense admin "Dandelion Preview" catalog
+console — it led with the internal codename and the catalog mechanics, not with what Otzar is.
+
+| Change | Status | Evidence |
+|---|---|---|
+| Lead the page with an ambient AI Work OS doctrine hero (not the codename) | ✅ | `AmbientWorkOsDoctrine` in `Onboarding.tsx`; H1 "Getting started with Otzar" (was "Dandelion Preview") |
+| "Otzar is your ambient AI Work OS — not a chatbot / dashboard / task app" | ✅ | hero + `ambient-workos-not`; onboarding test asserts it |
+| "Dandelion turns context into governed work movement" | ✅ | hero sub; test asserts the phrase |
+| Three concept cards: Seed context · Route governed work · Learn through correction | ✅ | `ambient-workos-concept-*`; tests assert each |
+| Autonomy is governed (asks one question, routes for approval, never crosses authority) | ✅ | `ambient-workos-autonomy`; test asserts "routes work for approval before anything sensitive leaves" |
+| Presence-not-surveillance + no permanent/global-learning claim | ✅ | "observes the work, not the person"; "does not pretend to learn forever"; test forbids surveillance/global-learning/automate-everything/set-and-forget copy |
+| Remove the customer-facing "Powered by Dandelion" codename tagline | ✅ | `Collaboration.tsx` + `nav-employee.ts` reframed to "Dandelion spreads awareness to the right people, not everyone" |
+
+Discipline: no new product category, no faked autonomy/recording, no permanent-learning claim,
+no demo-name as a universal example in the new copy (the hero names no one). The employee
+voice-first `Welcome.tsx` greeting was already doctrine-aligned (consent-gated memory, calm,
+no surveillance) and was left intact. Honest remaining: the dense admin catalog below the hero
+is unchanged (it serves admin activation); demo names still live in MSW test fixtures (not
+production copy) — a separate test-hygiene cleanup.
+
 ## Triage of the 2 remaining "fails" (classified, not patched-blindly)
 
 1. **L · hard refresh → /login** — *known/intentional.* In-memory auth by design (code: "NO

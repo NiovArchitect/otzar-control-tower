@@ -67,4 +67,13 @@ test("capture ambient orb states", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(600);
   await page.screenshot({ path: `screenshots/ambient-${TAG}-4-mobile.png`, fullPage: false });
+
+  // 5. Onboarding doctrine page (Dandelion coherence repair).
+  if (process.env.OTZAR_SHOT_ONBOARDING === "1") {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/onboarding");
+    await page.getByTestId("ambient-workos-doctrine").first().waitFor({ state: "visible", timeout: 12_000 }).catch(() => undefined);
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `screenshots/ambient-${TAG}-5-onboarding.png`, fullPage: false });
+  }
 });

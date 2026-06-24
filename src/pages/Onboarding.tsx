@@ -163,6 +163,85 @@ function DoctrineCard() {
   );
 }
 
+// [OTZAR-LIVE-6] Ambient AI Work OS doctrine hero — the first thing a first-time
+// user sees. Makes Otzar + Dandelion obvious and on-doctrine BEFORE the technical
+// catalog below: ambient governed work movement, not a chatbot / dashboard / task
+// app. Copy is product-doctrine (governed propagation, authority-bounded AI Twins,
+// scoped corrections) — never surveillance, never permanent/global-learning, never
+// "automate everything". Pure presentational; no data, no backend calls.
+function AmbientWorkOsDoctrine() {
+  const concepts: Array<{ id: string; title: string; body: string }> = [
+    {
+      id: "seed",
+      title: "Seed the context",
+      body: "Add what you're working on — a meeting, a thread, a note. Otzar understands it and turns it into governed work movement.",
+    },
+    {
+      id: "route",
+      title: "Route governed work",
+      body: "Otzar spreads awareness to the right people and AI Twins — the right work to the right person at the right time, never everyone, never outside your authority.",
+    },
+    {
+      id: "learn",
+      title: "Learn through correction",
+      body: "Your corrections shape how Otzar works for you. Scoped, auditable, and revocable — it does not pretend to learn forever.",
+    },
+  ];
+  return (
+    <section className="space-y-4" data-testid="ambient-workos-doctrine">
+      <Card data-testid="ambient-workos-hero">
+        <CardHeader>
+          <CardTitle className="text-xl" data-testid="ambient-workos-hero-title">
+            Otzar is your ambient AI Work OS
+          </CardTitle>
+          <CardDescription data-testid="ambient-workos-hero-sub">
+            Dandelion turns context into governed work movement — Otzar hears the
+            organization and keeps work moving safely, inside your authority.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          <p data-testid="ambient-workos-not">
+            Not a chatbot. Not a dashboard. Not a task app. Otzar is an ambient
+            intelligence layer around your organization's work — present, calm,
+            and governed.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-3" data-testid="ambient-workos-concepts">
+        {concepts.map((c) => (
+          <Card key={c.id} data-testid={`ambient-workos-concept-${c.id}`}>
+            <CardHeader>
+              <CardTitle className="text-base">{c.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">{c.body}</CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card data-testid="ambient-workos-autonomy">
+        <CardHeader>
+          <CardTitle className="text-base">Autonomous, not uncontrolled</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>
+            Otzar prepares, coordinates, and recommends inside your scope. It asks
+            one focused question when context is missing, and routes work for
+            approval before anything sensitive leaves. It never crosses authority
+            boundaries and never routes to people outside your visibility.
+          </p>
+          <p data-testid="ambient-workos-trust">
+            Ambient does not mean surveillance. Your current context is explicit
+            and yours to clear at any time — Otzar observes the work, not the
+            person. It never fakes a completion and never sends on your behalf
+            without your authority.
+          </p>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 function CatalogCountsCard() {
   return (
     <Card data-testid="dandelion-counts-card">
@@ -1785,9 +1864,10 @@ export function OnboardingPage() {
   return (
     <div className="space-y-6" data-testid="onboarding-page">
       <PageHeader
-        title="Dandelion Preview"
+        title="Getting started with Otzar"
         description={PREVIEW_DOCTRINE_LINE}
       />
+      <AmbientWorkOsDoctrine />
       <DoctrineCard />
       <DandelionActivationCard />
       <TeamActivationCard />

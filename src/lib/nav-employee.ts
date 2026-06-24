@@ -146,7 +146,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/collaboration",
     icon: Users,
     description:
-      "See your team. Ask coworkers, teams, and projects for help. Powered by Dandelion.",
+      "See your team. Ask coworkers, teams, and projects for help. Dandelion spreads awareness to the right people, not everyone.",
     group: "primary",
   },
   {

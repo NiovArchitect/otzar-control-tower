@@ -179,7 +179,7 @@ export function Collaboration() {
     <div className="space-y-6">
       <PageHeader
         title="People & Collaboration"
-        description="See the teammates in your org, then ask coworkers, coworker Twins, teams, and projects for help. Same-project / same-team work usually flows automatically; cross-team or sensitive work asks for approval at the right boundary. Powered by Dandelion."
+        description="See the teammates in your org, then ask coworkers, coworker Twins, teams, and projects for help. Same-project / same-team work usually moves without ceremony; cross-team or sensitive work asks for approval at the right boundary. Dandelion spreads work awareness to the right people without spreading noise."
       />
 
       {/* Phase 1237 — Dandelion org-growth intelligence (admins). */}

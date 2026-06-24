@@ -73,11 +73,13 @@ describe("ADR-0080 Wave 3 Dandelion Preview -- nav + route", () => {
 });
 
 describe("ADR-0080 Wave 3 Dandelion Preview -- shell + doctrine", () => {
-  it("renders the Dandelion Preview shell with PageHeader", () => {
+  it("renders the onboarding shell with a clear Otzar-first PageHeader", () => {
     renderPage();
     expect(screen.getByTestId("onboarding-page")).toBeInTheDocument();
+    // [OTZAR-LIVE-6] The page no longer LEADS with the internal "Dandelion
+    // Preview" codename; it opens with what Otzar is.
     expect(
-      screen.getByRole("heading", { name: "Dandelion Preview", level: 1 }),
+      screen.getByRole("heading", { name: "Getting started with Otzar", level: 1 }),
     ).toBeInTheDocument();
   });
 
@@ -124,6 +126,53 @@ describe("ADR-0080 Wave 3 Dandelion Preview -- shell + doctrine", () => {
         "This preview does not activate tools, users, permissions, workflows, or Digital Twin profiles.",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+describe("[OTZAR-LIVE-6] ambient AI Work OS doctrine hero", () => {
+  it("explains Otzar as an ambient AI Work OS — not a chatbot/dashboard/task app", () => {
+    renderPage();
+    expect(screen.getByTestId("ambient-workos-hero-title")).toHaveTextContent(
+      /ambient AI Work OS/i,
+    );
+    expect(screen.getByTestId("ambient-workos-not")).toHaveTextContent(
+      /not a chatbot\. not a dashboard\. not a task app/i,
+    );
+  });
+
+  it("frames Dandelion as governed work movement", () => {
+    renderPage();
+    expect(screen.getByTestId("ambient-workos-hero-sub")).toHaveTextContent(
+      /Dandelion turns context into governed work movement/i,
+    );
+  });
+
+  it("shows the three concept cards (seed / route / learn)", () => {
+    renderPage();
+    expect(screen.getByTestId("ambient-workos-concept-seed")).toHaveTextContent(/Seed the context/i);
+    expect(screen.getByTestId("ambient-workos-concept-route")).toHaveTextContent(/Route governed work/i);
+    expect(screen.getByTestId("ambient-workos-concept-learn")).toHaveTextContent(/Learn through correction/i);
+  });
+
+  it("frames autonomy as governed (asks/approval), not uncontrolled", () => {
+    renderPage();
+    expect(screen.getByTestId("ambient-workos-autonomy")).toHaveTextContent(
+      /routes work for approval before anything sensitive leaves/i,
+    );
+  });
+
+  it("uses presence-not-surveillance language and never claims permanent/global learning", () => {
+    renderPage();
+    const doctrine = screen.getByTestId("ambient-workos-doctrine");
+    expect(doctrine).toHaveTextContent(/Ambient does not mean surveillance/i);
+    expect(doctrine).toHaveTextContent(/observes the work, not the person/i);
+    expect(doctrine).toHaveTextContent(/does not pretend to learn forever/i);
+    // No surveillance / global-learning / fake-completion / mass-invite claims.
+    // (The page legitimately says it does NOT "pretend to learn forever" — assert
+    // the forbidden POSITIVE claims, not that negation.)
+    const text = doctrine.textContent ?? "";
+    expect(text).not.toMatch(/employee score|monitor (?:your|the) (?:team|employees)|surveillance is|watch (?:the|your) (?:person|employee)/i);
+    expect(text).not.toMatch(/permanent memory|remembers everything|learns everything|automate everything|set (?:it )?and forget/i);
   });
 });
 
