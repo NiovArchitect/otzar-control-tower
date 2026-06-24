@@ -56,7 +56,6 @@ test.describe("Otzar employee flow — credentialed live smoke", () => {
         .not.toBe(captured);
       const got = ((await outcome.textContent()) ?? "").trim();
       prev = got;
-      // eslint-disable-next-line no-console
       console.log(`[live-smoke] "${text}" => ${got}`);
       return got;
     };
