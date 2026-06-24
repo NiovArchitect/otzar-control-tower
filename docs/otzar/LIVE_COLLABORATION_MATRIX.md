@@ -143,13 +143,14 @@ instead of the real reply. Root cause was **two-part**:
    the thread-query dispatch through the **governed resolver** so a STANDARD employee can
    resolve the teammate (commit `2e0fe47`). Before `2e0fe47` the dispatch used the
    admin-only org roster and answered **"I couldn't find David in your organization."**
-2. **Backend (niov-foundation, PR #488, NOT yet merged — protected `main`):** a notification
-   **reply** created only a `Notification`, not a mirror `WorkLedgerEntry`, so the reply
-   never appeared in the A↔B governed thread the frontend reads. Until #488 merges +
-   otzar-api redeploys, the honest grounded answer is **"I don't see a reply from David yet."**
-   (never the old hallucination). The exact **"Yes — David replied 4 minutes ago: '…'. I'll
-   treat that as confirmed."** happy path is proven deterministically in
-   `tests/unit/thread-query.test.ts` and goes live only when #488 lands.
+2. **Backend (niov-foundation, PR #488 — MERGED `8ba31c6`, otzar-api redeployed
+   `dep-d8tvgut8nd3s73ev3l0g` LIVE):** the recipient reply now lands in the A↔B governed
+   thread two ways — the **direct** `internalMessage(senderId, …)` path (used when the
+   sender entity is known on the recipient inbox, Phase 1284 Wave 2) already wrote a
+   `WorkLedgerEntry`; PR #488 hardened the **mediator fallback** (`POST /notifications/:id/reply`)
+   to mirror one too. The full happy path is now **proven LIVE end-to-end** (not just in
+   unit): round-trip test answer — **"Yes — David Odie replied just now: '…'. I'll treat
+   that as confirmed."** (unique reply token asserted).
 
 Honest per-class accounting of the Bidirectional Communication Intelligence nuance set:
 
@@ -161,7 +162,7 @@ Honest per-class accounting of the Bidirectional Communication Intelligence nuan
 | D | Decline / rejection reply read | ✅ handled | `replyStatusNote` detects declined language |
 | E | Question / clarification reply read | ✅ handled | `replyStatusNote` detects a question back |
 | F | No-response (honest) | ✅ handled (LIVE) | "I don't see a reply from X yet." — never a false "no response" when a reply exists |
-| G | Reply lands in governed thread (notification→ledger bridge) | ⚠️ blocked on PR #488 | mirror `WorkLedgerEntry` on reply; protected `main`, Founder merge required |
+| G | Reply lands in governed thread (notification→ledger bridge) | ✅ PROVEN LIVE | PR #488 merged `8ba31c6` + otzar-api redeployed; round-trip test: "Yes — David Odie replied just now: '…'. I'll treat that as confirmed." |
 | H | Completion / done detection from a reply | 🔭 not first-class | reply text read, but "X finished it" does not yet move work state |
 | I | Ownership / reassignment from a reply | 🔭 not first-class | a reply that reassigns ("give it to Sam") is not yet parsed into a handoff |
 | J | Time / meeting / calendar reference in a reply | ⚠️ honest-only | surfaced in the reply text; **never auto-creates a calendar event**; "no linked event" stays honest |
@@ -169,11 +170,18 @@ Honest per-class accounting of the Bidirectional Communication Intelligence nuan
 | L | Multi-party replies (several teammates reply) | 🔭 not first-class | single-teammate response-status is handled; multi-party aggregation is future |
 | M | AI Twin reply reconciliation | 🔭 not first-class | Twin-to-Twin send is governed (AE); reconciling a Twin's *reply* back is future |
 
-Live regression: `npm run test:e2e:live:response-reconciliation` (env-gated; sends one
-demo-scoped governed message, asks "Did X respond?", asserts a grounded thread answer and
-**not** the generic-chat hallucination). Discipline preserved: no hardcoded "David" (dynamic
-org resolver), no parallel message store (reads existing thread/ledger/notification rails),
-no fake replies, no calendar auto-create.
+Live regressions (env-gated, demo-scoped writes, no secrets):
+- `npm run test:e2e:live:response-reconciliation` — sends one governed message, asks "Did X
+  respond?", asserts a grounded thread answer and **not** the generic-chat hallucination.
+- `npm run test:e2e:live:response-roundtrip` — **two real accounts**: sender delivers a
+  governed note → teammate **actually replies** from their inbox → sender asks "Did X
+  respond?" → asserts the real reply surfaces (unique token), proving the full bidirectional
+  loop end-to-end. Live result: **"Yes — David Odie replied just now: '…'. I'll treat that
+  as confirmed."**
+
+Discipline preserved: no hardcoded "David" (dynamic org resolver), no parallel message
+store (reads existing thread/ledger/notification rails), no fake replies, no calendar
+auto-create.
 
 ## Triage of the 2 remaining "fails" (classified, not patched-blindly)
 
