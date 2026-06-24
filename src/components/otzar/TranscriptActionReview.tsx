@@ -55,8 +55,13 @@ export function TranscriptActionReview({
       className="rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs"
       data-testid="transcript-action-review"
     >
-      <div className="mb-1 text-[11px] font-medium text-muted-foreground">
-        Proposed actions
+      <div className="mb-1">
+        <div className="text-[11px] font-medium text-muted-foreground">
+          Proposed actions
+        </div>
+        <div className="text-[10px] text-muted-foreground/60">
+          Save, send, or dismiss each.
+        </div>
       </div>
       <div className="space-y-1.5">
         {open.map((a) => {

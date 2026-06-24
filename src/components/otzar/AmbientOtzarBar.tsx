@@ -3470,6 +3470,13 @@ export function AmbientOtzarBar(): JSX.Element {
                 />
                 <span className="text-muted-foreground">
                   Using current context
+                  {surfaceContext.sourceLabel !== undefined &&
+                  surfaceContext.sourceLabel.length > 0 ? (
+                    <span className="opacity-70">
+                      {" "}
+                      · {surfaceContext.sourceLabel.slice(0, 40)}
+                    </span>
+                  ) : null}
                 </span>
                 <button
                   type="button"
@@ -3736,6 +3743,9 @@ export function AmbientOtzarBar(): JSX.Element {
                       </ul>
                     </div>
                   ))}
+                <div className="text-[10px] text-muted-foreground/60">
+                  Say "Create action items" to turn these into proposals.
+                </div>
               </div>
             </details>
           ) : null}
@@ -3800,7 +3810,8 @@ export function AmbientOtzarBar(): JSX.Element {
               data-testid="correction-history"
             >
               <summary className="cursor-pointer select-none text-[11px] font-medium text-muted-foreground">
-                Recent corrections
+                Recent corrections{" "}
+                <span className="font-normal opacity-60">· this conversation</span>
               </summary>
               <ul className="mt-1 space-y-1">
                 {correctionHistory.slice(0, 6).map((h) => (
@@ -3831,7 +3842,8 @@ export function AmbientOtzarBar(): JSX.Element {
             }}
           >
             <summary className="cursor-pointer select-none text-[11px] font-medium text-muted-foreground">
-              Saved corrections
+              Saved corrections{" "}
+              <span className="font-normal opacity-60">· across sessions</span>
             </summary>
             <div className="mt-1">
               {savedCorrectionsStatus === "loading" ? (
