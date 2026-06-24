@@ -306,6 +306,35 @@ runtime `src/` (excluding tests/fixtures):
 
 No P1/P2 demo-leakage (fallback recipient / cross-tenant default) found.
 
+## Remaining Production Org Gaps (Phase 6 — complete-app verification)
+
+Treating Otzar as the complete enterprise app, a backend+frontend rail inspection
+(both repos) classified each org-governance capability. **Most rails EXIST**; the
+real remaining gaps are demo *seeding/credential* gaps, not missing product.
+
+| Capability | Rail status | Verdict |
+|---|---|---|
+| **Admin user create/invite/permission** | ✅ EXISTS — `api.org.members.create/bulk` → `POST /org/members` (`org.routes.ts`); admin can create/invite + assign role | Rail present + admin RBAC verified. Live *write* verification deferred — creating a durable user is a real mutation (Rule 10: no hard delete); not run autonomously. Verifiable via a sanctioned demo-scoped user with approval. |
+| **Approval-positive (approver acts)** | ✅ EXISTS — `api.escalations.pending/approve/reject` + Approvals page; dual-control (caller ≠ source) | 🌱 DATA gap: needs a *seeded* governed action that triggers an escalation. Rail is real; not faked. |
+| **Recipient inbound visibility** | ✅ EXISTS — `GET /notifications` (self-scoped) + `api.otzar.collaboration.inbound()` (People & Collaboration `inbound-card`) | ✅ Harness now checks the **right** surface (was a harness gap, not a product gap). |
+| **Dynamic people resolution** | ✅ EXISTS — `resolveTargetInOrg` filters by org `parent_id`, returns NOT_FOUND/AMBIGUOUS, **no hardcoded fallback** (`authority-context.service.ts`) | ✅ Org-scoped + demo-name isolation verified. Production-ready for org-scoped routing. |
+| **Card Send feedback** | ✅ FIXED + deployed — `sending`/`saving` in-flight states | ✅ Closed. |
+| **Per-action owner attribution** | ✅ IMPROVED + deployed — owned-responsibility parsing ("X owns/needs Y") + owner stop-list | ✅ Closed (was a parser under-extraction). |
+| **Cross-org isolation** | resolver org-scoped (✅ in code); **no sanctioned second-org seed** | 🌱🗝️ TOOLING/DATA gap — `demo-seed.ts`/`demo-team-seed.ts` are localhost-fail-closed; `provision-demo-team-accounts.ts` is single-org (NIOV) and touches the real team. A safe second-org fixture requires a new sanctioned, demo-scoped seed script (Founder-authorized). Not faked. |
+| **Dedicated demo admin** | only Founder (`sadeil`) holds `can_admin_org` | 🗝️ Founder-gated — a `otzar-demo-admin@niov.demo` needs a Founder-authorized change to the locked provision allowlist. Founder/admin remains the verified admin. |
+| **Multi-assignee / hierarchy** | not a first-class handler | 🔭 FUTURE — asks one focused question / falls to governed chat; documented, not faked. |
+| **Session durability** | in-memory auth by design (no localStorage/cookie) | P2/intentional — hard refresh logs out; secure refresh-cookie is forward work (Section-16). Not hacked. |
+
+**Honest bottom line for a real company today:** an org admin *can* create/invite/
+permission users and Otzar resolves + routes governed work among real org people
+dynamically (no demo-name fallback), with admin/member boundaries, correction
+memory, and inbound visibility all on real rails. The two capabilities that still
+need **demo fixtures/credentials to *prove live*** are cross-org isolation (needs a
+second demo org) and approval-positive (needs a seeded escalation) — both have real
+backend rails; neither is faked. **Next phase if desired — `Phase 6C: Sanctioned
+demo second-org + escalation seed`** (a small, demo-scoped, Founder-approved seed
+script) to convert those two DATA gaps into live PASS.
+
 ## How to reproduce
 
 ```bash
