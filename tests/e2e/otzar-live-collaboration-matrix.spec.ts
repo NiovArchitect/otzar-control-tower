@@ -49,9 +49,6 @@ function record(section: string, name: string, status: Status, cls: Cls, detail:
   console.log(`[matrix] ${section} | ${status} | ${cls} | ${name} :: ${clean}`);
   if (LOGF) { try { appendFileSync(LOGF, `${Date.now()} ${section}|${status}|${cls}|${name} :: ${clean}\n`); } catch { /* best effort */ } }
 }
-function has(section: string, name: string): boolean {
-  return rows.some((r) => r.section === section && r.name === name);
-}
 
 /** Fast SPA settle — networkidle never fires on this live app (websockets). Wait
  *  for the "Log out" button in the shell header, which is present on EVERY authed
@@ -647,12 +644,23 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
     try {
       if (!(await login(p2, PARTNER))) record("CO", "partner login", "SKIP", "cred-gap", `could not log in ${PARTNER}`);
       else {
-        for (const label of [/action center/i, /approvals/i, /my work/i]) {
-          const path = await navClient(p2, label); // client-side (session-safe)
-          const t = ((await p2.locator("main, body").first().innerText().catch(() => "")) ?? "").toLowerCase();
-          if (/launch checklist|review|vishesh/.test(t)) { record("CO", "partner sees inbound request", "PASS", "ok", `inbound signal on ${path}`); break; }
+        // The orb's "Ask X to review" routes via api.otzar.collaboration.create →
+        // the recipient sees it on People & Collaboration (inbound-card); some
+        // paths also notify via the bell. Check the REAL inbound surfaces.
+        let seen = false;
+        const collabPath = await navClient(p2, /People & Collaboration|Collaboration/i);
+        const inboundTxt = ((await p2.getByTestId("inbound-card").innerText().catch(() => "")) ?? "").toLowerCase();
+        if (/launch checklist|review/.test(inboundTxt)) seen = true;
+        if (!seen) {
+          const bell = p2.getByTestId("notification-bell-root");
+          if ((await bell.count()) > 0) {
+            await bell.click().catch(() => undefined);
+            await p2.waitForTimeout(1500);
+            const bellTxt = ((await bell.innerText().catch(() => "")) ?? "").toLowerCase();
+            if (/launch checklist|review|follow-?up|request from/.test(bellTxt)) seen = true;
+          }
         }
-        if (!has("CO", "partner sees inbound request")) record("CO", "partner sees inbound request", "SKIP", "data-gap", "no inbound signal on checked routes");
+        record("CO", "partner sees inbound request", seen ? "PASS" : "SKIP", seen ? "ok" : "data-gap", seen ? `inbound visible (collab ${collabPath} / bell)` : `no inbound signal — inbound-card="${inboundTxt.slice(0, 50)}"`);
       }
     } finally { await ctx2.close(); }
   });
