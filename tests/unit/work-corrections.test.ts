@@ -41,9 +41,92 @@ describe("detectCorrection", () => {
     expect(detectCorrection("When I say client note, I mean the current project note.")?.kind).toBe("context_alias");
   });
 
+  it("[OTZAR-LIVE-6] broadened owner-correction variants", () => {
+    for (const phrase of [
+      "That changed. Samiksha owns it now.",
+      "Samiksha owns it now.",
+      "Samiksha owns this now.",
+      "That belongs to Samiksha now.",
+      "This belongs to Samiksha.",
+      "Make Samiksha the owner.",
+      "Assign this to Samiksha.",
+      "Change the owner to Samiksha.",
+      "Actually, Samiksha is responsible.",
+      "Put Samiksha on that.",
+      "Give that to Samiksha.",
+      "Samiksha should take that.",
+      "Move ownership to Samiksha.",
+      "That should be on Samiksha.",
+    ]) {
+      const c = detectCorrection(phrase);
+      expect(c?.kind, phrase).toBe("owner_correction");
+      expect(c?.ownerName, phrase).toBe("Samiksha");
+    }
+  });
+
+  it("[OTZAR-LIVE-6] owner-correction rejects indefinite 'names' (vague guard owns these)", () => {
+    // These must NOT become owner_correction with ownerName='Someone'/'They'/… —
+    // they fall through to the endpoint-clarity guard instead.
+    expect(detectCorrection("Someone should follow up.")).toBeNull();
+    expect(detectCorrection("Someone should take that.")).toBeNull();
+    expect(detectCorrection("They own this now.")).toBeNull();
+    expect(detectCorrection("We should take that.")).toBeNull();
+  });
+
+  it("[OTZAR-LIVE-6] broadened due-date variants", () => {
+    for (const phrase of [
+      "Update the follow-up from Friday to Monday.",
+      "Move that from Friday to Monday.",
+      "The deadline is Monday now.",
+      "Use Monday, not Friday.",
+      "Push that to next Friday.",
+    ]) {
+      const c = detectCorrection(phrase);
+      expect(c?.kind, phrase).toBe("due_date_correction");
+      expect(c?.dueHint?.toLowerCase(), phrase).toMatch(/monday|friday/);
+    }
+  });
+
+  it("[OTZAR-LIVE-6] stale→current supersession asks (never auto-mutates)", () => {
+    for (const phrase of [
+      "Use the latest decision, not the old one.",
+      "Ignore the older launch note.",
+      "That decision changed.",
+      "This supersedes the old plan.",
+      "Don't use the old note.",
+    ]) {
+      expect(detectCorrection(phrase)?.kind, phrase).toBe("stale_supersession");
+    }
+    const r = applyCorrection(detectCorrection("Use the latest decision, not the old one.")!, [action({ sourceKind: "decision" })]);
+    expect(r.applied).toBe(false);
+    expect(r.needsClarification).toBe(true);
+    expect(r.clarificationQuestion).toMatch(/which decision|what should replace/i);
+  });
+
+  it("[OTZAR-LIVE-6] broadened blocker-cleared variants", () => {
+    for (const phrase of [
+      "That blocker is no longer blocked.",
+      "David is unblocked now.",
+      "That blocker is cleared.",
+      "This blocker is resolved.",
+    ]) {
+      expect(detectCorrection(phrase)?.kind, phrase).toBe("not_blocked");
+    }
+  });
+
+  it("[OTZAR-LIVE-6] canonical phrasings still classify (regression)", () => {
+    expect(detectCorrection("No, Samiksha owns that.")?.kind).toBe("owner_correction");
+    expect(detectCorrection("That's due next Friday.")?.kind).toBe("due_date_correction");
+    expect(detectCorrection("That's not blocked anymore.")?.kind).toBe("not_blocked");
+    expect(detectCorrection("Send that to Samiksha, not William.")?.kind).toBe("target_correction");
+  });
+
   it("returns null for non-correction text (handled safely)", () => {
     expect(detectCorrection("Summarize this transcript.")).toBeNull();
     expect(detectCorrection("good morning")).toBeNull();
+    // Outbound requests must NOT be hijacked as corrections.
+    expect(detectCorrection("Ask David to review this.")).toBeNull();
+    expect(detectCorrection("Send William the decisions.")).toBeNull();
   });
 
   it("preferences are future_preference_candidate scope", () => {

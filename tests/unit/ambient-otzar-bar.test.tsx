@@ -2041,6 +2041,51 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
   });
 
+  // ── [OTZAR-LIVE-6] intent-coverage repair ────────────────────────────────
+  it("[OTZAR-LIVE-6] natural owner-correction variant ('Samiksha owns it now') updates the item", async () => {
+    await reviewOneAction();
+    await ask("That changed. Samiksha owns it now.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(/Samiksha owns that/i),
+    );
+    expect(screen.getByTestId("voice-action-outcome").textContent).not.toMatch(/Ask Otzar/i);
+  });
+
+  it("[OTZAR-LIVE-6] vague 'Someone should follow up' (with context) asks who owns it — no ownerless artifact", async () => {
+    const ledgerPosts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API_BASE}/work-os/ledger`, async ({ request }) => {
+        ledgerPosts.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, entry: { ledger_entry_id: "x" } }, { status: 201 });
+      }),
+    );
+    await reviewOneAction(); // context + one proposed action present
+    await ask("Someone should follow up.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(/Who should own this\?/i),
+    );
+    expect(screen.getByTestId("voice-action-outcome").textContent).not.toMatch(/Ask Otzar/i);
+    expect(ledgerPosts.length).toBe(0); // no ownerless work minted
+  });
+
+  it("[OTZAR-LIVE-6] vague 'Handle this' with NO context asks for the context first", async () => {
+    await speak("Handle this.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(
+        /What should I use as the current context\?/i,
+      ),
+    );
+    expect(screen.queryByTestId("transcript-action-review")).toBeNull();
+  });
+
+  it("[OTZAR-LIVE-6] escalation to a role term asks who should approve (not generic chat)", async () => {
+    await speak("Escalate this to the founder for approval.");
+    await waitFor(() =>
+      expect(screen.getByTestId("voice-action-outcome").textContent).toMatch(/Who should approve this\?/i),
+    );
+    expect(screen.getByTestId("voice-action-outcome").textContent).not.toMatch(/Ask Otzar/i);
+  });
+
   it("due-date correction updates the hint locally", async () => {
     await reviewOneAction();
     await ask("That's due next Friday.");

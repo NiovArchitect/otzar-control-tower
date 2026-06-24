@@ -9,6 +9,45 @@ import { describe, expect, it } from "vitest";
 import { interpretAmbientOutboundWork } from "@/lib/work-os/ambient-outbound";
 import { planWorkCommand } from "@/lib/work-os/command-planner";
 
+describe("[OTZAR-LIVE-6] escalation / approval intent", () => {
+  it("named approver routes through the governed approval rail", () => {
+    for (const phrase of [
+      "Escalate this to Sadeil for approval.",
+      "Get approval from Sadeil.",
+      "Get sign-off from David.",
+    ]) {
+      const p = interpretAmbientOutboundWork(phrase);
+      expect(p, phrase).not.toBeNull();
+      expect(p!.kind, phrase).toBe("COLLABORATION_REQUEST");
+      expect(p!.requestType, phrase).toBe("APPROVAL_REQUEST");
+      expect(p!.recipient, phrase).toMatch(/Sadeil|David/);
+    }
+  });
+
+  it("role-term / unnamed approver asks one focused question (no chat fallback, no 404 guess)", () => {
+    for (const phrase of [
+      "Escalate this to the founder for approval.",
+      "Escalate this to leadership.",
+      "Send this for approval.",
+      "This needs approval.",
+      "Route this for approval.",
+      "We need sign-off before sending.",
+    ]) {
+      const p = interpretAmbientOutboundWork(phrase);
+      expect(p, phrase).not.toBeNull();
+      expect(p!.kind, phrase).toBe("CLARIFY");
+      expect(p!.recipientFacingMessage, phrase).toMatch(/who should approve this/i);
+    }
+  });
+
+  it("'ask X to approve' (canonical) still routes via the lead-verb path", () => {
+    const p = interpretAmbientOutboundWork("Ask Sadeil to approve this.");
+    expect(p!.kind).toBe("COLLABORATION_REQUEST");
+    expect(p!.requestType).toBe("APPROVAL_REQUEST");
+    expect(p!.recipient).toBe("Sadeil");
+  });
+});
+
 describe("interpretAmbientOutboundWork — composes recipient-facing messages", () => {
   it("Message David and ask him to validate what he received", () => {
     const p = interpretAmbientOutboundWork(

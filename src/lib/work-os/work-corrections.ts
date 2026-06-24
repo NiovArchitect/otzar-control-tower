@@ -21,6 +21,7 @@ export type WorkCorrectionKind =
   | "owner_correction"
   | "target_correction"
   | "due_date_correction"
+  | "stale_supersession"
   | "kind_correction"
   | "not_blocked"
   | "not_follow_up"
@@ -159,8 +160,38 @@ export function persistenceStatusLabel(s: CorrectionPersistenceStatus): string {
   }
 }
 
+// Indefinite pronouns / collective words that look like a Name but are NOT a
+// person — so "Someone should take that" / "They own this" fall through to the
+// vague-endpoint guard, never a bogus owner_correction with ownerName="Someone".
+const NOT_A_PERSON = new Set([
+  "someone", "somebody", "anyone", "anybody", "everyone", "everybody", "nobody",
+  "noone", "they", "them", "we", "you", "i", "it", "this", "that", "the", "team",
+  "people", "everything", "something", "anything", "leadership", "management",
+  "who", "whoever", "he", "she",
+]);
+function isLikelyName(s: string | undefined): s is string {
+  return s !== undefined && /^[A-Z][a-z]+$/.test(s) && !NOT_A_PERSON.has(s.toLowerCase());
+}
+// A date-ish hint disambiguates "Use Monday, not Friday" (due change) from
+// "Use the latest decision, not the old one" (supersession).
+const DATEISH =
+  /\b(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day|today|tomorrow|tonight|next\s+\w+|this\s+(?:week|month|morning|afternoon|evening)|by\s+\w+|end\s+of\s+\w+|\d{1,2}(?:st|nd|rd|th)?|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i;
+function looksLikeDate(s: string): boolean {
+  return DATEISH.test(s.trim());
+}
+// Try each pattern; return the first capture that is a real person name.
+function firstName(t: string, patterns: RegExp[]): string | null {
+  for (const re of patterns) {
+    const m = t.match(re);
+    if (m !== null && isLikelyName(m[1])) return m[1];
+  }
+  return null;
+}
+
 // WHAT: Detect and classify a correction. Returns null when the text is not a
-//        correction. Patterns are specific to avoid hijacking normal commands.
+//        correction. Patterns are specific to avoid hijacking normal commands;
+//        indefinite "names" (Someone/They/…) are rejected so vague work falls
+//        through to the endpoint-clarity guard.
 export function detectCorrection(text: string): WorkCorrection | null {
   const t = text.trim();
   const base = { rawText: t, confidence: 0.8 } as const;
@@ -168,14 +199,50 @@ export function detectCorrection(text: string): WorkCorrection | null {
   let m: RegExpMatchArray | null;
 
   // Target correction must be checked before owner ("send that to X, not Y").
-  if ((m = t.match(/\bsend\s+(?:that|this|it)\s+to\s+([A-Z][a-z]+)\b/i)) !== null) {
+  if ((m = t.match(/\bsend\s+(?:that|this|it)\s+to\s+([A-Z][a-z]+)\b/i)) !== null && isLikelyName(m[1])) {
     return { ...base, kind: "target_correction", targetName: m[1]!, scope: "current_flow" };
   }
+
+  // Stale → current supersession (checked before "use X not Y" due + before the
+  // generic decision-changed forms). HONEST: this asks one focused question; it
+  // does not silently mutate persisted work (no safe Work-Ledger update rail).
   if (
-    (m = t.match(/\bno,?\s+([A-Z][a-z]+)\s+owns?\s+(?:that|this|it)\b/i)) !== null
+    /\bignore\s+the\s+(?:older|old|stale|previous|outdated)\b/i.test(t) ||
+    /\buse\s+(?:the\s+)?(?:latest|current|newest|new|most\s+recent)\b[^.]*\bnot\s+the\s+old\b/i.test(t) ||
+    /\b(?:that|the|this)\s+(?:decision|plan|note)\s+(?:changed|is\s+(?:wrong|stale|outdated|old))\b/i.test(t) ||
+    /\b(?:this|that)\s+supersedes?\s+the\s+old\b/i.test(t) ||
+    /\bwe\s+changed\s+direction\b/i.test(t) ||
+    /\b(?:the\s+)?(?:latest|current)\s+meeting\s+(?:overrides?|changed)\b/i.test(t) ||
+    /\buse\s+what\s+we\s+just\s+decided\b/i.test(t) ||
+    /\bcurrent\s+context\s+wins\b/i.test(t) ||
+    /\bdon'?t\s+use\s+the\s+(?:old|older|stale)\b/i.test(t)
   ) {
-    return { ...base, kind: "owner_correction", ownerName: m[1]!, scope: "current_flow" };
+    return { ...base, kind: "stale_supersession", confidence: 0.7, scope: "current_flow" };
   }
+
+  // Owner / responsibility correction — broadened natural variants. Each name is
+  // gated by isLikelyName (rejects Someone/They/We/…).
+  {
+    const owner = firstName(t, [
+      /\bno,?\s+([A-Z][a-z]+)\s+owns?\s+(?:that|this|it)\b/i,
+      /\b([A-Z][a-z]+)\s+owns?\s+(?:it|this|that)\b/i,
+      /\bmake\s+([A-Z][a-z]+)\s+the\s+owner\b/i,
+      /\bassign\s+(?:it|this|that)\s+to\s+([A-Z][a-z]+)\b/i,
+      /\bchange\s+the\s+owner\s+to\s+([A-Z][a-z]+)\b/i,
+      /\b(?:it|this|that)\s+belongs?\s+(?:to|with)\s+([A-Z][a-z]+)\b/i,
+      /\b(?:actually,?\s+)?([A-Z][a-z]+)\s+is\s+responsible\b/i,
+      /\bput\s+([A-Z][a-z]+)\s+on\s+(?:it|this|that)\b/i,
+      /\bgive\s+(?:it|this|that)\s+to\s+([A-Z][a-z]+)\b/i,
+      /\b([A-Z][a-z]+)\s+should\s+(?:take|own|have)\s+(?:it|this|that)\b/i,
+      /\bmove\s+ownership\s+to\s+([A-Z][a-z]+)\b/i,
+      /\b(?:that|this|it)\s+should\s+be\s+on\s+([A-Z][a-z]+)\b/i,
+    ]);
+    if (owner !== null) {
+      return { ...base, kind: "owner_correction", ownerName: owner, scope: "current_flow" };
+    }
+  }
+
+  // Due-date / schedule correction — canonical + natural variants.
   if (
     (m = t.match(
       /\b(?:that'?s|this\s+is|it'?s|that\s+is)\s+due\s+(.+?)[.?!]*$/i,
@@ -183,7 +250,30 @@ export function detectCorrection(text: string): WorkCorrection | null {
   ) {
     return { ...base, kind: "due_date_correction", dueHint: m[1]!.trim(), scope: "current_flow" };
   }
-  if (/\b(?:that'?s|that\s+is|it'?s)\s+not\s+blocked(?:\s+anymore)?\b/i.test(t)) {
+  if (
+    (m = t.match(/\b(?:update|move|change|push|reschedule)\b[^]*?\bfrom\s+\w+\s+to\s+([A-Za-z0-9 ]+?)[.?!]*$/i)) !== null &&
+    looksLikeDate(m[1]!)
+  ) {
+    return { ...base, kind: "due_date_correction", dueHint: m[1]!.trim(), scope: "current_flow" };
+  }
+  if (
+    (m = t.match(/\b(?:the\s+)?(?:deadline|due\s+date|date)\s+(?:is|changed\s+to|moved\s+to|'s)\s+([A-Za-z0-9 ]+?)[.?!]*$/i)) !== null
+  ) {
+    return { ...base, kind: "due_date_correction", dueHint: m[1]!.replace(/\bnow\b\s*$/i, "").trim(), scope: "current_flow" };
+  }
+  if ((m = t.match(/\buse\s+([A-Za-z0-9 ]+?),?\s+not\s+\w+\b/i)) !== null && looksLikeDate(m[1]!)) {
+    return { ...base, kind: "due_date_correction", dueHint: m[1]!.trim(), scope: "current_flow" };
+  }
+  if ((m = t.match(/\bpush\s+(?:that|this|it)\s+to\s+([A-Za-z0-9 ]+?)[.?!]*$/i)) !== null && looksLikeDate(m[1]!)) {
+    return { ...base, kind: "due_date_correction", dueHint: m[1]!.trim(), scope: "current_flow" };
+  }
+
+  if (
+    /\b(?:that'?s|that\s+is|it'?s)\s+not\s+blocked(?:\s+anymore)?\b/i.test(t) ||
+    /\bno\s+longer\s+blocked\b/i.test(t) ||
+    /\b(?:that|this|the)\s+blocker\s+is\s+(?:cleared|resolved|gone)\b/i.test(t) ||
+    (m = t.match(/\b([A-Z][a-z]+)\s+is\s+unblocked\b/i)) !== null && isLikelyName(m?.[1])
+  ) {
     return { ...base, kind: "not_blocked", scope: "current_flow" };
   }
   if (/\bdon'?t\s+mark\s+(?:that|this|it)\s+as\s+a\s+follow.?up\b/i.test(t)) {
@@ -316,6 +406,21 @@ export function applyCorrection(
 ): CorrectionApplyResult {
   if (correction.scope === "future_preference_candidate") {
     return { applied: true, message: preferenceMessage(correction) };
+  }
+  // Stale→current supersession: we never silently mutate persisted work (no safe
+  // update rail) — ask one focused question so the user names what changed.
+  if (correction.kind === "stale_supersession") {
+    const hasDecision = actions.some(
+      (a) => a.status !== "dismissed" && a.sourceKind === "decision",
+    );
+    return {
+      applied: false,
+      message: "I'll use the current context here, not the older note.",
+      needsClarification: true,
+      clarificationQuestion: hasDecision
+        ? "Which decision should I update?"
+        : "What should replace the old decision?",
+    };
   }
   const live = actions.filter((a) => a.status !== "dismissed");
   const candidates = candidateSet(correction, live);

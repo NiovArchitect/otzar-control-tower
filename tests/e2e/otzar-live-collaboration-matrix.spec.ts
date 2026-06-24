@@ -433,11 +433,11 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
     await resetOrb(page);
     await addContext(page, TRANSCRIPT);
     const r1 = await ask(page, "That changed. Samiksha owns it now.");
-    // Canonical "No, X owns that" IS recognized (section S). This phrasing falls
-    // through to governed chat ("Ask Otzar") — an intent-COVERAGE gap, not a crash.
-    const handled = /samiksha|updated|got it|which|owns/i.test(r1);
+    // [OTZAR-LIVE-6] now ASSERTS the repair: the natural owner-correction phrasing
+    // is recognized as a governed correction/clarification, never generic chat.
+    const handled = /samiksha|updated|got it|which item|owns/i.test(r1);
     const toChat = /ask otzar/i.test(r1);
-    record("AA", "accepts newer evidence (owner change)", handled ? "PASS" : toChat ? "SKIP" : "FAIL", handled ? "ok" : toChat ? "future" : "product-bug", handled ? r1 : toChat ? `routed to governed chat — phrasing not recognized as a correction :: ${r1}` : r1);
+    record("AA", "accepts newer evidence (owner change)", handled && !toChat ? "PASS" : "FAIL", handled && !toChat ? "ok" : "product-bug", r1);
     const r2 = await ask(page, "Ignore the older launch note. The current meeting changed the owner.");
     record("AA", "does not blindly use stale context", r2.length > 0 && !/<id>/.test(r2) ? "PASS" : "FAIL", r2.length > 0 ? "observation" : "product-bug", r2);
   });
@@ -449,7 +449,10 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
     const fake = /\bcompleted\b/i.test(r1) && !/not blocked|unblocked|updated|which|got it/i.test(r1);
     record("AB", "reclassify blocker, no fake completion", fake ? "FAIL" : (r1.length > 0 ? "PASS" : "FAIL"), fake ? "product-bug" : (r1.length > 0 ? "ok" : "product-bug"), r1);
     const r2 = await ask(page, "Update the follow-up from Friday to Monday.");
-    record("AB", "date supersede handled or honest", r2.length > 0 ? "PASS" : "FAIL", r2.length > 0 ? "observation" : "product-bug", r2);
+    // [OTZAR-LIVE-6] now ASSERTS the repair: recognized as a due-date correction /
+    // focused clarification, never generic chat.
+    const governed = /which item|monday|updated|got it|due/i.test(r2) && !/ask otzar/i.test(r2);
+    record("AB", "date supersede handled or honest", governed ? "PASS" : "FAIL", governed ? "ok" : "product-bug", r2);
   });
 
   // AC. Present-to-future direction loop
@@ -466,7 +469,12 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
   await sect("AD", "authority boundaries on routing", async () => {
     await addContext(page, TRANSCRIPT);
     const r1 = await ask(page, "Escalate this to the founder for approval.");
-    record("AD", "escalation routed or approval-gated, no raw codes", r1.length > 0 && !/<id>|POLICY_|RBAC_/.test(r1) ? "PASS" : "FAIL", r1.length > 0 ? "observation" : "product-bug", r1);
+    // [OTZAR-LIVE-6] now ASSERTS the repair: escalation routes/clarifies through
+    // governed approval ("Who should approve this?" / sent / needs approval),
+    // never generic chat, never raw policy codes.
+    const governed = /who should approve|sent|needs approval|approval request|request/i.test(r1);
+    const toChat = /ask otzar/i.test(r1);
+    record("AD", "escalation routed or approval-gated, no raw codes", governed && !toChat && !/<id>|POLICY_|RBAC_/.test(r1) ? "PASS" : "FAIL", governed && !toChat ? "ok" : "product-bug", r1);
   });
 
   // AE. AI Twin authority loop
@@ -500,11 +508,11 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
       const asks = /what|which|who|whom|do you mean|could you|don'?t have|need (more )?context|couldn'?t/i.test(out);
       const toChat = /ask otzar/i.test(out);
       const madeArtifact = /sent|created|saved|proposed|follow-up note/i.test(out) && !asks;
-      // asks → ideal. governed-chat fallback → coverage gap (future). ownerless
-      // artifact for a vague intent → an observation worth flagging (P2).
+      // [OTZAR-LIVE-6] now ASSERTS the endpoint-clarity guard: a vague intent asks
+      // one focused question, never falls to chat, never mints an ownerless artifact.
       record("AG", `vague intent asks, no dead artifact: ${cmd}`,
-        asks ? "PASS" : toChat ? "SKIP" : madeArtifact ? "FAIL" : "SKIP",
-        asks ? "ok" : toChat ? "future" : madeArtifact ? "observation" : "future",
+        asks && !toChat && !madeArtifact ? "PASS" : "FAIL",
+        asks && !toChat && !madeArtifact ? "ok" : "product-bug",
         out);
     });
   }

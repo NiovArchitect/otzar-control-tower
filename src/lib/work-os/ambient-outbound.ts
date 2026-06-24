@@ -226,6 +226,33 @@ function intentFor(ask: string): {
   return { kind: "INTERNAL_MESSAGE" };
 }
 
+// [OTZAR-LIVE-6] Escalation / approval intent that the lead-verb path does NOT
+// already handle ("ask X to approve" is handled above). Role terms (founder /
+// leadership / my manager) and an unnamed approver ask one focused question
+// rather than guess a recipient that would 404 on resolve.
+const ROLE_APPROVER =
+  /^(?:founder|leadership|management|exec|execs|executive|executives|manager|boss|chain|team)$/i;
+function detectApprovalIntent(raw: string): boolean {
+  return (
+    /\bescalat\w+/i.test(raw) ||
+    /\bfor\s+approval\b/i.test(raw) ||
+    /\bneeds?\s+approval\b/i.test(raw) ||
+    /\b(?:route|send)\s+(?:this|that|it)\s+for\s+approval\b/i.test(raw) ||
+    /\bget\s+(?:approval|sign[\s-]?off)\b/i.test(raw) ||
+    /\bneed\s+sign[\s-]?off\b/i.test(raw) ||
+    /\bsign[\s-]?off\s+before\b/i.test(raw) ||
+    /\bapproval[\s-]?gated\b/i.test(raw) ||
+    /\bgo\s+up\s+the\s+chain\b/i.test(raw)
+  );
+}
+function namedApprover(raw: string): string | null {
+  const m = raw.match(/\b(?:to|from|with)\s+([A-Z][a-z]+)\b/);
+  if (m === null) return null;
+  const name = m[1]!;
+  if (ROLE_APPROVER.test(name) || NON_RECIPIENT.has(name.toLowerCase())) return null;
+  return name;
+}
+
 // WHAT: Detect a SELF-directed instruction ("remind me…", "note to self…",
 //        "message myself…") so it becomes a self note/task/reminder instead of
 //        a "Hey <Name>" teammate message. "ask my twin <question>" is NOT self
@@ -465,6 +492,28 @@ export function interpretAmbientOutboundWork(
       it.requestType,
       composeSelfFacing(body),
     );
+  }
+
+  // [OTZAR-LIVE-6] Escalation / approval — last, so the lead-verb + direct-address
+  // paths win first. A named approver routes through the governed approval rail;
+  // a role term or unnamed approver asks one focused question (never a 404 guess,
+  // never a chat fallback for an obvious approval intent).
+  if (detectApprovalIntent(raw)) {
+    const approver = namedApprover(raw);
+    if (approver !== null) {
+      return plan(
+        approver,
+        "PERSON",
+        raw,
+        composeFor(approver, "PERSON", "can you approve this?", true),
+        0.8,
+        "escalation-approval",
+        "COLLABORATION_REQUEST",
+        "APPROVAL_REQUEST",
+        composeSelfFacing("approve this"),
+      );
+    }
+    return clarify(raw, "Who should approve this?");
   }
 
   return null;

@@ -152,6 +152,10 @@ import {
 } from "@/lib/work-os/pending-confirm";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import {
+  detectVagueWorkIntent,
+  vagueWorkQuestion,
+} from "@/lib/work-os/vague-work";
+import {
   classifyThreadQuery,
   composeThreadAnswer,
   composeWaitingOnAnswer,
@@ -1713,7 +1717,30 @@ export function AmbientOtzarBar(): JSX.Element {
     const correction = detectCorrection(text);
     if (correction === null) return false;
     const isPreference = correction.scope === "future_preference_candidate";
-    if (!isPreference && transcriptActions.length === 0) return false;
+    if (!isPreference && transcriptActions.length === 0) {
+      // [OTZAR-LIVE-6] A recognized work correction with no active work to
+      // correct: ask ONE focused question instead of falling to generic chat or
+      // minting an artifact. With current context → which item; otherwise → what
+      // context. (Preferences don't need an active item, so they skip this.)
+      const at0 = new Date().toISOString();
+      setDraft("");
+      setActionHeard(text);
+      setActionLabel("Correction");
+      appendConversationEntry({ role: "user", text, at: at0 });
+      const hasCtx = getActiveSurfaceContext() !== null;
+      surfaceOutcome({
+        eventKind: "NEEDS_CLARIFICATION",
+        copy: hasCtx
+          ? "Which item should I update?"
+          : "What should I use as the current context?",
+        status: hasCtx ? "Which one?" : "Needs context",
+        at: at0,
+        heard: text,
+        result: "blocked",
+        target: null,
+      });
+      return true;
+    }
 
     const at = new Date().toISOString();
     setDraft("");
@@ -1777,6 +1804,34 @@ export function AmbientOtzarBar(): JSX.Element {
     // (EDX-5 / Foundation #274): minimal safe_summary only — NO raw transcript,
     // self-scoped (PERSONAL). Never blocks the local update; never retries.
     void persistCorrection(correction, historyId, isPreference);
+    return true;
+  }
+
+  // [OTZAR-LIVE-6] Endpoint-clarity guard. Vague work with no clear owner/target
+  // ("Handle this", "Someone should follow up", "Send this to them") asks ONE
+  // focused question — never mints an ownerless/contextless artifact, never falls
+  // to generic chat. Runs after the outbound path, so "Ask David to handle this"
+  // (recipient-directed) is already routed before we get here.
+  function handleVagueWorkCommand(text: string): boolean {
+    const vague = detectVagueWorkIntent(text);
+    if (vague === null) return false;
+    const at = new Date().toISOString();
+    setDraft("");
+    setActionHeard(text);
+    setActionLabel("Needs detail");
+    appendConversationEntry({ role: "user", text, at });
+    const hasContext =
+      getActiveSurfaceContext() !== null ||
+      transcriptActions.some((a) => a.status !== "dismissed");
+    surfaceOutcome({
+      eventKind: "NEEDS_CLARIFICATION",
+      copy: vagueWorkQuestion(vague, hasContext),
+      status: "Needs detail",
+      at,
+      heard: text,
+      result: "blocked",
+      target: null,
+    });
     return true;
   }
 
@@ -2603,6 +2658,11 @@ export function AmbientOtzarBar(): JSX.Element {
         return;
       }
     }
+
+    // [OTZAR-LIVE-6] Endpoint-clarity guard — vague, endpoint-less work
+    // ("Handle this", "Someone should follow up", "Send this to them") asks one
+    // focused question BEFORE the planner can mint an ownerless follow-up note.
+    if (handleVagueWorkCommand(text)) return;
 
     // Phase 1273 — multi-intent + commitment interception. A compound
     // command becomes a WorkPlan of linked cards; a stated commitment
