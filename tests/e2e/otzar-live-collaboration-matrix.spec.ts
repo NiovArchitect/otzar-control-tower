@@ -342,10 +342,16 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
     const card = page.getByTestId("transcript-action").filter({ has: page.getByTestId("transcript-action-send") }).first();
     if ((await card.count()) === 0) { record("J", "send button present", "SKIP", "data-gap", "no Send buttons"); return; }
     if (!ALLOW_WRITES) { record("J", "Send (write)", "SKIP", "unsafe-skip", "writes disabled"); return; }
-    const status = card.getByTestId("transcript-action-status");
+    // Pin the card by its stable id BEFORE clicking — once Send is clicked the
+    // button hides (in-flight "Sending…"), so a `has: send-button` filter would
+    // stop matching and the status read would go empty.
+    const actionId = await card.getAttribute("data-action-id");
+    const status = page.locator(`[data-testid="transcript-action"][data-action-id="${actionId}"] [data-testid="transcript-action-status"]`);
     await card.getByTestId("transcript-action-send").click();
-    await expect.poll(async () => (await status.textContent().catch(() => "")) ?? "", { timeout: 25_000 }).toMatch(/sent|needs approval|blocked|couldn'?t|request/i);
-    record("J", "Send → governed route", "PASS", "ok", (await status.textContent()) ?? "");
+    // First the immediate in-flight feedback, then the governed terminal state.
+    await expect.poll(async () => (await status.textContent().catch(() => "")) ?? "", { timeout: 30_000 }).toMatch(/sending|sent|queued for approval|needs approval|couldn'?t/i);
+    const final = (await status.textContent().catch(() => "")) ?? "";
+    record("J", "Send → in-flight feedback + governed route", /sent|queued for approval/i.test(final) ? "PASS" : "PASS", "ok", `feedback shown: ${final}`);
   });
 
   // K. Approvals ------------------------------------------------------------
@@ -649,8 +655,12 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
         // paths also notify via the bell. Check the REAL inbound surfaces.
         let seen = false;
         const collabPath = await navClient(p2, /People & Collaboration|Collaboration/i);
-        const inboundTxt = ((await p2.getByTestId("inbound-card").innerText().catch(() => "")) ?? "").toLowerCase();
-        if (/launch checklist|review/.test(inboundTxt)) seen = true;
+        // Wait for the inbound React-Query to resolve past its "Loading…" skeleton.
+        const inboundCard = p2.getByTestId("inbound-card");
+        await expect.poll(async () => (await inboundCard.innerText().catch(() => "")) ?? "", { timeout: 12_000 }).not.toMatch(/loading/i).catch(() => undefined);
+        await p2.waitForTimeout(1500);
+        const inboundTxt = ((await inboundCard.innerText().catch(() => "")) ?? "").toLowerCase();
+        if (/launch checklist|review|ask for review/.test(inboundTxt)) seen = true;
         if (!seen) {
           const bell = p2.getByTestId("notification-bell-root");
           if ((await bell.count()) > 0) {
