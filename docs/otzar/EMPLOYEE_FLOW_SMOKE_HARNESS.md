@@ -43,14 +43,28 @@ catches, not staged.)
 per-feature suites (`work-context`, `transcript-intelligence`, `transcript-actions`,
 `work-tracking`, `work-corrections`, `ambient-visibility`). Run: `npm test`.
 
-## Live credentialed smoke (manual / gated)
+## Live evidence + credentialed smoke (Phase 4D)
 
-`tests/e2e/smoke.spec.ts` (`npm run test:e2e`, Playwright) and a real
-standard-user browser run require **`DEMO_SHARED_PASSWORD`** + a provisioned account.
-This proves the live governed rails (`/work-os/resolve-target` read-scope,
-`collaboration-requests`, `/work-os/ledger`, `/otzar/my-twin/corrections`) against a real
-session. **Open item:** this credentialed standard-user live smoke is not yet run in this
-deployment; it needs the demo password. Do not claim it as verified until run.
+Full detail + last captured run: `docs/otzar/LIVE_SMOKE_EVIDENCE.md`.
+
+- **Non-credentialed (no secrets):** `npm run smoke:evidence` — verifies the deployed app
+  (200), the bundle markers, and that governed rails stay auth-gated. Runs anywhere.
+- **Credentialed (real session, env-gated):** `npm run test:e2e:live` — Playwright against
+  `app.otzar.ai`. Skips cleanly without creds; read-mostly (one scoped-memory write only
+  with `OTZAR_SMOKE_ALLOW_WRITES=1`); never logs secrets. Needs:
+  `OTZAR_SMOKE_EMAIL` + `DEMO_SHARED_PASSWORD`.
+
+**Open item:** the credentialed standard-user live flow across the governed rails
+(`/work-os/resolve-target` read-scope, `collaboration-requests`, `/work-os/ledger`,
+`/otzar/my-twin/corrections`, `/otzar/meeting-captures`) is **runnable but not yet run** —
+it needs the demo password. Do not claim it as verified until run.
+
+## How this maps to the Extreme Polarity Ability
+
+Each step proves one half of "communication → governed work movement": context/transcript
+ingestion recovers the *communication*; digest/actions/tracking/correction/history make it
+*governed, owned, tracked, correctable work*. The harness is the executable proof that the
+loop holds end-to-end without contextless artifacts, fake completion, or backend jargon.
 
 ## What NOT to claim yet
 
