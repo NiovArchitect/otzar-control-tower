@@ -27,7 +27,7 @@ import {
   vi,
   type Mock,
 } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
@@ -2251,6 +2251,133 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(html).not.toMatch(/CROSS_ORG_DENIED|RUNTIME_MISSING|entity_id|collaboration-requests|ledger_entry_id|correction_capsule_id/);
     expect(html.toLowerCase()).not.toContain("learned globally");
     expect(html.toLowerCase()).not.toContain("surveillance");
+  });
+
+  // ── Phase 4B: saved-corrections readback (typed governed rail) ────────
+  function savedCorrection(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      correction_id: "tc-aaaa",
+      scope_type: "PERSONAL",
+      scope_id: null,
+      correction_type: "MEANING_CLARIFICATION",
+      state: "ACTIVE",
+      sensitivity_class: "STANDARD",
+      retention_class: "STANDARD",
+      safe_summary: "No, Samiksha owns that.",
+      effective_from: "2026-06-23T10:00:00.000Z",
+      expires_at: null,
+      revoked_at: null,
+      superseded_by_id: null,
+      revocable: true,
+      created_at: "2026-06-23T10:00:00.000Z",
+      ...overrides,
+    };
+  }
+
+  async function openSavedCorrections(): Promise<void> {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const details = screen.getByTestId("saved-corrections") as HTMLDetailsElement;
+    details.open = true;
+    // jsdom doesn't auto-fire toggle on programmatic open; dispatch it.
+    fireEvent(details, new Event("toggle", { bubbles: true }));
+  }
+
+  it("reads back saved corrections with human labels and safe summaries (no raw ids/enums)", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-twin/corrections`, () =>
+        HttpResponse.json({
+          ok: true,
+          corrections: [
+            savedCorrection(),
+            savedCorrection({
+              correction_id: "tc-bbbb",
+              correction_type: "TONE_PREFERENCE",
+              safe_summary: "Use a warmer tone with Annie.",
+            }),
+          ],
+        }),
+      ),
+    );
+    await openSavedCorrections();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("saved-correction-item").length).toBe(2),
+    );
+    const section = screen.getByTestId("saved-corrections");
+    expect(section.textContent).toMatch(/Meaning clarification/);
+    expect(section.textContent).toMatch(/Tone preference/);
+    expect(section.textContent).toMatch(/No, Samiksha owns that\./);
+    expect(section.textContent).toMatch(/Personal/);
+    expect(section.textContent).toMatch(/Active/);
+    // No backend enums / raw ids / type names leak.
+    const html = section.innerHTML;
+    expect(html).not.toMatch(/MEANING_CLARIFICATION|TONE_PREFERENCE|scope_type|correction_id|tc-aaaa|TwinCorrection/);
+  });
+
+  it("empty saved corrections shows a calm 'none yet' message", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-twin/corrections`, () =>
+        HttpResponse.json({ ok: true, corrections: [] }),
+      ),
+    );
+    await openSavedCorrections();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("saved-corrections").textContent,
+      ).toMatch(/No saved corrections yet\./i),
+    );
+  });
+
+  it("a failed readback shows calm copy and never breaks the orb", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-twin/corrections`, () =>
+        HttpResponse.json({ ok: false, error: "INTERNAL" }, { status: 500 }),
+      ),
+    );
+    await openSavedCorrections();
+    await waitFor(() =>
+      expect(screen.getByTestId("saved-corrections-error")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("saved-corrections-error").textContent).toMatch(
+      /couldn't load saved corrections just now/i,
+    );
+    // The composer still works.
+    expect(screen.getByLabelText(/Message to Otzar/i)).toBeInTheDocument();
+  });
+
+  it("Stop using revokes an active saved correction via the typed rail", async () => {
+    const revoked: string[] = [];
+    server.use(
+      http.get(`${API_BASE}/otzar/my-twin/corrections`, () =>
+        HttpResponse.json({ ok: true, corrections: [savedCorrection()] }),
+      ),
+      http.post(
+        `${API_BASE}/otzar/my-twin/corrections/:id/revoke`,
+        ({ params }) => {
+          revoked.push(String(params.id));
+          return HttpResponse.json(
+            {
+              ok: true,
+              correction: savedCorrection({ state: "REVOKED", revocable: false }),
+            },
+            { status: 200 },
+          );
+        },
+      ),
+    );
+    await openSavedCorrections();
+    const user = userEvent.setup();
+    await waitFor(() =>
+      expect(screen.getByTestId("saved-correction-revoke")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("saved-correction-revoke"));
+    await waitFor(() => expect(revoked).toEqual(["tc-aaaa"]));
+    await waitFor(() =>
+      expect(screen.getByTestId("saved-corrections").textContent).toMatch(/Revoked/),
+    );
   });
 
   it("shows a calm active-context indicator with a Clear control and no surveillance language", async () => {

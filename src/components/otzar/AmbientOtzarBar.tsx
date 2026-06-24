@@ -132,10 +132,14 @@ import {
   applyCorrection,
   correctionTypeFor,
   persistenceStatusLabel,
+  correctionTypeLabel,
+  correctionScopeLabel,
+  correctionStateLabel,
   type WorkCorrection,
   type WorkCorrectionHistoryItem,
   type CorrectionPersistenceStatus,
 } from "@/lib/work-os/work-corrections";
+import type { TwinCorrectionSafeView } from "@/lib/types/foundation";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import {
   isPendingConfirmPhrase,
@@ -330,6 +334,39 @@ export function AmbientOtzarBar(): JSX.Element {
   const [correctionHistory, setCorrectionHistory] = useState<
     WorkCorrectionHistoryItem[]
   >([]);
+  // Phase 4B — cross-session readback of saved corrections from the typed
+  // governed rail. Loaded on demand when the user opens "Saved corrections".
+  const [savedCorrections, setSavedCorrections] = useState<
+    TwinCorrectionSafeView[]
+  >([]);
+  const [savedCorrectionsStatus, setSavedCorrectionsStatus] = useState<
+    "idle" | "loading" | "loaded" | "error"
+  >("idle");
+  async function loadSavedCorrections(): Promise<void> {
+    if (savedCorrectionsStatus === "loading") return;
+    setSavedCorrectionsStatus("loading");
+    const res = await api.otzar.correctionMemory.list({ take: 20 });
+    if (res.ok) {
+      setSavedCorrections(res.data.corrections);
+      setSavedCorrectionsStatus("loaded");
+    } else {
+      setSavedCorrectionsStatus("error");
+    }
+  }
+  async function handleRevokeCorrection(
+    item: TwinCorrectionSafeView,
+  ): Promise<void> {
+    const res = await api.otzar.correctionMemory.revoke(item.correction_id);
+    if (res.ok) {
+      setSavedCorrections((prev) =>
+        prev.map((c) =>
+          c.correction_id === item.correction_id
+            ? { ...c, state: "REVOKED" }
+            : c,
+        ),
+      );
+    }
+  }
   // Phase 1265 — Work OS status line (Draft only / Approval required /
   // Read-only / Runtime not available / Routed / Blocked).
   const [actionStatus, setActionStatus] = useState<string | null>(null);
@@ -3777,6 +3814,77 @@ export function AmbientOtzarBar(): JSX.Element {
               </ul>
             </details>
           ) : null}
+
+          {/* Phase 4B — cross-session readback of saved corrections/preferences
+              from the typed governed rail. Collapsed; loads on open; human
+              labels only; no raw ids / backend enums / global-learning claims. */}
+          <details
+            className="rounded-md border border-border bg-muted/20 px-2 py-1.5 text-xs"
+            data-testid="saved-corrections"
+            onToggle={(e) => {
+              if (
+                e.currentTarget.open &&
+                savedCorrectionsStatus === "idle"
+              ) {
+                void loadSavedCorrections();
+              }
+            }}
+          >
+            <summary className="cursor-pointer select-none text-[11px] font-medium text-muted-foreground">
+              Saved corrections
+            </summary>
+            <div className="mt-1">
+              {savedCorrectionsStatus === "loading" ? (
+                <div className="text-muted-foreground">Loading…</div>
+              ) : savedCorrectionsStatus === "error" ? (
+                <div
+                  className="text-muted-foreground"
+                  data-testid="saved-corrections-error"
+                >
+                  I couldn't load saved corrections just now.
+                </div>
+              ) : savedCorrectionsStatus === "loaded" &&
+                savedCorrections.length === 0 ? (
+                <div className="text-muted-foreground">
+                  No saved corrections yet.
+                </div>
+              ) : savedCorrectionsStatus === "loaded" ? (
+                <ul className="space-y-1">
+                  {savedCorrections.map((c) => (
+                    <li
+                      key={c.correction_id}
+                      className="flex items-start justify-between gap-2"
+                      data-testid="saved-correction-item"
+                    >
+                      <div className="min-w-0">
+                        <span className="font-medium text-foreground">
+                          {correctionTypeLabel(c.correction_type)}
+                        </span>{" "}
+                        <span className="text-muted-foreground">
+                          {c.safe_summary}
+                        </span>
+                        <span className="opacity-70">
+                          {" "}
+                          · {correctionScopeLabel(c.scope_type)} ·{" "}
+                          {correctionStateLabel(c.state)}
+                        </span>
+                      </div>
+                      {c.revocable && c.state === "ACTIVE" ? (
+                        <button
+                          type="button"
+                          className="shrink-0 rounded border border-input bg-background/60 px-1.5 py-0.5 text-[10px] hover:bg-accent"
+                          onClick={() => void handleRevokeCorrection(c)}
+                          data-testid="saved-correction-revoke"
+                        >
+                          Stop using
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </details>
 
           {/* Phase 3B — transcript-derived proposed actions, reviewed calmly:
               save / send / dismiss, governed, no fake completion. */}

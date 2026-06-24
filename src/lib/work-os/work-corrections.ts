@@ -11,7 +11,11 @@
 //          tests/unit/work-corrections.test.ts.
 
 import type { TranscriptProposedAction } from "./transcript-actions";
-import type { TwinCorrectionType } from "@/lib/types/foundation";
+import type {
+  TwinCorrectionType,
+  TwinCorrectionScopeType,
+  TwinCorrectionState,
+} from "@/lib/types/foundation";
 
 export type WorkCorrectionKind =
   | "owner_correction"
@@ -76,6 +80,65 @@ export function correctionTypeFor(kind: WorkCorrectionKind): TwinCorrectionType 
       return "TERMINOLOGY_DEFINITION";
     default:
       return "MEANING_CLARIFICATION";
+  }
+}
+
+// Phase 4B — human labels for the typed correction-memory readback (no backend
+// enum names, no raw ids, no global-learning claims).
+export function correctionTypeLabel(t: TwinCorrectionType): string {
+  switch (t) {
+    case "TONE_PREFERENCE":
+      return "Tone preference";
+    case "PREFERENCE":
+      return "Preference";
+    case "TERMINOLOGY_DEFINITION":
+      return "Terminology";
+    case "MEANING_CLARIFICATION":
+      return "Meaning clarification";
+    case "ASK_BEFORE_ACTING":
+      return "Ask-before-acting preference";
+    case "APPROVAL_PREFERENCE":
+      return "Approval preference";
+    case "PROJECT_PREFERENCE":
+      return "Project preference";
+    case "CLIENT_CONTEXT":
+      return "Client context";
+    case "DO_NOT_USE_CONTEXT":
+      return "Do-not-use context";
+    case "SENSITIVITY_BOUNDARY":
+      return "Sensitivity boundary";
+    default:
+      return "Correction";
+  }
+}
+
+export function correctionScopeLabel(s: TwinCorrectionScopeType): string {
+  switch (s) {
+    case "PERSONAL":
+      return "Personal";
+    case "CONVERSATION":
+      return "Conversation";
+    case "PROJECT":
+      return "Project";
+    case "TEAM":
+      return "Team";
+    case "ROLE":
+      return "Role";
+    case "ORG":
+      return "Organization";
+  }
+}
+
+export function correctionStateLabel(s: TwinCorrectionState): string {
+  switch (s) {
+    case "ACTIVE":
+      return "Active";
+    case "REVOKED":
+      return "Revoked";
+    case "EXPIRED":
+      return "Expired";
+    default:
+      return "Saved";
   }
 }
 
