@@ -262,8 +262,8 @@ admin-positive gap *safely* — it **SKIPs the admin rows unless `OTZAR_SMOKE_AD
 | B · admin login reaches the org-admin Control Tower | ✅ **verified live** — landed `/`, `adminShell=true` (`can_admin_org` present) |
 | C · admin-only route loads for admin (client-side nav) | ✅ **verified live** — 23 admin nav links; navigated, session + admin shell persisted |
 | D · admin/member asymmetry (admin sees admin shell, standard does not) | ✅ **verified live** — admin `adminShell=true`, standard `adminShell=false` |
-| E · cross-org isolation | 🌱 DATA gap — no second-org fixture/credential |
-| G · approval-positive | 🌱 DATA gap — no seeded approval scenario |
+| E · cross-org isolation | ✅ verified at the **Foundation integration tier** (`govsec-7-tenant-isolation-guard` + `authority-context`, DB-backed) — live-prod second org deliberately not created (Phase 6C) |
+| G · approval-positive | ✅ verified at the **Foundation integration tier** (`escalation.test.ts` create→approve/reject + gate-create + dual-control, DB-backed) — live-prod seed deliberately not created (Phase 6C) |
 | H · no backend leakage in admin UX | ✅ clean |
 
 **Result: 7 PASS / 0 FAIL / 2 SKIP.** Standard-user negative **and** admin-positive are
@@ -315,12 +315,12 @@ real remaining gaps are demo *seeding/credential* gaps, not missing product.
 | Capability | Rail status | Verdict |
 |---|---|---|
 | **Admin user create/invite/permission** | ✅ EXISTS — `api.org.members.create/bulk` → `POST /org/members` (`org.routes.ts`); admin can create/invite + assign role | Rail present + admin RBAC verified. Live *write* verification deferred — creating a durable user is a real mutation (Rule 10: no hard delete); not run autonomously. Verifiable via a sanctioned demo-scoped user with approval. |
-| **Approval-positive (approver acts)** | ✅ EXISTS — `api.escalations.pending/approve/reject` + Approvals page; dual-control (caller ≠ source) | 🌱 DATA gap: needs a *seeded* governed action that triggers an escalation. Rail is real; not faked. |
+| **Approval-positive (approver acts)** | ✅ EXISTS — `api.escalations.pending/approve/reject` + Approvals page; dual-control (caller ≠ source) | ✅ **VERIFIED at the Foundation integration tier** (`niov-foundation/tests/unit/escalation.test.ts`, 38 DB-backed tests green): create PENDING (caller=source) → `approveEscalationForCaller`/`rejectEscalationForCaller`, the real COMPLIANCE_GATE creation path (gate-fail → escalation to owner), and dual-control. A *live-prod* seed is **deliberately withheld** (seeding an EscalationRequest row would bypass the real creation path = the forbidden fake). See Phase 6C note. |
 | **Recipient inbound visibility** | ✅ EXISTS — `api.otzar.collaboration.inbound()` (People & Collaboration `inbound-card`) | ✅ **VERIFIED** via a focused two-user probe: after vishesh sends, **David sees** *"Hey david, can you review the launch checklist? · Created less than a minute ago · Accept · Reject"*. (The matrix's earlier "no inbound" was reading before the inbound query populated — harness timing, fixed.) |
 | **Dynamic people resolution** | ✅ EXISTS — `resolveTargetInOrg` filters by org `parent_id`, returns NOT_FOUND/AMBIGUOUS, **no hardcoded fallback** (`authority-context.service.ts`) | ✅ Org-scoped + demo-name isolation verified. Production-ready for org-scoped routing. |
 | **Card Send feedback** | ✅ FIXED + deployed — `sending`/`saving` in-flight states | ✅ Closed. |
 | **Per-action owner attribution** | ✅ IMPROVED + deployed — owned-responsibility parsing ("X owns/needs Y") + owner stop-list | ✅ Closed (was a parser under-extraction). |
-| **Cross-org isolation** | resolver org-scoped (✅ in code); **no sanctioned second-org seed** | 🌱🗝️ TOOLING/DATA gap — `demo-seed.ts`/`demo-team-seed.ts` are localhost-fail-closed; `provision-demo-team-accounts.ts` is single-org (NIOV) and touches the real team. A safe second-org fixture requires a new sanctioned, demo-scoped seed script (Founder-authorized). Not faked. |
+| **Cross-org isolation** | resolver org-scoped (✅ in code) | ✅ **VERIFIED at the Foundation integration tier** (DB-backed, container Postgres): `govsec-7-tenant-isolation-guard.test.ts` (17 tests) **denies cross-org capsule / hive / escalation / department-filter access** and denies orphan callers; `authority-context.test.ts` (12 tests) proves an unknown name → **NOT_FOUND, never a fallback**. This is the real authorization guard (ADR-0006/ADR-0049 GOVSEC.7) — stronger than a prod click-through. A *live-prod* second org is **deliberately NOT created** (the demo seeds are localhost-fail-closed and the prod provisioner is Founder-allowlist-locked **by design**; a new prod seed would permanently pollute the investor production tenant — Rule 10, no hard delete). See Phase 6C note. |
 | **Dedicated demo admin** | only Founder (`sadeil`) holds `can_admin_org` | 🗝️ Founder-gated — a `otzar-demo-admin@niov.demo` needs a Founder-authorized change to the locked provision allowlist. Founder/admin remains the verified admin. |
 | **Multi-assignee / hierarchy** | not a first-class handler | 🔭 FUTURE — asks one focused question / falls to governed chat; documented, not faked. |
 | **Session durability** | in-memory auth by design (no localStorage/cookie) | P2/intentional — hard refresh logs out; secure refresh-cookie is forward work (Section-16). Not hacked. |
@@ -328,12 +328,39 @@ real remaining gaps are demo *seeding/credential* gaps, not missing product.
 **Honest bottom line for a real company today:** an org admin *can* create/invite/
 permission users and Otzar resolves + routes governed work among real org people
 dynamically (no demo-name fallback), with admin/member boundaries, correction
-memory, and inbound visibility all on real rails. The two capabilities that still
-need **demo fixtures/credentials to *prove live*** are cross-org isolation (needs a
-second demo org) and approval-positive (needs a seeded escalation) — both have real
-backend rails; neither is faked. **Next phase if desired — `Phase 6C: Sanctioned
-demo second-org + escalation seed`** (a small, demo-scoped, Founder-approved seed
-script) to convert those two DATA gaps into live PASS.
+memory, and inbound visibility all on real rails. **Cross-org isolation and
+approval-positive are now verified at the Foundation integration tier** (the real
+authorization guards, DB-backed) — see Phase 6C.
+
+### Phase 6C decision — verified at the correct tier, prod tenant kept clean
+
+Phase 6C set out to seed a live second demo org + an approval escalation in
+production. On inspection that path was **rejected as unsafe green-theater**: the
+demo seeds (`demo-seed.ts`/`demo-team-seed.ts`) are **localhost-fail-closed by
+design** and the prod provisioner is **Founder-allowlist-locked** ("exact allowlist
+only") — the architecture *deliberately* withholds prod multi-org/demo data. A new
+prod-writing seed would manufacture a path the design withholds and **permanently
+pollute the investor production tenant** (Rule 10: soft-delete only — a fake
+"Isolation Demo Org" could surface in the live demo). Seeding an `EscalationRequest`
+row directly is the exact fake the directive forbids (it bypasses the real
+gate-creation path).
+
+Instead, both properties were **proven where they actually live — the Foundation
+authorization guards** — run green against the container Postgres:
+
+| Property | Foundation test (DB-backed, green) |
+|---|---|
+| Cross-org isolation | `govsec-7-tenant-isolation-guard.test.ts` (17) — denies cross-org capsule/hive/escalation/department; denies orphans |
+| Resolver org-scope, no fallback | `authority-context.test.ts` (12) — unknown name → NOT_FOUND |
+| Approval-positive (approve/reject + gate-create + dual-control) | `escalation.test.ts` (38) + `escalation-target-resolver.test.ts` (12) |
+
+Reproduce: `cd niov-foundation && npx vitest run --config vitest.unit.config.ts tests/unit/govsec-7-tenant-isolation-guard.test.ts tests/unit/authority-context.test.ts tests/unit/escalation.test.ts` → **79 passed**.
+
+**The remaining choice is the Founder's, not an autonomous one:** whether to accept a
+**permanent** demo org/escalation in the *production* tenant purely to flip two live
+matrix SKIPs to PASS. Recommendation: **don't** — keep prod clean; the integration
+tier is the stronger proof. If a live click-through is wanted for a demo, do it in a
+local/staging Foundation instance (**`Phase 6D`**), never the investor prod tenant.
 
 ## How to reproduce
 
