@@ -2483,7 +2483,12 @@ export function AmbientOtzarBar(): JSX.Element {
         const at0 = new Date().toISOString();
         setDraft("");
         appendConversationEntry({ role: "user", text, at: at0 });
-        const resolved = await resolveTarget(tq.person);
+        // Use the READ-scoped governed resolver (same path the outbound
+        // send uses) so a STANDARD employee can resolve a same-org teammate
+        // for a thread/response-status query. resolveTarget alone hits the
+        // admin-only org roster and returns NOT_FOUND for non-admins — that
+        // was the founder-exposed "I couldn't find David" regression.
+        const resolved = await resolveTargetGoverned(tq.person);
         const resolvedOk =
           (resolved.kind === "RESOLVED_HUMAN" ||
             resolved.kind === "RESOLVED_AI_AGENT") &&
