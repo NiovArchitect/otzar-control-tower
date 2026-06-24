@@ -655,10 +655,13 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
         // paths also notify via the bell. Check the REAL inbound surfaces.
         let seen = false;
         const collabPath = await navClient(p2, /People & Collaboration|Collaboration/i);
-        // Wait for the inbound React-Query to resolve past its "Loading…" skeleton.
+        // Wait for the inbound React-Query to populate an ITEM (the card header
+        // "Inbound — for you" renders before the list resolves), not just past
+        // "Loading…". A focused two-user probe confirmed the item appears as
+        // "Hey <name>, can you review …" with Accept/Reject.
         const inboundCard = p2.getByTestId("inbound-card");
-        await expect.poll(async () => (await inboundCard.innerText().catch(() => "")) ?? "", { timeout: 12_000 }).not.toMatch(/loading/i).catch(() => undefined);
-        await p2.waitForTimeout(1500);
+        await expect.poll(async () => (await inboundCard.innerText().catch(() => "")) ?? "", { timeout: 15_000 })
+          .toMatch(/review|launch checklist|ask for review|accept|reject|coworker/i).catch(() => undefined);
         const inboundTxt = ((await inboundCard.innerText().catch(() => "")) ?? "").toLowerCase();
         if (/launch checklist|review|ask for review/.test(inboundTxt)) seen = true;
         if (!seen) {
