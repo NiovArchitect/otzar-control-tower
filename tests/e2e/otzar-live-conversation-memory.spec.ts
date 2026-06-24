@@ -55,18 +55,21 @@ test("[OTZAR-LIVE-6] inbound lookup + pending-recipient slot-fill survive the tu
   console.log(`[conv-memory] T2 => ${t2}`);
   expect(t2).not.toMatch(/pick the recipient|draft created/i);
 
-  // Turn 3 — a recipient-less update request arms the pending clarification.
+  // Turn 3 — with first-turn multi-recipient recognition, naming BOTH teammates
+  // up front resolves and routes to both immediately (no extra "they are the
+  // recipients" turn needed). Acceptable: it sent / is tracking, OR it asks one
+  // focused question about an unresolved teammate. NEVER the founder dead end.
   const t3 = await ask(page, `I need ${P1} and ${P2} to send me their updates`);
   console.log(`[conv-memory] T3 => ${t3}`);
+  expect(t3).not.toMatch(/what would you like me to do/i);
+  expect(t3).toMatch(/sent|i'?ll track|who do you mean|couldn'?t find|on your behalf|route/i);
 
-  // Turn 4 — the recipient answer RESUMES the request. Acceptable grounded
-  // outcomes: it sent / is tracking, OR it asks one focused question about an
-  // unresolved teammate. The ONE thing it must never do is the founder dead end.
+  // Turn 4 — restating the recipients after the send is harmless: it must NEVER
+  // produce the founder's "what would you like me to do regarding…" dead end.
   const t4 = await ask(page, `${P1} and ${P2} are the recipients`);
   console.log(`[conv-memory] T4 "${P1} and ${P2} are the recipients" => ${t4}`);
   expect(t4).not.toMatch(/what would you like me to do/i);
   expect(t4).not.toMatch(/i need more context to help you/i);
-  expect(t4).toMatch(/sent|i'?ll track|who do you mean|couldn'?t find|on your behalf|route/i);
   // No raw backend machinery in any answer.
   for (const a of [t1, t2, t3, t4]) {
     expect(a).not.toMatch(/\b(?:ent|led|cor|wkr)_[0-9a-z]{6,}\b|\/work-os\//);
