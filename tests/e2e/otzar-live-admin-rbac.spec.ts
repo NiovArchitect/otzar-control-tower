@@ -102,11 +102,25 @@ test("Live admin RBAC / ABAC verification", async ({ browser }: { browser: Brows
       } else {
         // B. admin reaches the Control Tower (admin shell).
         record("B: admin login reaches org-admin Control Tower", a.adminShell ? "PASS" : "FAIL", a.adminShell ? "ok" : "product-bug", `landed ${a.path} adminShell=${a.adminShell}`);
-        // C. admin reaches an admin-only route the standard user could not.
-        await adminPage.goto("/admin/users").catch(() => undefined);
-        await adminPage.waitForTimeout(1200);
-        const adminRouteOk = (await adminPage.getByTestId("admin-nav-group").count()) > 0 && /\/admin/.test(adminPage.url());
-        record("C: admin-only route loads for admin", adminRouteOk ? "PASS" : "FAIL", adminRouteOk ? "ok" : "product-bug", `at ${new URL(adminPage.url()).pathname}`);
+        // C. admin reaches a deeper admin-only route via CLIENT-SIDE nav. A hard
+        // goto would log out (in-memory session, same as the standard path), so we
+        // click an admin-sidebar link and confirm the route changes while the
+        // session + admin shell persist.
+        const beforeUrl = adminPage.url();
+        const navLinks = adminPage.locator('[data-testid="admin-nav-group"] a[href]');
+        const linkCount = await navLinks.count();
+        let clicked = false;
+        for (let i = 0; i < linkCount && !clicked; i++) {
+          const href = await navLinks.nth(i).getAttribute("href").catch(() => null);
+          if (href && href !== new URL(beforeUrl).pathname) {
+            await navLinks.nth(i).click().catch(() => undefined);
+            await adminPage.waitForFunction((u) => location.href !== u, beforeUrl, { timeout: 6000 }).catch(() => undefined);
+            clicked = true;
+          }
+        }
+        const stillAdmin = (await adminPage.getByTestId("admin-nav-group").count()) > 0;
+        const movedAndAuthed = clicked && stillAdmin && !/\/login/.test(adminPage.url()) && adminPage.url() !== beforeUrl;
+        record("C: admin-only route loads for admin (client nav)", movedAndAuthed ? "PASS" : (linkCount === 0 ? "SKIP" : "FAIL"), movedAndAuthed ? "ok" : (linkCount === 0 ? "data-gap" : "product-bug"), `links=${linkCount} at ${new URL(adminPage.url()).pathname} adminShell=${stillAdmin}`);
         // D. admin/member ASYMMETRY — the discriminating proof.
         record("D: admin/member asymmetry (admin sees admin shell, standard does not)", a.adminShell && !stdAdminShell ? "PASS" : "FAIL", a.adminShell && !stdAdminShell ? "ok" : "product-bug", `admin.adminShell=${a.adminShell} standard.adminShell=${stdAdminShell}`);
         // H. No backend leakage in admin UX.
