@@ -547,6 +547,93 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     return panel;
   }
 
+  // [OTZAR-LIVE-6] The founder's EXACT 4-turn transcript, verbatim. This is the
+  // acceptance gate for conversational working memory: Otzar must (1) treat
+  // "did david send me anything" as an INBOUND lookup, not an outbound draft;
+  // (2) keep that lookup intent on the awkward "Im asking if david messaged me";
+  // (3) remember the pending update request; and (4) RESUME and send to BOTH
+  // recipients when the user supplies them — never the "what would you like me
+  // to do regarding David and Samiksha?" dead end.
+  it("[OTZAR-LIVE-6] remembers the pending request and resumes from the recipient answer (founder 4-turn transcript)", async () => {
+    server.use(
+      // Resolve BOTH David and Samiksha (the founder's two recipients).
+      http.post(`${API_BASE}/work-os/resolve-target`, async ({ request }) => {
+        const body = (await request.json()) as { target_name?: string };
+        const name = (body.target_name ?? "").trim().toLowerCase();
+        const match = name.includes("david")
+          ? { entity_id: "ent-david", display_name: "David", role_title: "Engineer" }
+          : name.includes("samiksha")
+            ? { entity_id: "ent-samiksha", display_name: "Samiksha", role_title: "PM" }
+            : null;
+        return HttpResponse.json({
+          ok: true,
+          resolution: match
+            ? { code: "RESOLVED_INTERNAL_ENTITY", match, candidates: [match] }
+            : { code: "NOT_FOUND", match: null, candidates: [] },
+        });
+      }),
+      // Inbound lookups read the governed thread (empty → honest "nothing yet").
+      http.get(`${API_BASE}/work-os/threads/with/:id`, () =>
+        HttpResponse.json({ ok: true, messages: [] }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const input = screen.getByLabelText(/Message to Otzar/i);
+    const send = (): Promise<void> =>
+      user.click(screen.getByRole("button", { name: /^send$/i }));
+    const outcome = (): string =>
+      screen.getByTestId("voice-action-outcome").textContent ?? "";
+
+    // Turn 1 — "did david send me anything" → INBOUND lookup, NOT a draft.
+    await user.type(input, "did david send me anything");
+    await send();
+    await waitFor(() => expect(outcome().length).toBeGreaterThan(0));
+    expect(outcome(), "turn 1 must not draft a message").not.toMatch(
+      /pick the recipient|draft created/i,
+    );
+
+    // Turn 2 — "Im asking if david messaged me" keeps the lookup intent.
+    await user.clear(input);
+    await user.type(input, "Im asking if david messaged me");
+    await send();
+    await waitFor(() => expect(outcome().length).toBeGreaterThan(0));
+    expect(outcome(), "turn 2 must not draft a message").not.toMatch(
+      /pick the recipient|draft created/i,
+    );
+
+    // Turn 3 — "I need david and samiksha to send me their updates" arms a
+    // pending recipient clarification (draft with no recipient yet).
+    await user.clear(input);
+    await user.type(
+      input,
+      "I need david and samiksha to send me their updates",
+    );
+    await send();
+    await waitFor(() => expect(outcome()).toMatch(/recipient/i));
+    expect(internalMessagePosts.length, "no send before recipients are known").toBe(0);
+
+    // Turn 4 — the recipient answer RESUMES the request and sends to BOTH.
+    await user.clear(input);
+    await user.type(input, "david and samiksha are the recipients");
+    await send();
+    await waitFor(() =>
+      expect(internalMessagePosts.length).toBeGreaterThanOrEqual(2),
+    );
+    // The dead end the founder hit must NOT recur.
+    expect(outcome()).not.toMatch(/what would you like me to do/i);
+    // Calm, real, governed outcome naming both recipients.
+    expect(outcome()).toMatch(/sent/i);
+    expect(outcome()).toMatch(/David/);
+    expect(outcome()).toMatch(/Samiksha/);
+    // Both governed sends carried the PRESERVED objective, not the raw command.
+    const bodies = internalMessagePosts.map((p) => String(p.message ?? ""));
+    expect(bodies.every((b) => /update/i.test(b))).toBe(true);
+    expect(bodies.some((b) => /I need david/i.test(b))).toBe(false);
+  });
+
   it("'What's connected?' summarizes real connector state — never the Twin", async () => {
     server.use(
       http.get(`${API_BASE}/connectors/oauth/status`, () =>

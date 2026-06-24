@@ -150,6 +150,14 @@ import {
   isPendingConfirmPhrase,
   isExplicitActionCenterNav,
 } from "@/lib/work-os/pending-confirm";
+import {
+  parseRecipientList,
+  isCancelPhrase,
+  composeRequestBody,
+  formatRecipientList,
+  isClarificationExpired,
+  type PendingClarification,
+} from "@/lib/work-os/pending-clarification";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import {
   detectVagueWorkIntent,
@@ -387,6 +395,22 @@ export function AmbientOtzarBar(): JSX.Element {
   // Phase 1273 — a multi-intent WorkPlan renders as several linked,
   // independently-inspectable artifact cards (never one flattened card).
   const [planArtifacts, setPlanArtifacts] = useState<WorkArtifact[]>([]);
+  // [OTZAR-LIVE-6] EPHEMERAL conversational working memory — the one focused
+  // question Otzar just asked ("Who should receive this?") and the preserved
+  // draft, so the NEXT turn ("David and Samiksha are the recipients") binds to
+  // the awaited slot and RESUMES the action instead of being re-classified from
+  // scratch (founder live failure). A ref is the synchronous logic
+  // source-of-truth read inside the async handler (mirrors the pendingArtifact
+  // closure discipline); the calm "Waiting for…" feedback rides the existing
+  // actionStatus line. (The visible ambient memory chip lands with the Ambient
+  // Node Interface work.)
+  const pendingClarRef = useRef<PendingClarification | null>(null);
+  function setPendingClar(c: PendingClarification | null): void {
+    pendingClarRef.current = c;
+  }
+  function clearPendingClar(): void {
+    pendingClarRef.current = null;
+  }
   // Which STT engine produced the spoken command's transcript
   // (desktop path only): "openai-whisper" or "deepgram".
   const [transcriptionProvider, setTranscriptionProvider] = useState<
@@ -836,6 +860,21 @@ export function AmbientOtzarBar(): JSX.Element {
       target: action.targetEntity ?? null,
       result: "needs_confirmation",
     });
+    // [OTZAR-LIVE-6] When the draft has no recipient yet, remember that we're
+    // waiting for one and preserve the composed body — so the NEXT turn ("David
+    // and Samiksha are the recipients") resumes and sends, instead of being
+    // re-classified into an empty "what would you like me to do?" dead end.
+    if (!external && recipientEntityId === undefined) {
+      setPendingClar({
+        id: `clar-${at}`,
+        kind: "outbound_message",
+        awaiting: "recipient",
+        originalText: action.heard,
+        draftMessage: composeRequestBody(action.heard),
+        recipients: [],
+        createdAt: Date.now(),
+      });
+    }
     // NOTE: deliberately NO navigate() — the draft stays in view; the
     // user opens it explicitly.
   }
@@ -900,6 +939,109 @@ export function AmbientOtzarBar(): JSX.Element {
           : `I couldn't send that to ${recipient}. Open Collaboration to route it.`;
     report(why, "blocked", "Blocked", recipient);
     navigate("/app/collaboration");
+  }
+
+  // [OTZAR-LIVE-6] Resume a pending recipient clarification with the gathered
+  // name(s) and deliver the PRESERVED draft through the same governed rail —
+  // recipient-count-agnostic (1 or N through one path). Resolves EVERY name
+  // first; if any is unknown/ambiguous, asks ONE focused question about that one
+  // and holds the resolved rest in working memory (never a silent drop, never a
+  // partial fan-out before the set is known). Reports the REAL per-recipient
+  // outcome — never a fabricated "sent to both".
+  async function resumeOutboundToRecipients(
+    clar: PendingClarification,
+    newNames: string[],
+    heard: string,
+    at: string,
+  ): Promise<void> {
+    appendConversationEntry({ role: "user", text: heard, at });
+    const allNames = Array.from(
+      new Set(
+        [...clar.recipients, ...newNames]
+          .map((n) => n.trim())
+          .filter((n) => n.length > 0),
+      ),
+    );
+    const resolved: Array<{ name: string; display: string }> = [];
+    const problems: Array<{ name: string; ambiguous: boolean }> = [];
+    for (const name of allNames) {
+      const r = await resolveTargetGoverned(name);
+      if (
+        (r.kind === "RESOLVED_HUMAN" || r.kind === "RESOLVED_AI_AGENT") &&
+        r.entityId !== undefined
+      ) {
+        resolved.push({ name, display: r.displayName ?? name });
+      } else {
+        problems.push({ name, ambiguous: r.kind === "AMBIGUOUS" });
+      }
+    }
+
+    if (problems.length > 0) {
+      const p = problems[0]!;
+      const msg = p.ambiguous
+        ? `More than one teammate matches "${p.name}". Who do you mean?`
+        : `I couldn't find "${p.name}" in your organization. Who do you mean?`;
+      // Hold what resolved; keep awaiting the recipient so the next turn merges.
+      setPendingClar({
+        ...clar,
+        recipients: resolved.map((r) => r.display),
+        createdAt: Date.now(),
+      });
+      setActionResult(msg);
+      setActionStatus("Waiting for the recipient");
+      appendConversationEntry({ role: "otzar", text: msg, at });
+      speakConfirmation(msg);
+      return;
+    }
+
+    clearPendingClar();
+    const delivered: string[] = [];
+    const failed: string[] = [];
+    for (const r of resolved) {
+      const sent = await api.workOs.internalMessage(r.display, clar.draftMessage);
+      // Name each recipient by the canonical resolved display (deterministic
+      // per teammate) for the calm combined outcome.
+      if (sent.ok && sent.data.status === "DELIVERED") {
+        delivered.push(r.display);
+      } else {
+        failed.push(r.display);
+      }
+    }
+
+    let msg: string;
+    let status: string;
+    let result: "success" | "blocked";
+    if (delivered.length > 0 && failed.length === 0) {
+      msg = `Sent the request to ${formatRecipientList(delivered)} on your behalf. I'll track ${delivered.length > 1 ? "their replies" : "the reply"} here.`;
+      status = "Sent · governed";
+      result = "success";
+    } else if (delivered.length > 0) {
+      msg = `Sent to ${formatRecipientList(delivered)}. I couldn't reach ${formatRecipientList(failed)} — open Collaboration to route ${failed.length > 1 ? "those" : "that"}.`;
+      status = "Partly sent";
+      result = "success";
+    } else {
+      msg = `I couldn't reach ${formatRecipientList(failed)}. Open Collaboration to route ${failed.length > 1 ? "them" : "it"}.`;
+      status = "Blocked";
+      result = "blocked";
+    }
+    setActionResult(msg);
+    setActionStatus(status);
+    appendConversationEntry({
+      role: "action",
+      text: msg,
+      at,
+      kind: "SEND_REQUIRES_APPROVAL",
+      status,
+    });
+    speakConfirmation(msg);
+    recordVoiceAction({
+      at,
+      transcript: heard,
+      actionType: "SEND_REQUIRES_APPROVAL",
+      target: delivered.join(", ") || null,
+      result,
+    });
+    if (delivered.length === 0) navigate("/app/collaboration");
   }
 
   // ASK_TWIN execution: compose a recipient-facing message from the command
@@ -2480,8 +2622,16 @@ export function AmbientOtzarBar(): JSX.Element {
     {
       const tq = classifyThreadQuery(text);
       if (tq !== null) {
+        // A confident thread/relationship/inbound query is a different intent —
+        // abandon any pending clarification so a stale "who?" can't bind later.
+        clearPendingClar();
         const at0 = new Date().toISOString();
         setDraft("");
+        // Surface the answer in the calm outcome line (not only the transcript)
+        // so a thread/inbound answer reflects "what changed" even as the first
+        // interaction — the ambient surface, not a chat-only log.
+        setActionHeard(text);
+        setActionLabel("Work answer");
         appendConversationEntry({ role: "user", text, at: at0 });
         // Use the READ-scoped governed resolver (same path the outbound
         // send uses) so a STANDARD employee can resolve a same-org teammate
@@ -2547,6 +2697,44 @@ export function AmbientOtzarBar(): JSX.Element {
           sayMiss();
         }
         return;
+      }
+    }
+
+    // [OTZAR-LIVE-6] Conversational working memory — resume a pending
+    // clarification. Otzar just asked one focused question ("Who should receive
+    // this?"); this turn ("David and Samiksha are the recipients") binds to the
+    // awaited slot and RESUMES the action instead of being re-classified into a
+    // new/empty intent (the founder's "what would you like me to do regarding
+    // David and Samiksha?" dead end). Runs AFTER classifyThreadQuery so a real
+    // query ("Did David respond?") still wins, and BEFORE correction/outbound so
+    // a bare recipient answer isn't mangled. A non-answer abandons the pending
+    // clarification so it can never bind a later unrelated turn.
+    {
+      const clar = pendingClarRef.current;
+      if (clar !== null && !isClarificationExpired(clar, Date.now())) {
+        const at0 = new Date().toISOString();
+        if (isCancelPhrase(text)) {
+          clearPendingClar();
+          setDraft("");
+          appendConversationEntry({ role: "user", text, at: at0 });
+          const msg = "Okay, I won't send that.";
+          setActionResult(msg);
+          setActionStatus("Cancelled");
+          appendConversationEntry({ role: "otzar", text: msg, at: at0 });
+          speakConfirmation(msg);
+          return;
+        }
+        if (clar.awaiting === "recipient") {
+          const names = parseRecipientList(text);
+          if (names.length > 0) {
+            setDraft("");
+            await resumeOutboundToRecipients(clar, names, text, at0);
+            return;
+          }
+        }
+        // Not an answer to the pending question — abandon it (TTL-bounded too)
+        // so a later bare name can't accidentally bind to a stale ask.
+        clearPendingClar();
       }
     }
 
@@ -2667,6 +2855,17 @@ export function AmbientOtzarBar(): JSX.Element {
             actionType: "ASK_TWIN",
             target: null,
             result: "blocked",
+          });
+          // [OTZAR-LIVE-6] Remember we asked WHO this is for, with the objective
+          // preserved — so the next turn's recipient answer resumes the send.
+          setPendingClar({
+            id: `clar-${at0}`,
+            kind: "outbound_message",
+            awaiting: "recipient",
+            originalText: text,
+            draftMessage: composeRequestBody(text),
+            recipients: [],
+            createdAt: Date.now(),
           });
         }
         return;

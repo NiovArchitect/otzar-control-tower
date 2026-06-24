@@ -178,10 +178,54 @@ Live regressions (env-gated, demo-scoped writes, no secrets):
   respond?" → asserts the real reply surfaces (unique token), proving the full bidirectional
   loop end-to-end. Live result: **"Yes — David Odie replied just now: '…'. I'll treat that
   as confirmed."**
+- `npm run test:e2e:live:conversation-memory` — the founder's 4-turn transcript: inbound
+  lookup is not a draft, intent survives the awkward rephrase, and the recipient answer
+  resumes the request (never the "what would you like me to do regarding David and
+  Samiksha?" dead end).
 
 Discipline preserved: no hardcoded "David" (dynamic org resolver), no parallel message
 store (reads existing thread/ledger/notification rails), no fake replies, no calendar
 auto-create.
+
+## Conversational working memory — pending-action continuity (2026-06-24)
+
+Founder-exposed P0: a multi-turn flow lost its own intent. "I need David and Samiksha
+to send me their updates" created a recipient-less draft; the next turn "David and
+Samiksha are the recipients" was re-classified from scratch into the dead end **"What
+would you like me to do regarding David and Samiksha?"**. Separately, "did david send me
+anything" was mis-routed to an **outbound draft** instead of an inbound lookup. Root
+causes: (1) the dispatch cascade kept no "what did I just ask?" state — only confirm
+phrases ("send it") bound to a pending draft, never a recipient/context answer; (2) the
+inbound subject-sender frame ("did X send me anything") wasn't classified, so the verb
+"send" tripped the outbound-draft path.
+
+Fix (ephemeral working memory, not durable/DMW): a `pendingClarification` ref records the
+awaited slot + the preserved draft; consumed right after `classifyThreadQuery` (so real
+queries still win) and before correction/outbound. Plus a new inbound classifier branch.
+Recipient-count-agnostic (1 or N through one `parseRecipientList` path); resolve-all
+before any send; honest partial-failure.
+
+| Class | Nuance | Status | Evidence |
+|---|---|---|---|
+| Inbound message lookup | "did X send me anything" / "if X messaged me" → notification/thread read, not a draft | ✅ (unit + live) | `thread-query.ts` subject-sender branch → RECEIVED_FROM; `thread-query.test.ts` (both directions) |
+| Pending-action memory | Otzar remembers the recipient-less draft it just made | ✅ | `pending-clarification.ts` ref; component 4-turn transcript test |
+| Recipient slot-fill | "David and Samiksha are the recipients" RESUMES the request | ✅ | founder transcript test; `parseRecipientList` (lowercase, framed, bare) |
+| Multi-recipient continuity | both teammates get the governed send (not collapsed to one) | ✅ | resume loops `internalMessage` per resolved recipient; 2 posts asserted |
+| Clarification continuity | a bare answer binds to the awaited slot, not re-classified | ✅ | consume branch after `classifyThreadQuery`, before correction/outbound |
+| Confirm / cancel continuity | "never mind" abandons calmly; non-answer abandons (no stale bind) | ✅ | `isCancelPhrase`; TTL + abandon-on-non-answer |
+| Partial-failure honesty | one unknown recipient → one focused question, holds the rest, never fakes "sent to both" | ✅ | resolve-all-before-send; per-recipient outcome |
+| Body preservation | resumed send carries "Please send me your updates.", not the raw command | ✅ | `composeRequestBody`; test asserts no raw command in the wire body |
+
+Not-yet-first-class (honest): first-turn multi-recipient recognition (today the two-name
+request still routes through the one-focused-recipient clarification, then resumes —
+the directive's supported path); context/owner/item slot-fill continuity (recipient is
+wired; the same ref generalizes to those next).
+
+Live regression: `npm run test:e2e:live:conversation-memory` (env-gated; runs the founder's
+4-turn transcript against the deployed app; asserts inbound-not-draft, intent retention,
+and resume-not-dead-end). Discipline: no hardcoded David/Samiksha (dynamic resolver), no
+parallel draft store (reuses pendingArtifact + adds an ephemeral clarification ref), no
+durable-memory claim, no fake sends.
 
 ## Triage of the 2 remaining "fails" (classified, not patched-blindly)
 

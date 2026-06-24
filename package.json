@@ -15,6 +15,7 @@
     "test:e2e:live:admin": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-admin-rbac.spec.ts",
     "test:e2e:live:response-reconciliation": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-response-reconciliation.spec.ts",
     "test:e2e:live:response-roundtrip": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-response-roundtrip.spec.ts",
+    "test:e2e:live:conversation-memory": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-conversation-memory.spec.ts",
     "smoke:evidence": "bash scripts/otzar-live-evidence.sh",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",

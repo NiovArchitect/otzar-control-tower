@@ -271,3 +271,46 @@ describe("composeThreadAnswer (grounded in real records)", () => {
     ).toContain("On it, thanks");
   });
 });
+
+describe("[OTZAR-LIVE-6] inbound message lookup — subject-sender frame", () => {
+  it("routes the founder's 'did david send me anything' to RECEIVED_FROM, not an outbound draft", () => {
+    const r = classifyThreadQuery("did david send me anything");
+    expect(r?.type).toBe("RECEIVED_FROM");
+    expect(r?.person).toBe("david");
+  });
+
+  it("covers send/message/text/ping/reach-out subject-sender phrasings", () => {
+    for (const q of [
+      "did David send me anything",
+      "has David messaged me",
+      "did David text me",
+      "did David ping me yet",
+      "has David reached out to me",
+      "did Samiksha email me",
+    ]) {
+      expect(classifyThreadQuery(q)?.type, q).toBe("RECEIVED_FROM");
+    }
+  });
+
+  it("covers the founder's exact awkward 'Im asking if david messaged me'", () => {
+    const r = classifyThreadQuery("Im asking if david messaged me");
+    expect(r?.type).toBe("RECEIVED_FROM");
+    expect(r?.person).toBe("david");
+  });
+
+  it("covers 'anything new from David'", () => {
+    expect(classifyThreadQuery("anything new from David")?.type).toBe("RECEIVED_FROM");
+  });
+
+  it("does NOT swallow IMPERATIVE outbound — 'send David an update' stays unclassified", () => {
+    expect(classifyThreadQuery("send David an update")).toBeNull();
+    expect(classifyThreadQuery("message David that the launch is delayed")).toBeNull();
+    expect(
+      classifyThreadQuery("I need David and Samiksha to send me their updates"),
+    ).toBeNull();
+  });
+
+  it("still routes 'did David respond?' to RESPONSE_STATUS (not inbound)", () => {
+    expect(classifyThreadQuery("did David respond?")?.type).toBe("RESPONSE_STATUS");
+  });
+});

@@ -116,6 +116,31 @@ export function classifyThreadQuery(text: string): ThreadQuery | null {
     }
   }
 
+  // [OTZAR-LIVE-6] Inbound message lookup — "did David send me anything", "has
+  // David messaged me", "did David text/ping/reach out to me", and the founder's
+  // exact "I'm asking if David messaged me". Here the SUBJECT is the sender (X)
+  // with NO "from X" object, so the RECEIVED_FROM "from X" pattern below can't
+  // see it — and worse, the verb "send" otherwise trips the OUTBOUND draft path
+  // (the founder's "did david send me anything" wrongly drafted a message).
+  // Anchored on the interrogative did/has/if/whether frame so an IMPERATIVE
+  // outbound ("send David an update") is never swallowed. Mapped to RECEIVED_FROM
+  // so it reads the governed thread (Otzar's own messages/replies), not the LLM.
+  const inboundSenderPatterns: RegExp[] = [
+    new RegExp(`\\b(?:did|has|have|did\\s*n'?t|has\\s*n'?t|have\\s*n'?t)\\s+${NAME}\\s+(?:sent|send|message|messaged|text|texted|dm|dmed|dm'?d|ping|pinged|email|emailed|e-?mailed|wrote|write|reach(?:ed)?\\s+out|got(?:ten)?\\s+back\\s+to|contact(?:ed)?)\\b[^?]*?\\bme\\b`, "i"),
+    new RegExp(`\\b(?:if|whether)\\s+${NAME}\\s+(?:sent|send|messaged|message|texted|text|dm'?d|dmed|pinged|emailed|e-?mailed|wrote|reach(?:ed)?\\s+out|got(?:ten)?\\s+back\\s+to|contact(?:ed)?)\\b[^?]*?\\bme\\b`, "i"),
+    new RegExp(`\\b(?:anything|something|any\\s+(?:messages?|notes?|word|updates?))\\s+(?:new\\s+)?from\\s+${NAME}\\b`, "i"),
+  ];
+  for (const re of inboundSenderPatterns) {
+    const m = t.match(re);
+    if (m) {
+      const p = cleanName(m[1] ?? "");
+      const lp = p.toLowerCase();
+      if (p.length > 0 && !/^(?:i|me|my|we|you|he|she|they|it|the|this|that|there|team|people|everyone|anyone|someone|nobody|today|tomorrow)$/i.test(lp)) {
+        return { type: "RECEIVED_FROM", person: p };
+      }
+    }
+  }
+
   // WAITING_ON — durable directional work the caller is OWED by X. Covers
   // natural + imperfect human phrasing, not just the textbook "waiting on …
   // from X". Each pattern captures the teammate's name in group 1. Checked
