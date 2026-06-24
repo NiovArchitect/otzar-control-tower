@@ -130,6 +130,51 @@ Legend: ✅ PASS · ⚠️ gap/observation (SKIP) · ❌ fail · 🔒 RBAC-as-ex
 | Y | Responsive | ✅ | orb usable + answers at 390×844 mobile viewport |
 | CO | **Two-human round-trip** | ✅ | vishesh → **"I sent David Odie a review request…"** (real governed send); **David's session shows the inbound request** on People & Collaboration (*"Hey david, can you review the launch checklist? · Accept · Reject"*) — recipient-side visibility **verified live** |
 
+## Response reconciliation — Bidirectional Communication Intelligence (2026-06-24)
+
+Founder-exposed P1: a user sent a governed message ("Tell David to get ready for
+today's meetings."), David replied in Notifications, and "Did david respond?" got the
+generic-chat hallucination **"I don't see any recent message or thread from David Odie…"**
+instead of the real reply. Root cause was **two-part**:
+
+1. **Frontend (this repo, LIVE):** "Did X respond?" / "Is X ready?" / "What did X say?"
+   was not classified as a thread query → fell to generic chat. Fixed by the
+   `RESPONSE_STATUS` classifier (`thread-query.ts`, commit `f861eb7`) **and** by routing
+   the thread-query dispatch through the **governed resolver** so a STANDARD employee can
+   resolve the teammate (commit `2e0fe47`). Before `2e0fe47` the dispatch used the
+   admin-only org roster and answered **"I couldn't find David in your organization."**
+2. **Backend (niov-foundation, PR #488, NOT yet merged — protected `main`):** a notification
+   **reply** created only a `Notification`, not a mirror `WorkLedgerEntry`, so the reply
+   never appeared in the A↔B governed thread the frontend reads. Until #488 merges +
+   otzar-api redeploys, the honest grounded answer is **"I don't see a reply from David yet."**
+   (never the old hallucination). The exact **"Yes — David replied 4 minutes ago: '…'. I'll
+   treat that as confirmed."** happy path is proven deterministically in
+   `tests/unit/thread-query.test.ts` and goes live only when #488 lands.
+
+Honest per-class accounting of the Bidirectional Communication Intelligence nuance set:
+
+| Class | Nuance | Status | Evidence / note |
+|---|---|---|---|
+| A | Response / acknowledgement ("Did X respond?", "Is X ready?", "Has he confirmed?") | ✅ classified + resolved (LIVE) | `RESPONSE_STATUS` classifier + governed resolver; grounded thread answer, never hallucination |
+| B | Confirmed / accepted reply read | ✅ handled | `replyStatusNote` → "I'll treat that as confirmed." (unit-proven; live on #488) |
+| C | Blocked / waiting reply read | ✅ handled | `replyStatusNote` detects blocked/waiting language |
+| D | Decline / rejection reply read | ✅ handled | `replyStatusNote` detects declined language |
+| E | Question / clarification reply read | ✅ handled | `replyStatusNote` detects a question back |
+| F | No-response (honest) | ✅ handled (LIVE) | "I don't see a reply from X yet." — never a false "no response" when a reply exists |
+| G | Reply lands in governed thread (notification→ledger bridge) | ⚠️ blocked on PR #488 | mirror `WorkLedgerEntry` on reply; protected `main`, Founder merge required |
+| H | Completion / done detection from a reply | 🔭 not first-class | reply text read, but "X finished it" does not yet move work state |
+| I | Ownership / reassignment from a reply | 🔭 not first-class | a reply that reassigns ("give it to Sam") is not yet parsed into a handoff |
+| J | Time / meeting / calendar reference in a reply | ⚠️ honest-only | surfaced in the reply text; **never auto-creates a calendar event**; "no linked event" stays honest |
+| K | Approval / escalation reply | ✅ via rail | approval replies route through the existing approval/escalation rail (AD) |
+| L | Multi-party replies (several teammates reply) | 🔭 not first-class | single-teammate response-status is handled; multi-party aggregation is future |
+| M | AI Twin reply reconciliation | 🔭 not first-class | Twin-to-Twin send is governed (AE); reconciling a Twin's *reply* back is future |
+
+Live regression: `npm run test:e2e:live:response-reconciliation` (env-gated; sends one
+demo-scoped governed message, asks "Did X respond?", asserts a grounded thread answer and
+**not** the generic-chat hallucination). Discipline preserved: no hardcoded "David" (dynamic
+org resolver), no parallel message store (reads existing thread/ledger/notification rails),
+no fake replies, no calendar auto-create.
+
 ## Triage of the 2 remaining "fails" (classified, not patched-blindly)
 
 1. **L · hard refresh → /login** — *known/intentional.* In-memory auth by design (code: "NO
