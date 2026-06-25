@@ -19,6 +19,8 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
 import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 import { GlassPanel } from "@/components/ambient/GlassPanel";
+import { buildWorkNodes } from "@/lib/work-os/work-nodes";
+import { intensityDot } from "@/lib/ambient/glass";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -61,6 +63,19 @@ export function AmbientWorkSurface(): JSX.Element {
     ? surfaceContext.title ?? surfaceContext.summary ?? "Current context"
     : null;
   const nothingInFlight = approvalsCount === 0 && unreadCount === 0;
+
+  // [OTZAR-LIVE-6] Real work nodes — what Otzar is connected to RIGHT NOW, built
+  // only from current home state (context, approvals, replies). No node without
+  // its backing state; no demo names; no graph. Collapsed strip below.
+  const workNodes = buildWorkNodes({
+    recipients: [],
+    awaitingRecipient: false,
+    draft: null,
+    contextTitle: ctxLabel,
+    approvalsCount,
+    unreadCount,
+    correctionsActive: 0,
+  });
 
   return (
     <div
@@ -160,6 +175,37 @@ export function AmbientWorkSurface(): JSX.Element {
           </p>
         )}
       </GlassPanel>
+
+      {/* CONNECTED NOW — a small, collapsed real-node strip. Each chip is real
+          state (context / approval / reply); nothing renders when there is no
+          real node. Not a graph, not technical mechanics. */}
+      {workNodes.length > 0 ? (
+        <details className="group px-1" data-testid="surface-work-nodes">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-800">
+            <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
+            Connected now
+            <span className="opacity-60">· {workNodes.length}</span>
+          </summary>
+          <div
+            className="mt-2 flex flex-wrap gap-1.5"
+            data-testid="surface-work-nodes-list"
+          >
+            {workNodes.map((n) => (
+              <span
+                key={n.id}
+                data-testid="surface-work-node"
+                data-kind={n.kind}
+                data-intensity={n.intensity}
+                title={n.detail}
+                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/60 px-2.5 py-0.5 text-[11px] text-slate-700 backdrop-blur-xl"
+              >
+                <span aria-hidden className={`inline-block h-1 w-1 rounded-full ${intensityDot(n.intensity)}`} />
+                {n.label}
+              </span>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
       {/* ALL CAUGHT UP — calm, not blank, when nothing needs the human. */}
       {nothingInFlight ? (

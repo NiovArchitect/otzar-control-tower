@@ -14,6 +14,7 @@
 import { Link, Outlet } from "react-router-dom";
 import { LogOut, PanelsTopLeft } from "lucide-react";
 import { AmbientNav } from "@/components/ambient/AmbientNav";
+import { FlowTraceOverlay } from "@/components/ambient/FlowTraceOverlay";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
 import { AmbientNotificationStack } from "@/components/otzar/AmbientNotificationStack";
@@ -77,6 +78,7 @@ export function EmployeeLayout() {
           surface, calm cards that surface only what matters, and the voice/text
           orb. All pointer-safe and non-blocking — work stays foreground. */}
       <AmbientEdgeGlow />
+      <FlowTraceOverlay />
       <AmbientNotificationStack />
       <AmbientOtzarBar />
     </div>

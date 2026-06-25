@@ -84,3 +84,41 @@ describe("AmbientWorkSurface — real-state ambient summaries", () => {
     window.removeEventListener("otzar:open", open);
   });
 });
+
+describe("AmbientWorkSurface — real node strip (collapsed, never decorative)", () => {
+  it("shows NO node strip when there is no real state", () => {
+    renderSurface();
+    expect(screen.queryByTestId("surface-work-nodes")).not.toBeInTheDocument();
+  });
+
+  it("a real context produces a context node (collapsed by default)", () => {
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "unknown",
+      title: "the launch plan",
+    });
+    renderSurface();
+    const strip = screen.getByTestId("surface-work-nodes");
+    expect(strip).not.toHaveAttribute("open"); // collapsed by default
+    const ctx = screen
+      .getAllByTestId("surface-work-node")
+      .find((n) => n.getAttribute("data-kind") === "context");
+    expect(ctx).toBeDefined();
+    expect(ctx).toHaveTextContent(/launch plan/i);
+  });
+
+  it("a real approval produces an attention approval node", () => {
+    usePresenceStore.getState().setSignals({ approvalsCount: 1 });
+    renderSurface();
+    const approval = screen
+      .getAllByTestId("surface-work-node")
+      .find((n) => n.getAttribute("data-kind") === "approval");
+    expect(approval?.getAttribute("data-intensity")).toBe("attention");
+  });
+
+  it("never invents a node / never a hardcoded demo name", () => {
+    usePresenceStore.getState().setSignals({ unreadCount: 1 });
+    renderSurface();
+    const strip = screen.getByTestId("surface-work-nodes");
+    expect(strip.textContent ?? "").not.toMatch(/\b(David|Samiksha|Vishesh)\b/);
+  });
+});

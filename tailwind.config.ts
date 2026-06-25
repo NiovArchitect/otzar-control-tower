@@ -95,6 +95,19 @@ const config: Config = {
           "0%, 100%": { opacity: "0.65", transform: "scale(1)" },
           "50%": { opacity: "1", transform: "scale(1.06)" },
         },
+        // [OTZAR-LIVE-6] Directional flow trace — a soft streak that sweeps once
+        // across the top edge in the direction work moved, then fades. Plays once
+        // (not infinite); gated behind motion-safe at the call site.
+        "flow-streak-out": {
+          "0%": { opacity: "0", transform: "translateX(40%)" },
+          "18%": { opacity: "0.9" },
+          "100%": { opacity: "0", transform: "translateX(-40%)" },
+        },
+        "flow-streak-in": {
+          "0%": { opacity: "0", transform: "translateX(-40%)" },
+          "18%": { opacity: "0.9" },
+          "100%": { opacity: "0", transform: "translateX(40%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -103,6 +116,8 @@ const config: Config = {
         "edge-breathe": "edge-breathe 3.2s ease-in-out infinite",
         "edge-shimmer": "edge-shimmer 1.2s ease-out",
         "bloom-breathe": "bloom-breathe 6s ease-in-out infinite",
+        "flow-streak-out": "flow-streak-out 1.8s ease-out",
+        "flow-streak-in": "flow-streak-in 1.8s ease-out",
       },
     },
   },

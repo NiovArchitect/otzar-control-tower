@@ -166,6 +166,7 @@ import {
   type PendingClarification,
 } from "@/lib/work-os/pending-clarification";
 import { buildWorkNodes } from "@/lib/work-os/work-nodes";
+import { emitFlow } from "@/lib/stores/flow";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import {
   detectVagueWorkIntent,
@@ -1115,6 +1116,8 @@ export function AmbientOtzarBar(): JSX.Element {
     if (sent.ok && sent.data.status === "DELIVERED") {
       const delivered = sent.data.recipient_display_name ?? "";
       const label = delivered.trim().length > 0 ? delivered : recipient;
+      // Real work moved: Otzar → teammate. A brief directional flow trace.
+      emitFlow("otzar_to_person", `Routed to ${label}`, "working");
       report(
         `I sent ${label} a message on your behalf and created the governed record. I'll track the response here.`,
         "success",
@@ -1218,6 +1221,10 @@ export function AmbientOtzarBar(): JSX.Element {
       msg = `I couldn't reach ${formatRecipientList(failed)}. Open Collaboration to route ${failed.length > 1 ? "them" : "it"}.`;
       status = "Blocked";
       result = "blocked";
+    }
+    // Real work moved: Otzar → teammate(s). One brief directional trace.
+    if (delivered.length > 0) {
+      emitFlow("otzar_to_person", `Routed to ${formatRecipientList(delivered)}`, "working");
     }
     setActionResult(msg);
     setActionStatus(status);
@@ -1566,6 +1573,14 @@ export function AmbientOtzarBar(): JSX.Element {
 
     const who = resolved.displayName ?? recipient;
     if (res.ok) {
+      // Real work moved: an approval/review routed to a person — attention flow.
+      emitFlow(
+        requestType === "APPROVAL_REQUEST" ? "blocker_to_approval" : "otzar_to_person",
+        requestType === "APPROVAL_REQUEST"
+          ? `Approval routed to ${who}`
+          : `Routed to ${who}`,
+        requestType === "APPROVAL_REQUEST" ? "attention" : "working",
+      );
       const kindword =
         requestType === "REVIEW_REQUEST"
           ? "review request"
@@ -2901,6 +2916,10 @@ export function AmbientOtzarBar(): JSX.Element {
           const t = await api.workOs.thread(resolved.entityId!);
           const messages =
             t.ok && t.data.ok && t.data.messages != null ? t.data.messages : [];
+          // Real reply arriving to the human → inbound flow trace.
+          if (messages.some((m) => m.from_me === false)) {
+            emitFlow("reply_to_user", `${display} replied`, "working");
+          }
           sayAnswer(composeThreadAnswer(tq, display, messages));
         } else {
           sayMiss();
@@ -2969,6 +2988,8 @@ export function AmbientOtzarBar(): JSX.Element {
             clearPendingClar();
             setDraft("");
             appendConversationEntry({ role: "user", text, at: at0 });
+            // Context flowing into the work — a calm inbound trace.
+            emitFlow("context_to_action", "Context remembered", "ambient");
             provideSurfaceContext({
               type: "unknown",
               title: ref,
