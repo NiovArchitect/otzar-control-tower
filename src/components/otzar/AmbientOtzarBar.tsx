@@ -3815,7 +3815,7 @@ export function AmbientOtzarBar(): JSX.Element {
                 ? "bg-teal-400/20"
                 : "bg-transparent";
     return (
-      <div className="fixed bottom-6 right-6 z-[60]">
+      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60]">
         <span
           aria-hidden
           className={`absolute -inset-2 rounded-full blur-md transition-colors duration-700 ${orbHalo}`}
@@ -3855,7 +3855,7 @@ export function AmbientOtzarBar(): JSX.Element {
       aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
       data-presence={presenceState}
-      className={`group fixed bottom-6 right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
+      className={`group fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
     >
       {/* Siri-like ambient color field, diffused UNDER the glass — the state
           color blooms through the frost, it is not a hard border. Active states
