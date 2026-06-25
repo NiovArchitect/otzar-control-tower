@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/stores/auth";
 import { landingPathFor } from "@/lib/auth/capabilities";
+import { AMBIENT_FIELD, GLASS_SURFACE } from "@/lib/ambient/glass";
 
 // WHAT: Local-dev-only demo accounts produced by
 //        niov-foundation/scripts/demo-seed.ts (PR #300 substrate).
@@ -97,13 +98,26 @@ export function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-sm">
+    <main
+      className={`relative flex min-h-screen items-center justify-center px-4 ${AMBIENT_FIELD}`}
+    >
+      {/* A calm presence bloom behind the card — Otzar is here before you sign in. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_38%,rgba(56,189,248,0.10),transparent_70%)]"
+      />
+      <Card className={`relative w-full max-w-sm border-0 bg-transparent shadow-none ${GLASS_SURFACE}`}>
         <CardHeader>
-          <CardTitle>Otzar</CardTitle>
-          <CardDescription>
-            Sign in with your org-admin credentials. Every action you take is
-            recorded in your organization's audit trail.
+          <CardTitle className="flex items-center gap-2 text-slate-900">
+            <span
+              aria-hidden
+              className="inline-block h-2 w-2 rounded-full bg-sky-400 motion-safe:animate-pulse"
+            />
+            Otzar
+          </CardTitle>
+          <CardDescription className="text-slate-500">
+            Your ambient AI Work OS. Every action is governed and kept in your
+            organization's audit trail.
           </CardDescription>
         </CardHeader>
         <CardContent>

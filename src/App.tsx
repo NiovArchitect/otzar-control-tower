@@ -27,7 +27,7 @@ import { ActionCenter } from "@/pages/app/ActionCenter";
 import { Comms } from "@/pages/app/Comms";
 import { ConnectorHealth } from "@/pages/app/ConnectorHealth";
 import { MyDay } from "@/pages/app/MyDay";
-import { FocusHome } from "@/pages/app/FocusHome";
+import { AmbientWorkSurface } from "@/pages/app/AmbientWorkSurface";
 import { MyMemory } from "@/pages/app/MyMemory";
 import { MyOrganization } from "@/pages/app/MyOrganization";
 import { MyTwin } from "@/pages/app/MyTwin";
@@ -105,7 +105,7 @@ export function App() {
               {/* Phase 1253 — the ambient Focus Home is the default
                   landing (Founder acceptance: no dashboard first). The
                   full My Day workbench lives at /app/my-day. */}
-              <Route index element={<FocusHome />} />
+              <Route index element={<AmbientWorkSurface />} />
               <Route path="my-day" element={<MyDay />} />
               <Route path="workspace" element={<EmployeeHome />} />
               <Route path="chat" element={<Chat />} />

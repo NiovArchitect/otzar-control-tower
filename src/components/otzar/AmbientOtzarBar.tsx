@@ -383,6 +383,13 @@ function memoryChipIntensity(
 
 export function AmbientOtzarBar(): JSX.Element {
   const [expanded, setExpanded] = useState(false);
+  // [OTZAR-LIVE-6] The ambient work surface (and any edge affordance) opens the
+  // orb via a window event — invocation lives in the surface, the engine is here.
+  useEffect(() => {
+    const open = (): void => setExpanded(true);
+    window.addEventListener("otzar:open", open);
+    return () => window.removeEventListener("otzar:open", open);
+  }, []);
   const [draft, setDraft] = useState("");
   // Phase 1253 — the router's last calm acknowledgement ("I opened
   // Integrations…"), shown inline so voice routing feels intentional.

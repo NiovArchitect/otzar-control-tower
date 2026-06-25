@@ -11,25 +11,20 @@
 // session, then clears the in-memory store regardless of the result
 // (fail-safe). Token stays memory-only -- no persistence added.
 
-import { Link, Outlet, useLocation } from "react-router-dom";
-import { LogOut } from "lucide-react";
-import { EmployeeNav } from "@/components/employee/EmployeeNav";
+import { Link, Outlet } from "react-router-dom";
+import { LogOut, PanelsTopLeft } from "lucide-react";
+import { AmbientNav } from "@/components/ambient/AmbientNav";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
 import { AmbientNotificationStack } from "@/components/otzar/AmbientNotificationStack";
 import { NotificationBell } from "@/components/otzar/NotificationBell";
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { api } from "@/lib/api";
+import { AMBIENT_FIELD } from "@/lib/ambient/glass";
 
 export function EmployeeLayout() {
   const { entity, capabilities, logout } = useAuthStore();
-  // Phase 1253 — the Focus Home is nav-free: the workspace stays
-  // open and Otzar stays ambient. The sidebar appears only on the
-  // deeper workbench pages.
-  const location = useLocation();
-  const isFocusHome = location.pathname === "/app";
 
   async function handleLogout(): Promise<void> {
     // Best-effort server-side invalidation; clear memory regardless.
@@ -38,38 +33,38 @@ export function EmployeeLayout() {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      {!isFocusHome && (
-        <aside className="hidden w-60 shrink-0 sm:block">
-          <EmployeeNav />
-        </aside>
-      )}
+    // [OTZAR-LIVE-6] Ambient glass shell — a luminous silver field, a slim glass
+    // nav, a frosted low-noise header, and a behavioral state border around the
+    // whole surface. Otzar lives around the work, not as a dashboard in it.
+    <div className={`relative flex h-screen w-full overflow-hidden ${AMBIENT_FIELD}`}>
+      <AmbientNav />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
-          <span className="text-sm font-semibold sm:hidden">Otzar</span>
-          <div className="ml-auto flex items-center gap-3 text-sm">
+        <header className="flex h-14 items-center justify-between border-b border-white/50 bg-white/40 px-4 backdrop-blur-xl">
+          <span className="text-sm font-semibold tracking-tight text-slate-900">
+            Otzar
+          </span>
+          <div className="ml-auto flex items-center gap-1.5">
             <NotificationBell />
-            {isOrgAdmin(capabilities) && (
-              <Button asChild variant="outline" size="sm">
-                <Link to="/">Open Control Tower</Link>
-              </Button>
-            )}
-            {entity && (
-              <span className="text-muted-foreground" aria-label="Logged in as">
-                {entity.email}
-              </span>
-            )}
-            <Button
+            {isOrgAdmin(capabilities) ? (
+              <Link
+                to="/"
+                aria-label="Open Control Tower"
+                title="Control Tower"
+                className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/60 hover:text-slate-700"
+              >
+                <PanelsTopLeft className="h-4 w-4" aria-hidden />
+              </Link>
+            ) : null}
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={() => void handleLogout()}
-              aria-label="Log out"
+              aria-label={entity ? `Log out (${entity.email})` : "Log out"}
+              title="Log out"
+              className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/60 hover:text-slate-700"
             >
-              <LogOut className="mr-2 h-4 w-4" aria-hidden />
-              Log out
-            </Button>
+              <LogOut className="h-4 w-4" aria-hidden />
+            </button>
           </div>
         </header>
 
@@ -78,10 +73,9 @@ export function EmployeeLayout() {
         </main>
       </div>
 
-      {/* Phase 1251 — the Otzar edge presence. The glow speaks state
-          at the viewport edge; ambient cards surface only what
-          matters; the orb/dock is the voice-first entry point. All
-          pointer-safe and nonblocking — work stays foreground. */}
+      {/* The Otzar ambient layer: a behavioral state border around the whole
+          surface, calm cards that surface only what matters, and the voice/text
+          orb. All pointer-safe and non-blocking — work stays foreground. */}
       <AmbientEdgeGlow />
       <AmbientNotificationStack />
       <AmbientOtzarBar />
