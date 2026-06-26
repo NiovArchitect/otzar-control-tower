@@ -100,7 +100,7 @@ describe("OnboardingReadiness — handoff section (Phase 1242)", () => {
     // Friendly labels, not raw enums, in the visible text.
     const text = screen.getByTestId("handoff-readiness-card").textContent ?? "";
     expect(text).toContain("Ready now");
-    expect(text).toContain("Ready after schema approval");
+    expect(text).toContain("Ready after platform update");
     expect(text).toContain("Needs credentials");
     // Phase 1250: DEMO_ONLY capabilities (the mock settlement rail)
     // render in their own honest bucket instead of being dropped.

@@ -140,8 +140,8 @@ export function OnboardingReadiness(): JSX.Element {
           <AlertCircle className="mr-1 inline h-3 w-3" aria-hidden /> Couldn't
           load the checklist ({error ?? "UNKNOWN"}).
           <p className="mt-2 text-[10px] text-muted-foreground">
-            The onboarding readiness page is for admins (clearance_level ≥ 4).
-            If you're not an admin, ask your org owner.
+            This page is for org admins. If you're not an admin, ask your org
+            owner for access.
           </p>
         </CardContent>
       </Card>
@@ -154,8 +154,8 @@ export function OnboardingReadiness(): JSX.Element {
   return (
     <div className="space-y-5" data-testid="onboarding-readiness-page">
       <PageHeader
-        title="Production readiness"
-        description="Walk through the steps required to take this Otzar deployment from demo to a real client handoff. Admins only."
+        title="Launch readiness"
+        description="Walk through the steps required to take this Otzar workspace from demo to a real client handoff. Admins only."
       />
 
       <Card data-testid="onboarding-readiness-mode-card">
@@ -184,7 +184,7 @@ export function OnboardingReadiness(): JSX.Element {
               {busy === "MODE" ? (
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden />
               ) : null}
-              DEMO mode
+              Demo mode
             </Button>
             <Button
               size="sm"
@@ -196,13 +196,13 @@ export function OnboardingReadiness(): JSX.Element {
               {busy === "MODE" ? (
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden />
               ) : null}
-              PRODUCTION mode
+              Live mode
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            DEMO mode lets you seed canonical fixtures (Launch Collaboration /
-            MICE Event). PRODUCTION mode disables demo seeding and surfaces the
-            production schema migration step as required.
+            Demo mode lets you load sample data (Launch Collaboration / MICE
+            Event). Live mode turns off demo data and shows the platform update
+            step as required.
           </p>
         </CardContent>
       </Card>
@@ -259,7 +259,7 @@ export function OnboardingReadiness(): JSX.Element {
             </span>
           </p>
           <p>
-            Schema migration:{" "}
+            Platform update:{" "}
             <span className="font-medium">
               {checklist.facts.schema_migration_state.replace(/_/g, " ").toLowerCase()}
             </span>
@@ -348,7 +348,7 @@ export function OnboardingReadiness(): JSX.Element {
 // surfaces the schema-approval gate explicitly.
 const CLASS_LABEL: Record<string, string> = {
   PROD: "Ready now",
-  PROD_READY_PENDING_SCHEMA_PUSH: "Ready after schema approval",
+  PROD_READY_PENDING_SCHEMA_PUSH: "Ready after platform update",
   PROD_READY_PENDING_CREDENTIALS: "Needs credentials",
   BLOCKED_BY_CREDENTIALS: "Needs credentials",
   BLOCKED_BY_APP_REVIEW: "Needs app review",
@@ -365,7 +365,7 @@ function HandoffSection({
   const buckets: Array<{ title: string; classes: string[] }> = [
     { title: "Ready now", classes: ["PROD"] },
     {
-      title: "Ready after your schema approval",
+      title: "Ready after your platform update",
       classes: ["PROD_READY_PENDING_SCHEMA_PUSH"],
     },
     {
@@ -405,7 +405,7 @@ function HandoffSection({
             data-testid="handoff-schema-callout"
           >
             <p className="font-medium">
-              Production schema update is waiting for approval.
+              A platform update is waiting for Founder approval.
             </p>
             <p className="text-muted-foreground">
               {readiness.schema.note} To approve, the Founder types:{" "}

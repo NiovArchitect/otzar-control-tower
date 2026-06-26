@@ -130,7 +130,7 @@ export function SystemHealthPage(): JSX.Element {
       <Card data-testid="system-health-runtime-fabric">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <Activity className="h-4 w-4" aria-hidden /> Runtime Fabric
+            <Activity className="h-4 w-4" aria-hidden /> Background services
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-xs">

@@ -51,7 +51,7 @@ test("live account/capability probe", async ({ browser }) => {
         await page.waitForLoadState("networkidle").catch(() => undefined);
         row.adminRouteUrl = new URL(page.url()).pathname;
         row.adminRouteLoads = /\/admin/.test(page.url());
-        // Admin-only employee nav markers (Team Work / Production readiness).
+        // Admin-only employee nav markers (Team Work / Launch readiness).
         await page.goto("/app").catch(() => undefined);
         await page.waitForLoadState("networkidle").catch(() => undefined);
         row.teamWorkNav = await page

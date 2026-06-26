@@ -176,11 +176,11 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "more",
   },
   {
-    label: "Connector Health",
+    label: "Tool connections",
     to: "/app/connector-health",
     icon: Cable,
     description:
-      "Honest status of integrations. Missing connectors don't break the core product.",
+      "Honest status of your connected tools. A tool that isn't connected doesn't break the core product.",
     group: "more",
   },
   {
@@ -255,11 +255,11 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "more",
   },
   {
-    label: "Production readiness",
+    label: "Launch readiness",
     to: "/app/onboarding-readiness",
     icon: ShieldCheck,
     description:
-      "Admin-only checklist of what's left before this Otzar deployment is production-ready.",
+      "Admin-only checklist of what's left before this Otzar workspace is ready to go live.",
     group: "more",
     adminOnly: true,
   },

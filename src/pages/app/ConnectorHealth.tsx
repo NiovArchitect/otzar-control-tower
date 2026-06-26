@@ -248,8 +248,8 @@ export function ConnectorHealth(): JSX.Element {
   return (
     <div className="space-y-6" data-testid="connector-health-page">
       <PageHeader
-        title="Connector Health"
-        description="Honest status of the integrations your org might connect to Otzar. Missing connections don't break the core product — Otzar just runs without them or falls back to honest mock mode."
+        title="Tool connections"
+        description="Honest status of the tools your org might connect to Otzar. A tool that isn't connected doesn't break the core product — Otzar just runs without it or falls back to honest mock mode."
       />
 
       {/* Caller scope */}

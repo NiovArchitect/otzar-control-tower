@@ -52,10 +52,9 @@ function AccessDeniedScreen({ onLogout }: { onLogout: () => void }) {
     >
       <h1 className="text-2xl font-semibold">Access Denied</h1>
       <p className="max-w-md text-muted-foreground">
-        Your account is authenticated, but you do not have the
-        <code className="mx-1 rounded bg-muted px-1.5 py-0.5">can_admin_org</code>
-        capability required to use the Control Tower. Ask your org administrator
-        to grant the org-admin role on your TAR.
+        You're signed in, but your account doesn't have admin access to the
+        Control Tower yet. Ask your organization's owner to give you admin
+        access.
       </p>
       <button
         type="button"

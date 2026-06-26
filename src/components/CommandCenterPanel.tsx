@@ -55,11 +55,11 @@ export function CommandCenterPanel({
     if (readiness.schema.pending_push) {
       blockers.push({
         label:
-          "Production schema update awaiting Founder approval (after credential rotation)",
+          "Platform update awaiting Founder approval (after credential rotation)",
         to: "/onboarding",
       });
       actions.push({
-        label: "Review the schema approval step",
+        label: "Review the platform update approval step",
         to: "/onboarding",
       });
     }

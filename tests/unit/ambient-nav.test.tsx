@@ -50,7 +50,7 @@ describe("AmbientNav — five calm entries, not a SaaS sidebar", () => {
     renderNav();
     // The old SaaS sidebar labels are NOT on the primary surface.
     expect(screen.queryByText("Blind Spots")).not.toBeInTheDocument();
-    expect(screen.queryByText("Connector Health")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tool connections")).not.toBeInTheDocument();
     expect(screen.queryByText("Operational Health")).not.toBeInTheDocument();
     // The "More" sheet is collapsed until asked.
     expect(screen.queryByTestId("ambient-nav-more-sheet")).not.toBeInTheDocument();

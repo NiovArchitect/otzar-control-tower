@@ -70,7 +70,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
     expect(labels).toEqual([
       "My Organization",
       "My Digital Work Wallet",
-      "Connector Health",
+      "Tool connections",
       "Approvals",
       "Authority",
       "Preferences",
@@ -81,7 +81,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "Getting started",
       "Observe",
       "Meeting captures",
-      "Production readiness",
+      "Launch readiness",
       "Voice captures",
     ]);
   });
@@ -148,13 +148,13 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
   it("hides admin-only entries from normal employees and shows them to org admins", async () => {
     renderNav();
     await openMore();
-    expect(screen.queryByText("Production readiness")).toBeNull();
+    expect(screen.queryByText("Launch readiness")).toBeNull();
 
     cleanup();
     setAuth(true);
     renderNav();
     await openMore();
-    expect(screen.getByText("Production readiness")).toBeInTheDocument();
+    expect(screen.getByText("Launch readiness")).toBeInTheDocument();
   });
 
   it("My Work is visible to every user; Team Work is visible only to managers/admins", async () => {
