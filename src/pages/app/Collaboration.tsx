@@ -29,6 +29,7 @@ import { Sprout } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { api } from "@/lib/api";
+import { resolveTargetGoverned } from "@/lib/work-os/target-resolution";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
   CollaborationRequestSafeView,
@@ -39,25 +40,21 @@ import type {
   TwinCollaborationTargetType,
 } from "@/lib/types/foundation";
 
-const TARGET_TYPES: ReadonlyArray<TwinCollaborationTargetType> = [
-  "EMPLOYEE",
-  "EMPLOYEE_TWIN",
-  "TEAM",
-  "PROJECT",
-  "HIVE",
-  "WORKFLOW",
-];
-const REQUEST_TYPES: ReadonlyArray<TwinCollaborationRequestType> = [
-  "STATUS_REQUEST",
-  "REVIEW_REQUEST",
-  "BLOCKER_RESOLUTION",
-  "FOLLOW_UP",
-  "HANDOFF",
-  "CONTEXT_REQUEST",
-  "APPROVAL_REQUEST",
-  "PROJECT_COORDINATION",
-  "CROSS_TEAM_COORDINATION",
-  "WORKFLOW_COORDINATION",
+// [OTZAR-LIVE-6] Optional "kind of help" chips — human hints, never required.
+// Each maps to an EXISTING TwinCollaborationRequestType (schema-honest: no
+// invented enum value). Foundation has no distinct DECISION request_type, so a
+// "Decision" routes as the nearest honest type (APPROVAL_REQUEST).
+const HELP_CHIPS: ReadonlyArray<{
+  key: string;
+  label: string;
+  requestType: TwinCollaborationRequestType;
+}> = [
+  { key: "STATUS", label: "Status", requestType: "STATUS_REQUEST" },
+  { key: "REVIEW", label: "Review", requestType: "REVIEW_REQUEST" },
+  { key: "APPROVAL", label: "Approval", requestType: "APPROVAL_REQUEST" },
+  { key: "DECISION", label: "Decision", requestType: "APPROVAL_REQUEST" },
+  { key: "BLOCKER", label: "Blocker", requestType: "BLOCKER_RESOLUTION" },
+  { key: "QUESTION", label: "Question", requestType: "CONTEXT_REQUEST" },
 ];
 
 function labelTarget(t: TwinCollaborationTargetType): string {
@@ -158,8 +155,12 @@ const TERMINAL_STATES: ReadonlySet<TwinCollaborationState> = new Set([
 export function Collaboration() {
   const queryClient = useQueryClient();
   // Phase 1285 slice 2 — "Request help" from a person cockpit prefills the
-  // form with that teammate (removes the manual target-id friction).
-  const [prefillEntityId, setPrefillEntityId] = useState<string | null>(null);
+  // form with that teammate (removes the manual target-id friction). We carry
+  // the resolved id + display name so the form shows the human name and never
+  // re-resolves or exposes the id.
+  const [prefill, setPrefill] = useState<{ id: string; name: string } | null>(
+    null,
+  );
   const inbound = useQuery({
     queryKey: ["otzar", "collaboration", "inbound"],
     queryFn: () => api.otzar.collaboration.inbound(),
@@ -189,15 +190,15 @@ export function Collaboration() {
           so the operator can see WHO they can collaborate with
           before opening the request form. */}
       <PeopleDirectory
-        onRequestHelp={(id) => {
-          setPrefillEntityId(id);
+        onRequestHelp={(id, name) => {
+          setPrefill({ id, name });
           document.getElementById("collab-summary")?.scrollIntoView({ behavior: "smooth" });
         }}
       />
 
       <CreateCollaborationForm
         onCreated={invalidateAll}
-        {...(prefillEntityId !== null ? { prefillEntityId } : {})}
+        {...(prefill !== null ? { prefill } : {})}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -238,27 +239,33 @@ export function Collaboration() {
 
 function CreateCollaborationForm({
   onCreated,
-  prefillEntityId,
+  prefill,
 }: {
   onCreated: () => void;
-  prefillEntityId?: string;
+  prefill?: { id: string; name: string };
 }) {
-  const [targetType, setTargetType] =
-    useState<TwinCollaborationTargetType>("EMPLOYEE");
-  const [requestType, setRequestType] =
-    useState<TwinCollaborationRequestType>("STATUS_REQUEST");
   const [safeSummary, setSafeSummary] = useState("");
-  const [targetId, setTargetId] = useState("");
+  const [who, setWho] = useState("");
+  const [helpKey, setHelpKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [clarification, setClarification] = useState<{
+    question: string;
+    candidates: Array<{ entityId: string; displayName: string }>;
+  } | null>(null);
+  // When "Request help" prefills a teammate from a person card we already have
+  // their resolved entity_id + name — lock it so we never re-resolve or expose
+  // the id. Editing the "Who" field breaks the lock and re-resolves by name.
+  const [locked, setLocked] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
-  // Phase 1285 slice 2 — when "Request help" prefills a teammate, fill the
-  // target id + set EMPLOYEE type so the user never types an entity id.
   useEffect(() => {
-    if (prefillEntityId !== undefined && prefillEntityId.length > 0) {
-      setTargetType("EMPLOYEE");
-      setTargetId(prefillEntityId);
+    if (prefill !== undefined && prefill.id.length > 0) {
+      setWho(prefill.name);
+      setLocked({ id: prefill.id, name: prefill.name });
     }
-  }, [prefillEntityId]);
+  }, [prefill]);
 
   const create = useMutation({
     mutationFn: (body: CreateCollaborationRequestBody) =>
@@ -266,7 +273,10 @@ function CreateCollaborationForm({
     onSuccess: (result) => {
       if (result.ok) {
         setSafeSummary("");
-        setTargetId("");
+        setWho("");
+        setHelpKey(null);
+        setLocked(null);
+        setClarification(null);
         setError(null);
         onCreated();
       } else {
@@ -275,35 +285,91 @@ function CreateCollaborationForm({
     },
   });
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (safeSummary.trim().length === 0) {
-      setError("A short summary is required.");
-      return;
-    }
+  function requestTypeFor(key: string | null): TwinCollaborationRequestType {
+    return HELP_CHIPS.find((c) => c.key === key)?.requestType ?? "STATUS_REQUEST";
+  }
+
+  // Send through the governed rail. target_type stays EMPLOYEE; when no entity
+  // is resolved we send NO id and let org policy route — that's Otzar's job,
+  // never a human typing an entity/project/team id, never a fabricated target.
+  function send(entityId: string | undefined): void {
     const body: CreateCollaborationRequestBody = {
-      target_type: targetType,
-      request_type: requestType,
+      target_type: "EMPLOYEE",
+      request_type: requestTypeFor(helpKey),
       safe_summary: safeSummary.trim(),
     };
-    const id = targetId.trim();
-    if (id.length > 0) {
-      if (targetType === "EMPLOYEE") body.target_entity_id = id;
-      else if (targetType === "EMPLOYEE_TWIN") body.target_twin_entity_id = id;
-      else if (targetType === "TEAM") body.target_team_id = id;
-      else if (targetType === "PROJECT") body.target_project_id = id;
-    }
+    if (entityId !== undefined) body.target_entity_id = entityId;
     create.mutate(body);
   }
+
+  async function submit(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    setError(null);
+    setClarification(null);
+    const summary = safeSummary.trim();
+    if (summary.length === 0) {
+      setError("Tell Otzar what you need help with.");
+      return;
+    }
+    const name = who.trim();
+    // No teammate named — let Otzar find the right person by policy.
+    if (name.length === 0) {
+      send(undefined);
+      return;
+    }
+    // Prefilled from a person card — already resolved; skip the lookup.
+    if (locked !== null && locked.name === name) {
+      send(locked.id);
+      return;
+    }
+    // Resolve the typed name through the governed (employee-safe) resolver.
+    setResolving(true);
+    const r = await resolveTargetGoverned(name);
+    setResolving(false);
+    if (
+      (r.kind === "RESOLVED_HUMAN" ||
+        r.kind === "RESOLVED_AI_AGENT" ||
+        r.kind === "RESOLVED_TWIN") &&
+      r.entityId !== undefined
+    ) {
+      send(r.entityId);
+      return;
+    }
+    if (
+      r.kind === "AMBIGUOUS" &&
+      r.candidates !== undefined &&
+      r.candidates.length > 0
+    ) {
+      setClarification({
+        question: `More than one person matches "${name}". Who do you mean?`,
+        candidates: r.candidates,
+      });
+      return;
+    }
+    // NOT_FOUND / RUNTIME_MISSING — could be a team/project phrase we can't
+    // resolve to a person yet. Never expose an id; ask ONE focused question and
+    // offer to let Otzar route it to the right owner.
+    setClarification({
+      question: `I couldn't find "${name}" as a person yet. Type a coworker's name, or let Otzar route it to the right owner.`,
+      candidates: [],
+    });
+  }
+
+  const pending = create.isPending || resolving;
 
   return (
     <Card data-testid="create-collaboration-form">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Request help</CardTitle>
+        <CardTitle className="text-lg">Ask for help</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={submit} className="space-y-4">
-          <Field label="What do you need?" id="collab-summary">
+        <form
+          onSubmit={(e) => {
+            void submit(e);
+          }}
+          className="space-y-4"
+        >
+          <Field label="What do you need help with?" id="collab-summary">
             <textarea
               id="collab-summary"
               data-testid="collab-summary"
@@ -312,75 +378,110 @@ function CreateCollaborationForm({
               maxLength={500}
               rows={2}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              placeholder="Can you confirm the launch window?"
+              placeholder="e.g. I need the launch window confirmed."
             />
           </Field>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field label="Ask" id="collab-target-type">
-              <select
-                id="collab-target-type"
-                data-testid="collab-target-type"
-                value={targetType}
-                onChange={(e) =>
-                  setTargetType(
-                    e.target.value as TwinCollaborationTargetType,
-                  )
-                }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                {TARGET_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {labelTarget(t)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="What kind of help" id="collab-request-type">
-              <select
-                id="collab-request-type"
-                data-testid="collab-request-type"
-                value={requestType}
-                onChange={(e) =>
-                  setRequestType(
-                    e.target.value as TwinCollaborationRequestType,
-                  )
-                }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                {REQUEST_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {labelRequest(t)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Target id (optional)" id="collab-target-id">
-              <input
-                id="collab-target-id"
-                data-testid="collab-target-id"
-                value={targetId}
-                onChange={(e) => setTargetId(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                placeholder="Entity / project / team id"
-              />
-            </Field>
+
+          {/* Optional "kind of help" chips — hints, never required. */}
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              Kind of help (optional)
+            </span>
+            <div
+              className="flex flex-wrap gap-2"
+              data-testid="collab-help-chips"
+            >
+              {HELP_CHIPS.map((c) => {
+                const active = helpKey === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    data-testid={`collab-chip-${c.key.toLowerCase()}`}
+                    aria-pressed={active}
+                    onClick={() => setHelpKey(active ? null : c.key)}
+                    className={`rounded-full border px-3 py-1 text-xs transition ${
+                      active
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          <Field label="Who should help? (optional)" id="collab-who">
+            <input
+              id="collab-who"
+              data-testid="collab-who"
+              value={who}
+              onChange={(e) => {
+                const next = e.target.value;
+                setWho(next);
+                // Editing breaks any prefilled lock — re-resolve by name.
+                if (locked !== null && next.trim() !== locked.name) {
+                  setLocked(null);
+                }
+              }}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              placeholder="Name a coworker, or leave blank for Otzar to route it"
+            />
+          </Field>
+
+          {clarification !== null && (
+            <div
+              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2"
+              data-testid="collab-clarification"
+            >
+              <p className="text-sm text-amber-900">{clarification.question}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {clarification.candidates.map((c) => (
+                  <Button
+                    key={c.entityId}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="collab-clarify-candidate"
+                    onClick={() => {
+                      setClarification(null);
+                      send(c.entityId);
+                    }}
+                  >
+                    {c.displayName}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="collab-clarify-route"
+                  onClick={() => {
+                    setClarification(null);
+                    send(undefined);
+                  }}
+                >
+                  Let Otzar route it
+                </Button>
+              </div>
+            </div>
+          )}
+
           {error && (
             <p className="text-sm text-destructive" data-testid="collab-error">
               {error}
             </p>
           )}
-          <Button
-            type="submit"
-            disabled={create.isPending}
-            data-testid="collab-submit"
-          >
-            {create.isPending ? "Routing…" : "Route this request"}
+          <Button type="submit" disabled={pending} data-testid="collab-submit">
+            {pending ? "Asking Otzar…" : "Ask Otzar"}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Otzar will auto-route same-project / same-team requests where
-            org policy allows. Cross-team / cross-project / sensitive
-            requests will be marked "Needs approval".
+            Otzar will find the right person when it can. If it needs one
+            detail, it will ask. Same-team work usually moves without ceremony;
+            cross-team or sensitive work asks for approval at the right
+            boundary.
           </p>
         </form>
       </CardContent>
