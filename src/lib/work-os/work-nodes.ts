@@ -11,6 +11,7 @@
 //          tests/unit/work-nodes.test.ts, src/lib/stores/presence.ts (intensity).
 
 import type { PresenceIntensity } from "@/lib/stores/presence";
+import { formatPersonName } from "@/lib/identity/person-name";
 
 export type WorkNodeKind =
   | "person"
@@ -77,7 +78,7 @@ export function buildWorkNodes(i: WorkNodeInputs): WorkNode[] {
     nodes.push({
       id: `person:${key}`,
       kind: "person",
-      label: p.trim(),
+      label: formatPersonName(p) || p.trim(),
       detail: i.awaitingRecipient ? "Naming this recipient" : "In the current request",
       intensity: i.awaitingRecipient ? "attention" : "working",
     });

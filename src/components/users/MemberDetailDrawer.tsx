@@ -45,6 +45,7 @@ import { useFormContext } from "react-hook-form";
 import { AuditAwareForm } from "@/components/audit/AuditAwareForm";
 import { DataTable } from "@/components/data/DataTable";
 import { api } from "@/lib/api";
+import { formatPersonName } from "@/lib/identity/person-name";
 import { getEntityTypeLabel } from "@/lib/labels/entity-types";
 import { getCapsuleTypeLabel } from "@/lib/labels/capsule-types";
 import { getAuditEventLabel } from "@/lib/audit/event-types";
@@ -199,7 +200,7 @@ export function MemberDetailDrawer({
     );
   }
 
-  const profileFullName = member.display_name;
+  const profileFullName = formatPersonName(member.display_name) || member.display_name;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -234,7 +235,7 @@ export function MemberDetailDrawer({
             {/* ── Profile tab ──────────────────────────────────────── */}
             <TabsContent value="profile" className="space-y-4 pt-4">
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <ProfileField label="Display name" value={member.display_name} />
+                <ProfileField label="Display name" value={profileFullName} />
                 <ProfileField label="Email" value={member.email ?? "—"} />
                 <ProfileField label="Status" value={statusBadge(member.status)} />
                 <ProfileField

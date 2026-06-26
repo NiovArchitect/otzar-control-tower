@@ -36,6 +36,7 @@ import type {
 } from "@/lib/types/foundation";
 import { classifyAskTwin, COLLABORATION_ROUTE } from "@/lib/work-os/ask-twin";
 import { entityLabel } from "@/lib/identity/canonical-entity";
+import { formatPersonName } from "@/lib/identity/person-name";
 
 export function MyTwin() {
   const query = useQuery({
@@ -127,7 +128,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       <Card data-testid="my-twin-card">
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-lg">{t.display_name}</CardTitle>
+            <CardTitle className="text-lg">{formatPersonName(t.display_name)}</CardTitle>
             <Badge>{labelConversationStatus(t.status)}</Badge>
           </div>
           {t.role_title && (
@@ -142,7 +143,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
               value={t.swarm_enabled ? "Enabled" : "Not enabled"}
             />
             {t.approver && (
-              <Field label="Approver" value={t.approver.display_name} />
+              <Field label="Approver" value={formatPersonName(t.approver.display_name)} />
             )}
             <Field label="Added" value={formatRelativeTime(t.created_at)} />
             <Field

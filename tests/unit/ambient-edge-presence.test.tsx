@@ -191,9 +191,7 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
       expect(screen.getByTestId("ambient-card-stack")).toBeInTheDocument();
     });
     const card = screen.getByTestId("ambient-card");
-    expect(card.textContent).toContain(
-      "2 items are waiting for your decision.",
-    );
+    expect(card.textContent).toContain("2 approvals are waiting.");
     // [OTZAR-LIVE-6] A decision is ATTENTION intensity (visible priority), and
     // the card is the frosted-glass material (not a flat SaaS card).
     expect(card.getAttribute("data-intensity")).toBe("attention");
@@ -302,7 +300,7 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
     );
     await waitFor(() =>
       expect(screen.getByTestId("ambient-card").textContent).toContain(
-        "2 new notes for you",
+        "2 replies to review",
       ),
     );
     // Never a fabricated/demo name in the fallback.

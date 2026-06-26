@@ -3,8 +3,8 @@
 //          cards above the Otzar orb that appear only when something
 //          genuinely matters, in plain language:
 //
-//            "2 items are waiting for your decision."
-//            "3 new notes for you."
+//            "2 approvals are waiting."
+//            "3 replies to review."
 //            "Voice is paused while you're in a meeting."
 //            "Voice needs microphone access — you can type instead."
 //
@@ -23,6 +23,7 @@ import { BellRing, ListChecks, MicOff, MoonStar, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { usePresenceStore } from "@/lib/stores/presence";
 import { isActionablePending } from "@/lib/work-os/action-classify";
+import { formatPersonName } from "@/lib/identity/person-name";
 
 const APPROVALS_POLL_MS = 60_000;
 
@@ -124,7 +125,9 @@ export function AmbientNotificationStack(): JSX.Element | null {
           const name = n.sender?.display_name?.trim() ?? "";
           return name.length > 0 && n.sender?.source_kind !== "SYSTEM";
         });
-        setReplySender(named?.sender?.display_name?.trim() ?? null);
+        setReplySender(
+          formatPersonName(named?.sender?.display_name) || null,
+        );
       } catch {
         // Silent: never invent a sender from an error.
       }
@@ -158,8 +161,8 @@ export function AmbientNotificationStack(): JSX.Element | null {
       icon: <ListChecks className="h-3.5 w-3.5 text-amber-500" aria-hidden />,
       text:
         approvalsCount === 1
-          ? "1 item is waiting for your decision."
-          : `${approvalsCount} items are waiting for your decision.`,
+          ? "1 approval is waiting."
+          : `${approvalsCount} approvals are waiting.`,
       to: "/app/action-center",
       linkLabel: "Review",
     });
@@ -180,15 +183,16 @@ export function AmbientNotificationStack(): JSX.Element | null {
       intensity: "working",
       icon: <BellRing className="h-3.5 w-3.5 text-teal-500" aria-hidden />,
       // Name the reply when the rail gives a real sender ("David replied");
-      // otherwise the truthful count fallback.
+      // otherwise the truthful category count — always "replies", never the
+      // vaguer "notes"/"items".
       text:
         replySender !== null
           ? unreadCount === 1
             ? `${replySender} replied.`
-            : `${unreadCount} replies tracked.`
+            : `${unreadCount} replies to review.`
           : unreadCount === 1
-            ? "1 new note for you."
-            : `${unreadCount} new notes for you.`,
+            ? "1 reply to review."
+            : `${unreadCount} replies to review.`,
       to: "/app/comms",
       linkLabel: "Open",
     });

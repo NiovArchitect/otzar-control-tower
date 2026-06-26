@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
 import { api } from "@/lib/api";
+import { formatPersonName } from "@/lib/identity/person-name";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 import { PersonCockpit } from "@/components/otzar/PersonCockpit";
 
@@ -191,7 +192,7 @@ export function PeopleDirectory({
                     {initials(p.display_name)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{p.display_name}</p>
+                    <p className="truncate text-sm font-medium">{formatPersonName(p.display_name)}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {humanizeTitle(p.title)}
                     </p>
@@ -216,7 +217,7 @@ export function PeopleDirectory({
                   <div className="px-3 pb-3">
                     <PersonCockpit
                       entityId={p.entity_id}
-                      displayName={p.display_name}
+                      displayName={formatPersonName(p.display_name)}
                       roleTitle={humanizeTitle(p.title)}
                       sharedProjects={p.shared_project_count}
                       recentCollabs={p.recent_collab_count}

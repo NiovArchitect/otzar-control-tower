@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
+import { formatPersonName } from "@/lib/identity/person-name";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import { ThreadSignalChip } from "@/components/otzar/ThreadSignalChip";
 import { emitWorkStateChanged, useWorkStateChanged } from "@/lib/events/work-state";
@@ -99,7 +100,7 @@ export function PersonCockpit({
     setSending(false);
     if (r.ok && r.data.status === "DELIVERED") {
       setCompose("");
-      setSendState({ kind: "sent", note: `Delivered to ${r.data.recipient_display_name ?? displayName}.` });
+      setSendState({ kind: "sent", note: `Delivered to ${formatPersonName(r.data.recipient_display_name) || displayName}.` });
       void loadAll(); // existing path (kept)
       // Additive (Phase 1285-K): a new message propagates to other thread views.
       emitWorkStateChanged({ type: "MESSAGE_CREATED", entity_id: entityId });

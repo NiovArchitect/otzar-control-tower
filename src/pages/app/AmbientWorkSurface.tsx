@@ -21,6 +21,7 @@ import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-cont
 import { GlassPanel } from "@/components/ambient/GlassPanel";
 import { buildWorkNodes } from "@/lib/work-os/work-nodes";
 import { intensityDot } from "@/lib/ambient/glass";
+import { nameFromEmail } from "@/lib/identity/person-name";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -57,7 +58,10 @@ export function AmbientWorkSurface(): JSX.Element {
     };
   }, []);
 
-  const name = entity?.email ? entity.email.split("@")[0] ?? null : null;
+  // The auth entity carries only an email today — humanize its local-part into
+  // a friendly first/full name ("samiksha.sharma@…" → "Samiksha Sharma") rather
+  // than greeting "samiksha.sharma". Never invents a name; null when unusable.
+  const name = nameFromEmail(entity?.email ?? null);
   const ctxActive = surfaceContext !== null && surfaceContext.active;
   const ctxLabel = ctxActive
     ? surfaceContext.title ?? surfaceContext.summary ?? "Current context"
@@ -99,57 +103,60 @@ export function AmbientWorkSurface(): JSX.Element {
         </p>
       </div>
 
-      {/* WHAT NEEDS ME — only when the human must act. */}
-      {approvalsCount > 0 ? (
+      {/* NEEDS YOU — only when the human must act: approvals to decide and
+          replies that arrived for them to read. Category-specific copy, never
+          "items"/"things"/vague counts. */}
+      {(approvalsCount > 0 || unreadCount > 0) ? (
         <GlassPanel
           intensity="attention"
           label="Needs you"
           testId="needs-me-panel"
         >
-          <Link
-            to="/app/action-center"
-            className="flex items-center justify-between gap-3"
-          >
-            <span className="text-sm font-medium text-slate-900">
-              {approvalsCount === 1
-                ? "1 approval is waiting on you"
-                : `${approvalsCount} decisions are waiting on you`}
-            </span>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-800">
-              Review <ArrowRight className="h-3 w-3" aria-hidden />
-            </span>
-          </Link>
-        </GlassPanel>
-      ) : null}
-
-      {/* WHAT OTZAR IS HANDLING — quiet tracked work + what changed. */}
-      {(unreadCount > 0 || headline !== null) ? (
-        <GlassPanel
-          intensity={unreadCount > 0 ? "working" : "ambient"}
-          label="Otzar is handling"
-          testId="handling-panel"
-        >
           <div className="space-y-1.5 text-sm">
+            {approvalsCount > 0 ? (
+              <Link
+                to="/app/action-center"
+                className="flex items-center justify-between gap-3"
+                data-testid="needs-approvals"
+              >
+                <span className="font-medium text-slate-900">
+                  {approvalsCount === 1
+                    ? "1 approval is waiting"
+                    : `${approvalsCount} approvals are waiting`}
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-800">
+                  Review <ArrowRight className="h-3 w-3" aria-hidden />
+                </span>
+              </Link>
+            ) : null}
             {unreadCount > 0 ? (
               <Link
                 to="/app/comms"
                 className="flex items-center justify-between gap-3 text-slate-800 hover:text-slate-900"
-                data-testid="handling-replies"
+                data-testid="needs-replies"
               >
                 <span>
                   {unreadCount === 1
-                    ? "Tracking 1 reply from your team"
-                    : `Tracking ${unreadCount} replies from your team`}
+                    ? "1 reply to review"
+                    : `${unreadCount} replies to review`}
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
               </Link>
             ) : null}
-            {headline !== null ? (
-              <p className="text-slate-600" data-testid="handling-headline">
-                {headline}
-              </p>
-            ) : null}
           </div>
+        </GlassPanel>
+      ) : null}
+
+      {/* WHAT CHANGED — Otzar's one calm "what changed" headline. NOT labeled
+          "Otzar is handling": arrived replies are the human's to read (above),
+          and the genuine Otzar-is-handling state (drafts / routing / tracking)
+          lives in the orb and is not bridged to this surface yet — so we never
+          overclaim it here. (Bridge deferred per the handling-panel decision.) */}
+      {headline !== null ? (
+        <GlassPanel intensity="ambient" label="What changed" testId="changed-panel">
+          <p className="text-sm text-slate-600" data-testid="changed-headline">
+            {headline}
+          </p>
         </GlassPanel>
       ) : null}
 

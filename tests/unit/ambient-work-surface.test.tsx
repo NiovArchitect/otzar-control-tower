@@ -39,25 +39,42 @@ describe("AmbientWorkSurface — real-state ambient summaries", () => {
     renderSurface();
     expect(screen.getByTestId("ambient-work-surface")).toBeInTheDocument();
     expect(screen.getByTestId("ambient-caught-up")).toBeInTheDocument();
-    // No 'Needs you' / 'handling-replies' panels invented from nothing.
+    // No 'Needs you' / replies panels invented from nothing.
     expect(screen.queryByTestId("needs-me-panel")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("handling-replies")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("needs-replies")).not.toBeInTheDocument();
   });
 
-  it("surfaces 'Needs you' (attention) ONLY when there are real approvals", () => {
+  it("surfaces 'Needs you' with category-specific approval copy (not vague 'decisions')", () => {
     usePresenceStore.getState().setSignals({ approvalsCount: 2 });
     renderSurface();
     const panel = screen.getByTestId("needs-me-panel");
-    expect(panel).toHaveTextContent(/2 decisions are waiting on you/i);
+    expect(panel).toHaveTextContent(/2 approvals are waiting/i);
+    // Noun-drift gone: never "decisions"/"items"/"things".
+    expect(panel.textContent ?? "").not.toMatch(/\bdecisions?\b/i);
+    expect(panel.textContent ?? "").not.toMatch(/\bitems?\b/i);
     expect(panel.getAttribute("data-intensity")).toBe("attention");
   });
 
-  it("surfaces what Otzar is handling (replies) from the real unread count", () => {
+  it("shows arrived replies under 'Needs you' as replies to review (human must read)", () => {
     usePresenceStore.getState().setSignals({ unreadCount: 1 });
     renderSurface();
-    expect(screen.getByTestId("handling-replies")).toHaveTextContent(
-      /tracking 1 reply/i,
+    const replies = screen.getByTestId("needs-replies");
+    expect(replies).toHaveTextContent(/1 reply to review/i);
+    // It lives under 'Needs you', not a mislabeled 'Otzar is handling' panel.
+    expect(screen.getByTestId("needs-me-panel")).toContainElement(replies);
+    // Never the overclaiming "Tracking ... replies" copy.
+    expect(replies.textContent ?? "").not.toMatch(/tracking/i);
+  });
+
+  it("never labels arrived inbox as 'Otzar is handling' (no overclaim)", () => {
+    usePresenceStore.getState().setSignals({ unreadCount: 3 });
+    const { container } = render(
+      <MemoryRouter>
+        <AmbientWorkSurface />
+      </MemoryRouter>,
     );
+    expect(container.textContent ?? "").not.toMatch(/otzar is handling/i);
+    expect(container.textContent ?? "").not.toMatch(/\bthing\b/i);
   });
 
   it("shows the active current context and lets the human clear it", async () => {

@@ -166,6 +166,7 @@ import {
   type PendingClarification,
 } from "@/lib/work-os/pending-clarification";
 import { buildWorkNodes } from "@/lib/work-os/work-nodes";
+import { formatPersonName } from "@/lib/identity/person-name";
 import { emitFlow } from "@/lib/stores/flow";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import {
@@ -1115,7 +1116,8 @@ export function AmbientOtzarBar(): JSX.Element {
 
     if (sent.ok && sent.data.status === "DELIVERED") {
       const delivered = sent.data.recipient_display_name ?? "";
-      const label = delivered.trim().length > 0 ? delivered : recipient;
+      const rawLabel = delivered.trim().length > 0 ? delivered : recipient;
+      const label = formatPersonName(rawLabel) || rawLabel;
       // Real work moved: Otzar → teammate. A brief directional flow trace.
       emitFlow("otzar_to_person", `Routed to ${label}`, "working");
       report(

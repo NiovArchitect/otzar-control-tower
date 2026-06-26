@@ -32,6 +32,7 @@ import {
   type BulkAction,
 } from "@/components/users/BulkActionsBar";
 import { api } from "@/lib/api";
+import { formatPersonName } from "@/lib/identity/person-name";
 import { getEntityTypeLabel } from "@/lib/labels/entity-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type { Entity, EntityStatus } from "@/lib/types/foundation";
@@ -120,7 +121,7 @@ export function UsersPage() {
       {
         id: "display_name",
         header: "Name",
-        accessorKey: "display_name",
+        accessorFn: (row) => formatPersonName(row.display_name) || row.display_name,
       },
       {
         id: "email",

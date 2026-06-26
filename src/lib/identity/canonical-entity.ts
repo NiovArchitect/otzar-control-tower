@@ -9,6 +9,8 @@
 // CONNECTS TO: WorkLedgerItem, TeamWork, InboxThread, PersonCockpit,
 //          AmbientOtzarBar; tests/unit/canonical-entity.test.ts.
 
+import { formatPersonName } from "@/lib/identity/person-name";
+
 export type CanonicalRole =
   | "owner"
   | "requester"
@@ -64,10 +66,13 @@ export function toCanonicalEntity(args: {
 
 // WHAT: the label to render for an entity — ALWAYS a human label, NEVER a UUID.
 // WHY: the one function every surface uses so identity renders identically and
-//      a raw entity_id can never leak into the UI as a primary label.
+//      a raw entity_id can never leak into the UI as a primary label. The name
+//      is run through formatPersonName so people read as people ("samiksha
+//      sharma" → "Samiksha Sharma") at every call site at once; emails, raw
+//      ids, and all-caps acronyms are left untouched by the formatter.
 export function entityLabel(
   displayName: string | null | undefined,
 ): string {
-  const name = typeof displayName === "string" ? displayName.trim() : "";
+  const name = formatPersonName(displayName);
   return name.length > 0 ? name : UNRESOLVED_LABEL;
 }

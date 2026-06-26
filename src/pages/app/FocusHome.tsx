@@ -59,15 +59,15 @@ export function FocusHome(): JSX.Element {
     top.push({
       text:
         approvalsCount === 1
-          ? "1 decision is waiting on you"
-          : `${approvalsCount} decisions are waiting on you`,
+          ? "1 approval is waiting"
+          : `${approvalsCount} approvals are waiting`,
       to: "/app/action-center",
     });
   }
   if (unreadCount > 0) {
     top.push({
       text:
-        unreadCount === 1 ? "1 new note for you" : `${unreadCount} new notes for you`,
+        unreadCount === 1 ? "1 reply to review" : `${unreadCount} replies to review`,
       to: "/app/comms",
     });
   }

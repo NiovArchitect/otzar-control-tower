@@ -18,6 +18,8 @@
 //          set at clarification sites, consumed after classifyThreadQuery),
 //          tests/unit/pending-clarification.test.ts.
 
+import { formatPersonName } from "@/lib/identity/person-name";
+
 // The kind of pending work the clarification is gathering a slot for. Mirrors
 // the governed rails the resume path will drive (plain teammate message today;
 // collaboration request reuses the same recipient gathering).
@@ -228,8 +230,12 @@ export function composeRequestBody(originalText: string): string {
 }
 
 // "David and Samiksha" / "David, Samiksha, and William" for calm outcome copy.
+// Each name is humanized (so "david and samiksha" → "David and Samiksha") via
+// the shared person-name formatter; emails/ids/acronyms are left untouched.
 export function formatRecipientList(names: string[]): string {
-  const n = names.filter((s) => s.trim().length > 0);
+  const n = names
+    .map((s) => formatPersonName(s))
+    .filter((s) => s.trim().length > 0);
   if (n.length === 0) return "";
   if (n.length === 1) return n[0]!;
   if (n.length === 2) return `${n[0]} and ${n[1]}`;
