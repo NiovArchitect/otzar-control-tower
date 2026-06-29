@@ -1,0 +1,42 @@
+# Render deploy notes — `otzar-app` (app.otzar.ai)
+
+> Written after the 2026-06-29 deploy saga so it cannot recur.
+
+## Services (do not confuse them)
+- **Frontend** — Render **Static Site `otzar-app`**, ID `srv-d8t1qpj7uimc73db2il0`,
+  repo `NiovArchitect/otzar-control-tower`, branch `main`, build `npm ci && npm run build`,
+  publish dir `./dist`, custom domain **app.otzar.ai** (CNAME → `otzar-app.onrender.com`).
+- **Backend** — Render **Web Service `otzar-api`**, ID `srv-d8t17sm7r5hc73ed5h6g`,
+  repo `NiovArchitect/niov-foundation`, branch `main`, domain **api.otzar.ai**.
+- **Redis** — Render Key Value `otzar-redis`. Do not touch when deploying app code.
+
+## What went wrong (root cause)
+`otzar-app` stayed **live on an old commit** (`c3d13b3`, bundle `index-VAIPRndE.js`) and
+repeated "Deploy latest commit" kept rebuilding the *same* old commit — its **GitHub
+connection was not surfacing new `main` commits**. It was NOT a build cache, NOT Cloudflare,
+NOT a duplicate service, NOT the backend. Pushing a fresh commit (`de1e103`) forced Render to
+see a new latest commit; deploying it published the new bundle (`index-BEABBrBB.js`).
+
+## How to deploy + verify (reliable procedure)
+1. Push to `main`. Confirm `git rev-parse --short origin/main`.
+2. In Render `otzar-app`, the **latest deploy's Commit** must equal `origin/main`.
+   If it doesn't appear, the GitHub connection is stale (see Hardening).
+3. Manual Deploy → "Deploy latest commit" (or "Clear build cache & deploy").
+4. Verify from the shell (Render builds its OWN hash — do NOT wait for the local build's hash):
+   ```sh
+   curl -s "https://app.otzar.ai/?cb=$(date +%s)" | grep -oE 'index-[A-Za-z0-9_-]+\.js'   # must change
+   B=$(curl -s "https://app.otzar.ai/assets/<newhash>.js"); for s in recipient-trust "Future auto-send" "Review recipient"; do echo "$s: $(printf '%s' "$B" | grep -c -F "$s")"; done
+   ```
+   The origin `last-modified` header must advance to the new deploy time.
+
+## Hardening (prevent recurrence)
+- **Enable Auto-Deploy** on `otzar-app` (Settings → Build & Deploy → Auto-Deploy = Yes) so `main`
+  pushes deploy without a manual nudge.
+- If "latest commit" ever lags `origin/main`, **disconnect & reconnect the GitHub repo** on the
+  static site (Settings → Build & Deploy), which refreshes the connection.
+- **Remove any stale/duplicate Static Site** bound to (or competing for) `app.otzar.ai`. As of
+  2026-06-29 the evidence showed only ONE service serving the domain; if a second `otzar-app-*`
+  exists with no domain, archive it so the domain can never be re-bound to the wrong service.
+- **Refresh `RENDER_API_KEY`** (it was 401 during the saga) so deploys can be verified/triggered
+  via the API: `curl -H "Authorization: Bearer $RENDER_API_KEY" https://api.render.com/v1/services`.
+  Needs a key with read+deploy scope on these services.
