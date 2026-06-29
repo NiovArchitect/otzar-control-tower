@@ -9,7 +9,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { mkRecipientGovernance, emptyResponsibilityGraph } from "../fixtures/comms-governance";
+import { mkRecipientGovernance, mkAutonomy, emptyResponsibilityGraph } from "../fixtures/comms-governance";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { Observe } from "@/pages/app/Observe";
@@ -65,6 +65,7 @@ function capture(
           confidence: "HIGH",
           resolution_status: "RESOLVED",
           recipient_governance: mkRecipientGovernance({ entity_id: "e-david", display_name: "David Odie" }),
+          autonomy: mkAutonomy(),
         },
       ],
       extraction_mode: "DEMO_SCRIPTED",

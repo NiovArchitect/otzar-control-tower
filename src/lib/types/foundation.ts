@@ -1206,6 +1206,20 @@ export interface RecipientGovernance {
   autonomyEligibility: RecipientAutonomyEligibility;
 }
 
+// Earned-autonomy verdict. Mirrors Foundation's AutonomyDecision. No auto-send
+// is enabled — advisory only (tells the card whether/why it WOULD be auto-
+// eligible in a future trusted mode, plus the ledger bucket).
+export type AutonomyLedgerState = "sent" | "waiting" | "needs_review" | "blocked" | "draft";
+export interface AutonomyDecision {
+  futureAutoEligible: boolean;
+  reasons: string[];
+  requiresApprovalReason: string | null;
+  actionRisk: "low" | "medium" | "high";
+  contextScope: "full" | "task_summary" | "narrow_excerpt" | "approval_summary" | "none";
+  ledgerState: AutonomyLedgerState;
+  wouldAutoSendUnderMode: boolean;
+}
+
 export interface CommsSuggestedAction {
   local_id: string;
   action_type: "SEND_INTERNAL_NOTIFICATION";
@@ -1216,6 +1230,7 @@ export interface CommsSuggestedAction {
   confidence: "HIGH" | "MEDIUM" | "LOW";
   resolution_status: "RESOLVED" | "UNRESOLVED" | "AMBIGUOUS" | "RESTRICTED";
   recipient_governance: RecipientGovernance;
+  autonomy: AutonomyDecision;
 }
 
 export interface CommsResponsibilityNode {

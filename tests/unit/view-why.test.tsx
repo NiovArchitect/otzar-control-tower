@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { mkRecipientGovernance } from "../fixtures/comms-governance";
+import { mkRecipientGovernance, mkAutonomy } from "../fixtures/comms-governance";
 import {
   viewWhyFromLedger,
   viewWhyFromThreadMessage,
@@ -216,6 +216,7 @@ describe("viewWhyFromCommsFollowUp", () => {
       confidence: "HIGH",
       resolution_status: "RESOLVED",
       recipient_governance: mkRecipientGovernance({ entity_id: UUID, display_name: "David Odie" }),
+          autonomy: mkAutonomy(),
       ...over,
     };
   }

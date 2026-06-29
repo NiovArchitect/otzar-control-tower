@@ -6,7 +6,21 @@
 import type {
   RecipientGovernance,
   CommsResponsibilityGraph,
+  AutonomyDecision,
 } from "@/lib/types/foundation";
+
+export function mkAutonomy(over: Partial<AutonomyDecision> = {}): AutonomyDecision {
+  return {
+    futureAutoEligible: false,
+    reasons: [],
+    requiresApprovalReason: null,
+    actionRisk: "low",
+    contextScope: "task_summary",
+    ledgerState: "draft",
+    wouldAutoSendUnderMode: false,
+    ...over,
+  };
+}
 
 export function mkRecipientGovernance(
   over: Partial<RecipientGovernance> = {},

@@ -10,7 +10,7 @@
 // CONNECTS TO: src/pages/app/Comms.tsx.
 
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { mkRecipientGovernance, emptyResponsibilityGraph } from "../fixtures/comms-governance";
+import { mkRecipientGovernance, mkAutonomy, emptyResponsibilityGraph } from "../fixtures/comms-governance";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -68,6 +68,7 @@ function canonicalExtraction(): CommsExtractionResult {
         confidence: "HIGH",
         resolution_status: "RESOLVED",
         recipient_governance: mkRecipientGovernance({ entity_id: "id-david", display_name: "David Odie" }),
+          autonomy: mkAutonomy(),
       },
       {
         local_id: "demo-samiksha",
@@ -83,6 +84,7 @@ function canonicalExtraction(): CommsExtractionResult {
         confidence: "HIGH",
         resolution_status: "RESOLVED",
         recipient_governance: mkRecipientGovernance({ entity_id: "id-samiksha", display_name: "Samiksha Sharma" }),
+          autonomy: mkAutonomy(),
       },
       {
         local_id: "demo-annie",
@@ -98,6 +100,7 @@ function canonicalExtraction(): CommsExtractionResult {
         confidence: "HIGH",
         resolution_status: "RESOLVED",
         recipient_governance: mkRecipientGovernance({ entity_id: "id-annie", display_name: "Annie" }),
+          autonomy: mkAutonomy(),
       },
     ],
     extraction_mode: "DEMO_SCRIPTED",

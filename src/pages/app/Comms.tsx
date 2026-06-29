@@ -59,6 +59,7 @@ import type {
   CommsExtractionResult,
   CommsSuggestedAction,
   RecipientGovernance,
+  AutonomyDecision,
   RecentCommsArtifact,
   CommsArtifactType,
 } from "@/lib/types/foundation";
@@ -811,7 +812,21 @@ const SAFETY_LABEL: Record<RecipientGovernance["recipientSafety"], string> = {
   unauthorized: "Not authorized — review",
 };
 
-function RecipientTrustChip({ g }: { g: RecipientGovernance }): JSX.Element {
+const LEDGER_LABEL: Record<string, string> = {
+  sent: "Sent",
+  waiting: "Waiting",
+  needs_review: "Needs review",
+  blocked: "Blocked",
+  draft: "Drafted — awaiting approval",
+};
+
+function RecipientTrustChip({
+  g,
+  autonomy,
+}: {
+  g: RecipientGovernance;
+  autonomy: AutonomyDecision;
+}): JSX.Element {
   const safe = g.recipientSafety === "confirmed";
   return (
     <details className="mt-1 mx-3" data-testid="recipient-trust">
@@ -836,8 +851,16 @@ function RecipientTrustChip({ g }: { g: RecipientGovernance }): JSX.Element {
         <dd>{g.roleMatch}</dd>
         <dt>Policy</dt>
         <dd>{g.policyStatus.replace(/_/g, " ")}</dd>
-        <dt>Autonomy</dt>
-        <dd>{g.autonomyEligibility.replace(/_/g, " ")}</dd>
+        <dt>Status</dt>
+        <dd>{LEDGER_LABEL[autonomy.ledgerState] ?? autonomy.ledgerState}</dd>
+        <dt>Future auto-send</dt>
+        <dd data-testid="recipient-trust-autonomy">
+          {autonomy.futureAutoEligible
+            ? "Would be eligible when trusted"
+            : `Not auto-eligible${autonomy.reasons.length > 0 ? ` (${autonomy.reasons[0]})` : ""}`}
+        </dd>
+        <dt>Risk</dt>
+        <dd>{autonomy.actionRisk}</dd>
         {g.evidence.quote ? (
           <>
             <dt>Evidence</dt>
@@ -869,7 +892,7 @@ function FollowUpCard({
         }}
         {...(guard !== undefined ? { sendGuard: guard } : {})}
       />
-      <RecipientTrustChip g={suggested.recipient_governance} />
+      <RecipientTrustChip g={suggested.recipient_governance} autonomy={suggested.autonomy} />
       {/* Phase 1285-L — consistent structured View/Why: source excerpt,
           confidence, resolution, extraction mode, via the shared panel. */}
       <button
