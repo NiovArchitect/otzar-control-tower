@@ -10,6 +10,7 @@
 // CONNECTS TO: src/pages/app/Comms.tsx.
 
 import { describe, expect, it, beforeEach, vi } from "vitest";
+import { mkRecipientGovernance, emptyResponsibilityGraph } from "../fixtures/comms-governance";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -66,6 +67,7 @@ function canonicalExtraction(): CommsExtractionResult {
           "Sadeil asked David to review the UI flow by Friday.",
         confidence: "HIGH",
         resolution_status: "RESOLVED",
+        recipient_governance: mkRecipientGovernance({ entity_id: "id-david", display_name: "David Odie" }),
       },
       {
         local_id: "demo-samiksha",
@@ -80,6 +82,7 @@ function canonicalExtraction(): CommsExtractionResult {
         source_excerpt: null,
         confidence: "HIGH",
         resolution_status: "RESOLVED",
+        recipient_governance: mkRecipientGovernance({ entity_id: "id-samiksha", display_name: "Samiksha Sharma" }),
       },
       {
         local_id: "demo-annie",
@@ -94,9 +97,12 @@ function canonicalExtraction(): CommsExtractionResult {
         source_excerpt: null,
         confidence: "HIGH",
         resolution_status: "RESOLVED",
+        recipient_governance: mkRecipientGovernance({ entity_id: "id-annie", display_name: "Annie" }),
       },
     ],
     extraction_mode: "DEMO_SCRIPTED",
+    responsibility_graph: emptyResponsibilityGraph,
+    lead_card: null,
   };
 }
 
@@ -370,6 +376,8 @@ describe("Comms — end capture posts canonical text + renders extraction", () =
       risks_or_blockers: [],
       suggested_actions: [],
       extraction_mode: "LOCAL_FALLBACK",
+      responsibility_graph: emptyResponsibilityGraph,
+      lead_card: null,
     }));
     const user = userEvent.setup();
     renderPage();

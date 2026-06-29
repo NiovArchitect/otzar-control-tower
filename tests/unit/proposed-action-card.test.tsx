@@ -483,3 +483,50 @@ describe("ProposedActionCard — Cancel does NOT call the API (approval gate)", 
     expect(screen.queryByTestId("ctx-error")).toBeNull();
   });
 });
+
+// [SECTION-12-WORKGRAPH] An unsafe recipient-governance verdict must never show a
+// normal "Send" — it is replaced by Review / Clarify / Needs approval and send
+// is disabled.
+describe("ProposedActionCard — recipient-governance send guard", () => {
+  beforeEach(() => setAuth());
+
+  it("replaces Send with the guard label and blocks sending when unsafe", async () => {
+    const user = userEvent.setup();
+    let postCalls = 0;
+    server.use(
+      http.post(`${API_BASE}/actions`, () => {
+        postCalls += 1;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    render(
+      <ProposedActionCard
+        proposedAction={pa()}
+        sendGuard={{
+          blocked: true,
+          actionLabel: "Review recipient",
+          reason: "This recipient isn't connected to this work — review before sending.",
+        }}
+      />,
+    );
+    const sendBtn = screen.getByTestId("ctx-send-button");
+    expect(sendBtn).toHaveTextContent("Review recipient");
+    expect(sendBtn).toBeDisabled();
+    expect(
+      screen.getByTestId("ctx-recipient-governance-warning"),
+    ).toHaveTextContent(/isn't connected to this work/i);
+    // Even forcing a click never posts.
+    await user.click(sendBtn).catch(() => undefined);
+    expect(postCalls).toBe(0);
+  });
+
+  it("shows a normal Send when there is no guard (confirmed recipient)", () => {
+    render(<ProposedActionCard proposedAction={pa()} />);
+    const sendBtn = screen.getByTestId("ctx-send-button");
+    expect(sendBtn).toHaveTextContent("Send");
+    expect(sendBtn).not.toBeDisabled();
+    expect(
+      screen.queryByTestId("ctx-recipient-governance-warning"),
+    ).not.toBeInTheDocument();
+  });
+});

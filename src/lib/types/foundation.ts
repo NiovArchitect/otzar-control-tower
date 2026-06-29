@@ -1157,6 +1157,55 @@ export type CommsExtractionMode =
   | "LLM"
   | "LOCAL_FALLBACK";
 
+// [SECTION-12-WORKGRAPH] Deterministic recipient-governance proof path. Mirrors
+// Foundation's RecipientGovernance exactly. A card is only "Send"-ready when
+// recipientSafety === "confirmed".
+export type RecipientSafety =
+  | "confirmed"
+  | "likely"
+  | "ambiguous"
+  | "out_of_scope"
+  | "unauthorized"
+  | "cross_team_needs_approval";
+export type RecipientAutonomyEligibility =
+  | "eligible"
+  | "draft_only"
+  | "approval_required"
+  | "clarification_required"
+  | "blocked";
+export interface RecipientEvidence {
+  quote: string | null;
+  source:
+    | "transcript"
+    | "meeting"
+    | "explicit_mention"
+    | "project_ownership"
+    | "approval_policy"
+    | "correction_memory"
+    | "fuzzy_only"
+    | "none";
+  matchedToken: string | null;
+  alternativeCandidates: string[];
+}
+export interface RecipientGovernance {
+  entity_id: string | null;
+  display_name: string;
+  email: string | null;
+  role: string | null;
+  participantStatus: "participant" | "non_participant" | "unknown";
+  mentionStatus: "explicitly_mentioned" | "alias_mentioned" | "not_mentioned";
+  workConnectionType: string;
+  evidence: RecipientEvidence;
+  roleMatch: "clear" | "weak" | "mismatch" | "unknown";
+  hierarchyConnection: string;
+  projectConnection: string;
+  policyStatus: "allowed" | "review_needed" | "approval_required" | "blocked" | "unknown";
+  sensitivity: "low" | "internal" | "restricted" | "sensitive" | "unknown";
+  confidence: "high" | "medium" | "low";
+  recipientSafety: RecipientSafety;
+  autonomyEligibility: RecipientAutonomyEligibility;
+}
+
 export interface CommsSuggestedAction {
   local_id: string;
   action_type: "SEND_INTERNAL_NOTIFICATION";
@@ -1166,6 +1215,32 @@ export interface CommsSuggestedAction {
   source_excerpt: string | null;
   confidence: "HIGH" | "MEDIUM" | "LOW";
   resolution_status: "RESOLVED" | "UNRESOLVED" | "AMBIGUOUS" | "RESTRICTED";
+  recipient_governance: RecipientGovernance;
+}
+
+export interface CommsResponsibilityNode {
+  name: string;
+  role:
+    | "meeting_lead"
+    | "founder_context_authority"
+    | "owner"
+    | "support"
+    | "reviewer"
+    | "approver"
+    | "optional_advisor";
+  workItem: string | null;
+  evidence: string;
+  confidence: "high" | "medium" | "low";
+}
+export interface CommsResponsibilityGraph {
+  lead: CommsResponsibilityNode | null;
+  founderAuthority: CommsResponsibilityNode | null;
+  nodes: CommsResponsibilityNode[];
+}
+export interface CommsLeadCard {
+  lead: string;
+  body: string;
+  tracks: Array<{ name: string; role: CommsResponsibilityNode["role"]; workItem: string | null }>;
 }
 
 export interface CommsExtractionResult {
@@ -1175,6 +1250,8 @@ export interface CommsExtractionResult {
   risks_or_blockers: string[];
   suggested_actions: CommsSuggestedAction[];
   extraction_mode: CommsExtractionMode;
+  responsibility_graph: CommsResponsibilityGraph;
+  lead_card: CommsLeadCard | null;
 }
 
 export interface CommsExtractResponse {

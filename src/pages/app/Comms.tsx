@@ -58,6 +58,7 @@ import { useWorkStateChanged } from "@/lib/events/work-state";
 import type {
   CommsExtractionResult,
   CommsSuggestedAction,
+  RecipientGovernance,
   RecentCommsArtifact,
   CommsArtifactType,
 } from "@/lib/types/foundation";
@@ -752,6 +753,102 @@ function CommsRecentArtifacts(): JSX.Element {
   );
 }
 
+// [SECTION-12-WORKGRAPH] Map the recipient-governance verdict to the Send guard.
+// A card is only "Send"-ready when recipientSafety === "confirmed"; otherwise the
+// Send button is replaced by Review / Clarify / Needs approval.
+function governanceGuard(
+  g: RecipientGovernance,
+): { blocked: boolean; actionLabel: string; reason: string } | undefined {
+  switch (g.recipientSafety) {
+    case "confirmed":
+      return undefined;
+    case "ambiguous":
+      return {
+        blocked: true,
+        actionLabel: "Clarify recipient",
+        reason:
+          g.evidence.alternativeCandidates.length > 0
+            ? `More than one person matches — did you mean ${g.evidence.alternativeCandidates.join(
+                " or ",
+              )}? Clarify before sending.`
+            : "Recipient is ambiguous — clarify before sending.",
+      };
+    case "cross_team_needs_approval":
+      return {
+        blocked: true,
+        actionLabel: "Needs approval",
+        reason: "Cross-team or sensitive route — approval is required before sending.",
+      };
+    case "unauthorized":
+      return {
+        blocked: true,
+        actionLabel: "Needs approval",
+        reason: "Org policy does not permit this recipient — review or approval required.",
+      };
+    case "out_of_scope":
+      return {
+        blocked: true,
+        actionLabel: "Review recipient",
+        reason:
+          "This recipient isn't connected to this work — not named, not a participant, and no role/project link. Review before sending.",
+      };
+    case "likely":
+    default:
+      return {
+        blocked: true,
+        actionLabel: "Review recipient",
+        reason: "Recipient is likely but not confirmed — review before sending.",
+      };
+  }
+}
+
+const SAFETY_LABEL: Record<RecipientGovernance["recipientSafety"], string> = {
+  confirmed: "Recipient confirmed",
+  likely: "Recipient likely — review",
+  ambiguous: "Recipient ambiguous — clarify",
+  cross_team_needs_approval: "Cross-team — needs approval",
+  out_of_scope: "Outside work context — review",
+  unauthorized: "Not authorized — review",
+};
+
+function RecipientTrustChip({ g }: { g: RecipientGovernance }): JSX.Element {
+  const safe = g.recipientSafety === "confirmed";
+  return (
+    <details className="mt-1 mx-3" data-testid="recipient-trust">
+      <summary
+        className={`inline-flex cursor-pointer list-none items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+          safe
+            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+            : "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-400"
+        }`}
+        data-testid="recipient-trust-summary"
+        data-safety={g.recipientSafety}
+      >
+        <span aria-hidden>{safe ? "✓" : "⚠"}</span>
+        {SAFETY_LABEL[g.recipientSafety]}
+      </summary>
+      <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 rounded border border-border bg-muted/30 p-1.5 text-[10px] text-muted-foreground">
+        <dt>Participant</dt>
+        <dd>{g.participantStatus.replace(/_/g, " ")}</dd>
+        <dt>Work connection</dt>
+        <dd>{g.workConnectionType.replace(/_/g, " ")}</dd>
+        <dt>Role fit</dt>
+        <dd>{g.roleMatch}</dd>
+        <dt>Policy</dt>
+        <dd>{g.policyStatus.replace(/_/g, " ")}</dd>
+        <dt>Autonomy</dt>
+        <dd>{g.autonomyEligibility.replace(/_/g, " ")}</dd>
+        {g.evidence.quote ? (
+          <>
+            <dt>Evidence</dt>
+            <dd className="italic">“{g.evidence.quote}”</dd>
+          </>
+        ) : null}
+      </dl>
+    </details>
+  );
+}
+
 function FollowUpCard({
   suggested,
   extractionMode,
@@ -760,6 +857,7 @@ function FollowUpCard({
   extractionMode: string;
 }): JSX.Element {
   const [whyOpen, setWhyOpen] = useState(false);
+  const guard = governanceGuard(suggested.recipient_governance);
   return (
     <div data-testid="comms-follow-up-row">
       <ProposedActionCard
@@ -769,7 +867,9 @@ function FollowUpCard({
           draft_text: suggested.draft_text,
           reason: suggested.reason,
         }}
+        {...(guard !== undefined ? { sendGuard: guard } : {})}
       />
+      <RecipientTrustChip g={suggested.recipient_governance} />
       {/* Phase 1285-L — consistent structured View/Why: source excerpt,
           confidence, resolution, extraction mode, via the shared panel. */}
       <button

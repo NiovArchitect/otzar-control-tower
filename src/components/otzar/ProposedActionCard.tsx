@@ -40,6 +40,11 @@ interface Props {
   onSent?: (actionId: string) => void;
   /** Optional callback fired when the operator cancels. */
   onCancelled?: () => void;
+  /** [SECTION-12-WORKGRAPH] Recipient-governance guard. When `blocked`, the
+   *  normal "Send" is replaced by `actionLabel` ("Review recipient" / "Clarify"
+   *  / "Needs approval") and sending is disabled — an unsafe recipient can never
+   *  show a normal Send. */
+  sendGuard?: { blocked: boolean; actionLabel: string; reason: string };
 }
 
 type CardState =
@@ -184,11 +189,16 @@ export function ProposedActionCard({
   proposedAction,
   onSent,
   onCancelled,
+  sendGuard,
 }: Props): JSX.Element {
   const [state, setState] = useState<CardState>({ kind: "idle" });
   const [tone, setTone] = useState<ToneState>({ kind: "idle" });
 
   const recipientUnresolved = proposedAction.target.entity_id === null;
+  // An unsafe recipient-governance verdict blocks send just like an unresolved
+  // recipient — the operator must review/clarify/get-approval first.
+  const governanceBlocked = sendGuard?.blocked ?? false;
+  const sendBlocked = recipientUnresolved || governanceBlocked;
 
   const currentDraft =
     state.kind === "editing" ? state.editedDraft : proposedAction.draft_text;
@@ -226,7 +236,7 @@ export function ProposedActionCard({
   }
 
   async function handleSend(): Promise<void> {
-    if (proposedAction.target.entity_id === null) {
+    if (proposedAction.target.entity_id === null || governanceBlocked) {
       setState({
         kind: "failed",
         code: "RECIPIENT_NOT_IN_ROSTER",
@@ -349,6 +359,14 @@ export function ProposedActionCard({
           Recipient is not in your org roster. Send is disabled until a
           known recipient is selected.
         </p>
+      ) : governanceBlocked && sendGuard !== undefined ? (
+        <p
+          className="mt-2 rounded border border-amber-400/40 bg-amber-500/5 p-2 text-xs"
+          role="alert"
+          data-testid="ctx-recipient-governance-warning"
+        >
+          {sendGuard.reason}
+        </p>
       ) : null}
 
       {state.kind === "editing" ? (
@@ -371,13 +389,15 @@ export function ProposedActionCard({
         <button
           type="button"
           className="rounded bg-emerald-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
-          disabled={
-            state.kind === "sending" || recipientUnresolved
-          }
+          disabled={state.kind === "sending" || sendBlocked}
           onClick={handleSend}
           data-testid="ctx-send-button"
         >
-          {state.kind === "sending" ? "Sending…" : "✓ Send"}
+          {state.kind === "sending"
+            ? "Sending…"
+            : governanceBlocked && sendGuard !== undefined
+              ? sendGuard.actionLabel
+              : "✓ Send"}
         </button>
         <button
           type="button"

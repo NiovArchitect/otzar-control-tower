@@ -9,6 +9,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { mkRecipientGovernance, emptyResponsibilityGraph } from "../fixtures/comms-governance";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { Observe } from "@/pages/app/Observe";
@@ -63,9 +64,12 @@ function capture(
           source_excerpt: "David will own the UI review",
           confidence: "HIGH",
           resolution_status: "RESOLVED",
+          recipient_governance: mkRecipientGovernance({ entity_id: "e-david", display_name: "David Odie" }),
         },
       ],
       extraction_mode: "DEMO_SCRIPTED",
+      responsibility_graph: emptyResponsibilityGraph,
+      lead_card: null,
     },
     workspace_id: null,
     created_at: new Date().toISOString(),
