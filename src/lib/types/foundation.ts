@@ -1274,6 +1274,47 @@ export interface CommsExtractResponse {
   extraction: CommsExtractionResult;
 }
 
+// ── Governed transcript INGEST (POST /otzar/comms/ingest) ──────────────────
+// Mirrors Foundation's IngestTranscriptResult. Unlike extract (ephemeral), ingest
+// PERSISTS the conversation and creates per-owner Work Ledger rows under proof.
+export interface CommsIngestWorkItem {
+  ledger_entry_id: string | null;
+  ledger_type: string;
+  owner_entity_id: string | null;
+  owner_name: string;
+  title: string;
+  status: string;
+  needs_review: boolean;
+  review_reason: string | null;
+}
+
+export interface CommsIngestResult {
+  conversation: {
+    meeting_capture_id: string;
+    title: string;
+    participant_count: number;
+    summary: string | null;
+    status: string;
+  };
+  quality: {
+    total: number;
+    trusted: number;
+    quarantined: number;
+    noisy_tail_start_index: number | null;
+  };
+  decisions: string[];
+  work_items: CommsIngestWorkItem[];
+  support_edges: Array<{ name: string; relation: string; entity_id: string | null }>;
+  counts: { owned: number; needs_review: number; support_edges: number };
+  // Full governed extraction so the Comms UI keeps its trust-chip review surface.
+  extraction: CommsExtractionResult;
+}
+
+export interface CommsIngestResponse {
+  ok: true;
+  result: CommsIngestResult;
+}
+
 // Closed-vocab next-step union per EDX-3 slice 1.
 export type ConductNextStep =
   | "ANSWERED"

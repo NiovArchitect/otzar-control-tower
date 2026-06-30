@@ -111,12 +111,35 @@ function canonicalExtraction(): CommsExtractionResult {
 
 function mockExtract(
   responder?: (capturedText: string) => CommsExtractionResult,
+  workItems: ReadonlyArray<Record<string, unknown>> = [],
 ): void {
+  // The Comms page now calls the governed INGEST endpoint (persist + create
+  // per-owner work); it returns the same extraction plus the persisted
+  // conversation + work items, so the existing extraction-view assertions hold.
   server.use(
-    http.post(`${API_BASE}/otzar/comms/extract`, async ({ request }) => {
+    http.post(`${API_BASE}/otzar/comms/ingest`, async ({ request }) => {
       const body = (await request.json()) as { captured_text?: string };
       const ex = responder?.(body.captured_text ?? "") ?? canonicalExtraction();
-      return HttpResponse.json({ ok: true, extraction: ex });
+      const owned = workItems.filter((w) => (w as { needs_review?: boolean }).needs_review !== true).length;
+      const needsReview = workItems.length - owned;
+      return HttpResponse.json({
+        ok: true,
+        result: {
+          conversation: {
+            meeting_capture_id: "mc-1",
+            title: "Launch Follow-Up Meeting",
+            participant_count: 3,
+            summary: ex.summary,
+            status: "PROCESSED",
+          },
+          quality: { total: 8, trusted: 8, quarantined: 0, noisy_tail_start_index: null },
+          decisions: ex.decisions,
+          work_items: workItems,
+          support_edges: [],
+          counts: { owned, needs_review: needsReview, support_edges: 0 },
+          extraction: ex,
+        },
+      });
     }),
   );
 }
@@ -310,11 +333,20 @@ describe("Comms — end capture posts canonical text + renders extraction", () =
   it("end-capture posts assembled captured_text and renders summary/decisions/commitments/follow-ups", async () => {
     let capturedBody: { captured_text?: string } | null = null;
     server.use(
-      http.post(`${API_BASE}/otzar/comms/extract`, async ({ request }) => {
+      http.post(`${API_BASE}/otzar/comms/ingest`, async ({ request }) => {
         capturedBody = (await request.json()) as { captured_text?: string };
+        const ex = canonicalExtraction();
         return HttpResponse.json({
           ok: true,
-          extraction: canonicalExtraction(),
+          result: {
+            conversation: { meeting_capture_id: "mc-1", title: "Launch Follow-Up Meeting", participant_count: 3, summary: ex.summary, status: "PROCESSED" },
+            quality: { total: 8, trusted: 8, quarantined: 0, noisy_tail_start_index: null },
+            decisions: ex.decisions,
+            work_items: [],
+            support_edges: [],
+            counts: { owned: 0, needs_review: 0, support_edges: 0 },
+            extraction: ex,
+          },
         });
       }),
     );
@@ -455,15 +487,67 @@ describe("Comms — Send goes through the existing governed Action pipeline", ()
   });
 });
 
+describe("Comms — governed ingest surfaces persisted work", () => {
+  it("shows the saved banner + per-owner work items (owned vs needs-owner)", async () => {
+    mockExtract(undefined, [
+      {
+        ledger_entry_id: "le-1",
+        ledger_type: "COMMITMENT",
+        owner_entity_id: "id-david",
+        owner_name: "David",
+        title: "Grant Pratham write access to the WebA repo",
+        status: "PROPOSED",
+        needs_review: false,
+        review_reason: null,
+      },
+      {
+        ledger_entry_id: null,
+        ledger_type: "COMMITMENT",
+        owner_entity_id: null,
+        owner_name: "Mallory",
+        title: "Ship the billing rewrite",
+        status: "NEEDS_OWNER",
+        needs_review: true,
+        review_reason: "Not a confirmed member of this org roster — confirm before assigning.",
+      },
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByTestId("comms-start"));
+    await user.click(screen.getByTestId("comms-end"));
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-ingest-saved")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("comms-ingest-saved").textContent).toMatch(
+      /saved this conversation/i,
+    );
+    const items = screen.getAllByTestId("comms-ingest-work-item");
+    expect(items.length).toBe(2);
+    const owned = items.find((el) => el.getAttribute("data-owned") === "true");
+    const review = items.find((el) => el.getAttribute("data-owned") === "false");
+    expect(owned?.textContent).toMatch(/Owned by David/);
+    expect(review?.textContent).toMatch(/confirmed member|confirm before assigning/i);
+  });
+});
+
 describe("Comms — manual import fallback", () => {
-  it("Import notes textarea posts the typed text to /comms/extract", async () => {
+  it("Import notes textarea posts the typed text to /comms/ingest", async () => {
     let capturedBody: { captured_text?: string } | null = null;
     server.use(
-      http.post(`${API_BASE}/otzar/comms/extract`, async ({ request }) => {
+      http.post(`${API_BASE}/otzar/comms/ingest`, async ({ request }) => {
         capturedBody = (await request.json()) as { captured_text?: string };
+        const ex = canonicalExtraction();
         return HttpResponse.json({
           ok: true,
-          extraction: canonicalExtraction(),
+          result: {
+            conversation: { meeting_capture_id: "mc-1", title: "Imported", participant_count: 0, summary: ex.summary, status: "PROCESSED" },
+            quality: { total: 1, trusted: 1, quarantined: 0, noisy_tail_start_index: null },
+            decisions: ex.decisions,
+            work_items: [],
+            support_edges: [],
+            counts: { owned: 0, needs_review: 0, support_edges: 0 },
+            extraction: ex,
+          },
         });
       }),
     );
@@ -484,9 +568,9 @@ describe("Comms — manual import fallback", () => {
 });
 
 describe("Comms — error state", () => {
-  it("renders the error state when /comms/extract fails", async () => {
+  it("renders the error state when /comms/ingest fails", async () => {
     server.use(
-      http.post(`${API_BASE}/otzar/comms/extract`, () =>
+      http.post(`${API_BASE}/otzar/comms/ingest`, () =>
         HttpResponse.json(
           { ok: false, code: "SESSION_EXPIRED" },
           { status: 401 },

@@ -111,6 +111,7 @@ import type {
   ObserveOCRProvider,
   ObserveProvidersResponse,
   CommsExtractResponse,
+  CommsIngestResponse,
   NotificationListResponse,
   NotificationReadResponse,
   NotificationReplyResponse,
@@ -930,6 +931,23 @@ export class ApiClient {
       force_mode?: "DEMO_SCRIPTED" | "LLM" | "LOCAL_FALLBACK";
     }): Promise<ApiResult<CommsExtractResponse>> =>
       this.request<CommsExtractResponse>("/otzar/comms/extract", {
+        method: "POST",
+        body: input,
+      }),
+
+    /** POST /api/v1/otzar/comms/ingest -- the governed transcript -> owned-work
+     *  pass. Unlike commsExtract (ephemeral), this PERSISTS the captured
+     *  conversation as a durable source-of-truth record and creates per-owner
+     *  Work Ledger rows under proof (the noisy tail is quarantined; an unproven
+     *  owner is held for review, never auto-assigned). Returns the same governed
+     *  extraction (so the trust-chip review surface is unchanged) plus the
+     *  persisted conversation + the work items created. Requires "write". */
+    commsIngest: (input: {
+      captured_text: string;
+      title?: string;
+      force_mode?: "DEMO_SCRIPTED" | "LLM" | "LOCAL_FALLBACK";
+    }): Promise<ApiResult<CommsIngestResponse>> =>
+      this.request<CommsIngestResponse>("/otzar/comms/ingest", {
         method: "POST",
         body: input,
       }),

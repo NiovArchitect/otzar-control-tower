@@ -57,6 +57,7 @@ import { entityLabel } from "@/lib/identity/canonical-entity";
 import { useWorkStateChanged } from "@/lib/events/work-state";
 import type {
   CommsExtractionResult,
+  CommsIngestResult,
   CommsSuggestedAction,
   RecipientGovernance,
   AutonomyDecision,
@@ -154,6 +155,7 @@ export function Comms(): JSX.Element {
   const [extraction, setExtraction] = useState<CommsExtractionResult | null>(
     null,
   );
+  const [ingest, setIngest] = useState<CommsIngestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
@@ -188,6 +190,7 @@ export function Comms(): JSX.Element {
     setPhase("CAPTURING");
     setCaptured([]);
     setExtraction(null);
+    setIngest(null);
     setError(null);
     cancelledRef.current = false;
     emitNextLine(0);
@@ -205,13 +208,16 @@ export function Comms(): JSX.Element {
     // provided extraction even if the operator clicked End early.
     // When live STT lands, this becomes the captured-line stream.
     const text = buildCapturedText(DEMO_SCRIPT);
-    const result = await api.otzar.commsExtract({ captured_text: text });
+    // Governed ingest: persists the conversation + creates per-owner work under
+    // proof (the noisy tail is quarantined; unproven owners are held for review).
+    const result = await api.otzar.commsIngest({ captured_text: text, title: DEMO_TITLE });
     if (!result.ok) {
       setError(result.code);
       setPhase("FAILED");
       return;
     }
-    setExtraction(result.data.extraction);
+    setIngest(result.data.result);
+    setExtraction(result.data.result.extraction);
     setPhase("READY_FOR_REVIEW");
   }
 
@@ -220,13 +226,14 @@ export function Comms(): JSX.Element {
     setPhase("PROCESSING");
     setError(null);
     setExtraction(null);
-    const result = await api.otzar.commsExtract({ captured_text: importText });
+    const result = await api.otzar.commsIngest({ captured_text: importText });
     if (!result.ok) {
       setError(result.code);
       setPhase("FAILED");
       return;
     }
-    setExtraction(result.data.extraction);
+    setIngest(result.data.result);
+    setExtraction(result.data.result.extraction);
     setPhase("READY_FOR_REVIEW");
   }
 
@@ -234,6 +241,7 @@ export function Comms(): JSX.Element {
     setPhase("READY");
     setCaptured([]);
     setExtraction(null);
+    setIngest(null);
     setError(null);
     setShowImport(false);
     setImportText("");
@@ -350,6 +358,7 @@ export function Comms(): JSX.Element {
       {phase === "READY_FOR_REVIEW" && extraction !== null ? (
         <ExtractionView
           extraction={extraction}
+          ingest={ingest}
           onReset={reset}
         />
       ) : null}
@@ -416,16 +425,92 @@ export function Comms(): JSX.Element {
 
 function ExtractionView({
   extraction,
+  ingest,
   onReset,
 }: {
   extraction: CommsExtractionResult;
+  ingest: CommsIngestResult | null;
   onReset: () => void;
 }): JSX.Element {
+  const navigate = useNavigate();
   const ready = extraction.suggested_actions.filter(
     (s) => s.resolution_status === "RESOLVED",
   ).length;
   return (
     <div className="space-y-4" data-testid="comms-review">
+      {ingest !== null ? (
+        <Card className="border-emerald-500/30 bg-emerald-500/5" data-testid="comms-ingest-saved">
+          <CardContent className="flex flex-col gap-2 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+              <div>
+                <p className="font-medium text-foreground">
+                  Otzar saved this conversation and moved the work.
+                </p>
+                <p className="text-muted-foreground">
+                  {ingest.counts.owned} owned item{ingest.counts.owned === 1 ? "" : "s"} created
+                  {ingest.counts.needs_review > 0
+                    ? ` · ${ingest.counts.needs_review} need a confirmed owner`
+                    : ""}
+                  {ingest.quality.quarantined > 0
+                    ? ` · ${ingest.quality.quarantined} noisy line${ingest.quality.quarantined === 1 ? "" : "s"} set aside`
+                    : ""}
+                  .
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/app/my-work")}
+              data-testid="comms-ingest-view-work"
+            >
+              View in My Work
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {ingest !== null && ingest.work_items.length > 0 ? (
+        <Card data-testid="comms-ingest-work-items">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Work Otzar created</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5 text-xs">
+              {ingest.work_items.map((w, i) => (
+                <li
+                  key={i}
+                  className="flex items-start justify-between gap-2 rounded border border-border bg-card p-2"
+                  data-testid="comms-ingest-work-item"
+                  data-owned={w.owner_entity_id !== null ? "true" : "false"}
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground">{w.title}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {w.needs_review
+                        ? w.review_reason ?? "Needs a confirmed owner before assignment."
+                        : `Owned by ${w.owner_name}`}
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={
+                      w.needs_review
+                        ? "shrink-0 border-amber-500/40 text-amber-700 dark:text-amber-400"
+                        : "shrink-0 border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+                    }
+                  >
+                    {w.needs_review ? "Needs owner" : "Assigned"}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card data-testid="comms-review-header">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between gap-2 text-sm">
