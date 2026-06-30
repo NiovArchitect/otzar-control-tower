@@ -34,10 +34,9 @@ const TRANSCRIPT =
 test("live: Comms follow-up cards carry the recipient-governance trust layer", async ({ page }) => {
   await login(page);
 
-  // Client-side nav to Comms (under "More") — in-memory auth survives clicks.
-  await page.getByTestId("ambient-nav-more").first().click();
-  await page.getByTestId("ambient-nav-more-sheet").waitFor({ state: "visible", timeout: 8000 });
-  await page.getByRole("link", { name: /^Comms$/ }).first().click();
+  // Client-side nav to Comms — now a PRIMARY rail entry (one click, no "More").
+  // In-memory auth survives client-side clicks.
+  await page.getByTestId("ambient-nav").getByRole("link", { name: /^Comms$/ }).first().click();
   await page.getByTestId("comms-page").waitFor({ state: "visible", timeout: 15_000 });
   await page.screenshot({ path: `screenshots/${TAG}-1-comms.png`, fullPage: true });
 
