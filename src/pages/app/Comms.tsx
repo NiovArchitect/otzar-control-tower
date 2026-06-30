@@ -493,6 +493,12 @@ function ExtractionView({
                         ? w.review_reason ?? "Needs a confirmed owner before assignment."
                         : `Owned by ${w.owner_name}`}
                     </div>
+                    {!w.needs_review ? (
+                      <div className="mt-0.5 text-[10px] text-muted-foreground" data-testid="comms-ingest-exec">
+                        {execModeLabel(w.execution.execution_mode)}
+                        {w.execution.blocker_reason ? ` · ${w.execution.blocker_reason}` : ""}
+                      </div>
+                    ) : null}
                   </div>
                   <Badge
                     variant="outline"
@@ -904,6 +910,20 @@ const LEDGER_LABEL: Record<string, string> = {
   blocked: "Blocked",
   draft: "Drafted — awaiting approval",
 };
+
+// Phase 7 — human-language execution mode for each work item (no developer jargon).
+const EXEC_MODE_LABEL: Record<string, string> = {
+  human_must_do: "You'll do this",
+  otzar_can_draft: "Otzar can draft this",
+  otzar_can_execute_with_approval: "Otzar can do this with your approval",
+  otzar_can_execute_when_policy_allows: "Otzar can handle this",
+  connector_required: "Needs a tool connected",
+  permission_required: "Needs access",
+  blocked: "Blocked",
+};
+function execModeLabel(mode: string): string {
+  return EXEC_MODE_LABEL[mode] ?? mode.replace(/_/g, " ");
+}
 
 function RecipientTrustChip({
   g,

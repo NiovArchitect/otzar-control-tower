@@ -1286,6 +1286,26 @@ export interface CommsIngestWorkItem {
   status: string;
   needs_review: boolean;
   review_reason: string | null;
+  // Phase 4/5 — the typed execution plan + connector capability for this item.
+  execution: {
+    execution_type: string;
+    execution_mode: string;
+    required_connector: string;
+    capability_state: string | null;
+    approval_required: boolean;
+    blocker_reason: string | null;
+    next_best_action: string;
+  };
+}
+
+// Phase 6 — a governed admin org-seeding suggestion sourced from work evidence.
+export interface CommsDandelionSeed {
+  seedType: string;
+  subjectName: string | null;
+  recommendedAction: string;
+  approvalRequired: boolean;
+  policyStatus: string;
+  riskIfIgnored: string;
 }
 
 export interface CommsIngestResult {
@@ -1306,6 +1326,9 @@ export interface CommsIngestResult {
   work_items: CommsIngestWorkItem[];
   support_edges: Array<{ name: string; relation: string; entity_id: string | null }>;
   counts: { owned: number; needs_review: number; support_edges: number };
+  // Phase 6 — governed Dandelion org-seeding suggestions + work-graph event count.
+  dandelion_seeds: CommsDandelionSeed[];
+  work_graph_event_count: number;
   // Full governed extraction so the Comms UI keeps its trust-chip review surface.
   extraction: CommsExtractionResult;
 }

@@ -122,6 +122,19 @@ function mockExtract(
       const ex = responder?.(body.captured_text ?? "") ?? canonicalExtraction();
       const owned = workItems.filter((w) => (w as { needs_review?: boolean }).needs_review !== true).length;
       const needsReview = workItems.length - owned;
+      // Default a Phase-4/5 execution plan on each item (the page reads w.execution).
+      const items = workItems.map((w) => ({
+        execution: {
+          execution_type: "human_task",
+          execution_mode: "human_must_do",
+          required_connector: "NONE",
+          capability_state: null,
+          approval_required: false,
+          blocker_reason: null,
+          next_best_action: "route",
+        },
+        ...w,
+      }));
       return HttpResponse.json({
         ok: true,
         result: {
@@ -134,9 +147,11 @@ function mockExtract(
           },
           quality: { total: 8, trusted: 8, quarantined: 0, noisy_tail_start_index: null },
           decisions: ex.decisions,
-          work_items: workItems,
+          work_items: items,
           support_edges: [],
           counts: { owned, needs_review: needsReview, support_edges: 0 },
+          dandelion_seeds: [],
+          work_graph_event_count: 0,
           extraction: ex,
         },
       });
@@ -499,6 +514,15 @@ describe("Comms — governed ingest surfaces persisted work", () => {
         status: "PROPOSED",
         needs_review: false,
         review_reason: null,
+        execution: {
+          execution_type: "repo_access",
+          execution_mode: "connector_required",
+          required_connector: "GITHUB",
+          capability_state: "not_connected",
+          approval_required: false,
+          blocker_reason: "Github isn't connected yet — set it up to proceed.",
+          next_best_action: "route",
+        },
       },
       {
         ledger_entry_id: null,
@@ -527,6 +551,10 @@ describe("Comms — governed ingest surfaces persisted work", () => {
     const review = items.find((el) => el.getAttribute("data-owned") === "false");
     expect(owned?.textContent).toMatch(/Owned by David/);
     expect(review?.textContent).toMatch(/confirmed member|confirm before assigning/i);
+    // Phase 7 — the owned item shows its human-language execution mode + connector blocker.
+    const exec = screen.getByTestId("comms-ingest-exec");
+    expect(exec.textContent).toMatch(/Needs a tool connected/i);
+    expect(exec.textContent).toMatch(/isn't connected/i);
   });
 });
 
