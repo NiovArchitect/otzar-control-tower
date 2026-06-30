@@ -38,10 +38,10 @@ describe("admin / employee isolation", () => {
   });
 
   it("employee labels stay human — no developer/admin jargon", () => {
-    // Unambiguous implementation jargon only. "Dandelion" is an approved brand
-    // metaphor in employee copy (People & Collaboration) — employee-copy polish
-    // is the dedicated next slice (#29), not this admin-IA pass.
-    const banned = /\b(MCP rail|connector binding|capability object|schema|debug|TAR|RBAC|ABAC|envelope)\b/i;
+    // Employee-copy polish (#29) removed the last internal-flavored term, so
+    // "Dandelion" is now banned from employee copy too (the metaphor was
+    // replaced with human language in People & Collaboration).
+    const banned = /\b(MCP rail|connector binding|capability object|schema|debug|TAR|RBAC|ABAC|envelope|Dandelion)\b/i;
     for (const n of EMPLOYEE_NAV) {
       expect(banned.test(n.label)).toBe(false);
       expect(banned.test(n.description)).toBe(false);

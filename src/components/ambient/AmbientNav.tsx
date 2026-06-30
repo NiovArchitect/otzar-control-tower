@@ -11,7 +11,7 @@
 
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { Home, Inbox, Users, Brain, MoreHorizontal, X } from "lucide-react";
+import { Home, Inbox, Headphones, Users, Brain, MoreHorizontal, X } from "lucide-react";
 import { EMPLOYEE_NAV } from "@/lib/nav-employee";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
@@ -24,9 +24,12 @@ interface PrimaryItem {
   end?: boolean;
 }
 
+// The approved minimal employee primary: the everyday loop only. The ambient
+// orb is the main "Ask Otzar" assistant entry, so it isn't duplicated here.
 const PRIMARY: PrimaryItem[] = [
   { label: "Today", to: "/app", icon: Home, end: true },
   { label: "Needs me", to: "/app/action-center", icon: Inbox },
+  { label: "Comms", to: "/app/comms", icon: Headphones },
   { label: "People", to: "/app/collaboration", icon: Users },
   { label: "Memory", to: "/app/my-memory", icon: Brain },
 ];
@@ -36,8 +39,13 @@ export function AmbientNav(): JSX.Element {
   const capabilities = useAuthStore((s) => s.capabilities);
   const admin = isOrgAdmin(capabilities);
   const primaryTos = new Set(PRIMARY.map((p) => p.to));
+  // "More" = everything else, but NOT route-only (hidden) surfaces — those stay
+  // reachable by URL without crowding the sheet — and adminOnly gated.
   const more = EMPLOYEE_NAV.filter(
-    (i) => !primaryTos.has(i.to) && (i.adminOnly !== true || admin),
+    (i) =>
+      !primaryTos.has(i.to) &&
+      i.hidden !== true &&
+      (i.adminOnly !== true || admin),
   );
 
   const railLink = (active: boolean): string =>

@@ -5,17 +5,25 @@
 // CONNECTS TO: EmployeeNav (renderer), App.tsx /app routes,
 //              src/pages/app/*.
 //
-// Phase 1212 reorganization per [FOUNDER — WARMWIND OS REFERENCE]:
-//   - PRIMARY group surfaces the everyday Otzar Work-OS journey:
-//     My Day, Talk to Otzar, Action Center, My Twin, Collaboration.
-//   - MORE group keeps the existing deeper surfaces accessible
-//     (Approvals / Authority / Preferences / Projects / Conversations
-//      / Corrections / Observe / Workspace) but visually quieter so
-//     a new employee isn't overwhelmed.
-//   - The Phase-3-debug "Voice envelope" entry is intentionally
-//     dropped from the nav — it remains routeable for engineers via
-//     direct URL /app/voice-ready, but no longer surfaces in the
-//     employee shell.
+// EMPLOYEE IA — minimal, ambient, work-oriented (approved directive):
+//   The employee shell must feel calm and human, never like an admin
+//   console or a SaaS dashboard maze. An employee sees what needs them,
+//   what they committed to, what Otzar is handling, who they work with,
+//   and their recent work memory — and a SMALL curated "More" for
+//   secondary surfaces.
+//
+//   PRIMARY  — the everyday loop (kept deliberately short):
+//     My Day · Talk to Otzar · Action Center · My Work · Comms ·
+//     People & Collaboration · My Digital Work Wallet (memory)
+//     (+ Team Work, manager-only)
+//   MORE     — secondary-but-useful surfaces, curated (not a junk drawer).
+//   HIDDEN   — redundant/niche surfaces stay ROUTE-ONLY (reachable by URL,
+//     not shown in nav) — same hide-from-nav/preserve-route pattern as the
+//     admin stubs. No capability removed; deep links never break.
+//
+// VOCABULARY: human employee language only. Never "Dandelion",
+// "propagation", "connector rail", "MCP", "capability object",
+// "diagnostics", "schema", "TAR/RBAC/ABAC", or raw IDs in employee copy.
 
 import {
   Sparkles,
@@ -51,13 +59,17 @@ export interface EmployeeNavItem {
   /** Phase 1235 — admin/diagnostic entries are hidden from normal
    *  employees; EmployeeNav filters on isOrgAdmin. */
   adminOnly?: boolean;
+  /** Route-only surface: reachable by direct URL (App.tsx route preserved)
+   *  but NOT shown in the employee nav, so redundant/niche pages don't crowd
+   *  the everyday shell. Mirrors the admin `comingSoon` hide-but-route pattern. */
+  hidden?: boolean;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   description: string;
   group: "primary" | "more";
 }
 
 export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
-  // ── Primary (warm, OS-style everyday journey) ────────────────
+  // ── Primary — the everyday Otzar Work-OS loop (minimal) ───────
   {
     label: "My Day",
     to: "/app/my-day",
@@ -69,7 +81,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     label: "Talk to Otzar",
     to: "/app/voice",
     icon: Mic,
-    description: "Voice or text. Otzar drafts; you approve.",
+    description: "Ask Otzar anything, by voice or text. Otzar drafts; you approve.",
     group: "primary",
   },
   {
@@ -77,7 +89,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/action-center",
     icon: ListChecks,
     description:
-      "Decisions Otzar is making on your behalf — pending, approved, completed, blocked.",
+      "What Otzar is handling for you — pending, approved, completed, and blocked.",
     group: "primary",
   },
   {
@@ -85,44 +97,18 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     to: "/app/my-work",
     icon: ListTodo,
     description:
-      "Durable work tracked for you — what you owe, what's waiting, and what's blocked. Mark items complete here.",
+      "What you committed to — what you owe, what's waiting on you, and what's blocked. Mark things done here.",
     group: "primary",
   },
   {
-    // Phase 1285-N — risk surface. Visible to EVERY user (NOT adminOnly): a
-    // normal employee sees their own blind spots; a manager/admin sees
-    // team/org blind spots (the backend scopes by can_admin_org). Sits next to
-    // My Work as the "what's slipping" companion to "what I owe".
-    label: "Blind Spots",
-    to: "/app/blind-spots",
-    icon: AlertTriangle,
-    description:
-      "Risk from your real work — overdue, stale waiting-on, blockers, and items with no next action. Managers see the team's.",
-    group: "primary",
-  },
-  {
-    // Phase 1286-A — advisory execution-health surface. Deterministic health
-    // score + counts are primary; the Python narrative + risk scoring are
-    // advisory and labeled. Sits next to Blind Spots as the "how am I doing"
-    // companion to "what's slipping". Visible to every user (backend scopes
-    // personal vs team/org by can_admin_org).
-    label: "Operational Health",
-    to: "/app/operational-health",
-    icon: Activity,
-    description:
-      "A governed read of your execution health — deterministic score and counts, with advisory summary and risk scoring labeled as such.",
-    group: "primary",
-  },
-  {
-    // Manager/admin authority (can_admin_org) — the team relationship view of
-    // who is waiting on whom. Gated via adminOnly so it stays prominent for
-    // managers (Sadeil) and hidden for non-managers (matches the backend
-    // team-work gate; a non-manager would get TEAM_SCOPE_NOT_CONFIGURED).
+    // Manager/admin authority (can_admin_org) — the team view of who is
+    // waiting on whom. Gated via adminOnly so it stays prominent for managers
+    // and hidden for normal employees (matches the backend team-work gate).
     label: "Team Work",
     to: "/app/team-work",
     icon: Network,
     description:
-      "Who is waiting on whom across your team — pending work, source, status, and what's stale.",
+      "Who is waiting on whom across your team — pending work, status, and what's stale.",
     group: "primary",
     adminOnly: true,
   },
@@ -135,19 +121,45 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "primary",
   },
   {
-    label: "My Twin",
-    to: "/app/my-twin",
-    icon: Bot,
-    description: "Your aligned AI teammate.",
-    group: "primary",
-  },
-  {
     label: "People & Collaboration",
     to: "/app/collaboration",
     icon: Users,
     description:
-      "See your team. Ask coworkers, teams, and projects for help. Dandelion spreads awareness to the right people, not everyone.",
+      "See your team and the work you share. Otzar helps the right people stay connected to the right work — not everyone.",
     group: "primary",
+  },
+  {
+    label: "My Digital Work Wallet",
+    to: "/app/my-memory",
+    icon: Wallet,
+    description:
+      "Your memory and recent work, plus what Otzar may do with them. You're in control.",
+    group: "primary",
+  },
+
+  // ── More — secondary but useful, curated ─────────────────────
+  {
+    label: "My Twin",
+    to: "/app/my-twin",
+    icon: Bot,
+    description: "Your aligned AI teammate.",
+    group: "more",
+  },
+  {
+    label: "Blind Spots",
+    to: "/app/blind-spots",
+    icon: AlertTriangle,
+    description:
+      "What's slipping in your real work — overdue, stale, or blocked items, and anything with no next step. Managers see the team's.",
+    group: "more",
+  },
+  {
+    label: "Work health",
+    to: "/app/operational-health",
+    icon: Activity,
+    description:
+      "A simple read on how your work is going — what's on track and what needs attention. Plain language, no system jargon.",
+    group: "more",
   },
   {
     label: "Workspaces",
@@ -155,24 +167,29 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Building2,
     description:
       "Shared workspaces — people, decisions, commitments, and follow-ups for each piece of work.",
-    group: "primary",
+    group: "more",
   },
-
-  // ── More (deeper / configuration / debug-adjacent) ──────────
   {
     label: "My Organization",
     to: "/app/my-organization",
     icon: Building2,
     description:
-      "Your place in the company. Projects, teammates, what Otzar can do for you here.",
+      "Your place in the company. Projects, teammates, and what Otzar can do for you here.",
     group: "more",
   },
   {
-    label: "My Digital Work Wallet",
-    to: "/app/my-memory",
-    icon: Wallet,
+    label: "Projects",
+    to: "/app/work-projects",
+    icon: FolderKanban,
+    description: "Your work projects and members.",
+    group: "more",
+  },
+  {
+    label: "Meeting captures",
+    to: "/app/meeting-captures",
+    icon: Mic,
     description:
-      "Your memory, your permissions, and what Otzar can do with them. You're in control.",
+      "Capture a meeting, log who agreed, and attach it to a workspace.",
     group: "more",
   },
   {
@@ -205,20 +222,6 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "more",
   },
   {
-    label: "Projects",
-    to: "/app/work-projects",
-    icon: FolderKanban,
-    description: "Your work projects and members.",
-    group: "more",
-  },
-  {
-    label: "Conversations",
-    to: "/app/conversations",
-    icon: MessagesSquare,
-    description: "Your ambient console sessions.",
-    group: "more",
-  },
-  {
     label: "Corrections",
     to: "/app/corrections",
     icon: PencilLine,
@@ -226,11 +229,26 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "more",
   },
   {
+    label: "Launch readiness",
+    to: "/app/onboarding-readiness",
+    icon: ShieldCheck,
+    description:
+      "Manager checklist of what's left before this Otzar workspace is ready to go live.",
+    group: "more",
+    adminOnly: true,
+  },
+
+  // ── Hidden — route-only (reachable by URL, not shown in nav) ──
+  // Redundant or niche surfaces kept for deep-link safety. They duplicate a
+  // primary surface (Chat↔Talk to Otzar, Voice captures↔Comms/Meeting
+  // captures, Conversations↔Comms) or are one-time/edge utilities.
+  {
     label: "Chat",
     to: "/app/chat",
     icon: MessageSquare,
     description: "Talk with your AI teammate.",
     group: "more",
+    hidden: true,
   },
   {
     label: "Getting started",
@@ -238,6 +256,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Sparkles,
     description: "Meet Otzar — tell it what to call you and where to start.",
     group: "more",
+    hidden: true,
   },
   {
     label: "Observe",
@@ -245,39 +264,33 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Eye,
     description: "Submit context for Otzar to learn from.",
     group: "more",
-  },
-  {
-    label: "Meeting captures",
-    to: "/app/meeting-captures",
-    icon: Mic,
-    description:
-      "Capture a meeting, log who consented, and attach it to a workspace.",
-    group: "more",
-  },
-  {
-    label: "Launch readiness",
-    to: "/app/onboarding-readiness",
-    icon: ShieldCheck,
-    description:
-      "Admin-only checklist of what's left before this Otzar workspace is ready to go live.",
-    group: "more",
-    adminOnly: true,
+    hidden: true,
   },
   {
     label: "Voice captures",
     to: "/app/voice-captures",
     icon: Mic,
     description:
-      "Talk to Otzar — capture a meeting by voice, transcribe it, and turn it into governed follow-ups.",
+      "Capture a meeting by voice, transcribe it, and turn it into governed follow-ups.",
     group: "more",
+    hidden: true,
+  },
+  {
+    label: "Conversations",
+    to: "/app/conversations",
+    icon: MessagesSquare,
+    description: "Your recent Otzar conversations.",
+    group: "more",
+    hidden: true,
   },
 ];
 
-// Convenience selectors used by the nav renderer.
+// Convenience selectors used by the nav renderer. Hidden (route-only) items
+// are excluded — they stay reachable by URL but never crowd the nav.
 export const PRIMARY_EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> =
-  EMPLOYEE_NAV.filter((i) => i.group === "primary");
+  EMPLOYEE_NAV.filter((i) => i.group === "primary" && i.hidden !== true);
 export const MORE_EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> =
-  EMPLOYEE_NAV.filter((i) => i.group === "more");
+  EMPLOYEE_NAV.filter((i) => i.group === "more" && i.hidden !== true);
 
 // Unused; intentionally exported for telemetry / tests / future use.
 export { Bell };
