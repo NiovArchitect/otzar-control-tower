@@ -113,6 +113,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Organization",
   },
   {
+    label: "Organization Seeding",
+    to: "/organization-seeding",
+    icon: Sparkles,
+    description: "Setup and activation suggestions Otzar found from real work -- review and approve. Nothing is applied automatically.",
+    group: "Organization",
+  },
+  {
     label: "Access Control",
     to: "/access-control",
     icon: KeyRound,

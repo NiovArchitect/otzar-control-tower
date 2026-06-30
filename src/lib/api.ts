@@ -112,6 +112,8 @@ import type {
   ObserveProvidersResponse,
   CommsExtractResponse,
   CommsIngestResponse,
+  OrgSeedListResponse,
+  OrgSeedActionResponse,
   NotificationListResponse,
   NotificationReadResponse,
   NotificationReplyResponse,
@@ -951,6 +953,20 @@ export class ApiClient {
         method: "POST",
         body: input,
       }),
+
+    /** Admin Organization-Seeding queue (Dandelion). Admin-only (the API gates on
+     *  admin_org); non-admins get OPERATION_NOT_PERMITTED. Approve/reject/hold
+     *  never auto-apply or grant access. */
+    dandelionSeeds: {
+      list: (): Promise<ApiResult<OrgSeedListResponse>> =>
+        this.request<OrgSeedListResponse>("/org/dandelion/seeds"),
+      approve: (id: string): Promise<ApiResult<OrgSeedActionResponse>> =>
+        this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/approve`, { method: "POST", body: {} }),
+      reject: (id: string, reason?: string): Promise<ApiResult<OrgSeedActionResponse>> =>
+        this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/reject`, { method: "POST", body: reason !== undefined ? { reason } : {} }),
+      hold: (id: string, reason?: string): Promise<ApiResult<OrgSeedActionResponse>> =>
+        this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/hold`, { method: "POST", body: reason !== undefined ? { reason } : {} }),
+    },
 
     /** GET /api/v1/otzar/conversations -- the caller's OWN conversation
      *  session METADATA (read). No transcripts / message bodies. Optional

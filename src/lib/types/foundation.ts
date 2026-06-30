@@ -1308,6 +1308,36 @@ export interface CommsDandelionSeed {
   riskIfIgnored: string;
 }
 
+// The admin-actionable Dandelion seed (Organization Seeding queue). Mirrors
+// Foundation OrgSeedView.
+export interface OrgSeed {
+  seed_id: string;
+  seed_type: string;
+  subject_name: string | null;
+  recommended_action: string;
+  source_evidence: string | null;
+  source_conversation_id: string | null;
+  confidence: string;
+  approval_required: boolean;
+  policy_status: string;
+  sensitivity: string;
+  risk_if_ignored: string | null;
+  status: string;
+  resulting_action: string | null;
+  rejection_reason: string | null;
+  hold_reason: string | null;
+  reviewed: boolean;
+  created_at: string;
+}
+export interface OrgSeedListResponse {
+  ok: true;
+  seeds: OrgSeed[];
+}
+export interface OrgSeedActionResponse {
+  ok: true;
+  seed: OrgSeed;
+}
+
 export interface CommsIngestResult {
   conversation: {
     meeting_capture_id: string;
