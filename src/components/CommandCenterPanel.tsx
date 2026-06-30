@@ -71,11 +71,11 @@ export function CommandCenterPanel({
     if (credentialBlocked.length > 0) {
       blockers.push({
         label: `${credentialBlocked.length} capabilities waiting on credentials or app review`,
-        to: "/connector-rails",
+        to: "/tools-connections",
       });
       actions.push({
         label: "Connect provider credentials",
-        to: "/connector-rails",
+        to: "/tools-connections",
       });
     }
   }

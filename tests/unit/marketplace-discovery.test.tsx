@@ -84,10 +84,10 @@ function renderPage(): void {
 beforeEach(() => setAuth());
 
 describe("Marketplace discovery — nav + render", () => {
-  it("the nav registers a Marketplace entry in Data & Knowledge", () => {
+  it("the nav registers a Marketplace entry in Work Graph & Memory", () => {
     const item = NAV.find((n) => n.to === "/marketplace");
     expect(item).toBeDefined();
-    expect(item?.group).toBe("Data & Knowledge");
+    expect(item?.group).toBe("Work Graph & Memory");
   });
 
   it("renders the page with a safe subtitle (access stays governed by the provider)", async () => {

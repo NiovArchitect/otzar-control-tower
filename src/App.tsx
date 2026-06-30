@@ -69,6 +69,7 @@ import { OnboardingPage } from "@/pages/Onboarding";
 import { BillingPreviewPage } from "@/pages/BillingPreview";
 import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
 import { OrganizationSeedingPage } from "@/pages/OrganizationSeeding";
+import { ToolsConnectionsPage } from "@/pages/ToolsConnections";
 import ConnectorRailsAdmin from "@/pages/ConnectorRailsAdmin";
 import ReportsPage from "@/pages/Reports";
 import VoiceProvidersPage from "@/pages/VoiceProviders";
@@ -183,6 +184,10 @@ export function App() {
               <Route path="retention" element={<RetentionPage />} />
               <Route path="onboarding" element={<OnboardingPage />} />
               <Route path="billing" element={<BillingPreviewPage />} />
+              {/* Tools & Connections: ONE production destination that composes
+                  the two connector surfaces as tabs. The underlying routes stay
+                  registered below so existing deep links never break. */}
+              <Route path="tools-connections" element={<ToolsConnectionsPage />} />
               <Route path="connectors" element={<ConnectorsAdminPage />} />
               <Route path="organization-seeding" element={<OrganizationSeedingPage />} />
               <Route path="connector-rails" element={<ConnectorRailsAdmin />} />

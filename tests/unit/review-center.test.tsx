@@ -111,10 +111,10 @@ function renderPage(): void {
 beforeEach(() => setAuth());
 
 describe("Review Center — nav + render", () => {
-  it("the nav registers a Review Center entry in Security & Governance", () => {
+  it("the nav registers a Review Center entry in Policies & Approvals", () => {
     const item = NAV.find((n) => n.to === "/review-center");
     expect(item).toBeDefined();
-    expect(item?.group).toBe("Security & Governance");
+    expect(item?.group).toBe("Policies & Approvals");
   });
 
   it("renders the page with safe subtitle (no raw content language)", async () => {

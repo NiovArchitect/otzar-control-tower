@@ -55,7 +55,8 @@ describe("Billing Preview — nav", () => {
   it("registers /billing in the main nav", () => {
     const entry = NAV.find((n) => n.to === "/billing");
     expect(entry).toBeDefined();
-    expect(entry?.label).toBe("Billing");
+    expect(entry?.label).toBe("Billing & Entitlements");
+    expect(entry?.group).toBe("Overview");
   });
 });
 

@@ -43,13 +43,18 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
       <ScrollArea className="flex-1 px-2 pb-4">
         {/* Phase 1255 slice 2 — OS-style sections: the admin governs
             an enterprise, not a flat list of pages. */}
-        {NAV_GROUP_ORDER.map((group) => (
+        {NAV_GROUP_ORDER.map((group) => {
+          const itemsInGroup = visibleNav.filter((item) => item.group === group);
+          // A section whose only members are hidden stubs renders nothing —
+          // no bare header. Keeps the production surface calm.
+          if (itemsInGroup.length === 0) return null;
+          return (
           <div key={group} data-testid="admin-nav-group" data-group={group}>
             <p className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
               {group}
             </p>
             <ul className="space-y-1">
-              {visibleNav.filter((item) => item.group === group).map((item) => {
+              {itemsInGroup.map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.to}>
@@ -92,7 +97,8 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
               })}
             </ul>
           </div>
-        ))}
+          );
+        })}
       </ScrollArea>
     </nav>
   );

@@ -20,11 +20,14 @@ const EXPECTED_COMING_SOON = [
 ].sort();
 
 // Real, working surfaces that MUST remain visible during validation.
+// NOTE: /connectors and /connector-rails are no longer top-level nav entries —
+// they fold into the single "Tools & Connections" landing (/tools-connections)
+// as tabs. Their ROUTES stay registered (App.tsx), but the visible destination
+// is now /tools-connections.
 const MUST_STAY_VISIBLE = [
   "/",
   "/users",
-  "/connectors",
-  "/connector-rails",
+  "/tools-connections",
   "/voice",
   "/voice-providers",
   "/review-center",

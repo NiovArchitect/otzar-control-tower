@@ -53,9 +53,9 @@ beforeEach(() => {
   cleanup();
 });
 
-describe("Phase 1255 slice 2 — grouped admin navigation", () => {
-  it("every nav entry belongs to one of the seven OS sections", () => {
-    expect(NAV_GROUP_ORDER).toHaveLength(7);
+describe("Production Admin Center IA — grouped admin navigation", () => {
+  it("every nav entry belongs to one of the eight OS sections", () => {
+    expect(NAV_GROUP_ORDER).toHaveLength(8);
     for (const item of NAV) {
       expect(NAV_GROUP_ORDER, item.label).toContain(item.group);
     }
@@ -64,18 +64,23 @@ describe("Phase 1255 slice 2 — grouped admin navigation", () => {
   it("core sections carry their expected surfaces", () => {
     const byGroup = (g: string): string[] =>
       NAV.filter((i) => i.group === g).map((i) => i.label);
-    expect(byGroup("Command Center")).toContain("Home");
-    expect(byGroup("Data & Knowledge")).toEqual(
-      expect.arrayContaining(["Data & Knowledge", "Data retention"]),
+    expect(byGroup("Overview")).toEqual(
+      expect.arrayContaining(["Home", "Billing & Entitlements"]),
     );
-    expect(byGroup("Work")).toEqual(
-      expect.arrayContaining(["Workflows", "Reports", "Analytics"]),
+    expect(byGroup("People & Roles")).toEqual(
+      expect.arrayContaining(["Users", "AI Teammates", "Organization Seeding", "Onboarding"]),
     );
-    expect(byGroup("Integrations")).toEqual(
-      expect.arrayContaining(["Connectors", "Integrations & MCP", "Voice"]),
+    expect(byGroup("Tools & Connections")).toEqual(
+      expect.arrayContaining(["Tools & Connections", "Voice", "Voice Providers"]),
     );
-    expect(byGroup("System")).toEqual(
-      expect.arrayContaining(["System Health", "Settings", "Billing"]),
+    expect(byGroup("Work Graph & Memory")).toEqual(
+      expect.arrayContaining(["Data & Knowledge", "Access Control", "Marketplace"]),
+    );
+    expect(byGroup("Audit & Activity")).toEqual(
+      expect.arrayContaining(["Security & Audit", "Reports"]),
+    );
+    expect(byGroup("Diagnostics")).toEqual(
+      expect.arrayContaining(["System Health", "Data retention"]),
     );
   });
 });
