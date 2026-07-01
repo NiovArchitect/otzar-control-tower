@@ -3857,6 +3857,16 @@ export interface MeetingCaptureDetailResponse {
   participants: ParticipantConsentView[];
 }
 
+// PROD-UX-P0C — the original transcript/source of a saved conversation,
+// returned only to an authorized caller (captor or active workspace member).
+export interface MeetingCaptureTranscriptResponse {
+  ok: true;
+  meeting_capture_id: string;
+  title: string;
+  transcript: string | null;
+  has_transcript: boolean;
+}
+
 export interface MeetingCaptureAttachResponse {
   ok: true;
   meeting_capture: MeetingCaptureSafeView;

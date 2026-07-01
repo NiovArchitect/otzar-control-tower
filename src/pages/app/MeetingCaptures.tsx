@@ -93,6 +93,8 @@ export function MeetingCaptures(): JSX.Element {
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // PROD-UX-P0C — which capture's original source is currently open.
+  const [viewingSourceId, setViewingSourceId] = useState<string | null>(null);
 
   async function refresh(): Promise<void> {
     const [c, w] = await Promise.all([
@@ -412,6 +414,28 @@ export function MeetingCaptures(): JSX.Element {
                       {c.summary}
                     </p>
                   ) : null}
+                  {c.has_transcript ? (
+                    <div className="mt-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px]"
+                        data-testid="meeting-capture-view-source"
+                        onClick={() =>
+                          setViewingSourceId((cur) =>
+                            cur === c.meeting_capture_id ? null : c.meeting_capture_id,
+                          )
+                        }
+                      >
+                        {viewingSourceId === c.meeting_capture_id
+                          ? "Hide original source"
+                          : "View original source"}
+                      </Button>
+                      {viewingSourceId === c.meeting_capture_id ? (
+                        <SourceTranscript captureId={c.meeting_capture_id} />
+                      ) : null}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -428,6 +452,63 @@ export function MeetingCaptures(): JSX.Element {
         a workspace. Otzar never sends messages outside your org without an
         approved connector.
       </p>
+    </div>
+  );
+}
+
+// PROD-UX-P0C — reopen the ORIGINAL transcript/source of a saved conversation.
+// Caller-scoped on the server; shows honest states (loading / text / none stored /
+// no access) and never fabricates content.
+function SourceTranscript({ captureId }: { captureId: string }): JSX.Element {
+  const [state, setState] = useState<
+    { status: "loading" | "empty" | "denied" | "error"; text: null }
+    | { status: "ready"; text: string }
+  >({ status: "loading", text: null });
+
+  useEffect(() => {
+    let alive = true;
+    void api.meetingCaptures.transcript(captureId).then((r) => {
+      if (!alive) return;
+      if (r.ok) {
+        setState(
+          r.data.has_transcript && r.data.transcript !== null
+            ? { status: "ready", text: r.data.transcript }
+            : { status: "empty", text: null },
+        );
+      } else {
+        setState({ status: r.code === "NOT_ALLOWED" ? "denied" : "error", text: null });
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [captureId]);
+
+  return (
+    <div
+      className="mt-1 rounded border bg-muted/40 p-2"
+      data-testid="meeting-capture-source-panel"
+      data-status={state.status}
+    >
+      {state.status === "loading" ? (
+        <p className="text-[10px] text-muted-foreground">
+          <Loader2 className="mr-1 inline h-3 w-3 animate-spin" aria-hidden /> Opening source…
+        </p>
+      ) : state.status === "ready" ? (
+        <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-foreground">
+          {state.text}
+        </pre>
+      ) : state.status === "empty" ? (
+        <p className="text-[10px] text-muted-foreground">
+          No original transcript was stored for this conversation.
+        </p>
+      ) : state.status === "denied" ? (
+        <p className="text-[10px] text-muted-foreground">
+          You don&apos;t have access to this conversation&apos;s source.
+        </p>
+      ) : (
+        <p className="text-[10px] text-rose-500">Couldn&apos;t open the source. Try again.</p>
+      )}
     </div>
   );
 }

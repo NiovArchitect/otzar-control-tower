@@ -5,6 +5,7 @@
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
@@ -171,5 +172,57 @@ describe("MeetingCaptures page", () => {
     expect(html).not.toMatch(/adapter/i);
     expect(html).not.toMatch(/wallet_id/i);
     expect(html).not.toMatch(/embedding/i);
+  });
+});
+
+describe("MeetingCaptures — reopen original source (P0C)", () => {
+  function mockCaptureWithTranscript(): void {
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures`, () =>
+        HttpResponse.json({
+          ok: true,
+          meeting_captures: [
+            {
+              meeting_capture_id: "mc-src-1", provider: "MANUAL_UPLOAD", provider_meeting_id: null,
+              title: "Launch sync", scheduled_start: null, scheduled_end: null, recorded_start: null,
+              recorded_end: null, participant_count: 2, status: "PROCESSED", workspace_id: null,
+              source_conversation_id: null, summary: null, has_transcript: true,
+              created_at: "2026-06-10T15:00:00.000Z", updated_at: "2026-06-10T15:00:00.000Z",
+            },
+          ],
+        }),
+      ),
+      http.get(`${API_BASE}/otzar/collaboration/workspaces`, () => HttpResponse.json({ ok: true, workspaces: [] })),
+    );
+  }
+
+  it("reopens the original transcript for an authorized capture", async () => {
+    mockCaptureWithTranscript();
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures/mc-src-1/transcript`, () =>
+        HttpResponse.json({ ok: true, meeting_capture_id: "mc-src-1", title: "Launch sync", transcript: "Sadeil: we ship Friday. David: I'll prep the release notes.", has_transcript: true }),
+      ),
+    );
+    render(<MemoryRouter><MeetingCaptures /></MemoryRouter>);
+    const btn = await screen.findByTestId("meeting-capture-view-source");
+    await userEvent.click(btn);
+    const panel = await screen.findByTestId("meeting-capture-source-panel");
+    await waitFor(() => expect(panel.getAttribute("data-status")).toBe("ready"));
+    expect(panel).toHaveTextContent(/release notes/);
+  });
+
+  it("shows a no-access state (never the text) when the server denies the source", async () => {
+    mockCaptureWithTranscript();
+    server.use(
+      http.get(`${API_BASE}/otzar/meeting-captures/mc-src-1/transcript`, () =>
+        HttpResponse.json({ ok: false, code: "NOT_ALLOWED" }, { status: 403 }),
+      ),
+    );
+    render(<MemoryRouter><MeetingCaptures /></MemoryRouter>);
+    await userEvent.click(await screen.findByTestId("meeting-capture-view-source"));
+    const panel = await screen.findByTestId("meeting-capture-source-panel");
+    await waitFor(() => expect(panel.getAttribute("data-status")).toBe("denied"));
+    expect(panel).toHaveTextContent(/don.t have access/i);
+    expect(panel).not.toHaveTextContent(/release notes/);
   });
 });

@@ -251,6 +251,7 @@ import type {
   MeetingCaptureReceiveResponse,
   MeetingCaptureListResponse,
   MeetingCaptureDetailResponse,
+  MeetingCaptureTranscriptResponse,
   MeetingCaptureAttachResponse,
   MeetingParticipantConsentUpdateResponse,
   // Phase 1228
@@ -2685,6 +2686,15 @@ export class ApiClient {
     ): Promise<ApiResult<MeetingCaptureDetailResponse>> =>
       this.request<MeetingCaptureDetailResponse>(
         `/otzar/meeting-captures/${encodeURIComponent(meetingCaptureId)}`,
+      ),
+
+    // PROD-UX-P0C — reopen a saved conversation's ORIGINAL transcript/source.
+    // Caller-scoped on the server; has_transcript:false when none was stored.
+    transcript: (
+      meetingCaptureId: string,
+    ): Promise<ApiResult<MeetingCaptureTranscriptResponse>> =>
+      this.request<MeetingCaptureTranscriptResponse>(
+        `/otzar/meeting-captures/${encodeURIComponent(meetingCaptureId)}/transcript`,
       ),
 
     attach: (
