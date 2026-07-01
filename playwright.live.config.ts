@@ -17,7 +17,10 @@ export default defineConfig({
   testMatch: /otzar-.*live.*\.spec\.ts/,
   fullyParallel: false,
   retries: 1,
-  reporter: [["list"]],
+  // "list" for per-test lines + the deep Work OS smoke table (test · PASS/FAIL/
+  // SKIP · duration · masked product evidence). The custom reporter only renders
+  // evidence rows for tests that emit them, so baseline specs are unaffected.
+  reporter: [["list"], ["./tests/e2e/workos-smoke-reporter.ts"]],
   // Bounded action/navigation timeouts are ESSENTIAL for the live matrix: the
   // Playwright default is 0 (unbounded), so a momentarily-non-actionable element
   // (e.g. the orb input disabled mid-processing) would hang a click until the
