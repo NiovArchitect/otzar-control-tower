@@ -86,6 +86,55 @@ export function UsersPage() {
     },
   });
 
+  // PROD-UX-P1 — People & Roles renders the REAL org hierarchy (role,
+  // department, manager) from /org/hierarchy, the same source AI
+  // Teammates already uses. Loaded alongside the page; when the feed
+  // is empty or unavailable the columns show "—", never invented data.
+  const hierarchy = useQuery({
+    queryKey: ["org", "hierarchy"],
+    queryFn: async () => {
+      const r = await api.org.hierarchy.get();
+      if (!r.ok) throw new Error(r.message);
+      return r.data.memberships;
+    },
+  });
+  const allPeople = useQuery({
+    queryKey: ["org", "entities", { type: "PERSON", take: 250 }],
+    queryFn: async () => {
+      const r = await api.org.entities.list({ type: "PERSON", take: 250 });
+      if (!r.ok) throw new Error(r.message);
+      return r.data.items;
+    },
+  });
+  const membershipByPerson = useMemo(() => {
+    const map = new Map<
+      string,
+      { parent_id: string; role_title: string | null; department: string | null }
+    >();
+    if (hierarchy.data) {
+      for (const m of hierarchy.data) {
+        // First active membership wins; person→person edges carry the
+        // reporting line (human→twin edges resolve to no PERSON parent
+        // and simply render "—").
+        if (m.is_active && !map.has(m.child_id)) {
+          map.set(m.child_id, {
+            parent_id: m.parent_id,
+            role_title: m.role_title,
+            department: m.department,
+          });
+        }
+      }
+    }
+    return map;
+  }, [hierarchy.data]);
+  const personNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    if (allPeople.data) {
+      for (const p of allPeople.data) map.set(p.entity_id, p.display_name);
+    }
+    return map;
+  }, [allPeople.data]);
+
   const rows = list.data?.items ?? undefined;
   const total = list.data?.total ?? undefined;
 
@@ -133,6 +182,31 @@ export function UsersPage() {
         header: "Type",
         accessorFn: (row) => getEntityTypeLabel(row.entity_type),
       },
+      // PROD-UX-P1 — the real reporting structure, from /org/hierarchy.
+      {
+        id: "role",
+        header: "Role",
+        accessorFn: (row) =>
+          membershipByPerson.get(row.entity_id)?.role_title ?? "—",
+      },
+      {
+        id: "department",
+        header: "Department",
+        accessorFn: (row) =>
+          membershipByPerson.get(row.entity_id)?.department ?? "—",
+      },
+      {
+        id: "reports_to",
+        header: "Reports to",
+        accessorFn: (row) => {
+          const parentId = membershipByPerson.get(row.entity_id)?.parent_id;
+          if (parentId === undefined) return "—";
+          const name = personNameById.get(parentId);
+          // A parent that isn't a person (the org root, a hive) renders
+          // "—" rather than a raw id.
+          return name !== undefined ? formatPersonName(name) || name : "—";
+        },
+      },
       {
         id: "status",
         header: "Status",
@@ -148,7 +222,7 @@ export function UsersPage() {
         accessorFn: (row) => formatRelativeTime(row.updated_at),
       },
     ],
-    [selectedIds],
+    [selectedIds, membershipByPerson, personNameById],
   );
 
   // ── Bulk actions ──────────────────────────────────────────────

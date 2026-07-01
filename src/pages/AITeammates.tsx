@@ -219,8 +219,10 @@ export function AITeammatesPage() {
         header: "Owner",
         accessorFn: (row) => {
           const ownerId = ownerByTwin.get(row.entity_id);
-          if (!ownerId) return "—";
-          return memberById.get(ownerId) ?? ownerId;
+          if (!ownerId) return "Unassigned";
+          // PROD-UX-P1 — never render a raw id when the member name
+          // can't be resolved; "Unassigned" is the honest human state.
+          return memberById.get(ownerId) ?? "Unassigned";
         },
       },
       {
@@ -279,7 +281,7 @@ export function AITeammatesPage() {
           checked={adminOnly}
           onCheckedChange={(v) => setUrlParam("admin", v === true ? "1" : null)}
         />
-        EXECUTIVE_OVERRIDE only
+        Admin teammates only
       </label>
     </>
   );
@@ -288,7 +290,7 @@ export function AITeammatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="AI Teammates"
-        description="AI agents working alongside your team -- their owners, Behavior Policy, executive-override status, and recent activity. Each Member can have one AI Teammate."
+        description="AI agents working alongside your team -- who owns each one, how autonomously it may act, and its recent activity. Each Member can have one AI Teammate."
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             Create AI Teammate
