@@ -1,6 +1,10 @@
 # Production Work OS Coherence Repair (PROD-UX-AMBIENT) — checklist
 
-**Status:** living. North star: `AMBIENT_WORK_OS_PRODUCT_DOCTRINE.md`. Acceptance
+**Status:** living — updated 2026-07-01 (second pass; Fable session). P0D/P0E/P0A/P0B/P0C
+are LANDED (see per-item status lines); this pass adds **P0R (routing/autonomy decision
+layer)**, desktop continuity, ambient visual redesign, and the runtime-boundary register,
+then completes P0F/P0G/P0H/P1/P2 + the scenario smoke suite + deploy + live verify.
+North star: `AMBIENT_WORK_OS_PRODUCT_DOCTRINE.md`. Acceptance
 standard: a real user in a real org completes the flow end-to-end — no fake data, no dead
 buttons, no hidden source, no terminal, no policy violation, no card spam. **"Passes" =
 real end-to-end.** Every flow carries the 11-point spec; a flow is not complete until all
@@ -69,7 +73,10 @@ evidence + no entity) → `identity_needs_review`, not owner display; (c) dedup 
 `ownerName`(normalized) in `work-graph-memory` — one grouped `confirm_or_activate_person`
 seed per person with merged evidence + count; (d) project `subject_entity_id` + a stable
 `subject_key` on the seed view for grouping.
-**Verification target**: Integration verified.
+**Status**: LANDED — FND `0e08d32` (PR #516): pronoun/non-name guard in
+`work-item-planner.ts`, seed clustering in `work-graph-memory.ts`, `subject_key`
+projection in `dandelion-seed.service.ts`; unit tests included. **Integration verified**
+(PR CI). Live re-verification runs with the ux-coherence smoke.
 
 ## P0E — Dandelion scale (grouped queues, not 75-card spam)
 1 admin reviews org-seeding at enterprise scale · 2 `OrganizationSeeding.tsx` +
@@ -79,7 +86,10 @@ Held / Applied) · 6 approve-selected / hold / reject / merge / search / filter 
 7 `dandelion-seed.service` (extend list: project subject_entity_id + subject_key; group;
 paginate) · 8 same person = one grouped surface · 9 empty/loading honest · 10 per-seed
 evidence preserved · 11 integration (grouping) + CT unit (grouped render) + live smoke.
-**Verification target**: Integration + CT unit; live grouped-count assertion.
+**Status**: LANDED — CT `4b09592`: `seed-grouping.ts` (`groupSeeds()` → prioritized
+queues), `OrganizationSeeding.tsx` grouped render; unit tests (`seed-grouping.test.ts`,
+`organization-seeding.test.tsx`). **Locally verified (CT unit)**; live grouped-count
+assertion pending the ux-coherence smoke.
 
 ## P0A — My Work / Action Center actionable (surface the governed loop)
 1 employee opens a work item and acts · 2 `MyWork.tsx`/`ActionCenter.tsx` +
@@ -92,7 +102,10 @@ receipt/audit (only the ones valid for the item's state; no dead buttons) · 7 e
 bridge + Action executor + escalation approve (reuse) · 8 executed → receipt shown · 9
 blocked → clear reason + next step · 10 proposed_action_id + attempt delivery_metadata +
 source evidence · 11 CT unit (state→actions map) + live smoke (open, mark-done, approve→receipt).
-**Verification target**: CT unit + live verified.
+**Status**: LANDED — CT `b6b6ce1`: `WorkLedgerItem.tsx` execution surface,
+`work-item-execution.ts` (state→actions map), api execute/reconcile/attempts methods;
+unit tests. **Locally verified (CT unit)**; live open→act→receipt assertion pending the
+ux-coherence smoke. P0R (below) extends each item with the routing decision + why.
 
 ## P0B — Today attention routes to the backing item
 1 Today says "N need attention" and clicking routes there · 2 `FocusHome`/`MyDay` →
@@ -100,7 +113,9 @@ Action Center (filtered) or the single item · 3 same query that backs Action Ce
 blind-spots · 4 per-user · 5 calm cue; count matches · 6 click → deep link · 7 presence +
 work-os feeds · 8 1 item → item; N → filtered · 9 0 → no card · 10 n/a · 11 live smoke
 (count matches; click routes).
-**Verification target**: CT unit + live verified.
+**Status**: LANDED — CT `1e1e1fa`: `today-attention.ts` + `FocusHome.tsx` (real-signal
+count, deep link, no-card-when-zero); unit tests. **Locally verified (CT unit)**; live
+count-matches + click-routes assertion pending the ux-coherence smoke.
 
 ## P0C — Comms reopen source conversation + transcript
 1 after import, reopen the capture + view original transcript · 2 `Comms.tsx` +
@@ -110,7 +125,28 @@ derived work + evidence · 6 open, view transcript, jump to work items/seeds · 
 meeting-capture service (add caller-scoped transcript route) · 8 transcript visible to
 authorized user · 9 unauthorized → 404/denied (no leak) · 10 source evidence spans · 11
 integration (route + no-leak) + live smoke (import → return → reopen → transcript).
-**Verification target**: Integration + live verified.
+**Status**: LANDED — FND `e8017eb` (PR #517): caller-scoped
+`GET /otzar/meeting-captures/:id/transcript` + integration tests (incl. no-leak);
+CT `3b8f6a5`: `MeetingCaptures.tsx` `SourceTranscript` viewer + unit tests.
+**Integration verified** (FND) + **Locally verified (CT unit)**; live import→reopen→
+transcript assertion pending the ux-coherence smoke.
+
+## P0R — Routing/autonomy decision layer (added this pass; the core product behavior)
+1 every My Work / Action Center item carries the routing decision Otzar made and why ·
+2 `GET /work-os/my-work` items + `GET /work-os/ledger/:id/routing-decision` · 3 the
+*existing* deciders — `computeAutonomyDecision` (autonomy.ts), `planExecution`
+(execution-planner.ts), `computeCapabilityState` (connector-capability.ts), pronoun/
+identity guards (work-item-planner.ts) · 4 per-user; org-scoped · 5 one routing lane per
+item: `silent_capture | silent_routing | notify_owner | draft_ready |
+execute_when_allowed | ask_approval | escalate | blocked | setup_required |
+identity_review` · 6 the lane maps to the item's valid actions (P0A map) · 7 **compose,
+do not duplicate** — a pure projection over A+B+C outputs; no second autonomy system ·
+8 low-risk owned item = silent_routing (no approval demanded); governed external write =
+ask_approval with reason; missing tool = setup_required with the tool named · 9 unknown
+identity = identity_review; unresolvable = blocked with why · 10 decision carries reason,
+evidence refs, risk, confidence, policy basis, owner, next best action, audit pointer ·
+11 FND unit tests (lane matrix) + CT unit (lane→UI chip) + live smoke (lane visible).
+**Verification target**: FND unit + CT unit + live verified.
 
 ## P0F — Tools & Connections UI-operable + human copy
 1 admin connects/verifies/revokes a tool from UI, sees blocked work · 2 `ToolsConnections.tsx`
@@ -148,8 +184,40 @@ does not overlap capture).
   autonomous/approval" not "EXECUTIVE_OVERRIDE". (`AITeammates.tsx`)
 - **P1 People & Roles**: render `/org/hierarchy` (teams/managers/reports) + person actions.
   (`Users.tsx`)
+- **P1 Ambient visual pass** (added this pass): apply the existing glass/presence language
+  (`GlassPanel`, `presenceRing`, edge animations) consistently to the employee surfaces —
+  state-colored borders (calm / needs-me / waiting / blocked / executing / done / risk /
+  memory-updated / tool-needed), frosted panels, calm motion. Reuse
+  `src/lib/stores/presence.ts` states; do not add a second state system; do not make it
+  noisy.
 - **P2 Copy**: run `findBackendTermLeak` over normal-flow strings as the gate; replace
-  env-var/binding/rail/envelope/entitlement/preview/raw-IDs with human copy.
+  env-var/binding/rail/envelope/entitlement/preview/raw-IDs with human copy. Known leak
+  sites: `Comms.tsx:494` ("Owned by …" when owner needs review), `ConnectorsAdmin.tsx`
+  (env-var/binding), `ConnectorHealth.tsx:271,347` ("connector rails"), employee-visible
+  "envelope" mentions.
+
+## Desktop continuity (register — honest boundary, no fake support)
+Desktop shell EXISTS: `src-tauri/` (Tauri 2, `tauri:dev`/`tauri:build`, macOS DMG +
+Windows MSI/NSIS, docs/desktop.md). Voice: desktop uses MediaRecorder →
+`/otzar/voice/transcribe` via `useDesktopVoiceCapture`; browser used Web-Speech-only
+(P0G closes that gap by reusing the same hook as fallback). **Known drift**: committed
+`src-tauri/tauri.conf.json` CSP `connect-src` allows only `localhost:3000/4000` —
+docs/desktop.md claims the prod API host is allowed. A desktop build pointed at
+`api.otzar.ai` would be CSP-blocked. Fix = add `https://api.otzar.ai` (+ `wss:` if
+needed) to `connect-src`. Native notifications/tray/screen-capture remain NEEDS_NATIVE
+(honest in `desktop-capabilities.ts`) — not faked.
+
+## Runtime/language boundary register (per docs/operations/otzar-polyglot-runtime-architecture.md)
+- Orchestration/API/governance/policy/executor — **already_correct** (TypeScript; ADR-0090 §3).
+- Frontend + ambient UI — **already_correct** (React/Vite + Tauri shell).
+- Classification/priority/drift/embeddings — **keep_typescript_orchestration_but_call_worker**
+  (Python intelligence scaffold exists; `PYTHON_INTELLIGENCE_RUNTIME_URL`-gated, TS fallback).
+- Realtime presence/notifications/Work Comms actors — **do_not_move_yet_but_define_boundary**
+  (BEAM apps exist; `BEAM_RUNTIME_ENABLED`-gated; WorkOsEvent→BEAM dispatch is the defined
+  next bridge; inline dispatch remains the shipped path).
+- Native mic/notifications/screen capture — **move_to_rust only at the Tauri boundary**
+  (native plugins, Founder-gated per repo rules).
+- Nothing is rewritten for novelty in this slice; boundaries above are the doctrine.
 
 ## Scenario smoke suite (acceptance layer)
 `test:e2e:live:workos:ux-coherence` + focused specs (ux-action-center, ux-comms-source,
@@ -163,3 +231,11 @@ reopen → 5 P0A Action Center → 6 P0B Today routing → 7 P0F Tools UI → 8 
 orb → 10 P1 IA/teammates/hierarchy → 11 P2 copy gate → 12 scenario smokes → deploy →
 live-verify. Ordered so backend-truth fixes (D/E/C) land before the surfaces (A/B) that
 render them.
+
+**Second-pass sequence (2026-07-01, Fable session):** steps 1–6 above are LANDED. This
+pass: 1 doc statuses (this edit) → 2 **P0R routing decision layer** (FND compose + CT
+surface) → 3 P0G voice fallback + P0H orb (CT) → 4 P0F Tools UI (CT) → 5 P1 IA/teammates/
+hierarchy + ambient visual pass + P2 copy gate (CT) → 6 desktop CSP fix → 7 scenario
+smokes (`test:e2e:live:workos:ux-coherence` + focused specs) → 8 gates (CT vitest+tsc;
+FND targeted unit/integration) → 9 push/deploy → 10 live verify (Deep Work OS suite +
+ux-coherence against app.otzar.ai) → 11 handoff updates.

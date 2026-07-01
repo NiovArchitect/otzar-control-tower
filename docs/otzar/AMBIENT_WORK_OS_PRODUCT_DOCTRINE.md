@@ -72,6 +72,14 @@ The governed Slice-F write-back is rung 4/5: `execution_mode=otzar_can_execute_w
 means "route to approval," never "execute immediately." That is preserved. The product job
 is to make rungs 1–3 the felt default and rung 5 rare, clear, and one-tap.
 
+**The routing decision is a first-class product object (P0R).** Every routed item exposes
+the lane Otzar chose (`silent_capture | silent_routing | notify_owner | draft_ready |
+execute_when_allowed | ask_approval | escalate | blocked | setup_required |
+identity_review`) **and why**: reason, source evidence, risk, confidence, policy basis,
+owner, next best action, audit pointer. This is a pure projection composed from the
+existing deciders (`computeAutonomyDecision` + `planExecution` + capability state +
+identity guards) — never a second autonomy system, and never a fabricated explanation.
+
 ## 4. Employee experience model
 
 Ambient, routed, non-blocking. The employee's felt surfaces (Design Law §1–4):
@@ -111,6 +119,8 @@ Admins get real operational control — calm, human-readable, no terminal, no fi
 
 ## 6. What this slice must repair (P0 = product blocker · P1 = scale/usability · P2 = copy/IA)
 
+- **P0R** — the routing/autonomy decision layer surfaces on every item (lane + why); low
+  risk routes silently, approval demanded only where policy/risk requires (§3).
 - **P0A** — My Work / Action Center surfaces the governed execution loop and is actionable.
 - **P0B** — Today attention card click-through + count consistency.
 - **P0C** — Comms preserves + reopens source conversations/transcripts.
