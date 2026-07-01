@@ -4607,6 +4607,44 @@ export interface WorkLedgerEntryView {
   owner_display_name?: string;
   requester_display_name?: string;
   target_display_name?: string;
+  // PROD-UX-P0R — the routing/autonomy decision PROJECTION Foundation attaches
+  // to getMyWork items (and serves per-item via GET /work-os/ledger/:id/
+  // routing-decision). Pure read over persisted decider outputs — the UI
+  // renders it; it never recomputes policy. Additive + optional.
+  routing?: RoutingDecisionView;
+  // PROD-UX-P0R — the anchoring audit event link (persisted column), surfaced
+  // so routing/audit affordances can deep-link. Additive + optional.
+  audit_event_id?: string;
+}
+
+// PROD-UX-P0R — mirror of Foundation's RoutingDecisionView
+// (apps/api/src/services/work-os/routing-decision.ts). The lane a ledger row
+// sits in plus the plain-language why; reasons arrive already humanized
+// (no enum literals / underscores / backend jargon).
+export type RoutingLane =
+  | "silent_capture"
+  | "silent_routing"
+  | "notify_owner"
+  | "draft_ready"
+  | "execute_when_allowed"
+  | "ask_approval"
+  | "escalate"
+  | "blocked"
+  | "setup_required"
+  | "identity_review";
+
+export interface RoutingDecisionView {
+  lane: RoutingLane;
+  reason: string;
+  risk: "low" | "medium" | "high";
+  confidence: number | null;
+  policy_basis: string | null;
+  owner_entity_id: string | null;
+  owner_status: "resolved" | "needs_review" | "unowned";
+  next_best_action: string | null;
+  required_tool: string | null;
+  evidence_refs: string[];
+  audit_pointer: string | null;
 }
 
 // Phase 1282 — durable execution evidence for a ledger entry. An attempt is

@@ -18,6 +18,7 @@ import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromLedger } from "@/lib/work-os/view-why";
 import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
+import { routingLaneChip, routingWhyLine } from "@/lib/work-os/routing-lane";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
 //        summarizeExecutionProof) so the badge + section agree.
@@ -70,6 +71,9 @@ export function WorkLedgerItem({
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receipt, setReceipt] = useState<{ loading: boolean; text: string | null }>({ loading: false, text: null });
   const exec = deriveWorkItemExecution(entry);
+  // PROD-UX-P0R — the routing decision projection (attached by getMyWork).
+  const laneChip = routingLaneChip(entry.routing);
+  const laneWhy = routingWhyLine(entry.routing);
 
   // Mark complete — owner-only (server-computed entry.can_complete). PATCHes
   // the status to EXECUTED; the requester's waiting-on then clears. The backend
@@ -219,6 +223,19 @@ export function WorkLedgerItem({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {/* PROD-UX-P0R — the routing decision Otzar made, as one calm chip.
+              Silent lanes render nothing (the why still shows in View/Why). */}
+          {laneChip !== null ? (
+            <Badge
+              variant="outline"
+              className={`text-[9px] ${laneChip.cls}`}
+              data-testid="work-ledger-item-routing-lane"
+              data-lane={entry.routing?.lane}
+              title={entry.routing?.reason}
+            >
+              {laneChip.label}
+            </Badge>
+          ) : null}
           {cardBadge !== null ? (
             <Badge variant="outline" className={`text-[9px] ${cardBadge.cls}`} data-testid="work-ledger-item-card-badge">
               {cardBadge.text}
@@ -311,6 +328,20 @@ export function WorkLedgerItem({
               never UUIDs), work, and provenance rows render identically on My
               Work, Team Work, Thread, and People cockpit. */}
           <ViewWhyPanel model={viewWhyFromLedger(entry)} />
+
+          {/* PROD-UX-P0R — the routing decision + why, in plain language
+              (present for EVERY lane here, including the silent ones). */}
+          {laneWhy !== null ? (
+            <div className="mt-1 border-t border-border/50 pt-1" data-testid="work-ledger-item-routing-why">
+              <div>
+                <span className="text-muted-foreground">Routing:</span> {laneWhy.reason}
+              </div>
+              <div className="text-muted-foreground">
+                {laneWhy.risk}
+                {laneWhy.nextBestAction !== null ? ` · Next: ${laneWhy.nextBestAction}` : ""}
+              </div>
+            </div>
+          ) : null}
 
           {/* Python enrichment truth */}
           {entry.python_enrichment !== undefined ? (
