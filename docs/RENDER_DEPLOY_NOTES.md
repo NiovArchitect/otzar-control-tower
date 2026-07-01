@@ -17,6 +17,30 @@ connection was not surfacing new `main` commits**. It was NOT a build cache, NOT
 NOT a duplicate service, NOT the backend. Pushing a fresh commit (`de1e103`) forced Render to
 see a new latest commit; deploying it published the new bundle (`index-BEABBrBB.js`).
 
+## Branch-verification workflow (founder directive, 2026-07-01)
+
+Render Auto-Deploy is **"On Commit"** — it deploys when a new commit reaches the
+branch the service watches. A local commit deploys nothing; a feature-branch
+commit deploys nothing until merged into the watched branch. PR creation does
+NOT deploy production (no preview environments configured). Before claiming any
+deploy, verify in order:
+
+1. Confirm which branch each Render service watches (`otzar-app` → CT `main`;
+   `otzar-api` → Foundation `main`).
+2. Confirm the final commit is actually ON that branch at `origin` —
+   `git fetch && git log --oneline -1 origin/main` must show the expected SHA.
+3. After a PR merge into the watched branch, verify: `origin/main` contains the
+   expected SHA → Render Events shows a deploy for that commit → the deploy
+   succeeded → live health/product checks pass (bundle-hash flip for the static
+   site; a new-route/behavior probe for the API).
+4. If the commit is only local or only on a feature branch, report exactly:
+   "Not deployed yet. Commit has not reached the Render deploy branch."
+5. Never claim Render deployed from a local commit.
+
+Every deploy report must state: local branch · origin branch · latest commit
+SHA · the Render deploy branch · whether the expected SHA is on that branch ·
+whether Render deployed that SHA.
+
 ## How to deploy + verify (reliable procedure)
 1. Push to `main`. Confirm `git rev-parse --short origin/main`.
 2. In Render `otzar-app`, the **latest deploy's Commit** must equal `origin/main`.
