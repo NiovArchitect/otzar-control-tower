@@ -18,6 +18,8 @@ import { ArrowRight, Mic, MoonStar } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
+import type { MyDayIntelligenceView } from "@/lib/types/foundation";
+import { deriveTodayAttention } from "@/lib/work-os/today-attention";
 
 interface TopItem {
   text: string;
@@ -35,16 +37,16 @@ export function FocusHome(): JSX.Element {
   const quiet = usePresenceStore((s) => s.quiet);
   const approvalsCount = usePresenceStore((s) => s.approvalsCount);
   const unreadCount = usePresenceStore((s) => s.unreadCount);
-  const [headline, setHeadline] = useState<string | null>(null);
+  const [intel, setIntel] = useState<MyDayIntelligenceView | null>(null);
 
-  // One calm intelligence headline — never a wall of cards. Failure
-  // means silence, not an error wall; the orb carries error states.
+  // One calm intelligence read — never a wall of cards. Failure means
+  // silence, not an error wall; the orb carries error states.
   useEffect(() => {
     let cancelled = false;
     api.otzar
       .myDayIntelligence()
       .then((r) => {
-        if (!cancelled && r.ok) setHeadline(r.data.intelligence.headline);
+        if (!cancelled && r.ok) setIntel(r.data.intelligence);
       })
       .catch(() => {
         /* ambient: silence over noise */
@@ -54,23 +56,24 @@ export function FocusHome(): JSX.Element {
     };
   }, []);
 
-  const top: TopItem[] = [];
-  if (approvalsCount > 0) {
-    top.push({
-      text:
-        approvalsCount === 1
-          ? "1 approval is waiting"
-          : `${approvalsCount} approvals are waiting`,
-      to: "/app/action-center",
-    });
+  const headline = intel?.headline ?? null;
+  // PROD-UX-P0B — attention items are BACKED by the My Day signals (the same
+  // source as the headline) and each DEEP-LINKS to the surface that resolves it,
+  // so the count matches reality and the headline itself routes when there's a
+  // single destination. When intelligence isn't available, fall back to the
+  // presence counters so the door is never dead.
+  const attention = intel !== null ? deriveTodayAttention(intel) : null;
+  let top: TopItem[] = attention !== null ? attention.items.map((i) => ({ text: i.text, to: i.to })) : [];
+  if (top.length === 0) {
+    if (approvalsCount > 0) {
+      top.push({ text: approvalsCount === 1 ? "1 approval is waiting" : `${approvalsCount} approvals are waiting`, to: "/app/action-center" });
+    }
+    if (unreadCount > 0) {
+      top.push({ text: unreadCount === 1 ? "1 reply to review" : `${unreadCount} replies to review`, to: "/app/comms" });
+    }
   }
-  if (unreadCount > 0) {
-    top.push({
-      text:
-        unreadCount === 1 ? "1 reply to review" : `${unreadCount} replies to review`,
-      to: "/app/comms",
-    });
-  }
+  // The headline deep-links to the single attention destination when there is one.
+  const headlineTo = attention?.primaryTo ?? (top.length === 1 ? top[0]!.to : null);
 
   const name = entity?.email ? entity.email.split("@")[0] ?? null : null;
 
@@ -97,12 +100,23 @@ export function FocusHome(): JSX.Element {
         </div>
 
         {headline !== null ? (
-          <p
-            className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm text-foreground shadow-sm backdrop-blur"
-            data-testid="focus-home-headline"
-          >
-            {headline}
-          </p>
+          headlineTo !== null ? (
+            <Link
+              to={headlineTo}
+              className="flex items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-left text-sm text-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/40"
+              data-testid="focus-home-headline"
+            >
+              <span>{headline}</span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            </Link>
+          ) : (
+            <p
+              className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm text-foreground shadow-sm backdrop-blur"
+              data-testid="focus-home-headline"
+            >
+              {headline}
+            </p>
+          )
         ) : null}
 
         {top.length > 0 ? (
