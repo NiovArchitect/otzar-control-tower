@@ -205,6 +205,22 @@ export async function orgQuery(
   return { status: r.status(), ok: j.ok === true, results: j.results ?? [], ...(j.code ? { code: j.code } : {}) };
 }
 
+/** Ask Otzar (conductSession). Returns the answer text. */
+export async function conversationMessage(
+  request: APIRequestContext,
+  token: string,
+  message: string,
+): Promise<{ status: number; ok: boolean; answer: string }> {
+  const r = await request.post(`${API}/otzar/conversation/message`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: { message, conversation_history: [] },
+    timeout: 60_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; response?: string; message?: string };
+  return { status: r.status(), ok: j.ok === true, answer: String(j.response ?? j.message ?? "") };
+}
+
 /** Slice D goal-layer helpers. */
 export async function createGoal(
   request: APIRequestContext,
