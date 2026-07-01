@@ -1314,6 +1314,13 @@ export interface OrgSeed {
   seed_id: string;
   seed_type: string;
   subject_name: string | null;
+  /** Resolved org entity for the subject when known (Slice PROD-UX-P0E). */
+  subject_entity_id?: string | null;
+  /** Stable grouping key so duplicate suggestions for the same person/target
+   *  cluster into ONE Organization Seeding card (entity id, else normalized
+   *  name, else seed type). Backend-provided; the frontend falls back to the
+   *  same derivation when absent. */
+  subject_key?: string;
   recommended_action: string;
   source_evidence: string | null;
   source_conversation_id: string | null;

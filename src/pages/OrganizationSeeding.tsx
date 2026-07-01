@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type { OrgSeed } from "@/lib/types/foundation";
+import { groupSeeds, type SeedGroup } from "@/lib/work-os/seed-grouping";
 
 const SEED_TYPE_LABEL: Record<string, string> = {
   grant_tool_access: "Tool access needed",
@@ -66,8 +67,9 @@ export function OrganizationSeedingPage(): JSX.Element {
     if (r.ok) await load();
   }
 
-  const pending = (seeds ?? []).filter(isPending);
-  const decided = (seeds ?? []).filter((s) => !isPending(s));
+  // Cluster duplicate suggestions for the same person/target into ONE card and
+  // organize into prioritized, comprehensible queues (scales past a flat wall).
+  const grouped = groupSeeds(seeds ?? []);
 
   return (
     <div className="space-y-6" data-testid="org-seeding-page">
@@ -100,27 +102,58 @@ export function OrganizationSeedingPage(): JSX.Element {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-5">
-          <section className="space-y-2" data-testid="org-seeding-pending">
-            <h3 className="text-sm font-medium">Needs your review ({pending.length})</h3>
-            {pending.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nothing waiting on you.</p>
-            ) : (
-              pending.map((s) => (
-                <SeedCard key={s.seed_id} seed={s} busy={busy === s.seed_id} onAct={(v) => void act(s.seed_id, v)} actionable />
-              ))
-            )}
-          </section>
-          {decided.length > 0 ? (
-            <section className="space-y-2" data-testid="org-seeding-reviewed">
-              <h3 className="text-sm font-medium">Reviewed</h3>
-              {decided.map((s) => (
-                <SeedCard key={s.seed_id} seed={s} busy={false} onAct={() => undefined} actionable={false} />
+        <div className="space-y-6" data-testid="org-seeding-queues">
+          <p className="text-xs text-muted-foreground">
+            {grouped.pending_groups} {grouped.pending_groups === 1 ? "person/setup" : "people/setups"} to review
+            {grouped.total_seeds !== grouped.total_groups ? ` · ${grouped.total_seeds} suggestions grouped into ${grouped.total_groups}` : ""}
+          </p>
+          {grouped.queues.map(({ def, groups }) => (
+            <section key={def.id} className="space-y-2" data-testid={`org-seeding-queue-${def.id}`}>
+              <div>
+                <h3 className="text-sm font-medium">
+                  {def.label} ({groups.length})
+                </h3>
+                <p className="text-xs text-muted-foreground">{def.description}</p>
+              </div>
+              {groups.map((g) => (
+                <SeedGroupCard key={g.key} group={g} busy={busy} onAct={(id, v) => void act(id, v)} />
               ))}
             </section>
-          ) : null}
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// One grouped card per person/target: shows the subject + how many suggestions
+// (and from how many conversations), then each individual governed suggestion as
+// its own reviewable SeedCard (approve/hold/reject stay per-suggestion — nothing
+// is bulk-applied without review).
+function SeedGroupCard({
+  group,
+  busy,
+  onAct,
+}: {
+  group: SeedGroup;
+  busy: string | null;
+  onAct: (id: string, v: "approve" | "reject" | "hold") => void;
+}): JSX.Element {
+  const title = group.subject_name ?? seedTypeLabel(group.seeds[0]!.seed_type);
+  const multi = group.count > 1;
+  return (
+    <div data-testid="org-seed-group" data-subject-key={group.key} className="space-y-1.5">
+      {multi ? (
+        <div className="flex items-center gap-2 pl-0.5 text-xs">
+          <span className="font-medium text-foreground">{title}</span>
+          <span className="text-muted-foreground">
+            · {group.count} suggestions{group.source_count > 1 ? ` from ${group.source_count} conversations` : ""}
+          </span>
+        </div>
+      ) : null}
+      {group.seeds.map((s) => (
+        <SeedCard key={s.seed_id} seed={s} busy={busy === s.seed_id} onAct={(v) => onAct(s.seed_id, v)} actionable={isPending(s)} />
+      ))}
     </div>
   );
 }

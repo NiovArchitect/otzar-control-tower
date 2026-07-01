@@ -115,3 +115,34 @@ describe("Organization Seeding — admin seed queue", () => {
     expect(await screen.findByTestId("org-seeding-empty")).toHaveTextContent(/No suggestions yet/i);
   });
 });
+
+describe("Organization Seeding — grouped queues (P0E scale)", () => {
+  it("five suggestions for the same person render as ONE grouped card, not five", async () => {
+    mockSeeds([
+      seed({ seed_id: "s1", seed_type: "confirm_or_activate_person", subject_name: "David", subject_key: "name:david", recommended_action: "Confirm or activate David", source_conversation_id: "c1" }),
+      seed({ seed_id: "s2", seed_type: "confirm_or_activate_person", subject_name: "David", subject_key: "name:david", recommended_action: "Confirm or activate David", source_conversation_id: "c2" }),
+      seed({ seed_id: "s3", seed_type: "confirm_or_activate_person", subject_name: "David", subject_key: "name:david", recommended_action: "Confirm or activate David", source_conversation_id: "c3" }),
+      seed({ seed_id: "s4", seed_type: "confirm_or_activate_person", subject_name: "David", subject_key: "name:david", recommended_action: "Confirm or activate David", source_conversation_id: "c4" }),
+      seed({ seed_id: "s5", seed_type: "confirm_or_activate_person", subject_name: "David", subject_key: "name:david", recommended_action: "Confirm or activate David", source_conversation_id: "c5" }),
+    ]);
+    renderPage();
+    await screen.findByTestId("org-seeding-queues");
+    // One grouped card for David (not five separate person cards).
+    const groups = screen.getAllByTestId("org-seed-group");
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.getAttribute("data-subject-key")).toBe("name:david");
+    // The People-to-review queue is present and the grouping is surfaced.
+    expect(screen.getByTestId("org-seeding-queue-people_to_review")).toBeInTheDocument();
+    expect(screen.getByText(/5 suggestions from 5 conversations/i)).toBeInTheDocument();
+  });
+
+  it("two distinct people are two grouped cards", async () => {
+    mockSeeds([
+      seed({ seed_id: "a", seed_type: "confirm_or_activate_person", subject_name: "David", subject_key: "name:david" }),
+      seed({ seed_id: "b", seed_type: "confirm_or_activate_person", subject_name: "Dishant", subject_key: "name:dishant" }),
+    ]);
+    renderPage();
+    await screen.findByTestId("org-seeding-queues");
+    expect(screen.getAllByTestId("org-seed-group")).toHaveLength(2);
+  });
+});
