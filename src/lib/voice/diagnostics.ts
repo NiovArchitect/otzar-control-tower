@@ -57,6 +57,91 @@ export interface MicCopy {
   tone: "ok" | "warn" | "error" | "muted";
 }
 
+// ────────────────────────────────────────────────────────────────
+// P0G — browser voice → server STT fallback (pure decision logic).
+// The MediaRecorder→server transcription path (previously desktop-
+// only) is now available to browsers as a FALLBACK when the Web
+// Speech API fails, and as the PRIMARY voice path when Web Speech
+// is unavailable (e.g. Firefox / Safari). These helpers are pure so
+// the decision matrix is unit-testable without rendering anything.
+// ────────────────────────────────────────────────────────────────
+
+/** Which speech-to-text engine a voice surface should route the mic to. */
+export type SttPath =
+  | "desktop_capture" // Tauri shell: existing MediaRecorder→server flow, unchanged
+  | "web_speech" // browser: in-browser Web Speech API (existing default)
+  | "server_stt" // browser: MediaRecorder→server transcription fallback
+  | "text_only"; // nothing can capture audio — typing always works
+
+export interface SttPathInput {
+  /** Current shell per detectShellMode(). */
+  shell: VoiceShellMode;
+  /** True when SpeechRecognition / webkitSpeechRecognition exists. */
+  webSpeechAvailable: boolean;
+  /** True when getUserMedia + MediaRecorder exist (server STT capture). */
+  recorderAvailable: boolean;
+  /**
+   * True once this surface saw Web Speech fail with a "network" error
+   * this session — from then on we go straight to server STT instead
+   * of flapping between the two engines.
+   */
+  serverSttPreferred: boolean;
+}
+
+// WHAT: decide which STT engine the mic button should drive.
+// INPUT: shell + capability + session-preference flags (see SttPathInput).
+// OUTPUT: closed-vocab SttPath.
+// WHY: one pure, exhaustively-testable gate instead of scattered
+//      conditionals. The Tauri desktop path is preserved EXACTLY:
+//      tauri_webview + recorder → "desktop_capture" (never web speech).
+export function decideSttPath(input: SttPathInput): SttPath {
+  if (input.shell === "tauri_webview") {
+    // Desktop keeps its existing capture flow, unchanged. No Web
+    // Speech in WKWebView; typing remains the fallback when the
+    // recorder is missing.
+    return input.recorderAvailable ? "desktop_capture" : "text_only";
+  }
+  // Browser shells: Web Speech first (when it works), server STT when
+  // Web Speech is unavailable OR has already failed this session.
+  if (input.webSpeechAvailable && !input.serverSttPreferred) {
+    return "web_speech";
+  }
+  if (input.recorderAvailable) return "server_stt";
+  // Recorder missing but Web Speech exists (even though it failed
+  // before) — it is still better than nothing; retrying it beats
+  // silently losing voice.
+  if (input.webSpeechAvailable) return "web_speech";
+  return "text_only";
+}
+
+// WHAT: decide whether a Web Speech failure should trigger ONE automatic
+//       switch to the server STT capture path.
+// INPUT: shell, the raw SpeechRecognition error code, recorder capability,
+//        and whether this surface already auto-fell-back this session.
+// OUTPUT: true → start server STT capture now (once); false → show copy only.
+// WHY: the "network" error means the browser's own speech service is
+//      unreachable while the mic itself may be fine — exactly the case
+//      the server transcription route exists for. We fall back at most
+//      once per surface per session; afterwards decideSttPath (with
+//      serverSttPreferred=true) routes to server STT directly, so the
+//      two engines never flap.
+export function shouldAutoFallbackToServerStt(input: {
+  shell: VoiceShellMode;
+  webSpeechError: string | null;
+  recorderAvailable: boolean;
+  alreadyFellBackThisSession: boolean;
+}): boolean {
+  if (input.shell === "tauri_webview") return false; // desktop never ran Web Speech
+  if (input.webSpeechError !== "network") return false;
+  if (!input.recorderAvailable) return false;
+  return !input.alreadyFellBackThisSession;
+}
+
+/** Honest state note shown after a server transcription lands in the
+ *  draft (browser fallback path — the user reviews before sending). */
+export const SERVER_STT_TRANSCRIBED_NOTE =
+  "Transcribed via server — review your words, then send.";
+
 /**
  * Translate (shell, permission-state, STT-supported) → honest copy.
  * Never claims a path will work that we know will throw `not-allowed`.
@@ -65,6 +150,10 @@ export function micCopyFor(
   shell: VoiceShellMode,
   perm: MicrophonePermissionState,
   sttSupported: boolean,
+  /** P0G: true when the MediaRecorder→server transcription fallback can
+   *  run in this shell (getUserMedia + MediaRecorder present). Optional
+   *  so every pre-P0G call site keeps its exact behavior. */
+  serverSttAvailable = false,
 ): MicCopy {
   // Tauri WKWebView path — permission API is "unsupported" AND
   // SpeechRecognition typically isn't there either. Be honest +
@@ -83,6 +172,19 @@ export function micCopyFor(
     };
   }
   if (!sttSupported) {
+    // P0G: browsers without Web Speech (Firefox, Safari) can still speak
+    // to Otzar — the mic records and Otzar transcribes on its secure
+    // server. Only claim that when the recorder actually exists.
+    if (serverSttAvailable) {
+      return {
+        headline: "Voice is ready in this browser",
+        detail:
+          "Click the microphone and talk. Otzar transcribes your words securely and puts the text here for you to review before sending.",
+        showRequestButton: false,
+        micButtonEnabled: true,
+        tone: "ok",
+      };
+    }
     return {
       headline: "Voice input unavailable in this browser",
       detail:
@@ -161,7 +263,10 @@ export function speechRecognitionErrorCopy(error: string): string {
     case "audio-capture":
       return "No microphone device detected. Check your input device, then try again.";
     case "network":
-      return "Browser STT requires network access for some implementations. Check your connection or type your message.";
+      // P0G: this error means the browser's own speech service is
+      // unreachable — Otzar automatically retries through its secure
+      // server transcription when the mic can record.
+      return "Your browser's speech service couldn't be reached over the network. Otzar will retry with secure server transcription — you can also type your message.";
     case "aborted":
       return "Voice input was cancelled.";
     case "language-not-supported":

@@ -35,14 +35,22 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+// P0G — the shell-agnostic MediaRecorder→server transcription hook
+// (the desktop path's engine) doubles as the browser fallback here.
+import { useDesktopVoiceCapture } from "@/hooks/useDesktopVoiceCapture";
 import { speakWithOtzarVoice } from "@/lib/voice/premium-tts";
 import { useOtzarVoiceIntent } from "@/hooks/useOtzarVoiceIntent";
 import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import {
+  decideSttPath,
   detectShellMode,
   llmErrorCopy,
   micCopyFor,
+  SERVER_STT_DISCLOSURE,
+  SERVER_STT_TRANSCRIBED_NOTE,
+  shouldAutoFallbackToServerStt,
   speechRecognitionErrorCopy,
+  transcribeErrorCopy,
 } from "@/lib/voice/diagnostics";
 import {
   describeAmbientVoiceMode,
@@ -134,6 +142,18 @@ export function Voice() {
   const intent = useOtzarVoiceIntent();
   const micPerm = useMicrophonePermission();
   const [draft, setDraft] = useState("");
+  // ── P0G — browser voice → server STT fallback ────────────────────
+  const serverCap = useDesktopVoiceCapture();
+  const serverCapRef = useRef(serverCap);
+  serverCapRef.current = serverCap;
+  const recognitionRef = useRef(recognition);
+  recognitionRef.current = recognition;
+  // Once Web Speech fails with a "network" error this session, this
+  // surface prefers the server transcription path directly.
+  const [serverSttPreferred, setServerSttPreferred] = useState(false);
+  const autoSttFallbackUsedRef = useRef(false);
+  // True while a server transcript sits in the draft awaiting review.
+  const [serverTranscribed, setServerTranscribed] = useState(false);
   // EMERGENCY TTS LOOP GUARD per [FOUNDER-AUTH — EMERGENCY FIX]:
   // auto-speak is OFF by default. Operator explicitly enables it.
   const [autoSpeak, setAutoSpeak] = useState(false);
@@ -143,6 +163,41 @@ export function Voice() {
   useEffect(() => {
     if (recognition.transcript.length > 0) setDraft(recognition.transcript);
   }, [recognition.transcript]);
+
+  // P0G — a server transcript fills the SAME draft the Web Speech path
+  // fills; the operator reviews, then sends. (The Tauri desktop shell
+  // keeps its own flow inside AmbientOtzarBar — this page is browser-
+  // facing, so no auto-submit here either way.)
+  useEffect(() => {
+    const t = serverCap.transcript.trim();
+    if (t.length === 0) return;
+    setDraft(t);
+    setServerTranscribed(true);
+    serverCapRef.current.reset();
+  }, [serverCap.transcript]);
+  useEffect(() => {
+    if (draft.trim().length === 0) setServerTranscribed(false);
+  }, [draft]);
+
+  // P0G — automatic ONE-TIME switch to server STT when the browser's
+  // own speech service fails with a "network" error; afterwards the
+  // mic routes to server transcription directly (no engine flapping).
+  useEffect(() => {
+    if (
+      !shouldAutoFallbackToServerStt({
+        shell: detectShellMode(),
+        webSpeechError: recognition.error,
+        recorderAvailable: serverCap.supported,
+        alreadyFellBackThisSession: autoSttFallbackUsedRef.current,
+      })
+    ) {
+      return;
+    }
+    autoSttFallbackUsedRef.current = true;
+    setServerSttPreferred(true);
+    recognitionRef.current.reset();
+    void serverCapRef.current.start();
+  }, [recognition.error, serverCap.supported]);
 
   // AUTO-SPEAK effect — gated on the toggle + a stable response key.
   // The key combines conversation_id + tokens_consumed so a new turn
@@ -168,7 +223,35 @@ export function Voice() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSpeak, responseKey]);
 
+  // P0G — which STT engine drives the mic button on this page. Web
+  // Speech stays primary when it works; the server transcription path
+  // is the fallback (and the primary when Web Speech is unavailable).
+  const sttPath = decideSttPath({
+    shell: detectShellMode(),
+    webSpeechAvailable: recognition.supported,
+    recorderAvailable: serverCap.supported,
+    serverSttPreferred,
+  });
+  // "desktop_capture" (Tauri) is deliberately EXCLUDED on this page —
+  // the desktop voice flow lives in AmbientOtzarBar; this page keeps
+  // its existing typed-fallback copy in the Tauri shell, unchanged.
+  const useServerStt = sttPath === "server_stt";
+
   async function handleMicToggle(): Promise<void> {
+    if (useServerStt) {
+      // Record → stop → transcribe on the server; the transcript
+      // effect above fills the draft for review.
+      if (
+        serverCap.state === "recording" ||
+        serverCap.state === "transcribing"
+      ) {
+        serverCap.stop();
+        return;
+      }
+      setServerTranscribed(false);
+      await serverCap.start();
+      return;
+    }
     if (recognition.listening) {
       recognition.stop();
       return;
@@ -214,8 +297,17 @@ export function Voice() {
   }
 
   const shellMode = detectShellMode();
-  const micCopy = micCopyFor(shellMode, micPerm.state, recognition.supported);
+  // P0G: 4th arg — the recorder→server fallback capability. When Web
+  // Speech is missing but the recorder exists, the mic stays usable.
+  const micCopy = micCopyFor(
+    shellMode,
+    micPerm.state,
+    recognition.supported,
+    serverCap.supported,
+  );
   const PermIcon = toneIcon(micCopy.tone);
+  const serverCapActive =
+    serverCap.state === "recording" || serverCap.state === "transcribing";
   const response = intent.response;
 
   // Phase OTZAR-RETURN-3 — honest ambient capture readiness, sourced from the
@@ -232,13 +324,17 @@ export function Voice() {
     : recognition.supported
       ? "ready"
       : "unsupported";
-  const ambientCaptureCopy = describeAmbientVoiceMode({
-    device_mode: "desktop_browser",
-    capture_mode: captureMode,
-    status: captureStatus,
-    browserRecognitionSupported: recognition.supported,
-    providerBlocked,
-  });
+  // P0G: when the server transcription path drives the mic, the shared
+  // model's "text only" copy would be dishonest — voice DOES work here.
+  const ambientCaptureCopy = useServerStt
+    ? `Push-to-talk voice is available. ${SERVER_STT_DISCLOSURE}`
+    : describeAmbientVoiceMode({
+        device_mode: "desktop_browser",
+        capture_mode: captureMode,
+        status: captureStatus,
+        browserRecognitionSupported: recognition.supported,
+        providerBlocked,
+      });
   const trimmedDraft = draft.trim();
   const routeHint =
     trimmedDraft.length > 0 ? inferVoiceIntentRoute(trimmedDraft) : null;
@@ -405,28 +501,49 @@ export function Voice() {
   // signals (mic support, permission, live listening, captured transcript). The
   // machine is explicit-only: there is no background/always-on path, which is
   // exactly what this surface communicates.
-  const pttState: PushToTalkState = !recognition.supported
-    ? "blocked"
-    : micPerm.state === "denied"
+  // P0G: when the server transcription path drives the mic, derive the
+  // push-to-talk state from the recorder instead of Web Speech — the
+  // old mapping would have shown "blocked" while voice actually works.
+  const pttState: PushToTalkState = useServerStt
+    ? micPerm.state === "denied"
       ? "permission_denied"
-      : recognition.listening
+      : serverCap.state === "recording"
         ? "listening"
-        : recognition.error !== null
-          ? "error"
-          : recognition.transcript.trim().length > 0
-            ? "captured"
-            : "idle";
+        : serverCap.state === "transcribing"
+          ? "captured"
+          : serverCap.state === "error"
+            ? "error"
+            : serverTranscribed
+              ? "captured"
+              : "idle"
+    : !recognition.supported
+      ? "blocked"
+      : micPerm.state === "denied"
+        ? "permission_denied"
+        : recognition.listening
+          ? "listening"
+          : recognition.error !== null
+            ? "error"
+            : recognition.transcript.trim().length > 0
+              ? "captured"
+              : "idle";
 
   let status = "Ambient. Click the microphone or type to Otzar.";
   let statusClass = "text-muted-foreground";
-  if (recognition.listening) {
+  if (recognition.listening || serverCap.state === "recording") {
     status = "Listening…";
+    statusClass = "text-primary";
+  } else if (serverCap.state === "transcribing") {
+    status = "Transcribing…";
     statusClass = "text-primary";
   } else if (intent.processing) {
     status = "Processing…";
     statusClass = "text-primary";
   } else if (synthesis.speaking) {
     status = "Otzar is speaking…";
+    statusClass = "text-primary";
+  } else if (serverTranscribed) {
+    status = "Transcribed via server";
     statusClass = "text-primary";
   } else if (synthesis.muted) {
     status = "Muted";
@@ -499,19 +616,23 @@ export function Voice() {
           <div className="flex items-center gap-3">
             <Button
               type="button"
-              variant={recognition.listening ? "destructive" : "default"}
+              variant={
+                recognition.listening || serverCapActive
+                  ? "destructive"
+                  : "default"
+              }
               onClick={() => void handleMicToggle()}
               disabled={!micCopy.micButtonEnabled}
               aria-label={
-                recognition.listening
+                recognition.listening || serverCapActive
                   ? "Stop listening"
-                  : recognition.supported
+                  : recognition.supported || useServerStt
                     ? "Start listening"
                     : "Voice input unavailable"
               }
               className="h-16 w-16 rounded-full p-0 shrink-0"
             >
-              {recognition.supported ? (
+              {recognition.supported || useServerStt ? (
                 <Mic className="h-8 w-8" />
               ) : (
                 <MicOff className="h-8 w-8" />
@@ -522,13 +643,31 @@ export function Voice() {
                 {status}
               </div>
               <div className="text-xs text-muted-foreground">
-                {recognition.supported
-                  ? "Your browser transcribes your speech (some browsers use their provider's speech service to do this). Otzar only ever receives the text, never the audio."
-                  : "Voice input unavailable in this shell. Type to Otzar."}
+                {useServerStt
+                  ? SERVER_STT_DISCLOSURE
+                  : recognition.supported
+                    ? "Your browser transcribes your speech (some browsers use their provider's speech service to do this). Otzar only ever receives the text, never the audio."
+                    : "Voice input unavailable in this shell. Type to Otzar."}
               </div>
             </div>
           </div>
 
+          {serverTranscribed ? (
+            <div
+              className="text-xs text-muted-foreground"
+              data-testid="voice-server-stt-note"
+            >
+              {SERVER_STT_TRANSCRIBED_NOTE}
+            </div>
+          ) : null}
+          {serverCap.state === "error" && serverCap.errorCode !== null ? (
+            <div
+              className="text-sm text-destructive"
+              data-testid="voice-server-stt-error"
+            >
+              {transcribeErrorCopy(serverCap.errorCode)}
+            </div>
+          ) : null}
           {recognition.error !== null ? (
             <div className="text-sm text-destructive">
               {speechRecognitionErrorCopy(recognition.error)}
@@ -1095,7 +1234,12 @@ export function Voice() {
             </div>
             <p className="text-xs text-muted-foreground">
               Voice input:{" "}
-              {recognition.supported ? "browser STT" : "text only"} ·
+              {useServerStt
+                ? "microphone → secure server transcription"
+                : recognition.supported
+                  ? "browser STT"
+                  : "text only"}{" "}
+              ·
               Voice output:{" "}
               {synthesis.supported
                 ? synthesis.muted

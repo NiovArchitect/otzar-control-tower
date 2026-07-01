@@ -62,9 +62,9 @@ import {
   usePresenceStore,
   usePresenceState,
   presenceIntensity,
-  type OtzarPresenceState,
   type PresenceIntensity,
 } from "@/lib/stores/presence";
+import { presenceRing } from "@/lib/ambient/presence-ring";
 import {
   detectNativeMicCapability,
   nativeMicCopy,
@@ -208,12 +208,30 @@ import { useDesktopVoiceCapture } from "@/hooks/useDesktopVoiceCapture";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
 import {
+  decideSttPath,
   detectShellMode,
   llmErrorCopy,
   micCopyFor,
+  SERVER_STT_DISCLOSURE,
+  SERVER_STT_TRANSCRIBED_NOTE,
+  shouldAutoFallbackToServerStt,
   speechRecognitionErrorCopy,
   transcribeErrorCopy,
 } from "@/lib/voice/diagnostics";
+import {
+  clampDockBottom,
+  clampOrbPoint,
+  DEFAULT_ORB_SIZE,
+  isDragThresholdExceeded,
+  ORB_EDGE_MARGIN,
+  ORB_POSITION_STORAGE_KEY,
+  orbPositionToStyle,
+  parseStoredOrbPosition,
+  serializeOrbPosition,
+  snapOrbPosition,
+  type OrbPosition,
+  type OrbSize,
+} from "@/lib/ambient/orb-position";
 import { describeAmbientVoiceMode } from "@/lib/voice/ambient-voice-capture";
 
 /**
@@ -250,40 +268,8 @@ function toneIcon(tone: "ok" | "warn" | "error" | "muted"): typeof ShieldCheck {
   }
 }
 
-// [OTZAR-LIVE-6] Ambient Enterprise Glass Interface — the orb is a translucent
-// frosted-glass intelligence layer, and its presence state is expressed as
-// Siri-like AMBIENT COLOR diffused THROUGH the glass, never a hard neon border.
-// Speaks the SAME nine-state language as AmbientEdgeGlow so a glow always means a
-// real state. Returns: `bloom` — a soft radial color field painted under the
-// glass (the Siri aura); `glow` — a low-opacity outer luminance (depth + state
-// hint); `dot` — the small status-dot accent. Calm, low-opacity, blurred.
-export function presenceRing(state: OtzarPresenceState): {
-  bloom: string;
-  glow: string;
-  dot: string;
-} {
-  switch (state) {
-    case "LISTENING":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(56,189,248,0.30),transparent_70%)]", glow: "shadow-[0_8px_48px_-12px_rgba(56,189,248,0.45)]", dot: "bg-sky-400" };
-    case "THINKING":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(129,140,248,0.28),transparent_70%)]", glow: "shadow-[0_8px_48px_-12px_rgba(129,140,248,0.42)]", dot: "bg-indigo-400" };
-    case "RECOMMENDATION":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(45,212,191,0.24),transparent_70%)]", glow: "shadow-[0_8px_44px_-14px_rgba(45,212,191,0.4)]", dot: "bg-teal-400" };
-    case "APPROVAL_REQUIRED":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(251,191,36,0.30),transparent_70%)]", glow: "shadow-[0_8px_50px_-12px_rgba(251,191,36,0.45)]", dot: "bg-amber-400" };
-    case "SUCCESS":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(52,211,153,0.26),transparent_70%)]", glow: "shadow-[0_8px_48px_-12px_rgba(52,211,153,0.42)]", dot: "bg-emerald-400" };
-    case "BLOCKED":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(245,158,11,0.22),transparent_70%)]", glow: "shadow-[0_8px_40px_-14px_rgba(245,158,11,0.36)]", dot: "bg-amber-500" };
-    case "FAILURE":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(251,113,133,0.24),transparent_70%)]", glow: "shadow-[0_8px_44px_-14px_rgba(251,113,133,0.4)]", dot: "bg-rose-400" };
-    case "QUIET":
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(148,163,184,0.12),transparent_70%)]", glow: "shadow-[0_8px_36px_-16px_rgba(15,23,42,0.3)]", dot: "bg-slate-400" };
-    case "IDLE":
-    default:
-      return { bloom: "bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(186,200,224,0.18),transparent_70%)]", glow: "shadow-[0_8px_40px_-14px_rgba(15,23,42,0.22)]", dot: "bg-slate-400" };
-  }
-}
+// The presenceRing ambient state palette moved to
+// src/lib/ambient/presence-ring.ts (shared lib logic, fast-refresh-safe).
 
 // [OTZAR-LIVE-6] The living bloom drifts only when Otzar is actively WORKING
 // (listening / thinking / routing / drafting) — Siri-like, calm. Idle is nearly
@@ -393,6 +379,142 @@ export function AmbientOtzarBar(): JSX.Element {
     return () => window.removeEventListener("otzar:open", open);
   }, []);
   const [draft, setDraft] = useState("");
+  // ── P0H — draggable orb position (per device, persisted) ──────────
+  // null = the default bottom-right anchor (pre-P0H classes, unchanged).
+  // A stored/dragged position renders as inline styles instead.
+  const [orbPos, setOrbPos] = useState<OrbPosition | null>(null);
+  // Live top-left point while a drag is in flight (free movement; the
+  // release snaps to the nearest horizontal edge).
+  const [orbDragPoint, setOrbDragPoint] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const orbWrapperRef = useRef<HTMLDivElement | null>(null);
+  const orbDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originLeft: number;
+    originTop: number;
+    dragging: boolean;
+  } | null>(null);
+  // A completed drag must NOT count as a click (click expands the dock).
+  const orbSuppressClickRef = useRef(false);
+  // Restore + validate the per-device position once on mount. Anything
+  // off-screen for THIS viewport (or malformed) resets to the default
+  // bottom-right and clears the stale entry.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(ORB_POSITION_STORAGE_KEY);
+      const stored = parseStoredOrbPosition(raw, {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+      if (stored !== null) {
+        setOrbPos(stored);
+      } else if (raw !== null) {
+        window.localStorage.removeItem(ORB_POSITION_STORAGE_KEY);
+      }
+    } catch {
+      /* storage unavailable (private mode etc.) → default position */
+    }
+  }, []);
+  function measureOrb(): OrbSize {
+    const el = orbWrapperRef.current;
+    if (el !== null) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        return { width: rect.width, height: rect.height };
+      }
+    }
+    return DEFAULT_ORB_SIZE;
+  }
+  function handleOrbPointerDown(
+    e: React.PointerEvent<HTMLButtonElement>,
+  ): void {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const rect = orbWrapperRef.current?.getBoundingClientRect();
+    orbDragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originLeft: rect?.left ?? e.clientX,
+      originTop: rect?.top ?? e.clientY,
+      dragging: false,
+    };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer capture unsupported — drag still works via bubbling */
+    }
+  }
+  function handleOrbPointerMove(
+    e: React.PointerEvent<HTMLButtonElement>,
+  ): void {
+    const drag = orbDragRef.current;
+    if (drag === null || drag.pointerId !== e.pointerId) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (!drag.dragging && !isDragThresholdExceeded(dx, dy)) return;
+    drag.dragging = true;
+    setOrbDragPoint(
+      clampOrbPoint(
+        drag.originLeft + dx,
+        drag.originTop + dy,
+        { width: window.innerWidth, height: window.innerHeight },
+        measureOrb(),
+      ),
+    );
+  }
+  function handleOrbPointerUp(e: React.PointerEvent<HTMLButtonElement>): void {
+    const drag = orbDragRef.current;
+    if (drag === null || drag.pointerId !== e.pointerId) return;
+    orbDragRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    if (!drag.dragging) return; // plain tap → onClick expands as before
+    orbSuppressClickRef.current = true;
+    const snapped = snapOrbPosition(
+      drag.originLeft + (e.clientX - drag.startX),
+      drag.originTop + (e.clientY - drag.startY),
+      { width: window.innerWidth, height: window.innerHeight },
+      measureOrb(),
+    );
+    setOrbDragPoint(null);
+    setOrbPos(snapped);
+    try {
+      window.localStorage.setItem(
+        ORB_POSITION_STORAGE_KEY,
+        serializeOrbPosition(snapped),
+      );
+    } catch {
+      /* storage unavailable → position holds for this page only */
+    }
+  }
+  function handleOrbPointerCancel(): void {
+    orbDragRef.current = null;
+    setOrbDragPoint(null);
+  }
+  function handleOrbClick(): void {
+    if (orbSuppressClickRef.current) {
+      orbSuppressClickRef.current = false;
+      return;
+    }
+    setExpanded(true);
+  }
+  function handleResetOrbPosition(): void {
+    setOrbPos(null);
+    setOrbDragPoint(null);
+    try {
+      window.localStorage.removeItem(ORB_POSITION_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
   // Phase 1253 — the router's last calm acknowledgement ("I opened
   // Integrations…"), shown inline so voice routing feels intentional.
   const [routerAck, setRouterAck] = useState<string | null>(null);
@@ -469,6 +591,19 @@ export function AmbientOtzarBar(): JSX.Element {
   const desktopCap = useDesktopVoiceCapture();
   const desktopCapRef = useRef(desktopCap);
   desktopCapRef.current = desktopCap;
+  // ── P0G — browser voice → server STT fallback ──────────────────────
+  // The same MediaRecorder→server hook above (shell-agnostic) becomes
+  // the browser fallback: once Web Speech fails with a "network" error
+  // this session, this surface prefers server transcription directly
+  // (no flapping between engines).
+  const [serverSttPreferred, setServerSttPreferred] = useState(false);
+  // The automatic mid-error switch fires at most ONCE per session on
+  // this surface; afterwards serverSttPreferred routes the mic button
+  // straight to server STT.
+  const autoSttFallbackUsedRef = useRef(false);
+  // True right after a server transcript landed in the draft (browser
+  // path) — drives the honest "Transcribed via server" note.
+  const [serverTranscribed, setServerTranscribed] = useState(false);
   // Phase 1266 — the persistent, scrollable Otzar conversation thread.
   const conversation = useConversationStore((s) => s.entries);
   const clearConversation = useConversationStore((s) => s.clear);
@@ -800,14 +935,56 @@ export function AmbientOtzarBar(): JSX.Element {
 
   // Phase 1264 — desktop shells use the MediaRecorder→Whisper path;
   // browser shells keep the local Web Speech API path.
-  const useDesktopCapture =
-    detectShellMode() === "tauri_webview" && desktopCap.supported;
+  // P0G: the gate is now the pure decideSttPath matrix. Tauri behavior
+  // is IDENTICAL ("desktop_capture"); browsers additionally get
+  // "server_stt" as fallback/primary when Web Speech fails or is absent.
+  const sttPath = decideSttPath({
+    shell: detectShellMode(),
+    webSpeechAvailable: recognition.supported,
+    recorderAvailable: desktopCap.supported,
+    serverSttPreferred,
+  });
+  const useDesktopCapture = sttPath === "desktop_capture";
+  const useServerStt = sttPath === "server_stt";
+  // Both routes drive the SAME capture hook — one MediaRecorder impl.
+  const useRecorderCapture = useDesktopCapture || useServerStt;
+
+  // P0G — automatic ONE-TIME switch: a Web Speech "network" failure
+  // (the browser's own speech service unreachable) flips this surface
+  // to server transcription and starts capture immediately, so the
+  // employee can just speak again. Subsequent turns route to server
+  // STT directly via serverSttPreferred — never flapping back.
+  useEffect(() => {
+    if (
+      !shouldAutoFallbackToServerStt({
+        shell: detectShellMode(),
+        webSpeechError: recognition.error,
+        recorderAvailable: desktopCap.supported,
+        alreadyFellBackThisSession: autoSttFallbackUsedRef.current,
+      })
+    ) {
+      return;
+    }
+    autoSttFallbackUsedRef.current = true;
+    setServerSttPreferred(true);
+    // Clear the web-speech error so the surface shows the live server
+    // capture state instead of a stale failure line.
+    recognitionRef.current.reset();
+    if (!quiet) void desktopCapRef.current.start();
+  }, [recognition.error, desktopCap.supported, quiet]);
+
+  // The "Transcribed via server" note lives only while the transcript
+  // sits in the draft awaiting review.
+  useEffect(() => {
+    if (draft.trim().length === 0) setServerTranscribed(false);
+  }, [draft]);
 
   async function handleMicToggle(): Promise<void> {
     if (quiet) return;
-    if (useDesktopCapture) {
-      // Desktop: record → stop → transcribe. The transcript effect
-      // submits it through the governed action/chat path.
+    if (useRecorderCapture) {
+      // Desktop (unchanged) + browser server-STT: record → stop →
+      // transcribe. Desktop auto-submits the transcript; the browser
+      // fallback fills the draft for review (see the transcript effect).
       if (
         desktopCap.state === "recording" ||
         desktopCap.state === "transcribing"
@@ -815,6 +992,7 @@ export function AmbientOtzarBar(): JSX.Element {
         desktopCap.stop();
         return;
       }
+      setServerTranscribed(false);
       await desktopCap.start();
       return;
     }
@@ -3714,11 +3892,21 @@ export function AmbientOtzarBar(): JSX.Element {
     if (t.length === 0) return;
     // Capture which engine transcribed BEFORE reset() clears it.
     const prov = desktopCapRef.current.provider;
+    if (detectShellMode() === "tauri_webview") {
+      // Desktop (unchanged): auto-submit through the governed path.
+      setDraft(t);
+      void handleSendTextRef.current(t);
+      // handleSendText clears transcriptionProvider for typed input;
+      // re-set it AFTER so the desktop-voice provider wins.
+      setTranscriptionProvider(prov);
+      desktopCapRef.current.reset();
+      return;
+    }
+    // P0G browser fallback: the server transcript fills the SAME draft
+    // the Web Speech path fills — the employee reviews, then sends.
     setDraft(t);
-    void handleSendTextRef.current(t);
-    // handleSendText clears transcriptionProvider for typed input;
-    // re-set it AFTER so the desktop-voice provider wins.
     setTranscriptionProvider(prov);
+    setServerTranscribed(true);
     desktopCapRef.current.reset();
   }, [desktopCap.transcript]);
 
@@ -3765,6 +3953,11 @@ export function AmbientOtzarBar(): JSX.Element {
   } else if (hasVoiceError) {
     status = "Error";
     statusClass = "text-destructive";
+  } else if (serverTranscribed) {
+    // P0G — the browser fallback finished: the transcript is in the
+    // draft, waiting for the employee's review + send.
+    status = "Transcribed via server";
+    statusClass = "text-primary";
   } else if (synthesis.muted) {
     status = "Muted";
   } else if (intent.response !== null || actionResult !== null) {
@@ -3775,7 +3968,8 @@ export function AmbientOtzarBar(): JSX.Element {
 
   // Phase 1264 — unified mic availability across shells. Desktop uses
   // MediaRecorder→Whisper; browser uses the local Web Speech API.
-  const voiceInputAvailable = useDesktopCapture || recognition.supported;
+  // P0G: browsers additionally count the server-STT capture path.
+  const voiceInputAvailable = sttPath !== "text_only";
   const micActive =
     recognition.listening || desktopCap.state === "recording";
   const micEnabled =
@@ -3837,11 +4031,33 @@ export function AmbientOtzarBar(): JSX.Element {
               : presenceState === "RECOMMENDATION"
                 ? "bg-teal-400/20"
                 : "bg-transparent";
+    // P0H — the wrapper is content-sized (never a full-width strip) and
+    // the halo is pointer-events-none, so nothing outside the visible
+    // pill can intercept clicks meant for the page underneath. Position:
+    // default Tailwind anchor until the employee drags; then inline
+    // styles (safe-area aware), snapped to the nearest horizontal edge
+    // and persisted per device.
+    const orbAnchorStyle =
+      orbDragPoint !== null
+        ? { left: `${orbDragPoint.x}px`, top: `${orbDragPoint.y}px` }
+        : orbPos !== null
+          ? orbPositionToStyle(orbPos)
+          : undefined;
+    const orbAnchorClass =
+      orbDragPoint !== null || orbPos !== null
+        ? "fixed z-[60]"
+        : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60]";
     return (
-      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60]">
+      <div
+        ref={orbWrapperRef}
+        className={orbAnchorClass}
+        style={orbAnchorStyle}
+        data-orb-edge={orbPos?.edge ?? "right"}
+        data-orb-dragging={orbDragPoint !== null ? "true" : "false"}
+      >
         <span
           aria-hidden
-          className={`absolute -inset-2 rounded-full blur-md transition-colors duration-700 ${orbHalo}`}
+          className={`pointer-events-none absolute -inset-2 rounded-full blur-md transition-colors duration-700 ${orbHalo}`}
         />
         <button
           type="button"
@@ -3850,8 +4066,12 @@ export function AmbientOtzarBar(): JSX.Element {
           data-testid="ambient-otzar-bar"
           data-quiet={quiet ? "true" : "false"}
           data-presence={presenceState}
-          onClick={() => setExpanded(true)}
-          className={`relative flex items-center gap-2 overflow-hidden rounded-full border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 ${ring.glow} px-5 py-3 text-sm font-semibold text-slate-900 ring-1 ring-black/[0.04] backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow] duration-700 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-sky-400/40 ${
+          onClick={handleOrbClick}
+          onPointerDown={handleOrbPointerDown}
+          onPointerMove={handleOrbPointerMove}
+          onPointerUp={handleOrbPointerUp}
+          onPointerCancel={handleOrbPointerCancel}
+          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 ${ring.glow} px-5 py-3 text-sm font-semibold text-slate-900 ring-1 ring-black/[0.04] backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow] duration-700 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-sky-400/40 ${
             quiet ? "px-4 py-2 text-xs text-slate-600" : ""
           }`}
         >
@@ -3871,14 +4091,39 @@ export function AmbientOtzarBar(): JSX.Element {
 
   // ────────────────────────────────────────────────────────────
   // EXPANDED — full ambient dock with mic + text + response.
+  // P0H: the dock anchors to the orb's CURRENT edge (left or right)
+  // with its bottom clamped so the max-h-[88vh] panel never renders
+  // off-screen. Default (never dragged) keeps the pre-P0H classes.
   // ────────────────────────────────────────────────────────────
+  const dockAnchorStyle =
+    orbPos !== null
+      ? {
+          ...(orbPos.edge === "left"
+            ? {
+                left: `calc(env(safe-area-inset-left, 0px) + ${ORB_EDGE_MARGIN}px)`,
+              }
+            : {
+                right: `calc(env(safe-area-inset-right, 0px) + ${ORB_EDGE_MARGIN}px)`,
+              }),
+          bottom: `calc(env(safe-area-inset-bottom, 0px) + ${clampDockBottom(
+            orbPos.bottom,
+            typeof window !== "undefined" ? window.innerHeight : 800,
+          )}px)`,
+        }
+      : undefined;
+  const dockAnchorClass =
+    orbPos !== null
+      ? "fixed z-[60]"
+      : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60]";
   return (
     <div
       role="region"
       aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
       data-presence={presenceState}
-      className={`group fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60] flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
+      data-orb-edge={orbPos?.edge ?? "right"}
+      style={dockAnchorStyle}
+      className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
     >
       {/* Siri-like ambient color field, diffused UNDER the glass — the state
           color blooms through the frost, it is not a hard border. Active states
@@ -4105,7 +4350,37 @@ export function AmbientOtzarBar(): JSX.Element {
                 </div>
               );
             }
-            const copy = micCopyFor(shell, micPerm.state, recognition.supported);
+            // P0G — browser server-STT path: live, honest state copy for
+            // the MediaRecorder→server transcription flow (mirrors the
+            // desktop branch above; typing always keeps working).
+            if (useServerStt) {
+              const serverCopy =
+                desktopCap.state === "error" && desktopCap.errorCode !== null
+                  ? transcribeErrorCopy(desktopCap.errorCode)
+                  : desktopCap.state === "recording"
+                    ? "Listening — tap the mic again to finish."
+                    : desktopCap.state === "transcribing"
+                      ? "Transcribing your audio…"
+                      : "Voice is on. Tap the mic and talk — Otzar transcribes your words securely and puts the text here to review before sending.";
+              const serverTone =
+                desktopCap.state === "error" ? "error" : "muted";
+              return (
+                <div
+                  className={`flex items-start gap-2 text-xs ${toneClass(serverTone)}`}
+                  data-testid="ambient-permission-state"
+                  data-server-stt={desktopCap.state}
+                >
+                  <Mic className="h-3 w-3 mt-0.5 shrink-0" aria-hidden />
+                  <div className="flex-1 min-w-0">{serverCopy}</div>
+                </div>
+              );
+            }
+            const copy = micCopyFor(
+              shell,
+              micPerm.state,
+              recognition.supported,
+              desktopCap.supported,
+            );
             const Icon = toneIcon(copy.tone);
             return (
               <div
@@ -4251,6 +4526,24 @@ export function AmbientOtzarBar(): JSX.Element {
           {!voiceInputAvailable ? (
             <p className="text-xs text-muted-foreground">
               Voice input unavailable in this shell. Type to Otzar instead.
+            </p>
+          ) : null}
+          {/* P0G — honest post-transcription note + the existing server
+              disclosure whenever the server engine is the active path. */}
+          {serverTranscribed ? (
+            <p
+              className="text-xs text-muted-foreground"
+              data-testid="server-stt-note"
+            >
+              {SERVER_STT_TRANSCRIBED_NOTE}
+            </p>
+          ) : null}
+          {useServerStt ? (
+            <p
+              className="text-[10px] text-muted-foreground"
+              data-testid="server-stt-disclosure"
+            >
+              {SERVER_STT_DISCLOSURE}
             </p>
           ) : null}
           {!synthesis.supported ? (
@@ -4795,6 +5088,19 @@ export function AmbientOtzarBar(): JSX.Element {
               />
               Auto-speak
             </label>
+            {/* P0H — restore the default bottom-right anchor. Only
+                shown once the orb has actually been moved. */}
+            {orbPos !== null ? (
+              <button
+                type="button"
+                onClick={handleResetOrbPosition}
+                className="text-[11px] text-muted-foreground underline hover:text-foreground"
+                data-testid="orb-position-reset"
+                title="Move Otzar back to the bottom-right corner"
+              >
+                Reset position
+              </button>
+            ) : null}
           </div>
 
           <p
@@ -4805,7 +5111,7 @@ export function AmbientOtzarBar(): JSX.Element {
             // copy does not describe it (the visible "no raw audio is stored"
             // line below stays accurate for both).
             title={
-              useDesktopCapture
+              useDesktopCapture || useServerStt
                 ? undefined
                 : describeAmbientVoiceMode({
                     device_mode: "desktop_browser",
@@ -4818,9 +5124,11 @@ export function AmbientOtzarBar(): JSX.Element {
             Voice input:{" "}
             {useDesktopCapture
               ? "desktop mic → transcription"
-              : recognition.supported
-                ? "browser STT"
-                : "text only"}
+              : useServerStt
+                ? "microphone → secure server transcription"
+                : recognition.supported
+                  ? "browser STT"
+                  : "text only"}
             {" · "}
             Voice output:{" "}
             {synthesis.muted

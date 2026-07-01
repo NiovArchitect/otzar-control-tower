@@ -9,6 +9,17 @@
 //          resulting STRING is handed to the SAME governed chat path
 //          as typed input.
 //
+//          P0G: the hook is SHELL-AGNOSTIC — nothing in it is Tauri-
+//          specific. Browser surfaces reuse this exact hook as the
+//          server-STT FALLBACK when the Web Speech API fails (and as
+//          the primary path when Web Speech is unavailable). The
+//          decision of WHICH engine drives the mic lives in
+//          decideSttPath (src/lib/voice/diagnostics.ts); this hook
+//          only records + transcribes. MIME selection walks
+//          RECORDER_MIME_CANDIDATES so Chromium records audio/webm
+//          and Safari/WKWebView record audio/mp4 — all inside the
+//          Foundation route's allowlist.
+//
 // PRIVACY INVARIANT:
 //   - Audio bytes live in memory for the single request only and are
 //     released immediately after transcription. Nothing is persisted
@@ -47,6 +58,47 @@ export interface DesktopVoiceCaptureHook {
   cancel: () => void;
   /** Clear transcript + error. */
   reset: () => void;
+}
+
+/**
+ * P0G — recorder MIME candidates, in preference order, all within the
+ * Foundation /otzar/voice/transcribe allowlist (webm / ogg / wav / mp4 /
+ * mpeg / m4a; codec parameters are stripped server-side). Chromium picks
+ * audio/webm; Safari + macOS WKWebView pick audio/mp4.
+ */
+export const RECORDER_MIME_CANDIDATES: readonly string[] = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+  "audio/ogg",
+];
+
+// WHAT: pick the first supported recorder MIME type for this shell.
+// INPUT: an isTypeSupported probe (injectable for tests; defaults to
+//        MediaRecorder.isTypeSupported when present).
+// OUTPUT: a MIME string to pass to `new MediaRecorder(stream, {mimeType})`,
+//         or null → construct with no options (the pre-P0G behavior).
+// WHY: keeps every recording inside the server allowlist across engines
+//      without duplicating a second MediaRecorder implementation.
+export function pickRecorderMimeType(
+  isTypeSupported?: (type: string) => boolean,
+): string | null {
+  const probe =
+    isTypeSupported ??
+    (typeof MediaRecorder !== "undefined" &&
+    typeof MediaRecorder.isTypeSupported === "function"
+      ? (t: string) => MediaRecorder.isTypeSupported(t)
+      : null);
+  if (probe === null) return null;
+  for (const candidate of RECORDER_MIME_CANDIDATES) {
+    try {
+      if (probe(candidate)) return candidate;
+    } catch {
+      /* a vendor probe throwing means "unsupported" — keep walking */
+    }
+  }
+  return null;
 }
 
 function hasRecorder(): boolean {
@@ -136,7 +188,19 @@ export function useDesktopVoiceCapture(): DesktopVoiceCaptureHook {
     chunksRef.current = [];
     let recorder: MediaRecorder;
     try {
-      recorder = new MediaRecorder(stream);
+      // P0G: prefer an allowlist-compatible MIME (audio/webm on
+      // Chromium, audio/mp4 on Safari/WKWebView). If the constructor
+      // rejects the hint, fall back to the shell default — exactly the
+      // pre-P0G behavior.
+      const preferredMime = pickRecorderMimeType();
+      try {
+        recorder =
+          preferredMime !== null
+            ? new MediaRecorder(stream, { mimeType: preferredMime })
+            : new MediaRecorder(stream);
+      } catch {
+        recorder = new MediaRecorder(stream);
+      }
     } catch {
       stopTracks();
       setErrorCode("MIC_UNSUPPORTED");

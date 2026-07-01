@@ -6,11 +6,11 @@
 //          indigo=thinking, teal=recommendation, amber=approval/blocked,
 //          emerald=success, rose=failure). If a state had no backing color it
 //          would be cosmetic — this locks the mapping.
-// CONNECTS TO: src/components/otzar/AmbientOtzarBar.tsx (presenceRing),
+// CONNECTS TO: src/lib/ambient/presence-ring.ts (presenceRing),
 //          src/lib/stores/presence.ts (OtzarPresenceState).
 
 import { describe, it, expect } from "vitest";
-import { presenceRing } from "@/components/otzar/AmbientOtzarBar";
+import { presenceRing } from "@/lib/ambient/presence-ring";
 import type { OtzarPresenceState } from "@/lib/stores/presence";
 
 const STATES: OtzarPresenceState[] = [
