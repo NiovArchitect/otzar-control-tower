@@ -404,23 +404,5 @@ export function WorkLedgerItem({
   );
 }
 
-// Group helper: small, honest buckets shared by the cockpits.
-export function bucketFor(entry: WorkLedgerEntryView): string {
-  if (entry.blind_spot_reason !== undefined) return "Runtime / verification issues";
-  if (entry.status === "BLOCKED" || entry.status === "RUNTIME_MISSING") return "Blocked";
-  if (entry.status.startsWith("NEEDS_")) return "Needs action";
-  if (entry.ledger_type === "FOLLOW_UP" || entry.ledger_type === "COMMITMENT") return "Follow-ups";
-  if (entry.ledger_type === "TASK") return "Tasks";
-  if (entry.ledger_type === "MEETING") return "Meetings / confirmations";
-  return "Recently created";
-}
-
-export const BUCKET_ORDER = [
-  "Runtime / verification issues",
-  "Needs action",
-  "Blocked",
-  "Follow-ups",
-  "Tasks",
-  "Meetings / confirmations",
-  "Recently created",
-] as const;
+// The bucketFor / BUCKET_ORDER grouping helpers moved to
+// src/lib/work-os/work-buckets.ts (shared lib logic, fast-refresh-safe).

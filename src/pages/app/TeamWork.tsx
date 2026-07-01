@@ -11,7 +11,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
-import { WorkLedgerItem, bucketFor, BUCKET_ORDER } from "@/components/work-os/WorkLedgerItem";
+import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
+import { bucketFor, BUCKET_ORDER } from "@/lib/work-os/work-buckets";
 import { isWaitingOnItem, groupWaitingByOwner, ageOf } from "@/lib/work-os/team-waiting-on";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import { useWorkStateChanged } from "@/lib/events/work-state";

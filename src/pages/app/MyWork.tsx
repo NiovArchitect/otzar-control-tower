@@ -9,11 +9,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
-import {
-  WorkLedgerItem,
-  bucketFor,
-  BUCKET_ORDER,
-} from "@/components/work-os/WorkLedgerItem";
+import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
+import { bucketFor, BUCKET_ORDER } from "@/lib/work-os/work-buckets";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { useWorkStateChanged } from "@/lib/events/work-state";
 

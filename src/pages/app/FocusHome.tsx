@@ -63,7 +63,7 @@ export function FocusHome(): JSX.Element {
   // single destination. When intelligence isn't available, fall back to the
   // presence counters so the door is never dead.
   const attention = intel !== null ? deriveTodayAttention(intel) : null;
-  let top: TopItem[] = attention !== null ? attention.items.map((i) => ({ text: i.text, to: i.to })) : [];
+  const top: TopItem[] = attention !== null ? attention.items.map((i) => ({ text: i.text, to: i.to })) : [];
   if (top.length === 0) {
     if (approvalsCount > 0) {
       top.push({ text: approvalsCount === 1 ? "1 approval is waiting" : `${approvalsCount} approvals are waiting`, to: "/app/action-center" });
