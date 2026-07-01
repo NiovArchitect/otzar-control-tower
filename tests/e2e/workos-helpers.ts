@@ -239,7 +239,7 @@ export async function linkWorkToGoal(
   token: string,
   goalId: string,
   ledgerEntryId: string,
-): Promise<{ status: number; ok: boolean; code?: string }> {
+): Promise<{ status: number; ok: boolean; code?: string | undefined }> {
   const r = await request.post(`${API}/work-os/goals/${encodeURIComponent(goalId)}/link`, {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     data: { ledger_entry_id: ledgerEntryId }, timeout: 30_000, failOnStatusCode: false,
@@ -297,4 +297,160 @@ export async function listSeeds(
   });
   const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string; seeds?: Array<Record<string, unknown>> };
   return { status: r.status(), ok: j.ok === true, code: j.code, seeds: j.seeds ?? [] };
+}
+
+// ── Slice F — governed connector/MCP write-back helpers ──────────────
+
+/** Create a WorkLedger commitment carrying an execution_plan for a given
+ *  connector (e.g. SLACK), so it can be bridged to a governed Action. */
+export async function createCommitment(
+  request: APIRequestContext,
+  token: string,
+  input: { title: string; summary?: string; requiredConnector: string; executionType?: string },
+): Promise<{ status: number; ok: boolean; ledger_entry_id: string | null }> {
+  const r = await request.post(`${API}/work-os/ledger`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: {
+      ledger_type: "COMMITMENT",
+      title: input.title,
+      ...(input.summary ? { summary: input.summary } : {}),
+      status: "READY_TO_EXECUTE",
+      extraction_source: "MANUAL",
+      source_type: "MANUAL",
+      evidence: [{ quote: `Governed write-back commitment: ${input.title}.` }],
+      details: {
+        execution_plan: {
+          requiredConnector: input.requiredConnector,
+          executionMode: "otzar_can_execute_with_approval",
+          executionType: input.executionType ?? "message",
+        },
+      },
+    },
+    timeout: 30_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; entry?: { ledger_entry_id?: string } };
+  return { status: r.status(), ok: j.ok === true, ledger_entry_id: j.entry?.ledger_entry_id ?? null };
+}
+
+/** Admin-only: idempotently register the org's SLACK_WRITE ConnectorBinding.
+ *  secret_ref is the env-var NAME (SLACK_BOT_TOKEN) — never a token value. */
+export async function registerSlackWriteBinding(
+  request: APIRequestContext,
+  token: string,
+  defaultChannel: string,
+): Promise<{ status: number; ok: boolean; created?: boolean | undefined; binding_id?: string | undefined; code?: string | undefined }> {
+  const r = await request.post(`${API}/work-os/connector-bindings/slack-write`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: { default_channel: defaultChannel },
+    timeout: 30_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; created?: boolean; binding_id?: string; code?: string };
+  return { status: r.status(), ok: j.ok === true, created: j.created, binding_id: j.binding_id, code: j.code };
+}
+
+/** Promote a commitment to a governed INVOKE_CONNECTOR Action. */
+export async function executeCommitment(
+  request: APIRequestContext,
+  token: string,
+  ledgerId: string,
+): Promise<{
+  status: number; ok: boolean; outcome?: string | undefined; action_id?: string | undefined; action_status?: string | undefined;
+  escalation_id?: string | undefined; ledger_status?: string | undefined; connector_type?: string | undefined; reason?: string | undefined; code?: string | undefined;
+}> {
+  const r = await request.post(`${API}/work-os/ledger/${ledgerId}/execute`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: {},
+    timeout: 30_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  return {
+    status: r.status(), ok: j.ok === true, outcome: j.outcome as string | undefined,
+    action_id: j.action_id as string | undefined, action_status: j.action_status as string | undefined,
+    escalation_id: j.escalation_id as string | undefined, ledger_status: j.ledger_status as string | undefined,
+    connector_type: j.connector_type as string | undefined, reason: j.reason as string | undefined,
+    code: j.code as string | undefined,
+  };
+}
+
+/** Reconcile a commitment's execution state from its linked Action. */
+export async function reconcileExecution(
+  request: APIRequestContext,
+  token: string,
+  ledgerId: string,
+): Promise<{ status: number; ok: boolean; ledger_status?: string | undefined; action_status?: string | undefined; reason?: string | undefined }> {
+  const r = await request.post(`${API}/work-os/ledger/${ledgerId}/reconcile-execution`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: {},
+    timeout: 30_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  return {
+    status: r.status(), ok: j.ok === true, ledger_status: j.ledger_status as string | undefined,
+    action_status: j.action_status as string | undefined, reason: j.reason as string | undefined,
+  };
+}
+
+/** Approve a dual-control EscalationRequest (caller must be a DISTINCT
+ *  resolver from the action's source — separation of duties). */
+export async function approveEscalation(
+  request: APIRequestContext,
+  token: string,
+  escalationId: string,
+): Promise<{ status: number; ok: boolean; code?: string | undefined }> {
+  const r = await request.post(`${API}/escalations/${escalationId}/approve`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: { resolution_metadata: { via: "otzar-workos-slice-f-live-smoke" } },
+    timeout: 30_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string };
+  return { status: r.status(), ok: j.ok === true || r.status() === 200, code: j.code };
+}
+
+/** Read an Action's current status. */
+export async function getAction(
+  request: APIRequestContext,
+  token: string,
+  actionId: string,
+): Promise<{ status: number; action_status?: string | undefined; requires_approval?: boolean | undefined }> {
+  const r = await request.get(`${API}/actions/${actionId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    failOnStatusCode: false,
+  });
+  // GET /actions/:id returns { ok, action: { status, requires_approval, ... } }.
+  const j = (await r.json().catch(() => ({}))) as { action?: { status?: string; requires_approval?: boolean } };
+  return { status: r.status(), action_status: j.action?.status, requires_approval: j.action?.requires_approval };
+}
+
+/** Read an Action's attempts — the latest carries the SAFE delivery_metadata
+ *  (Slack receipt: mode/channel/ts/permalink) from the provider. */
+export async function getActionAttempts(
+  request: APIRequestContext,
+  token: string,
+  actionId: string,
+): Promise<{ status: number; attempts: Array<Record<string, unknown>> }> {
+  const r = await request.get(`${API}/actions/${actionId}/attempts`, {
+    headers: { Authorization: `Bearer ${token}` },
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { attempts?: Array<Record<string, unknown>> };
+  return { status: r.status(), attempts: j.attempts ?? [] };
+}
+
+/** Read a single WorkLedger entry (for proposed_action_id + status). */
+export async function getLedgerEntry(
+  request: APIRequestContext,
+  token: string,
+  ledgerId: string,
+): Promise<{ status: number; entry?: Record<string, unknown> | undefined }> {
+  const r = await request.get(`${API}/work-os/ledger/${ledgerId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { entry?: Record<string, unknown> };
+  return { status: r.status(), entry: j.entry };
 }
