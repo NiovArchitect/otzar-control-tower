@@ -44,7 +44,21 @@ async function uiLogin(page: Page): Promise<void> {
   await page.getByLabel("Email").fill(EMAIL);
   await page.getByLabel("Password").fill(PW as string);
   await page.getByRole("button", { name: /sign in/i }).click();
+  // The session is only established once the app leaves /login — navigating
+  // before that races the auth redirect and every guard bounces back.
+  await page.waitForURL(/\/app/, { timeout: 25_000 });
   await expect(page.getByRole("alert")).toHaveCount(0);
+  await page.waitForLoadState("networkidle");
+}
+
+// Sessions are DELIBERATELY in-memory (auth store doctrine: no localStorage/
+// cookies) — a full page load drops the session by design. In-app movement is
+// therefore CLIENT-SIDE routing, exactly like a real user clicking nav.
+async function spaGoto(page: Page, path: string): Promise<void> {
+  await page.evaluate((p) => {
+    window.history.pushState({}, "", p);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, path);
   await page.waitForLoadState("networkidle");
 }
 
@@ -52,38 +66,38 @@ test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
   test.skip(!PW, SKIP_NO_PW);
 
   test("UX-1 P0B — Today attention is real-signal-backed and routes", async ({ page }, testInfo) => {
+    // The REAL landing surface is AmbientWorkSurface ("Needs you" panel with
+    // real-signal deep links). FocusHome is dead code (not routed) — recorded
+    // as a product-truth gap in the smoke matrix.
     await uiLogin(page);
-    await page.goto("/app");
-    await page.waitForLoadState("networkidle");
-    // P0B renders attention as focus-home-top-items (each item a deep link);
-    // zero attention = NO items block at all (doctrine: no card spam).
-    const items = page.getByTestId("focus-home-top-items").locator("a");
-    const count = await items.count();
-    if (count === 0) {
-      ev(testInfo, "P0B: zero attention items → no attention block (honest)");
-      await expect(page.getByTestId("focus-home")).toBeVisible();
+    await expect(page.getByTestId("ambient-work-surface")).toBeVisible();
+    const needsPanel = page.getByTestId("needs-me-panel");
+    if ((await needsPanel.count()) === 0) {
+      // Zero attention = NO panel at all (doctrine: no card spam).
+      ev(testInfo, "P0B: zero attention → no 'Needs you' panel (honest calm)");
       return;
     }
-    const text = (await items.first().textContent()) ?? "";
-    ev(testInfo, `P0B: attention item => "${text.trim().slice(0, 80)}"`);
-    await items.first().click();
+    const link = page.getByTestId("needs-approvals").or(page.getByTestId("needs-replies")).first();
+    const text = (await link.textContent()) ?? "";
+    ev(testInfo, `P0B: attention => "${text.trim().slice(0, 80)}"`);
+    await link.click();
     await page.waitForLoadState("networkidle");
-    // The click must ROUTE somewhere real (action center, comms, an item) —
+    // The click must ROUTE somewhere real (action center / comms) —
     // never remain a dead card on the home surface.
-    expect(page.url()).not.toMatch(/\/app\/?$/);
+    expect(page.url()).toMatch(/\/app\/(action-center|comms)/);
     ev(testInfo, `P0B: routed to ${new URL(page.url()).pathname}`);
   });
 
   test("UX-2 P0A — My Work renders the governed loop with live-only actions", async ({ page }, testInfo) => {
     await uiLogin(page);
-    await page.goto("/app/my-work");
-    await page.waitForLoadState("networkidle");
+    await spaGoto(page, "/app/my-work");
     const items = page.getByTestId("work-ledger-item");
+    await expect(items.first().or(page.getByTestId("my-work-empty"))).toBeVisible({ timeout: 15_000 });
     const n = await items.count();
     ev(testInfo, `P0A: ${n} work item(s) on My Work`);
     if (n === 0) {
       // Honest empty state, not a blank screen.
-      await expect(page.getByText(/no work|nothing|empty/i).first()).toBeVisible();
+      await expect(page.getByTestId("my-work-empty")).toBeVisible();
       return;
     }
     // Every rendered card opens its View/Why without a dead control.
@@ -120,8 +134,8 @@ test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
 
   test("UX-4 P0C — a saved conversation reopens its original source", async ({ page }, testInfo) => {
     await uiLogin(page);
-    await page.goto("/app/meeting-captures");
-    await page.waitForLoadState("networkidle");
+    await spaGoto(page, "/app/meeting-captures");
+    await expect(page.getByTestId("meeting-captures-page")).toBeVisible({ timeout: 15_000 });
     // Captures with a stored transcript expose "View original source".
     const openers = page.getByTestId("meeting-capture-view-source");
     const n = await openers.count();
@@ -147,8 +161,6 @@ test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
 
   test("UX-5 P0H — the orb drags, snaps to an edge, and persists per device", async ({ page }, testInfo) => {
     await uiLogin(page);
-    await page.goto("/app");
-    await page.waitForLoadState("networkidle");
     const orb = page.getByTestId("ambient-otzar-bar");
     await expect(orb).toBeVisible();
     const before = await orb.boundingBox();
@@ -165,20 +177,25 @@ test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
     await expect(wrapper.first()).toBeVisible();
     // A completed drag must NOT count as a click (the dock stays closed).
     await expect(page.getByLabel(/Message to Otzar/i)).toHaveCount(0);
-    // Position persists across reload (localStorage, per device).
-    await page.reload();
-    await page.waitForLoadState("networkidle");
+    // Per-DEVICE persistence: the position is stored under the versioned key.
+    // Sessions are in-memory by doctrine, so "persists" means it survives a
+    // fresh page load + NEW login on the same device.
+    const stored = await page.evaluate(() =>
+      window.localStorage.getItem("otzar.orb.position.v1"),
+    );
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored as string).edge).toBe("left");
+    await uiLogin(page); // full reload → session dropped by design → re-login
     const after = await page.getByTestId("ambient-otzar-bar").boundingBox();
     expect(after).not.toBeNull();
     expect(after!.x).toBeLessThan(before!.x);
-    ev(testInfo, `P0H: orb dragged right→left, persisted (x ${Math.round(before!.x)}→${Math.round(after!.x)})`);
+    ev(testInfo, `P0H: orb dragged right→left, stored+survived re-login (x ${Math.round(before!.x)}→${Math.round(after!.x)})`);
   });
 
   test("UX-6 P0G — voice state is honest in a mic-less browser", async ({ page }, testInfo) => {
     await uiLogin(page);
-    await page.goto("/app");
-    await page.waitForLoadState("networkidle");
     // Expand the orb (tap, not drag).
+    await expect(page.getByTestId("ambient-otzar-bar")).toBeVisible();
     await page.getByTestId("ambient-otzar-bar").click();
     const region = page.getByRole("region", { name: /Talk to Otzar/i });
     await expect(region).toBeVisible();
@@ -195,7 +212,8 @@ test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
   });
 
   test("UX-7 P0E — Dandelion seeds project subject_key for grouped queues", async ({ request }, testInfo) => {
-    const login = await apiLogin(request, ADMIN_EMAIL, ["read"]);
+    // admin_org must be REQUESTED at login for admin capabilities to attach.
+    const login = await apiLogin(request, ADMIN_EMAIL, ["read", "write", "share", "admin_org"]);
     test.skip(login.token === null, `SKIPPED: admin login failed (${login.code ?? login.status})`);
     const seeds = await listSeeds(request, login.token as string);
     test.skip(seeds.status === 403, "SKIPPED: caller lacks org-admin");
@@ -216,7 +234,8 @@ test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
   });
 
   test("UX-8 P0F — governed slack-write setup answers honestly (no writes)", async ({ request }, testInfo) => {
-    const login = await apiLogin(request, ADMIN_EMAIL, ["read"]);
+    // admin_org must be REQUESTED at login for admin capabilities to attach.
+    const login = await apiLogin(request, ADMIN_EMAIL, ["read", "write", "share", "admin_org"]);
     test.skip(login.token === null, `SKIPPED: admin login failed (${login.code ?? login.status})`);
     // READ-ONLY probe: an empty body must be rejected with the honest
     // validation/flag state — this proves the route is live + governed
