@@ -113,9 +113,13 @@ Action Center (filtered) or the single item · 3 same query that backs Action Ce
 blind-spots · 4 per-user · 5 calm cue; count matches · 6 click → deep link · 7 presence +
 work-os feeds · 8 1 item → item; N → filtered · 9 0 → no card · 10 n/a · 11 live smoke
 (count matches; click routes).
-**Status**: LANDED — CT `1e1e1fa`: `today-attention.ts` + `FocusHome.tsx` (real-signal
-count, deep link, no-card-when-zero); unit tests. **Locally verified (CT unit)**; live
-count-matches + click-routes assertion pending the ux-coherence smoke.
+**Status**: LANDED-with-correction (third pass) — CT `1e1e1fa` wired
+`today-attention.ts` into `FocusHome.tsx`, but **FocusHome is dead code (routed
+nowhere; `/app` renders AmbientWorkSurface)**. The P0B behavior EXISTS natively on
+the real landing surface: AmbientWorkSurface's "Needs you" panel (real approval/
+reply counts, deep links, no panel at zero). **Live verified** — UX-1: "3
+approvals are waiting" → routed to /app/action-center. Cleanup follow-up:
+delete FocusHome.tsx + today-attention.ts + their tests (smoke-matrix gap #3).
 
 ## P0C — Comms reopen source conversation + transcript
 1 after import, reopen the capture + view original transcript · 2 `Comms.tsx` +
