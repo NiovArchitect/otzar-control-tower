@@ -45,15 +45,19 @@ test.describe("live workos grounding: data-grounded answering", () => {
 
   test("Otzar answers from the caller's real work record (grounded, not hallucinated)", async () => {
     const r = await conversationMessage(ctx, token as string, `What is the status of the ${codeword} telemetry work I own?`);
+    console.log(`[grounding] Q: status of ${codeword} telemetry work =>`, r.answer);
     expect(r.status, "conversation HTTP").toBe(200);
     expect(r.answer.length, "got an answer").toBeGreaterThan(0);
-    // The grounded answer references the caller's specific work (the codeword or
-    // its distinctive terms) — it could only know this from the injected ledger fact.
+    // GROUNDED-ONLY proof: the question already contains the codeword AND "telemetry",
+    // so echoing those proves nothing. The ledger fact — and ONLY the ledger fact —
+    // adds "calibration / will finish / before launch". Requiring one of those tokens
+    // means the answer could only have come from the injected WorkLedger row, not from
+    // parroting the prompt. (A question-echo or an "I don't have that" would NOT match.)
     expect(
-      new RegExp(`${codeword}|telemetry|calibrat`, "i").test(r.answer),
-      "answer cites the grounded work fact",
+      /calibrat|before launch|will finish|finish it/i.test(r.answer),
+      "answer contains grounded-only content the caller's ledger fact supplied (not a question echo)",
     ).toBe(true);
-    ev(test.info(), `grounded answer cites the caller's real work (${codeword}/telemetry) ✓`);
+    ev(test.info(), `grounded answer cites ledger-only content (calibration/launch) ✓`);
   });
 
   test("Otzar does not fabricate work it has no record of", async () => {
