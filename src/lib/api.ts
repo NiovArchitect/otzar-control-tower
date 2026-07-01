@@ -281,6 +281,8 @@ import type {
   UpdateConnectorBindingInput,
   UpdateConnectorBindingSuccess,
   DeleteConnectorBindingSuccess,
+  RegisterSlackWriteInput,
+  RegisterSlackWriteSuccess,
 } from "./connectors/types";
 
 import type {
@@ -1963,8 +1965,18 @@ export class ApiClient {
       fixture_key?: string;
       idempotency_key: string;
       payload_summary: string;
+      /**
+       * PROD-UX-P0F — optional extra invocation-payload fields for
+       * operations that require them (e.g. SLACK_WRITE chat.postMessage
+       * needs channel + text). Merged into invocation_payload; NEVER a
+       * place for secret material — Foundation validates the closed
+       * vocab per provider and the whole call stays governed
+       * (policy-evaluated, approval-gated when required).
+       */
+      payload_fields?: Record<string, unknown>;
     }): Promise<ApiResult<{ ok: true; action: SafeActionView }>> => {
       const invocation_payload: Record<string, unknown> = {
+        ...(input.payload_fields ?? {}),
         operation: input.operation,
       };
       if (input.fixture_key !== undefined && input.fixture_key.length > 0) {
@@ -2373,6 +2385,35 @@ export class ApiClient {
         `/org/connectors/${encodeURIComponent(bindingId)}`,
         { method: "DELETE", retries: 0 },
       ),
+
+    /**
+     * PROD-UX-P0F — POST /api/v1/work-os/connector-bindings/slack-write.
+     * Slice-F admin setup path: registers (idempotently) the org's
+     * SLACK_WRITE ConnectorBinding for governed write-back. Flag-gated
+     * at Foundation (OTZAR_WORK_WRITEBACK="on"); a flag-off deployment
+     * answers 404 { code: "FEATURE_DISABLED" } — callers render the
+     * honest "write-back isn't enabled for this org yet" state, never
+     * a crash. Requires org-admin (403 ADMIN_REQUIRED otherwise);
+     * missing default_channel → 422 MISSING_DEFAULT_CHANNEL. The body
+     * carries default_channel + an OPTIONAL secret_ref env-var NAME
+     * (server default "SLACK_BOT_TOKEN"); the resolved token value
+     * NEVER crosses the API boundary. display_name is fixed
+     * server-side ("Slack (governed write-back)").
+     */
+    registerSlackWrite: (
+      input: RegisterSlackWriteInput,
+    ): Promise<ApiResult<RegisterSlackWriteSuccess>> => {
+      const body: Record<string, unknown> = {
+        default_channel: input.default_channel,
+      };
+      if (input.secret_ref !== undefined && input.secret_ref.trim().length > 0) {
+        body.secret_ref = input.secret_ref.trim();
+      }
+      return this.request<RegisterSlackWriteSuccess>(
+        "/work-os/connector-bindings/slack-write",
+        { method: "POST", body, retries: 0 },
+      );
+    },
   };
 
   // ──────────────────────────────────────────────────────────────

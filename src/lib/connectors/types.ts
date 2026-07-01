@@ -25,6 +25,7 @@ export type CtConnectorType =
   | "OUTBOUND_WEBHOOK"
   | "FIXTURE_ECHO"
   | "SLACK_READ"
+  | "SLACK_WRITE"
   | "GOOGLE_WORKSPACE_READ"
   | "JIRA_CLOUD_READ"
   | "LINEAR_READ"
@@ -86,6 +87,32 @@ export interface DeleteConnectorBindingSuccess {
   ok: true;
   binding_id: string;
   audit_event_id: string;
+}
+
+// ── Slice-F governed Slack write-back registration (PROD-UX-P0F) ─────
+// Mirrors Foundation POST /api/v1/work-os/connector-bindings/slack-write
+// (apps/api/src/routes/work-os-ledger.routes.ts). The route is flag-gated
+// (OTZAR_WORK_WRITEBACK="on"); flag-off deployments answer 404
+// FEATURE_DISABLED. The body carries default_channel (required) + an
+// OPTIONAL secret_ref env-var NAME (defaults to "SLACK_BOT_TOKEN" server-
+// side). display_name is fixed by the backend ("Slack (governed
+// write-back)") and is NOT accepted in the body. The route is idempotent:
+// an existing enabled SLACK_WRITE binding is returned with created:false.
+export interface RegisterSlackWriteInput {
+  /** Slack channel id used as the default posting target (required). */
+  default_channel: string;
+  /** Env-var NAME only (never the token value); server defaults to SLACK_BOT_TOKEN. */
+  secret_ref?: string;
+}
+
+export interface RegisterSlackWriteSuccess {
+  ok: true;
+  /** false when an enabled SLACK_WRITE binding already existed (idempotent). */
+  created: boolean;
+  binding_id: string;
+  type: "SLACK_WRITE";
+  /** Present on fresh creation (the ADMIN_ACTION audit row id). */
+  audit_event_id?: string;
 }
 
 export type ConnectorBindingFailureCode =

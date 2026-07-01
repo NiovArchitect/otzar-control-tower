@@ -101,7 +101,7 @@ describe("Connectors — page shell", () => {
   it("renders the Connectors page title", async () => {
     renderConnectors();
     expect(
-      screen.getByRole("heading", { name: /Connectors/i, level: 1 }),
+      screen.getByRole("heading", { name: /Connected Tools/i, level: 1 }),
     ).toBeInTheDocument();
   });
 
@@ -118,7 +118,7 @@ describe("Connectors — page shell", () => {
     renderConnectors();
     expect(
       screen.getAllByText(
-        /Billing entitles availability; Foundation governance authorizes activation/i,
+        /connecting it here is what actually authorizes Otzar to use it/i,
       ).length,
     ).toBeGreaterThan(0);
   });
@@ -142,7 +142,7 @@ describe("Connectors — empty state", () => {
   it("renders the empty-state CTA when no bindings exist", async () => {
     renderConnectors();
     expect(await screen.findByTestId("empty-state")).toHaveTextContent(
-      /No bindings registered yet/i,
+      /No tools connected yet/i,
     );
   });
 });
@@ -199,7 +199,7 @@ describe("Connectors — one binding rendered", () => {
     renderConnectors();
     const card = await screen.findByTestId(`binding-${binding.binding_id}`);
     expect(
-      within(card).getByText(/Read-first \(no writes at C2\)/i),
+      within(card).getByText(/Read-only access/i),
     ).toBeInTheDocument();
   });
 
@@ -428,7 +428,7 @@ describe("Connectors — GOOGLE_WORKSPACE_READ binding render", () => {
     const card = await screen.findByTestId(`binding-${googleBinding.binding_id}`);
     expect(within(card).getByText("niov-prod-google")).toBeInTheDocument();
     expect(
-      within(card).getByText(/Read-first \(no writes at C3\)/i),
+      within(card).getByText(/Read-only access/i),
     ).toBeInTheDocument();
   });
 
@@ -611,7 +611,7 @@ describe("Connectors — JIRA_CLOUD_READ binding render", () => {
     const card = await screen.findByTestId(`binding-${jiraBinding.binding_id}`);
     expect(within(card).getByText("niov-prod-jira")).toBeInTheDocument();
     expect(
-      within(card).getByText(/Read-first \(no writes at C4-A\)/i),
+      within(card).getByText(/Read-only access/i),
     ).toBeInTheDocument();
   });
 
@@ -771,7 +771,7 @@ describe("Connectors — LINEAR_READ binding render", () => {
     const card = await screen.findByTestId(`binding-${linearBinding.binding_id}`);
     expect(within(card).getByText("niov-prod-linear")).toBeInTheDocument();
     expect(
-      within(card).getByText(/Read-first \(no writes at C4-B\)/i),
+      within(card).getByText(/Read-only access/i),
     ).toBeInTheDocument();
   });
 
@@ -920,7 +920,7 @@ describe("Connectors — GITHUB_READ binding render", () => {
     const card = await screen.findByTestId(`binding-${githubBinding.binding_id}`);
     expect(within(card).getByText("niov-prod-github")).toBeInTheDocument();
     expect(
-      within(card).getByText(/Read-first \(no writes at C-GitHub\)/i),
+      within(card).getByText(/Read-only access/i),
     ).toBeInTheDocument();
   });
 
@@ -1073,7 +1073,7 @@ describe("Connectors — MICROSOFT_365_READ binding render", () => {
     const card = await screen.findByTestId(`binding-${m365Binding.binding_id}`);
     expect(within(card).getByText("niov-prod-m365")).toBeInTheDocument();
     expect(
-      within(card).getByText(/Read-first \(no writes at C5\)/i),
+      within(card).getByText(/Read-only access/i),
     ).toBeInTheDocument();
   });
 

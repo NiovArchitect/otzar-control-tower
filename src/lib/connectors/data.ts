@@ -42,6 +42,21 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
       "Reads only at C2. The secret_ref field is the env-var NAME on the deployment host that resolves to a bot token (xoxb-*); never paste the resolved token here.",
   },
   {
+    type: "SLACK_WRITE",
+    display_name: "Slack posting (governed write-back)",
+    short_description:
+      "Lets Otzar post approved messages to Slack. Every send goes through the governed Action pipeline (approval-gated); nothing is ever sent silently.",
+    secret_ref_required: true,
+    // Registered via the dedicated "Connect Slack posting" flow (the
+    // flag-gated Slice-F admin route), NOT the generic register form —
+    // so it stays out of the type selector but renders correctly in the
+    // bindings list.
+    hidden_from_admin_selection: true,
+    required_config_keys: ["use_real", "default_channel"],
+    governance_note:
+      "Writes are approval-gated through the governed Action pipeline. The credential reference is the env-var NAME on the deployment host that resolves to the bot token; never paste the resolved token here.",
+  },
+  {
     type: "GOOGLE_WORKSPACE_READ",
     display_name: "Google Workspace (read-first)",
     short_description:

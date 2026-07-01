@@ -43,6 +43,14 @@ export const CT_INVOKE_OPERATIONS: Readonly<
     "users.list",
     "conversations.history",
   ]),
+  // PROD-UX-P0F — Slice-F governed write-back. The single write
+  // operation the Foundation SlackWriteProvider supports. A test
+  // invocation posts ONE clearly-labeled test message to the
+  // binding's default channel THROUGH the governed Action pipeline
+  // (policy-evaluated; approval-gated when policy requires) — never
+  // a silent bypass. The dialog supplies channel+text from the
+  // binding config; Foundation validates the closed vocab.
+  SLACK_WRITE: Object.freeze(["chat.postMessage"]),
   GOOGLE_WORKSPACE_READ: Object.freeze([
     "calendar.events.list",
     "drive.files.list",

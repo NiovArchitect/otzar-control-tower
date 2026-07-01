@@ -50,11 +50,13 @@ import type {
 const PRIVACY_NOTICE =
   "The secure setup key is a NAME that points at a credential on your deployment — the credential value itself never crosses the API boundary, and this page never displays, decodes, or fetches it.";
 
+// PROD-UX-P0F — human copy in the normal flow; the implementation detail
+// (capability tiers, substrate codes) lives in Advanced details only.
 const ENABLED_BY_DEFAULT_NOTICE =
-  "New bindings are read-only at the connector tier — write capabilities are disabled at the runtime layer and require separate Founder authorization (forward-substrate to ≥C6).";
+  "New connections start read-only. Letting Otzar post or write through a tool is a separate, explicitly authorized step — nothing writes by default.";
 
 const FOUNDER_DOCTRINE_LINE =
-  "Billing entitles availability; Foundation governance authorizes activation. Map-region approval per ADR-0082 Amendment 1 remains stronger than entitlement.";
+  "Having a plan makes a tool available; connecting it here is what actually authorizes Otzar to use it — and every use stays governed and auditable.";
 
 function formatTimestamp(iso: string): string {
   try {
@@ -94,20 +96,12 @@ function BindingCard({
           <Badge variant={binding.enabled ? "secondary" : "outline"}>
             {binding.enabled ? "Enabled" : "Disabled"}
           </Badge>
-          <Badge variant="outline">Type: {binding.type}</Badge>
+          {/* PROD-UX-P0F — the posture in human words; the capability-tier
+              codes live in Advanced details below. */}
           <Badge variant="outline">
-            Read-first (no writes at{" "}
-            {binding.type === "MICROSOFT_365_READ"
-              ? "C5"
-              : binding.type === "GITHUB_READ"
-                ? "C-GitHub"
-                : binding.type === "LINEAR_READ"
-                  ? "C4-B"
-                  : binding.type === "JIRA_CLOUD_READ"
-                    ? "C4-A"
-                    : binding.type === "GOOGLE_WORKSPACE_READ"
-                      ? "C3"
-                      : "C2"})
+            {binding.type === "SLACK_WRITE"
+              ? "Posting — every send needs approval"
+              : "Read-only access"}
           </Badge>
         </div>
         <div>
@@ -119,19 +113,26 @@ function BindingCard({
             </span>
           </div>
         </div>
-        <div>
-          <div className="font-medium">Config keys</div>
-          <div className="text-muted-foreground">
-            {Object.keys(binding.config).length === 0
-              ? "—"
-              : Object.keys(binding.config).join(", ")}
-          </div>
-        </div>
         <div className="text-xs text-muted-foreground">
           Created {formatTimestamp(binding.created_at)} · Updated{" "}
-          {formatTimestamp(binding.updated_at)} · binding_id{" "}
-          {binding.binding_id.slice(0, 8)}…
+          {formatTimestamp(binding.updated_at)}
         </div>
+        {/* PROD-UX-P0F — implementation detail out of the normal flow. */}
+        <details data-testid={`advanced-${binding.binding_id}`}>
+          <summary className="cursor-pointer text-xs text-muted-foreground">
+            Advanced details
+          </summary>
+          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+            <div>Connector type: {binding.type}</div>
+            <div>Binding id: {binding.binding_id}</div>
+            <div>
+              Config keys:{" "}
+              {Object.keys(binding.config).length === 0
+                ? "—"
+                : Object.keys(binding.config).join(", ")}
+            </div>
+          </div>
+        </details>
         <Separator />
         <div className="flex flex-wrap gap-2">
           <Button
@@ -150,7 +151,7 @@ function BindingCard({
             disabled={deleteBusy}
             data-testid={`delete-${binding.binding_id}`}
           >
-            Soft-delete
+            Remove
           </Button>
           {canInvoke ? (
             <Button
@@ -267,7 +268,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Register a new ConnectorBinding</CardTitle>
+        <CardTitle>Connect another tool</CardTitle>
         <CardDescription>{FOUNDER_DOCTRINE_LINE}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
@@ -318,7 +319,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
         {typeDef?.secret_ref_required ? (
           <div className="space-y-1">
-            <Label htmlFor="secret-ref">Secret env-var NAME</Label>
+            <Label htmlFor="secret-ref">Credential reference (a name, never the credential itself)</Label>
             <Input
               id="secret-ref"
               value={secretRef}
@@ -354,8 +355,154 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           disabled={submitDisabled}
           data-testid="register-submit"
         >
-          {mutation.isPending ? "Registering…" : "Register binding"}
+          {mutation.isPending ? "Connecting…" : "Connect tool"}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// PROD-UX-P0F — the Slice-F governed Slack write-back, connectable from the
+// UI (no terminal). Idempotent: an existing enabled SLACK_WRITE binding comes
+// back created:false ("Already connected"). Flag-off deployments answer 404
+// FEATURE_DISABLED — rendered honestly, never as a crash. Also shows the REAL
+// count of work items waiting on this connection (blind-spots feed; no claim
+// when the feed is empty or unavailable).
+function SlackWriteSetupCard({
+  bindings,
+  onSuccess,
+}: {
+  bindings: ConnectorBindingView[];
+  onSuccess: () => void;
+}) {
+  const [channel, setChannel] = useState("");
+  const [secretRef, setSecretRef] = useState("");
+  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const existing = bindings.find((b) => b.type === "SLACK_WRITE" && b.enabled);
+
+  // Real signal: how many work items are blocked on Slack setup right now.
+  const blockedQuery = useQuery({
+    queryKey: ["work-os", "blind-spots", "slack-blocked"],
+    queryFn: () => api.workOs.blindSpots(),
+  });
+  const blockedCount = (() => {
+    const r = blockedQuery.data;
+    if (!r || !r.ok || r.data.items === undefined) return 0;
+    return r.data.items.filter((e) => {
+      const plan = e.execution_plan;
+      if (plan === undefined || plan === null) return false;
+      const connector = plan["requiredConnector"] ?? plan["required_connector"];
+      const cap = plan["capabilityState"] ?? plan["capability_state"];
+      return (
+        connector === "SLACK" &&
+        typeof cap === "string" &&
+        cap !== "available_and_authorized" &&
+        cap !== "connected"
+      );
+    }).length;
+  })();
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api.connectors.registerSlackWrite({
+        default_channel: channel.trim(),
+        ...(secretRef.trim().length > 0 ? { secret_ref: secretRef.trim() } : {}),
+      }),
+    onSuccess: (result) => {
+      if (result.ok && result.data.ok) {
+        setNotice({
+          tone: "ok",
+          text: result.data.created
+            ? "Slack posting is connected. Run a test from the connection card below — the test goes through the same approval-gated pipeline as real work."
+            : "Slack posting was already connected — nothing changed.",
+        });
+        setChannel("");
+        setSecretRef("");
+        onSuccess();
+        return;
+      }
+      const code = result.ok ? null : result.code;
+      setNotice({
+        tone: "error",
+        text:
+          code === "FEATURE_DISABLED"
+            ? "Governed posting isn't enabled for this deployment yet — your host has to turn it on before Slack posting can be connected."
+            : code === "ADMIN_REQUIRED"
+              ? "Only an organization admin can connect Slack posting."
+              : code === "MISSING_DEFAULT_CHANNEL"
+                ? "Enter the Slack channel Otzar should post to by default."
+                : (result.ok ? null : result.message) ??
+                  "Couldn't connect Slack posting right now. Try again in a moment.",
+      });
+    },
+    onError: () => {
+      setNotice({ tone: "error", text: "Couldn't reach the server. Try again in a moment." });
+    },
+  });
+
+  return (
+    <Card data-testid="slack-write-setup-card">
+      <CardHeader>
+        <CardTitle>Slack posting (governed)</CardTitle>
+        <CardDescription>
+          Lets Otzar post approved messages to Slack. Every send goes through
+          the governed approval pipeline — nothing is ever posted silently.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {blockedCount > 0 && existing === undefined ? (
+          <p className="text-xs text-amber-600" data-testid="slack-write-blocked-count">
+            {blockedCount === 1
+              ? "1 work item is waiting on this connection."
+              : `${blockedCount} work items are waiting on this connection.`}
+          </p>
+        ) : null}
+        {existing !== undefined ? (
+          <p className="text-xs text-emerald-600" data-testid="slack-write-connected">
+            Connected — Otzar can post to Slack once each message is approved.
+          </p>
+        ) : (
+          <>
+            <div className="space-y-1">
+              <Label htmlFor="slack-write-channel">Default Slack channel</Label>
+              <Input
+                id="slack-write-channel"
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
+                placeholder="e.g. C0123456789 (the channel Otzar posts to)"
+                data-testid="slack-write-channel-input"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="slack-write-secret">
+                Credential reference name (optional)
+              </Label>
+              <Input
+                id="slack-write-secret"
+                value={secretRef}
+                onChange={(e) => setSecretRef(e.target.value)}
+                placeholder="defaults to SLACK_BOT_TOKEN"
+                data-testid="slack-write-secret-input"
+              />
+              <p className="text-xs text-muted-foreground">{PRIVACY_NOTICE}</p>
+            </div>
+            <Button
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || channel.trim().length === 0}
+              data-testid="slack-write-connect"
+            >
+              {mutation.isPending ? "Connecting…" : "Connect Slack posting"}
+            </Button>
+          </>
+        )}
+        {notice !== null ? (
+          <p
+            className={`text-xs ${notice.tone === "ok" ? "text-emerald-600" : "text-destructive"}`}
+            data-testid="slack-write-notice"
+          >
+            {notice.text}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -376,20 +523,20 @@ function DoctrineCard() {
           <div>
             <p className="font-medium">This page can</p>
             <ul className="list-disc list-inside text-muted-foreground">
-              <li>Register a new ConnectorBinding (admin gated)</li>
-              <li>List existing bindings (org-scoped)</li>
-              <li>Enable / disable a binding</li>
-              <li>Soft-delete a binding (RULE 10)</li>
+              <li>Connect a new tool (admins only)</li>
+              <li>List this organization&apos;s connections</li>
+              <li>Enable / disable a connection</li>
+              <li>Remove a connection (the record is kept for audit)</li>
             </ul>
           </div>
           <div>
             <p className="font-medium">This page cannot</p>
             <ul className="list-disc list-inside text-muted-foreground">
-              <li>Display the resolved bot token / OAuth access token / signing secret</li>
-              <li>Invoke connector writes (deferred to ≥C6)</li>
-              <li>Download Drive file contents or read Gmail message bodies (deferred to ≥C5)</li>
-              <li>Bypass Foundation governance</li>
-              <li>Act outside the caller's org boundary</li>
+              <li>Display a stored credential value — ever</li>
+              <li>Send or write through a tool without governed approval</li>
+              <li>Read file contents or message bodies</li>
+              <li>Bypass governance or audit</li>
+              <li>Act outside your organization&apos;s boundary</li>
             </ul>
           </div>
         </div>
@@ -402,9 +549,10 @@ function TypeRegistryCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Available connector types</CardTitle>
+        <CardTitle>Available tools</CardTitle>
         <CardDescription>
-          Mirror of Foundation CONNECTOR_REGISTRY (PR #185 Slack C2 + PR #193 Google Workspace C3 + PR #207 Jira Cloud C4-A + PR #209 Linear C4-B + PR #216 GitHub C-GitHub + PR #218 Microsoft 365 C5 — 6/6 connector matrix at RUNTIME_READY).
+          The tools Otzar can connect to today. Each one lists what it needs
+          for setup; all of them start read-only.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
@@ -464,18 +612,19 @@ export function ConnectorsAdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Connectors"
-        description="Register and manage governed ConnectorBindings. Section 4 Slack (C2), Google Workspace (C3), Jira Cloud (C4-A), Linear (C4-B), GitHub (C-GitHub), and Microsoft 365 (C5) are RUNTIME_READY at Foundation — 6/6 connector matrix complete."
+        title="Connected Tools"
+        description="Connect the tools your organization uses — Slack, Google Workspace, Jira, Linear, GitHub, and Microsoft 365. Every connection starts read-only; anything Otzar does through a tool is governed and auditable."
       />
+      <SlackWriteSetupCard bindings={bindings} onSuccess={refresh} />
       <DoctrineCard />
       <TypeRegistryCard />
       <RegisterForm onSuccess={refresh} />
       <section data-testid="bindings-section">
         <Card>
           <CardHeader>
-            <CardTitle>Existing bindings</CardTitle>
+            <CardTitle>Your connections</CardTitle>
             <CardDescription>
-              Org-scoped list of ConnectorBindings registered on this tenant.
+              The tools connected for this organization.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
@@ -487,8 +636,8 @@ export function ConnectorsAdminPage() {
               </p>
             ) : bindings.length === 0 ? (
               <p data-testid="empty-state">
-                No bindings registered yet. Use the registration form above to
-                add the first one.
+                No tools connected yet. Use the form above to connect the
+                first one.
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -505,9 +654,8 @@ export function ConnectorsAdminPage() {
               </div>
             )}
             <div className="text-xs text-muted-foreground">
-              Listing surface honors the can_admin_org gate at the Foundation
-              route tier; the soft-delete action follows RULE 10 (rows are
-              never hard-deleted; deleted_at timestamps are set).
+              Only organization admins can see or change connections. Removing
+              a connection keeps its record for audit — nothing is erased.
             </div>
           </CardContent>
         </Card>

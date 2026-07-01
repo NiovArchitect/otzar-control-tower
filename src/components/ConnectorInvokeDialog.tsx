@@ -51,6 +51,7 @@ import {
   CT_INVOKE_FIXTURE_KEYS,
   CT_INVOKE_OPERATIONS,
 } from "@/lib/connectors/invoke-operations";
+import { humanizeConnectorFailure } from "@/lib/connectors/connector-error-copy";
 import type {
   ConnectorBindingView,
   CtConnectorType,
@@ -127,12 +128,25 @@ export function ConnectorInvokeDialog({
       const effectiveFixture =
         fixtureKey === FIXTURE_NONE_SENTINEL ? "" : fixtureKey;
       const payload_summary = `CT test invoke: ${binding.display_name} / ${operation}${effectiveFixture.length > 0 ? ` / ${effectiveFixture}` : ""}`;
+      // PROD-UX-P0F — SLACK_WRITE chat.postMessage requires channel + text.
+      // The channel comes from the binding's configured default; the text is
+      // one clearly-labeled test line. The call still runs through the SAME
+      // governed Action pipeline (policy-evaluated, approval-gated when
+      // required) — never a silent bypass.
+      const payload_fields: Record<string, unknown> | undefined =
+        binding.type === "SLACK_WRITE" && operation === "chat.postMessage"
+          ? {
+              channel: binding.config["default_channel"] ?? "",
+              text: `Otzar connection test — sent by an admin from Tools & Connections (${binding.display_name}).`,
+            }
+          : undefined;
       return api.actions.createInvokeConnector({
         binding_id: binding.binding_id,
         operation,
         ...(effectiveFixture.length > 0 ? { fixture_key: effectiveFixture } : {}),
         idempotency_key,
         payload_summary,
+        ...(payload_fields !== undefined ? { payload_fields } : {}),
       });
     },
     onSuccess: (result) => {
@@ -212,13 +226,11 @@ export function ConnectorInvokeDialog({
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent data-testid="invoke-dialog">
         <DialogHeader>
-          <DialogTitle>Test-invoke binding: {binding.display_name}</DialogTitle>
+          <DialogTitle>Test the connection: {binding.display_name}</DialogTitle>
           <DialogDescription>
-            Read-first invocation only. The Foundation runtime governs every
-            call (secret_ref env-var NAME, governance pipeline, audit). The
-            response carries safe metadata only (status + counts) — never raw
-            connector payload, secret VALUE, or vendor token. Writes are not
-            available at this surface.
+            {binding.type === "SLACK_WRITE"
+              ? "Posts ONE clearly-labeled test message to the configured channel, through the same governed, approval-gated pipeline as real work — never a silent bypass. The result shows safe status only, never credentials or raw payloads."
+              : "Runs one read-only check through the governed pipeline. The result shows safe status only — never credentials, raw payloads, or message contents."}
           </DialogDescription>
         </DialogHeader>
 
@@ -250,9 +262,8 @@ export function ConnectorInvokeDialog({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Read-first only. Foundation rejects unknown operations at
-                validation tier; this list mirrors the LIVE provider's
-                closed-vocab.
+                Only the operations this tool actually supports are listed —
+                anything else is rejected before it reaches the tool.
               </p>
             </div>
 
@@ -277,10 +288,8 @@ export function ConnectorInvokeDialog({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Fixture keys force a specific error_class without reaching the
-                real vendor API. CI + dev environments leave the per-vendor
-                USE_REAL flag unset; production deployments flip it
-                Founder-authorized only.
+                Optional: simulate a specific failure without reaching the
+                real tool — useful for checking how errors are reported.
               </p>
             </div>
 
@@ -306,20 +315,33 @@ export function ConnectorInvokeDialog({
                       Attempts: {pollState.attempt_count}
                     </Badge>
                   </div>
-                  <div>
-                    <div className="font-medium">Last result summary</div>
+                  {/* PROD-UX-P0F — a FAILED test explains itself in the words
+                      an admin can act on; the machine summary stays available
+                      as Advanced details. */}
+                  {pollState.status === "FAILED" ? (
+                    <p
+                      className="text-xs text-amber-600"
+                      data-testid="invoke-human-failure"
+                    >
+                      {humanizeConnectorFailure({
+                        summary: pollState.last_result_summary,
+                      })}
+                    </p>
+                  ) : null}
+                  <details data-testid="invoke-advanced-details">
+                    <summary className="cursor-pointer text-xs text-muted-foreground">
+                      Advanced details
+                    </summary>
                     <div
-                      className="text-xs text-muted-foreground"
+                      className="mt-1 text-xs text-muted-foreground"
                       data-testid="invoke-last-result-summary"
                     >
                       {pollState.last_result_summary ?? "(no summary yet)"}
                     </div>
-                  </div>
+                  </details>
                   <p className="text-xs italic text-muted-foreground">
-                    Foundation's SAFE Action projection. Raw operation result
-                    body, secret_ref VALUE, vendor token, attendee email, file
-                    name, mail subject, issue title, repo name, branch name,
-                    and PII are never rendered here.
+                    Only safe status is shown here — never credentials, raw
+                    results, names, emails, or message contents.
                   </p>
                   {isInFlight ? (
                     <p
