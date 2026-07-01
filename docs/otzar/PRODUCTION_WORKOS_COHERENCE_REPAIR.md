@@ -146,7 +146,16 @@ ask_approval with reason; missing tool = setup_required with the tool named · 9
 identity = identity_review; unresolvable = blocked with why · 10 decision carries reason,
 evidence refs, risk, confidence, policy basis, owner, next best action, audit pointer ·
 11 FND unit tests (lane matrix) + CT unit (lane→UI chip) + live smoke (lane visible).
-**Verification target**: FND unit + CT unit + live verified.
+**Status**: BUILT (third pass; Fable session) — FND PR #518 (branch
+`prod-ux-p0r-routing-decision`): `routing-decision.ts` pure projection +
+`GET /work-os/ledger/:id/routing-decision` + `getMyWork` attaches `routing`;
+31 FND unit tests + typecheck clean; **all 5 CI checks green — awaiting founder
+squash-merge** (agent self-merge is permission-blocked). CT `682027d`:
+`routing-lane.ts` lane→chip (silent lanes render NO chip; why in View/Why) +
+`WorkLedgerItem` chip + routing-why block; 13 CT unit tests.
+**Integration verified (FND CI) + Locally verified (CT unit)**; live lane
+assertion = UX-3 in the ux-coherence smoke (skips with the PR named until the
+FND merge deploys).
 
 ## P0F — Tools & Connections UI-operable + human copy
 1 admin connects/verifies/revokes a tool from UI, sees blocked work · 2 `ToolsConnections.tsx`
@@ -157,7 +166,14 @@ connect/verify/revoke/rotate/test/set-default · 7 connector-binding + oauth + c
 capability (reuse) · 8 binding active + verified · 9 honest Slack error class surfaced · 10
 audit on binding ops · 11 CT unit + live (register slack-write from UI; verify).
 Impl language (C-codes, `SLACK_READ`, `binding_id`, "MCP") → Advanced details.
-**Verification target**: CT unit + live verified (or Deferred boundary if creds-gated).
+**Status**: LANDED — CT `db3e01f`: SlackWriteSetupCard (UI registration of the
+Slice-F SLACK_WRITE binding; honest created/already/FEATURE_DISABLED/
+ADMIN_REQUIRED states; REAL blocked-work count from blind-spots),
+`connector-error-copy.ts` (machine failure → admin next step) wired into the
+invoke dialog, SLACK_WRITE chat.postMessage test op with payload_fields through
+the governed pipeline, C-codes/binding_id/RULE-10 copy → Advanced details.
+**Locally verified (CT unit: 103 across 7 connector files)**; live = UX-8
+(read-only route probe) in the ux-coherence smoke.
 
 ## P0G — Browser voice → server STT fallback
 1 voice works or degrades to server STT with honest state · 2 `Voice.tsx` +
@@ -166,14 +182,26 @@ transcription/Error · 6 speak; on browser-STT fail, capture+POST audio to serve
 existing ElevenLabs transcribe route · 8 text appears from server · 9 no mic/network →
 useful fix + text still works · 10 no raw-audio storage (policy) · 11 CT unit (fallback
 path) + live (HTTPS) or Deferred boundary(HTTPS+key).
-**Verification target**: CT unit; live or Deferred boundary.
+**Status**: LANDED — CT `7a13fe8`: `decideSttPath()` matrix (Tauri flow
+preserved EXACTLY; browser Web Speech primary; server STT fallback on the
+'network' error, primary when Web Speech absent), one-time auto-switch,
+review-then-send draft flow, allowlist MIME selection, honest disclosure copy;
+wired into AmbientOtzarBar + Voice.tsx. **Locally verified (CT unit: stt-path
+23)**; live honest-state = UX-6; real-mic transcription = Deferred
+boundary(headless browsers have no mic — desktop path was live-verified in
+LIVE-4A).
 
 ## P0H — Talk-to-Otzar orb non-blocking
 1 orb never blocks capture/CTAs · 2 `AmbientOtzarBar.tsx` · 3 n/a · 4 per-device · 5
 draggable + collapsible + remembers position · 6 drag/collapse/reset · 7 n/a · 8 CTAs
 clickable · 9 off-screen → reset · 10 n/a · 11 CT unit (position persistence) + live (orb
 does not overlap capture).
-**Verification target**: CT unit + live verified.
+**Status**: LANDED — CT `7a13fe8`: `orb-position.ts` pure clamp/snap/validate/
+persist (versioned key; off-screen stored positions reset), pointer-capture
+drag with tap-vs-drag threshold, edge snap, safe-area anchoring, Reset control,
+dock follows the orb's edge with 88vh clamp; pointer-events-none halo +
+content-sized wrapper so nothing outside the pill blocks clicks.
+**Locally verified (CT unit: orb-position 23)**; live drag+persist = UX-5.
 
 ---
 
