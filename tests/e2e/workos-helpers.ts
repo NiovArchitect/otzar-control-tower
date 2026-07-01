@@ -120,6 +120,23 @@ export async function ingest(
   return { ok: j.ok === true, status: r.status(), raw: j, ...(j.result ? { result: j.result } : {}) };
 }
 
+/** Ingest a NON-transcript source event through the source-agnostic intake
+ *  (Slice A). Returns the same governed result shape as transcript ingest. */
+export async function ingestSourceEvent(
+  request: APIRequestContext,
+  token: string,
+  source: Record<string, unknown>,
+): Promise<IngestResult & { code?: string }> {
+  const r = await request.post(`${API}/otzar/ingest/source-event`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: { source },
+    timeout: 90_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string; result?: IngestResult["result"] };
+  return { ok: j.ok === true, status: r.status(), raw: j, ...(j.result ? { result: j.result } : {}), ...(j.code ? { code: j.code } : {}) };
+}
+
 /** GET the caller's own governed work ledger (per-user scoped source of truth). */
 export async function getMyWork(
   request: APIRequestContext,
