@@ -54,6 +54,7 @@ import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligen
 import { viewWhyFromCommsFollowUp } from "@/lib/work-os/view-why";
 import { api } from "@/lib/api";
 import { entityLabel } from "@/lib/identity/canonical-entity";
+import { formatOwnedByLine } from "@/lib/identity/owner-display";
 import { useWorkStateChanged } from "@/lib/events/work-state";
 import type {
   CommsExtractionResult,
@@ -491,7 +492,10 @@ function ExtractionView({
                     <div className="text-[11px] text-muted-foreground">
                       {w.needs_review
                         ? w.review_reason ?? "Needs a confirmed owner before assignment."
-                        : `Owned by ${w.owner_name}`}
+                        : /* PROD-UX-P2 — client-side guard: never render a
+                             pronoun/non-name as an owner, whatever the row
+                             carries (mirrors the P0D backend guard). */
+                          formatOwnedByLine(w.owner_name)}
                     </div>
                     {!w.needs_review ? (
                       <div className="mt-0.5 text-[10px] text-muted-foreground" data-testid="comms-ingest-exec">

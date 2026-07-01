@@ -267,8 +267,8 @@ export function ConnectorHealth(): JSX.Element {
         <CardContent className="text-xs text-muted-foreground">
           {admin ? (
             <span>
-              You have org-admin scope. You can configure connectors in the
-              Control Tower's connector rails admin surface.
+              You're an organization admin — you can connect and manage these
+              tools in Tools &amp; Connections.
             </span>
           ) : (
             <span>
@@ -342,14 +342,16 @@ export function ConnectorHealth(): JSX.Element {
         <Card data-testid="connector-health-admin-link">
           <CardContent className="flex items-center justify-between gap-2 py-3 text-xs">
             <div>
-              <p className="font-medium">Configure connectors for your org</p>
+              <p className="font-medium">Connect tools for your organization</p>
               <p className="text-muted-foreground">
-                Open the Control Tower's connector rails to register and
-                manage provider bindings.
+                Open Tools &amp; Connections to connect and manage the tools
+                Otzar can use.
               </p>
             </div>
             <Button asChild size="sm" variant="outline">
-              <Link to="/admin/connector-rails">
+              {/* PROD-UX-P2 — /admin/connector-rails matched no route (dead
+                  button); Tools & Connections is the real admin destination. */}
+              <Link to="/tools-connections">
                 Open admin <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
               </Link>
             </Button>
