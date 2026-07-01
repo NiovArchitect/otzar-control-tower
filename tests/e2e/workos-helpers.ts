@@ -70,6 +70,7 @@ export interface IngestResult {
     quality: { total: number; trusted: number; quarantined: number; noisy_tail_start_index: number | null };
     decisions: string[];
     work_items: Array<{
+      ledger_entry_id: string | null;
       owner_entity_id: string | null;
       owner_name: string;
       title: string;
@@ -202,6 +203,55 @@ export async function orgQuery(
   });
   const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string; results?: Array<Record<string, unknown>> };
   return { status: r.status(), ok: j.ok === true, results: j.results ?? [], ...(j.code ? { code: j.code } : {}) };
+}
+
+/** Slice D goal-layer helpers. */
+export async function createGoal(
+  request: APIRequestContext,
+  token: string,
+  body: Record<string, unknown>,
+): Promise<{ status: number; ok: boolean; code?: string; goal?: Record<string, unknown> }> {
+  const r = await request.post(`${API}/work-os/goals`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: body, timeout: 30_000, failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string; goal?: Record<string, unknown> };
+  return { status: r.status(), ok: j.ok === true, ...(j.code ? { code: j.code } : {}), ...(j.goal ? { goal: j.goal } : {}) };
+}
+export async function linkWorkToGoal(
+  request: APIRequestContext,
+  token: string,
+  goalId: string,
+  ledgerEntryId: string,
+): Promise<{ status: number; ok: boolean; code?: string }> {
+  const r = await request.post(`${API}/work-os/goals/${encodeURIComponent(goalId)}/link`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: { ledger_entry_id: ledgerEntryId }, timeout: 30_000, failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string };
+  return { status: r.status(), ok: j.ok === true, ...(j.code ? { code: j.code } : {}) };
+}
+export async function goalProgress(
+  request: APIRequestContext,
+  token: string,
+  goalId: string,
+): Promise<{ status: number; ok: boolean; linked_count: number; done_count: number; progress_pct: number }> {
+  const r = await request.get(`${API}/work-os/goals/${encodeURIComponent(goalId)}/progress`, {
+    headers: { Authorization: `Bearer ${token}` }, timeout: 30_000, failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; linked_count?: number; done_count?: number; progress_pct?: number };
+  return { status: r.status(), ok: j.ok === true, linked_count: j.linked_count ?? 0, done_count: j.done_count ?? 0, progress_pct: j.progress_pct ?? 0 };
+}
+export async function listGoals(
+  request: APIRequestContext,
+  token: string,
+  scope = "self",
+): Promise<{ status: number; ok: boolean; code?: string; goals: Array<Record<string, unknown>> }> {
+  const r = await request.get(`${API}/work-os/goals?scope=${scope}`, {
+    headers: { Authorization: `Bearer ${token}` }, timeout: 30_000, failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string; goals?: Array<Record<string, unknown>> };
+  return { status: r.status(), ok: j.ok === true, ...(j.code ? { code: j.code } : {}), goals: j.goals ?? [] };
 }
 
 /** Agent-grounding: governed context for (caller, query) with sufficient flag. */
