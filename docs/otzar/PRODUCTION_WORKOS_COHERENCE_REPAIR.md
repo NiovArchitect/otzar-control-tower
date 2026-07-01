@@ -1,0 +1,165 @@
+# Production Work OS Coherence Repair (PROD-UX-AMBIENT) — checklist
+
+**Status:** living. North star: `AMBIENT_WORK_OS_PRODUCT_DOCTRINE.md`. Acceptance
+standard: a real user in a real org completes the flow end-to-end — no fake data, no dead
+buttons, no hidden source, no terminal, no policy violation, no card spam. **"Passes" =
+real end-to-end.** Every flow carries the 11-point spec; a flow is not complete until all
+11 hold and a scenario smoke proves it.
+
+**11-point spec per flow:** 1 user story · 2 route/path · 3 data source · 4 owner/scope ·
+5 UI state(s) · 6 available actions · 7 backend rail used · 8 success state · 9 failure/
+blocked state · 10 audit/source evidence · 11 live/integration smoke.
+
+**Verification labels (strict):** Live verified · Integration verified · Locally verified ·
+Not verified · Skipped(reason) · Deferred boundary(reason). Never "should/likely/ready".
+
+**Do-not-break:** the one WorkLedger, the Action executor + dual-control approval wire, the
+connector/binding/Dandelion/identity/grounding/goal/audit services (A–F). Reuse, expose,
+never rebuild. No duplicate systems, no UI-only fake state, no hardcoded demo names.
+
+---
+
+## Recon truth (what already exists — reuse, don't rebuild)
+
+- **Action Center / My Work**: `src/pages/app/ActionCenter.tsx`, `MyWork.tsx`,
+  `components/work-os/WorkLedgerItem.tsx`. Backend routes EXIST: `POST /work-os/ledger/:id/execute`,
+  `POST /work-os/ledger/:id/reconcile-execution`, `GET /actions/:id`, `GET /actions/:id/attempts`.
+  **Missing in CT**: api methods for execute/reconcile/attempts; `proposed_action_id` +
+  `execution_plan` on `WorkLedgerEntryView` (foundation.ts:4524); execute/receipt buttons.
+- **Today**: `FocusHome.tsx` / `MyDay.tsx` — headline only; attention count NOT a clickable
+  route. Data available via presence store + `blindSpotsFeed`.
+- **Comms**: `Comms.tsx` + `commsRecentArtifacts()`. Transcript IS stored
+  (`meetingCapture.transcript`) but **no route exposes it** (`MeetingCaptureSafeView` omits
+  it). Need `GET /otzar/meeting-captures/:id/transcript` (caller-scoped) + CT viewer.
+- **Dandelion**: `OrganizationSeeding.tsx` flat cards; `dandelion-seed.service.listOrgSeeds`
+  (take 200, no group/dedup/pagination). Seed has `subject_entity_id` in details but it's
+  NOT projected. Dup seeds created at source (`work-graph-memory.ts:162-179`, one per mention).
+- **Identity**: `work-item-planner.ts:95` (`Follow-up owned by ${name}` — no pronoun guard),
+  `comms-extract.service.ts:345` (keeps ungrounded `display_name`), `work-graph-memory.ts`
+  (no seed dedup), `recipient-governance.ts` has a proof-path model used for RECIPIENTS but
+  NOT for owners.
+- **Tools & Connections**: `ToolsConnections.tsx` + `ConnectorsAdmin.tsx` +
+  `ConnectorRailsAdmin.tsx` — real CRUD (register/enable/disable/soft-delete/test, OAuth
+  connect/verify/revoke, MCP). Leaks impl language (C2/C3 codes, `SLACK_READ` types,
+  `binding_id`, "MCP"). Slice-F `slack-write` route NOT wired.
+- **Voice**: `Voice.tsx` browser STT + honest text fallback; NO server-STT fallback. The
+  `/otzar/voice/transcribe` server route exists (LIVE-4A).
+- **Orb**: `AmbientOtzarBar.tsx` fixed `bottom-20 right-4 z-[60]`, collapsible, NOT draggable.
+- **AI Teammates**: `AITeammates.tsx` already shows owner+friendly policy; raw entity_id
+  fallback + "EXECUTIVE_OVERRIDE" label leak. **People & Roles**: `Users.tsx` flat, no
+  hierarchy (`/org/hierarchy` endpoint exists, used by AITeammates).
+- **Frontend doctrine rails**: `lib/work-os/ambient-visibility.ts` (`decideAmbientVisibility`,
+  `findBackendTermLeak`), `lib/work-os/work-context.ts`. Presence store `lib/stores/presence.ts`.
+
+---
+
+## P0D — Identity truth (stop generating junk owners/people)  [FIRST]
+1 **Story**: a transcript that says "he'll follow up" or names "Zephyr"/"Dishant" must NOT
+produce a work item owned by a pronoun or a hallucinated person; unknown-but-grounded
+participants become ONE grouped person-setup suggestion. · 2 backend extraction path (no
+route change) · 3 transcript + org roster · 4 org-scoped · 5 owner shows "Owner needs
+review" (not a pronoun/ungrounded name) · 6 admin confirm/hold/reject the person seed · 7
+`work-item-planner`, `comms-extract`, `work-graph-memory`, `dandelion-seed` (reuse) · 8
+proven owner → owned item; unproven → NEEDS_OWNER with neutral title + review reason ·
+9 pronoun/ungrounded → held for review, never owner · 10 seed carries source_evidence +
+confidence + subject_entity_id · 11 integration tests (deterministic).
+**Fixes**: (a) pronoun/non-name guard before `titleFromWork` — pronouns → neutral
+"Needs owner confirmation" title, never "owned by his"; (b) ungrounded name (not in source
+evidence + no entity) → `identity_needs_review`, not owner display; (c) dedup seeds by
+`ownerName`(normalized) in `work-graph-memory` — one grouped `confirm_or_activate_person`
+seed per person with merged evidence + count; (d) project `subject_entity_id` + a stable
+`subject_key` on the seed view for grouping.
+**Verification target**: Integration verified.
+
+## P0E — Dandelion scale (grouped queues, not 75-card spam)
+1 admin reviews org-seeding at enterprise scale · 2 `OrganizationSeeding.tsx` +
+`GET /org/dandelion/seeds` · 3 ORG_SEEDING ledger rows · 4 admin/org-scoped · 5 grouped
+queues (People to review / Access-tool setup / Role-project-team / Ambiguous / Low-conf /
+Held / Applied) · 6 approve-selected / hold / reject / merge / search / filter / paginate ·
+7 `dandelion-seed.service` (extend list: project subject_entity_id + subject_key; group;
+paginate) · 8 same person = one grouped surface · 9 empty/loading honest · 10 per-seed
+evidence preserved · 11 integration (grouping) + CT unit (grouped render) + live smoke.
+**Verification target**: Integration + CT unit; live grouped-count assertion.
+
+## P0A — My Work / Action Center actionable (surface the governed loop)
+1 employee opens a work item and acts · 2 `MyWork.tsx`/`ActionCenter.tsx` +
+`/work-os/my-work`, `/work-os/ledger/:id/execute`, `/reconcile-execution`, `/actions/:id[/attempts]` ·
+3 WorkLedger + Action · 4 per-user (owner/target/requester); admin broader by policy · 5
+states: human_task · otzar_can_draft · execute_with_approval · pending_approval · approved/
+executing · executed · blocked_tool · blocked_permission · owner_needs_review · failed · 6
+Open source · Ask Otzar · Approve/Reject/Edit · Mark done · Request/Connect tool · View
+receipt/audit (only the ones valid for the item's state; no dead buttons) · 7 execution
+bridge + Action executor + escalation approve (reuse) · 8 executed → receipt shown · 9
+blocked → clear reason + next step · 10 proposed_action_id + attempt delivery_metadata +
+source evidence · 11 CT unit (state→actions map) + live smoke (open, mark-done, approve→receipt).
+**Verification target**: CT unit + live verified.
+
+## P0B — Today attention routes to the backing item
+1 Today says "N need attention" and clicking routes there · 2 `FocusHome`/`MyDay` →
+Action Center (filtered) or the single item · 3 same query that backs Action Center /
+blind-spots · 4 per-user · 5 calm cue; count matches · 6 click → deep link · 7 presence +
+work-os feeds · 8 1 item → item; N → filtered · 9 0 → no card · 10 n/a · 11 live smoke
+(count matches; click routes).
+**Verification target**: CT unit + live verified.
+
+## P0C — Comms reopen source conversation + transcript
+1 after import, reopen the capture + view original transcript · 2 `Comms.tsx` +
+`GET /otzar/meeting-captures`, new `GET /otzar/meeting-captures/:id/transcript` · 3
+`meetingCapture.transcript` · 4 caller-owned only (no leak) · 5 list → open → transcript +
+derived work + evidence · 6 open, view transcript, jump to work items/seeds · 7
+meeting-capture service (add caller-scoped transcript route) · 8 transcript visible to
+authorized user · 9 unauthorized → 404/denied (no leak) · 10 source evidence spans · 11
+integration (route + no-leak) + live smoke (import → return → reopen → transcript).
+**Verification target**: Integration + live verified.
+
+## P0F — Tools & Connections UI-operable + human copy
+1 admin connects/verifies/revokes a tool from UI, sees blocked work · 2 `ToolsConnections.tsx`
++ existing connector routes + Slice-F `slack-write` route · 3 ConnectorBinding + OAuth +
+work-os blockers · 4 admin-only · 5 human copy (Connect Slack / Verify / Revoke / "Used by
+N blocked items" / "Needs admin setup" / "Missing chat:write" / "Bot not in channel") · 6
+connect/verify/revoke/rotate/test/set-default · 7 connector-binding + oauth + connector-
+capability (reuse) · 8 binding active + verified · 9 honest Slack error class surfaced · 10
+audit on binding ops · 11 CT unit + live (register slack-write from UI; verify).
+Impl language (C-codes, `SLACK_READ`, `binding_id`, "MCP") → Advanced details.
+**Verification target**: CT unit + live verified (or Deferred boundary if creds-gated).
+
+## P0G — Browser voice → server STT fallback
+1 voice works or degrades to server STT with honest state · 2 `Voice.tsx` +
+`/otzar/voice/transcribe` · 3 mic audio · 4 per-user · 5 Listening/Transcribing/Server
+transcription/Error · 6 speak; on browser-STT fail, capture+POST audio to server · 7
+existing ElevenLabs transcribe route · 8 text appears from server · 9 no mic/network →
+useful fix + text still works · 10 no raw-audio storage (policy) · 11 CT unit (fallback
+path) + live (HTTPS) or Deferred boundary(HTTPS+key).
+**Verification target**: CT unit; live or Deferred boundary.
+
+## P0H — Talk-to-Otzar orb non-blocking
+1 orb never blocks capture/CTAs · 2 `AmbientOtzarBar.tsx` · 3 n/a · 4 per-device · 5
+draggable + collapsible + remembers position · 6 drag/collapse/reset · 7 n/a · 8 CTAs
+clickable · 9 off-screen → reset · 10 n/a · 11 CT unit (position persistence) + live (orb
+does not overlap capture).
+**Verification target**: CT unit + live verified.
+
+---
+
+## P1 (scale/usability) · P2 (copy/IA)
+- **P1 Admin IA**: hide the 6 `comingSoon` pages from nav (keep routes deep-link-safe);
+  move impl language to Advanced; ensure diagnostics separate. (`nav.ts`)
+- **P1 AI Teammates**: never show raw entity_id (fallback to "Unassigned"); "Behavior:
+  autonomous/approval" not "EXECUTIVE_OVERRIDE". (`AITeammates.tsx`)
+- **P1 People & Roles**: render `/org/hierarchy` (teams/managers/reports) + person actions.
+  (`Users.tsx`)
+- **P2 Copy**: run `findBackendTermLeak` over normal-flow strings as the gate; replace
+  env-var/binding/rail/envelope/entitlement/preview/raw-IDs with human copy.
+
+## Scenario smoke suite (acceptance layer)
+`test:e2e:live:workos:ux-coherence` + focused specs (ux-action-center, ux-comms-source,
+ux-identity-dandelion, ux-tools-connections, ux-today-routing, ux-voice, ux-floating-
+assistant, ux-admin-cleanup). Each proves its P0 end-to-end; skips clean when creds-gated;
+the deep Work OS suite (36) + baseline must stay green throughout.
+
+## Sequence (each: grep → build → test → commit → verify → next; A–F preserved)
+1 docs (this + doctrine) → 2 P0D identity truth → 3 P0E Dandelion scale → 4 P0C Comms
+reopen → 5 P0A Action Center → 6 P0B Today routing → 7 P0F Tools UI → 8 P0G voice → 9 P0H
+orb → 10 P1 IA/teammates/hierarchy → 11 P2 copy gate → 12 scenario smokes → deploy →
+live-verify. Ordered so backend-truth fixes (D/E/C) land before the surfaces (A/B) that
+render them.
