@@ -4554,6 +4554,13 @@ export interface WorkLedgerEntryView {
   next_action: string | null;
   due_at: string | null;
   created_at: string;
+  // PROD-UX-P0A — link to the source conversation + the governed execution
+  // link/plan (Slice F backend projects these on WorkLedgerView). execution_plan
+  // is the stored camelCase plan (requiredConnector / executionMode / executionType
+  // / capabilityState / approvalRequired / nextBestAction); read defensively.
+  conversation_id?: string | null;
+  proposed_action_id?: string;
+  execution_plan?: Record<string, unknown>;
   // Phase 1281 — governed BEAM coordination result (create-time).
   coordination_runtime?: string;
   coordination_watcher?: string;

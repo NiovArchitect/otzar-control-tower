@@ -1422,6 +1422,38 @@ export class ApiClient {
         body: patch,
       }),
 
+    /** POST /api/v1/work-os/ledger/:id/execute — PROD-UX-P0A: promote a caller-owned
+     *  commitment to a governed Action (Slice F). Never auto-sends; the Action runs
+     *  only through the approved lifecycle. 404 FEATURE_DISABLED when write-back off. */
+    ledgerExecute: (
+      ledgerEntryId: string,
+    ): Promise<ApiResult<{
+      ok: boolean;
+      outcome?: string;
+      action_id?: string;
+      action_status?: string;
+      escalation_id?: string;
+      ledger_status?: string;
+      connector_type?: string;
+      capability_state?: string;
+      reason?: string;
+      code?: string;
+    }>> =>
+      this.request(`/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/execute`, {
+        method: "POST",
+        body: {},
+      }),
+
+    /** POST /api/v1/work-os/ledger/:id/reconcile-execution — refresh the ledger's
+     *  execution state from its linked Action (EXECUTING → EXECUTED / BLOCKED). */
+    ledgerReconcileExecution: (
+      ledgerEntryId: string,
+    ): Promise<ApiResult<{ ok: boolean; ledger_status?: string; action_status?: string; reason?: string; code?: string }>> =>
+      this.request(`/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/reconcile-execution`, {
+        method: "POST",
+        body: {},
+      }),
+
     /** GET /api/v1/work-os/team-work — manager/admin team view; 403 with
      *  TEAM_SCOPE_NOT_CONFIGURED when the caller lacks team authority. */
     teamWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
@@ -1875,6 +1907,14 @@ export class ApiClient {
       this.request<ActionDetailResponse>(
         `/actions/${encodeURIComponent(actionId)}`,
       ),
+
+    /** GET /api/v1/actions/:id/attempts — PROD-UX-P0A: the SAFE per-attempt
+     *  delivery metadata (a connector receipt: channel / ts / permalink) for a
+     *  governed Action, so a work item can show its execution receipt. */
+    getActionAttempts: (
+      actionId: string,
+    ): Promise<ApiResult<{ ok: boolean; attempts: Array<Record<string, unknown>> }>> =>
+      this.request(`/actions/${encodeURIComponent(actionId)}/attempts`),
 
     /** Phase 1211 -- GET /api/v1/actions list. Self-scoped at
      *  Foundation tier. Optional status / risk_tier / action_type

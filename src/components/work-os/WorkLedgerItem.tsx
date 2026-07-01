@@ -17,6 +17,7 @@ import { emitWorkStateChanged } from "@/lib/events/work-state";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromLedger } from "@/lib/work-os/view-why";
+import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
 //        summarizeExecutionProof) so the badge + section agree.
@@ -63,6 +64,12 @@ export function WorkLedgerItem({
   const [proofState, setProofState] = useState<"idle" | "loading" | "error" | "loaded">("idle");
   const [completing, setCompleting] = useState(false);
   const [completeErr, setCompleteErr] = useState<string | null>(null);
+  // PROD-UX-P0A — governed execution actions (Slice F rails).
+  const [execBusy, setExecBusy] = useState(false);
+  const [execMsg, setExecMsg] = useState<string | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receipt, setReceipt] = useState<{ loading: boolean; text: string | null }>({ loading: false, text: null });
+  const exec = deriveWorkItemExecution(entry);
 
   // Mark complete — owner-only (server-computed entry.can_complete). PATCHes
   // the status to EXECUTED; the requester's waiting-on then clears. The backend
@@ -83,6 +90,71 @@ export function WorkLedgerItem({
       setCompleteErr(
         r.ok && r.data.message ? r.data.message : "Couldn't mark complete right now.",
       );
+    }
+  }
+
+  // Ask Otzar to handle it — promotes the commitment to a GOVERNED Action (never
+  // auto-sends; the Action still runs only through the approved lifecycle). The
+  // item then reflects "waiting on approval" / "handling" and, when done, a receipt.
+  async function askOtzar(): Promise<void> {
+    setExecBusy(true);
+    setExecMsg(null);
+    const r = await api.workOs.ledgerExecute(entry.ledger_entry_id);
+    setExecBusy(false);
+    if (r.ok && r.data.ok && r.data.outcome === "action_created") {
+      setExecMsg("Otzar has this — it's routed for approval.");
+      emitWorkStateChanged({ type: "LEDGER_UPDATED", ledger_entry_id: entry.ledger_entry_id });
+      onChanged?.();
+    } else if (r.ok && r.data.outcome === "blocked_setup_required") {
+      setExecMsg(`Can't yet — ${exec.connectorLabel ?? "the tool"} needs connecting.`);
+      onChanged?.();
+    } else {
+      setExecMsg(
+        r.ok && r.data.code === "FEATURE_DISABLED"
+          ? "Governed execution isn't enabled here yet."
+          : r.ok && (r.data.reason ?? r.data.code)
+            ? `Couldn't route this: ${r.data.reason ?? r.data.code}`
+            : "Couldn't route this right now.",
+      );
+    }
+  }
+
+  // Refresh the ledger's execution state from its linked Action (EXECUTING → done).
+  async function reconcile(): Promise<void> {
+    setExecBusy(true);
+    setExecMsg(null);
+    const r = await api.workOs.ledgerReconcileExecution(entry.ledger_entry_id);
+    setExecBusy(false);
+    if (r.ok && r.data.ok) {
+      emitWorkStateChanged({ type: "LEDGER_UPDATED", ledger_entry_id: entry.ledger_entry_id });
+      onChanged?.();
+    } else {
+      setExecMsg("Couldn't refresh status right now.");
+    }
+  }
+
+  // Show the real connector receipt (channel / ts / permalink) from the Action's
+  // latest attempt — proof the write actually happened, never fabricated.
+  async function loadReceipt(): Promise<void> {
+    const next = !receiptOpen;
+    setReceiptOpen(next);
+    if (next && receipt.text === null && entry.proposed_action_id) {
+      setReceipt({ loading: true, text: null });
+      const r = await api.actions.getActionAttempts(entry.proposed_action_id);
+      if (r.ok) {
+        const latest = r.data.attempts[0] as
+          | { result_metadata?: { connector_type?: string; delivery_metadata?: Record<string, unknown> } }
+          | undefined;
+        const d = latest?.result_metadata?.delivery_metadata ?? {};
+        const parts: string[] = [];
+        if (latest?.result_metadata?.connector_type) parts.push(String(latest.result_metadata.connector_type).replace(/_/g, " ").toLowerCase());
+        if (typeof d["channel"] === "string") parts.push(`channel ${d["channel"]}`);
+        if (typeof d["ts"] === "string" && d["ts"] !== "0000000000.000000") parts.push(`at ${d["ts"]}`);
+        const permalink = typeof d["permalink"] === "string" ? d["permalink"] : null;
+        setReceipt({ loading: false, text: parts.length > 0 ? parts.join(" · ") + (permalink ? `\n${permalink}` : "") : "Delivered." });
+      } else {
+        setReceipt({ loading: false, text: "Receipt unavailable." });
+      }
     }
   }
 
@@ -125,6 +197,26 @@ export function WorkLedgerItem({
             {entry.ledger_type}
             {entry.next_action !== null ? ` · Next: ${entry.next_action}` : ""}
           </div>
+          {exec.state !== "tracking" ? (
+            <div className="mt-0.5 text-[10px]" data-testid="work-ledger-item-exec-state" data-exec-state={exec.state}>
+              <span
+                className={
+                  exec.state === "executed"
+                    ? "text-emerald-600"
+                    : exec.state === "blocked_setup" || exec.state === "needs_owner"
+                      ? "text-amber-600"
+                      : exec.state === "pending_approval" || exec.state === "otzar_can_handle"
+                        ? "text-sky-600"
+                        : "text-muted-foreground"
+                }
+              >
+                {exec.stateLabel}
+              </span>
+              {exec.nextBestAction !== null && exec.state !== "executed" ? (
+                <span className="text-muted-foreground"> · {exec.nextBestAction}</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {cardBadge !== null ? (
@@ -135,6 +227,38 @@ export function WorkLedgerItem({
           <Badge variant="outline" className="text-[9px]">
             {entry.status.replace(/_/g, " ")}
           </Badge>
+          {exec.actions.includes("ask_otzar") ? (
+            <button
+              type="button"
+              className="rounded border border-sky-500/50 px-1 text-[10px] text-sky-600 hover:bg-sky-500/10 disabled:opacity-50"
+              data-testid="work-ledger-item-ask-otzar"
+              disabled={execBusy}
+              onClick={() => void askOtzar()}
+            >
+              {execBusy ? "Routing…" : "Ask Otzar to handle"}
+            </button>
+          ) : null}
+          {exec.actions.includes("reconcile") ? (
+            <button
+              type="button"
+              className="rounded px-1 text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-50"
+              data-testid="work-ledger-item-reconcile"
+              disabled={execBusy}
+              onClick={() => void reconcile()}
+            >
+              {execBusy ? "…" : "Refresh"}
+            </button>
+          ) : null}
+          {exec.actions.includes("view_receipt") ? (
+            <button
+              type="button"
+              className="rounded px-1 text-[10px] text-emerald-600 hover:bg-emerald-500/10"
+              data-testid="work-ledger-item-receipt"
+              onClick={() => void loadReceipt()}
+            >
+              {receiptOpen ? "Hide receipt" : "Receipt"}
+            </button>
+          ) : null}
           {entry.can_complete === true ? (
             <button
               type="button"
@@ -156,6 +280,20 @@ export function WorkLedgerItem({
           </button>
         </div>
       </div>
+      {execMsg !== null ? (
+        <p className="mt-1 text-[10px] text-muted-foreground" data-testid="work-ledger-item-exec-msg">
+          {execMsg}
+        </p>
+      ) : null}
+      {receiptOpen ? (
+        <div className="mt-1 rounded border bg-muted/40 p-1.5 text-[10px]" data-testid="work-ledger-item-receipt-panel">
+          {receipt.loading ? (
+            <span className="text-muted-foreground">Loading receipt…</span>
+          ) : (
+            <pre className="whitespace-pre-wrap break-words text-emerald-700 dark:text-emerald-400">{receipt.text}</pre>
+          )}
+        </div>
+      ) : null}
       {/* Phase 1286-C — read-only meeting intelligence, only when the row
           genuinely carries it (absent → nothing renders). */}
       <MeetingIntelligencePanel data={entry.meeting_intelligence} />
