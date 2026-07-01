@@ -187,6 +187,39 @@ export async function seedAction(
   return { status: r.status(), ok: j.ok === true, seed: j.seed };
 }
 
+/** Query the unified governed org query layer (Slice B). scope self|project|team|
+ *  org|admin (+ optional query/filter/sort/project_id). */
+export async function orgQuery(
+  request: APIRequestContext,
+  token: string,
+  body: Record<string, unknown>,
+): Promise<{ status: number; ok: boolean; code?: string; results: Array<Record<string, unknown>> }> {
+  const r = await request.post(`${API}/work-os/org-query`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: body,
+    timeout: 30_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; code?: string; results?: Array<Record<string, unknown>> };
+  return { status: r.status(), ok: j.ok === true, results: j.results ?? [], ...(j.code ? { code: j.code } : {}) };
+}
+
+/** Agent-grounding: governed context for (caller, query) with sufficient flag. */
+export async function groundContext(
+  request: APIRequestContext,
+  token: string,
+  query: string,
+): Promise<{ status: number; sufficient: boolean; results: Array<Record<string, unknown>>; reason: string }> {
+  const r = await request.post(`${API}/work-os/org-query/ground`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    data: { query },
+    timeout: 30_000,
+    failOnStatusCode: false,
+  });
+  const j = (await r.json().catch(() => ({}))) as { sufficient?: boolean; results?: Array<Record<string, unknown>>; reason?: string };
+  return { status: r.status(), sufficient: j.sufficient === true, results: j.results ?? [], reason: j.reason ?? "" };
+}
+
 /** GET the admin Dandelion seed queue (admin_org-gated). */
 export async function listSeeds(
   request: APIRequestContext,
