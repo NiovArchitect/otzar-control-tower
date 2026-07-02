@@ -290,6 +290,22 @@ const entitiesListHandler = http.get(
   },
 );
 
+// [PROD-UX-APPROVAL-LOOP] Default single-entity read so surfaces that resolve
+// a requester display name (Review Center detail) have a handler under
+// onUnhandledRequest:"error". Tests needing specific names override.
+const entityDetailHandler = http.get(
+  `${API_BASE}/org/entities/:id`,
+  ({ params }) =>
+    HttpResponse.json({
+      entity_id: String(params.id),
+      entity_type: "PERSON",
+      display_name: "Demo Member",
+      email: "member@example.com",
+      status: "ACTIVE",
+      clearance_level: 3,
+    }),
+);
+
 const entitiesPatchHandler = http.patch(
   `${API_BASE}/org/entities/:id`,
   async ({ params, request }) => {
@@ -3141,6 +3157,7 @@ export const handlers = [
   onboardingStartHandler,
   onboardingInviteHandler,
   entitiesListHandler,
+  entityDetailHandler,
   entitiesPatchHandler,
   auditListHandler,
   analyticsHandler,

@@ -56,6 +56,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
+import { friendlyEscalationDescription } from "@/lib/approvals/escalation-copy";
 import { useAuthStore } from "@/lib/stores/auth";
 import type {
   Escalation,
@@ -207,6 +208,22 @@ function DetailPanel({
       }),
     enabled: escalationId !== null,
   });
+
+  // [PROD-UX-APPROVAL-LOOP] "Who requested it" as a NAME, not just a UUID —
+  // the approver decides about a person, not an identifier. Admin-gated
+  // lookup; falls back to the stable id when the entity can't be resolved.
+  const requesterId = detailQuery.data?.escalation?.source_entity_id ?? null;
+  const requesterQuery = useQuery({
+    queryKey: ["org", "entity", requesterId],
+    queryFn: () =>
+      api.org.entities.get(requesterId as string).then((r) => {
+        if (r.ok) return r.data;
+        throw new Error(r.code);
+      }),
+    enabled: requesterId !== null,
+    retry: false,
+  });
+  const requesterName = requesterQuery.data?.display_name ?? null;
 
   const approveMutation = useMutation({
     mutationFn: (id: string) =>
@@ -362,8 +379,14 @@ function DetailPanel({
           <DetailRow label="Severity" value={escalation.severity} />
           <DetailRow label="Status" value={escalation.status} />
           <DetailRow
-            label="Description"
-            value={escalation.description}
+            label="What needs approval"
+            value={friendlyEscalationDescription(escalation.description)}
+            testId="detail-escalation-description"
+          />
+          <DetailRow
+            label="Requested by"
+            value={requesterName ?? escalation.source_entity_id}
+            testId="detail-escalation-requester"
           />
           <DetailRow
             label="Source entity"

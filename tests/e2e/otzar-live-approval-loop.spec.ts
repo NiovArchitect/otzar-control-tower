@@ -164,6 +164,28 @@ test("approve leg: submitted → approver queue → approve in Review Center →
 
   const { actionId, escalationId } = await senderSendsCard(page, request, emp, "1-sender-submitted");
 
+  // NUANCE — mid-flight sender coherence: the sender's own Action Center
+  // carries the action as pending (never "Sent") while the approver decides.
+  await clientRoute(page, "/app/action-center");
+  await page.getByTestId("action-center-list").waitFor({ state: "visible", timeout: 25_000 });
+  const midFlight = page.locator(`[data-action-id="${actionId}"]`);
+  await midFlight.waitFor({ state: "visible", timeout: 15_000 });
+  expect(((await midFlight.textContent()) ?? "")).not.toMatch(/sent/i);
+
+  // NUANCE — two-person invariant, live: the SENDER cannot resolve their own
+  // escalation (403), and it never appears in their own pending-approvals queue.
+  const selfApprove = await request.post(`${API}/escalations/${escalationId}/approve`, {
+    headers: authed(emp),
+    data: {},
+  });
+  expect(selfApprove.status()).toBe(403);
+  const senderQueue = await request.get(`${API}/escalations/pending`, { headers: authed(emp) });
+  expect(
+    (((await senderQueue.json()).escalations ?? []) as Array<{ escalation_id: string }>).some(
+      (e) => e.escalation_id === escalationId,
+    ),
+  ).toBe(false);
+
   // The escalation is in the approver's pending queue (API truth).
   const adm = await apiLogin(request, ADMIN_EMAIL);
   const pq = await request.get(`${API}/escalations/pending`, { headers: authed(adm) });
@@ -181,6 +203,13 @@ test("approve leg: submitted → approver queue → approve in Review Center →
   await page.screenshot({ path: `screenshots/${TAG}-2-approver-queue.png`, fullPage: true });
   await page.getByTestId(`approval-row-button-${escalationId}`).click();
   await page.getByTestId("approval-detail-panel").waitFor({ state: "visible", timeout: 15_000 });
+  // NUANCE — the approver reads human context, never machine codes: what
+  // needs approval + who requested it (a name, not a bare UUID).
+  const desc = (await page.getByTestId("detail-escalation-description").textContent()) ?? "";
+  expect(desc).toContain("Second approval for:");
+  expect(desc).not.toContain("DUAL_CONTROL");
+  const requester = (await page.getByTestId("detail-escalation-requester").textContent()) ?? "";
+  expect(requester).not.toMatch(/^[0-9a-f-]{36}$/i); // resolved name, not a bare id
   await page.screenshot({ path: `screenshots/${TAG}-3-approver-controls.png`, fullPage: true });
   await page.getByTestId("approval-approve-button").click();
   await page.getByTestId("approval-confirm-dialog").waitFor({ state: "visible", timeout: 10_000 });
@@ -209,6 +238,22 @@ test("approve leg: submitted → approver queue → approve in Review Center →
       (e) => e.escalation_id === escalationId,
     ),
   ).toBe(false);
+
+  // NUANCE — verdicts are final: a second resolution attempt on the already-
+  // approved escalation is refused (no flip-flopping).
+  const reResolve = await request.post(`${API}/escalations/${escalationId}/reject`, {
+    headers: authed(adm),
+    data: { reason: "should never apply" },
+  });
+  expect(reResolve.ok()).toBe(false);
+
+  // NUANCE — audit proof: ACTION_APPROVED recorded for this exact action.
+  const audit = await request.get(`${API}/org/audit?take=100&event_type=ACTION_APPROVED`, { headers: authed(adm) });
+  expect(
+    (((await audit.json()).items ?? []) as Array<{ details?: { action_id?: string } }>).some(
+      (e) => e.details?.action_id === actionId,
+    ),
+  ).toBe(true);
 
   // Sender's Action Center shows the delivered truth: "Sent" under Completed.
   await page.getByRole("button", { name: /log out/i }).first().click().catch(() => undefined);
@@ -247,11 +292,33 @@ test("reject leg: submitted → approver rejects with reason → Action REJECTED
   await page.getByTestId("approval-confirm-submit").click();
   await page.waitForTimeout(2500);
 
-  // Both records tell the same truth: escalation REJECTED, Action REJECTED.
+  // Both records tell the same truth: escalation REJECTED, Action REJECTED —
+  // and the approver's reason is DURABLE on the escalation.
   const adm = await apiLogin(request, ADMIN_EMAIL);
   const esc = await request.get(`${API}/escalations/${escalationId}`, { headers: authed(adm) });
   const escBody = await esc.json();
-  expect((escBody.escalation ?? escBody).status).toBe("REJECTED");
+  const escRow = escBody.escalation ?? escBody;
+  expect(escRow.status).toBe("REJECTED");
+  expect(JSON.stringify(escRow.resolution_metadata ?? {})).toContain(
+    "Verification smoke — rejecting this test note.",
+  );
+
+  // NUANCE — audit proof: ACTION_REJECTED for this exact action, carrying the
+  // approver's human reason as a safe scalar.
+  const audit = await request.get(`${API}/org/audit?take=100&event_type=ACTION_REJECTED`, { headers: authed(adm) });
+  const rejectedRow = (((await audit.json()).items ?? []) as Array<{
+    details?: { action_id?: string; approver_reason?: string; decision_reason?: string };
+  }>).find((e) => e.details?.action_id === actionId);
+  expect(rejectedRow).toBeDefined();
+  expect(rejectedRow?.details?.decision_reason).toBe("dual-control-escalation-rejected");
+  expect(rejectedRow?.details?.approver_reason).toBe("Verification smoke — rejecting this test note.");
+
+  // NUANCE — verdicts are final: approving after rejection is refused.
+  const flipFlop = await request.post(`${API}/escalations/${escalationId}/approve`, {
+    headers: authed(adm),
+    data: {},
+  });
+  expect(flipFlop.ok()).toBe(false);
   await expect
     .poll(
       async () => {
@@ -278,4 +345,38 @@ test("reject leg: submitted → approver rejects with reason → Action REJECTED
   await page.screenshot({ path: `screenshots/${TAG}-7-sender-not-approved.png`, fullPage: true });
 
   await cleanupPendingFollowUps(request, emp);
+});
+
+// ── NUANCE — idempotency: a retried send never duplicates the approval ───────
+test("idempotency: replaying the same send key returns the SAME action — no duplicate approvals pile up", async ({ request }) => {
+  test.setTimeout(120_000);
+  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
+  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const key = `loop-idem-${Date.now()}`;
+  const body = {
+    action_type: "SEND_INTERNAL_NOTIFICATION",
+    idempotency_key: key,
+    payload_summary: "Idempotency verification (smoke)",
+    payload_redacted: {
+      recipient_entity_id: SAMIKSHA,
+      notification_class: "OTZAR_INTERNAL_NOTE",
+      body_summary:
+        "Verification note from Otzar smoke test (idempotency): duplicate-protection check — will be rejected. No action needed.",
+    },
+  };
+  const first = await (await request.post(`${API}/actions`, { headers: authed(emp), data: body })).json();
+  const second = await (await request.post(`${API}/actions`, { headers: authed(emp), data: body })).json();
+  expect(first.action.action_id).toBe(second.action.action_id); // same action, not a new one
+  // Exactly ONE pending escalation exists for it in the approver's queue.
+  const pq = await request.get(`${API}/escalations/pending`, { headers: authed(adm) });
+  const matches = (((await pq.json()).escalations ?? []) as Array<{ escalation_id: string }>).filter(
+    (e) => e.escalation_id === first.action.escalation_id,
+  );
+  expect(matches.length).toBe(1);
+  // Governed cleanup: reject it (reconciles the action too — the loop's fix).
+  const rej = await request.post(`${API}/escalations/${first.action.escalation_id}/reject`, {
+    headers: authed(adm),
+    data: { reason: "Verification smoke — idempotency check cleanup." },
+  });
+  expect((await rej.json()).ok).toBe(true);
 });

@@ -26,6 +26,7 @@ import { describe, expect, it, beforeEach } from "vitest";
 import {
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -262,6 +263,70 @@ describe("Section 9 Control Tower Approvals — approve / deny mutations (two-st
     // panel returns to the empty-selector state.
     await screen.findByTestId("approval-detail-empty");
     expect(lastApproveId).toBe(APPROVABLE_ID);
+  });
+
+  // [PROD-UX-APPROVAL-LOOP] "What needs approval" is human language — the raw
+  // DUAL_CONTROL:ACTION_CREATE_* machine description never reaches the
+  // approver; and "Requested by" resolves the requester's NAME.
+  it("humanizes the dual-control description and names the requester", async () => {
+    server.use(
+      http.get(`${API_BASE}/escalations/:id`, ({ params }) => {
+        if (params.id === "pending") return undefined; // keep the list handler
+        return HttpResponse.json({
+          ok: true,
+          escalation: {
+            escalation_id: String(params.id),
+            source_entity_id: "ent-riya",
+            target_entity_id: "ent-approver",
+            escalation_type: "DUAL_CONTROL_REQUIRED",
+            severity: "HIGH",
+            status: "PENDING",
+            description: "DUAL_CONTROL:ACTION_CREATE_SEND_INTERNAL_NOTIFICATION",
+            created_at: new Date().toISOString(),
+            resolved_at: null,
+            resolved_by_entity_id: null,
+          },
+        });
+      }),
+      http.get(`${API_BASE}/org/entities/:id`, ({ params }) =>
+        HttpResponse.json({
+          entity_id: String(params.id),
+          entity_type: "PERSON",
+          display_name: "Riya Demo",
+          email: "riya@example.com",
+          status: "ACTIVE",
+          clearance_level: 3,
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("approval-list");
+    await user.click(screen.getByTestId(`approval-row-button-${APPROVABLE_ID}`));
+    const desc = await screen.findByTestId("detail-escalation-description");
+    expect(desc).toHaveTextContent("Second approval for: Internal note");
+    expect(desc.textContent).not.toContain("DUAL_CONTROL");
+    expect(desc.textContent).not.toContain("ACTION_CREATE");
+    const requester = await screen.findByTestId("detail-escalation-requester");
+    await waitFor(() => expect(requester).toHaveTextContent("Riya Demo"));
+  });
+
+  it("a human description passes through unchanged; requester falls back to the stable id when unresolvable", async () => {
+    server.use(
+      http.get(`${API_BASE}/org/entities/:id`, () =>
+        HttpResponse.json({ ok: false, code: "NOT_FOUND" }, { status: 404 }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("approval-list");
+    await user.click(screen.getByTestId(`approval-row-button-${APPROVABLE_ID}`));
+    const desc = await screen.findByTestId("detail-escalation-description");
+    // The default fixture description is already human text.
+    expect(desc.textContent?.length ?? 0).toBeGreaterThan(0);
+    expect(desc.textContent).not.toContain("DUAL_CONTROL:");
+    const requester = await screen.findByTestId("detail-escalation-requester");
+    expect(requester.textContent?.length ?? 0).toBeGreaterThan(0); // id fallback, never blank
   });
 
   // [PROD-UX-APPROVAL-LOOP] The approver can attach a human reason to a
