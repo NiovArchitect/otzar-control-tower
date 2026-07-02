@@ -101,17 +101,25 @@ merge → deploy; the CT reload PR consumes it second — the #519/#520/#521
 pattern. The earlier "protected-repo schema migration / cloud-sync hazard"
 justification is retracted: there is no schema change.
 
-## BUG C — outside-context recipient review incomplete — **root-caused (depends on B)**
+## BUG C — outside-context recipient review incomplete — **FIXED + LIVE-VERIFIED (FND `d280cfc` / PR #523; CT `fcb2a2a`)**
 
-- **Root cause:** the recipient-governance "review before sending" verdict
-  (`Comms.tsx:889`, `ProposedActionCard` `sendBlocked`) blocks Send but the
-  card offers no durable confirm/change-recipient/approve path; and because
-  the card itself is volatile (BUG B), any review state is lost on navigation.
-- **Repair:** once B makes the card durable, add the review completion:
-  confirm recipient / change recipient (updates the payload's
-  `recipient_entity_id`) / approve → unlock Send; feed the confirmation into
-  recipient governance as a correction. Confirm survives navigation via the
-  same durable row.
+- **Root cause:** the recipient-governance verdict blocked Send but the card
+  offered no completion path; and (pre-B) any review state was volatile.
+- **Fix (governance rule ratified):** on the durable FOLLOW_UP row,
+  `POST /work-os/comms/follow-ups/:id/resolve-recipient` —
+  **confirm** unlocks `out_of_scope`/`likely` (the caller vouches; proof source
+  becomes the distinct `caller_confirmed`, `autonomyEligibility: draft_only`,
+  audited via `ADMIN_ACTION`/`FOLLOW_UP_RECIPIENT_RESOLVED`, pointer on the
+  row); **select** resolves `ambiguous` to a server-supplied id-based candidate
+  (`select_candidates` — employees can't read `/org/entities`, and display
+  names never resolve identity); **`unauthorized` and
+  `cross_team_needs_approval` are NEVER caller-overridable** (honest human
+  copy; API 403; no fake approval completion). The decision lives on the same
+  WorkLedger row → survives navigation/refresh (live-smoked: confirm → leave →
+  return → still confirmed, Send unlocked; approval boundary intact).
+- **Learn-loop (honest):** `classifyRecipient` accepts aliases/excludeEntityIds
+  but ingest does not load corrections yet, so confirm/select does NOT write
+  correction memory — server-side TODO(learn-loop) only.
 
 ## BUG D — People & Collaboration "not connected" framing — **root-caused (live-probed); FND copy fix**
 
@@ -131,16 +139,16 @@ justification is retracted: there is no schema change.
 
 ## Customer acceptance criteria
 
-1. After ingestion, follow-ups are durable. — backend ✅; **Comms read-back = BUG B**
+1. After ingestion, follow-ups are durable. — **✅ (BUG B fixed + live-verified)**
 2. Send works for valid internal drafts. — **✅ (BUG A fixed)**
-3. Outside-context recipient review can be completed. — **BUG C**
-4. Pending drafts survive navigation/refresh. — **BUG B**
-5. Failed sends remain recoverable. — **BUG B** (row stays pending on failure)
-6. All pending work appears in an obvious surface. — My Work/Team Work ✅; Comms resume = BUG B
+3. Outside-context recipient review can be completed. — **✅ (BUG C fixed + live-verified)**
+4. Pending drafts survive navigation/refresh. — **✅ (BUG B)**
+5. Failed sends remain recoverable. — **✅** (live-proven: governance-rejected send stays DRAFT)
+6. All pending work appears in an obvious surface. — ✅ (My Work/Team Work + Comms resume)
 7. No duplicate follow-up systems. — ✅ (ledger is the single store; no parallel system introduced)
-8. People connectedness is accurate. — data ✅; **framing = BUG D**
+8. People connectedness is accurate. — data ✅; **framing = BUG D (open)**
 9. No fake claims. — ✅
-10. Customer does not need to re-ingest. — backend work persists ✅; **Comms resume UX = BUG B**
+10. Customer does not need to re-ingest. — ✅
 
 ## Live-smoke checklist (run after B/C land)
 
