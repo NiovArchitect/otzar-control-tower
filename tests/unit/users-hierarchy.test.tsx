@@ -111,7 +111,8 @@ describe("Members — org hierarchy columns (P1)", () => {
 
   it("a non-person parent (org root) renders '—' for Reports to, with the role still shown", async () => {
     renderUsers();
-    expect(await screen.findByText("Founder")).toBeInTheDocument();
+    // "Founder" renders in the table Role column AND the org-map card.
+    expect((await screen.findAllByText("Founder")).length).toBeGreaterThan(0);
     // Sadeil's parent is the org root — no fabricated manager.
     const cells = screen.getAllByRole("cell").map((c) => c.textContent);
     expect(cells.filter((t) => t === "—").length).toBeGreaterThan(0);

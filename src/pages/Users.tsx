@@ -35,7 +35,8 @@ import { api } from "@/lib/api";
 import { formatPersonName } from "@/lib/identity/person-name";
 import { getEntityTypeLabel } from "@/lib/labels/entity-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
-import type { Entity, EntityStatus } from "@/lib/types/foundation";
+import type { Entity, EntityMembership, EntityStatus } from "@/lib/types/foundation";
+import { buildOrgMap, type OrgMapPerson } from "@/lib/org/org-map";
 
 const PAGE_SIZE = 25;
 
@@ -289,6 +290,15 @@ export function UsersPage() {
 
       <DataSovereigntyInline />
 
+      {/* PROD-UX-VIS-A — the org at a glance: departments → managers →
+          direct reports, with honest attention buckets. Built from the
+          same hierarchy read the table uses. */}
+      <OrgMapCard
+        orgEntityId={hierarchy.data?.org_entity_id ?? null}
+        memberships={hierarchy.data?.memberships ?? []}
+        people={allPeople.data ?? []}
+      />
+
       {/* PROD-UX-HIER — admin authoring of the reporting structure. The
           selects carry stable entity ids (labels show name + email so
           duplicate names can never mis-assign); the server enforces org
@@ -478,6 +488,102 @@ function ReportingCard({
         >
           {notice.text}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+// PROD-UX-VIS-A — the smallest clear org map: departments (largest first),
+// each showing manager → direct reports as calm indented lines; people who
+// need hierarchy setup surface in their own honest bucket. Read-only view —
+// the ReportingCard right below is where changes happen.
+function OrgTreePerson({ person, depth }: { person: OrgMapPerson; depth: number }): JSX.Element {
+  return (
+    <div data-testid="org-map-person" data-depth={depth}>
+      <div
+        className="flex items-baseline gap-2 py-0.5 text-sm"
+        style={{ paddingLeft: `${depth * 16}px` }}
+      >
+        <span className="font-medium text-foreground">
+          {formatPersonName(person.name) || person.name}
+        </span>
+        {person.role_title !== null ? (
+          <span className="text-xs text-muted-foreground">{person.role_title}</span>
+        ) : null}
+        {person.reports.length > 0 ? (
+          <span className="text-[10px] text-muted-foreground">
+            · manages {person.reports.length}
+          </span>
+        ) : null}
+      </div>
+      {person.reports.map((r) => (
+        <OrgTreePerson key={r.entity_id} person={r} depth={depth + 1} />
+      ))}
+    </div>
+  );
+}
+
+function OrgMapCard({
+  orgEntityId,
+  memberships,
+  people,
+}: {
+  orgEntityId: string | null;
+  memberships: EntityMembership[];
+  people: Entity[];
+}): JSX.Element | null {
+  if (orgEntityId === null || people.length === 0) return null;
+  const map = buildOrgMap(orgEntityId, memberships, people);
+  return (
+    <div className="rounded-lg border border-border bg-card p-4" data-testid="org-map-card">
+      <div className="flex items-baseline justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Your organization</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {map.totalPeople} people · {map.departments.length}{" "}
+            {map.departments.length === 1 ? "department" : "departments"}. Otzar
+            uses this structure to route work, reviews, and notifications to
+            the right person.
+          </p>
+        </div>
+        {map.needsSetup ? (
+          <span
+            className="shrink-0 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-800"
+            data-testid="org-map-needs-setup"
+          >
+            Needs hierarchy setup
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {map.departments.map((d) => (
+          <section key={d.department} data-testid="org-map-department" data-department={d.department}>
+            <h3 className="text-xs font-semibold text-muted-foreground">
+              {d.department} ({d.memberCount})
+            </h3>
+            <div className="mt-1">
+              {d.roots.map((p) => (
+                <OrgTreePerson key={p.entity_id} person={p} depth={0} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      {map.unassigned.length > 0 ? (
+        <div className="mt-3 border-t border-border/60 pt-2" data-testid="org-map-unassigned">
+          <h3 className="text-xs font-semibold text-amber-700">
+            No manager or department yet ({map.unassigned.length})
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            Use “Reporting structure” below to place them — until then Otzar
+            can’t route their reviews through a manager.
+          </p>
+          <div className="mt-1">
+            {map.unassigned.map((p) => (
+              <OrgTreePerson key={p.entity_id} person={p} depth={0} />
+            ))}
+          </div>
+        </div>
       ) : null}
     </div>
   );
