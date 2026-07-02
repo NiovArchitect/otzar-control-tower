@@ -26,13 +26,33 @@ const COLLAPSED_BY_DEFAULT: ReadonlySet<string> = new Set([
 export function MyWork(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // PROD-UX-SCALE — server pagination: the surface loads more instead of
+  // silently truncating at the old 200 cap (cap was observed hit live).
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Reload My Work — used on mount AND after a status change (Mark complete)
   // so a completed task drops out / updates without an app restart.
   async function reload(): Promise<void> {
     const r = await api.workOs.myWork();
-    if (r.ok) setItems(r.data.items ?? r.data.entries ?? []);
-    else setFailed(true);
+    if (r.ok) {
+      setItems(r.data.items ?? r.data.entries ?? []);
+      setHasMore(r.data.has_more === true);
+    } else setFailed(true);
+  }
+
+  async function loadMore(): Promise<void> {
+    if (items === null) return;
+    setLoadingMore(true);
+    const r = await api.workOs.myWork({ skip: items.length, take: 200 });
+    setLoadingMore(false);
+    if (r.ok) {
+      const next = r.data.items ?? r.data.entries ?? [];
+      // Dedup by id in case rows shifted between pages.
+      const seen = new Set(items.map((i) => i.ledger_entry_id));
+      setItems([...items, ...next.filter((i) => !seen.has(i.ledger_entry_id))]);
+      setHasMore(r.data.has_more === true);
+    }
   }
 
   useEffect(() => {
@@ -41,8 +61,10 @@ export function MyWork(): JSX.Element {
       .myWork()
       .then((r) => {
         if (cancelled) return;
-        if (r.ok) setItems(r.data.items ?? r.data.entries ?? []);
-        else setFailed(true);
+        if (r.ok) {
+          setItems(r.data.items ?? r.data.entries ?? []);
+          setHasMore(r.data.has_more === true);
+        } else setFailed(true);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -102,6 +124,17 @@ export function MyWork(): JSX.Element {
           );
         })
       )}
+      {hasMore ? (
+        <button
+          type="button"
+          className="w-full rounded-md border border-border py-1.5 text-xs text-muted-foreground hover:text-foreground"
+          data-testid="my-work-load-more"
+          disabled={loadingMore}
+          onClick={() => void loadMore()}
+        >
+          {loadingMore ? "Loading…" : "Show more of your work"}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -10,6 +10,7 @@
 //          WorkLedgerEntryView + ExecutionAttemptView; api.workOs.executionAttempts.
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type { WorkLedgerEntryView, ExecutionAttemptView } from "@/lib/types/foundation";
@@ -254,6 +255,26 @@ export function WorkLedgerItem({
             >
               {execBusy ? "Routing…" : "Ask Otzar to handle"}
             </button>
+          ) : null}
+          {/* PROD-UX — setup_required work deep-links to the setup surface.
+              The action was computed by the P0A map but never rendered:
+              a missing wire, now closed. Admin destination; employees see
+              the same link (the page itself explains who can connect). */}
+          {exec.actions.includes("request_setup") ? (
+            <Link
+              to="/tools-connections"
+              className="rounded border border-amber-500/50 px-1 text-[10px] text-amber-600 hover:bg-amber-500/10"
+              data-testid="work-ledger-item-request-setup"
+              title={
+                exec.connectorLabel !== null
+                  ? `Connect ${exec.connectorLabel} so Otzar can help with this`
+                  : "Open Tools & Connections"
+              }
+            >
+              {exec.connectorLabel !== null
+                ? `Connect ${exec.connectorLabel}`
+                : "Open setup"}
+            </Link>
           ) : null}
           {exec.actions.includes("reconcile") ? (
             <button

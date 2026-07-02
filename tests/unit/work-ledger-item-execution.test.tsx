@@ -8,6 +8,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
+import { MemoryRouter } from "react-router-dom";
 import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import { useAuthStore } from "@/lib/stores/auth";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
@@ -44,7 +45,7 @@ describe("WorkLedgerItem — governed execution actions (P0A)", () => {
         return HttpResponse.json({ ok: true, outcome: "action_created", action_id: "act-1", action_status: "PROPOSED", ledger_status: "NEEDS_APPROVAL" });
       }),
     );
-    render(<WorkLedgerItem entry={entry()} />);
+    render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
     expect(screen.getByTestId("work-ledger-item-exec-state")).toHaveAttribute("data-exec-state", "otzar_can_handle");
     const ask = screen.getByTestId("work-ledger-item-ask-otzar");
     expect(screen.queryByTestId("work-ledger-item-receipt")).toBeNull();
@@ -54,11 +55,16 @@ describe("WorkLedgerItem — governed execution actions (P0A)", () => {
   });
 
   it("blocked setup: shows the setup state and offers NO ask button", () => {
-    render(<WorkLedgerItem entry={entry({ execution_plan: { requiredConnector: "SLACK", executionMode: "otzar_can_execute_with_approval", capabilityState: "not_connected" } })} />);
+    render(<MemoryRouter><WorkLedgerItem entry={entry({ execution_plan: { requiredConnector: "SLACK", executionMode: "otzar_can_execute_with_approval", capabilityState: "not_connected" } })} /></MemoryRouter>);
     const chip = screen.getByTestId("work-ledger-item-exec-state");
     expect(chip).toHaveAttribute("data-exec-state", "blocked_setup");
     expect(chip).toHaveTextContent(/Slack/);
     expect(screen.queryByTestId("work-ledger-item-ask-otzar")).toBeNull();
+    // PROD-UX — setup_required deep-links to the setup surface (the wire
+    // the smoke matrix flagged as missing).
+    const setup = screen.getByTestId("work-ledger-item-request-setup");
+    expect(setup).toHaveAttribute("href", "/tools-connections");
+    expect(setup).toHaveTextContent(/Connect Slack/);
   });
 
   it("executed: shows a real receipt (channel + ts), not a fabricated one", async () => {
@@ -70,7 +76,7 @@ describe("WorkLedgerItem — governed execution actions (P0A)", () => {
         }),
       ),
     );
-    render(<WorkLedgerItem entry={entry({ status: "EXECUTED", proposed_action_id: "act-1" })} />);
+    render(<MemoryRouter><WorkLedgerItem entry={entry({ status: "EXECUTED", proposed_action_id: "act-1" })} /></MemoryRouter>);
     expect(screen.getByTestId("work-ledger-item-exec-state")).toHaveAttribute("data-exec-state", "executed");
     expect(screen.queryByTestId("work-ledger-item-ask-otzar")).toBeNull();
     await userEvent.click(screen.getByTestId("work-ledger-item-receipt"));

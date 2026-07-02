@@ -924,6 +924,9 @@ export interface AITeammateUpdateResponse {
 //      EntityMembership rows for the caller's org.
 export interface OrgHierarchyResponse {
   ok: true;
+  /** The caller's org root — distinguishes enrollment edges (parent=org)
+   *  from person→person manager edges. */
+  org_entity_id: string;
   memberships: EntityMembership[];
 }
 
@@ -5069,6 +5072,11 @@ export interface WorkLedgerListResponse {
   ok: true;
   items?: WorkLedgerEntryView[];
   entries?: WorkLedgerEntryView[];
+  // PROD-UX-SCALE — server pagination (my-work): present when the route
+  // paginates; absent on older payloads (treated as no-more).
+  skip?: number;
+  take?: number;
+  has_more?: boolean;
 }
 
 // Phase 1277 — polyglot runtime fabric capability registry.
