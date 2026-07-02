@@ -61,7 +61,7 @@ describe("WorkLedgerItem execution proof (lazy)", () => {
         });
       }),
     );
-    render(<WorkLedgerItem entry={entry()} />);
+    render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
     expect(fetched).toBe(0); // not fetched upfront
 
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
@@ -82,7 +82,7 @@ describe("WorkLedgerItem execution proof (lazy)", () => {
         HttpResponse.json({ ok: false, code: "BOOM" }, { status: 500 }),
       ),
     );
-    render(<WorkLedgerItem entry={entry()} />);
+    render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
     await waitFor(() =>
       expect(screen.getByTestId("work-ledger-item-proof").textContent).toContain(
@@ -94,12 +94,14 @@ describe("WorkLedgerItem execution proof (lazy)", () => {
   it("renders persisted coordination + active watcher", () => {
     server.use(attemptsHandler([]));
     render(
-      <WorkLedgerItem
-        entry={entry({
-          coordination: { runtime: "BEAM_DISPATCHED", event_id: "e", watcher: "blocker", dispatched_at: "x", error_code: null },
-          watchers: [{ watcher_id: "w1", watcher_type: "BLOCKER", status: "ACTIVE", source_runtime: "BEAM", escalation_level: "NONE", created_at: "x" }],
-        })}
-      />,
+      <MemoryRouter>
+        <WorkLedgerItem
+          entry={entry({
+            coordination: { runtime: "BEAM_DISPATCHED", event_id: "e", watcher: "blocker", dispatched_at: "x", error_code: null },
+            watchers: [{ watcher_id: "w1", watcher_type: "BLOCKER", status: "ACTIVE", source_runtime: "BEAM", escalation_level: "NONE", created_at: "x" }],
+          })}
+        />
+      </MemoryRouter>,
     );
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
     const coord = screen.getByTestId("work-ledger-item-coordination");
@@ -109,7 +111,7 @@ describe("WorkLedgerItem execution proof (lazy)", () => {
 
   it("shows a 'Verification issue' card badge when blind_spot_reason is set", () => {
     server.use(attemptsHandler([]));
-    render(<WorkLedgerItem entry={entry({ blind_spot_reason: "COORDINATION_FAILED", blind_spot_severity: "MEDIUM" })} />);
+    render(<MemoryRouter><WorkLedgerItem entry={entry({ blind_spot_reason: "COORDINATION_FAILED", blind_spot_severity: "MEDIUM" })} /></MemoryRouter>);
     expect(screen.getByTestId("work-ledger-item-card-badge").textContent).toContain("Verification issue");
   });
 });

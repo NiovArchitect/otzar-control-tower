@@ -441,8 +441,8 @@ describe("D6 enterprise — failure paths", () => {
     );
     const errorText =
       screen.getByTestId("enterprise-activation-error").textContent ?? "";
-    expect(errorText).toMatch(/Google Workspace binding name/i);
-    expect(errorText).toMatch(/env-var NAME/i);
+    expect(errorText).toMatch(/Google Workspace connection/i);
+    expect(errorText).toMatch(/credential reference/i);
     expect(
       screen.queryByTestId("enterprise-activation-success"),
     ).not.toBeInTheDocument();

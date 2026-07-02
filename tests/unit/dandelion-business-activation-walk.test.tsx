@@ -403,8 +403,8 @@ describe("D6 business — failure paths", () => {
     );
     const errorText =
       screen.getByTestId("business-activation-error").textContent ?? "";
-    expect(errorText).toMatch(/Google Workspace binding name/i);
-    expect(errorText).toMatch(/env-var NAME/i);
+    expect(errorText).toMatch(/Google Workspace connection/i);
+    expect(errorText).toMatch(/credential reference/i);
     expect(
       screen.queryByTestId("business-activation-success"),
     ).not.toBeInTheDocument();
