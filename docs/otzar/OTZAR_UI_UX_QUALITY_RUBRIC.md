@@ -58,6 +58,24 @@ work queue, not commentary.
   low-value** — correctly labeled previews; candidates for demotion into
   their parent sections rather than top-level nav slots.
 
+## Score updates — visible-impact pass (2026-07-01, later same day)
+
+- **Admin People & hierarchy: 26 → 28/30.** OrgMapCard: departments →
+  manager → direct-reports trees, "· manages N", amber "Needs hierarchy
+  setup" chip, honest unassigned bucket pointing at the Reporting editor
+  (axis 3 now 2/2; axis 13 improved). Still partial: 6 (no reporting-change
+  notification yet), 11 (no automated a11y gate).
+- **Tools & Connections: 25 → 27/30.** Purpose sections (Communication /
+  Files & knowledge / Project systems / Developer & workflow / Testing) and
+  the four facts on every card: what it does · who can use it · approval ·
+  last changed (axis 4 now 2/2). Still partial: 5 (policy sentence is code-
+  true but not org-configurable), 12.
+- **Work surfaces (My Work / Team Work / Blind Spots): +ownership.** Card
+  face now answers who owns it (pronoun-guarded) alongside lane, state, and
+  next action (axis 7 strengthened).
+- **Onboarding: unchanged (22/30)** — restructure deliberately deferred;
+  remains the top P2 item.
+
 ## Standing anti-patterns (never ship)
 
 1. Glow or motion not driven by the presence store.
