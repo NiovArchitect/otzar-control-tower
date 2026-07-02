@@ -25,6 +25,7 @@ import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { viewWhyFromWatcher } from "@/lib/work-os/view-why";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import { emitWorkStateChanged, useWorkStateChanged } from "@/lib/events/work-state";
+import { triageBlindSpots, TRIAGE_INITIAL_COUNT } from "@/lib/work-os/blind-spot-triage";
 
 function isRuntimeIssue(e: WorkLedgerEntryView): boolean {
   return e.blind_spot_reason !== undefined;
@@ -211,6 +212,9 @@ export function BlindSpots(): JSX.Element {
   const feedLedgerIds = new Set(
     feedItems.map((f) => f.source.ledger_entry_id).filter((x): x is string => x !== null),
   );
+  // PROD-UX triage — capped initial render; "Show all" is explicit.
+  const [showAllRuntime, setShowAllRuntime] = useState(false);
+  const [showAllOther, setShowAllOther] = useState(false);
   const runtimeIssues = legacyItems.filter(isRuntimeIssue);
   const otherAttention = legacyItems.filter(
     (e) => !isRuntimeIssue(e) && !feedLedgerIds.has(e.ledger_entry_id),
@@ -272,23 +276,53 @@ export function BlindSpots(): JSX.Element {
             </div>
           ) : null}
 
-          {/* Runtime / verification issues (proof failures) — legacy section. */}
+          {/* Runtime / verification issues (proof failures) — TRIAGED: what
+              needs a human first (identity/blocked/setup/approval lanes),
+              oldest first, capped behind an honest "show all". */}
           {runtimeIssues.length > 0 ? (
             <div className="space-y-1.5" data-testid="blind-spots-runtime-issues">
-              <h2 className="text-xs font-semibold text-amber-600">Runtime / verification issues</h2>
-              {runtimeIssues.map((e) => (
-                <WorkLedgerItem key={e.ledger_entry_id} entry={e} onChanged={() => void load()} />
-              ))}
+              <h2 className="text-xs font-semibold text-amber-600">
+                Runtime / verification issues ({runtimeIssues.length})
+              </h2>
+              {triageBlindSpots(runtimeIssues)
+                .slice(0, showAllRuntime ? undefined : TRIAGE_INITIAL_COUNT)
+                .map((e) => (
+                  <WorkLedgerItem key={e.ledger_entry_id} entry={e} onChanged={() => void load()} />
+                ))}
+              {!showAllRuntime && runtimeIssues.length > TRIAGE_INITIAL_COUNT ? (
+                <button
+                  type="button"
+                  className="w-full rounded-md border border-border py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  data-testid="blind-spots-runtime-show-all"
+                  onClick={() => setShowAllRuntime(true)}
+                >
+                  Show all {runtimeIssues.length} (most urgent are already on top)
+                </button>
+              ) : null}
             </div>
           ) : null}
 
           {/* Other ledger-status items not already in the watcher feed. */}
           {otherAttention.length > 0 ? (
             <div className="space-y-1.5" data-testid="blind-spots-status">
-              <h2 className="text-xs font-semibold text-muted-foreground">Other work needing attention</h2>
-              {otherAttention.map((e) => (
-                <WorkLedgerItem key={e.ledger_entry_id} entry={e} onChanged={() => void load()} />
-              ))}
+              <h2 className="text-xs font-semibold text-muted-foreground">
+                Other work needing attention ({otherAttention.length})
+              </h2>
+              {triageBlindSpots(otherAttention)
+                .slice(0, showAllOther ? undefined : TRIAGE_INITIAL_COUNT)
+                .map((e) => (
+                  <WorkLedgerItem key={e.ledger_entry_id} entry={e} onChanged={() => void load()} />
+                ))}
+              {!showAllOther && otherAttention.length > TRIAGE_INITIAL_COUNT ? (
+                <button
+                  type="button"
+                  className="w-full rounded-md border border-border py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  data-testid="blind-spots-other-show-all"
+                  onClick={() => setShowAllOther(true)}
+                >
+                  Show all {otherAttention.length} (most urgent are already on top)
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
