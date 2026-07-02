@@ -121,21 +121,33 @@ justification is retracted: there is no schema change.
   but ingest does not load corrections yet, so confirm/select does NOT write
   correction memory — server-side TODO(learn-loop) only.
 
-## BUG D — People & Collaboration "not connected" framing — **root-caused (live-probed); FND copy fix**
+## BUG D — People & Collaboration "not connected" framing — **FIXED + LIVE (FND `8e3423b` / PR #524; CT `7e44e09`)**
 
-- **Truth (probed):** `/otzar/dandelion/org-growth` returns `CONNECT_TEAMMATE`
-  recommendations for Shweta/Annie/Walter/Sadeil/Samiksha. The backend is
-  **correct** that they have no **project/workspace** membership — it is NOT
-  reading the wrong source.
-- **The defect is the COPY:** "isn't connected to any project or workspace
-  yet" reads as *disconnected from the org*, but they ARE connected via
-  hierarchy/team/manager (seeded Phase 1). Per rule D.4, the UI must not imply
-  disconnection. The recommendation text is **server-generated**
-  (`dandelionOrgGrowth`), so the fix is an FND copy change: reframe to
-  acknowledge the existing connection ("On David's team, no project yet —
-  add them to a project so Otzar has work context") + keep the actionable
-  next step. Dismiss persistence (currently session-local) should also become
-  durable.
+- **Root cause:** the server-generated `CONNECT_TEAMMATE` copy ("isn't
+  connected to any project or workspace yet") flattened all connection kinds
+  into one word — org members with a manager/team/hierarchy read as
+  *disconnected from the org*. The data was right; the language was wrong,
+  and the service never read hierarchy/department so it couldn't speak
+  accurately.
+- **Fix (server-side, structured):** kind renamed
+  `NEEDS_PROJECT_OR_WORKSPACE`; copy states the true relationship first
+  ("X is already part of your organization on M's team / in DEPT") and names
+  the ONE missing object ("needs a first project or workspace"); new
+  structured `context` per recommendation (person_entity_id · org_member ·
+  has_department · has_manager · has_project_or_workspace ·
+  missing_connection_type), each fact from its canonical source
+  (EntityMembership org/person edges, department, WorkProjectMember,
+  CollaborationMembership). Signal renamed `members_without_project_count`.
+  CT keys hiding by the stable person id and labels the control **"Hide for
+  now"** (session-local — never presented as a durable dismiss; durable
+  dismissal remains honestly unbuilt).
+- **Bonus regression fix (exposed by BUG D's manager-edge test fixture, and
+  the real cause of the live "no approver" send rejections):**
+  `resolveDualControlTarget` Class B resolved "the caller's org" as the
+  highest-`hierarchy_level` membership → with manager edges that is the
+  caller's MANAGER → `NO_ELIGIBLE_TARGET` for everyone with a manager. Fixed
+  to the canonical COMPANY-walking resolver; live-verified: vishesh's send now
+  queues (`PROPOSED` + escalation to the org admin) instead of 503-rejecting.
 
 ## Customer acceptance criteria
 
@@ -146,7 +158,7 @@ justification is retracted: there is no schema change.
 5. Failed sends remain recoverable. — **✅** (live-proven: governance-rejected send stays DRAFT)
 6. All pending work appears in an obvious surface. — ✅ (My Work/Team Work + Comms resume)
 7. No duplicate follow-up systems. — ✅ (ledger is the single store; no parallel system introduced)
-8. People connectedness is accurate. — data ✅; **framing = BUG D (open)**
+8. People connectedness is accurate. — **✅ (BUG D fixed + live)**
 9. No fake claims. — ✅
 10. Customer does not need to re-ingest. — ✅
 

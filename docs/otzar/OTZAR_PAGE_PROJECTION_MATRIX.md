@@ -25,7 +25,7 @@ mismatch risk. Grounded in the codebase + this session's audit. ✅ coherent ·
 |---|---|---|---|
 | Home / Command Center | "Is my org ready; what needs me?" | readiness + audit + approvals | ✅ (raw action codes humanized) |
 | Members | "Who's here, and the org structure?" | `/org/entities` + `/org/hierarchy` | ✅ org map + reporting editor on real edges |
-| People & Collaboration | "Who can I work with; who needs setup?" | teammates + `dandelionOrgGrowth` | ❌ **BUG D** — "not connected" copy implies disconnection when only project/workspace is missing (hierarchy connection ignored) |
+| People & Collaboration | "Who can I work with; who needs setup?" | teammates + `dandelionOrgGrowth` | ✅ **BUG D FIXED** — copy states true org placement ("already part of your organization on M's team") + names the one missing object (first project/workspace); structured per-fact context; honest "Hide for now" |
 | AI Teammates | "Whose twin, doing what?" | ai-teammates + hierarchy (owner/title→template) | ✅ role-template column; no raw ids |
 | Organization Seeding (Dandelion) | "Who/what did Otzar discover?" | `OrgSeed` grouped queues + meeting ingest | ✅ discovery framing; ingest door live |
 | Tools & Connections | "What's connected, what does it unlock?" | `ConnectorBinding` + capability states | ✅ purpose groups + four facts |
@@ -38,15 +38,17 @@ mismatch risk. Grounded in the codebase + this session's audit. ✅ coherent ·
 | Onboarding | "Get the org ready" | onboarding routes | 🔶 functional; top-down restructure pending |
 | System Health / Data retention | operator/retention truth | health + retention | ✅ diagnostics tier |
 
-## What this matrix reveals (the mapping bugs)
+## What this matrix reveals (the mapping bugs) — ALL REPAIRED (2026-07-02)
 
-Only **two surfaces read incoherently with the rest of the system**, and both
-are now root-caused: **Comms** (volatile follow-up cards over durable data —
-BUG B) and **People & Collaboration** (misleading "disconnected" copy over a
-true project-only gap — BUG D). Every other work surface reads the shared
-WorkLedger / hierarchy / audit source correctly. The earlier Home↔Action-Center
-mismatch was already fixed (Section-25, single-source). No page was found
-inventing durable truth from local-only state except the Comms send-cards.
+The two surfaces that read incoherently are both **fixed and live-verified**:
+**Comms** (BUG B — durable FOLLOW_UP rows now back the send-cards; BUG C —
+recipient review completes durably with caller_confirmed proof) and **People &
+Collaboration** (BUG D — copy states true org placement and names the one
+missing object; structured per-fact context). Every work surface now reads the
+shared WorkLedger / hierarchy / audit source correctly. The audit also exposed
+and fixed a dual-control regression (org resolved to the caller's MANAGER once
+hierarchy edges existed → all sends by managed people 503-rejected); governed
+sends now queue for approval as designed.
 
 ## Cross-page coherence tests to add (as B/C/D land)
 
