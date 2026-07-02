@@ -7,12 +7,13 @@
 //          IDs, no graph jargon, backend truth only.
 
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import type { OrgSeed } from "@/lib/types/foundation";
+import type { OrgSeed, ZoomRecordingView } from "@/lib/types/foundation";
 import { groupSeeds, type SeedGroup } from "@/lib/work-os/seed-grouping";
 
 const SEED_TYPE_LABEL: Record<string, string> = {
@@ -81,6 +82,11 @@ export function OrganizationSeedingPage(): JSX.Element {
         title="Organization Seeding"
         description="Otzar found people and context from your organization's workstream — meetings, conversations, and real work. Review each seed before it becomes part of your organization. Nothing is applied automatically."
       />
+
+      {/* CX-SLICE-3 — the meeting door into discovery: pick an approved
+          recording and Otzar reviews it for participants, commitments, and
+          follow-ups through the ONE governed pipeline. */}
+      <MeetingIngestCard />
 
       {error === "OPERATION_NOT_PERMITTED" ? (
         <Card>
@@ -216,6 +222,127 @@ function SeedCard({
               Ignore
             </Button>
           </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+// CX-SLICE-3 — "The meeting ended, and Otzar can turn it into organized work
+// with my approval." Lists the org's Zoom cloud recordings (safe projection:
+// topic/when/duration only) and offers ONE action per recording: Review for
+// follow-ups. Consent is stated plainly; every failure is a sentence, never
+// a code; Zoom-missing routes to Tools & Connections like every other
+// setup-required state.
+function MeetingIngestCard(): JSX.Element | null {
+  const [state, setState] = useState<
+    | { kind: "loading" }
+    | { kind: "not_connected" }
+    | { kind: "unavailable" } // non-admin or org unresolved — render nothing
+    | { kind: "ready"; recordings: ZoomRecordingView[] }
+  >({ kind: "loading" });
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api.connectorData.zoomRecordings({ page_size: 30 }).then((r) => {
+      if (cancelled) return;
+      if (r.ok) setState({ kind: "ready", recordings: r.data.recordings });
+      else if (r.code === "NOT_CONNECTED" || r.code === "NOT_CONFIGURED") setState({ kind: "not_connected" });
+      else setState({ kind: "unavailable" });
+    }).catch(() => { if (!cancelled) setState({ kind: "unavailable" }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function ingest(meetingUuid: string, topic: string): Promise<void> {
+    setBusyId(meetingUuid);
+    setNotice(null);
+    const r = await api.connectorData.ingestZoomRecording(meetingUuid);
+    setBusyId(null);
+    if (r.ok) {
+      const items = r.data.result.work_items?.length ?? 0;
+      const seeds = r.data.result.dandelion_seeds?.length ?? 0;
+      setNotice({
+        tone: "ok",
+        text: `Otzar reviewed “${topic}” — ${items} work item${items === 1 ? "" : "s"} and ${seeds} new seed${seeds === 1 ? "" : "s"}. Look under the queues below, and in Team Work for routed follow-ups. Every step was recorded.`,
+      });
+      return;
+    }
+    setNotice({
+      tone: "error",
+      text:
+        r.code === "NO_TRANSCRIPT" || r.code === "NOT_FOUND"
+          ? `“${topic}” doesn't have a transcript Otzar can read yet — Zoom prepares transcripts a few minutes after a meeting ends.`
+          : r.code === "NOT_CONFIGURED"
+            ? "Zoom isn't connected for your organization yet."
+            : r.code === "TRANSCRIPT_TOO_LARGE"
+              ? `“${topic}” is too long to review in one pass.`
+              : "Otzar couldn't review that recording right now. Try again in a moment.",
+    });
+  }
+
+  if (state.kind === "unavailable") return null;
+  return (
+    <Card data-testid="meeting-ingest-card">
+      <CardContent className="space-y-3 pt-4 text-sm">
+        <div>
+          <p className="font-medium">Review a meeting for follow-ups</p>
+          <p className="text-xs text-muted-foreground">
+            Otzar fetches the transcript using your organization&apos;s
+            connected Zoom account, then reviews it for participants,
+            commitments, and follow-ups. Nothing is sent externally, and
+            every step is recorded.
+          </p>
+        </div>
+        {state.kind === "loading" ? (
+          <p className="text-xs text-muted-foreground">Checking your recordings…</p>
+        ) : state.kind === "not_connected" ? (
+          <p className="text-xs text-amber-700" data-testid="meeting-ingest-not-connected">
+            Zoom isn&apos;t connected for your organization yet.{" "}
+            <Link to="/tools-connections" className="underline">
+              Connect it in Tools &amp; Connections
+            </Link>{" "}
+            and recordings will appear here.
+          </p>
+        ) : state.recordings.length === 0 ? (
+          <p className="text-xs text-muted-foreground" data-testid="meeting-ingest-empty">
+            No cloud recordings found in the last month.
+          </p>
+        ) : (
+          <ul className="space-y-1.5" data-testid="meeting-ingest-list">
+            {state.recordings.map((rec) => (
+              <li
+                key={rec.meeting_uuid}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2"
+                data-testid="meeting-ingest-row"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{rec.topic}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {new Date(rec.start_time).toLocaleString()} · {rec.duration_minutes} min
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busyId !== null}
+                  onClick={() => void ingest(rec.meeting_uuid, rec.topic)}
+                  data-testid="meeting-ingest-go"
+                >
+                  {busyId === rec.meeting_uuid ? "Reviewing…" : "Review for follow-ups"}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {notice !== null ? (
+          <p
+            className={`text-xs ${notice.tone === "ok" ? "text-emerald-700" : "text-amber-700"}`}
+            data-testid="meeting-ingest-notice"
+          >
+            {notice.text}
+          </p>
         ) : null}
       </CardContent>
     </Card>

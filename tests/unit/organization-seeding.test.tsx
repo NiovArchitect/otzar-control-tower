@@ -146,3 +146,87 @@ describe("Organization Seeding — grouped queues (P0E scale)", () => {
     expect(screen.getAllByTestId("org-seed-group")).toHaveLength(2);
   });
 });
+
+// CX-SLICE-3 — "Review a meeting for follow-ups": the admin picks a
+// recording; Otzar ingests it through the ONE governed pipeline. Consent
+// stated; failures are sentences; Zoom-missing routes to Tools & Connections.
+describe("Organization Seeding — meeting ingest card (CX-SLICE-3)", () => {
+  function seedsEmpty() {
+    server.use(
+      http.get(`${API_BASE}/org/dandelion/seeds`, () =>
+        HttpResponse.json({ ok: true, seeds: [] }),
+      ),
+    );
+  }
+  const RECORDING = {
+    meeting_uuid: "uu-1", topic: "Launch sync", start_time: "2026-07-01T10:00:00Z",
+    duration_minutes: 30, recording_count: 1, total_size_bytes: 100, file_types: ["TRANSCRIPT"],
+  };
+
+  it("lists recordings, ingests one, and shows where to look next", async () => {
+    seedsEmpty();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`${API_BASE}/zoom/recordings`, () =>
+        HttpResponse.json({ ok: true, provider: "zoom", recordings: [RECORDING] }),
+      ),
+      http.post(`${API_BASE}/zoom/recordings/ingest`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ok: true, result: { work_items: [{}, {}], dandelion_seeds: [{}] } });
+      }),
+    );
+    render(<MemoryRouter><OrganizationSeedingPage /></MemoryRouter>);
+    await screen.findByText("Launch sync");
+    await userEvent.click(screen.getByTestId("meeting-ingest-go"));
+    const notice = await screen.findByTestId("meeting-ingest-notice");
+    expect(notice).toHaveTextContent(/2 work items and 1 new seed/);
+    expect(notice).toHaveTextContent(/Team Work/);
+    expect(notice).toHaveTextContent(/Every step was recorded/);
+    expect(posted).toEqual({ meeting_id: "uu-1" });
+    // No raw provider material anywhere.
+    expect(document.body.textContent).not.toMatch(/download_url|Bearer|access_token/);
+  });
+
+  it("Zoom not connected → honest copy + Tools & Connections deep link", async () => {
+    seedsEmpty();
+    server.use(
+      http.get(`${API_BASE}/zoom/recordings`, () =>
+        HttpResponse.json({ ok: false, code: "NOT_CONNECTED" }, { status: 409 }),
+      ),
+    );
+    render(<MemoryRouter><OrganizationSeedingPage /></MemoryRouter>);
+    const state = await screen.findByTestId("meeting-ingest-not-connected");
+    expect(state).toHaveTextContent(/isn't connected/i);
+    expect(state.querySelector("a")).toHaveAttribute("href", "/tools-connections");
+  });
+
+  it("a non-admin (403 list) sees NO meeting card — no fake affordance", async () => {
+    seedsEmpty();
+    server.use(
+      http.get(`${API_BASE}/zoom/recordings`, () =>
+        HttpResponse.json({ ok: false, code: "SESSION_INVALID" }, { status: 403 }),
+      ),
+    );
+    render(<MemoryRouter><OrganizationSeedingPage /></MemoryRouter>);
+    await screen.findByTestId("org-seeding-empty");
+    expect(screen.queryByTestId("meeting-ingest-card")).toBeNull();
+  });
+
+  it("no-transcript failure reads as a sentence, never a code", async () => {
+    seedsEmpty();
+    server.use(
+      http.get(`${API_BASE}/zoom/recordings`, () =>
+        HttpResponse.json({ ok: true, provider: "zoom", recordings: [RECORDING] }),
+      ),
+      http.post(`${API_BASE}/zoom/recordings/ingest`, () =>
+        HttpResponse.json({ ok: false, code: "NO_TRANSCRIPT" }, { status: 404 }),
+      ),
+    );
+    render(<MemoryRouter><OrganizationSeedingPage /></MemoryRouter>);
+    await screen.findByText("Launch sync");
+    await userEvent.click(screen.getByTestId("meeting-ingest-go"));
+    const notice = await screen.findByTestId("meeting-ingest-notice");
+    expect(notice).toHaveTextContent(/doesn't have a transcript/i);
+    expect(notice).not.toHaveTextContent(/NO_TRANSCRIPT/);
+  });
+});

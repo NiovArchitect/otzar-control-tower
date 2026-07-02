@@ -1289,6 +1289,19 @@ export class ApiClient {
       );
     },
 
+    /** CX-SLICE-3 — POST /api/v1/zoom/recordings/ingest. Admin-triggered
+     *  governed meeting ingestion: the transcript is fetched SERVER-side
+     *  with the org's Zoom account (URLs/tokens never cross the API) and
+     *  fed to the one existing comms-ingest pipeline. The response is the
+     *  same IngestCommsSuccess shape the transcript path returns. */
+    ingestZoomRecording: (
+      meeting_id: string,
+    ): Promise<ApiResult<{ ok: true; result: { work_items?: unknown[]; dandelion_seeds?: unknown[] } }>> =>
+      this.request<{ ok: true; result: { work_items?: unknown[]; dandelion_seeds?: unknown[] } }>(
+        "/zoom/recordings/ingest",
+        { method: "POST", body: { meeting_id }, retries: 0 },
+      ),
+
     /** POST /api/v1/calendar/freebusy — busy intervals for a window.
      *  time_min/time_max are RFC3339. Never returns event titles. */
     calendarFreeBusy: (body: {
