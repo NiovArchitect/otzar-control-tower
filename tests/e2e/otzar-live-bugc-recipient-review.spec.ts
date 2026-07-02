@@ -117,7 +117,7 @@ async function gotoComms(p: Page): Promise<void> {
 
 async function leaveAndReturn(p: Page): Promise<void> {
   const nav = p.getByTestId("ambient-nav");
-  for (const name of [/^My Day$/, /^Today$/, /^Action Center$/, /^Needs me$/]) {
+  for (const name of [/^Today/, /^Needs me/, /^People/, /^Memory/]) { // prefix-match: rail badges append counts
     const link = nav.getByRole("link", { name }).first();
     if (await link.count().then((c) => c > 0).catch(() => false)) {
       await link.click().catch(() => undefined);

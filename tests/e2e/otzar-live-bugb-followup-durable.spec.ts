@@ -43,17 +43,48 @@ async function gotoComms(p: Page): Promise<void> {
 // (mirroring the proven Comms selector); tries a few primary rails so the smoke
 // doesn't hinge on one label being present for this viewer.
 async function leaveComms(p: Page): Promise<void> {
+  // The ambient rail's REAL labels (Today / Needs me / People / Memory) — the
+  // earlier list used page titles that don't exist on the rail, so the
+  // navigation silently no-oped and Comms never remounted (vacuous "survived
+  // navigation" reads + stale counts). Verify we actually left; throw if not —
+  // a smoke that can't navigate must fail loudly, not pass vacuously.
   const nav = p.getByTestId("ambient-nav");
-  for (const name of [/^My Day$/, /^Action Center$/, /^My Work$/, /^Talk to Otzar$/]) {
-    const link = nav.getByRole("link", { name }).first();
-    if (await link.count().then((c) => c > 0).catch(() => false)) {
-      await link.click().catch(() => undefined);
-      await p.waitForTimeout(900);
-      // Confirm we actually left Comms before returning.
-      const left = await p.getByTestId("comms-page").count().catch(() => 0);
-      if (left === 0) return;
+  // Clear any stacked live toasts first (each suite's sends queue approvals →
+  // toast pileup can sit over the rail); Escape + explicit closes are both
+  // best-effort.
+  await p.keyboard.press("Escape").catch(() => undefined);
+  const closes = p.locator('[role="status"] button, [data-sonner-toast] button').filter({ hasText: /×|✕|close/i });
+  const nClose = await closes.count().catch(() => 0);
+  for (let i = 0; i < Math.min(nClose, 6); i++) {
+    await closes.nth(0).click({ force: true }).catch(() => undefined);
+    await p.waitForTimeout(150);
+  }
+  // Two passes; forced clicks — live notification toasts can overlay the rail
+  // and intercept the first hit-test.
+  for (let pass = 0; pass < 2; pass++) {
+    for (const name of [/^Today/, /^Needs me/, /^People/, /^Memory/]) { // prefix-match: rail badges append counts to accessible names
+      const link = nav.getByRole("link", { name }).first();
+      if (await link.count().then((c) => c > 0).catch(() => false)) {
+        await link.click({ force: true }).catch(() => undefined);
+        // Wait for Comms to actually UNMOUNT — under post-send refetch load the
+        // route swap can take several seconds; a fixed short wait misreads
+        // "still swapping" as "didn't navigate".
+        const gone = await p
+          .getByTestId("comms-page")
+          .waitFor({ state: "detached", timeout: 10_000 })
+          .then(() => true)
+          .catch(() => false);
+        if (gone) return;
+      }
     }
   }
+  // HARNESS NOTE (P0-ARC-FINAL): intermittent under 4-suite sequence load —
+  // the route swap occasionally doesn't complete despite forced clicks +
+  // detach-waits (suspected toast/render contention). Product behavior is
+  // unaffected (server-truth checks pass); the durable fix is a product test
+  // hook (stable rail testids), out of scope for a verification pass.
+  await p.screenshot({ path: "screenshots/harness-leavecomms-stuck.png", fullPage: true }).catch(() => undefined);
+  throw new Error("leaveComms: no rail link navigated away from Comms — navigation would be vacuous");
 }
 
 async function leaveAndReturn(p: Page): Promise<void> {
@@ -106,7 +137,7 @@ async function stableCardCount(p: Page): Promise<number> {
 }
 
 test("live: Comms follow-ups are durable — survive nav; send + dismiss transition the row; My Work shows it", async ({ page, request }) => {
-  test.setTimeout(180_000); // live: cleanup + ingest + multi-step nav/transition
+  test.setTimeout(300_000); // live: cleanup + ingest + multi-step nav/transition
   await cleanupPending(request); // known-clean baseline (no leftover rows)
   await login(page);
   await gotoComms(page);
@@ -183,16 +214,35 @@ test("live: Comms follow-ups are durable — survive nav; send + dismiss transit
       sentMarker.waitFor({ state: "visible", timeout: 45_000 }).catch(() => undefined),
       errMarker.waitFor({ state: "visible", timeout: 45_000 }).catch(() => undefined),
     ]);
-    await page.waitForTimeout(2500); // let the EXECUTED transition (if any) land
     const wasSent = await sentMarker.isVisible().catch(() => false);
     await page.screenshot({ path: `screenshots/${TAG}-3-send-outcome.png`, fullPage: true });
-    await leaveAndReturn(page);
     if (wasSent) {
-      // Happy path: the sent row is EXECUTED and excluded on reload.
+      // Happy path: the sent row transitions to EXECUTED and drops from
+      // pending. The live PATCH can land seconds AFTER the "Sent" confirmation
+      // — poll by re-entering Comms until the pending set reflects it (a
+      // fixed wait raced and flaked here; verified: the transition always
+      // lands, just late).
       expectedRemaining = before - 1;
-      expect(await stableCardCount(page)).toBe(expectedRemaining); // sent gone, unsent remain
-      test.info().annotations.push({ type: "note", description: "Live send EXECUTED (approver available); the sent card dropped from pending, unsent remained." });
+      await expect
+        .poll(
+          async () => {
+            await leaveAndReturn(page);
+            // The durable feed loads asynchronously (live API ~4-8s) and the
+            // section is hidden while empty — an instant count reads a false
+            // "stable 0". Wait for the section to appear before counting.
+            const appeared = await page
+              .getByTestId("comms-pending-follow-ups")
+              .waitFor({ state: "visible", timeout: 15_000 })
+              .then(() => true)
+              .catch(() => false);
+            return appeared ? stableCardCount(page) : 0;
+          },
+          { timeout: 150_000, intervals: [2_000] },
+        )
+        .toBe(expectedRemaining); // sent gone, unsent remain
+      test.info().annotations.push({ type: "note", description: "Live send queued/executed (approver available); the sent card dropped from pending, unsent remained." });
     } else {
+      await leaveAndReturn(page);
       // Governed rejection (this org has no eligible dual-control approver): the
       // send does NOT transition the row — it stays DRAFT and recoverable. This
       // is exactly criterion 5 ("failed sends remain recoverable"), verified live.
@@ -209,8 +259,21 @@ test("live: Comms follow-ups are durable — survive nav; send + dismiss transit
   if (expectedRemaining >= 1) {
     await page.getByTestId("ctx-cancel-button").first().click();
     await expect.poll(async () => cardCount(page), { timeout: 15_000 }).toBe(expectedRemaining - 1);
-    await leaveAndReturn(page);
-    expect(await stableCardCount(page)).toBe(expectedRemaining - 1); // dismissed one stayed gone
+    const expectAfterDismiss = expectedRemaining - 1;
+    await expect
+      .poll(
+        async () => {
+          await leaveAndReturn(page);
+          const appeared = await page
+            .getByTestId("comms-pending-follow-ups")
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => true)
+            .catch(() => false);
+          return appeared ? stableCardCount(page) : 0;
+        },
+        { timeout: 90_000, intervals: [2_000] },
+      )
+      .toBe(expectAfterDismiss); // dismissed one stayed gone
     await page.screenshot({ path: `screenshots/${TAG}-4-after-dismiss.png`, fullPage: true });
   }
 
@@ -219,8 +282,14 @@ test("live: Comms follow-ups are durable — survive nav; send + dismiss transit
   for (let guard = 0; guard < 10; guard++) {
     const remaining = await cardCount(page);
     if (remaining === 0) break;
-    await page.getByTestId("ctx-cancel-button").first().click();
+    // A just-sent card renders its confirmation (no cancel button) until the
+    // next reload — clean via the UI when possible, else fall back to the API
+    // cleanup below.
+    const cancel = page.getByTestId("ctx-cancel-button").first();
+    if ((await cancel.count().catch(() => 0)) === 0) break;
+    await cancel.click({ force: true }).catch(() => undefined);
     await page.waitForTimeout(600);
   }
+  await cleanupPending(request); // authoritative API cleanup — org left clean
   await page.screenshot({ path: `screenshots/${TAG}-5-cleaned.png`, fullPage: true });
 });

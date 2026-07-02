@@ -167,7 +167,7 @@ test("S4 employee ui: non-admin never sees the growth card; page carries no disc
 // ── Scenario 5 — dual-control regression: managed employee's send QUEUES ────
 test("S5 governance: a managed employee's send queues for approval (no manager-edge NO_ELIGIBLE_TARGET)", async ({ request }) => {
   const employeeToken = await apiLogin(request, EMPLOYEE_EMAIL);
-  const key = `bugd-smoke-dualcontrol-${new Date().toISOString().slice(0, 10)}`;
+  const key = `bugd-smoke-dualcontrol-${Date.now()}`; // per-run key — a reused key replays the prior (already-resolved) action
   const send = await request.post(`${API}/actions`, {
     headers: { authorization: `Bearer ${employeeToken}` },
     data: {
