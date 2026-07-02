@@ -5,11 +5,35 @@ trapped in a browser tab — listening, speaking, notifying, routing work, and
 helping without interrupting my flow." **Desired feeling:** present, but not
 in the way.
 
-**Status:** audited 2026-07-01. **Build VERIFIED**: `npm run tauri:build`
-completed (release, 2m56s) → `Otzar.app` + `Otzar_0.1.0_x64.dmg` bundled from
-the CURRENT frontend — every ambient/CX change ships in the desktop app. Every claim below is verified against
-`src-tauri/` and `src/lib/desktop-capabilities.ts` — the honest capability
-map that already refuses to overclaim.
+**Status (2026-07-02): Built, production-configured, launched process; manual
+window verification PENDING.** — NOT "customer-verified".
+- Build VERIFIED: `npm run tauri:build` → `Otzar.app` + `Otzar_0.1.0_x64.dmg`,
+  from the current frontend (every ambient/CX change ships to desktop).
+- Production-configured VERIFIED: rebuilt with
+  `VITE_FOUNDATION_API_URL=https://api.otzar.ai/api/v1` (prod baked in;
+  confirmed in the binary), replacing the earlier localhost-targeted build.
+- Launch: `open` succeeded, process ran, macOS menu bar showed "Otzar" as the
+  frontmost app (menus loaded — the app is alive, not crashed).
+- NOT yet verified: the app WINDOW did not render in the headless automation
+  session, and `osascript` was blocked from assistive access, so window
+  contents (shell/login/orb/Team-Work/Scenario-Studio) and mic behavior are
+  UNCONFIRMED. "Otzar runs on the desktop" is supported; "the customer
+  desktop experience is verified" is NOT — that requires a founder to open it
+  in a real desktop session (steps below).
+Remaining claims are verified against `src-tauri/` + `desktop-capabilities.ts`.
+
+## Founder manual verification steps (required before "desktop verified")
+
+1. `open ".../src-tauri/target/release/bundle/dmg/Otzar_0.1.0_x64.dmg"`, drag
+   Otzar → Applications, open it.
+2. Unsigned dev build: if macOS says "cannot check it for malicious software",
+   approve via System Settings → Privacy & Security → "Open Anyway" (quarantine
+   was NOT stripped silently).
+3. Confirm each: window appears (no blank white) · login screen or app shell ·
+   Talk-to-Otzar orb appears and drags · ambient shell visible · Team Work
+   shows "Your team right now" · "Scenario Studio" in nav · mic-permission
+   prompt on first voice use.
+4. Report any failure → it becomes a desktop fix slice.
 
 ## What is REAL today
 
