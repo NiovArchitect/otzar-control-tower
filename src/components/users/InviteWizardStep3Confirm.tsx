@@ -10,7 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AuditAwareButton } from "@/components/audit/AuditAwareButton";
 import { api } from "@/lib/api";
 
+import { resolveRoleArchetype } from "@/lib/role-archetypes";
+import type { CaptureValues } from "./invite-wizard-schemas";
+
 interface InviteWizardStep3ConfirmProps {
+  /** PROD-MODEL-P2 — the captured placement, shown before confirm. */
+  captured: CaptureValues | null;
   newEntityId: string;
   newDisplayName: string;
   newEmail: string;
@@ -19,6 +24,7 @@ interface InviteWizardStep3ConfirmProps {
 }
 
 export function InviteWizardStep3Confirm({
+  captured,
   newEntityId,
   newDisplayName,
   newEmail,
@@ -51,8 +57,33 @@ export function InviteWizardStep3Confirm({
           </p>
           <p>
             <span className="font-medium">Role: </span>
-            {isAdmin ? "Admin" : "Team member"}
+            {isAdmin ? "Organization admin" : "Team member"}
           </p>
+          {/* PROD-MODEL-P2 — the placement this invite prepared. */}
+          {captured !== null ? (
+            <div className="space-y-1" data-testid="invite-placement-summary">
+              <p>
+                <span className="font-medium">Title: </span>
+                {captured.role_title}
+              </p>
+              {captured.department.trim().length > 0 ? (
+                <p>
+                  <span className="font-medium">Department: </span>
+                  {captured.department}
+                </p>
+              ) : null}
+              {resolveRoleArchetype(captured.role_title) !== null ? (
+                <p data-testid="invite-role-template-line">
+                  <span className="font-medium">Role template: </span>
+                  {resolveRoleArchetype(captured.role_title)!.display_name}
+                </p>
+              ) : null}
+              <p className="text-muted-foreground">
+                Their AI teammate is prepared with this role when the invite
+                is confirmed, and every step is recorded in the audit trail.
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

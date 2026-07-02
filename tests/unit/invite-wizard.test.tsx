@@ -65,7 +65,7 @@ describe("InviteWizard", () => {
     await user.type(screen.getByLabelText(/Email/i), "newhire@example.com");
     await user.type(screen.getByLabelText(/First name/i), "New");
     await user.type(screen.getByLabelText(/Last name/i), "Hire");
-    await user.type(screen.getByLabelText(/^Role$/i), "Engineer");
+    await user.type(screen.getByLabelText(/^Title$/i), "Engineer");
 
     await user.click(
       screen.getByRole("button", { name: /Continue to review/i }),
@@ -137,5 +137,54 @@ describe("InviteWizard", () => {
     consoleLog.mockRestore();
     consoleError.mockRestore();
     consoleWarn.mockRestore();
+  });
+});
+
+
+// PROD-MODEL-P2 — placement at creation: choosing a manager + department
+// fires the SAME governed assign rail the Reporting editor uses, with the
+// manager's STABLE entity id (never a display name); the title shows its
+// role-template preview.
+import { http, HttpResponse } from "msw";
+import { server } from "../msw/server";
+const API = "http://localhost:3000/api/v1";
+
+describe("InviteWizard — org placement at creation (P2)", () => {
+  it("posts hierarchy/assign with stable ids and previews the role template", async () => {
+    const user = userEvent.setup();
+    let assignBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`${API}/org/entities`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [
+            { entity_id: "p-mgr-1", entity_type: "PERSON", display_name: "David Odie", email: "david@niovlabs.com", status: "ACTIVE", created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z" },
+            { entity_id: "p-mgr-2", entity_type: "PERSON", display_name: "David Odie", email: "david.2@niovlabs.com", status: "ACTIVE", created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-01T00:00:00Z" },
+          ],
+          total: 2, skip: 0, take: 250,
+        }),
+      ),
+      http.post(`${API}/org/hierarchy/assign`, async ({ request }) => {
+        assignBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ok: true, membership_id: "m-1", audit_event_id: "aud-h" });
+      }),
+    );
+    renderWizard();
+    await user.type(screen.getByLabelText(/Email/i), "newhire@example.com");
+    await user.type(screen.getByLabelText(/First name/i), "New");
+    await user.type(screen.getByLabelText(/Last name/i), "Hire");
+    await user.type(screen.getByLabelText(/^Title$/i), "Marketing Manager");
+    // The title previews its role template in human words.
+    expect(await screen.findByTestId("invite-role-template-preview")).toHaveTextContent(/Role template:/);
+    await user.type(screen.getByTestId("invite-department"), "Marketing");
+    // Two managers share a display name — the VALUE is the stable id.
+    await user.selectOptions(screen.getByTestId("invite-manager-select"), "p-mgr-2");
+    await user.click(screen.getByRole("button", { name: /Continue to review/i }));
+    await waitFor(() => expect(assignBody).not.toBeNull());
+    expect(assignBody).toMatchObject({
+      manager_entity_id: "p-mgr-2",
+      role_title: "Marketing Manager",
+      department: "Marketing",
+    });
   });
 });

@@ -32,6 +32,8 @@ const DEFAULT_CAPTURE: CaptureValues = {
   first_name: "",
   last_name: "",
   role_title: "",
+  department: "",
+  manager_entity_id: "",
   is_admin: false,
 };
 
@@ -143,6 +145,7 @@ export function InviteWizard({ open, onOpenChange }: InviteWizardProps) {
 
             {state.step === 3 && state.captured && state.newEntityId && (
               <InviteWizardStep3Confirm
+                captured={state.captured}
                 newEntityId={state.newEntityId}
                 newDisplayName={
                   `${state.captured.first_name} ${state.captured.last_name}`.trim() ||
