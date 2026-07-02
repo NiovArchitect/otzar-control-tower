@@ -40,23 +40,42 @@ feedback. **No extracted work may live only in volatile page state.**
   backend change, no governance bypass, no content loss. Tests:
   `notification-body.test.ts` (5).
 
-## BUG B — follow-up send-cards disappear after navigation — **root-caused; repair scoped**
+## BUG B — follow-up send-cards disappear after navigation — **root-caused to the exact line; repair = one deliberate cross-repo slice**
 
-- **Root cause:** `Comms.tsx` rebuilds send-cards only from the volatile
-  ingest response; nothing reloads the durable pending follow-ups on mount.
-- **Repair (smallest correct, reuses existing rails):**
-  1. On Comms mount, query the caller's **durable pending follow-ups** — Work
-     Ledger rows of a follow-up/commitment type in a pre-send state
-     (PROPOSED/DRAFT) carrying a draft + proposed recipient. `getMyWork`
-     already returns these with `routing` + `proposed_action_id`; a filtered
-     read (or a small `pending-follow-ups` projection) is the source.
-  2. Render those rows as ProposedActionCards (the SAME component) so Send /
-     review / edit resume with the correct governed shape (now fixed by A).
-  3. On send/dismiss, patch the durable row status so the card leaves the
-     pending set and the change reflects in My Work/Team Work.
-- **No new persistence system** — the ledger is the store. This is a CT
-  read-back + a status-patch wire, plus possibly one FND `pending-follow-ups`
-  filter if `getMyWork` proves too broad.
+Traced end-to-end through `comms-ingest.service.ts` + `comms-extract.service.ts`
++ `work-ledger.service.ts` + `Comms.tsx`:
+- The follow-up **send-cards** render from `extraction.suggested_actions`
+  (`Comms.tsx:611` → `FollowUpCard` → `ProposedActionCard`), held in volatile
+  `useState`.
+- `ingestComms` → `ingestTranscript` **persists work_items** (durable
+  WorkLedger rows: owners, commitments, tasks — these already show in My
+  Work/Team Work and survive refresh) **and returns** `suggested_actions`,
+  **but does NOT persist the drafted follow-up notes.** The ledger row carries
+  `proposed_action_id`/`details`/title/owner — **not** the follow-up
+  `draft_text` or its recipient.
+- `work_items` and `suggested_actions` are **separate collections with no join
+  key**, so a draft cannot attach to a work_item row.
+- **Therefore the drafted follow-up note text is genuinely the one ephemeral
+  thing.** Everything else (the conversation via `MeetingCapture`, the work
+  via WorkLedger) is already durable.
+
+**Pinned repair (single store, no parallel system):** the durable home for a
+conversation's derived drafts is the **`MeetingCapture`** record (already
+persisted; already has the P0C reopen UI). It has no Json field for this, so
+the correct fix is an **additive, nullable `extraction Json?` column** on
+MeetingCapture (safe migration — no data change, no backfill), populated at
+ingest with `summary + suggested_actions (recipient_entity_id + draft_text +
+governance)`; projected on the caller-scoped reopen route; and CT re-renders
+the SAME ProposedActionCards from the reopened capture. Send (fixed by A)
+patches state; failed sends stay because the capture still carries the draft.
+
+**Why this is a dedicated PR sequence, not a tail-of-turn edit:** it touches a
+**protected-repo schema migration** + service + projection + route + CT reload
++ integration tests + two deploys. Per the no-fake / no-rushed-migration
+discipline (and the cloud-sync git-corruption hazard around schema work), it
+runs as its own reviewed FND PR → CI → merge → deploy, then the CT reload PR —
+the same disciplined pattern as #519/#520/#521. Root cause + design are locked;
+implementation is the next focused sequence.
 
 ## BUG C — outside-context recipient review incomplete — **root-caused (depends on B)**
 
