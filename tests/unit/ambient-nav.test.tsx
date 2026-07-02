@@ -64,7 +64,10 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
     const sheet = screen.getByTestId("ambient-nav-more-sheet");
     // Curated secondary surfaces live here, not on the primary surface.
     expect(within(sheet).getByText("Corrections")).toBeInTheDocument();
-    expect(within(sheet).getByText("Approvals")).toBeInTheDocument();
+    // PROD-MODEL-P3 §17 — Approvals is demoted (Action Center is THE needs-me
+    // surface); it must NOT appear in the sheet.
+    expect(within(sheet).queryByText("Approvals")).toBeNull();
+    expect(within(sheet).getByText("Blind Spots")).toBeInTheDocument();
     expect(within(sheet).getByText("Preferences")).toBeInTheDocument();
     // Route-only (hidden) surfaces are NOT dumped into the sheet — they stay
     // reachable by URL but never crowd it.

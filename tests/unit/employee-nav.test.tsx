@@ -64,17 +64,16 @@ describe("nav-employee.ts — primary / more groupings", () => {
 
   it("more group is curated secondary surfaces — no admin/diagnostic junk", () => {
     const labels = MORE_EMPLOYEE_NAV.map((i) => i.label);
+    // PROD-MODEL-P3 §17 — My Organization / Meeting captures / Approvals /
+    // Authority are demoted to route-only (redundant with Action Center,
+    // automatic ingestion, and admin-governed twin authority).
     expect(labels).toEqual([
       "My Twin",
       "Blind Spots",
       "Work health",
       "Workspaces",
-      "My Organization",
       "Projects",
-      "Meeting captures",
       "Tool connections",
-      "Approvals",
-      "Authority",
       "Preferences",
       "Corrections",
       "Launch readiness",
@@ -84,7 +83,11 @@ describe("nav-employee.ts — primary / more groupings", () => {
   it("keeps redundant/niche surfaces route-only (hidden from nav, reachable by URL)", () => {
     const hiddenRoutes = EMPLOYEE_NAV.filter((i) => i.hidden === true).map((i) => i.to);
     expect(hiddenRoutes.sort()).toEqual(
-      ["/app/chat", "/app/welcome", "/app/observe", "/app/voice-captures", "/app/conversations"].sort(),
+      [
+        "/app/chat", "/app/welcome", "/app/observe", "/app/voice-captures", "/app/conversations",
+        // PROD-MODEL-P3 §17 demotions — reachable by URL, absent from nav.
+        "/app/my-organization", "/app/meeting-captures", "/app/approvals", "/app/authority-grants",
+      ].sort(),
     );
     // Hidden items never appear in the rendered nav selectors.
     const navRoutes = [...PRIMARY_EMPLOYEE_NAV, ...MORE_EMPLOYEE_NAV].map((i) => i.to);

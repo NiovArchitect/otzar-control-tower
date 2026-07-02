@@ -176,6 +176,8 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     description:
       "Your place in the company. Projects, teammates, and what Otzar can do for you here.",
     group: "more",
+    // PROD-MODEL-P3 §17 — redundant as an employee destination (People & Collaboration + Today cover it); route stays deep-link-safe.
+    hidden: true,
   },
   {
     label: "Projects",
@@ -191,6 +193,8 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     description:
       "Capture a meeting, log who agreed, and attach it to a workspace.",
     group: "more",
+    // PROD-MODEL-P3 §17/§23 — ingestion is meant to be automatic; a manual employee capture page overstates the model. Route stays for detail/deep links.
+    hidden: true,
   },
   {
     label: "Tool connections",
@@ -206,6 +210,8 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: ClipboardCheck,
     description: "Approval requests waiting on you.",
     group: "more",
+    // PROD-MODEL-P3 §13/§17 — duplicates Action Center (the ONE needs-me surface); route stays.
+    hidden: true,
   },
   {
     label: "Authority",
@@ -213,6 +219,8 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: KeyRound,
     description: "Choose what your Twin may do for you.",
     group: "more",
+    // PROD-MODEL-P3 §7 — employees must not grant/revoke twin authority unless org policy allows; admin governs this. Route stays until the org-policy model lands.
+    hidden: true,
   },
   {
     label: "Preferences",
