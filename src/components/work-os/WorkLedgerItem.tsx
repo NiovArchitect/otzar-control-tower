@@ -256,7 +256,9 @@ export function WorkLedgerItem({
             </Badge>
           ) : null}
           <Badge variant="outline" className="text-[9px]">
-            {entry.status.replace(/_/g, " ")}
+            {/* PROD-MODEL-P5 — status in words, not a shouting enum; the lane
+                chip beside it already carries the human state. */}
+            {entry.status.replace(/_/g, " ").toLowerCase()}
           </Badge>
           {exec.actions.includes("ask_otzar") ? (
             <button

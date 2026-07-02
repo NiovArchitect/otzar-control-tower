@@ -29,7 +29,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
       aria-label="Otzar Admin navigation"
       // PROD-MODEL-P5 §19 — frosted glass over the ambient field, matching
       // the employee shell; no flat dashboard panel.
-      className="flex h-full flex-col border-r border-white/50 bg-white/45 backdrop-blur-xl backdrop-saturate-150"
+      className="flex h-full flex-col border-r border-white/60 bg-white/55 shadow-[8px_0_32px_-18px_rgba(15,23,42,0.18)] backdrop-blur-xl backdrop-saturate-150"
     >
       <div className="flex items-center gap-2 px-4 py-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">

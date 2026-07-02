@@ -184,8 +184,11 @@ function RecentActivityList({
               {getAuditEventLabel(event.event_type)}
               {(() => {
                 const action = (event.details as { action?: unknown })?.action;
+                // PROD-MODEL-P5 — action codes are UPPER_SNAKE machine labels
+                // (e.g. DANDELION_SEED_REJECTED); render them as words. The
+                // raw code stays in the audit surface, not the Home feed.
                 return typeof action === "string"
-                  ? ` — ${action}`
+                  ? ` — ${action.replace(/_/g, " ").toLowerCase()}`
                   : "";
               })()}
             </span>
