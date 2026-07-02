@@ -109,9 +109,13 @@ export function DataKnowledgePage(): JSX.Element {
 
   return (
     <div className="space-y-5" data-testid="data-knowledge-page">
+      {/* PROD-MODEL-P4 §8 — this is the admin view of the governed knowledge
+          lifecycle: raw capture → curated knowledge → permissioned use →
+          retention. Retention is part of THIS story (linked below), not a
+          stray page. */}
       <PageHeader
         title="Data & Knowledge"
-        description="How your organization's knowledge moves safely: where it comes from, where it can go, and what AI may use. Your organization owns every step."
+        description="Your organization's knowledge lifecycle: raw captures become curated, permissioned knowledge that people, AI teammates, and reports may use — with lineage, audit, and retention at every step. Your organization owns all of it; nothing leaves without policy."
       />
 
       <Card data-testid="data-sources">

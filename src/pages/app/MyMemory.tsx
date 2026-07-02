@@ -71,7 +71,7 @@ export function MyMemory(): JSX.Element {
       <div className="space-y-6" data-testid="my-memory-loading">
         <PageHeader
           title="My Digital Work Wallet"
-          description="Your memory, your permissions, and what Otzar can do with them."
+          description="How you work, what your Twin has learned, and what moves with you — your portable work identity."
         />
         <Card>
           <CardContent className="py-4 text-sm text-muted-foreground">
@@ -87,7 +87,7 @@ export function MyMemory(): JSX.Element {
       <div className="space-y-6" data-testid="my-memory-error">
         <PageHeader
           title="My Digital Work Wallet"
-          description="Your memory, your permissions, and what Otzar can do with them."
+          description="How you work, what your Twin has learned, and what moves with you — your portable work identity."
         />
         <Card className="border-rose-400/40 bg-rose-500/5">
           <CardContent className="py-4 text-sm">
@@ -104,7 +104,7 @@ export function MyMemory(): JSX.Element {
     <div className="space-y-6" data-testid="my-memory-page">
       <PageHeader
         title="My Digital Work Wallet"
-        description="Your memory, your permissions, and what Otzar can do with them. You're in control — every category here is revocable."
+        description="How you work, what your Twin has learned, and what moves with you. Your methods, skills, and preferences are YOURS — your organization's records stay with the organization."
       />
 
       {/* What Otzar knows about my work */}
@@ -195,18 +195,27 @@ export function MyMemory(): JSX.Element {
       <Card data-testid="my-memory-revocable">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <KeyRound className="h-4 w-4" aria-hidden /> What you can revoke
+            <KeyRound className="h-4 w-4" aria-hidden /> Yours to shape
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-xs">
-          <RevocableRow
-            icon={<KeyRound className="h-3 w-3" aria-hidden />}
-            label="Authority you've granted to your Twin"
-            description="Lets you scope or revoke what your Twin may do for you."
-            to="/app/authority-grants"
-            cta="Manage authority"
-            testid="my-mem-revoke-authority"
-          />
+          {/* PROD-MODEL-P4 §7/§24 — twin AUTHORITY is governed by your
+              organization's admins and policies, not toggled here. Memory
+              stays insight + teaching, never a permission console. */}
+          <div
+            className="flex items-start gap-2 rounded-md border border-border/60 p-2"
+            data-testid="my-mem-authority-governed"
+          >
+            <KeyRound className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+            <div>
+              <p className="font-medium text-foreground">What your Twin may do</p>
+              <p className="text-muted-foreground">
+                Set by your organization's role and access policies. Teach and
+                correct your Twin any time — granting or removing authority is
+                an admin decision, recorded in the audit trail.
+              </p>
+            </div>
+          </div>
           <RevocableRow
             icon={<PencilLine className="h-3 w-3" aria-hidden />}
             label="Preferences and corrections"

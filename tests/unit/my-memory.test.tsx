@@ -196,12 +196,11 @@ describe("MyMemory — revocable links", () => {
     await waitFor(() =>
       expect(screen.getByTestId("my-memory-revocable")).toBeInTheDocument(),
     );
-    expect(
-      screen
-        .getByTestId("my-mem-revoke-authority")
-        .querySelector("a")
-        ?.getAttribute("href"),
-    ).toBe("/app/authority-grants");
+    // PROD-MODEL-P4 §7/§24 — twin authority is org-governed: Memory shows
+    // the governed state, never a self-service authority link.
+    const governed = screen.getByTestId("my-mem-authority-governed");
+    expect(governed).toHaveTextContent(/admin decision/i);
+    expect(governed.querySelector("a")).toBeNull();
     expect(
       screen
         .getByTestId("my-mem-revoke-preferences")
