@@ -64,6 +64,7 @@ import type {
   AutonomyDecision,
   RecentCommsArtifact,
   CommsArtifactType,
+  PendingFollowUp,
 } from "@/lib/types/foundation";
 
 // ─────────────────────────────────────────────────────────────
@@ -160,8 +161,30 @@ export function Comms(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
+  // [PROD-UX-BUGB] Durable pending follow-ups projected from FOLLOW_UP ledger
+  // rows. This is the SINGLE source for the resumable send-cards — it survives
+  // navigation/refresh, unlike the volatile ingest response.
+  const [pendingFollowUps, setPendingFollowUps] = useState<PendingFollowUp[]>([]);
   const cancelledRef = useRef(false);
   const timerRef = useRef<number | null>(null);
+
+  const loadPendingFollowUps = useCallback(async (): Promise<void> => {
+    const res = await api.workOs.commsPendingFollowUps();
+    if (res.ok && res.data.ok) setPendingFollowUps(res.data.follow_ups ?? []);
+  }, []);
+
+  // Drop a card locally once its backing row has been dismissed (CANCELLED).
+  // Sent (EXECUTED) cards are left in place so ProposedActionCard can show its
+  // post-send audit confirmation; they disappear on the next load (excluded).
+  const handleFollowUpResolved = useCallback((ledgerEntryId: string): void => {
+    setPendingFollowUps((prev) => prev.filter((f) => f.ledger_entry_id !== ledgerEntryId));
+  }, []);
+
+  // Load durable pending follow-ups on mount — the fix for "the cards vanish
+  // when I leave Comms and come back".
+  useEffect(() => {
+    void loadPendingFollowUps();
+  }, [loadPendingFollowUps]);
 
   useEffect(() => {
     return () => {
@@ -220,6 +243,9 @@ export function Comms(): JSX.Element {
     setIngest(result.data.result);
     setExtraction(result.data.result.extraction);
     setPhase("READY_FOR_REVIEW");
+    // Ingest just persisted the drafted follow-ups as durable FOLLOW_UP rows;
+    // reload so the resumable cards (with their ledger ids) appear.
+    void loadPendingFollowUps();
   }
 
   async function importNotes(): Promise<void> {
@@ -236,6 +262,7 @@ export function Comms(): JSX.Element {
     setIngest(result.data.result);
     setExtraction(result.data.result.extraction);
     setPhase("READY_FOR_REVIEW");
+    void loadPendingFollowUps();
   }
 
   function reset(): void {
@@ -253,6 +280,15 @@ export function Comms(): JSX.Element {
       <PageHeader
         title="Comms"
         description="Otzar captures meetings and conversations, then turns them into follow-ups you can approve."
+      />
+
+      {/* [PROD-UX-BUGB] Durable pending follow-ups — shown in every phase so a
+          customer who leaves Comms and returns still sees the cards Otzar
+          drafted (they are backed by FOLLOW_UP ledger rows, not volatile
+          state). Hidden when there are none. */}
+      <PendingFollowUpsSection
+        followUps={pendingFollowUps}
+        onResolved={handleFollowUpResolved}
       />
 
       {/* HERO state: ready to capture */}
@@ -601,17 +637,23 @@ function ExtractionView({
         </Card>
       ) : null}
 
+      {/* [PROD-UX-BUGB] The actionable follow-up cards now render from durable
+          FOLLOW_UP rows in "Follow-ups waiting for you" at the top of the page
+          (so they survive navigation). Here we just confirm what this capture
+          produced — no volatile duplicate of the same cards. */}
       {extraction.suggested_actions.length > 0 ? (
-        <div className="space-y-2" data-testid="comms-follow-ups">
-          <h3 className="text-sm font-medium">Follow-ups Otzar drafted</h3>
-          <p className="text-xs text-muted-foreground">
-            Otzar will submit each one as a governed internal action when you
-            click Send. No external message goes out.
-          </p>
-          {extraction.suggested_actions.map((s) => (
-            <FollowUpCard key={s.local_id} suggested={s} extractionMode={extraction.extraction_mode} />
-          ))}
-        </div>
+        <Card data-testid="comms-follow-ups" className="border-emerald-500/30 bg-emerald-500/5">
+          <CardContent className="py-3 text-sm">
+            <Flag className="mr-1 inline h-4 w-4 text-emerald-600" aria-hidden />
+            Otzar drafted{" "}
+            <span className="font-medium">{extraction.suggested_actions.length}</span>{" "}
+            follow-up{extraction.suggested_actions.length === 1 ? "" : "s"} from
+            this capture. Review and send them in{" "}
+            <span className="font-medium">“Follow-ups waiting for you”</span> at
+            the top of this page — they’ll stay there until you send or dismiss
+            them, even if you leave and come back.
+          </CardContent>
+        </Card>
       ) : (
         <Card data-testid="comms-no-follow-ups">
           <CardContent className="py-4 text-sm text-muted-foreground">
@@ -984,12 +1026,37 @@ function RecipientTrustChip({
 function FollowUpCard({
   suggested,
   extractionMode,
+  ledgerEntryId,
+  onResolved,
 }: {
   suggested: CommsSuggestedAction;
   extractionMode: string;
+  /** [PROD-UX-BUGB] The durable FOLLOW_UP row backing this card. When present,
+   *  a successful send transitions the row to EXECUTED and a dismiss to
+   *  CANCELLED (via patchLedger), so the card does not reappear as pending. A
+   *  failed send leaves the row DRAFT — the card stays recoverable. */
+  ledgerEntryId?: string;
+  onResolved?: (ledgerEntryId: string) => void;
 }): JSX.Element {
   const [whyOpen, setWhyOpen] = useState(false);
   const guard = governanceGuard(suggested.recipient_governance);
+
+  // Transition the durable row so the card drops out of the pending set.
+  // `removeOnSuccess` distinguishes the two verbs:
+  //  - Send (EXECUTED): keep the card mounted so ProposedActionCard shows its
+  //    post-send audit-link confirmation (the 4-stage audit pattern). The row
+  //    is EXECUTED, so it is excluded on the next load — "sent one gone after
+  //    refresh". A failed send leaves the row DRAFT: recoverable, still shown.
+  //  - Dismiss (CANCELLED): remove the card immediately.
+  const transitionDurable = useCallback(
+    async (status: "EXECUTED" | "CANCELLED", removeOnSuccess: boolean): Promise<void> => {
+      if (ledgerEntryId === undefined) return;
+      const res = await api.workOs.patchLedger(ledgerEntryId, { status });
+      if (res.ok && res.data.ok && removeOnSuccess) onResolved?.(ledgerEntryId);
+    },
+    [ledgerEntryId, onResolved],
+  );
+
   return (
     <div data-testid="comms-follow-up-row">
       <ProposedActionCard
@@ -1000,6 +1067,16 @@ function FollowUpCard({
           reason: suggested.reason,
         }}
         {...(guard !== undefined ? { sendGuard: guard } : {})}
+        {...(ledgerEntryId !== undefined
+          ? {
+              onSent: () => {
+                void transitionDurable("EXECUTED", false);
+              },
+              onCancelled: () => {
+                void transitionDurable("CANCELLED", true);
+              },
+            }
+          : {})}
       />
       <RecipientTrustChip g={suggested.recipient_governance} autonomy={suggested.autonomy} />
       {/* Phase 1285-L — consistent structured View/Why: source excerpt,
@@ -1020,6 +1097,42 @@ function FollowUpCard({
           <ViewWhyPanel model={viewWhyFromCommsFollowUp(suggested, extractionMode)} />
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// [PROD-UX-BUGB] The durable, navigation-surviving follow-up surface. Renders
+// the SAME ProposedActionCard from pending FOLLOW_UP ledger rows (loaded on
+// mount and after each ingest), so the drafted follow-ups a customer saw are
+// still here when they leave Comms and come back. Send/dismiss transition the
+// backing row; a failed send stays DRAFT and recoverable. Hidden when empty
+// (no fabricated cards).
+function PendingFollowUpsSection({
+  followUps,
+  onResolved,
+}: {
+  followUps: PendingFollowUp[];
+  onResolved: (ledgerEntryId: string) => void;
+}): JSX.Element | null {
+  if (followUps.length === 0) return null;
+  return (
+    <div className="space-y-2" data-testid="comms-pending-follow-ups">
+      <h3 className="text-sm font-medium">Follow-ups waiting for you</h3>
+      <p className="text-xs text-muted-foreground">
+        Otzar drafted these from your conversations. They stay here until you
+        send or dismiss them — even if you leave and come back. Otzar submits
+        each as a governed internal action; nothing leaves your org without your
+        approval.
+      </p>
+      {followUps.map((f) => (
+        <FollowUpCard
+          key={f.ledger_entry_id}
+          suggested={f.action}
+          extractionMode=""
+          ledgerEntryId={f.ledger_entry_id}
+          onResolved={onResolved}
+        />
+      ))}
     </div>
   );
 }

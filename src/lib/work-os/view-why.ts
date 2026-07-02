@@ -293,7 +293,11 @@ export function viewWhyFromCommsFollowUp(
     { label: "Source", value: s.source_excerpt !== null ? `“${s.source_excerpt}”` : null },
     { label: "Confidence", value: s.confidence.toLowerCase() },
     { label: "Resolution", value: titleCase(s.resolution_status) },
-    { label: "Extraction", value: extractionLabel(extractionMode) },
+    // A resumed (durable) follow-up doesn't carry the original capture's
+    // extraction mode; omit the row rather than invent one.
+    ...(extractionMode.length > 0
+      ? [{ label: "Extraction", value: extractionLabel(extractionMode) }]
+      : []),
   ];
   const model: ViewWhyModel = { rows };
   if (s.source_excerpt === null) {

@@ -88,6 +88,7 @@ import type {
   BlindSpotFeedResponse,
   WatcherFeedResponse,
   RecentCommsArtifactsResponse,
+  PendingFollowUpsResponse,
   OperationalHealthResponse,
   OperationalScope,
   RiskAssessmentResponse,
@@ -1398,6 +1399,14 @@ export class ApiClient {
      *  self-scoped + tenant-isolated. Powers the Comms cockpit recent list. */
     commsRecentArtifacts: (): Promise<ApiResult<RecentCommsArtifactsResponse>> =>
       this.request<RecentCommsArtifactsResponse>("/work-os/comms/recent-artifacts"),
+
+    /** GET /api/v1/work-os/comms/follow-ups — [PROD-UX-BUGB] the caller's pending
+     *  drafted follow-ups, projected from durable FOLLOW_UP Work Ledger rows so
+     *  the Comms send-cards survive navigation/refresh. Each carries the full
+     *  send-card payload (draft + recipient governance) to re-render the SAME
+     *  ProposedActionCard; send/dismiss transition the row via patchLedger. */
+    commsPendingFollowUps: (): Promise<ApiResult<PendingFollowUpsResponse>> =>
+      this.request<PendingFollowUpsResponse>("/work-os/comms/follow-ups"),
 
     /** GET /api/v1/work-os/operational-health — advisory OPERATIONAL_ANALYTICS
      *  over a Foundation-scoped execution-health snapshot (Phase 1285-Z).

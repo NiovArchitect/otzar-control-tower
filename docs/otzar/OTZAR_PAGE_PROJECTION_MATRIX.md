@@ -10,7 +10,7 @@ mismatch risk. Grounded in the codebase + this session's audit. ✅ coherent ·
 | Page | Customer question | Source of truth | Durable actions? | Coherence |
 |---|---|---|---|---|
 | Today / Ambient Work Surface | "What needs me now?" | presence store + my-day intelligence (same object) | n/a (links) | ✅ Section-25 fix: headline & items one source; urgent blind-spots surfaced |
-| Comms | "Turn this conversation into work" | ingest → WorkLedger (durable) | ⚠️ send-cards volatile | ❌ **BUG B** (cards rebuilt from volatile response; data durable) · ✅ **BUG A** send shape fixed |
+| Comms | "Turn this conversation into work" | ingest → WorkLedger (durable) | ✅ | ✅ **BUG B FIXED** — send-cards render from durable FOLLOW_UP rows (`getPendingFollowUps`), survive navigation; send→EXECUTED, dismiss→CANCELLED · ✅ **BUG A** send shape fixed |
 | My Work | "What do I own / owe?" | `getMyWork` (WorkLedger, paginated) | ✅ | ✅ |
 | Team Work | "My team's operating state" | `getTeamWork` + hierarchy edges | ✅ | ✅ rollup from real manager edges |
 | Action Center / Needs me | "What must I decide?" | approvals/actions feed | ✅ | ✅ agrees with Today (same signals) |

@@ -3083,10 +3083,36 @@ const workLedgerCreateHandler = http.post(
   },
 );
 
+// [PROD-UX-BUGB] Default pending-follow-ups feed so the Comms page (which loads
+// durable follow-ups on mount) has a handler under onUnhandledRequest:"error".
+// Empty by default; tests needing cards override via server.use().
+const commsPendingFollowUpsHandler = http.get(
+  `${API_BASE}/work-os/comms/follow-ups`,
+  () => HttpResponse.json({ ok: true, follow_ups: [] }),
+);
+
+// [PROD-UX-BUGB] Default PATCH /work-os/ledger/:id so the follow-up send/dismiss
+// transition (EXECUTED / CANCELLED) has a handler. Echoes the new status.
+const workLedgerPatchHandler = http.patch(
+  `${API_BASE}/work-os/ledger/:id`,
+  async ({ request, params }) => {
+    const b = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    return HttpResponse.json({
+      ok: true,
+      entry: {
+        ledger_entry_id: String(params.id),
+        status: typeof b.status === "string" ? b.status : "DRAFT",
+      },
+    });
+  },
+);
+
 export const handlers = [
   workOsAuthorityHandler,
   runtimeCapabilitiesHandler,
   workLedgerCreateHandler,
+  commsPendingFollowUpsHandler,
+  workLedgerPatchHandler,
   // Section 2 Action read surface (ADR-0057 §9 + §10)
   actionDetailHandler,
   // Section 7 Full Audit Viewer (ADR-0071 + earlier Section 7 waves)

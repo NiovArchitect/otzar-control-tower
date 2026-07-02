@@ -5004,6 +5004,29 @@ export interface RecentCommsArtifactsResponse {
   code?: string;
 }
 
+// [PROD-UX-BUGB] A pending drafted follow-up, projected from a durable FOLLOW_UP
+// Work Ledger row so the Comms send-cards survive navigation/refresh. `action`
+// is the full pre-governed send-card stored verbatim at ingest, so the CT
+// re-renders the SAME ProposedActionCard (draft + recipient governance +
+// autonomy). `ledger_entry_id` is the PATCH target on send (-> EXECUTED) and
+// dismiss (-> CANCELLED).
+export interface PendingFollowUp {
+  ledger_entry_id: string;
+  meeting_capture_id: string | null;
+  title: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  action: CommsSuggestedAction;
+}
+
+export interface PendingFollowUpsResponse {
+  ok: boolean;
+  follow_ups?: PendingFollowUp[];
+  code?: string;
+  message?: string;
+}
+
 // ── Meeting intelligence projection (Phase 1285-V; surfaced read-only in Phase
 //    1286-C). The SAFE shape: short candidates only, never the raw transcript or
 //    chain-of-thought. candidate_type ∈ SUMMARY / DECISION / ACTION_ITEM /

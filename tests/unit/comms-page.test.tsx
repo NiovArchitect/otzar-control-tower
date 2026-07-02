@@ -194,12 +194,70 @@ function mockRecentArtifacts(
   );
 }
 
+// [PROD-UX-BUGB] A durable pending follow-up, as GET /work-os/comms/follow-ups
+// returns it — the send-card payload plus its backing ledger id. Derives from
+// the same canonical suggested_actions so the cards read identically.
+function pendingFollowUpFrom(
+  action: CommsExtractionResult["suggested_actions"][number],
+  ledgerEntryId: string,
+): Record<string, unknown> {
+  return {
+    ledger_entry_id: ledgerEntryId,
+    meeting_capture_id: "mc-1",
+    title: `Follow-up to ${action.target.display_name}`,
+    status: "DRAFT",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    action,
+  };
+}
+
+// The 3 canonical follow-ups as durable rows (what the post-ingest reload and a
+// returning-navigation load both return).
+function canonicalPendingFollowUps(): Record<string, unknown>[] {
+  return canonicalExtraction().suggested_actions.map((a) =>
+    pendingFollowUpFrom(a, `led-${a.local_id}`),
+  );
+}
+
+function mockPendingFollowUps(
+  followUps: ReadonlyArray<Record<string, unknown>> = [],
+): void {
+  server.use(
+    http.get(`${API_BASE}/work-os/comms/follow-ups`, () =>
+      HttpResponse.json({ ok: true, follow_ups: followUps }),
+    ),
+  );
+}
+
+// Capture PATCH /work-os/ledger/:id transitions (send -> EXECUTED, dismiss ->
+// CANCELLED). `fail` simulates a transition the server rejects.
+function mockPatchLedger(
+  onPatch?: (id: string, body: { status?: string }) => void,
+  opts: { fail?: boolean } = {},
+): void {
+  server.use(
+    http.patch(`${API_BASE}/work-os/ledger/:id`, async ({ request, params }) => {
+      const body = (await request.json().catch(() => ({}))) as { status?: string };
+      onPatch?.(String(params.id), body);
+      if (opts.fail === true) {
+        return HttpResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
+      }
+      return HttpResponse.json({
+        ok: true,
+        entry: { ledger_entry_id: String(params.id), status: body.status ?? "DRAFT" },
+      });
+    }),
+  );
+}
+
 beforeEach(() => {
   vi.useRealTimers();
   setAuth();
-  // Default: the recent-artifacts feed is mocked empty so the cockpit renders
-  // its honest-empty state unless a test overrides it.
+  // Default: the recent-artifacts feed AND the pending-follow-ups feed are mocked
+  // empty so the cockpit renders its honest-empty state unless a test overrides.
   mockRecentArtifacts([]);
+  mockPendingFollowUps([]);
 });
 
 describe("Comms — HERO flow", () => {
@@ -321,8 +379,10 @@ describe("Comms — default cockpit (Phase 1285-L2)", () => {
 });
 
 describe("Comms — follow-up View/Why (Phase 1285-L)", () => {
-  it("a follow-up exposes a Why disclosure with source + confidence + extraction", async () => {
+  it("a durable follow-up exposes a Why disclosure with source + confidence", async () => {
     mockExtract();
+    // The cards now render from durable FOLLOW_UP rows (survive navigation).
+    mockPendingFollowUps(canonicalPendingFollowUps());
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByTestId("comms-start"));
@@ -335,10 +395,11 @@ describe("Comms — follow-up View/Why (Phase 1285-L)", () => {
     await user.click(whyButtons[0]!);
     const panels = screen.getAllByTestId("comms-follow-up-view-why");
     const html = panels[0]!.outerHTML;
-    // Source excerpt, confidence, and extraction mode are surfaced.
+    // Source excerpt and confidence are surfaced. A resumed durable card does
+    // not claim an extraction mode it no longer carries (row omitted).
     expect(html).toContain("Source");
     expect(html.toLowerCase()).toContain("confidence");
-    expect(html).toContain("Extraction");
+    expect(html).not.toContain("Extraction");
     // No raw UUID leaked as a label.
     expect(html).not.toContain("id-david");
   });
@@ -365,6 +426,9 @@ describe("Comms — end capture posts canonical text + renders extraction", () =
         });
       }),
     );
+    // Ingest persisted the follow-ups as durable rows; the post-ingest reload
+    // fetches them from the durable feed (with ledger ids).
+    mockPendingFollowUps(canonicalPendingFollowUps());
 
     const user = userEvent.setup();
     renderPage();
@@ -392,10 +456,12 @@ describe("Comms — end capture posts canonical text + renders extraction", () =
     expect(screen.getAllByTestId("comms-decision")).toHaveLength(2);
     // Commitments list (3 rows).
     expect(screen.getAllByTestId("comms-commitment")).toHaveLength(3);
-    // 3 follow-up rows (NOT David-only).
-    expect(screen.getAllByTestId("comms-follow-up-row")).toHaveLength(3);
-    // Each row's inner card surfaces the recipient.
-    const html = screen.getByTestId("comms-follow-ups").outerHTML;
+    // The actionable cards render from the durable section (survive navigation),
+    // NOT David-only. Each row's inner card surfaces the recipient.
+    await waitFor(() =>
+      expect(screen.getAllByTestId("comms-follow-up-row")).toHaveLength(3),
+    );
+    const html = screen.getByTestId("comms-pending-follow-ups").outerHTML;
     expect(html).toContain("David Odie");
     expect(html).toContain("Samiksha Sharma");
     expect(html).toContain("Annie");
@@ -445,6 +511,8 @@ describe("Comms — end capture posts canonical text + renders extraction", () =
 describe("Comms — Send goes through the existing governed Action pipeline", () => {
   it("each follow-up's Send hits POST /api/v1/actions with the resolved entity_id (NOT hardcoded David)", async () => {
     mockExtract();
+    mockPendingFollowUps(canonicalPendingFollowUps());
+    mockPatchLedger();
     let lastActionBody: Record<string, unknown> | null = null;
     server.use(
       http.post(`${API_BASE}/actions`, async ({ request }) => {
@@ -499,6 +567,169 @@ describe("Comms — Send goes through the existing governed Action pipeline", ()
     expect(body.payload_redacted.recipient_entity_id).toBe("id-samiksha");
     expect(body.payload_redacted.notification_class).toBe("OTZAR_INTERNAL_NOTE");
     expect(body.payload_redacted.body_summary).toContain("Samiksha");
+  });
+});
+
+// [PROD-UX-BUGB] The durable follow-up recovery: the drafted send-cards are
+// backed by FOLLOW_UP ledger rows, so they survive navigation/refresh; send and
+// dismiss transition the backing row; a failed send stays recoverable.
+describe("Comms — durable follow-up recovery (BUG B)", () => {
+  // A single durable follow-up (David) with an overridable action + ledger id.
+  function onePending(
+    actionOver: Record<string, unknown> = {},
+    ledgerId = "led-solo",
+  ): Record<string, unknown>[] {
+    const base = canonicalExtraction().suggested_actions[0]!;
+    return [pendingFollowUpFrom({ ...base, ...actionOver } as typeof base, ledgerId)];
+  }
+
+  function mockSendOk(): void {
+    server.use(
+      http.post(`${API_BASE}/actions`, () =>
+        HttpResponse.json(
+          {
+            ok: true,
+            action: {
+              action_id: "act-1",
+              source_entity_id: "u",
+              org_entity_id: "o",
+              target_entity_id: "id-david",
+              action_type: "SEND_INTERNAL_NOTIFICATION",
+              risk_tier: "LOW",
+              status: "APPROVED",
+              payload_summary: "x",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          },
+          { status: 201 },
+        ),
+      ),
+    );
+  }
+
+  function renderComms(): { unmount: () => void } {
+    return render(
+      <MemoryRouter>
+        <Comms />
+      </MemoryRouter>,
+    );
+  }
+
+  it("loads durable pending follow-ups on mount — no re-capture needed", async () => {
+    mockExtract();
+    mockPendingFollowUps(canonicalPendingFollowUps());
+    renderComms();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-pending-follow-ups")).toBeInTheDocument(),
+    );
+    // Cards appear in the default cockpit view, without any ingest this session.
+    expect(screen.getAllByTestId("comms-follow-up-row")).toHaveLength(3);
+    expect(screen.getByTestId("comms-cockpit")).toBeInTheDocument();
+  });
+
+  it("pending follow-ups survive navigation/refresh (a remount re-loads them)", async () => {
+    mockExtract();
+    mockPendingFollowUps(canonicalPendingFollowUps());
+    const { unmount } = renderComms();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("comms-follow-up-row")).toHaveLength(3),
+    );
+    unmount(); // leave Comms
+    renderComms(); // come back
+    await waitFor(() =>
+      expect(screen.getAllByTestId("comms-follow-up-row")).toHaveLength(3),
+    );
+  });
+
+  it("Send transitions the backing row to EXECUTED (so it drops from pending on the next load)", async () => {
+    mockExtract();
+    mockPendingFollowUps(onePending({}, "led-solo"));
+    mockSendOk();
+    let patched: { id: string; status: string | undefined } | null = null;
+    mockPatchLedger((id, body) => {
+      patched = { id, status: body.status };
+    });
+    const user = userEvent.setup();
+    renderComms();
+    await waitFor(() =>
+      expect(screen.getByTestId("ctx-send-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("ctx-send-button"));
+    await waitFor(() => expect(patched).not.toBeNull());
+    expect(patched!.id).toBe("led-solo");
+    expect(patched!.status).toBe("EXECUTED");
+  });
+
+  it("Dismiss ('Don't send') transitions the row to CANCELLED and removes the card", async () => {
+    mockExtract();
+    mockPendingFollowUps(onePending({}, "led-solo"));
+    let patched: { id: string; status: string | undefined } | null = null;
+    mockPatchLedger((id, body) => {
+      patched = { id, status: body.status };
+    });
+    const user = userEvent.setup();
+    renderComms();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-pending-follow-ups")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("ctx-cancel-button"));
+    await waitFor(() => expect(patched).not.toBeNull());
+    expect(patched!.status).toBe("CANCELLED");
+    // The card is removed from the pending set (section hides when empty).
+    await waitFor(() =>
+      expect(screen.queryByTestId("comms-pending-follow-ups")).toBeNull(),
+    );
+  });
+
+  it("a failed send leaves the card visible and recoverable (no EXECUTED transition)", async () => {
+    mockExtract();
+    mockPendingFollowUps(onePending({}, "led-solo"));
+    server.use(
+      http.post(`${API_BASE}/actions`, () =>
+        HttpResponse.json({ ok: false, code: "INTERNAL_ERROR" }, { status: 500 }),
+      ),
+    );
+    let patchCalled = false;
+    mockPatchLedger(() => {
+      patchCalled = true;
+    });
+    const user = userEvent.setup();
+    renderComms();
+    await waitFor(() =>
+      expect(screen.getByTestId("ctx-send-button")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("ctx-send-button"));
+    // The card stays; a failed send never transitions the durable row.
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-pending-follow-ups")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("comms-follow-up-row")).toBeInTheDocument();
+    expect(patchCalled).toBe(false);
+  });
+
+  it("an outside-context recipient review renders from the durable payload and survives navigation", async () => {
+    mockExtract();
+    mockPendingFollowUps(
+      onePending(
+        { recipient_governance: mkRecipientGovernance({ recipientSafety: "out_of_scope" }) },
+        "led-review",
+      ),
+    );
+    const { unmount } = renderComms();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-pending-follow-ups")).toBeInTheDocument(),
+    );
+    // The Send affordance is the review gate (blocked), reconstructed from the
+    // durable governance payload — not a normal Send.
+    expect(screen.getByTestId("ctx-send-button")).toHaveTextContent("Review recipient");
+    expect(screen.getByTestId("ctx-send-button")).toBeDisabled();
+    // And it does NOT vanish on navigation.
+    unmount();
+    renderComms();
+    await waitFor(() =>
+      expect(screen.getByTestId("ctx-send-button")).toHaveTextContent("Review recipient"),
+    );
   });
 });
 

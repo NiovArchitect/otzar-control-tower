@@ -40,7 +40,7 @@ feedback. **No extracted work may live only in volatile page state.**
   backend change, no governance bypass, no content loss. Tests:
   `notification-body.test.ts` (5).
 
-## BUG B — follow-up send-cards disappear after navigation — **root-caused to the exact line; repair = one deliberate cross-repo slice**
+## BUG B — follow-up send-cards disappear after navigation — **IMPLEMENTED (FND `85fdfbe` merged+deployed; CT reload slice code-complete). Closes on CT deploy + live smoke.**
 
 Traced end-to-end through `comms-ingest.service.ts` + `comms-extract.service.ts`
 + `work-ledger.service.ts` + `Comms.tsx`:
@@ -59,23 +59,47 @@ Traced end-to-end through `comms-ingest.service.ts` + `comms-extract.service.ts`
   thing.** Everything else (the conversation via `MeetingCapture`, the work
   via WorkLedger) is already durable.
 
-**Pinned repair (single store, no parallel system):** the durable home for a
-conversation's derived drafts is the **`MeetingCapture`** record (already
-persisted; already has the P0C reopen UI). It has no Json field for this, so
-the correct fix is an **additive, nullable `extraction Json?` column** on
-MeetingCapture (safe migration — no data change, no backfill), populated at
-ingest with `summary + suggested_actions (recipient_entity_id + draft_text +
-governance)`; projected on the caller-scoped reopen route; and CT re-renders
-the SAME ProposedActionCards from the reopened capture. Send (fixed by A)
-patches state; failed sends stay because the capture still carries the draft.
+**Pinned repair (single store = the Work Ledger; ZERO migration) — corrected
+2026-07-02.** The earlier note here proposed a new `MeetingCapture.extraction
+Json?` column. That was **wrong and self-contradicting**: this repo's own
+data-flow contract (line 38 + load-bearing rule 2) already designates the
+durable home for a follow-up draft as a **`WorkLedgerEntry` with
+`ledger_type "FOLLOW_UP"`**, and forbids a second follow-up store. A capture
+column WOULD be that forbidden second store. Confirmed against the schema:
 
-**Why this is a dedicated PR sequence, not a tail-of-turn edit:** it touches a
-**protected-repo schema migration** + service + projection + route + CT reload
-+ integration tests + two deploys. Per the no-fake / no-rushed-migration
-discipline (and the cloud-sync git-corruption hazard around schema work), it
-runs as its own reviewed FND PR → CI → merge → deploy, then the CT reload PR —
-the same disciplined pattern as #519/#520/#521. Root cause + design are locked;
-implementation is the next focused sequence.
+- `WorkLedgerEntry.ledger_type` is a **free `String`** (no enum) — `"FOLLOW_UP"`
+  needs **no migration**. The row already carries every field required:
+  `conversation_id` (= the `meeting_capture_id`), `target_entity_id` (the
+  recipient), `owner_entity_id`/`requester_entity_id` (the drafter/sender),
+  `proposed_action_id`, `audit_event_id`, `status` (DRAFT→EXECUTED/CANCELLED),
+  and `details`/`evidence` Json for the send-card payload.
+- A durable projection over exactly these rows **already exists**
+  (`comms-artifacts.service.ts` `getRecentCommsArtifacts`, route
+  `/work-os/comms/recent-artifacts`) and already maps a `FOLLOW_UP` artifact
+  type — the architecture always intended FOLLOW_UP ledger rows to be the store.
+  **The only gap is that ingest never writes them, and the projection doesn't
+  carry the send-card payload.**
+
+**The fix (service-only):** (1) at ingest, persist each `suggested_action` as a
+`FOLLOW_UP` ledger row (`conversation_id` = capture, owner/requester = caller,
+`target_entity_id` = resolved recipient, `status "DRAFT"`, `details.follow_up`
+= `{ local_id, action_type, draft_text, source_excerpt, reason,
+resolution_status, target, recipient_governance, autonomy }`); (2) a
+caller-scoped `getPendingFollowUps` projection + route
+`GET /work-os/comms/follow-ups` returning pending FOLLOW_UP rows with that
+payload; (3) exclude `FOLLOW_UP` from My Work / Team Work / Blind Spots (the
+COMMITMENT row already carries the obligation — the draft is the sender's
+private pending send, not double-counted work); (4) CT re-renders the SAME
+ProposedActionCards from the durable rows on mount. Send (fixed by A) →
+`PATCH /work-os/ledger/:id` status `EXECUTED` + `audit_event_id` (the existing
+transition; the caller owns the row so the authority guard passes); dismiss →
+`CANCELLED`; failed sends stay `DRAFT` and reappear on return.
+
+**Why it's still a reviewed cross-repo PR sequence (but NOT a migration):**
+FND service + projection + route + tests land first as a reviewed PR → CI →
+merge → deploy; the CT reload PR consumes it second — the #519/#520/#521
+pattern. The earlier "protected-repo schema migration / cloud-sync hazard"
+justification is retracted: there is no schema change.
 
 ## BUG C — outside-context recipient review incomplete — **root-caused (depends on B)**
 

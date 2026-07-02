@@ -50,8 +50,10 @@ routing.
 ## Load-bearing rules
 
 1. **Work is never volatile.** Anything extracted from communication persists
-   as a WorkLedger row. The Comms follow-up **cards** being volatile (BUG B)
-   is the exception being repaired — the data underneath is already durable.
+   as a WorkLedger row — including the Comms follow-up **cards**, which now
+   render from durable FOLLOW_UP rows (BUG B fixed) and survive
+   navigation/refresh. No conversation-derived artifact lives only in page
+   state.
 2. **One store per object.** Follow-ups are WorkLedger rows — there is no
    second follow-up system, and none may be added.
 3. **Projections don't recompute policy.** CT renders `routing` from the
