@@ -1,7 +1,7 @@
 // FILE: organization-seeding.test.tsx
 // PURPOSE: The Admin "Organization Seeding" queue renders governed Dandelion seeds
 //          (human-readable, no raw IDs), shows source evidence + approval state, and
-//          offers Approve setup / Hold / Reject. Non-admins are told it's admin-only.
+//          offers Add to organization / Keep for later / Ignore (Dandelion discovery language). Non-admins are told it's admin-only.
 //          "Approve setup" calls the endpoint (never auto-grants — that's enforced
 //          server-side).
 
@@ -80,7 +80,7 @@ describe("Organization Seeding — admin seed queue", () => {
     expect(card.textContent).toMatch(/GitHub is needed/);
     expect(screen.getByTestId("org-seed-evidence").textContent).toMatch(/repo access work/);
     // Approve/Hold/Reject controls render.
-    expect(screen.getByTestId("org-seed-approve")).toHaveTextContent(/Approve setup/i);
+    expect(screen.getByTestId("org-seed-approve")).toHaveTextContent(/Add to organization/i);
     expect(screen.getByTestId("org-seed-hold")).toBeInTheDocument();
     expect(screen.getByTestId("org-seed-reject")).toBeInTheDocument();
     // No raw ledger id leaks as visible text.

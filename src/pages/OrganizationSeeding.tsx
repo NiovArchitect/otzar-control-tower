@@ -73,9 +73,13 @@ export function OrganizationSeedingPage(): JSX.Element {
 
   return (
     <div className="space-y-6" data-testid="org-seeding-page">
+      {/* PROD-MODEL-P3 §5 — Dandelion means DISCOVERY: Otzar listens to the
+          organization's workstream and surfaces the people, tools, and
+          structure it finds, like seeds landing from the air. Review before
+          anything joins the organization. */}
       <PageHeader
         title="Organization Seeding"
-        description="Suggestions Otzar found from real work — review and approve what should change. Nothing is applied automatically."
+        description="Otzar found people and context from your organization's workstream — meetings, conversations, and real work. Review each seed before it becomes part of your organization. Nothing is applied automatically."
       />
 
       {error === "OPERATION_NOT_PERMITTED" ? (
@@ -203,13 +207,13 @@ function SeedCard({
         {actionable ? (
           <div className="flex gap-2 pt-1">
             <Button type="button" size="sm" disabled={busy} onClick={() => onAct("approve")} data-testid="org-seed-approve">
-              Approve setup
+              Add to organization
             </Button>
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => onAct("hold")} data-testid="org-seed-hold">
-              Hold
+              Keep for later
             </Button>
             <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => onAct("reject")} data-testid="org-seed-reject">
-              Reject
+              Ignore
             </Button>
           </div>
         ) : null}

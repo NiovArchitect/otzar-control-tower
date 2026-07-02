@@ -53,7 +53,7 @@ import { LoginPage } from "@/pages/Login";
 import { HomePage } from "@/pages/Home";
 import { UsersPage } from "@/pages/Users";
 import { AITeammatesPage } from "@/pages/AITeammates";
-import { AccessControlPage } from "@/pages/AccessControl";
+import { AccessHubPage } from "@/pages/AccessHub";
 import { DataKnowledgePage } from "@/pages/Data";
 import { SecurityPage } from "@/pages/Security";
 import { AnalyticsPage } from "@/pages/Analytics";
@@ -161,7 +161,9 @@ export function App() {
               <Route index element={<HomePage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="ai-teammates" element={<AITeammatesPage />} />
-              <Route path="access-control" element={<AccessControlPage />} />
+              {/* PROD-MODEL-P3 §9 — ONE Access Control destination (tabs);
+                  /access-grants below stays registered for deep links. */}
+              <Route path="access-control" element={<AccessHubPage />} />
               <Route path="data-knowledge" element={<DataKnowledgePage />} />
               <Route path="security-audit" element={<SecurityPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />

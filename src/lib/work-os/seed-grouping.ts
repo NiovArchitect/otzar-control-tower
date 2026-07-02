@@ -27,8 +27,8 @@ export interface SeedQueueDef {
 
 // Queue order = admin triage priority (most fundamental first).
 export const SEED_QUEUES: readonly SeedQueueDef[] = [
-  { id: "people_to_review", label: "People to review", description: "Real participants who aren't in your org yet — confirm or activate them." },
-  { id: "tool_setup", label: "Access & tool setup", description: "Connections a person needs before their committed work can move." },
+  { id: "people_to_review", label: "People Otzar heard about", description: "Participants from your workstream who aren't in your organization yet — invite them as members, keep them as contacts, or ignore." },
+  { id: "tool_setup", label: "Tools Otzar noticed you need", description: "Connections discovered from real work — connect them in Tools & Connections so the blocked work can move." },
   { id: "role_project_team", label: "Roles, projects & teams", description: "Suggested role / team / project structure from real work evidence." },
   { id: "ambiguous_identity", label: "Ambiguous identities", description: "Low-confidence people — confirm who this is before acting." },
   { id: "low_confidence", label: "Low-confidence suggestions", description: "Weaker signals held back from the main queues." },

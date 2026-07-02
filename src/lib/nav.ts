@@ -183,17 +183,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Work Graph & Memory",
   },
   {
+    // PROD-MODEL-P3 §9 — the ONE access area: permissions + grants as tabs.
+    // /access-grants stays a registered route (deep-link-safe), no longer a
+    // separate nav destination with divided access logic.
     label: "Access Control",
     to: "/access-control",
     icon: KeyRound,
-    description: "Who can read, write, or share which knowledge — governed and audited. Correct what Otzar may use here.",
-    group: "Work Graph & Memory",
-  },
-  {
-    label: "Access & Grants",
-    to: "/access-grants",
-    icon: KeyRound,
-    description: "What you have access to and who can use your data — governed access leased under consent and proof. Revocation is visible and enforced.",
+    description: "One place for who can see, use, and share what — org defaults, grants, revocations, and overrides. Governed and audited.",
     group: "Work Graph & Memory",
   },
   {

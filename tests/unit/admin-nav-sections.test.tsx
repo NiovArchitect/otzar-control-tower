@@ -50,9 +50,11 @@ describe("Admin Center IA — eight production sections", () => {
       ["/tools-connections", "/voice", "/voice-providers"].sort(),
     );
   });
-  it("Work Graph & Memory = Data & Knowledge, Access Control, Access & Grants, Marketplace, Cohorts", () => {
+  it("Work Graph & Memory = Data & Knowledge, ONE Access Control (grants folded in as a tab), Marketplace, Cohorts", () => {
+    // PROD-MODEL-P3 §9 — /access-grants stays a registered route but is no
+    // longer a separate nav destination.
     expect(routesIn("Work Graph & Memory")).toEqual(
-      ["/access-control", "/access-grants", "/cohorts", "/data-knowledge", "/marketplace"].sort(),
+      ["/access-control", "/cohorts", "/data-knowledge", "/marketplace"].sort(),
     );
   });
   it("Policies & Approvals = Policies, Collaboration policy, Review Center, Pending Approvals", () => {
