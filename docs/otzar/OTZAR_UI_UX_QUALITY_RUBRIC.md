@@ -4,7 +4,11 @@
 `AMBIENT_WORK_OS_PRODUCT_DOCTRINE.md`, the PRD set (PRD-00…06), and the deep
 smoke matrix. External-resource enrichment (UI-UX-Pro-Max skill, 21st.dev
 patterns) is a labeled TODO pending the safety review of those sources — this
-rubric makes no claims about them.
+rubric makes no claims about them. *(Update, same day: research done — see
+the risk/fit assessment in `OTZAR_ADMIN_IA_REDESIGN_PLAN.md`. UI-UX-Pro-Max:
+read-only inspiration, no install (MIT but ships CLI/Python/bash executables).
+CodeRabbit: recommended second review layer, founder-gated install (private
+repos = paid). 21st.dev: inspiration only, no dependency.)*
 
 **How to use:** score every surface 0–2 per axis (0 = fails, 1 = partial,
 2 = meets). A surface ships at ≥26/30 with no axis at 0. Judgments must cite

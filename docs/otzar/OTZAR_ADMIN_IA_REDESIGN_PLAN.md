@@ -68,9 +68,33 @@ pagination; blind-spot triage; FocusHome deletion; Onboarding validation copy.
 self-connect/disconnect (ABAC minimum: org-level policy flags read by the
 connections surface); push/email channel; second-tenant isolation proof.
 
-## External resources (pending safety review — no claims yet)
+## External resources — risk/fit assessment (2026-07-01, read-only research)
 
-- UI-UX-Pro-Max skill, CodeRabbit, 21st.dev: under read-only investigation
-  per the founder's safety rules (no blind installs, license check first,
-  principles-over-packages). Findings land in this doc + the rubric when the
-  review completes.
+1. **UI-UX-Pro-Max skill** (`nextlevelbuilder/ui-ux-pro-max-skill`, MIT).
+   NOT docs-only: ships a Python BM25 search engine, an npm global CLI
+   (`uipro`), bash deploy scripts, and GitHub-Actions release automation; the
+   claimed `.claude/skills/ui-ux-pro-max/SKILL.md` path was not confirmed in
+   the repo listing. **Decision: read-only inspiration, no install.** The
+   value for Otzar (design axes, palette/typography discipline, industry
+   reasoning) is principle-shaped and is distilled into
+   `OTZAR_UI_UX_QUALITY_RUBRIC.md`; installing a global CLI + Python runtime
+   adds executable third-party surface for no capability we lack.
+2. **CodeRabbit** (GitHub App, docs.coderabbit.ai). Legitimate PR-review
+   layer; zero-config default (summary + inline comments in 2–5 min), tunable
+   via `.coderabbit.yaml`. Free Pro applies to PUBLIC repos only — ours are
+   private (Pro ≈ $24–30/dev/mo). **Decision: recommended as an additional
+   review layer, install deferred to the founder** (granting a third-party
+   app repo access requires explicit human approval per the safety rules).
+   Setup when approved: (a) coderabbit.ai → sign in with GitHub; (b) install
+   the GitHub App scoped to `otzar-control-tower` + `niov-foundation` ONLY;
+   (c) open/refresh a PR to trigger the first review; (d) optionally commit a
+   `.coderabbit.yaml` focusing: dead code, duplicate logic, untested flows,
+   auth/RBAC mistakes, cross-org leakage, missing loading/error states,
+   connector/account safety, dependency bloat. All findings verified by
+   Fable gates before any change lands.
+3. **21st.dev.** Community marketplace of React components/templates/themes
+   (shadcn-adjacent, publish-your-own model); per-component licensing is not
+   uniformly stated. **Decision: do not adopt as a dependency.** Usable as
+   read-only inspiration only — Otzar must not look like a template, and the
+   ambient doctrine (frosted presence, stateful glow, calm collaboration) is
+   already codified in `lib/ambient/presence-ring.ts` + GlassPanel.
