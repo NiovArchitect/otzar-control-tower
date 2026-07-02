@@ -22,6 +22,7 @@ import { GlassPanel } from "@/components/ambient/GlassPanel";
 import { buildWorkNodes } from "@/lib/work-os/work-nodes";
 import { intensityDot } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
+import type { MyDaySuggestion } from "@/lib/types/foundation";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -43,6 +44,10 @@ export function AmbientWorkSurface(): JSX.Element {
   const surfaceContext = useCurrentSurfaceContextStore((s) => s.context);
   const clearContext = useCurrentSurfaceContextStore((s) => s.clear);
   const [headline, setHeadline] = useState<string | null>(null);
+  // Section-25 fix: the headline COUNTS intelligence.suggestions, so the
+  // SAME response's suggestions render right under it — the claim and the
+  // visible items can never disagree again (one object, one source).
+  const [suggestions, setSuggestions] = useState<MyDaySuggestion[]>([]);
 
   // One calm intelligence headline — "what changed". Silence on failure.
   useEffect(() => {
@@ -50,7 +55,10 @@ export function AmbientWorkSurface(): JSX.Element {
     api.otzar
       .myDayIntelligence()
       .then((r) => {
-        if (!cancelled && r.ok) setHeadline(r.data.intelligence.headline);
+        if (!cancelled && r.ok) {
+          setHeadline(r.data.intelligence.headline);
+          setSuggestions(r.data.intelligence.suggestions);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -153,10 +161,33 @@ export function AmbientWorkSurface(): JSX.Element {
           lives in the orb and is not bridged to this surface yet — so we never
           overclaim it here. (Bridge deferred per the handling-panel decision.) */}
       {headline !== null ? (
-        <GlassPanel intensity="ambient" label="What changed" testId="changed-panel">
+        <GlassPanel
+          intensity={suggestions.length > 0 ? "attention" : "ambient"}
+          label="What changed"
+          testId="changed-panel"
+        >
           <p className="text-sm text-slate-600" data-testid="changed-headline">
             {headline}
           </p>
+          {/* Section-25 fix — the exact items the headline is counting,
+              deep-linked to the workbench that resolves them. If Otzar says
+              "N things need your attention", those N things are RIGHT HERE. */}
+          {suggestions.length > 0 ? (
+            <ul className="mt-2 space-y-1" data-testid="changed-suggestions">
+              {suggestions.slice(0, 3).map((s) => (
+                <li key={`${s.rank}-${s.reason}`}>
+                  <Link
+                    to="/app/my-day"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-background/60 px-3 py-2 text-sm text-slate-800 transition-colors hover:border-primary/40"
+                    data-testid="changed-suggestion"
+                  >
+                    <span className="truncate">{s.safe_title}</span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </GlassPanel>
       ) : null}
 

@@ -139,3 +139,62 @@ describe("AmbientWorkSurface — real node strip (collapsed, never decorative)",
     expect(strip.textContent ?? "").not.toMatch(/\b(David|Samiksha|Vishesh)\b/);
   });
 });
+
+// Section-25 fix — the Home headline and its items share ONE response object:
+// if the headline claims attention, the counted suggestions render as deep
+// links right under it; a calm headline renders no suggestion links.
+import { http, HttpResponse } from "msw";
+import { server } from "../msw/server";
+const API_BASE = "http://localhost:3000/api/v1";
+
+function intelligence(suggestions: unknown[]) {
+  return {
+    ok: true,
+    intelligence: {
+      headline:
+        suggestions.length === 0
+          ? "Nothing needs your attention right now. Otzar is keeping watch."
+          : `Otzar found ${suggestions.length} ${suggestions.length === 1 ? "thing" : "things"} that may need your attention.`,
+      suggestions,
+      signals: {},
+      waiting_on_external: { they_owe_us_count: 0, we_owe_them_count: 0 },
+      provider_status: "LOCAL",
+      generated_at: "2026-07-01T00:00:00.000Z",
+    },
+  };
+}
+
+describe("AmbientWorkSurface — headline/items single source (Section 25)", () => {
+  it("an attention headline renders the exact items it counted, deep-linked", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-day/intelligence`, () =>
+        HttpResponse.json(
+          intelligence([
+            { rank: 1, reason: "EXPIRING_AUTHORITY", safe_title: "An access grant expires this week", confidence: "HIGH", risk: "NONE" },
+          ]),
+        ),
+      ),
+    );
+    renderSurface();
+    await waitFor(() =>
+      expect(screen.getByTestId("changed-headline")).toHaveTextContent(/found 1 thing/i),
+    );
+    const links = screen.getAllByTestId("changed-suggestion");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveTextContent("An access grant expires this week");
+    expect(links[0]).toHaveAttribute("href", "/app/my-day");
+  });
+
+  it("a calm headline renders NO suggestion links — no claim, no ghosts", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-day/intelligence`, () =>
+        HttpResponse.json(intelligence([])),
+      ),
+    );
+    renderSurface();
+    await waitFor(() =>
+      expect(screen.getByTestId("changed-headline")).toHaveTextContent(/keeping watch/i),
+    );
+    expect(screen.queryByTestId("changed-suggestions")).toBeNull();
+  });
+});
