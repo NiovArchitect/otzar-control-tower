@@ -1101,3 +1101,42 @@ describe("Connectors — MICROSOFT_365_READ binding render", () => {
     expect(docBody.toLowerCase()).not.toContain("bearer ");
   });
 });
+
+// PROD-UX-VIS-B — connections are grouped by human purpose and every card
+// answers the four facts (what it does / who can use / approval / changed).
+describe("Connections — purpose groups + facts (VIS-B)", () => {
+  it("groups bindings under their purpose heading and renders the facts list", async () => {
+    server.use(
+      http.get(`${API_BASE}/org/connectors`, () =>
+        HttpResponse.json({
+          ok: true,
+          bindings: [
+            {
+              binding_id: "00000000-0000-0000-0000-0000000000aa",
+              type: "SLACK_READ", display_name: "Team Slack", enabled: true,
+              secret_ref: "SLACK_BOT_TOKEN", config: {},
+              created_at: "2026-07-01T00:00:00.000Z", updated_at: "2026-07-01T00:00:00.000Z",
+            },
+            {
+              binding_id: "00000000-0000-0000-0000-0000000000bb",
+              type: "GITHUB_READ", display_name: "Code", enabled: true,
+              secret_ref: "GITHUB_ACCESS_TOKEN", config: {},
+              created_at: "2026-07-01T00:00:00.000Z", updated_at: "2026-07-01T00:00:00.000Z",
+            },
+          ],
+        }),
+      ),
+      http.get(`${API_BASE}/work-os/blind-spots`, () =>
+        HttpResponse.json({ ok: true, items: [] }),
+      ),
+    );
+    renderConnectors();
+    const groups = await screen.findAllByTestId("connections-purpose-group");
+    const purposes = groups.map((g) => g.getAttribute("data-purpose"));
+    expect(purposes).toEqual(["Communication", "Developer & workflow tools"]);
+    const facts = screen.getByTestId("connection-facts-00000000-0000-0000-0000-0000000000aa");
+    expect(facts).toHaveTextContent(/look things up — it can never change anything/i);
+    expect(facts).toHaveTextContent(/your whole organization/i);
+    expect(facts).toHaveTextContent(/not needed for read-only lookups/i);
+  });
+});

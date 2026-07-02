@@ -27,11 +27,30 @@ export interface CtConnectorTypeDefinition {
   required_config_keys: ReadonlyArray<string>;
   /** Stable governance note rendered next to the type selector. */
   governance_note: string;
+  /** PROD-UX-VIS-B — human purpose group for the connections page. */
+  purpose: ConnectorPurpose;
 }
+
+/** Purpose groups, in render order, for the Tools & Connections page. */
+export type ConnectorPurpose =
+  | "Communication"
+  | "Files & knowledge"
+  | "Project systems"
+  | "Developer & workflow tools"
+  | "Testing & diagnostics";
+
+export const CONNECTOR_PURPOSE_ORDER: readonly ConnectorPurpose[] = [
+  "Communication",
+  "Files & knowledge",
+  "Project systems",
+  "Developer & workflow tools",
+  "Testing & diagnostics",
+];
 
 export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   {
     type: "SLACK_READ",
+    purpose: "Communication",
     display_name: "Slack (read-first)",
     short_description:
       "Bot-token (xoxb-*) read access to public channels, bot-member channels, and the workspace user directory. C2 RUNTIME_READY.",
@@ -43,6 +62,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "SLACK_WRITE",
+    purpose: "Communication",
     display_name: "Slack posting (governed write-back)",
     short_description:
       "Lets Otzar post approved messages to Slack. Every send goes through the governed Action pipeline (approval-gated); nothing is ever sent silently.",
@@ -58,6 +78,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "GOOGLE_WORKSPACE_READ",
+    purpose: "Files & knowledge",
     display_name: "Google Workspace (read-first)",
     short_description:
       "OAuth-2.0 access-token read access to Calendar (events.list), Drive (files.list metadata only), and Gmail (messages.list IDs only). C3 RUNTIME_READY.",
@@ -69,6 +90,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "JIRA_CLOUD_READ",
+    purpose: "Project systems",
     display_name: "Jira Cloud (read-first)",
     short_description:
       "OAuth-2.0 3LO access-token read access to Jira Cloud via myself + project.search + issue.search (POST /rest/api/3/search/jql cursor-based JQL). Counts + status-category aggregates only. C4-A RUNTIME_READY.",
@@ -80,6 +102,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "LINEAR_READ",
+    purpose: "Project systems",
     display_name: "Linear (read-first)",
     short_description:
       "OAuth-2.0 access-token read access to Linear via viewer + teams.list + issues.list (single POST /graphql endpoint with pinned GraphQL query strings). Counts + state-type aggregates only (to_do / in_progress / done / canceled grouped from WorkflowState.type). C4-B RUNTIME_READY. Closes Project / Engineering family at 2/2 alongside Jira Cloud.",
@@ -91,6 +114,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "GITHUB_READ",
+    purpose: "Developer & workflow tools",
     display_name: "GitHub (read-first)",
     short_description:
       "OAuth-2.0 access-token OR Personal Access Token read access to GitHub REST v3 via user + repos.list + issues.search (X-GitHub-Api-Version 2022-11-28 pinned). Counts + state aggregates only (open / closed_completed / closed_not_planned grouped from GitHub state + state_reason). C-GitHub RUNTIME_READY.",
@@ -102,6 +126,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "MICROSOFT_365_READ",
+    purpose: "Files & knowledge",
     display_name: "Microsoft 365 (read-first)",
     short_description:
       "OAuth-2.0 access-token read access to Microsoft Graph v1.0 via calendar.events.list + drive.items.list + mail.messages.list ($select query parameter restricts response field set at the request boundary). Counts + aggregates only (recurring_events_count + folders_count). C5 RUNTIME_READY. Closes the 6/6 connector matrix at RUNTIME_READY or higher.",
@@ -113,6 +138,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "OUTBOUND_WEBHOOK",
+    purpose: "Developer & workflow tools",
     display_name: "Outbound Webhook",
     short_description:
       "HTTPS POST to a per-binding URL with HMAC-SHA-256 request signing using the secret_ref-resolved env var.",
@@ -124,6 +150,7 @@ export const CT_CONNECTOR_REGISTRY: ReadonlyArray<CtConnectorTypeDefinition> = [
   },
   {
     type: "FIXTURE_ECHO",
+    purpose: "Testing & diagnostics",
     display_name: "Fixture Echo (test-only)",
     short_description:
       "Deterministic test-only connector. Never enabled in production bindings.",

@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
 import {
+  CONNECTOR_PURPOSE_ORDER,
   CT_CONNECTOR_REGISTRY,
   getCtConnectorTypeDefinition,
   getSelectableConnectorTypes,
@@ -104,6 +105,32 @@ function BindingCard({
               : "Read-only access"}
           </Badge>
         </div>
+        {/* PROD-UX-VIS-B — the four facts every connection must answer. */}
+        <ul
+          className="space-y-0.5 text-xs text-muted-foreground"
+          data-testid={`connection-facts-${binding.binding_id}`}
+        >
+          <li>
+            <span className="text-foreground">What it does:</span>{" "}
+            {binding.type === "SLACK_WRITE"
+              ? "lets Otzar post approved messages for your team"
+              : "lets Otzar look things up — it can never change anything here"}
+          </li>
+          <li>
+            <span className="text-foreground">Who can use it:</span> your whole
+            organization, through Otzar (admins manage the connection)
+          </li>
+          <li>
+            <span className="text-foreground">Approval:</span>{" "}
+            {binding.type === "SLACK_WRITE"
+              ? "required — a person signs off before anything is sent"
+              : "not needed for read-only lookups"}
+          </li>
+          <li>
+            <span className="text-foreground">Last changed:</span>{" "}
+            {formatTimestamp(binding.updated_at)}
+          </li>
+        </ul>
         <div>
           <div className="font-medium">Secure setup key name</div>
           <div className="text-muted-foreground">
@@ -640,17 +667,34 @@ export function ConnectorsAdminPage() {
                 first one.
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {bindings.map((binding) => (
-                  <BindingCard
-                    key={binding.binding_id}
-                    binding={binding}
-                    onToggleEnabled={(b) => toggleMutation.mutate(b)}
-                    onDelete={(b) => deleteMutation.mutate(b)}
-                    toggleBusy={toggleMutation.isPending}
-                    deleteBusy={deleteMutation.isPending}
-                  />
-                ))}
+              /* PROD-UX-VIS-B — connections grouped by what they're FOR,
+                 not by connector type codes. Empty groups are omitted. */
+              <div className="space-y-4">
+                {CONNECTOR_PURPOSE_ORDER.map((purpose) => {
+                  const group = bindings.filter(
+                    (b) => getCtConnectorTypeDefinition(b.type)?.purpose === purpose,
+                  );
+                  if (group.length === 0) return null;
+                  return (
+                    <section key={purpose} data-testid="connections-purpose-group" data-purpose={purpose}>
+                      <h3 className="mb-2 text-xs font-semibold text-muted-foreground">
+                        {purpose} ({group.length})
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {group.map((binding) => (
+                          <BindingCard
+                            key={binding.binding_id}
+                            binding={binding}
+                            onToggleEnabled={(b) => toggleMutation.mutate(b)}
+                            onDelete={(b) => deleteMutation.mutate(b)}
+                            toggleBusy={toggleMutation.isPending}
+                            deleteBusy={deleteMutation.isPending}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
               </div>
             )}
             <div className="text-xs text-muted-foreground">
