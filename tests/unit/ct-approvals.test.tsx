@@ -290,12 +290,14 @@ describe("Section 9 Control Tower Approvals — approve / deny mutations (two-st
       }),
       http.get(`${API_BASE}/org/entities/:id`, ({ params }) =>
         HttpResponse.json({
-          entity_id: String(params.id),
-          entity_type: "PERSON",
-          display_name: "Riya Demo",
-          email: "riya@example.com",
-          status: "ACTIVE",
-          clearance_level: 3,
+          ok: true,
+          entity: {
+            entity_id: String(params.id),
+            entity_type: "PERSON",
+            display_name: "Riya Demo",
+            email: "riya@example.com",
+            status: "ACTIVE",
+          },
         }),
       ),
     );

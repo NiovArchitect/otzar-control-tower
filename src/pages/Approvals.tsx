@@ -217,8 +217,15 @@ function DetailPanel({
     queryKey: ["org", "entity", requesterId],
     queryFn: () =>
       api.org.entities.get(requesterId as string).then((r) => {
-        if (r.ok) return r.data;
-        throw new Error(r.code);
+        if (!r.ok) throw new Error(r.code);
+        // The live route wraps the row ({ ok, entity: {...} }); tolerate both
+        // shapes and surface ONLY the display name — nothing else from the
+        // entity row is read or rendered here.
+        const data = r.data as unknown as {
+          entity?: { display_name?: string };
+          display_name?: string;
+        };
+        return { display_name: data.entity?.display_name ?? data.display_name ?? null };
       }),
     enabled: requesterId !== null,
     retry: false,

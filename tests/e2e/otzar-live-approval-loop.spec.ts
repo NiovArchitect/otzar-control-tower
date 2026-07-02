@@ -208,8 +208,14 @@ test("approve leg: submitted → approver queue → approve in Review Center →
   const desc = (await page.getByTestId("detail-escalation-description").textContent()) ?? "";
   expect(desc).toContain("Second approval for:");
   expect(desc).not.toContain("DUAL_CONTROL");
-  const requester = (await page.getByTestId("detail-escalation-requester").textContent()) ?? "";
-  expect(requester).not.toMatch(/^[0-9a-f-]{36}$/i); // resolved name, not a bare id
+  // The requester NAME resolves asynchronously (admin entity read) — poll
+  // until the row shows a name instead of the bare-id fallback.
+  await expect
+    .poll(
+      async () => (await page.getByTestId("detail-escalation-requester").textContent()) ?? "",
+      { timeout: 15_000, intervals: [1_000] },
+    )
+    .not.toMatch(/^[0-9a-f-]{36}$/i); // resolved name, not a bare id
   await page.screenshot({ path: `screenshots/${TAG}-3-approver-controls.png`, fullPage: true });
   await page.getByTestId("approval-approve-button").click();
   await page.getByTestId("approval-confirm-dialog").waitFor({ state: "visible", timeout: 10_000 });

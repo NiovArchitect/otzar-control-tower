@@ -296,13 +296,17 @@ const entitiesListHandler = http.get(
 const entityDetailHandler = http.get(
   `${API_BASE}/org/entities/:id`,
   ({ params }) =>
+    // Mirrors the LIVE wrapped shape ({ ok, entity }) — and deliberately no
+    // sensitive fields: the consumer must only read the display name.
     HttpResponse.json({
-      entity_id: String(params.id),
-      entity_type: "PERSON",
-      display_name: "Demo Member",
-      email: "member@example.com",
-      status: "ACTIVE",
-      clearance_level: 3,
+      ok: true,
+      entity: {
+        entity_id: String(params.id),
+        entity_type: "PERSON",
+        display_name: "Demo Member",
+        email: "member@example.com",
+        status: "ACTIVE",
+      },
     }),
 );
 
