@@ -89,6 +89,8 @@ import type {
   WatcherFeedResponse,
   RecentCommsArtifactsResponse,
   PendingFollowUpsResponse,
+  ResolveRecipientRequest,
+  ResolveRecipientResponse,
   OperationalHealthResponse,
   OperationalScope,
   RiskAssessmentResponse,
@@ -1407,6 +1409,21 @@ export class ApiClient {
      *  ProposedActionCard; send/dismiss transition the row via patchLedger. */
     commsPendingFollowUps: (): Promise<ApiResult<PendingFollowUpsResponse>> =>
       this.request<PendingFollowUpsResponse>("/work-os/comms/follow-ups"),
+
+    /** POST /api/v1/work-os/comms/follow-ups/:id/resolve-recipient —
+     *  [PROD-UX-BUGC] complete a blocked recipient review on the caller's own
+     *  durable follow-up. confirm = vouch (out_of_scope / likely); select =
+     *  resolve an ambiguous name to a chosen org member. Policy/approval
+     *  boundaries reject server-side with human copy. The decision mutates the
+     *  SAME WorkLedger row (survives navigation/refresh) and is audited. */
+    resolveCommsFollowUpRecipient: (
+      ledgerEntryId: string,
+      body: ResolveRecipientRequest,
+    ): Promise<ApiResult<ResolveRecipientResponse>> =>
+      this.request<ResolveRecipientResponse>(
+        `/work-os/comms/follow-ups/${encodeURIComponent(ledgerEntryId)}/resolve-recipient`,
+        { method: "POST", body },
+      ),
 
     /** GET /api/v1/work-os/operational-health — advisory OPERATIONAL_ANALYTICS
      *  over a Foundation-scoped execution-health snapshot (Phase 1285-Z).

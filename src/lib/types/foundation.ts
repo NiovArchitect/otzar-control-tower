@@ -1185,6 +1185,9 @@ export interface RecipientEvidence {
     | "project_ownership"
     | "approval_policy"
     | "correction_memory"
+    // [PROD-UX-BUGC] The caller completed the recipient review (confirm/
+    // select) — a distinct human proof source, mirrored from Foundation.
+    | "caller_confirmed"
     | "fuzzy_only"
     | "none";
   matchedToken: string | null;
@@ -5018,11 +5021,34 @@ export interface PendingFollowUp {
   created_at: string;
   updated_at: string;
   action: CommsSuggestedAction;
+  /** [PROD-UX-BUGC] Present ONLY on ambiguous cards: selectable people resolved
+   *  SERVER-side (id-based, tenant-scoped) for the "Choose recipient" review.
+   *  The CT renders labels and posts back an entity_id — it never resolves
+   *  identity from a display name. */
+  select_candidates?: Array<{ entity_id: string; display_name: string }>;
 }
 
 export interface PendingFollowUpsResponse {
   ok: boolean;
   follow_ups?: PendingFollowUp[];
+  code?: string;
+  message?: string;
+}
+
+// [PROD-UX-BUGC] Complete a blocked recipient review on a durable follow-up:
+// confirm (out_of_scope / likely — the caller vouches; proof source becomes
+// caller_confirmed) or select (ambiguous — resolve to a specific org member).
+// unauthorized / cross_team_needs_approval reject with human copy — a sender
+// can never self-approve past a policy or approval boundary.
+export interface ResolveRecipientRequest {
+  decision: "confirm" | "select";
+  recipient_entity_id?: string;
+}
+
+export interface ResolveRecipientResponse {
+  ok: boolean;
+  follow_up?: PendingFollowUp;
+  audit_event_id?: string;
   code?: string;
   message?: string;
 }

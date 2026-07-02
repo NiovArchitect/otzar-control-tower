@@ -289,6 +289,7 @@ export function Comms(): JSX.Element {
       <PendingFollowUpsSection
         followUps={pendingFollowUps}
         onResolved={handleFollowUpResolved}
+        onReviewResolved={() => void loadPendingFollowUps()}
       />
 
       {/* HERO state: ready to capture */}
@@ -1023,11 +1024,166 @@ function RecipientTrustChip({
   );
 }
 
+// [PROD-UX-BUGC] The recipient-review completion. Renders the affordance that
+// matches the governance verdict on a DURABLE card: out_of_scope / likely →
+// "Confirm recipient" (the caller vouches — recorded as caller_confirmed and
+// audited); ambiguous → "Choose recipient" from the server-resolved candidates
+// (id-based — the CT never resolves identity from a name); unauthorized /
+// cross_team_needs_approval → honest copy only, NO override affordance (a
+// sender can never self-approve past a policy or approval boundary). Failure
+// copy comes from the server (already human) — no raw codes.
+function RecipientReviewActions({
+  g,
+  ledgerEntryId,
+  candidates,
+  onReviewResolved,
+}: {
+  g: RecipientGovernance;
+  ledgerEntryId: string;
+  candidates?: Array<{ entity_id: string; display_name: string }> | undefined;
+  onReviewResolved: () => void;
+}): JSX.Element | null {
+  const [state, setState] = useState<
+    { kind: "idle" } | { kind: "working" } | { kind: "failed"; message: string }
+  >({ kind: "idle" });
+
+  async function resolve(body: {
+    decision: "confirm" | "select";
+    recipient_entity_id?: string;
+  }): Promise<void> {
+    setState({ kind: "working" });
+    const res = await api.workOs.resolveCommsFollowUpRecipient(ledgerEntryId, body);
+    if (res.ok && res.data.ok) {
+      setState({ kind: "idle" });
+      onReviewResolved(); // reload the durable cards — the decision is on the row
+      return;
+    }
+    setState({
+      kind: "failed",
+      message:
+        (!res.ok ? undefined : res.data.message) ??
+        "Otzar couldn't record that review — please try again.",
+    });
+  }
+
+  const failed =
+    state.kind === "failed" ? (
+      <p
+        className="mt-1 rounded border border-rose-400/40 bg-rose-500/5 p-1.5 text-[11px] text-rose-700 dark:text-rose-400"
+        role="alert"
+        data-testid="comms-review-error"
+      >
+        {state.message}
+      </p>
+    ) : null;
+
+  switch (g.recipientSafety) {
+    case "confirmed":
+      // Provenance: a caller-confirmed recipient is labeled as YOUR decision,
+      // never as an Otzar-verified proof path.
+      return g.evidence.source === "caller_confirmed" ? (
+        <p
+          className="mt-1 mx-3 text-[10px] text-muted-foreground"
+          data-testid="comms-review-you-confirmed"
+        >
+          You confirmed this recipient — recorded in your organization's audit
+          trail.
+        </p>
+      ) : null;
+    case "out_of_scope":
+    case "likely":
+      return (
+        <div className="mt-1 mx-3" data-testid="comms-review-confirmable">
+          <p className="text-[11px] text-muted-foreground">
+            Otzar couldn't verify this person is connected to this work. If you
+            know they're the right recipient, you can confirm — your
+            confirmation is recorded.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-1"
+            disabled={state.kind === "working"}
+            onClick={() => void resolve({ decision: "confirm" })}
+            data-testid="comms-review-confirm"
+          >
+            {state.kind === "working" ? "Recording…" : "Confirm recipient"}
+          </Button>
+          {failed}
+        </div>
+      );
+    case "ambiguous":
+      return (
+        <div className="mt-1 mx-3" data-testid="comms-review-choose">
+          {candidates !== undefined && candidates.length > 0 ? (
+            <>
+              <p className="text-[11px] text-muted-foreground">
+                More than one person matches this name. Choose who this
+                follow-up is for:
+              </p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {candidates.map((c) => (
+                  <Button
+                    key={c.entity_id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={state.kind === "working"}
+                    onClick={() =>
+                      void resolve({ decision: "select", recipient_entity_id: c.entity_id })
+                    }
+                    data-testid="comms-review-candidate"
+                  >
+                    {c.display_name}
+                  </Button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-[11px] text-muted-foreground" data-testid="comms-review-no-candidates">
+              More than one person matches this name, but Otzar couldn't offer
+              a choice — no matching active members were found. Ask your admin
+              to check the roster.
+            </p>
+          )}
+          {failed}
+        </div>
+      );
+    case "unauthorized":
+      return (
+        <p
+          className="mt-1 mx-3 text-[11px] text-muted-foreground"
+          data-testid="comms-review-policy-blocked"
+        >
+          Your organization's policy doesn't permit sending this to that
+          person. This isn't something you can override — ask an admin if you
+          believe the policy is wrong.
+        </p>
+      );
+    case "cross_team_needs_approval":
+      return (
+        <p
+          className="mt-1 mx-3 text-[11px] text-muted-foreground"
+          data-testid="comms-review-approval-boundary"
+        >
+          This route needs an approver's sign-off before it can send. If your
+          organization hasn't configured an approver yet, ask an admin to set
+          one up.
+        </p>
+      );
+    default:
+      return null;
+  }
+}
+
 function FollowUpCard({
   suggested,
   extractionMode,
   ledgerEntryId,
   onResolved,
+  selectCandidates,
+  onReviewResolved,
 }: {
   suggested: CommsSuggestedAction;
   extractionMode: string;
@@ -1037,6 +1193,11 @@ function FollowUpCard({
    *  failed send leaves the row DRAFT — the card stays recoverable. */
   ledgerEntryId?: string;
   onResolved?: (ledgerEntryId: string) => void;
+  /** [PROD-UX-BUGC] Server-resolved choices for an ambiguous recipient. */
+  selectCandidates?: Array<{ entity_id: string; display_name: string }> | undefined;
+  /** [PROD-UX-BUGC] Fired after a successful confirm/select so the parent
+   *  reloads the durable cards (the decision lives on the WorkLedger row). */
+  onReviewResolved?: () => void;
 }): JSX.Element {
   const [whyOpen, setWhyOpen] = useState(false);
   const guard = governanceGuard(suggested.recipient_governance);
@@ -1079,6 +1240,16 @@ function FollowUpCard({
           : {})}
       />
       <RecipientTrustChip g={suggested.recipient_governance} autonomy={suggested.autonomy} />
+      {/* [PROD-UX-BUGC] Review completion — only on durable cards (the decision
+          patches the backing WorkLedger row, so it survives navigation). */}
+      {ledgerEntryId !== undefined && onReviewResolved !== undefined ? (
+        <RecipientReviewActions
+          g={suggested.recipient_governance}
+          ledgerEntryId={ledgerEntryId}
+          candidates={selectCandidates}
+          onReviewResolved={onReviewResolved}
+        />
+      ) : null}
       {/* Phase 1285-L — consistent structured View/Why: source excerpt,
           confidence, resolution, extraction mode, via the shared panel. */}
       <button
@@ -1110,9 +1281,12 @@ function FollowUpCard({
 function PendingFollowUpsSection({
   followUps,
   onResolved,
+  onReviewResolved,
 }: {
   followUps: PendingFollowUp[];
   onResolved: (ledgerEntryId: string) => void;
+  /** [PROD-UX-BUGC] Reload after a successful recipient-review completion. */
+  onReviewResolved: () => void;
 }): JSX.Element | null {
   if (followUps.length === 0) return null;
   return (
@@ -1131,6 +1305,8 @@ function PendingFollowUpsSection({
           extractionMode=""
           ledgerEntryId={f.ledger_entry_id}
           onResolved={onResolved}
+          selectCandidates={f.select_candidates}
+          onReviewResolved={onReviewResolved}
         />
       ))}
     </div>

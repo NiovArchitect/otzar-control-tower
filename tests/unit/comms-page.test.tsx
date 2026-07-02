@@ -733,6 +733,231 @@ describe("Comms — durable follow-up recovery (BUG B)", () => {
   });
 });
 
+// [PROD-UX-BUGC] Outside-context recipient review completion on durable cards:
+// confirm (out_of_scope / likely), choose (ambiguous, server-supplied id-based
+// candidates), and honest non-overridable policy/approval boundaries.
+describe("Comms — recipient review completion (BUG C)", () => {
+  function reviewPending(
+    safety:
+      | "out_of_scope"
+      | "likely"
+      | "ambiguous"
+      | "unauthorized"
+      | "cross_team_needs_approval"
+      | "confirmed",
+    over: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    const base = canonicalExtraction().suggested_actions[0]!;
+    return {
+      ...pendingFollowUpFrom(
+        {
+          ...base,
+          recipient_governance: mkRecipientGovernance({
+            entity_id: "id-david",
+            display_name: "David Odie",
+            recipientSafety: safety,
+          }),
+        } as typeof base,
+        "led-review",
+      ),
+      ...over,
+    };
+  }
+
+  // Register GET follow-ups + POST resolve-recipient over a shared mutable
+  // store, so a successful resolve is visible on the reload (like the real
+  // durable row).
+  function mockReviewRoundtrip(initial: Record<string, unknown>[]): {
+    calls: Array<{ url: string; body: Record<string, unknown> }>;
+  } {
+    let current = initial;
+    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    server.use(
+      http.get(`${API_BASE}/work-os/comms/follow-ups`, () =>
+        HttpResponse.json({ ok: true, follow_ups: current }),
+      ),
+      http.post(
+        `${API_BASE}/work-os/comms/follow-ups/:id/resolve-recipient`,
+        async ({ request, params }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          calls.push({ url: String(params.id), body });
+          // Server behavior: governance -> confirmed with caller_confirmed proof;
+          // select also moves the target to the chosen person.
+          current = current.map((f) => {
+            const action = f.action as Record<string, unknown>;
+            const gov = action.recipient_governance as Record<string, unknown>;
+            const selected =
+              body.decision === "select"
+                ? { entity_id: body.recipient_entity_id, display_name: "Shaini Verma", email: null }
+                : (action.target as Record<string, unknown>);
+            return {
+              ...f,
+              select_candidates: undefined,
+              action: {
+                ...action,
+                target: selected,
+                resolution_status: "RESOLVED",
+                recipient_governance: {
+                  ...gov,
+                  entity_id: selected.entity_id,
+                  display_name: selected.display_name,
+                  recipientSafety: "confirmed",
+                  evidence: { ...(gov.evidence as Record<string, unknown>), source: "caller_confirmed" },
+                },
+              },
+            };
+          });
+          return HttpResponse.json({ ok: true, follow_up: current[0], audit_event_id: "audit-1" });
+        },
+      ),
+    );
+    return { calls };
+  }
+
+  it("out_of_scope shows 'Confirm recipient'; confirming calls resolve-recipient, reloads, and unlocks Send", async () => {
+    mockExtract();
+    const rt = mockReviewRoundtrip([reviewPending("out_of_scope")]);
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-confirm")).toBeInTheDocument(),
+    );
+    // Blocked before the review: guarded Send, no normal Send.
+    expect(screen.getByTestId("ctx-send-button")).toBeDisabled();
+    await user.click(screen.getByTestId("comms-review-confirm"));
+    await waitFor(() => expect(rt.calls).toHaveLength(1));
+    expect(rt.calls[0]!.url).toBe("led-review");
+    expect(rt.calls[0]!.body.decision).toBe("confirm");
+    // Reload rendered the confirmed card: provenance note + Send unlocked.
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-you-confirmed")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("ctx-send-button")).toBeEnabled();
+    expect(screen.getByTestId("ctx-send-button")).toHaveTextContent(/send/i);
+  });
+
+  it("likely also gets the Confirm affordance", async () => {
+    mockExtract();
+    mockReviewRoundtrip([reviewPending("likely")]);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-confirm")).toBeInTheDocument(),
+    );
+  });
+
+  it("a caller-confirmed decision PERSISTS after remount (it lives on the durable row)", async () => {
+    mockExtract();
+    // The durable feed already carries the caller-confirmed decision (as the
+    // backend returns after a confirm) — a fresh mount renders it directly.
+    mockPendingFollowUps([
+      reviewPending("confirmed", {
+        action: {
+          ...(reviewPending("confirmed").action as Record<string, unknown>),
+          recipient_governance: mkRecipientGovernance({
+            entity_id: "id-david",
+            display_name: "David Odie",
+            recipientSafety: "confirmed",
+            evidence: { quote: null, source: "caller_confirmed", matchedToken: null, alternativeCandidates: [] },
+          }),
+        },
+      }),
+    ]);
+    const { unmount } = render(
+      <MemoryRouter>
+        <Comms />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-you-confirmed")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("ctx-send-button")).toBeEnabled();
+    unmount();
+    render(
+      <MemoryRouter>
+        <Comms />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-you-confirmed")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("ctx-send-button")).toBeEnabled();
+  });
+
+  it("ambiguous shows server-supplied candidates; choosing posts the entity_id and moves the target", async () => {
+    mockExtract();
+    const rt = mockReviewRoundtrip([
+      reviewPending("ambiguous", {
+        select_candidates: [
+          { entity_id: "id-shiney", display_name: "Shiney Thomas" },
+          { entity_id: "id-shaini", display_name: "Shaini Verma" },
+        ],
+      }),
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByTestId("comms-review-candidate")).toHaveLength(2),
+    );
+    // Choose the SECOND candidate — id-based, not name-parsed, not index-0.
+    await user.click(screen.getAllByTestId("comms-review-candidate")[1]!);
+    await waitFor(() => expect(rt.calls).toHaveLength(1));
+    expect(rt.calls[0]!.body).toEqual({ decision: "select", recipient_entity_id: "id-shaini" });
+    // The reloaded card carries the chosen person + is Send-ready.
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-pending-follow-ups").textContent).toContain("Shaini Verma"),
+    );
+    expect(screen.getByTestId("ctx-send-button")).toBeEnabled();
+  });
+
+  it("ambiguous WITHOUT resolvable candidates shows honest copy, no fabricated choices", async () => {
+    mockExtract();
+    mockPendingFollowUps([reviewPending("ambiguous")]); // no select_candidates
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-no-candidates")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("comms-review-candidate")).toBeNull();
+    expect(screen.queryByTestId("comms-review-confirm")).toBeNull();
+  });
+
+  it("unauthorized: policy-blocked copy, NO override affordance", async () => {
+    mockExtract();
+    mockPendingFollowUps([reviewPending("unauthorized")]);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-policy-blocked")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("comms-review-confirm")).toBeNull();
+    expect(screen.queryByTestId("comms-review-candidate")).toBeNull();
+    expect(screen.getByTestId("ctx-send-button")).toBeDisabled();
+  });
+
+  it("cross_team_needs_approval: approval-boundary copy, NO direct override", async () => {
+    mockExtract();
+    mockPendingFollowUps([reviewPending("cross_team_needs_approval")]);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-review-approval-boundary")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("comms-review-approval-boundary").textContent).toMatch(/approver/i);
+    expect(screen.queryByTestId("comms-review-confirm")).toBeNull();
+    expect(screen.getByTestId("ctx-send-button")).toBeDisabled();
+  });
+
+  it("no raw backend codes anywhere on the review surfaces", async () => {
+    mockExtract();
+    mockPendingFollowUps([reviewPending("unauthorized")]);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("comms-pending-follow-ups")).toBeInTheDocument(),
+    );
+    const html = screen.getByTestId("comms-pending-follow-ups").outerHTML;
+    for (const raw of ["POLICY_DENIES", "APPROVAL_REQUIRED", "ALREADY_CONFIRMED", "INVALID_REQUEST", "out_of_scope"]) {
+      expect(html).not.toContain(raw);
+    }
+  });
+});
+
 describe("Comms — governed ingest surfaces persisted work", () => {
   it("shows the saved banner + per-owner work items (owned vs needs-owner)", async () => {
     mockExtract(undefined, [
