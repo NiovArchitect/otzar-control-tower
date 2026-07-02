@@ -19,7 +19,7 @@ import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromLedger } from "@/lib/work-os/view-why";
 import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
-import { routingLaneChip, routingWhyLine } from "@/lib/work-os/routing-lane";
+import { routingLaneChip, routingLaneEdge, routingWhyLine } from "@/lib/work-os/routing-lane";
 import { formatOwnedByLine } from "@/lib/identity/owner-display";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
@@ -193,7 +193,11 @@ export function WorkLedgerItem({
 
   return (
     <div
-      className="rounded-md border border-border bg-background/70 p-2 text-xs"
+      // PROD-MODEL-P5 §19 — frosted card with a stateful left edge driven by
+      // the routing lane (real state, never decoration): attention lanes come
+      // forward, silent lanes recede.
+      className={`rounded-xl border border-border/70 border-l-2 ${routingLaneEdge(entry.routing)} bg-background/60 p-2 text-xs backdrop-blur-sm`}
+      data-lane-edge={entry.routing?.lane ?? "none"}
       data-testid="work-ledger-item"
     >
       <div className="flex items-start justify-between gap-2">

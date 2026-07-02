@@ -8,6 +8,7 @@
 import { Link, Outlet } from "react-router-dom";
 import { LogOut, Menu, Mic } from "lucide-react";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { AMBIENT_FIELD } from "@/lib/ambient/glass";
 import { AdminCommandLayer } from "@/components/AdminCommandLayer";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
@@ -34,7 +35,11 @@ export function Layout() {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    // PROD-MODEL-P5 §19 — the admin shell carries the SAME ambient language
+    // as the employee shell: the luminous field behind everything, frosted
+    // sidebar + header floating over it. Calm, not neon; no flat dashboard
+    // gray. (AMBIENT_FIELD is the shared token from lib/ambient/glass.)
+    <div className={`flex h-screen w-full overflow-hidden ${AMBIENT_FIELD}`}>
       {!isMobile && (
         <aside className="w-60 shrink-0">
           <AdminSidebar />
@@ -42,7 +47,7 @@ export function Layout() {
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
+        <header className="flex h-14 items-center justify-between border-b border-white/50 bg-white/45 px-4 backdrop-blur-xl backdrop-saturate-150">
           <div className="flex items-center gap-3">
             {isMobile && (
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

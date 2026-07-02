@@ -55,6 +55,29 @@ const RISK_LINE: Readonly<Record<RoutingDecisionView["risk"], string>> = {
   high: "High risk — a person stays in the loop",
 };
 
+// PROD-MODEL-P5 §19 — the card's ambient left edge, driven by the SAME lane
+// the chip uses (never decoration). Attention lanes come forward; assist
+// lanes hint; silent lanes recede to the neutral border.
+const LANE_EDGES: Readonly<Record<RoutingLane, string>> = {
+  silent_capture: "border-l-border/60",
+  silent_routing: "border-l-border/60",
+  notify_owner: "border-l-slate-300",
+  draft_ready: "border-l-sky-300/80",
+  execute_when_allowed: "border-l-sky-300/80",
+  ask_approval: "border-l-amber-400/80",
+  escalate: "border-l-amber-400/80",
+  blocked: "border-l-rose-400/80",
+  setup_required: "border-l-amber-400/80",
+  identity_review: "border-l-amber-400/80",
+};
+
+// WHAT: the ambient left-edge class for a work card.
+// OUTPUT: a border-l color class; undefined routing → the neutral edge.
+export function routingLaneEdge(routing: RoutingDecisionView | undefined): string {
+  if (routing === undefined) return "border-l-border/60";
+  return LANE_EDGES[routing.lane] ?? "border-l-border/60";
+}
+
 export interface RoutingWhyLine {
   /** The plain-language decision sentence (server-humanized). */
   reason: string;

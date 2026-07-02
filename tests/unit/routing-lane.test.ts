@@ -7,7 +7,7 @@
 //          without leaking raw policy/tool tokens.
 
 import { describe, expect, it } from "vitest";
-import { routingLaneChip, routingWhyLine } from "@/lib/work-os/routing-lane";
+import { routingLaneChip, routingLaneEdge, routingWhyLine } from "@/lib/work-os/routing-lane";
 import type {
   RoutingDecisionView,
   RoutingLane,
@@ -117,5 +117,20 @@ describe("routing-lane — why panel", () => {
     )!;
     const flat = `${why.reason} ${why.risk} ${why.nextBestAction ?? ""}`;
     expect(flat).not.toMatch(/POLICY_REASON_X|SLACK\b/);
+  });
+});
+
+// PROD-MODEL-P5 §19 — the card edge is driven by the SAME lane vocabulary
+// (real state, never decoration): attention lanes forward, silent recede.
+describe("routing-lane — ambient card edge (P5)", () => {
+  it("attention lanes carry warm edges; silent lanes recede; absent routing is neutral", () => {
+    expect(routingLaneEdge(decision({ lane: "blocked" }))).toMatch(/rose/);
+    for (const lane of ["ask_approval", "setup_required", "identity_review", "escalate"] as const) {
+      expect(routingLaneEdge(decision({ lane })), lane).toMatch(/amber/);
+    }
+    for (const lane of ["silent_capture", "silent_routing"] as const) {
+      expect(routingLaneEdge(decision({ lane })), lane).toMatch(/border\/60/);
+    }
+    expect(routingLaneEdge(undefined)).toMatch(/border\/60/);
   });
 });
