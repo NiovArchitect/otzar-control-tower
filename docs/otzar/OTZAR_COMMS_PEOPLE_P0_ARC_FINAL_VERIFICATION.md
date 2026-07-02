@@ -63,13 +63,15 @@ health + route probes 200/401-as-designed.
 
 ## Findings (real, not fixed in this pass — verification only)
 
-1. **Action⇄Escalation status reconciliation gap.** After the approver
-   rejects (or presumably approves) an escalation, the caller's Action stays
-   `PROPOSED` on their feed — Action Center would keep saying "Otzar is
-   handling this" after the verdict landed. Pinned as a deliberate assertion
-   in C2 (it will fail loudly when reconciliation ships). Also implies the
-   CT's "Sent to X" confirmation is optimistic — the truthful state is
-   "submitted for approval."
+1. **Action⇄Escalation status reconciliation gap — CLOSED
+   (PROD-UX-APPROVAL-LOOP: FND #525 `8c10788` + CT `85237d0`).** Rejected
+   escalations now reconcile the paired Action to REJECTED (audited, with the
+   approver's reason); the CT card reads "Submitted for approval" until the
+   send is genuinely past approval; the sender's Action Center shows "Sent" /
+   "Not approved" truthfully. Live-proven both legs — including the first
+   delivered governed send. C2's pinned assertion was intentionally updated.
+   Bonus catch from that slice's smoke: org entity reads leaked
+   `password_hash` — fixed (FND #526 `9dce631`), leak-closure verified live.
 2. **Two pre-existing pending `INVOKE_CONNECTOR` escalations** in the
    approver queue (not created by this pass; left untouched — likely earlier
    Slice-F artifacts, founder to disposition).
