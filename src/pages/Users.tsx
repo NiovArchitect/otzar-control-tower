@@ -95,7 +95,7 @@ export function UsersPage() {
     queryFn: async () => {
       const r = await api.org.hierarchy.get();
       if (!r.ok) throw new Error(r.message);
-      return r.data.memberships;
+      return r.data;
     },
   });
   const allPeople = useQuery({
@@ -109,18 +109,23 @@ export function UsersPage() {
   const membershipByPerson = useMemo(() => {
     const map = new Map<
       string,
-      { parent_id: string; role_title: string | null; department: string | null }
+      { parent_id: string; role_title: string | null; department: string | null; is_manager_edge: boolean }
     >();
     if (hierarchy.data) {
-      for (const m of hierarchy.data) {
-        // First active membership wins; person→person edges carry the
-        // reporting line (human→twin edges resolve to no PERSON parent
-        // and simply render "—").
-        if (m.is_active && !map.has(m.child_id)) {
+      const orgId = hierarchy.data.org_entity_id;
+      for (const m of hierarchy.data.memberships) {
+        if (!m.is_active) continue;
+        // PROD-UX-HIER — a person→person MANAGER edge is the reporting
+        // truth; it overrides the org→person enrollment edge (which the
+        // feed lists first) so "Reports to" shows the manager, not "—".
+        const existing = map.get(m.child_id);
+        const isManagerEdge = m.parent_id !== orgId;
+        if (existing === undefined || (isManagerEdge && !existing.is_manager_edge)) {
           map.set(m.child_id, {
             parent_id: m.parent_id,
-            role_title: m.role_title,
-            department: m.department,
+            role_title: m.role_title ?? existing?.role_title ?? null,
+            department: m.department ?? existing?.department ?? null,
+            is_manager_edge: isManagerEdge,
           });
         }
       }
@@ -284,6 +289,19 @@ export function UsersPage() {
 
       <DataSovereigntyInline />
 
+      {/* PROD-UX-HIER — admin authoring of the reporting structure. The
+          selects carry stable entity ids (labels show name + email so
+          duplicate names can never mis-assign); the server enforces org
+          scope, the single-manager rule, and cycle safety, and writes an
+          audit record. */}
+      <ReportingCard
+        people={allPeople.data ?? []}
+        onAssigned={() => {
+          void queryClient.invalidateQueries({ queryKey: ["org", "hierarchy"] });
+          void queryClient.invalidateQueries({ queryKey: ["org", "entities"] });
+        }}
+      />
+
       <BulkActionsBar
         selectedIds={idsArray}
         onClearSelection={clearSelection}
@@ -323,6 +341,144 @@ export function UsersPage() {
       />
 
       <InviteWizard open={inviteOpen} onOpenChange={setInviteOpen} />
+    </div>
+  );
+}
+
+// PROD-UX-HIER — the admin's reporting-structure editor. One calm card:
+// pick a person, pick their manager (or "No manager"), optionally set role
+// and department, assign. Every label is a name + email (stable ids under
+// the hood); outcomes are sentences, never codes.
+function ReportingCard({
+  people,
+  onAssigned,
+}: {
+  people: Entity[];
+  onAssigned: () => void;
+}): JSX.Element {
+  const [personId, setPersonId] = useState("");
+  const [managerId, setManagerId] = useState("");
+  const [roleTitle, setRoleTitle] = useState("");
+  const [department, setDepartment] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  const optionLabel = (p: Entity): string =>
+    `${formatPersonName(p.display_name) || p.display_name}${p.email ? ` (${p.email})` : ""}`;
+
+  async function assign(): Promise<void> {
+    setBusy(true);
+    setNotice(null);
+    const r = await api.org.hierarchy.assign({
+      person_entity_id: personId,
+      manager_entity_id: managerId.length > 0 ? managerId : null,
+      ...(roleTitle.trim().length > 0 ? { role_title: roleTitle.trim() } : {}),
+      ...(department.trim().length > 0 ? { department: department.trim() } : {}),
+    });
+    setBusy(false);
+    if (r.ok && r.data.ok) {
+      const person = people.find((p) => p.entity_id === personId);
+      const manager = people.find((p) => p.entity_id === managerId);
+      setNotice({
+        tone: "ok",
+        text:
+          manager !== undefined
+            ? `${person?.display_name ?? "This member"} now reports to ${manager.display_name}. Recorded in the audit trail.`
+            : `${person?.display_name ?? "This member"}'s details were updated. Recorded in the audit trail.`,
+      });
+      setPersonId("");
+      setManagerId("");
+      setRoleTitle("");
+      setDepartment("");
+      onAssigned();
+    } else {
+      const code = r.ok ? null : r.code;
+      setNotice({
+        tone: "error",
+        text:
+          code === "CYCLE"
+            ? "That would make someone report to their own report — pick a different manager."
+            : code === "PERSON_NOT_FOUND" || code === "MANAGER_NOT_FOUND"
+              ? "That person isn't in your organization."
+              : "Couldn't save the reporting change right now. Try again in a moment.",
+      });
+    }
+  }
+
+  return (
+    <div
+      className="rounded-lg border border-border bg-card p-4"
+      data-testid="reporting-card"
+    >
+      <p className="text-sm font-medium">Reporting structure</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Set who reports to whom, with role and department. Otzar uses this to
+        route work and reviews to the right people. Every change is recorded.
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-5">
+        <select
+          className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          value={personId}
+          onChange={(e) => setPersonId(e.target.value)}
+          aria-label="Member"
+          data-testid="reporting-person-select"
+        >
+          <option value="">Choose a member…</option>
+          {people.map((p) => (
+            <option key={p.entity_id} value={p.entity_id}>
+              {optionLabel(p)}
+            </option>
+          ))}
+        </select>
+        <select
+          className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          value={managerId}
+          onChange={(e) => setManagerId(e.target.value)}
+          aria-label="Manager"
+          data-testid="reporting-manager-select"
+        >
+          <option value="">No manager (top level)</option>
+          {people
+            .filter((p) => p.entity_id !== personId)
+            .map((p) => (
+              <option key={p.entity_id} value={p.entity_id}>
+                {optionLabel(p)}
+              </option>
+            ))}
+        </select>
+        <input
+          className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          placeholder="Role (e.g. Engineer)"
+          value={roleTitle}
+          onChange={(e) => setRoleTitle(e.target.value)}
+          aria-label="Role"
+          data-testid="reporting-role-input"
+        />
+        <input
+          className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          placeholder="Department (e.g. Product)"
+          value={department}
+          onChange={(e) => setDepartment(e.target.value)}
+          aria-label="Department"
+          data-testid="reporting-department-input"
+        />
+        <Button
+          size="sm"
+          disabled={busy || personId.length === 0}
+          onClick={() => void assign()}
+          data-testid="reporting-assign"
+        >
+          {busy ? "Saving…" : "Save reporting"}
+        </Button>
+      </div>
+      {notice !== null ? (
+        <p
+          className={`mt-2 text-xs ${notice.tone === "ok" ? "text-emerald-600" : "text-destructive"}`}
+          data-testid="reporting-notice"
+        >
+          {notice.text}
+        </p>
+      ) : null}
     </div>
   );
 }

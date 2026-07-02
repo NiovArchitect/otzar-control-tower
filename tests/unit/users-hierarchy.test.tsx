@@ -54,6 +54,7 @@ beforeEach(() => {
     http.get(`${API_BASE}/org/hierarchy`, () =>
       HttpResponse.json({
         ok: true,
+        org_entity_id: "org-root",
         memberships: [
           {
             membership_id: "m1",
@@ -114,5 +115,56 @@ describe("Members — org hierarchy columns (P1)", () => {
     // Sadeil's parent is the org root — no fabricated manager.
     const cells = screen.getAllByRole("cell").map((c) => c.textContent);
     expect(cells.filter((t) => t === "—").length).toBeGreaterThan(0);
+  });
+});
+
+// PROD-UX-HIER — the admin's reporting-structure editor wires the live
+// assign API with stable ids and answers in sentences, never codes.
+describe("Members — reporting structure editor (PROD-UX-HIER)", () => {
+  it("assigns a manager with role+department and reports the outcome in words", async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/hierarchy/assign`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ok: true, membership_id: "m-new", audit_event_id: "aud-9" });
+      }),
+    );
+    renderUsers();
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await screen.findByTestId("reporting-card");
+    // Options load from the people query.
+    await screen.findByText("Engineer");
+    await userEvent.selectOptions(screen.getByTestId("reporting-person-select"), "p-vishesh");
+    await userEvent.selectOptions(screen.getByTestId("reporting-manager-select"), "p-sadeil");
+    await userEvent.type(screen.getByTestId("reporting-role-input"), "Staff Engineer");
+    await userEvent.type(screen.getByTestId("reporting-department-input"), "Platform");
+    await userEvent.click(screen.getByTestId("reporting-assign"));
+    const notice = await screen.findByTestId("reporting-notice");
+    expect(notice).toHaveTextContent(/Vishesh now reports to Sadeil/);
+    expect(notice).toHaveTextContent(/audit trail/i);
+    expect(posted).toEqual({
+      person_entity_id: "p-vishesh",
+      manager_entity_id: "p-sadeil",
+      role_title: "Staff Engineer",
+      department: "Platform",
+    });
+  });
+
+  it("a cycle refusal reads as a human sentence, not a code", async () => {
+    server.use(
+      http.post(`${API_BASE}/org/hierarchy/assign`, () =>
+        HttpResponse.json({ ok: false, code: "CYCLE" }, { status: 422 }),
+      ),
+    );
+    renderUsers();
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await screen.findByTestId("reporting-card");
+    await screen.findByText("Engineer");
+    await userEvent.selectOptions(screen.getByTestId("reporting-person-select"), "p-sadeil");
+    await userEvent.selectOptions(screen.getByTestId("reporting-manager-select"), "p-vishesh");
+    await userEvent.click(screen.getByTestId("reporting-assign"));
+    const notice = await screen.findByTestId("reporting-notice");
+    expect(notice).toHaveTextContent(/report to their own report/i);
+    expect(notice).not.toHaveTextContent(/CYCLE/);
   });
 });

@@ -538,9 +538,25 @@ export class ApiClient {
     },
 
     hierarchy: {
-      /** GET /api/v1/org/hierarchy -- flat EntityMembership list. */
+      /** GET /api/v1/org/hierarchy -- org->person AND person->person
+       *  (manager) memberships for the caller's org. */
       get: (): Promise<ApiResult<OrgHierarchyResponse>> =>
         this.request<OrgHierarchyResponse>("/org/hierarchy"),
+      /** POST /api/v1/org/hierarchy/assign -- PROD-UX-HIER admin authoring
+       *  of the reporting structure. Stable entity ids only (duplicate
+       *  display names can never mis-assign); manager null = update role/
+       *  department only. Org-scoped server-side via the CALLER; cycle-safe;
+       *  audited (ADMIN_ACTION / HIERARCHY_ASSIGN). */
+      assign: (input: {
+        person_entity_id: string;
+        manager_entity_id: string | null;
+        role_title?: string;
+        department?: string;
+      }): Promise<ApiResult<{ ok: true; membership_id: string; audit_event_id: string }>> =>
+        this.request<{ ok: true; membership_id: string; audit_event_id: string }>(
+          "/org/hierarchy/assign",
+          { method: "POST", body: input, retries: 0 },
+        ),
     },
 
     onboarding: {
