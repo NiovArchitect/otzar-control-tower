@@ -204,17 +204,22 @@ test("live: Comms follow-ups are durable — survive nav; send + dismiss transit
   let expectedRemaining = before;
   if (sentIdx >= 0) {
     await sends.nth(sentIdx).click();
-    // The governed send resolves to EITHER a "Sent to …" confirmation (an
-    // approver was available) OR a governance rejection surfaced as an inline
-    // error (e.g. dual-control / no eligible approver in this org). Wait for
-    // whichever lands — both are correct outcomes.
+    // The governed send resolves to ONE of: "Sent to …" (auto-approved),
+    // "Submitted for approval" ([PROD-UX-APPROVAL-LOOP] the truthful dual-
+    // control state — the draft is handed to governance, the row transitions,
+    // approval continues in Action Center), or an inline error (rejection).
+    // The first two both mean the draft left the pending set.
     const sentMarker = page.getByTestId("proposed-action-card-sent").first();
+    const submittedMarker = page.getByTestId("proposed-action-card-submitted").first();
     const errMarker = page.getByTestId("ctx-error").first();
     await Promise.race([
       sentMarker.waitFor({ state: "visible", timeout: 45_000 }).catch(() => undefined),
+      submittedMarker.waitFor({ state: "visible", timeout: 45_000 }).catch(() => undefined),
       errMarker.waitFor({ state: "visible", timeout: 45_000 }).catch(() => undefined),
     ]);
-    const wasSent = await sentMarker.isVisible().catch(() => false);
+    const wasSent =
+      (await sentMarker.isVisible().catch(() => false)) ||
+      (await submittedMarker.isVisible().catch(() => false));
     await page.screenshot({ path: `screenshots/${TAG}-3-send-outcome.png`, fullPage: true });
     if (wasSent) {
       // Happy path: the sent row transitions to EXECUTED and drops from

@@ -206,6 +206,23 @@ describe("ActionCenter — friendly labels (Warmwind language pass)", () => {
     expect(card).not.toHaveTextContent("LOW");
   });
 
+  // [PROD-UX-APPROVAL-LOOP] A REJECTED action now usually means an approver
+  // declined it — the sender must see an honest verdict, not "Blocked by
+  // policy" (and never a raw status code).
+  it("a REJECTED action reads as 'Not approved' on the sender's surface", async () => {
+    mockList([action({ action_id: "a-rej", status: "REJECTED" })]);
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("action-tab-blocked")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("action-tab-blocked"));
+    const card = screen.getByTestId("action-center-card");
+    expect(card).toHaveTextContent("Not approved");
+    expect(card).not.toHaveTextContent("Blocked by policy");
+    expect(card.textContent).not.toContain("REJECTED");
+  });
+
   it("translates 'no-eligible-target' decision_reason into human copy", async () => {
     mockList([
       action({

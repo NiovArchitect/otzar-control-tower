@@ -201,6 +201,81 @@ describe("ProposedActionCard — Send hits POST /api/v1/actions and lands sent s
     expect(body.idempotency_key).toBeTruthy();
   });
 
+  // [PROD-UX-APPROVAL-LOOP] Truth over optimism: a dual-control send is
+  // SUBMITTED, not sent — "Sent" appears only past approval.
+  it("a send that requires approval says 'Submitted for approval' — never 'Sent'", async () => {
+    server.use(
+      http.post(`${API_BASE}/actions`, () =>
+        HttpResponse.json(
+          {
+            ok: true,
+            action: {
+              action_id: "act-dual-1",
+              source_entity_id: "u-vishesh",
+              org_entity_id: "o-niov",
+              target_entity_id: "id-david",
+              action_type: "SEND_INTERNAL_NOTIFICATION",
+              risk_tier: "LOW",
+              status: "PROPOSED",
+              requires_approval: true,
+              escalation_id: "esc-1",
+              payload_summary: "Otzar internal note to David Odie",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          },
+          { status: 200 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<ProposedActionCard proposedAction={pa()} />);
+    await user.click(screen.getByTestId("ctx-send-button"));
+    const submitted = await screen.findByTestId("proposed-action-card-submitted");
+    expect(submitted).toHaveTextContent("Submitted for approval");
+    expect(submitted).toHaveTextContent(/an approver will review/i);
+    expect(submitted).toHaveTextContent("David Odie");
+    // The optimistic lie is gone: no "Sent to" anywhere.
+    expect(screen.queryByTestId("proposed-action-card-sent")).toBeNull();
+    expect(submitted.textContent).not.toMatch(/sent to/i);
+    // No raw backend codes.
+    expect(submitted.textContent).not.toContain("PROPOSED");
+    expect(submitted.textContent).not.toContain("requires_approval");
+  });
+
+  it("a genuinely approved send still says 'Sent' (unchanged happy path)", async () => {
+    server.use(
+      http.post(`${API_BASE}/actions`, () =>
+        HttpResponse.json(
+          {
+            ok: true,
+            action: {
+              action_id: "act-auto-1",
+              source_entity_id: "u-sadeil",
+              org_entity_id: "o-niov",
+              target_entity_id: "id-david",
+              action_type: "SEND_INTERNAL_NOTIFICATION",
+              risk_tier: "LOW",
+              status: "APPROVED",
+              requires_approval: false,
+              payload_summary: "Otzar internal note to David Odie",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          },
+          { status: 201 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<ProposedActionCard proposedAction={pa()} />);
+    await user.click(screen.getByTestId("ctx-send-button"));
+    await waitFor(() =>
+      expect(screen.getByTestId("proposed-action-card-sent")).toHaveTextContent("Sent to David Odie."),
+    );
+    expect(screen.queryByTestId("proposed-action-card-submitted")).toBeNull();
+  });
+
   it("surfaces the action_id on the success card", async () => {
     server.use(
       http.post(`${API_BASE}/actions`, () =>

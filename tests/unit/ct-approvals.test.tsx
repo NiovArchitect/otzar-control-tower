@@ -264,6 +264,51 @@ describe("Section 9 Control Tower Approvals — approve / deny mutations (two-st
     expect(lastApproveId).toBe(APPROVABLE_ID);
   });
 
+  // [PROD-UX-APPROVAL-LOOP] The approver can attach a human reason to a
+  // denial; it rides the reject body and persists with the decision.
+  it("Deny offers a reason field and dispatches it with the rejection", async () => {
+    let lastRejectBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/escalations/:id/reject`, async ({ request }) => {
+        lastRejectBody = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+        return HttpResponse.json({ ok: true }, { status: 200 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("approval-list");
+    await user.click(screen.getByTestId(`approval-row-button-${APPROVABLE_ID}`));
+    await screen.findByTestId("approval-detail-panel");
+    await user.click(screen.getByTestId("approval-reject-button"));
+    await screen.findByTestId("approval-confirm-dialog");
+    // The reason field appears on DENY (it is not part of approve).
+    const reason = screen.getByTestId("approval-reject-reason");
+    await user.type(reason, "Wrong recipient — rework the message.");
+    await user.click(screen.getByTestId("approval-confirm-submit"));
+    await screen.findByTestId("approval-detail-empty");
+    expect(lastRejectBody).toEqual({ reason: "Wrong recipient — rework the message." });
+  });
+
+  it("Deny without a reason still dispatches (reason is optional)", async () => {
+    let lastRejectBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/escalations/:id/reject`, async ({ request }) => {
+        lastRejectBody = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+        return HttpResponse.json({ ok: true }, { status: 200 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("approval-list");
+    await user.click(screen.getByTestId(`approval-row-button-${APPROVABLE_ID}`));
+    await screen.findByTestId("approval-detail-panel");
+    await user.click(screen.getByTestId("approval-reject-button"));
+    await screen.findByTestId("approval-confirm-dialog");
+    await user.click(screen.getByTestId("approval-confirm-submit"));
+    await screen.findByTestId("approval-detail-empty");
+    expect(lastRejectBody).toEqual({});
+  });
+
   it("Cancel in confirm dialog never dispatches the mutation", async () => {
     let lastApproveId: string | null = null;
     server.use(

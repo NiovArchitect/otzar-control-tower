@@ -193,6 +193,8 @@ function DetailPanel({
   const [confirmAction, setConfirmAction] = useState<
     "approve" | "reject" | null
   >(null);
+  // [PROD-UX-APPROVAL-LOOP] The approver's optional human reason for a denial.
+  const [rejectReason, setRejectReason] = useState("");
   const [mutationError, setMutationError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -229,13 +231,19 @@ function DetailPanel({
   });
 
   const rejectMutation = useMutation({
+    // [PROD-UX-APPROVAL-LOOP] Carry the approver's reason with the denial —
+    // it persists on the escalation (resolution_metadata) and rides the
+    // ACTION_REJECTED audit as a safe scalar.
     mutationFn: (id: string) =>
-      api.escalations.reject(id).then((r) => {
-        if (r.ok) return r.data;
-        throw new Error(r.code);
-      }),
+      api.escalations
+        .reject(id, rejectReason.trim().length > 0 ? { reason: rejectReason.trim() } : {})
+        .then((r) => {
+          if (r.ok) return r.data;
+          throw new Error(r.code);
+        }),
     onSuccess: () => {
       setConfirmAction(null);
+      setRejectReason("");
       setMutationError(null);
       void queryClient.invalidateQueries({
         queryKey: ["escalations", "pending"],
@@ -484,6 +492,28 @@ function DetailPanel({
               the resolution to Foundation.
             </DialogDescription>
           </DialogHeader>
+          {confirmAction === "reject" ? (
+            <div className="space-y-1">
+              <label
+                htmlFor="approval-reject-reason"
+                className="text-xs font-medium"
+              >
+                Reason (optional, recommended)
+              </label>
+              <textarea
+                id="approval-reject-reason"
+                className="h-20 w-full rounded border bg-background p-2 text-sm"
+                placeholder="Why isn't this approved? e.g. wrong recipient, rework the message…"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                maxLength={500}
+                data-testid="approval-reject-reason"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Recorded with the decision in the audit trail.
+              </p>
+            </div>
+          ) : null}
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
               type="button"

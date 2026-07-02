@@ -52,6 +52,9 @@ type CardState =
   | { kind: "editing"; editedDraft: string }
   | { kind: "sending" }
   | { kind: "sent"; actionId: string }
+  // [PROD-UX-APPROVAL-LOOP] Submitted into dual-control — awaiting an
+  // approver. NOT sent yet; saying "Sent" here would be an optimistic lie.
+  | { kind: "submitted"; actionId: string }
   | { kind: "failed"; code: string };
 
 function randomIdempotencyKey(): string {
@@ -254,8 +257,21 @@ export function ProposedActionCard({
       setState({ kind: "failed", code: result.code });
       return;
     }
-    setState({ kind: "sent", actionId: result.data.action.action_id });
-    onSent?.(result.data.action.action_id);
+    // [PROD-UX-APPROVAL-LOOP] Truth over optimism: a governed send that needs
+    // dual-control comes back PROPOSED + requires_approval — it has NOT been
+    // sent yet, an approver reviews it first. Only a send that is genuinely
+    // past approval (auto-approved / already executing) may read as "Sent".
+    const action = result.data.action;
+    const awaitingApproval =
+      action.requires_approval === true && action.status === "PROPOSED";
+    setState(
+      awaitingApproval
+        ? { kind: "submitted", actionId: action.action_id }
+        : { kind: "sent", actionId: action.action_id },
+    );
+    // Both outcomes hand the draft to governance — the parent may resolve the
+    // durable card either way; Action Center carries the pending truth.
+    onSent?.(action.action_id);
   }
 
   function handleCancel(): void {
@@ -285,6 +301,29 @@ export function ProposedActionCard({
           <span aria-hidden>✓</span>
           <span>Sent to {proposedAction.target.display_name}.</span>
         </div>
+      </div>
+    );
+  }
+
+  // [PROD-UX-APPROVAL-LOOP] The truthful dual-control state: submitted, not
+  // sent. The note reaches {target} only after an approver signs off; the
+  // sender can follow the decision in Action Center.
+  if (state.kind === "submitted") {
+    return (
+      <div
+        className="rounded-md border border-sky-500/40 bg-sky-500/5 p-3 text-sm"
+        data-testid="proposed-action-card-submitted"
+        data-action-id={state.actionId}
+      >
+        <div className="flex items-center gap-2 font-medium text-sky-700 dark:text-sky-400">
+          <span aria-hidden>⏳</span>
+          <span>Submitted for approval.</span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          An approver will review before this sends to{" "}
+          {proposedAction.target.display_name}. You can follow the decision in
+          Action Center.
+        </p>
       </div>
     );
   }

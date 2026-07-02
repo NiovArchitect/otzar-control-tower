@@ -1696,6 +1696,10 @@ export interface EscalationResponse {
 //       JSON on the backend; the UI sends at most an optional { note }.
 export interface EscalationResolveRequest {
   resolution_metadata?: Record<string, unknown>;
+  /** [PROD-UX-APPROVAL-LOOP] The approver's human reason (reject). The route
+   *  folds it into resolution_metadata and the ACTION_REJECTED audit carries
+   *  it as a safe bounded scalar. */
+  reason?: string;
 }
 
 // ════════════════════════════════════════════════════════════════

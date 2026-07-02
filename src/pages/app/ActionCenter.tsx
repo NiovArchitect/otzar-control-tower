@@ -137,7 +137,10 @@ function friendlyStatus(status: string): string {
     case "TIMED_OUT":
       return "Timed out";
     case "REJECTED":
-      return "Blocked by policy";
+      // [PROD-UX-APPROVAL-LOOP] A REJECTED action usually means an approver
+      // declined it (dual-control verdict now reconciles onto the Action);
+      // policy denials land here too — "Not approved" covers both honestly.
+      return "Not approved";
     case "EXPIRED":
       return "Expired";
     default:
