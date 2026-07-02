@@ -19,6 +19,9 @@ import { useWorkStateChanged } from "@/lib/events/work-state";
 
 export function TeamWork(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
+  // PROD-UX-SCALE — server pagination (mirrors My Work).
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -26,9 +29,25 @@ export function TeamWork(): JSX.Element {
   // owner clears the item from the team waiting-on panel without a restart.
   async function reload(): Promise<void> {
     const r = await api.workOs.teamWork();
-    if (r.ok) setItems(r.data.entries ?? r.data.items ?? []);
+    if (r.ok) {
+      setItems(r.data.entries ?? r.data.items ?? []);
+      setHasMore(r.data.has_more === true);
+    }
     else if (r.code === "TEAM_SCOPE_NOT_CONFIGURED") setBlocked(true);
     else setFailed(true);
+  }
+
+  async function loadMore(): Promise<void> {
+    if (items === null) return;
+    setLoadingMore(true);
+    const r = await api.workOs.teamWork({ skip: items.length, take: 300 });
+    setLoadingMore(false);
+    if (r.ok) {
+      const next = r.data.entries ?? r.data.items ?? [];
+      const seen = new Set(items.map((i) => i.ledger_entry_id));
+      setItems([...items, ...next.filter((i) => !seen.has(i.ledger_entry_id))]);
+      setHasMore(r.data.has_more === true);
+    }
   }
 
   useEffect(() => {
@@ -37,7 +56,10 @@ export function TeamWork(): JSX.Element {
       .teamWork()
       .then((r) => {
         if (cancelled) return;
-        if (r.ok) setItems(r.data.entries ?? r.data.items ?? []);
+        if (r.ok) {
+          setItems(r.data.entries ?? r.data.items ?? []);
+          setHasMore(r.data.has_more === true);
+        }
         else if (r.code === "TEAM_SCOPE_NOT_CONFIGURED") setBlocked(true);
         else setFailed(true);
       })
@@ -150,6 +172,17 @@ export function TeamWork(): JSX.Element {
               );
             })
           )}
+          {hasMore ? (
+            <button
+              type="button"
+              className="w-full rounded-md border border-border py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              data-testid="team-work-load-more"
+              disabled={loadingMore}
+              onClick={() => void loadMore()}
+            >
+              {loadingMore ? "Loading…" : "Show more team work"}
+            </button>
+          ) : null}
         </>
       )}
     </div>

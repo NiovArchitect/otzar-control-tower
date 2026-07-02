@@ -22,7 +22,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const showComingSoon = import.meta.env.VITE_SHOW_COMING_SOON === "true";
   const visibleNav = showComingSoon
     ? NAV
-    : NAV.filter((item) => item.comingSoon !== true);
+    : NAV.filter((item) => item.comingSoon !== true && item.hidden !== true);
 
   return (
     <nav

@@ -198,3 +198,57 @@ describe("AmbientWorkSurface — headline/items single source (Section 25)", () 
     expect(screen.queryByTestId("changed-suggestions")).toBeNull();
   });
 });
+
+// PROD-MODEL-P3 §21 — urgent blind spots surface on Today (deep link to the
+// detail page); non-urgent backlog adds NOTHING to the home surface.
+describe("AmbientWorkSurface — urgent blind spots surface here (§21)", () => {
+  function blindItem(lane: string) {
+    return {
+      ledger_entry_id: `b-${lane}`, ledger_type: "TASK", source_type: "TRANSCRIPT",
+      source_command: null, work_plan_id: null, requester_entity_id: null,
+      owner_entity_id: null, target_entity_id: null, title: lane, status: "DETECTED",
+      priority: "NORMAL", extraction_source: "LLM", next_action: null, due_at: null,
+      created_at: "2026-07-01T00:00:00Z",
+      routing: {
+        lane, reason: "x", risk: "low", confidence: null, policy_basis: null,
+        owner_entity_id: null, owner_status: "unowned", next_best_action: null,
+        required_tool: null, evidence_refs: [], audit_pointer: null,
+      },
+    };
+  }
+
+  it("urgent lanes produce a deep-linked 'stuck and needs a decision' line", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-day/intelligence`, () =>
+        HttpResponse.json(intelligence([])),
+      ),
+      http.get(`${API_BASE}/work-os/blind-spots`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [blindItem("blocked"), blindItem("setup_required"), blindItem("silent_capture")],
+        }),
+      ),
+    );
+    renderSurface();
+    const line = await screen.findByTestId("needs-blind-spots");
+    expect(line).toHaveTextContent("2 items are stuck and need a decision");
+    expect(line).toHaveAttribute("href", "/app/blind-spots");
+  });
+
+  it("a backlog of NON-urgent items adds nothing to the home surface", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/my-day/intelligence`, () =>
+        HttpResponse.json(intelligence([])),
+      ),
+      http.get(`${API_BASE}/work-os/blind-spots`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [blindItem("silent_capture"), blindItem("silent_routing"), blindItem("draft_ready")],
+        }),
+      ),
+    );
+    renderSurface();
+    await screen.findByTestId("changed-headline");
+    expect(screen.queryByTestId("needs-blind-spots")).toBeNull();
+  });
+});

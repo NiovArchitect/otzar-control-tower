@@ -23,6 +23,7 @@ import { buildWorkNodes } from "@/lib/work-os/work-nodes";
 import { intensityDot } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import type { MyDaySuggestion } from "@/lib/types/foundation";
+import { triagePriority } from "@/lib/work-os/blind-spot-triage";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -74,7 +75,27 @@ export function AmbientWorkSurface(): JSX.Element {
   const ctxLabel = ctxActive
     ? surfaceContext.title ?? surfaceContext.summary ?? "Current context"
     : null;
-  const nothingInFlight = approvalsCount === 0 && unreadCount === 0;
+  // PROD-MODEL-P3 §21 — URGENT blind spots surface where the human already
+  // looks, not only under More. Urgency reuses the P0R lane triage (identity
+  // review / blocked / setup required = priority ≤ 2); zero urgent items adds
+  // NOTHING (no card spam). The Blind Spots page stays the detail view.
+  const [urgentBlindSpots, setUrgentBlindSpots] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    api.workOs
+      .blindSpots()
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        const items = r.data.items ?? r.data.entries ?? [];
+        setUrgentBlindSpots(items.filter((e) => triagePriority(e) <= 2).length);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const nothingInFlight =
+    approvalsCount === 0 && unreadCount === 0 && urgentBlindSpots === 0;
 
   // [OTZAR-LIVE-6] Real work nodes — what Otzar is connected to RIGHT NOW, built
   // only from current home state (context, approvals, replies). No node without
@@ -114,7 +135,7 @@ export function AmbientWorkSurface(): JSX.Element {
       {/* NEEDS YOU — only when the human must act: approvals to decide and
           replies that arrived for them to read. Category-specific copy, never
           "items"/"things"/vague counts. */}
-      {(approvalsCount > 0 || unreadCount > 0) ? (
+      {(approvalsCount > 0 || unreadCount > 0 || urgentBlindSpots > 0) ? (
         <GlassPanel
           intensity="attention"
           label="Needs you"
@@ -135,6 +156,20 @@ export function AmbientWorkSurface(): JSX.Element {
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-800">
                   Review <ArrowRight className="h-3 w-3" aria-hidden />
                 </span>
+              </Link>
+            ) : null}
+            {urgentBlindSpots > 0 ? (
+              <Link
+                to="/app/blind-spots"
+                className="flex items-center justify-between gap-3 text-slate-800 hover:text-slate-900"
+                data-testid="needs-blind-spots"
+              >
+                <span>
+                  {urgentBlindSpots === 1
+                    ? "1 item is stuck and needs a decision"
+                    : `${urgentBlindSpots} items are stuck and need a decision`}
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
               </Link>
             ) : null}
             {unreadCount > 0 ? (

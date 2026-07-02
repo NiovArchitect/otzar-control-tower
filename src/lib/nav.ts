@@ -74,6 +74,9 @@ export interface NavItem {
    *  default so production validation never lands on a "reserved screen"; the
    *  route stays registered (deep-link safe). Reveal with VITE_SHOW_COMING_SOON. */
   comingSoon?: boolean;
+  /** PROD-MODEL-P3 — route-only surface: registered in App.tsx, hidden
+   *  from the sidebar (Advanced/diagnostic tier). */
+  hidden?: boolean;
 }
 
 export type NavGroup =
@@ -140,7 +143,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     label: "Organization Seeding",
     to: "/organization-seeding",
     icon: Sparkles,
-    description: "Setup Otzar suggests from real work — new people, roles, or access that may improve accuracy. Review before applying. Nothing is applied automatically.",
+    description: "People and context Otzar discovered from your organization's workstream — review each seed before it joins the organization. Nothing is applied automatically.",
     group: "People & Roles",
   },
   {
@@ -160,17 +163,22 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Tools & Connections",
   },
   {
+    // PROD-MODEL-P3 §7 — Otzar ships with a branded default voice; the
+    // provider/vendor activation surface is Advanced setup, not everyday
+    // admin IA. Route stays registered (deep-link-safe); hidden from the
+    // sidebar like other route-only surfaces.
     label: "Voice Providers",
     to: "/voice-providers",
     icon: Mic,
-    description: "Activate Otzar's premium voice — speech in and out, speaker detection, and the pronunciation test. Org-scoped; credential values are never shown.",
+    description: "Advanced voice setup — provider activation and diagnostics. Otzar's branded voice works without visiting this page.",
     group: "Tools & Connections",
+    hidden: true,
   },
   {
     label: "Voice",
     to: "/voice",
     icon: Mic,
-    description: "The voice-first talk surface — spoken intent stays governed by Otzar. Voice is an interface, not a bypass.",
+    description: "Otzar's voice — talk to it, and choose how it sounds for your organization. Spoken intent stays governed; voice is an interface, not a bypass.",
     group: "Tools & Connections",
   },
 

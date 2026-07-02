@@ -1482,8 +1482,13 @@ export class ApiClient {
 
     /** GET /api/v1/work-os/team-work — manager/admin team view; 403 with
      *  TEAM_SCOPE_NOT_CONFIGURED when the caller lacks team authority. */
-    teamWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
-      this.request<WorkLedgerListResponse>("/work-os/team-work"),
+    teamWork: (params?: { skip?: number; take?: number }): Promise<ApiResult<WorkLedgerListResponse>> => {
+      const q = new URLSearchParams();
+      if (params?.skip !== undefined) q.set("skip", String(params.skip));
+      if (params?.take !== undefined) q.set("take", String(params.take));
+      const qs = q.toString();
+      return this.request<WorkLedgerListResponse>(`/work-os/team-work${qs.length > 0 ? `?${qs}` : ""}`);
+    },
 
     /** GET /api/v1/work-os/ledger/:id/execution-attempts — durable
      *  evidence that runtime steps happened for one ledger entry
