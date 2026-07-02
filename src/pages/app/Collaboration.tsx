@@ -642,8 +642,15 @@ function CollaborationRow({
 // Phase 1237 — the Dandelion admin wow card: "Otzar found N ways to
 // strengthen your organization this week." Governed recommendations
 // only — nothing executes from here; each suggested step routes
-// through existing pages. Hidden for non-admins; dismissals are
-// local to the session (recommendations recompute server-side).
+// through existing pages. Hidden for non-admins.
+// [PROD-UX-BUGD] Hiding a recommendation is SESSION-LOCAL (recommendations
+// recompute server-side and reappear next visit) — the control is labeled
+// "Hide for now" so it never reads as a durable dismiss. Keyed by the stable
+// person id when the server provides one (duplicate-name safe), else title.
+function growthRecKey(r: { kind: string; title: string; context?: { person_entity_id: string } }): string {
+  return r.context !== undefined ? `${r.kind}:${r.context.person_entity_id}` : r.title;
+}
+
 function DandelionGrowthCard(): JSX.Element | null {
   const { capabilities } = useAuthStore();
   const admin = isOrgAdmin(capabilities);
@@ -652,13 +659,13 @@ function DandelionGrowthCard(): JSX.Element | null {
     queryFn: () => api.otzar.dandelionOrgGrowth(),
     enabled: admin,
   });
-  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
 
   if (!admin) return null;
   if (!growth.data || !growth.data.ok) return null;
   const view = growth.data.data.growth;
   const visible = view.recommendations.filter(
-    (r) => !dismissed.has(r.title),
+    (r) => !hidden.has(growthRecKey(r)),
   );
 
   return (
@@ -680,7 +687,7 @@ function DandelionGrowthCard(): JSX.Element | null {
           <ul className="space-y-1" data-testid="dandelion-growth-list">
             {visible.map((rec) => (
               <li
-                key={rec.title}
+                key={growthRecKey(rec)}
                 className="rounded border bg-card p-2"
                 data-testid="dandelion-growth-item"
                 data-kind={rec.kind}
@@ -698,11 +705,11 @@ function DandelionGrowthCard(): JSX.Element | null {
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      setDismissed((prev) => new Set([...prev, rec.title]))
+                      setHidden((prev) => new Set([...prev, growthRecKey(rec)]))
                     }
                     data-testid="dandelion-growth-dismiss"
                   >
-                    Dismiss
+                    Hide for now
                   </Button>
                 </div>
               </li>

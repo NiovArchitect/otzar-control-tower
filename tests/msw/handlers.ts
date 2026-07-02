@@ -1075,7 +1075,7 @@ const otzarDandelionGrowthHandler = http.get(
           members_count: 4,
           external_collaborators_count: 1,
           unowned_external_count: 0,
-          disconnected_members_count: 0,
+          members_without_project_count: 0,
         },
         generated_at: new Date().toISOString(),
       },

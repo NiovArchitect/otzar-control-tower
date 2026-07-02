@@ -75,7 +75,42 @@ function growthWithRecommendations() {
         members_count: 4,
         external_collaborators_count: 1,
         unowned_external_count: 1,
-        disconnected_members_count: 0,
+        members_without_project_count: 0,
+      },
+      generated_at: new Date().toISOString(),
+    },
+  };
+}
+
+// [PROD-UX-BUGD] A NEEDS_PROJECT_OR_WORKSPACE recommendation as the fixed
+// backend returns it: accurate org-placement copy + structured context.
+function growthWithNeedsProject() {
+  return {
+    ok: true,
+    growth: {
+      headline: "Otzar found 1 way to strengthen your organization this week.",
+      recommendations: [
+        {
+          kind: "NEEDS_PROJECT_OR_WORKSPACE",
+          title: "Shweta needs a first project or workspace",
+          why: "Shweta is already part of your organization on David Odie's team, but isn't assigned to a project or workspace yet. Adding them to one helps Otzar connect their work, tools, and context more accurately.",
+          people: ["Shweta"],
+          suggested_next_step: "Assign Shweta to their first project or workspace.",
+          context: {
+            person_entity_id: "ent-shweta",
+            org_member: true,
+            has_department: true,
+            has_manager: true,
+            has_project_or_workspace: false,
+            missing_connection_type: "PROJECT_OR_WORKSPACE",
+          },
+        },
+      ],
+      signals: {
+        members_count: 4,
+        external_collaborators_count: 0,
+        unowned_external_count: 0,
+        members_without_project_count: 1,
       },
       generated_at: new Date().toISOString(),
     },
@@ -120,6 +155,57 @@ describe("Dandelion — admin growth card (Phase 1237)", () => {
       expect(screen.getByText("People & Collaboration")).toBeInTheDocument(),
     );
     expect(screen.queryByTestId("dandelion-growth-card")).toBeNull();
+  });
+
+  // [PROD-UX-BUGD] Connectedness truth: an org member missing only a project/
+  // workspace is described as ALREADY part of the organization — never as
+  // "not connected".
+  it("an org member without a project reads as 'already part of your organization', names the missing piece, and never says 'not connected'", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithNeedsProject()),
+      ),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-growth-card")).toBeInTheDocument(),
+    );
+    const item = screen.getByTestId("dandelion-growth-item");
+    expect(item).toHaveAttribute("data-kind", "NEEDS_PROJECT_OR_WORKSPACE");
+    // States the TRUE relationship first (org member, on a real team)...
+    expect(item).toHaveTextContent("Shweta is already part of your organization on David Odie's team");
+    // ...names the ONE missing object...
+    expect(item).toHaveTextContent("needs a first project or workspace");
+    // ...and the next step is honest text routing to real admin work — the
+    // card offers no fake "Add to workspace" action button (only Hide for now).
+    expect(item).toHaveTextContent("Next step: Assign Shweta to their first project or workspace.");
+    const buttons = item.querySelectorAll("button");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]!.textContent).toMatch(/hide for now/i);
+    // NEVER the misleading flattening — and no raw backend codes as copy.
+    const text = item.textContent ?? "";
+    expect(text).not.toMatch(/isn't connected|not connected|disconnected/i);
+    expect(text).not.toContain("NEEDS_PROJECT_OR_WORKSPACE");
+    expect(text).not.toContain("CONNECT_TEAMMATE");
+    expect(text).not.toContain("ent-shweta"); // stable id keys, never rendered
+  });
+
+  it("hiding a recommendation is honest about being temporary ('Hide for now', keyed by stable id)", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithNeedsProject()),
+      ),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-growth-item")).toBeInTheDocument(),
+    );
+    const hide = screen.getByTestId("dandelion-growth-dismiss");
+    // The control never claims durable dismissal.
+    expect(hide).toHaveTextContent("Hide for now");
+    expect(hide.textContent).not.toMatch(/^dismiss$/i);
+    await userEvent.click(hide);
+    expect(screen.queryByTestId("dandelion-growth-item")).toBeNull();
   });
 });
 

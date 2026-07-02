@@ -4332,8 +4332,23 @@ export interface CalendarContextResponse {
 export type DandelionRecommendationKind =
   | "ASSIGN_INTERNAL_OWNER"
   | "REDUCE_OVERLOAD"
-  | "CONNECT_TEAMMATE"
+  // [PROD-UX-BUGD] Was CONNECT_TEAMMATE — renamed because the old copy read as
+  // "disconnected from the org" when the only missing object is a first
+  // project/workspace assignment. Mirrored from Foundation.
+  | "NEEDS_PROJECT_OR_WORKSPACE"
   | "PREPARE_ONBOARDING";
+
+// [PROD-UX-BUGD] Structured source-of-truth metadata (mirrored from
+// Foundation) — the CT renders accurate copy from the server and keys
+// dismissal by the stable person id, never by display name.
+export interface DandelionRecommendationContext {
+  person_entity_id: string;
+  org_member: boolean;
+  has_department: boolean;
+  has_manager: boolean;
+  has_project_or_workspace: boolean;
+  missing_connection_type: "PROJECT_OR_WORKSPACE";
+}
 
 export interface DandelionRecommendation {
   kind: DandelionRecommendationKind;
@@ -4341,6 +4356,7 @@ export interface DandelionRecommendation {
   why: string;
   people: string[];
   suggested_next_step: string;
+  context?: DandelionRecommendationContext;
 }
 
 export interface DandelionOrgGrowthResponse {
@@ -4352,7 +4368,7 @@ export interface DandelionOrgGrowthResponse {
       members_count: number;
       external_collaborators_count: number;
       unowned_external_count: number;
-      disconnected_members_count: number;
+      members_without_project_count: number;
     };
     generated_at: string;
   };
