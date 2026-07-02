@@ -1336,9 +1336,17 @@ export class ApiClient {
         body,
       }),
 
-    /** GET /api/v1/work-os/my-work — the caller's durable work items. */
-    myWork: (): Promise<ApiResult<WorkLedgerListResponse>> =>
-      this.request<WorkLedgerListResponse>("/work-os/my-work"),
+    /** GET /api/v1/work-os/my-work — the caller's durable work items.
+     *  PROD-UX-SCALE: optional server pagination; the response carries
+     *  has_more so surfaces can load the next page instead of silently
+     *  truncating at the old 200 cap. */
+    myWork: (params?: { skip?: number; take?: number }): Promise<ApiResult<WorkLedgerListResponse>> => {
+      const q = new URLSearchParams();
+      if (params?.skip !== undefined) q.set("skip", String(params.skip));
+      if (params?.take !== undefined) q.set("take", String(params.take));
+      const qs = q.toString();
+      return this.request<WorkLedgerListResponse>(`/work-os/my-work${qs.length > 0 ? `?${qs}` : ""}`);
+    },
 
     /** GET /api/v1/work-os/blind-spots — attention-needing items. */
     blindSpots: (): Promise<ApiResult<WorkLedgerListResponse>> =>
