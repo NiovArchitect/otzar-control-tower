@@ -43,6 +43,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
+import {
+  completeReview,
+  initialSession,
+  OBSERVATION_LEARNS,
+  OBSERVATION_NEVER,
+  OBSERVATION_STATUS_NOTE,
+  startSession,
+  stopSession,
+  type ConsentSession,
+  type ObservationPolicy,
+} from "@/lib/observation/consent-session";
 
 export function MyMemory(): JSX.Element {
   const [data, setData] = useState<ContextHealthResponse | null>(null);
@@ -235,6 +246,11 @@ export function MyMemory(): JSX.Element {
         </CardContent>
       </Card>
 
+      {/* CX-SLICE-5 — the consent/trust layer for future workflow
+          observation. Lives here because it is about YOUR portable work
+          identity and how your Twin learns you. It captures NOTHING today. */}
+      <ObservationConsentCard />
+
       {/* Reassurance */}
       <p className="text-xs text-muted-foreground">
         <Badge variant="outline" className="mr-2 text-[10px]">
@@ -339,3 +355,132 @@ function RevocableRow({
 // (ChevronRight intentionally imported to keep the icon set
 // available for a future detail-drawer slice.)
 void ChevronRight;
+
+// CX-SLICE-5 — "Otzar is learning my work style FOR me, transparently, with
+// my control — not spying on me." The consent + session-review model that
+// must exist before any observation capture. It records NOTHING: it walks the
+// employee through consent → active (with a visible indicator) → stop →
+// review, so the trust protocol is real and testable now. Org policy is the
+// gate (an employee can never enable it themselves); today no org has enabled
+// it, so the honest state is "not enabled by your organization yet".
+function ObservationConsentCard(): JSX.Element {
+  // Org policy is not a wired field yet — the honest default is not-enabled.
+  const policy: ObservationPolicy = "not_enabled_by_org";
+  const [session, setSession] = useState<ConsentSession>(() => initialSession(policy));
+  const [consent, setConsent] = useState(false);
+
+  return (
+    <Card data-testid="observation-consent-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <ShieldCheck className="h-4 w-4" aria-hidden /> Teach Otzar how you work
+          {session.indicatorVisible ? (
+            <span
+              className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
+              data-testid="observation-active-indicator"
+            >
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              Observing — you can stop anytime
+            </span>
+          ) : null}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-xs">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div data-testid="observation-learns">
+            <p className="font-medium text-foreground">What Otzar would learn</p>
+            <ul className="mt-1 list-inside list-disc text-muted-foreground">
+              {OBSERVATION_LEARNS.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+          </div>
+          <div data-testid="observation-never">
+            <p className="font-medium text-foreground">What it never touches</p>
+            <ul className="mt-1 list-inside list-disc text-muted-foreground">
+              {OBSERVATION_NEVER.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {session.state === "unavailable" ? (
+          <p className="text-[11px] text-amber-700" data-testid="observation-not-enabled">
+            Your organization hasn&apos;t enabled work-style learning yet. When
+            it does, you&apos;ll turn it on here — Otzar can never start it
+            without your organization&apos;s policy and your explicit consent.
+          </p>
+        ) : session.state === "idle" ? (
+          <div className="space-y-2" data-testid="observation-idle">
+            <label className="flex items-start gap-2 text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                data-testid="observation-consent-checkbox"
+              />
+              <span>
+                I understand Otzar will learn my work methods during this
+                session, that a visible indicator will show while it&apos;s on,
+                and that I review what it learned before anything is kept.
+              </span>
+            </label>
+            <Button
+              size="sm"
+              disabled={!consent}
+              onClick={() => setSession((s) => startSession(s, { consentGiven: consent, policy }))}
+              data-testid="observation-start"
+            >
+              Start a learning session
+            </Button>
+          </div>
+        ) : session.state === "active" ? (
+          <div className="space-y-2" data-testid="observation-active">
+            <p className="text-muted-foreground">
+              Otzar is watching how you work for this session only. Stop
+              whenever you like — you&apos;ll review everything before it
+              becomes part of your Work Wallet.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSession((s) => stopSession(s))}
+              data-testid="observation-stop"
+            >
+              Stop the session
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2" data-testid="observation-review">
+            <p className="text-muted-foreground">
+              Review before anything is kept: nothing enters your Work Wallet
+              until you approve it, and company data is never included.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => setSession((s) => completeReview(s, true))}
+                data-testid="observation-review-keep"
+              >
+                Keep what I approved
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSession((s) => completeReview(s, false))}
+                data-testid="observation-review-discard"
+              >
+                Discard everything
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <p className="text-[11px] text-muted-foreground" data-testid="observation-status-note">
+          {OBSERVATION_STATUS_NOTE}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}

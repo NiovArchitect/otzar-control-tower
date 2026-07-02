@@ -9,7 +9,7 @@
 // CONNECTS TO: src/pages/app/MyMemory.tsx.
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
@@ -271,5 +271,34 @@ describe("MyMemory — privacy invariants (RULE 0)", () => {
     expect(html).not.toMatch(/embedding/i);
     expect(html).not.toMatch(/bearer/i);
     expect(html).not.toMatch(/session_token/i);
+  });
+});
+
+// CX-SLICE-5 — the observation consent/trust card. It captures NOTHING; it
+// proves the consent → active(indicator) → stop → review protocol, states
+// non-surveillance intent, and — with no org policy wired — honestly shows
+// the not-enabled state (an employee cannot bypass org policy).
+describe("My Digital Work Wallet — observation consent card (CX-SLICE-5)", () => {
+  it("renders learn/never-touch categories and the honest not-recording note", async () => {
+    renderPage();
+    const card = await screen.findByTestId("observation-consent-card");
+    expect(within(card).getByTestId("observation-learns")).toHaveTextContent(/work methods/i);
+    expect(within(card).getByTestId("observation-never")).toHaveTextContent(/confidential/i);
+    expect(within(card).getByTestId("observation-status-note")).toHaveTextContent(
+      /isn't recording anything yet/i,
+    );
+    // No surveillance language, no active indicator when idle/unavailable.
+    expect(card.textContent ?? "").not.toMatch(/spy|monitor you|track you/i);
+    expect(screen.queryByTestId("observation-active-indicator")).toBeNull();
+  });
+
+  it("with no org policy, shows the not-enabled state and offers NO start action", async () => {
+    renderPage();
+    await screen.findByTestId("observation-consent-card");
+    expect(screen.getByTestId("observation-not-enabled")).toHaveTextContent(
+      /hasn't enabled work-style learning yet/i,
+    );
+    expect(screen.queryByTestId("observation-start")).toBeNull();
+    expect(screen.queryByTestId("observation-consent-checkbox")).toBeNull();
   });
 });
