@@ -282,6 +282,80 @@ export function PoliciesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* CX-SLICE-4 — compliance package PREVIEW (internal only). */}
+      <CompliancePackagePreviewCard />
     </div>
+  );
+}
+
+// CX-SLICE-4 — "I can see exactly what would be shared, why, under which
+// policy, and what is excluded — before anything leaves." INTERNAL preview
+// only: no external access exists and none is claimed. The categories below
+// are the REAL data classes of the governed knowledge layer; the regulator
+// door itself is the Foundation lawful-basis flow (a separate,
+// founder-authorized slice) — stated, not simulated.
+function CompliancePackagePreviewCard(): JSX.Element {
+  return (
+    <Card data-testid="compliance-package-preview">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">
+          Compliance package preview
+          <span className="ml-2 rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+            Internal preview only
+          </span>
+        </CardTitle>
+        <CardDescription>
+          What a policy-bound package for a regulator would contain — reviewed
+          here before any external access ever exists. Nothing on this page
+          sends data anywhere.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-xs">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div data-testid="compliance-included">
+            <p className="font-medium text-foreground">A package could include</p>
+            <ul className="mt-1 list-inside list-disc text-muted-foreground">
+              <li>Audit trail entries in scope (who acted, what changed, with proof)</li>
+              <li>Curated work records the policy names — decisions, approvals, completions</li>
+              <li>Policy definitions and their change history</li>
+              <li>Lineage pointers for every included record</li>
+            </ul>
+          </div>
+          <div data-testid="compliance-excluded">
+            <p className="font-medium text-foreground">Never included</p>
+            <ul className="mt-1 list-inside list-disc text-muted-foreground">
+              <li>Raw conversations and transcripts</li>
+              <li>Personal portable memory (how individuals work)</li>
+              <li>Credentials or connection details</li>
+              <li>Anything outside the binding policy's named scope</li>
+            </ul>
+          </div>
+        </div>
+        <div className="space-y-1 text-muted-foreground" data-testid="compliance-governance">
+          <p>
+            <span className="font-medium text-foreground">Policy basis:</span>{" "}
+            each package is bound to one named data-sharing policy — the policy
+            defines the scope, not the person assembling it.
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Approval:</span>{" "}
+            preparing a package is admin work; releasing one would ALWAYS
+            require a separate sign-off. There is no release action here.
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Proof:</span> every
+            preparation, review, and (future) access would be recorded in the
+            audit trail you can already inspect under Security &amp; Audit.
+          </p>
+        </div>
+        <p className="text-[11px] text-muted-foreground" data-testid="compliance-honesty">
+          External regulator access does not exist yet. The governed foundation
+          for it (lawful-basis-gated regulator scope) exists in the platform
+          and will be a separate, explicitly authorized step — this preview is
+          how your organization gets ready without anything leaving.
+        </p>
+      </CardContent>
+    </Card>
   );
 }

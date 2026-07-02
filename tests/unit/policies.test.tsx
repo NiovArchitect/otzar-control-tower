@@ -211,3 +211,38 @@ describe("Section 9 Control Tower Policies — forbidden-copy + no-leak guards",
     }
   });
 });
+
+// CX-SLICE-4 — compliance package PREVIEW (internal only). "I can see exactly
+// what would be shared, why, under which policy, and what is excluded — before
+// anything leaves." No external send; no regulator integration claimed.
+describe("Policies — compliance package preview (CX-SLICE-4)", () => {
+  it("is labeled internal-preview-only and states external access does not exist", async () => {
+    renderPage();
+    const card = await screen.findByTestId("compliance-package-preview");
+    expect(card).toHaveTextContent(/Internal preview only/i);
+    expect(screen.getByTestId("compliance-honesty")).toHaveTextContent(
+      /External regulator access does not exist yet/i,
+    );
+  });
+
+  it("shows included AND excluded data categories, and never a raw payload", async () => {
+    renderPage();
+    const included = await screen.findByTestId("compliance-included");
+    const excluded = screen.getByTestId("compliance-excluded");
+    expect(included).toHaveTextContent(/Audit trail/i);
+    expect(excluded).toHaveTextContent(/Raw conversations and transcripts/i);
+    expect(excluded).toHaveTextContent(/portable memory/i);
+    // No raw payload / provider material.
+    expect(document.body.textContent).not.toMatch(/download_url|Bearer|xoxb|payload_summary/);
+  });
+
+  it("shows policy basis, approval, and proof — with NO external send action", async () => {
+    renderPage();
+    const gov = await screen.findByTestId("compliance-governance");
+    expect(gov).toHaveTextContent(/Policy basis/i);
+    expect(gov).toHaveTextContent(/require a separate sign-off/i);
+    expect(gov).toHaveTextContent(/audit trail/i);
+    // There is no send/release/export button in the preview.
+    expect(screen.queryByRole("button", { name: /send|release|export|share/i })).toBeNull();
+  });
+});
