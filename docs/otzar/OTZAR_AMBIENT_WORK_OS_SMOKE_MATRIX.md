@@ -170,6 +170,18 @@ Legend: ✅ PASS · ❌ FAIL (product gap) · ⏭️ SKIP(reason) · 🔶 PARTIA
 
 ---
 
+## Repair pass results (2026-07-01, second Fable 5 session)
+
+- **G1.4 → ✅ REPAIRED.** FND PR #519 (deployed; assign route live-probed): `POST /org/hierarchy/assign` (admin-gated, stable IDs, cycle-safe, audited) + GET read-shape fix (person→person manager edges were invisible). CT `dc514d7`: ReportingCard on Members (name+email labels, sentence outcomes). Live-seeded through the product's own API as the org admin: **9 manager edges, 3 departments + Leadership, 3 levels, 19/19 memberships carrying departments, 10 audit events**.
+- **G10.2 → ✅ REPAIRED.** my-work paginates (skip/take/has_more, stable id-tiebreak order; integration-tested first/next/disjoint/scoped). CT `ac9be32`: "Show more of your work" with id-dedup.
+- **G10.10 → ✅ REPAIRED.** Departments/teams/managers now real and admin-operable (see G1.4 evidence); hierarchy signal already flows into notifications (live probe: sender carries role_title "Engineering Lead").
+- **G7.10 → ✅ REPAIRED.** `request_setup` was computed but NEVER rendered; blocked-setup items now show "Connect <tool>" deep-linking to /tools-connections (asserted in unit tests).
+- **Gap #3 (FocusHome dead code) → ✅ DELETED** (CT `ba785d9`).
+- **Gap #8 (222-item backlog) → ✅ TRIAGED** (CT `e3074d7`): lane-priority order via the P0R projection (identity>blocked>setup>approval>silent tail; oldest-first ties), capped render + honest "Show all N".
+- **G5.14 update:** in-app inbox live-verified (33 real notifications for one employee; DIRECT_MESSAGE class; role-carrying senders). Push/email/native remain absent — honestly labeled.
+- Onboarding wizard validation copy de-jargoned (binding/env-var → connection/credential reference).
+- Still open: second-org live isolation proof (needs a seeded second tenant); push/email channel; Team Work/seeds pagination (my-work pattern ready to replicate); AgentPlayground deep audit.
+
 ## Confirmed product gaps (ruthless list)
 
 1. **Hierarchy is structural fiction in production** (G1.4/G10.10): model + read API exist, but zero departments, zero manager edges, all level 0, and NO admin UI to create them. Members "Reports to" is honest but empty. Blocker for "proper hierarchy" claims.

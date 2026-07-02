@@ -1094,11 +1094,11 @@ function failureMessage(result: CtActivationResult): string {
     case "AUDIT_WRITE_FAILED":
       return "The audit trail could not be written. The activation was rolled back. Try again.";
     case "INVALID_SLACK_BINDING_INPUT":
-      return "Please provide both the Slack binding name and the env-var NAME for the bot token. The env-var NAME is the variable name on the deployment host — never paste the resolved bot token here.";
+      return "Please provide both a name for the Slack connection and the credential reference (a NAME that points at the bot token on your deployment — never paste the token itself here).";
     case "INVALID_GOOGLE_BINDING_INPUT":
-      return "Please provide both the Google Workspace binding name and the env-var NAME for the OAuth access token. The env-var NAME is the variable name on the deployment host — never paste the resolved OAuth access token here.";
+      return "Please provide both a name for the Google Workspace connection and the credential reference (a NAME that points at the access token on your deployment — never paste the token itself here).";
     case "CONNECTOR_BINDING_FAILED":
-      return "The connector binding could not be registered. Check that the binding name is unique for this organization and that the env-var name is UPPER_SNAKE_CASE.";
+      return "The connection couldn't be saved. Check that its name is unique for your organization and that the credential reference is a simple UPPER_SNAKE_CASE name.";
     default:
       return "Activation failed. Try again in a moment.";
   }
