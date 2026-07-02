@@ -22,6 +22,7 @@
 //    application states the caller needs to see.
 
 import { generateRandomPassword } from "./auth/random-password";
+import { summarizeNotificationBody } from "./work-os/notification-body";
 import type {
   LoginResponse,
   LoginFailure,
@@ -2063,12 +2064,16 @@ export class ApiClient {
           payload_summary: input.payload_summary,
           payload_redacted: {
             recipient_entity_id: input.recipient_entity_id,
-            // ADR-0057 action-payload-validators.ts requires both
-            // notification_class (short label) and body_summary
-            // (the actual draft text).
             notification_class:
               input.notification_class ?? "OTZAR_INTERNAL_NOTE",
-            body_summary: input.draft_text,
+            // P0-BUG-A: body_summary is the recipient-visible line and is
+            // capped at NOTIFICATION_BODY_SUMMARY_MAX_CHARS (200) by the
+            // Foundation validator — sending the whole draft here failed
+            // valid follow-ups with INVALID_FIELD ("request shape is
+            // invalid"). Use the field as designed: a bounded summary, with
+            // the FULL draft preserved in body_redacted.body (never lost).
+            body_summary: summarizeNotificationBody(input.draft_text),
+            body_redacted: { body: input.draft_text },
           },
         },
         retries: 0,
