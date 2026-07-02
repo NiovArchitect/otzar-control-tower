@@ -80,6 +80,16 @@ through `POST /org/hierarchy/assign` (10 audited changes, this pass).
   now render as deep links inside the same "What changed" panel, from the
   same response object — claim and items cannot diverge. Tests added.
 
+## Governing method (adopted after Phase 5)
+
+**Customer-experience-first** (`OTZAR_CUSTOMER_EXPERIENCE_FIRST_MODEL.md`):
+every feature starts from the customer story and feeling, works backward to
+ETL/permissions/routing, greps before building, and closes with live
+customer-experience verification. Phases 1–5 are COMPLETE and live-verified;
+Phase 6 delivered the six future-capability models (meeting ingestion,
+workflow observation, Agent Playground scenarios, regulator sharing,
+Reports vs Work Health) — docs-first, no fake capability claims.
+
 ## Next phases (queued, in order)
 
 Phase 2 admin People model (invite flow + twin creation + role templates) ·
