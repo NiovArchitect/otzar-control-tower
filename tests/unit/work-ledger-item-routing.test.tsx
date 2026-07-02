@@ -102,3 +102,27 @@ describe("WorkLedgerItem — routing decision surface (P0R)", () => {
     expect(screen.queryByTestId("work-ledger-item-routing-why")).toBeNull();
   });
 });
+
+// PROD-UX-VIS-C — the card face says WHO owns it, pronoun-guarded.
+describe("WorkLedgerItem — ownership on the card face (VIS-C)", () => {
+  it("shows 'Owned by <name>' when the enriched name is a real name", () => {
+    render(
+      <WorkLedgerItem entry={entry({ owner_display_name: "David Odie" })} />,
+    );
+    expect(screen.getByTestId("work-ledger-item-owner")).toHaveTextContent(
+      "Owned by David Odie",
+    );
+  });
+
+  it("a pronoun-ish owner renders the review copy, never 'Owned by his'", () => {
+    render(<WorkLedgerItem entry={entry({ owner_display_name: "his" })} />);
+    expect(screen.getByTestId("work-ledger-item-owner")).toHaveTextContent(
+      /Owner needs review/,
+    );
+  });
+
+  it("no enriched owner name → no owner fragment (no fake ownership)", () => {
+    render(<WorkLedgerItem entry={entry()} />);
+    expect(screen.queryByTestId("work-ledger-item-owner")).toBeNull();
+  });
+});

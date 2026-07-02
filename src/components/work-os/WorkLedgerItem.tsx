@@ -20,6 +20,7 @@ import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligen
 import { viewWhyFromLedger } from "@/lib/work-os/view-why";
 import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
 import { routingLaneChip, routingWhyLine } from "@/lib/work-os/routing-lane";
+import { formatOwnedByLine } from "@/lib/identity/owner-display";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
 //        summarizeExecutionProof) so the badge + section agree.
@@ -200,6 +201,14 @@ export function WorkLedgerItem({
           <div className="font-medium text-foreground">{entry.title}</div>
           <div className="text-[10px] text-muted-foreground">
             {entry.ledger_type}
+            {/* PROD-UX-VIS-C — who owns it, on the card face (pronoun-guarded). */}
+            {typeof entry.owner_display_name === "string" &&
+            entry.owner_display_name.length > 0 ? (
+              <span data-testid="work-ledger-item-owner">
+                {" · "}
+                {formatOwnedByLine(entry.owner_display_name)}
+              </span>
+            ) : null}
             {entry.next_action !== null ? ` · Next: ${entry.next_action}` : ""}
           </div>
           {exec.state !== "tracking" ? (
