@@ -10,9 +10,12 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { WorkLedgerEntryView } from "@/lib/types/foundation";
+import type { Entity, EntityMembership, WorkLedgerEntryView } from "@/lib/types/foundation";
 import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import { bucketFor, BUCKET_ORDER } from "@/lib/work-os/work-buckets";
+import { buildTeamRollup } from "@/lib/work-os/team-rollup";
+import { useAuthStore } from "@/lib/stores/auth";
+import { GlassPanel } from "@/components/ambient/GlassPanel";
 import { isWaitingOnItem, groupWaitingByOwner, ageOf } from "@/lib/work-os/team-waiting-on";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import { useWorkStateChanged } from "@/lib/events/work-state";
@@ -79,6 +82,31 @@ export function TeamWork(): JSX.Element {
     () => void reload(),
   );
 
+  // CX-SLICE-1 — the manager's operating-state rollup. Hierarchy + people
+  // load alongside (this page is already manager-gated); a 403/absence
+  // degrades to the no-manager fallback (no invented reports).
+  const callerEmail = useAuthStore((s) => s.entity?.email ?? null);
+  const [hier, setHier] = useState<{ org: string; memberships: EntityMembership[] } | null>(null);
+  const [people, setPeople] = useState<Entity[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void api.org.hierarchy.get().then((r) => {
+      if (!cancelled && r.ok) setHier({ org: r.data.org_entity_id, memberships: r.data.memberships });
+    }).catch(() => undefined);
+    void api.org.entities.list({ type: "PERSON", take: 250 }).then((r) => {
+      if (!cancelled && r.ok) setPeople(r.data.items);
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+  const rollup = items === null ? null : buildTeamRollup({
+    entries: items,
+    callerEmail,
+    people,
+    memberships: hier?.memberships ?? [],
+    orgEntityId: hier?.org ?? null,
+    hasMore,
+  });
+
   // Directional waiting-on items grouped by owner (the person being waited on).
   const waitingOn = items === null ? [] : items.filter(isWaitingOnItem);
   const ownerGroups = groupWaitingByOwner(waitingOn);
@@ -111,6 +139,46 @@ export function TeamWork(): JSX.Element {
         <p className="text-xs text-muted-foreground">Loading team work…</p>
       ) : (
         <>
+          {/* CX-SLICE-1 — the operating state of your team, before any list.
+              Real counts from the loaded entries + real manager edges; the
+              coverage note states exactly what the numbers cover. */}
+          {rollup !== null &&
+          (rollup.directReports !== null ||
+            rollup.unownedOrEscalated + rollup.blockedOrSetup + rollup.approvalsNeeded + rollup.recentlyCompleted > 0) ? (
+            <GlassPanel intensity="working" label="Your team right now" testId="team-rollup">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs" data-testid="team-rollup-counts">
+                <span data-testid="team-rollup-approvals">
+                  <span className="font-medium text-amber-700">{rollup.approvalsNeeded}</span> waiting on approval
+                </span>
+                <span data-testid="team-rollup-blocked">
+                  <span className="font-medium text-rose-700">{rollup.blockedOrSetup}</span> blocked or need setup
+                </span>
+                <span data-testid="team-rollup-unowned">
+                  <span className="font-medium text-amber-700">{rollup.unownedOrEscalated}</span> unowned or escalated
+                </span>
+                <span data-testid="team-rollup-completed">
+                  <span className="font-medium text-emerald-700">{rollup.recentlyCompleted}</span> recently completed
+                </span>
+              </div>
+              {rollup.directReports !== null ? (
+                <div className="mt-2 space-y-0.5" data-testid="team-rollup-reports">
+                  {rollup.directReports.map((r) => (
+                    <p key={r.entity_id} className="text-xs text-slate-700" data-testid="team-rollup-report">
+                      <span className="font-medium">{r.name}</span> · {r.open} open
+                      {r.blocked > 0 ? ` · ${r.blocked} blocked` : ""}
+                      {r.approvals > 0 ? ` · ${r.approvals} waiting on approval` : ""}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+              {rollup.coverage !== null ? (
+                <p className="mt-1 text-[10px] text-muted-foreground" data-testid="team-rollup-coverage">
+                  {rollup.coverage}
+                </p>
+              ) : null}
+            </GlassPanel>
+          ) : null}
+
           {/* Phase 1285-G — Waiting on team: directional relationship state
               from durable Work Ledger records. */}
           <section className="space-y-1.5" data-testid="team-work-waiting-on">

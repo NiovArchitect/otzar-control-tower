@@ -132,7 +132,8 @@ describe("Section 5 Wave 10 Agent Playground -- nav + route + shell", () => {
   it("registers Agent Playground in the main nav at /agent-playground", () => {
     const entry = NAV.find((n) => n.to === "/agent-playground");
     expect(entry).toBeDefined();
-    expect(entry?.label).toBe("Agent Playground");
+    // CX-SLICE-2 — reframed in executive language; route unchanged.
+    expect(entry?.label).toBe("Scenario Studio");
   });
 
   it("preserves the pre-existing /playground nav entry per ADR-0077 §11 Option A", () => {
@@ -144,10 +145,10 @@ describe("Section 5 Wave 10 Agent Playground -- nav + route + shell", () => {
   it("renders the cockpit page header", () => {
     renderPage();
     expect(
-      screen.getByRole("heading", { level: 1, name: /Agent Playground/i }),
+      screen.getByRole("heading", { level: 1, name: /Scenario Studio/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Enterprise decision cockpit/i),
+      screen.getByText(/Think before you act/i),
     ).toBeInTheDocument();
   });
 

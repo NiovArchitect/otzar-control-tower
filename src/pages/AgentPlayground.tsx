@@ -182,9 +182,12 @@ export function AgentPlaygroundPage() {
 
   return (
     <div className="space-y-6">
+      {/* CX-SLICE-2 — executive language over the real ADR-0077 pipeline:
+          scenario → candidates → comparison → recommendation → simulation →
+          governed transition. No toy framing, no autonomy overclaims. */}
       <PageHeader
-        title="Agent Playground"
-        description="Enterprise decision cockpit -- think before you act. Governed, scoped, auditable. Wave 10 never bypasses governed Action runtime."
+        title="Scenario Studio"
+        description="Think before you act. Pose a scenario and your AI teammates explore the options over your organization's own, permissioned knowledge — compare outcomes, recommend the best path, and simulate how it plays out. Nothing becomes real work without your approval, and every step is recorded."
       />
 
       <Card>
