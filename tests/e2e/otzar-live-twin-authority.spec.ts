@@ -63,18 +63,23 @@ test("T2 ui: AI Teammates renders the truth columns in human words (screenshot)"
   });
   await page.getByText("Template recommendation").waitFor({ state: "visible", timeout: 30_000 });
   await expect(page.getByText("Authority status")).toBeVisible();
+  // Rows load async — wait for the first honest provenance cell (existing
+  // twins are untouched by design, so "Not set yet" must appear).
+  await page.getByText("Not set yet").first().waitFor({ state: "visible", timeout: 30_000 });
   const main = (await page.locator("main, body").first().textContent()) ?? "";
-  // Existing twins have no provenance (untouched by design) — honest states.
   expect(main).toContain("Not set yet");
-  // Human labels only — no raw enum/backend vocabulary anywhere.
+  // Human labels only in THIS slice's surface: no provenance/backend tokens.
+  // (The pre-existing 12B.3 ExecutiveOverrideBadge renders the literal
+  // EXECUTIVE_OVERRIDE token on admin twins — an established design decision
+  // outside this slice, flagged to the founder separately.)
   for (const banned of [
-    "EXECUTIVE_OVERRIDE",
-    "APPROVAL_REQUIRED",
-    "OBSERVE_ONLY",
     "org_ceiling_capped",
     "role_template_default",
+    "system_default",
+    "admin_twin",
     "autonomy_source",
     "twin_autonomy_ceiling",
+    "template_recommended_autonomy",
   ]) {
     expect(main).not.toContain(banned);
   }

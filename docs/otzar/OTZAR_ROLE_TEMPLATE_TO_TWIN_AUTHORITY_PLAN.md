@@ -1,7 +1,16 @@
 # Role Template → AI Twin Behavior & Authority: Wiring Plan
 
-**Status:** 2026-07-03 (Fable 5). PLAN ONLY — no production authority change
-ships from this document. Companion to
+**Status:** 2026-07-03 (Fable 5). SLICE 1 SHIPPED (FND `dd7c4ab`, CT `e8cc7f5`)
+per founder GO — Option A exactly as specified below. Day-one runtime outcome
+change: zero (ceiling default APPROVAL_REQUIRED; existing twins untouched,
+live-verified). DEPLOY-ORDER LESSON (P0 incident, same day): Render job
+`startCommand` is NOT run through a shell — quotes pass literally, so
+`node -e "…"` evaluates a string literal and exits 0 as a silent no-op. Any
+remote migration/verify channel MUST first prove it can FAIL (canary
+`process.exit(3)` → job must report failed). Working channel:
+`sh -c` + spaceless `${IFS}` pipeline. The safe sequence that finally shipped:
+real additive SQL job → exit-code-verified → independent untouched-rows job →
+THEN merge/deploy → behavioral probe (route serves the new fields). Companion to
 [`OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md`](./OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md)
 (the evidence) and
 [`OTZAR_TWIN_ROLE_TEMPLATE_MODEL.md`](./OTZAR_TWIN_ROLE_TEMPLATE_MODEL.md)
