@@ -150,7 +150,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   read-only screenshot of true-scale copy (org currently has 10 → immediate
   visible proof).
 
-### C. Workspace cleanup/archive rail — 🔴 open
+### C. Workspace cleanup/archive rail — 🟢 CLOSED 2026-07-03 (FND `7bc31e7`: APPROVE-gated archive service + route, audited, idempotent; live route probe 404→401; live smoke `otzar-live-assign-workspace.spec.ts` 4/4)
 
 - **Customer story:** "If Otzar helps me place someone in a workspace, my org
   must be able to undo/retire that placement."
@@ -320,7 +320,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **State:** real pipeline exists; customer positioning + exec rollup unclear
   ([`OTZAR_AGENT_PLAYGROUND_SCENARIO_MODEL.md`](./OTZAR_AGENT_PLAYGROUND_SCENARIO_MODEL.md)).
 
-### P. Workspace/project assignment live parity — 🟡 partially closed
+### P. Workspace/project assignment live parity — 🟢 CLOSED 2026-07-03 (full reversible workspace loop live-proven: create → UI assign from card → membership+audit → recommendation gone → idempotent → archive → targets drop it, assignment refuses TARGET_NOT_ACTIVE, recommendation + baseline restored)
 
 - **State:** project path fully live-proven (create → assign from card → truth
   change → audit → archive → truth restored; CT `019f4e8`, FND `bf9a68e`).
