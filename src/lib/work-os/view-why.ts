@@ -20,6 +20,7 @@ import type {
 } from "@/lib/types/foundation";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import { entityLabel } from "@/lib/identity/canonical-entity";
+import { sourceLineageWhyValue } from "@/lib/labels/source-lineage";
 
 // ── Shared label helpers (Phase 1285-L) ─────────────────────────────────────
 // Title-case an UPPER_SNAKE token into human words.
@@ -118,6 +119,11 @@ export function viewWhyFromLedger(entry: WorkLedgerEntryView): ViewWhyModel {
     { label: "Type", value: entry.ledger_type },
     { label: "Status", value: entry.status?.replace(/_/g, " ") },
     { label: "Priority", value: entry.priority },
+    // [GAP-J] where the work came from — always answered here (honest
+    // "Source not recorded yet" when unrecorded), quiet on the card face.
+    { label: "Came from", value: sourceLineageWhyValue(entry.source_lineage) },
+    { label: "Shared by", value: entry.source_lineage?.source_actor ?? null },
+    { label: "Received", value: entry.source_lineage?.source_timestamp ?? null },
     { label: "Source", value: entry.source_command !== null ? `“${entry.source_command}”` : null },
     {
       label: "Owner",

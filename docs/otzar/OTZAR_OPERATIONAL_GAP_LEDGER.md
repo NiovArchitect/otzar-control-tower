@@ -238,17 +238,58 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ### I. Multi-source ingestion readiness — 🟡 AUDITED 2026-07-03 (full 17-source readiness map: [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md)). Verdicts: manual Comms transcript is the reference implementation; Zoom is live but routed as generic TRANSCRIPT (provenance/idempotency loss); Slack read is one wire away (adapter + provider + OAuth rail all exist, no route calls them); Docs/Gmail content reads don't exist; **Notion is catalog-visible with zero substrate (R10 placeholder flag)**; two parallel durable stores violate the single-ledger contract (Observe/OCR tables, conduct MemoryCapsules); **no inbound event route exists anywhere — every connector is outbound-only, so nothing can arrive ambiently (the structural gap)**. Canonical adapter contract now written (18 fields; an adapter is ~50 lines that builds a WorkSourceEvent and calls ingestSourceEvent). Build order: (1) Zoom→CONNECTOR provenance ✅ SHIPPED 2026-07-03 (FND `51d8700`: sourceSystem ZOOM via the spine, org-scoped dedupe ZOOM:<meeting_id>, idempotent 409 on re-ingest, row lineage, no tokenized URLs; live honesty probes 401/403/NOT_CONFIGURED green), (2) Slack read→canonical ingest ✅ SHIPPED 2026-07-03 `[SLACK-INGEST-1]` (FND PR #539: admin-triggered public-channel message ingest via org sealed OAuth envelope → canonical adapter → spine; doctrine dedupe `org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>`; DMs/private parked by policy; Events-API webhook honestly deferred — gap N still open), (3) NEXT: D&K per-row lineage, voice ingest hop, observe/OCR convergence, Notion catalog honesty.
 
-### J. Data & Knowledge lineage browsing — 🔴 open
+### J. Per-row source lineage — 🟡 SLICE 1 SHIPPED 2026-07-03 `[GAP-J]`
 
-- **Customer story:** "Where did this knowledge come from? What's raw vs
-  curated vs trusted vs excluded, and what policy governs it?"
-- **State:** substrate stores source pointers (captures, evidence quotes,
-  provenance details) but the Data & Knowledge surface doesn't yet let a
-  customer walk lineage.
-- **Trust risk:** high for enterprise buyers — data governance is a purchase
-  gate.
-- **Tests/smoke:** lineage projection matches stored pointers; no leakage of
-  other-tenant/other-person raw content.
+- **Customer story:** "When Otzar shows me work, I want to know where it came
+  from — Slack, Zoom, a transcript — without seeing raw backend IDs or secret
+  URLs. If I understand the work, don't distract me; if I'm confused, answer
+  'why is this here?' when I ask."
+- **Shipped (FND PR #540 + CT):** ONE safe extractor
+  (`sourceLineageFromDetails` in `work-ledger.service.ts`, wired into
+  `projectLedger` — the single row→view mapper) projects
+  `source_lineage {source_system, source_id_present, has_source_excerpt,
+  source_actor, source_timestamp}`; raw `source_id`/`dedupe_key`/`source_url`/
+  `connector_identity` deliberately never cross. ONE CT label map
+  (`labels/source-lineage.ts`) turns it into calm copy; the card face gets at
+  most one muted fragment ("From Slack"), the shared Why panel answers
+  "Came from / Shared by / Received" (honest "Source not recorded yet").
+- **Coherence:** no new Why component (rows injected into the existing
+  `ViewWhyModel`, the Gap A idiom); no new proof store; the writer
+  (`sourceEvidenceDetails`) untouched — one builder, one writer, one reader.
+  `org-query.sourceSystemOf` keeps retrieval semantics (documented overlap).
+
+#### Lineage is not clutter — lineage powers clarity (doctrine, 2026-07-03)
+
+- **Quiet by default.** Main work cards carry at most ONE calm source label,
+  and only when the system is known. Unknown ≠ a badge — unknown is silence
+  on the card and an honest "Source not recorded yet" in Why. No proof
+  badges everywhere; no source-metadata dashboard for employees; audit
+  burden never lands on the person doing the work.
+- **Three visibility levels, never collapsed into one UI:** employee = quiet
+  task context ("From Slack", "Asked by Samiksha"); manager = exceptions and
+  unresolved clarity/approval items, patterns not raw events; admin/security
+  = full proof trail (source system/event/timestamps, actors, policy
+  decisions, audit chain) on Security & Audit surfaces only.
+- **Ask-for-clarity path.** Otzar answers "why is this here / where did this
+  come from / who knows?" from truth (lineage, WorkLedger, people graph,
+  approvals, prior corrections) — never vibes. If it cannot answer
+  confidently it escalates for clarity instead of hallucinating.
+- **Lateral escalation doctrine — manager is not always the answer.** The
+  best clarifier is usually the source author, the commitment owner, the
+  project lead, the approver, or the teammate named in the conversation;
+  hierarchy is the right route only when authority itself is the question.
+  Routing must be driven by ingestion + org truth, not a manager-only rule.
+  Fewer repeated questions, fewer "who owns this?" moments — Otzar
+  harmonizes collaboration, it does not add homework.
+- **NEXT SLICE (documented, not built): lineage-aware clarity escalation** —
+  Ask-Otzar answers "who can clarify?" and offers a governed clarification
+  route to the best-known human source via the EXISTING escalation/action
+  rails (only real, governed actions — no fake affordances).
+- **Remaining honest:** approval/assignment-origin rows don't record lineage
+  yet (writers must record it first — lineage is never invented); D&K page
+  lists connector sources, not knowledge rows, so full lineage *browsing*
+  (raw vs curated vs trusted, governing policy) stays open; comms follow-up
+  cards + Ask-Otzar already carry source context via their own adapters.
 
 ### K. Memory / Digital Work Wallet redesign — 🔴 open
 

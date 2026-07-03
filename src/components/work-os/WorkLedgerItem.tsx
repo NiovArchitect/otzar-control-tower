@@ -21,6 +21,7 @@ import { viewWhyFromLedger } from "@/lib/work-os/view-why";
 import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
 import { routingLaneChip, routingLaneEdge, routingWhyLine } from "@/lib/work-os/routing-lane";
 import { formatOwnedByLine } from "@/lib/identity/owner-display";
+import { sourceLineageLabel } from "@/lib/labels/source-lineage";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
 //        summarizeExecutionProof) so the badge + section agree.
@@ -73,6 +74,7 @@ export function WorkLedgerItem({
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receipt, setReceipt] = useState<{ loading: boolean; text: string | null }>({ loading: false, text: null });
   const exec = deriveWorkItemExecution(entry);
+  const sourceLabel = sourceLineageLabel(entry.source_lineage);
   // PROD-UX-P0R — the routing decision projection (attached by getMyWork).
   const laneChip = routingLaneChip(entry.routing);
   const laneWhy = routingWhyLine(entry.routing);
@@ -214,6 +216,14 @@ export function WorkLedgerItem({
               </span>
             ) : null}
             {entry.next_action !== null ? ` · Next: ${entry.next_action}` : ""}
+            {/* [GAP-J] calm source origin — one muted fragment, only when the
+                source is a known system (unknown = silence, not clutter). */}
+            {sourceLabel !== null ? (
+              <span data-testid="work-ledger-item-source">
+                {" · "}
+                {sourceLabel}
+              </span>
+            ) : null}
           </div>
           {exec.state !== "tracking" ? (
             <div className="mt-0.5 text-[10px]" data-testid="work-ledger-item-exec-state" data-exec-state={exec.state}>

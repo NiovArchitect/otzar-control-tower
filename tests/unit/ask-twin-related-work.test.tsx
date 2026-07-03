@@ -189,8 +189,11 @@ describe("Ask your Twin — Find related work (advisory, scoped)", () => {
     // No raw UUID / ledger id as a label.
     expect(item.textContent).not.toContain("led-decision");
     expect(item.textContent).not.toContain("ent-sam");
-    // No task/send/approval API touched by the display.
-    expect(calls.some((c) => c.includes("/actions"))).toBe(false);
+    // No task/send/approval API is WRITTEN by the display. (The page itself
+    // legitimately READS /actions on mount — the GAP-H-OPS "My AI Twin"
+    // transparency panel lists recent governed activity — so the invariant
+    // is no mutation, not no read.)
+    expect(calls.some((c) => c.startsWith("POST") && c.includes("/actions"))).toBe(false);
     expect(calls.some((c) => /\/notifications\/.*\/(read|reply)/.test(c))).toBe(false);
   });
 

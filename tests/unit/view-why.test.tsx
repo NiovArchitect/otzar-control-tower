@@ -72,6 +72,52 @@ function msg(over: Partial<DirectThreadMessageView>): DirectThreadMessageView {
   };
 }
 
+// ── [GAP-J] the Why panel always answers "where did this come from?" ──
+describe("viewWhyFromLedger — source lineage rows (GAP-J)", () => {
+  it("a Slack-origin row answers with human copy + author + received time", () => {
+    const m = viewWhyFromLedger(
+      ledger({
+        source_lineage: {
+          source_system: "SLACK",
+          source_id_present: true,
+          has_source_excerpt: true,
+          source_actor: "Sadeil Lewis",
+          source_timestamp: "2026-07-03T12:00:00.000Z",
+        },
+      }),
+    );
+    expect(m.rows.find((r) => r.label === "Came from")?.value).toBe("From Slack");
+    expect(m.rows.find((r) => r.label === "Shared by")?.value).toBe("Sadeil Lewis");
+    expect(m.rows.find((r) => r.label === "Received")?.value).toBe("2026-07-03T12:00:00.000Z");
+    // Backend enums never render as Why copy.
+    const values = m.rows.map((r) => r.value).join(" ");
+    expect(values).not.toContain("CONNECTOR");
+    expect(values).not.toMatch(/\bSLACK\b/);
+  });
+
+  it("a Zoom-origin row answers From Zoom recording", () => {
+    const m = viewWhyFromLedger(
+      ledger({
+        source_lineage: {
+          source_system: "ZOOM",
+          source_id_present: true,
+          has_source_excerpt: false,
+          source_actor: null,
+          source_timestamp: null,
+        },
+      }),
+    );
+    expect(m.rows.find((r) => r.label === "Came from")?.value).toBe("From Zoom recording");
+    // Null author/time rows are dropped by the presenter (no blank rows).
+    expect(m.rows.find((r) => r.label === "Shared by")?.value).toBeNull();
+  });
+
+  it("a row with no recorded source answers honestly", () => {
+    const m = viewWhyFromLedger(ledger({}));
+    expect(m.rows.find((r) => r.label === "Came from")?.value).toBe("Source not recorded yet");
+  });
+});
+
 describe("viewWhyFromLedger — canonical identity, never a UUID", () => {
   it("renders the display name when resolved", () => {
     const m = viewWhyFromLedger(ledger({ owner_display_name: "David Odie" }));

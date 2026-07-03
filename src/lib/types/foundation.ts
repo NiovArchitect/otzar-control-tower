@@ -4631,6 +4631,17 @@ export interface CalendarEventProposalBody {
 }
 
 // Phase 1279 — durable Work Ledger entry (safe projection).
+// [GAP-J] The SAFE source-lineage block (FND SourceLineageProjection).
+// Closed-vocab scalars only — the raw source id, dedupe key, URL, and
+// connector identity deliberately never cross the API.
+export interface SourceLineageView {
+  source_system: string;
+  source_id_present: boolean;
+  has_source_excerpt: boolean;
+  source_actor: string | null;
+  source_timestamp: string | null;
+}
+
 export interface WorkLedgerEntryView {
   ledger_entry_id: string;
   ledger_type: string;
@@ -4693,6 +4704,10 @@ export interface WorkLedgerEntryView {
   blind_spot_severity?: string;
   // Phase 1285-E — the thread message this work was tracked from (proof link).
   source_message_id?: string;
+  // [GAP-J] — quiet source-lineage truth (safe scalars only; FND
+  // sourceLineageFromDetails). Present only when the row's source was
+  // recorded by the ingest spine — the UI never invents an origin.
+  source_lineage?: SourceLineageView;
   // Phase 1285-E — server-computed: the caller owns this active task and may
   // mark it complete (My Work only). Drives the "Mark complete" control.
   can_complete?: boolean;

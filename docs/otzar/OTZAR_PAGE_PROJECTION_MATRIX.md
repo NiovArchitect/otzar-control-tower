@@ -69,3 +69,7 @@ sends now queue for approval as designed.
 8. Dandelion conversion updates People/Projects.
 9. Access Control agrees with Tools capabilities.
 10. Data & Knowledge lineage appears when work came from communication.
+    *(partially covered 2026-07-03 `[GAP-J]`: work cards + Why panel carry
+    per-row source lineage — "From Slack"/"From Zoom recording"/"From Comms
+    transcript" via `source_lineage`; the D&K page itself lists connector
+    sources, not knowledge rows, so lineage BROWSING there stays open)*
