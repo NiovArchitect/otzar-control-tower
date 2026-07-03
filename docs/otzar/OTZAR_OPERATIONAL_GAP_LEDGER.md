@@ -188,7 +188,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **Tests/smoke:** dismissal survives refresh/re-login; audited; resurfaces
   per policy; live reversible (un-dismiss or expiry).
 
-### E. Sender-visible rejection reason — 🔴 open
+### E. Sender-visible rejection reason — 🟢 CLOSED 2026-07-03 (FND `04c6b64`: SafeActionView.not_approved_reason projected from the paired escalation, REJECTED-only; CT `a907e17`: 'From your approver: "…"' on the Blocked tab; live smoke `otzar-live-reject-reason.spec.ts` 2/2 with screenshot)
 
 - **Customer story:** "My send was declined — tell me WHY in my own list, so I
   know what to change, without hunting through an admin surface."

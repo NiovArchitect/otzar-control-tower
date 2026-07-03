@@ -109,7 +109,7 @@ test("R2 armed: reject with a reason → the sender sees the approver's words (s
   await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, { timeout: 45_000 });
   await page.waitForTimeout(2500);
   await page.evaluate(() => {
-    history.pushState({}, "", "/app/actions");
+    history.pushState({}, "", "/app/action-center");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await page.getByTestId("action-tab-blocked").waitFor({ state: "visible", timeout: 30_000 });
