@@ -127,7 +127,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   calm. Live — read-only; screenshot only if a correction row exists
   naturally (no forced irreversible fixture — corrections are permanent).
 
-### B. People & Collaboration full setup queue ("and N more") — 🔴 open — **recommended next slice**
+### B. People & Collaboration full setup queue ("and N more") — 🟢 CLOSED 2026-07-03 (FND `2b70145`, CT `30658d9`; live-proven "Showing 5 of 10" + expandable server-backed queue with the real assign rail; smoke `otzar-live-people-full-queue.spec.ts` 2/2)
 
 - **Customer story:** "As an admin, show me the TRUE scale of what my org
   needs — not a sample that quietly hides half the problem."
