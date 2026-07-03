@@ -850,6 +850,11 @@ function DandelionGrowthCard(): JSX.Element | null {
                 className="rounded border bg-card p-2"
                 data-testid="dandelion-growth-item"
                 data-kind={rec.kind}
+                data-person-entity-id={
+                  rec.kind === "NEEDS_PROJECT_OR_WORKSPACE"
+                    ? rec.context?.person_entity_id
+                    : undefined
+                }
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>

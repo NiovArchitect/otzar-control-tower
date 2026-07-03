@@ -217,6 +217,12 @@ describe("Dandelion — admin growth card (Phase 1237)", () => {
     await waitFor(() =>
       expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument(),
     );
+    // The item exposes the STABLE person id as a DOM hook (never a display
+    // name) so live smokes can target the right card by identity.
+    expect(screen.getByTestId("dandelion-growth-item")).toHaveAttribute(
+      "data-person-entity-id",
+      withContext.growth.recommendations[0]?.context?.person_entity_id,
+    );
     cleanup();
     server.use(
       http.get(`${API_BASE}/otzar/dandelion/org-growth`, () => HttpResponse.json(noContext)),
