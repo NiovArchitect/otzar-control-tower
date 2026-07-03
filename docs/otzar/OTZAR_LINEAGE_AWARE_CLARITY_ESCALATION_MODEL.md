@@ -1,9 +1,11 @@
-# Lineage-Aware Clarity Escalation — Design (audit-first, no code yet)
+# Lineage-Aware Clarity Escalation — Model (audit-first, no code yet)
 
 Status: **DESIGN ACCEPTED-PENDING** · 2026-07-03 · follows Gap J Slice 1
-(`fbc3615` / `f0e561c`). Companion to the doctrine recorded in
+(`fbc3615` / `f0e561c`). Companion docs:
 `OTZAR_OPERATIONAL_GAP_LEDGER.md` §J ("Lineage is not clutter — lineage
-powers clarity").
+powers clarity") and
+[`OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md`](./OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md)
+(the governing org-ready + portable-twin boundary this model must obey).
 
 ## 1. Customer story
 
@@ -88,6 +90,29 @@ intercept (`thread-query.ts` + AmbientOtzarBar dispatch ~:3026); the
 PersonCockpit governed "Request help" / message composer
 (`PersonCockpit.tsx:205`); the AskYourTwin OTHER_TWIN honest refusal →
 governed collaboration deep-link (`MyTwin.tsx:297`).
+
+### 3b. Otzar-native communication paths — durable vs UI/session-only
+
+Internal Otzar communication is itself a truth source for clarity, but the
+paths differ in durability and only durable paths may carry a governed
+clarification:
+
+**Durable (real records, org-scoped, auditable):**
+`EscalationRequest` (lifecycle + resolution); governed Actions
+(`SEND_INTERNAL_NOTIFICATION` via the policy evaluator); the notification
+inbox (`DIRECT_MESSAGE` / `ACTION_REQUIRED` / `OTZAR_INTERNAL_NOTE`
+classes); internal message threads (`deliverHumanInternalMessage` →
+`api.workOs.thread`); collaboration requests
+(`api.otzar.collaboration.create`); WorkLedger FOLLOW_UP rows (which are
+also the learn-loop correction store).
+
+**UI/session-only (never a system of record):**
+`pending-clarification.ts` — explicitly ephemeral in-session working
+memory with a 5-minute TTL, rendered only as the ambient bar's memory
+chip; `current-surface-context` (explicit selection capture);
+`action-details-store` local detail cache. A clarification that matters
+must never live only here — the ephemeral chip may *carry the user to*
+the durable create, never substitute for it.
 
 ## 4. What is genuinely missing (the whole build surface)
 
@@ -184,6 +209,41 @@ Team Work, not on employee cards.
 Smallest safe first slice: **CE-1** — pure read, provable with unit +
 integration tests, no behavior risk, and it makes CE-2's button honest
 (the affordance exists only when a real ranked candidate does).
+
+## 7b. Visibility levels (employee / manager / admin — never collapsed)
+
+- **Employee**: the calm card fragment, the Why answer, the Ask-Otzar
+  clarity answer, and — only when truth runs out — the offered
+  clarification request. Nothing to manage, no queues created for them.
+- **Manager**: exceptions only — "ownership unclear on N items from this
+  sync", clarifications pending past expiry, blockers — on Team Work,
+  never per-event feeds (CE-4).
+- **Admin/security**: the full escalation + audit trail on the existing
+  Security & Audit surfaces; nothing new needed — the spine already
+  audits.
+
+## 7c. Portability boundary (governing doctrine applied to clarity)
+
+Per `OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md`: **the employee can
+take the shape of how they work; they cannot take the company's work.**
+Applied here:
+
+- Clarification requests, their resolutions, source excerpts quoted in
+  them, escalation records, and every audit event this model creates are
+  **org-bound, never portable** — they are Company A's operational record.
+- Lineage itself (`source_lineage`, source excerpts, source ids) is
+  org-bound source truth — it powers clarity inside the org and never
+  crosses into a personal wallet.
+- What MAY someday become portable from this feature is only the
+  **derived personal method pattern** — e.g. "this person resolves
+  ambiguity by asking the source author first", "prefers one focused
+  question over broadcast" — stripped of company names, coworker
+  identities, transcripts, and excerpts, and only through the future
+  derivation rail the doctrine defines (Category C → A). No such
+  derivation exists today and none is built in CE-1..CE-4.
+- The learn-loop this model feeds (`correctionsForContext`) stays
+  org-scoped — prior corrections reduce repeated questions inside
+  Company A and are not employee-exportable.
 
 ## 8. Governance invariants (all slices)
 

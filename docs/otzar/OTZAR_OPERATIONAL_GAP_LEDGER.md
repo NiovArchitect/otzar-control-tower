@@ -282,7 +282,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   Fewer repeated questions, fewer "who owns this?" moments — Otzar
   harmonizes collaboration, it does not add homework.
 - **NEXT SLICE — lineage-aware clarity escalation: DESIGN COMPLETE
-  2026-07-03** ([`OTZAR_CLARITY_ESCALATION_DESIGN.md`](./OTZAR_CLARITY_ESCALATION_DESIGN.md)):
+  2026-07-03** ([`OTZAR_LINEAGE_AWARE_CLARITY_ESCALATION_MODEL.md`](./OTZAR_LINEAGE_AWARE_CLARITY_ESCALATION_MODEL.md)):
   audit-first, no code. Spine = existing `EscalationRequest` (arbitrary
   lateral target + dormant `HUMAN_REVIEW_REQUIRED` AI-uncertainty type);
   deterministic clarifier ranking from org truth (source author → owner →
@@ -364,6 +364,60 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   (fake names, old smoke captures, duplicate work items) and the standing
   capped-list rule — **never count a capped list; use the uncapped signal**
   (`members_without_project_count` precedent).
+
+### S. Portable AI Twin / Digital Work Wallet boundary — 🔴 open (doctrine + audit COMPLETE 2026-07-03)
+
+- **Governing doc:** [`OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md`](./OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md)
+  — "the employee can take the SHAPE of how they work; they cannot take
+  the company's WORK."
+- **Employee story:** "Leaving Company A, I take my AI Twin's learned
+  skills and working style — I understand I cannot take Company A's
+  confidential data, source records, internal messages, customer data, or
+  audit history."
+- **Org story:** "When an employee leaves, company data stays protected;
+  when one joins, another company's private data never enters my
+  environment; the new twin is capped by MY policy and MY bindings."
+- **Trust risk:** existential both ways — an employer that suspects
+  leakage never adopts; an employee whose wallet is hollow never invests.
+- **Data-ownership risk:** MemoryCapsule has NO on-row scope field
+  (personal-vs-org is implicit in the wallet join, reconstructed
+  per-capsule-type at write time — FND schema:97-222); OtzarConversation
+  lacks org_entity_id; "your data" copy flips referent between employee
+  (MyMemory) and company (DataSovereigntyInline) surfaces.
+- **Current substrate (live and correct):** three-wallet model
+  (PERSONAL/ENTERPRISE/DEVICE, schema:446); write-time portability
+  routing invariant (DECISION→org wallet; COMMITMENT/WORK_PATTERN/
+  CORRECTION/CONVERSATION_LEARNING→employee wallet,
+  observation.service.ts:229); TwinCorrectionMemory's explicit
+  PERSONAL→ORG scope ladder with safe summaries + pointers-only;
+  per-org sealed connector envelopes; revocable grants + receipts;
+  honest `memory_portability_supported: false`
+  (proof-of-access.service.ts:114); the full boundary VOCABULARY built
+  but dead ("stays with company / travels with employee" —
+  WalletProvenanceBadge renders in exactly one hardcoded place).
+- **Missing boundaries:** no persisted ownership_class on capsules; no
+  human offboarding flow (Users "Suspend" leaves the twin minted and is
+  silent on wallet disposition); no Category-C derivation rail (mixed
+  memory → stripped portable method); no export/import (correctly — none
+  claimed); Chat correction UI silent on where learning lands; capsule
+  label map ungrouped (personal/org split invisible despite backend
+  routing truth, voice-note-provenance.ts:10).
+- **Safest next slice (S-1, recommended): boundary labeling — render
+  existing truth, move no data.** Tag the 20-entry capsule-types map
+  personal/org/device (matching the live routing invariant); mount the
+  already-built WalletProvenanceBadge on Data & Knowledge + Access
+  Control rows (its own header claims those consumers); fix the pronoun
+  flip (name the owner); add the one-line "where this learning lands"
+  copy to Chat corrections. NO export button, NO portability claim.
+  **Alternative (S-2, second):** backend ownership-class classifier —
+  safe derived categories over existing rows (wallet join + capsule_type
+  + scope_type), read-only projection, no data movement, no schema
+  change required for v1.
+- **Tests/smoke needed:** label map matches the write-time routing truth
+  (unit, both repos); badge renders the correct variant per wallet type;
+  no surface claims exportability; admin sees counts-only of personal
+  wallets (existing invariant locked); future portability = the ten
+  proofs in doctrine §20.
 
 ---
 

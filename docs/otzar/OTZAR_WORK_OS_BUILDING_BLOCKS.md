@@ -94,7 +94,12 @@ hierarchy-aware identity.
 templates label and scope, they don't yet fully drive per-twin conduct;
 portable memory (Digital Work Wallet) vs. company data needs a stronger
 customer experience (the personal-value framing exists, the deep product
-doesn't yet).
+doesn't yet). The boundary itself is now GOVERNING DOCTRINE —
+[`OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md`](./OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md)
+("the employee can take the SHAPE of how they work; they cannot take the
+company's WORK"): three-wallet substrate + write-time routing invariant
+are live; on-row scope fields, offboarding disposition, derivation rail,
+and any export remain unbuilt and unclaimed (gap ledger §S).
 
 ## 2. Workstream Context
 
