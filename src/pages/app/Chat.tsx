@@ -301,6 +301,16 @@ export function Chat() {
                 void submitCorrection();
               }}
             >
+              {/* [GAP-S S-1] where this learning lands — the true copy:
+                  corrections write to the employee's PERSONAL wallet and
+                  are applied inside this organization's context. */}
+              <p
+                className="text-[11px] text-muted-foreground"
+                data-testid="chat-correction-boundary"
+              >
+                Saved as personal learning in your Digital Work Wallet — it
+                improves how Otzar works with you at this organization.
+              </p>
               <div className="space-y-1">
                 <Label htmlFor="chat-correction-incorrect">
                   What was wrong

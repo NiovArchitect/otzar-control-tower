@@ -18,8 +18,12 @@ import {
 export function DataSovereigntyInline() {
   return (
     <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+      {/* [GAP-S S-1] Name the owner — "your data" flipped referent between
+          employee surfaces (the person) and these admin surfaces (the
+          company). Company-owned is stated explicitly. */}
       <span>
-        Source: Your enterprise wallet — your data, your control.
+        Source: Your organization&apos;s enterprise wallet — company-owned
+        work data, governed by your organization.
       </span>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -32,8 +36,11 @@ export function DataSovereigntyInline() {
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
-          All data on this screen is held in your organization's enterprise
-          wallet. Otzar does not aggregate, train on, or read this data
+          All data on this screen is company-owned: it is held in your
+          organization's enterprise wallet and stays with the company —
+          including source records, lineage, approvals, audit, and connector
+          access. Employees' personal work memory is separate and is not
+          shown here. Otzar does not aggregate, train on, or read this data
           without explicit consent.
         </TooltipContent>
       </Tooltip>

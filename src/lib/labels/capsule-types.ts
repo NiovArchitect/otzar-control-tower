@@ -54,3 +54,67 @@ export const CAPSULE_TYPE_LABELS: Record<CapsuleType, string> = {
 export function getCapsuleTypeLabel(type: CapsuleType): string {
   return CAPSULE_TYPE_LABELS[type] ?? type;
 }
+
+// ── [GAP-S S-1] Ownership boundary per capsule type ─────────────────────────
+// The doctrine boundary (OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE.md):
+// "the employee can take the SHAPE of how they work; they cannot take the
+// company's WORK." This map renders the EXISTING write-time routing truth
+// (FND observation.service.ts wallet routing: DECISION → org wallet;
+// WORK_PATTERN / CORRECTION / COMMITMENT / CONVERSATION_LEARNING → employee
+// wallet) — it moves no data and claims no export feature.
+// "mixed" = stored in the employee's wallet by routing, but the content
+// references company work, so it can become personal memory only after
+// company details are stripped (doctrine Category C — derivation rail is
+// future, so mixed is treated as company-bound until then).
+
+export type CapsuleBoundary = "personal" | "company" | "device" | "mixed";
+
+export const CAPSULE_TYPE_BOUNDARY: Record<CapsuleType, CapsuleBoundary> = {
+  FOUNDATIONAL: "personal",
+  PREFERENCE: "personal",
+  RELATIONSHIP: "company",
+  DOMAIN_KNOWLEDGE: "personal",
+  BEHAVIORAL_PATTERN: "personal",
+  IDENTITY: "personal",
+  DEVICE_DATA: "device",
+  SESSION_LEARNING: "personal",
+  COMPLIANCE_RECORD: "company",
+  CONVERSATION_LEARNING: "mixed",
+  TASK_LEARNING: "personal",
+  WORK_PATTERN: "personal",
+  COMMUNICATION_PREF: "personal",
+  DECISION_STYLE: "personal",
+  COMMITMENT: "mixed",
+  BLOCKER: "company",
+  RISK: "company",
+  HANDOFF: "company",
+  DECISION: "company",
+  CORRECTION: "personal",
+} as const;
+
+const BOUNDARY_LABELS: Record<CapsuleBoundary, string> = {
+  personal: "Personal work memory",
+  company: "Company-owned work data",
+  device: "Device-bound",
+  mixed: "Personal only after company details are stripped",
+};
+
+// Short form for tight surfaces (matrix column sub-labels).
+const BOUNDARY_SHORT_LABELS: Record<CapsuleBoundary, string> = {
+  personal: "Personal",
+  company: "Company-owned",
+  device: "Device-bound",
+  mixed: "Mixed",
+};
+
+export function getCapsuleBoundary(type: CapsuleType): CapsuleBoundary {
+  return CAPSULE_TYPE_BOUNDARY[type] ?? "company";
+}
+
+export function getCapsuleBoundaryLabel(type: CapsuleType): string {
+  return BOUNDARY_LABELS[getCapsuleBoundary(type)];
+}
+
+export function getCapsuleBoundaryShortLabel(type: CapsuleType): string {
+  return BOUNDARY_SHORT_LABELS[getCapsuleBoundary(type)];
+}

@@ -125,6 +125,34 @@ describe("MyMemory — page title + user-facing label discipline", () => {
   });
 });
 
+// ── [GAP-S S-1] ownership boundary — clear, calm, and never overclaiming ──
+describe("MyMemory — ownership boundary (GAP-S S-1)", () => {
+  it("renders the personal-wallet badge + the two-sided ownership block", async () => {
+    mockCtx(ctx());
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("my-memory-boundary")).toBeInTheDocument(),
+    );
+    const boundary = screen.getByTestId("my-memory-boundary");
+    expect(boundary).toHaveTextContent("Personal wallet — yours, not the company's");
+    expect(boundary).toHaveTextContent("Your personal work memory");
+    expect(boundary).toHaveTextContent("Company-owned work data");
+    expect(boundary).toHaveTextContent("stay with the company");
+  });
+
+  it("makes NO shipped-portability claim and offers NO export/import control", async () => {
+    mockCtx(ctx());
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("my-memory-page")).toBeInTheDocument(),
+    );
+    const html = screen.getByTestId("my-memory-page").outerHTML;
+    expect(html).not.toMatch(/export your twin|take this with you|portable today/i);
+    expect(screen.queryByRole("button", { name: /export/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /export/i })).toBeNull();
+  });
+});
+
 describe("MyMemory — 'What Otzar knows' counts", () => {
   it("surfaces the 4 context_signals counts", async () => {
     mockCtx(ctx());

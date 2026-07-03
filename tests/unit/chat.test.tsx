@@ -110,6 +110,12 @@ describe("Chat (employee Otzar)", () => {
     await user.click(toggle);
     const form = await screen.findByTestId("chat-correction-form");
 
+    // [GAP-S S-1] the form states where the learning lands — the true copy
+    // (corrections write to the employee's personal wallet, applied here).
+    expect(screen.getByTestId("chat-correction-boundary")).toHaveTextContent(
+      "Saved as personal learning in your Digital Work Wallet",
+    );
+
     // 3. Fill + submit.
     await user.type(
       screen.getByLabelText(/What was wrong/i),

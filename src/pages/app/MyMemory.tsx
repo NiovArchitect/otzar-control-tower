@@ -38,6 +38,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { WalletProvenanceBadge } from "@/components/sovereignty/WalletProvenanceBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +118,31 @@ export function MyMemory(): JSX.Element {
         title="My Digital Work Wallet"
         description="How you work, what your Twin has learned, and what moves with you. Your methods, skills, and preferences are YOURS — your organization's records stay with the organization."
       />
+
+      {/* [GAP-S S-1] The ownership boundary, rendered where the wallet
+          already appears. Existing truth only: this wallet IS the personal
+          wallet; company data lives in the organization's enterprise wallet.
+          No export exists — future language is marked as future. */}
+      <div className="space-y-2" data-testid="my-memory-boundary">
+        <WalletProvenanceBadge walletType="PERSONAL" entityType="PERSON" />
+        <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+          <div className="rounded-md border border-border/60 p-2">
+            <p className="font-medium text-foreground">Your personal work memory</p>
+            <p>
+              Your work style, preferences, personal learning, and reusable
+              methods live here — they are yours, not the company&apos;s.
+            </p>
+          </div>
+          <div className="rounded-md border border-border/60 p-2">
+            <p className="font-medium text-foreground">Company-owned work data</p>
+            <p>
+              Company sources, meeting records, decisions, approvals, and
+              audit history stay with the company — they are never part of
+              this wallet.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* What Otzar knows about my work */}
       <Card data-testid="my-memory-knows">

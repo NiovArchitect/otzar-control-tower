@@ -71,6 +71,16 @@ describe("PermissionsMatrix", () => {
       screen.getByTestId("dropped-permissions-notice"),
     ).toHaveTextContent(/Hidden from this matrix: 1 permission/i);
 
+    // ─── [GAP-S S-1] each capsule column carries its ownership boundary
+    //     sub-label (renders the write-time wallet routing truth).
+    const boundaryCells = document.querySelectorAll('[data-testid^="capsule-boundary-"]');
+    expect(boundaryCells.length).toBeGreaterThan(0);
+    for (const cell of boundaryCells) {
+      expect(["Personal", "Company-owned", "Device-bound", "Mixed"]).toContain(
+        cell.textContent?.trim(),
+      );
+    }
+
     // ─── Assertion (a): the table header includes the capsule_types
     //     present in the JOIN — DECISION (2 rows), HANDOFF (1 row),
     //     RISK (1 row). Top-N cap is MATRIX_TOP_CAPSULE_TYPES (8) so

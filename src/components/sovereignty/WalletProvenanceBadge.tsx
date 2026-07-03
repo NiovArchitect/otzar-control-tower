@@ -31,6 +31,7 @@ import { ShieldCheck } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -68,20 +69,23 @@ function resolveVariant(
         "Held in a device-bound wallet. Data does not propagate beyond the registered device.",
     };
   }
+  // [GAP-S S-1] No false portability: personal wallets are the employee's,
+  // and they are DESIGNED to travel — but export does not exist yet, so the
+  // future is named as future, never implied as shipped behavior.
   if (walletType === "PERSONAL" && entityType === "AI_AGENT") {
     return {
-      label: "AI Teammate wallet — travels with employee",
+      label: "AI Teammate wallet — the employee's, not the company's",
       tone: "border-teal-300 bg-teal-50 text-teal-800",
       tooltip:
-        "Held in an AI Teammate's personal wallet. Travels with the human owner if they leave the organization.",
+        "Held in an AI Teammate's personal wallet — it belongs with its human owner, not the company. Designed to travel with the employee in the future; export is not yet available.",
     };
   }
   if (walletType === "PERSONAL" && entityType === "PERSON") {
     return {
-      label: "Personal wallet — travels with employee",
+      label: "Personal wallet — yours, not the company's",
       tone: "border-purple-300 bg-purple-50 text-purple-800",
       tooltip:
-        "Held in the employee's personal wallet. Travels with the employee if they leave the organization.",
+        "Held in the employee's personal wallet — personal work memory, not a company record. Designed to travel with the employee in the future; export is not yet available.",
     };
   }
   return {
@@ -97,8 +101,12 @@ export function WalletProvenanceBadge({
   className,
 }: WalletProvenanceBadgeProps) {
   const variant = resolveVariant(walletType, entityType);
+  // Self-contained provider: the badge now renders on pages whose test
+  // harnesses (and potential future mount points) don't wrap a global
+  // TooltipProvider; nesting providers is safe.
   return (
-    <Tooltip>
+    <TooltipProvider>
+      <Tooltip>
       <TooltipTrigger asChild>
         <span
           role="note"
@@ -112,9 +120,10 @@ export function WalletProvenanceBadge({
           <span>{variant.label}</span>
         </span>
       </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-xs">
-        {variant.tooltip}
-      </TooltipContent>
-    </Tooltip>
+        <TooltipContent side="top" className="max-w-xs">
+          {variant.tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

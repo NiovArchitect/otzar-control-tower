@@ -21,6 +21,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { WalletProvenanceBadge } from "@/components/sovereignty/WalletProvenanceBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
@@ -117,6 +118,19 @@ export function DataKnowledgePage(): JSX.Element {
         title="Data & Knowledge"
         description="Your organization's knowledge lifecycle: raw captures become curated, permissioned knowledge that people, AI teammates, and reports may use — with lineage, audit, and retention at every step. Your organization owns all of it; nothing leaves without policy."
       />
+
+      {/* [GAP-S S-1] Company ownership stated where the data appears. This
+          renders existing truth (org-scoped stores, per-org connector
+          envelopes) — no export exists and none is implied. */}
+      <div className="space-y-1" data-testid="data-ownership-boundary">
+        <WalletProvenanceBadge walletType="ENTERPRISE" entityType="COMPANY" />
+        <p className="text-xs text-muted-foreground">
+          This stays with the company: connected tools and their access,
+          source records and excerpts, lineage, decisions, approvals, and the
+          audit trail. Employees&apos; personal work memory is separate and is
+          not shown here.
+        </p>
+      </div>
 
       <Card data-testid="data-sources">
         <CardHeader className="pb-2">

@@ -29,7 +29,10 @@ import {
   type AggregatedMatrix,
   type MatrixCellState,
 } from "@/lib/access-control/aggregate-matrix";
-import { getCapsuleTypeLabel } from "@/lib/labels/capsule-types";
+import {
+  getCapsuleTypeLabel,
+  getCapsuleBoundaryShortLabel,
+} from "@/lib/labels/capsule-types";
 import type {
   AITeammateListItem,
   CapsuleType,
@@ -276,6 +279,14 @@ export function PermissionsMatrix({
                 className="px-2 py-2 text-left font-medium text-muted-foreground"
               >
                 {getCapsuleTypeLabel(c)}
+                {/* [GAP-S S-1] ownership boundary, one muted sub-line —
+                    renders the write-time wallet routing truth. */}
+                <span
+                  className="block text-[9px] font-normal text-muted-foreground/70"
+                  data-testid={`capsule-boundary-${c}`}
+                >
+                  {getCapsuleBoundaryShortLabel(c)}
+                </span>
               </th>
             ))}
           </tr>
