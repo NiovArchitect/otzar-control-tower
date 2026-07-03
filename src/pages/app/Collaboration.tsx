@@ -819,12 +819,29 @@ function DandelionGrowthCard(): JSX.Element | null {
     enabled: admin,
   });
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+  const [queueOpen, setQueueOpen] = useState(false);
 
   if (!admin) return null;
   if (!growth.data || !growth.data.ok) return null;
   const view = growth.data.data.growth;
   const visible = view.recommendations.filter(
     (r) => !hidden.has(growthRecKey(r)),
+  );
+
+  // [GAP-B] The truthful full setup queue. The card list is capped for calm;
+  // the SCALE must never be. People with a card in the capped list (hidden or
+  // not — "Hide for now" is session-local and never changes the truth) are
+  // excluded from the overflow queue by stable id; everyone else with no
+  // first project/workspace renders below, server-backed, with the same
+  // real assign rail. No card count math — the uncapped signal is the truth.
+  const cardPersonIds = new Set(
+    view.recommendations
+      .filter((r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context !== undefined)
+      .map((r) => r.context?.person_entity_id ?? ""),
+  );
+  const totalNeeds = view.signals.members_without_project_count;
+  const queuePeople = (view.needs_first_project_people ?? []).filter(
+    (p) => !cardPersonIds.has(p.person_entity_id),
   );
 
   return (
@@ -890,6 +907,46 @@ function DandelionGrowthCard(): JSX.Element | null {
               </li>
             ))}
           </ul>
+        ) : null}
+        {queuePeople.length > 0 ? (
+          <div className="rounded border border-border bg-muted/20 p-2">
+            <p data-testid="dandelion-queue-copy">
+              Showing {cardPersonIds.size} of {totalNeeds} people who need a
+              first project or workspace.
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-1 h-6 px-2 text-[11px]"
+              onClick={() => setQueueOpen((o) => !o)}
+              data-testid="dandelion-queue-toggle"
+            >
+              {queueOpen
+                ? "Hide the rest"
+                : `Show the ${queuePeople.length} more`}
+            </Button>
+            {queueOpen ? (
+              <ul className="mt-1 space-y-1" data-testid="dandelion-queue">
+                {queuePeople.map((p) => (
+                  <li
+                    key={p.person_entity_id}
+                    className="rounded border bg-card p-2"
+                    data-testid="dandelion-queue-item"
+                    data-person-entity-id={p.person_entity_id}
+                  >
+                    <p className="font-medium text-foreground">
+                      {p.display_name} needs a first project or workspace
+                    </p>
+                    <AssignFromRecommendation
+                      personEntityId={p.person_entity_id}
+                      personLabel={p.display_name}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
         <p className="text-[10px] text-muted-foreground">
           Suggestions only — nothing happens without you. Private to your

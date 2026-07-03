@@ -486,3 +486,113 @@ describe("Dandelion — Welcome page (Phase 1237)", () => {
     }
   });
 });
+
+// ── [GAP-B] The truthful full setup queue behind the capped card list ────────
+
+function growthWithFullQueue() {
+  const base = growthWithNeedsProject();
+  base.growth.headline = "Otzar found 5 ways to strengthen your organization this week.";
+  base.growth.signals.members_without_project_count = 10;
+  (base.growth as Record<string, unknown>).needs_first_project_people = [
+    { person_entity_id: "ent-shweta", display_name: "Shweta" },
+    ...Array.from({ length: 9 }, (_, i) => ({
+      person_entity_id: `ent-q${i + 1}`,
+      display_name: `Queued Person ${i + 1}`,
+    })),
+  ];
+  return base;
+}
+
+describe("[GAP-B] full setup queue — the surface never understates the scale", () => {
+  it("10 total, 1 card → truthful 'Showing 1 of 10' + a server-backed queue of the other 9 with real assign", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithFullQueue()),
+      ),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-queue-copy")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("dandelion-queue-copy")).toHaveTextContent(
+      "Showing 1 of 10 people who need a first project or workspace.",
+    );
+    // Calm by default: the queue expands on demand.
+    expect(screen.queryByTestId("dandelion-queue")).toBeNull();
+    const toggle = screen.getByTestId("dandelion-queue-toggle");
+    expect(toggle).toHaveTextContent("Show the 9 more");
+    await userEvent.click(toggle);
+    const items = screen.getAllByTestId("dandelion-queue-item");
+    expect(items).toHaveLength(9);
+    // Server-backed people only — the carded person is not duplicated.
+    for (const it of items) {
+      expect(it).not.toHaveTextContent("Shweta");
+      expect(it).toHaveTextContent("needs a first project or workspace");
+    }
+    // The queue carries the REAL assign rail, stable-id keyed.
+    expect(items[0]?.getAttribute("data-person-entity-id")).toBe("ent-q1");
+    const assigns = items
+      .map((it) => it.querySelector('[data-testid="dandelion-assign-open"]'))
+      .filter((el) => el !== null);
+    expect(assigns).toHaveLength(9);
+    // No developer language anywhere on the card.
+    const card = screen.getByTestId("dandelion-growth-card");
+    for (const banned of ["MAX_RECOMMENDATIONS", "signals", "ent-q1", "uncapped"]) {
+      expect(card.textContent ?? "").not.toContain(banned);
+    }
+  });
+
+  it("no overflow → no scale copy (exactly as many cards as people)", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json({
+          ...growthWithNeedsProject(),
+          growth: {
+            ...growthWithNeedsProject().growth,
+            needs_first_project_people: [
+              { person_entity_id: "ent-shweta", display_name: "Shweta" },
+            ],
+          },
+        }),
+      ),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-growth-card")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("dandelion-queue-copy")).toBeNull();
+    expect(screen.queryByTestId("dandelion-queue-toggle")).toBeNull();
+  });
+
+  it("an older backend without the queue field renders exactly as before", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithNeedsProject()),
+      ),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-growth-card")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("dandelion-queue-copy")).toBeNull();
+    expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument();
+  });
+
+  it("'Hide for now' hides the card but never changes the truthful scale copy", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithFullQueue()),
+      ),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-queue-copy")).toBeInTheDocument(),
+    );
+    await userEvent.click(screen.getAllByTestId("dandelion-growth-dismiss")[0]!);
+    // Card gone (session-local) — the scale copy stays true to server truth.
+    expect(screen.queryAllByTestId("dandelion-growth-item")).toHaveLength(0);
+    expect(screen.getByTestId("dandelion-queue-copy")).toHaveTextContent(
+      "Showing 1 of 10",
+    );
+  });
+});

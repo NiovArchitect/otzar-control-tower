@@ -4402,6 +4402,13 @@ export interface DandelionOrgGrowthResponse {
       unowned_external_count: number;
       members_without_project_count: number;
     };
+    /** [GAP-B] The FULL setup queue behind the capped recommendation list
+     *  (uncapped server truth; stable ids + safe display fields only).
+     *  Optional so older backends without the field stay renderable. */
+    needs_first_project_people?: Array<{
+      person_entity_id: string;
+      display_name: string;
+    }>;
     generated_at: string;
   };
 }
