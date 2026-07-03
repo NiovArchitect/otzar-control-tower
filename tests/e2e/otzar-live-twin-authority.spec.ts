@@ -68,6 +68,11 @@ test("T2 ui: AI Teammates renders the truth columns in human words (screenshot)"
   await page.getByText("Not set yet").first().waitFor({ state: "visible", timeout: 30_000 });
   const main = (await page.locator("main, body").first().textContent()) ?? "";
   expect(main).toContain("Not set yet");
+  // [GAP-H] Identity truth: owner-based names, never raw twin-uuid strings,
+  // never a false "Unassigned".
+  expect(main).toContain("'s AI Twin");
+  expect(main).not.toContain("Twin of ");
+  expect(main).not.toContain("Unassigned");
   // Human labels only in THIS slice's surface: no provenance/backend tokens.
   // (The pre-existing 12B.3 ExecutiveOverrideBadge renders the literal
   // EXECUTIVE_OVERRIDE token on admin twins — an established design decision

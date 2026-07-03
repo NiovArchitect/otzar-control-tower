@@ -417,6 +417,10 @@ export interface AITeammateListItem {
   status: EntityStatus;
   created_at: string;
   config: TwinConfig | null;
+  /** [GAP-H] Authoritative owner from the org-scoped membership edge —
+   *  null only when the owner is truly missing. Optional: older backends. */
+  owner_entity_id?: string | null;
+  owner_display_name?: string | null;
 }
 
 // WHAT: One Hive row.

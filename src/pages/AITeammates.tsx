@@ -55,6 +55,7 @@ import {
   authorityStatusLabel,
   recommendedAutonomyLabel,
 } from "@/lib/labels/twin-authority";
+import { twinDisplayLabel, twinOwnerLabel } from "@/lib/labels/twin-identity";
 import type {
   AITeammateListItem,
   EntityStatus,
@@ -113,52 +114,18 @@ export function AITeammatesPage() {
     },
   });
 
-  // Owner resolution: slim list endpoint doesn't surface owner_entity_id,
-  // so we cache hierarchy + members and look up display_name per row.
-  const hierarchy = useQuery({
-    queryKey: ["org", "hierarchy"],
-    queryFn: async () => {
-      const r = await api.org.hierarchy.get();
-      if (!r.ok) throw new Error(r.message);
-      return r.data.memberships;
-    },
-  });
-
-  const members = useQuery({
-    queryKey: ["org", "entities", { type: "PERSON", take: 250 }],
-    queryFn: async () => {
-      const r = await api.org.entities.list({
-        type: "PERSON",
-        take: 250,
-      });
-      if (!r.ok) throw new Error(r.message);
-      return r.data.items;
-    },
-  });
-
-  const ownerByTwin = useMemo(() => {
-    const map = new Map<string, string>();
-    if (hierarchy.data) {
-      for (const m of hierarchy.data) {
-        if (m.is_active) map.set(m.child_id, m.parent_id);
-      }
-    }
-    return map;
-  }, [hierarchy.data]);
-
-  const memberById = useMemo(() => {
-    const map = new Map<string, string>();
-    if (members.data) {
-      for (const m of members.data) map.set(m.entity_id, m.display_name);
-    }
-    return map;
-  }, [members.data]);
+  // [GAP-H] Owner identity now arrives ON the list items (authoritative
+  // backend projection) — the old client-side hierarchy/member guessing that
+  // produced false "Unassigned" is gone.
 
   const filteredRows = useMemo(() => {
     let rows = list.data?.items ?? [];
     if (search) {
-      rows = rows.filter((r) =>
-        r.display_name.toLowerCase().includes(search),
+      rows = rows.filter(
+        (r) =>
+          r.display_name.toLowerCase().includes(search) ||
+          twinDisplayLabel(r).toLowerCase().includes(search) ||
+          twinOwnerLabel(r).toLowerCase().includes(search),
       );
     }
     if (autonomyFilter !== AUTONOMY_FILTER_ALL) {
@@ -201,7 +168,7 @@ export function AITeammatesPage() {
         cell: ({ row }) => (
           <input
             type="checkbox"
-            aria-label={`Select ${row.original.display_name}`}
+            aria-label={`Select ${twinDisplayLabel(row.original)}`}
             checked={selectedIds.has(row.original.entity_id)}
             onClick={(e) => e.stopPropagation()}
             onChange={() => toggleSelected(row.original.entity_id)}
@@ -214,7 +181,9 @@ export function AITeammatesPage() {
         header: "Name",
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            <span className="font-medium">{row.original.display_name}</span>
+            {/* [GAP-H] Human identity from the backend-projected owner —
+                never the raw stored "Twin of <uuid>" string. */}
+            <span className="font-medium">{twinDisplayLabel(row.original)}</span>
             {row.original.config?.is_admin_twin && <ExecutiveOverrideBadge />}
           </div>
         ),
@@ -222,13 +191,10 @@ export function AITeammatesPage() {
       {
         id: "owner",
         header: "Owner",
-        accessorFn: (row) => {
-          const ownerId = ownerByTwin.get(row.entity_id);
-          if (!ownerId) return "Unassigned";
-          // PROD-UX-P1 — never render a raw id when the member name
-          // can't be resolved; "Unassigned" is the honest human state.
-          return memberById.get(ownerId) ?? "Unassigned";
-        },
+        // [GAP-H] The AUTHORITATIVE owner projected by Foundation from the
+        // same org-scoped edge that defines the twin set — never a client
+        // hierarchy guess. "No owner assigned yet" only when truly missing.
+        accessorFn: (row) => twinOwnerLabel(row),
       },
       // [GAP-H] The STORED role template Foundation applied and actually
       // reads for this twin's conduct — never a client-side guess from the
@@ -271,12 +237,12 @@ export function AITeammatesPage() {
         accessorFn: (row) => formatRelativeTime(row.created_at),
       },
     ],
-    [selectedIds, ownerByTwin, memberById],
+    [selectedIds],
   );
 
   const idsArray = Array.from(selectedIds);
   const idToName = new Map(
-    (list.data?.items ?? []).map((r) => [r.entity_id, r.display_name]),
+    (list.data?.items ?? []).map((r) => [r.entity_id, twinDisplayLabel(r)]),
   );
 
   const filterControls = (
