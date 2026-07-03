@@ -129,7 +129,11 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       <Card data-testid="my-twin-card">
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-lg">{formatPersonName(t.display_name)}</CardTitle>
+            {/* [GAP-H OPS] The viewer IS the owner — never render the raw
+                stored "Twin of <uuid>" string as the page identity. */}
+            <CardTitle className="text-lg">
+              {/^twin of /i.test(t.display_name) ? "Your AI Twin" : formatPersonName(t.display_name)}
+            </CardTitle>
             <Badge>{labelConversationStatus(t.status)}</Badge>
           </div>
           {t.role_title && (

@@ -122,8 +122,19 @@ test("T3 ui: employee sees their own twin's honest activity panel (screenshot)",
   await panel.waitFor({ state: "visible", timeout: 30_000 });
   await expect(panel).toContainText("My AI Twin");
   await expect(panel).toContainText("Recent work your twin helped move.");
-  // Honest content: either source-backed rows OR the exact empty state —
-  // never fake activity.
+  // Wait for the three self-scoped queries to SETTLE (the panel shows
+  // "Loading…" first), then assert honest content: source-backed rows OR
+  // the exact empty state — never fake activity.
+  await expect
+    .poll(
+      async () => {
+        const rows = await page.getByTestId("my-twin-activity-row").count();
+        const empty = await page.getByTestId("my-twin-activity-empty").count();
+        return rows > 0 || empty === 1;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
   const text = (await panel.textContent()) ?? "";
   const hasRows = await page.getByTestId("my-twin-activity-row").count();
   if (hasRows === 0) {
