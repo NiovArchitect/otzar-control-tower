@@ -2899,6 +2899,10 @@ export interface SafeActionView {
   requires_approval: boolean;
   escalation_id?: string;
   decision_reason?: string;
+  /** [GAP-E] The approver's human reason on a REJECTED action (safe bounded
+   *  scalar projected from the paired escalation). Optional/absent on every
+   *  other state and on older backends. */
+  not_approved_reason?: string | null;
   created_at: string;
   updated_at: string;
   // ADR-0057 §10 Amendment 1 — SAFE resolved display-name labels for the

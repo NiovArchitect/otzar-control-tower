@@ -545,6 +545,20 @@ export function ActionCenter(): JSX.Element {
                         </span>
                       </p>
                     ) : null}
+                    {/* [GAP-E] The approver's own words on a declined request —
+                        the sender learns WHY here, without visiting an admin
+                        surface. Server-projected safe scalar; renders only
+                        when a real reason exists on a not-approved item. */}
+                    {a.status === "REJECTED" &&
+                    typeof a.not_approved_reason === "string" &&
+                    a.not_approved_reason.length > 0 ? (
+                      <p data-testid="action-not-approved-reason">
+                        From your approver:{" "}
+                        <span className="text-foreground">
+                          &ldquo;{a.not_approved_reason}&rdquo;
+                        </span>
+                      </p>
+                    ) : null}
                     {/* Phase 1285-L — consistent structured View/Why via the
                         shared panel (safe SafeActionView fields only; governed
                         requester/target/policy-envelope stay restricted). */}

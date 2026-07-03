@@ -221,6 +221,55 @@ describe("ActionCenter — friendly labels (Warmwind language pass)", () => {
     expect(card).toHaveTextContent("Not approved");
     expect(card).not.toHaveTextContent("Blocked by policy");
     expect(card.textContent).not.toContain("REJECTED");
+    // No reason provided -> no reason line invented.
+    expect(screen.queryByTestId("action-not-approved-reason")).toBeNull();
+  });
+
+  // [GAP-E] The approver's human reason reaches the SENDER's list — they
+  // learn WHY without visiting an admin surface.
+  it("a REJECTED action shows the approver's own words when a reason exists", async () => {
+    mockList([
+      action({
+        action_id: "a-rej-why",
+        status: "REJECTED",
+        not_approved_reason: "Not appropriate for this channel — rework the message.",
+      }),
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("action-tab-blocked")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("action-tab-blocked"));
+    const reason = screen.getByTestId("action-not-approved-reason");
+    expect(reason).toHaveTextContent("From your approver:");
+    expect(reason).toHaveTextContent(
+      "Not appropriate for this channel — rework the message.",
+    );
+    // Human copy only — no backend vocabulary anywhere on the card.
+    const card = screen.getByTestId("action-center-card");
+    for (const banned of ["resolution_metadata", "escalation", "REJECTED", "DUAL_CONTROL"]) {
+      expect(card.textContent ?? "").not.toContain(banned);
+    }
+  });
+
+  it("the approver's reason never renders on non-rejected states", async () => {
+    mockList([
+      action({
+        action_id: "a-ok",
+        status: "SUCCEEDED",
+        // Hostile fixture: even if a backend bug leaked a reason onto a
+        // non-rejected item, the sender surface must not show it.
+        not_approved_reason: "should never render",
+      }),
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("action-tab-completed")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId("action-tab-completed"));
+    expect(screen.queryByTestId("action-not-approved-reason")).toBeNull();
   });
 
   it("translates 'no-eligible-target' decision_reason into human copy", async () => {
