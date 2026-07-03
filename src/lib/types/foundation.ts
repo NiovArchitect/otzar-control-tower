@@ -4631,6 +4631,23 @@ export interface CalendarEventProposalBody {
 }
 
 // Phase 1279 — durable Work Ledger entry (safe projection).
+// [CE-1] Read-only clarity projection (FND clarity.service.ts): ranked
+// "who can clarify?" candidates with human reasons. Suggestions only —
+// nothing is created, sent, or escalated by this projection.
+export interface ClarityCandidateView {
+  entity_id: string;
+  display_name: string;
+  role: string;
+  reason: string;
+  rank: number;
+}
+export interface ClarityProjectionView {
+  can_answer: boolean;
+  authority_question: boolean;
+  source_author_state: "resolved" | "ambiguous" | "unresolved" | "none";
+  candidates: ClarityCandidateView[];
+}
+
 // [GAP-J] The SAFE source-lineage block (FND SourceLineageProjection).
 // Closed-vocab scalars only — the raw source id, dedupe key, URL, and
 // connector identity deliberately never cross the API.

@@ -13,7 +13,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import type { WorkLedgerEntryView, ExecutionAttemptView } from "@/lib/types/foundation";
+import type {
+  ClarityProjectionView,
+  ExecutionAttemptView,
+  WorkLedgerEntryView,
+} from "@/lib/types/foundation";
 import { emitWorkStateChanged } from "@/lib/events/work-state";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
@@ -71,6 +75,9 @@ export function WorkLedgerItem({
   // PROD-UX-P0A — governed execution actions (Slice F rails).
   const [execBusy, setExecBusy] = useState(false);
   const [execMsg, setExecMsg] = useState<string | null>(null);
+  // [CE-1] read-only clarifier suggestions, lazy-loaded with the Why detail.
+  const [clarity, setClarity] = useState<ClarityProjectionView | null>(null);
+  const [clarityLoaded, setClarityLoaded] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receipt, setReceipt] = useState<{ loading: boolean; text: string | null }>({ loading: false, text: null });
   const exec = deriveWorkItemExecution(entry);
@@ -180,6 +187,13 @@ export function WorkLedgerItem({
       } else {
         setProofState("error");
       }
+    }
+    // [CE-1] clarity suggestions load the same lazy way — read-only, only
+    // inside the opened Why, never a fetch per card face.
+    if (next && clarity === null && !clarityLoaded) {
+      const c = await api.workOs.ledgerClarity(entry.ledger_entry_id);
+      setClarityLoaded(true);
+      if (c.ok) setClarity(c.data.clarity);
     }
   }
 
@@ -374,6 +388,31 @@ export function WorkLedgerItem({
               never UUIDs), work, and provenance rows render identically on My
               Work, Team Work, Thread, and People cockpit. */}
           <ViewWhyPanel model={viewWhyFromLedger(entry)} />
+
+          {/* [CE-1] Who can clarify — read-only suggestions ranked from
+              source lineage + org truth. Text only: nothing is created,
+              sent, or escalated from here (that is CE-2). Honest empty
+              state when Otzar lacks context; nothing while loading. */}
+          {clarityLoaded ? (
+            <div
+              className="mt-1 border-t border-border/50 pt-1"
+              data-testid="work-ledger-item-clarity"
+            >
+              <span className="text-muted-foreground">Who can clarify:</span>
+              {clarity !== null && clarity.candidates.length > 0 ? (
+                clarity.candidates.map((c) => (
+                  <div key={c.entity_id} data-testid="work-ledger-item-clarifier">
+                    Ask {c.display_name} —{" "}
+                    {c.reason.charAt(0).toLowerCase() + c.reason.slice(1)}
+                  </div>
+                ))
+              ) : (
+                <div className="text-muted-foreground">
+                  Otzar does not have enough context to suggest a clarifier yet.
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {/* PROD-UX-P0R — the routing decision + why, in plain language
               (present for EVERY lane here, including the silent ones). */}

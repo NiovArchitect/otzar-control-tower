@@ -24,6 +24,7 @@
 import { generateRandomPassword } from "./auth/random-password";
 import { summarizeNotificationBody } from "./work-os/notification-body";
 import type {
+  ClarityProjectionView,
   LoginResponse,
   LoginFailure,
   PlatformHealth,
@@ -1563,6 +1564,16 @@ export class ApiClient {
     ): Promise<ApiResult<ExecutionAttemptListResponse>> =>
       this.request<ExecutionAttemptListResponse>(
         `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/execution-attempts`,
+      ),
+
+    /** GET /work-os/ledger/:id/clarity — [CE-1] read-only "who can clarify?"
+     *  ranked from source lineage + org truth. Suggestions only: never
+     *  creates an escalation, never notifies, never mutates. */
+    ledgerClarity: (
+      ledgerEntryId: string,
+    ): Promise<ApiResult<{ ok: boolean; clarity: ClarityProjectionView }>> =>
+      this.request<{ ok: boolean; clarity: ClarityProjectionView }>(
+        `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/clarity`,
       ),
 
     /** POST /api/v1/work-os/internal-messages — human-authority direct
