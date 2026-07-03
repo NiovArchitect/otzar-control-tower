@@ -236,23 +236,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **Tests/smoke:** projection agrees with grants/TAR/authority substrate; no
   invented capability claims.
 
-### I. Multi-source ingestion readiness — 🟡 partially closed
-
-- **Customer story:** "Wherever my work happens, Otzar quietly picks it up —
-  the same way every time."
-- **State:** transcript + generic source-event ingest share one canonical
-  chain (`ingestSourceEvent`: quality gate → extraction → governance →
-  WorkLedger → memory → audit), with Slack shape mapped
-  (`slackMessageToSourceEvent`) and dedupe keys. Zoom OAuth parked; Docs /
-  Drive / Calendar / Gmail / Notion / Jira / GitHub / CRM / workflow
-  observation not started.
-- **Rule:** every new source is an ADAPTER to the same contract — never a
-  one-off integration with private truth.
-- **Recommended slice (when chosen):** one real connector end-to-end through
-  the existing chain, proving the adapter pattern (Slack is closest).
-- **Tests/smoke:** same-chain assertions (dedupe, quarantine, governance,
-  ledger rows, audit) per source; live smoke per connector with labeled
-  fixtures + cleanup.
+### I. Multi-source ingestion readiness — 🟡 AUDITED 2026-07-03 (full 17-source readiness map: [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md)). Verdicts: manual Comms transcript is the reference implementation; Zoom is live but routed as generic TRANSCRIPT (provenance/idempotency loss); Slack read is one wire away (adapter + provider + OAuth rail all exist, no route calls them); Docs/Gmail content reads don't exist; **Notion is catalog-visible with zero substrate (R10 placeholder flag)**; two parallel durable stores violate the single-ledger contract (Observe/OCR tables, conduct MemoryCapsules); **no inbound event route exists anywhere — every connector is outbound-only, so nothing can arrive ambiently (the structural gap)**. Canonical adapter contract now written (18 fields; an adapter is ~50 lines that builds a WorkSourceEvent and calls ingestSourceEvent). Recommended build order: (1) Zoom→CONNECTOR provenance fix, (2) Slack read→canonical ingest (the flagship ambient source + the inbound-event pattern), then D&K per-row lineage, voice ingest hop, observe/OCR convergence, Notion catalog honesty.
 
 ### J. Data & Knowledge lineage browsing — 🔴 open
 

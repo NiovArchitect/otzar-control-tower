@@ -364,6 +364,8 @@ both repairs does the flow qualify.
 
 > **The LIVING gap document is now
 > [`OTZAR_OPERATIONAL_GAP_LEDGER.md`](./OTZAR_OPERATIONAL_GAP_LEDGER.md)** —
+> and the per-source ingestion readiness map (block 4's ETL reality check)
+> is [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md) —
 > per-gap customer story, truth source, surfaces, risk, recommended slice,
 > and the next-slice selection method. Next slices are chosen there, by
 > customer journey. The tables below are the historical snapshot at this
