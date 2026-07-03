@@ -3,7 +3,9 @@
 > Part of the canonical architecture — see
 > [`OTZAR_WORK_OS_BUILDING_BLOCKS.md`](./OTZAR_WORK_OS_BUILDING_BLOCKS.md)
 > (block 4: no page invents its own truth; this matrix is the page-by-page
-> ledger of that rule).
+> ledger of that rule). Known projection/truth gaps and the next-slice queue
+> live in
+> [`OTZAR_OPERATIONAL_GAP_LEDGER.md`](./OTZAR_OPERATIONAL_GAP_LEDGER.md).
 
 **Status:** 2026-07-02 (Fable 5). Every surface → the customer question it
 answers, its source of truth, whether its actions are durable, and known

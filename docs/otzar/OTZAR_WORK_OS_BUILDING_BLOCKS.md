@@ -129,12 +129,18 @@ the layers have different owners and different mutation paths:
 | Work methods | observed + configured (future) | workflow observation |
 | Twin behavior | template + all of the above | twin conduct paths |
 
-**Honest gap (do not claim otherwise):** the **correction-memory learn-loop
-is not wired into ingest**. `classifyRecipient` *accepts* `aliases` /
-`excludeEntityIds`, and correction substrate exists
-(`work-graph-learning.ts`, `TwinCorrectionMemory`), but comms ingest does not
-load corrections yet. Recipient confirmations (BUG C) deliberately do **not**
-write correction memory — writing memory nothing reads would be a fake loop.
+**Amended 2026-07-03 (learn-loop read-path v1 SHIPPED, FND `8a45de2`):** the
+recipient-correction learn-loop IS now wired into ingest. The BUG C resolved
+FOLLOW_UP rows are the correction store (no new table; no TwinCorrectionMemory
+routing writes — that column is free-text by design). Every ingest loads the
+org's caller-resolved decisions: prior SELECT resolves the same name collision
+for the same stable entity (`likely`, evidence `correction_memory`); prior
+CONFIRM softens `out_of_scope → likely` only (evidence `caller_confirmed`).
+Never past unauthorized / cross_team_needs_approval / hard exclusions; never
+send-ready by correction alone. Taxonomy + boundaries: FND
+`docs/otzar/OTZAR_CORRECTION_MEMORY_LEARN_LOOP.md`. Remaining honest gap:
+provenance is not yet customer-visible (ledger gap A), and only recipient
+corrections are read — owner/approval/tool corrections stay future (gap Q).
 
 ## 4. Data 360 ETL / Org Truth Graph
 
@@ -355,6 +361,13 @@ both repairs does the flow qualify.
 ---
 
 # Closed gaps vs remaining gaps
+
+> **The LIVING gap document is now
+> [`OTZAR_OPERATIONAL_GAP_LEDGER.md`](./OTZAR_OPERATIONAL_GAP_LEDGER.md)** —
+> per-gap customer story, truth source, surfaces, risk, recommended slice,
+> and the next-slice selection method. Next slices are chosen there, by
+> customer journey. The tables below are the historical snapshot at this
+> document's authoring.
 
 ## Closed (all live-verified, 2026-07-01 → 07-02)
 

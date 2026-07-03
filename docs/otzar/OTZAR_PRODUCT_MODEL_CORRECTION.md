@@ -6,6 +6,8 @@
 > — the twelve building blocks (Twins → ETL → WorkLedger → Governance →
 > Routing → Audit → Memory → Ambient UX), the Agentforce mapping, the
 > closed/open gap ledger, and the "never again" list. Read that first.
+> The living operational-gap queue (customer-journey-driven next slices) is
+> [`OTZAR_OPERATIONAL_GAP_LEDGER.md`](./OTZAR_OPERATIONAL_GAP_LEDGER.md).
 
 **Status:** Phase 1 executed (truth & cleanup); Phases 2–6 queued. Vocabulary:
 **ETL / data-flow / communication-ingestion pipeline** (the term "ATO" is not
