@@ -287,8 +287,15 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   lateral target + dormant `HUMAN_REVIEW_REQUIRED` AI-uncertainty type);
   deterministic clarifier ranking from org truth (source author → owner →
   requester → project OWNER → approver → named participant; manager ONLY
-  on authority questions); build slices CE-1..CE-4, smallest first =
-  read-only clarity projection. Awaiting GO.
+  on authority questions); build slices CE-1..CE-4. **CE-1 SHIPPED
+  2026-07-03** (FND `a26631a` PR #541 + CT `07aa989`, live-verified):
+  read-only `GET /work-os/ledger/:id/clarity` + calm "Who can clarify"
+  inside View/Why — suggestions only, honest empty state, zero mutation
+  (live proof: Review Center pending count unchanged; 6/25 probed live
+  rows yield real candidates, e.g. "Ask David Odie — they own this
+  work."). Noted for CE-1.5: the row's TARGET (e.g. a follow-up's
+  recipient) is not in the approved ranking — consider adding with
+  founder sign-off. CE-2 (governed clarification request) awaits GO.
 - **Remaining honest:** approval/assignment-origin rows don't record lineage
   yet (writers must record it first — lineage is never invented); D&K page
   lists connector sources, not knowledge rows, so full lineage *browsing*
