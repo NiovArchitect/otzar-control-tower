@@ -7,12 +7,13 @@
 // CONNECTS TO: AI Teammates table (12B.3) row badge, TwinDetailDrawer
 //              Overview tab.
 //
-// VOCABULARY DISCIPLINE: customer-facing label is "EXECUTIVE_OVERRIDE"
-// (uppercased token, since the token itself communicates governance
-// gravity to enterprise admins). Source field is `is_admin_twin`,
-// which never appears in copy. Distinct from the `EXECUTIVE_OVERRIDE`
-// autonomy_level literal -- that's a Behavior Policy MODE for
-// non-admin twins; this badge marks an admin twin proper.
+// VOCABULARY DISCIPLINE (amended 2026-07-03, founder-directed): the
+// customer-facing label is "Admin-level authority" — human words, never
+// the raw backend token. Source field is `is_admin_twin`, which never
+// appears in copy. Deliberately DIFFERENT words from the Behavior
+// Policy label "Executive override" (the autonomy_level literal for
+// non-admin twins) so admin-twin status and behavior mode never read
+// as the same thing.
 //
 // REUSE JUSTIFICATION (per 12B.1 "reused 3+ times" rule): rendered in
 // the AI Teammates table row, in the TwinDetailDrawer Overview tab,
@@ -39,14 +40,14 @@ export function ExecutiveOverrideBadge({
       <TooltipTrigger asChild>
         <span
           role="note"
-          aria-label="Executive override"
+          aria-label="Admin-level authority"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-800",
             className,
           )}
         >
           <ShieldAlert className="h-3 w-3" aria-hidden />
-          <span>EXECUTIVE_OVERRIDE</span>
+          <span>Admin-level authority</span>
         </span>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-xs">

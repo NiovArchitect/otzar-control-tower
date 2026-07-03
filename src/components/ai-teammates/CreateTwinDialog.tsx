@@ -229,7 +229,7 @@ function AdminInviteField() {
             />
           </FormControl>
           <div className="space-y-1 leading-none">
-            <FormLabel>Mark as EXECUTIVE_OVERRIDE</FormLabel>
+            <FormLabel>Grant admin-level authority</FormLabel>
             <FormDescription>
               The AI Teammate will inherit the owner's executive
               clearance and can act with admin capabilities on the

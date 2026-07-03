@@ -86,7 +86,7 @@ describe("CreateTwinDialog", () => {
     // ─── EXECUTIVE_OVERRIDE checkbox: opt in to verify the
     //     boolean flows through unchanged.
     await user.click(
-      screen.getByRole("checkbox", { name: /EXECUTIVE_OVERRIDE/i }),
+      screen.getByRole("checkbox", { name: /admin-level authority/i }),
     );
 
     // ─── Submit ─────────────────────────────────────────────────

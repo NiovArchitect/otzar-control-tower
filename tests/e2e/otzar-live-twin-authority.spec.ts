@@ -73,11 +73,12 @@ test("T2 ui: AI Teammates renders the truth columns in human words (screenshot)"
   expect(main).toContain("'s AI Twin");
   expect(main).not.toContain("Twin of ");
   expect(main).not.toContain("Unassigned");
-  // Human labels only in THIS slice's surface: no provenance/backend tokens.
-  // (The pre-existing 12B.3 ExecutiveOverrideBadge renders the literal
-  // EXECUTIVE_OVERRIDE token on admin twins — an established design decision
-  // outside this slice, flagged to the founder separately.)
+  // Human labels only — the badge is humanized ("Admin-level authority"),
+  // so NO raw autonomy/provenance token may render anywhere on the page.
   for (const banned of [
+    "EXECUTIVE_OVERRIDE",
+    "APPROVAL_REQUIRED",
+    "OBSERVE_ONLY",
     "org_ceiling_capped",
     "role_template_default",
     "system_default",

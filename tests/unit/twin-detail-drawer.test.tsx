@@ -130,7 +130,7 @@ describe("TwinDetailDrawer", () => {
     const headingsA = await screen.findAllByText(/Sarah's AI Teammate/);
     expect(headingsA.length).toBeGreaterThan(0);
     expect(
-      screen.getAllByLabelText(/Executive override/i).length,
+      screen.getAllByLabelText(/Admin-level authority/i).length,
     ).toBeGreaterThan(0);
     await screen.findAllByText(/Approval required/i);
 
@@ -197,7 +197,7 @@ describe("TwinDetailDrawer", () => {
     // string "EXECUTIVE_OVERRIDE", is_admin_twin is false so the
     // badge MUST NOT render. queryAllByLabelText returns [] when
     // nothing matches (does not throw, unlike getAllByLabelText).
-    expect(screen.queryAllByLabelText(/Executive override/i)).toHaveLength(0);
+    expect(screen.queryAllByLabelText(/Admin-level authority/i)).toHaveLength(0);
 
     // Behavior Policy label still reads "Executive override" via
     // the autonomy-levels label map -- driven by autonomy_level,
