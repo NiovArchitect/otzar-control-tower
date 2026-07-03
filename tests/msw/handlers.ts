@@ -3135,7 +3135,15 @@ const workLedgerPatchHandler = http.patch(
   },
 );
 
+// [GAP-H OPS] Default self-scoped actions list so surfaces that summarize
+// "waiting on approval" (MyTwinActivityPanel) load under
+// onUnhandledRequest:"error". Tests override per-case.
+const actionsListHandler = http.get(`${API_BASE}/actions`, () =>
+  HttpResponse.json({ ok: true, items: [], page: 1, page_size: 50, total: 0 }),
+);
+
 export const handlers = [
+  actionsListHandler,
   workOsAuthorityHandler,
   runtimeCapabilitiesHandler,
   workLedgerCreateHandler,

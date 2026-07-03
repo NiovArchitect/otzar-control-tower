@@ -12,6 +12,7 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 test.describe.configure({ retries: 0 });
 
 const ADMIN_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
+const EMPLOYEE_EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
 const PW = process.env.DEMO_SHARED_PASSWORD;
 const TAG = process.env.OTZAR_SHOT_TAG ?? "twin-authority";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
@@ -89,5 +90,48 @@ test("T2 ui: AI Teammates renders the truth columns in human words (screenshot)"
   ]) {
     expect(main).not.toContain(banned);
   }
+  // [GAP-H OPS] Operational truth columns — honest, never fake ready.
+  await expect(page.getByText("Tools", { exact: true })).toBeVisible();
+  await expect(page.getByText("Last active", { exact: true })).toBeVisible();
+  expect(main).toContain("Tool requirements not set yet");
+  // Activity states must be one of the honest labels, never fabricated.
+  expect(
+    main.includes("No twin activity yet") ||
+      main.includes("Owner has recent work") ||
+      /Active .*ago/.test(main),
+  ).toBe(true);
+  expect(main).not.toContain("Ready for assigned tools"); // requirements unmodeled
   await page.screenshot({ path: `screenshots/${TAG}-1-teammates-truth.png`, fullPage: true });
+});
+
+test("T3 ui: employee sees their own twin's honest activity panel (screenshot)", async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(EMPLOYEE_EMAIL);
+  await page.getByLabel("Password").fill(PW as string);
+  await page.getByRole("button", { name: /sign in/i }).click();
+  await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, {
+    timeout: 45_000,
+  });
+  await page.waitForTimeout(2500);
+  await page.evaluate(() => {
+    history.pushState({}, "", "/app/my-twin");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  const panel = page.getByTestId("my-twin-activity");
+  await panel.waitFor({ state: "visible", timeout: 30_000 });
+  await expect(panel).toContainText("My AI Twin");
+  await expect(panel).toContainText("Recent work your twin helped move.");
+  // Honest content: either source-backed rows OR the exact empty state —
+  // never fake activity.
+  const text = (await panel.textContent()) ?? "";
+  const hasRows = await page.getByTestId("my-twin-activity-row").count();
+  if (hasRows === 0) {
+    expect(text).toContain("Your AI Twin has no recorded activity yet.");
+  }
+  expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  for (const banned of ["correction_memory", "caller_confirmed", "PROPOSED", "escalation"]) {
+    expect(text).not.toContain(banned);
+  }
+  await page.screenshot({ path: `screenshots/${TAG}-2-my-twin-activity.png`, fullPage: true });
 });

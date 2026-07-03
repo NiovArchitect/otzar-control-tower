@@ -421,6 +421,23 @@ export interface AITeammateListItem {
    *  null only when the owner is truly missing. Optional: older backends. */
   owner_entity_id?: string | null;
   owner_display_name?: string | null;
+  /** [GAP-H OPS] Honest operational truth (optional: older backends).
+   *  status is "not_configured" until per-role required tools are modeled —
+   *  the backend never fakes "ready". */
+  tool_readiness?: {
+    status: "ready" | "needs_setup" | "not_configured" | "unknown";
+    missing_tools: Array<{ tool_key: string; label: string; setup_url?: string }>;
+    connected_tools_count: number;
+    required_tools_count: number;
+  };
+  /** [GAP-H OPS] Canonical activity: "twin" only when provably
+   *  twin-attributable (conversations); owner work is labeled separately. */
+  recent_activity?: {
+    last_active_at: string | null;
+    last_activity_label: string | null;
+    recent_work_count: number;
+    activity_source: "twin" | "owner_work" | "none" | "unknown";
+  };
 }
 
 // WHAT: One Hive row.

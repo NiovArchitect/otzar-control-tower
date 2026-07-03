@@ -56,6 +56,7 @@ import {
   recommendedAutonomyLabel,
 } from "@/lib/labels/twin-authority";
 import { twinDisplayLabel, twinOwnerLabel } from "@/lib/labels/twin-identity";
+import { lastActiveLabel, toolReadinessLabel } from "@/lib/labels/twin-operations";
 import type {
   AITeammateListItem,
   EntityStatus,
@@ -217,6 +218,38 @@ export function AITeammatesPage() {
         id: "authority_status",
         header: "Authority status",
         accessorFn: (row) => authorityStatusLabel(row.config ?? null),
+      },
+      // [GAP-H OPS] Operational truth from the backend's honest projection:
+      // readiness never fakes "Ready" (per-role required tools are not
+      // modeled yet) and activity never presents owner work as twin work.
+      {
+        id: "tools",
+        header: "Tools",
+        accessorFn: (row) => toolReadinessLabel(row.tool_readiness),
+      },
+      {
+        id: "last_active",
+        header: "Last active",
+        accessorFn: (row) => lastActiveLabel(row.recent_activity),
+      },
+      {
+        id: "next_step",
+        header: "Next step",
+        cell: ({ row }) =>
+          row.original.tool_readiness !== undefined &&
+          row.original.tool_readiness.status !== "ready" ? (
+            // A REAL destination (admin Tools & Connections page) — never a
+            // fake setup button.
+            <a
+              href="/tools-connections"
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+              data-testid="twin-next-step-link"
+            >
+              Open Tools &amp; Connections
+            </a>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
       },
       {
         id: "behavior_policy",

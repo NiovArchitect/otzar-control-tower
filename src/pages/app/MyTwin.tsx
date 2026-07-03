@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RoleScopeProfilePanel } from "@/components/employee/RoleScopeProfilePanel";
 import { TwinScopePanel } from "@/components/employee/TwinScopePanel";
 import { MyTwinSidecarsPanel } from "@/components/employee/MyTwinSidecarsPanel";
+import { MyTwinActivityPanel } from "@/components/employee/MyTwinActivityPanel";
 import { api } from "@/lib/api";
 import type { ApiResult } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -179,6 +180,10 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       </Card>
 
       <AskYourTwin />
+
+      {/* [GAP-H OPS] Partner transparency: what my twin recently did,
+          source-of-truth backed, honest empty state. */}
+      <MyTwinActivityPanel />
 
       <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
 
