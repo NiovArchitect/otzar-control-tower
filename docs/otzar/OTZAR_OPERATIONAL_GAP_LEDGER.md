@@ -235,7 +235,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **Trust risk:** high long-term — twin collaboration without role authority
   is the "listed, not real" failure mode.
 
-### H. AI Teammates mapping clarity — 🟢 LARGELY CLOSED 2026-07-03 (FND `da52ac0`: list projects the authoritative owner from the same org-scoped edge that defines the twin set; CT `c6b5e5b`: names render "<Owner>'s AI Twin" + Owner column from server truth — raw 'Twin of <uuid>' strings and false 'Unassigned' eliminated, live-verified 10/10 owners. Remaining: tool-readiness + last-active columns; the 12B.3 ExecutiveOverrideBadge literal-token decision — founder call)
+### H. AI Teammates mapping clarity — 🟢 LARGELY CLOSED 2026-07-03 (FND `da52ac0`: list projects the authoritative owner from the same org-scoped edge that defines the twin set; CT `c6b5e5b`: names render "<Owner>'s AI Twin" + Owner column from server truth — raw 'Twin of <uuid>' strings and false 'Unassigned' eliminated, live-verified 10/10 owners. Remaining: tool-readiness + last-active columns. The 12B.3 badge literal-token issue is RESOLVED (CT `6f3d8d2`: 'Admin-level authority' — deliberately distinct words from the Behavior Policy label so admin-twin status and autonomy mode never conflate; live smoke bans every raw autonomy token page-wide))
 
 - **Customer story:** "Whose twin is this? What can it do? With which tools?
   Under what boundaries?"
