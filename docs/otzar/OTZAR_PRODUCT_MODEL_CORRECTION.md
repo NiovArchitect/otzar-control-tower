@@ -1,5 +1,12 @@
 # Otzar product-model correction (founder walk-through, 2026-07-01)
 
+> **Canonical architecture:** the operating model this correction feeds into
+> is now written down in
+> **[`OTZAR_WORK_OS_BUILDING_BLOCKS.md`](./OTZAR_WORK_OS_BUILDING_BLOCKS.md)**
+> — the twelve building blocks (Twins → ETL → WorkLedger → Governance →
+> Routing → Audit → Memory → Ambient UX), the Agentforce mapping, the
+> closed/open gap ledger, and the "never again" list. Read that first.
+
 **Status:** Phase 1 executed (truth & cleanup); Phases 2–6 queued. Vocabulary:
 **ETL / data-flow / communication-ingestion pipeline** (the term "ATO" is not
 a repo or product concept and must not be used).

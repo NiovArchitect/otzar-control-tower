@@ -1,5 +1,10 @@
 # Otzar page projection matrix
 
+> Part of the canonical architecture — see
+> [`OTZAR_WORK_OS_BUILDING_BLOCKS.md`](./OTZAR_WORK_OS_BUILDING_BLOCKS.md)
+> (block 4: no page invents its own truth; this matrix is the page-by-page
+> ledger of that rule).
+
 **Status:** 2026-07-02 (Fable 5). Every surface → the customer question it
 answers, its source of truth, whether its actions are durable, and known
 mismatch risk. Grounded in the codebase + this session's audit. ✅ coherent ·
