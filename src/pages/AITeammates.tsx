@@ -45,12 +45,12 @@ import { TwinDetailDrawer } from "@/components/ai-teammates/TwinDetailDrawer";
 import { bulkAutonomyActions } from "@/components/ai-teammates/BulkAutonomyAction";
 import { BulkActionsBar } from "@/components/users/BulkActionsBar";
 import { api } from "@/lib/api";
-import { resolveRoleArchetype } from "@/lib/role-archetypes";
 import {
   AUTONOMY_LEVEL_LABELS,
   getAutonomyLevelLabel,
 } from "@/lib/labels/autonomy-levels";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
+import { roleTemplateLabel } from "@/lib/labels/role-template";
 import type {
   AITeammateListItem,
   EntityStatus,
@@ -141,19 +141,6 @@ export function AITeammatesPage() {
     }
     return map;
   }, [hierarchy.data]);
-  // PROD-MODEL-P2 — the owner's title (manager-edge wins) drives the twin's
-  // role-template line, the same resolution twin provisioning uses.
-  const titleByPerson = useMemo(() => {
-    const map = new Map<string, string>();
-    if (hierarchy.data) {
-      for (const m of hierarchy.data) {
-        if (m.is_active && typeof m.role_title === "string" && m.role_title.length > 0) {
-          map.set(m.child_id, m.role_title);
-        }
-      }
-    }
-    return map;
-  }, [hierarchy.data]);
 
   const memberById = useMemo(() => {
     const map = new Map<string, string>();
@@ -239,16 +226,13 @@ export function AITeammatesPage() {
           return memberById.get(ownerId) ?? "Unassigned";
         },
       },
-      // PROD-MODEL-P2 — which role behavior this twin follows, in human words.
+      // [GAP-H] The STORED role template Foundation applied and actually
+      // reads for this twin's conduct — never a client-side guess from the
+      // owner's job title (that showed a different value than the truth).
       {
         id: "role_template",
         header: "Role template",
-        accessorFn: (row) => {
-          const ownerId = ownerByTwin.get(row.entity_id);
-          const title = ownerId !== undefined ? titleByPerson.get(ownerId) : undefined;
-          const archetype = resolveRoleArchetype(title ?? null);
-          return archetype !== null ? archetype.display_name : "General";
-        },
+        accessorFn: (row) => roleTemplateLabel(row.config?.role_template),
       },
       {
         id: "behavior_policy",
@@ -269,7 +253,7 @@ export function AITeammatesPage() {
         accessorFn: (row) => formatRelativeTime(row.created_at),
       },
     ],
-    [selectedIds, ownerByTwin, memberById, titleByPerson],
+    [selectedIds, ownerByTwin, memberById],
   );
 
   const idsArray = Array.from(selectedIds);

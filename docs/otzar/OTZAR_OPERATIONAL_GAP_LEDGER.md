@@ -219,7 +219,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **Recommended slice:** badge query = exactly the queue's query; test that
   they can never diverge.
 
-### G. Role-template→twin behavior wiring — 🔴 open (audit first)
+### G. Role-template→twin behavior wiring — 🟡 AUDITED 2026-07-03 (full findings: [`OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md`](./OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md) — template drives the conduct persona only; enforcement runs on autonomy_level; 4 severed wires numbered; smallest wiring slice identified but PARKED for founder decision because it changes authority defaults of new twins)
 
 - **Customer story:** "My AI teammate should act like MY role allows — and my
   admin should see which template governs it."
@@ -235,7 +235,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **Trust risk:** high long-term — twin collaboration without role authority
   is the "listed, not real" failure mode.
 
-### H. AI Teammates mapping clarity — 🔴 open
+### H. AI Teammates mapping clarity — 🟡 partially closed 2026-07-03 (the 'Role template' column now renders the STORED TwinConfig.role_template humanized with honest 'Not set yet' — it previously displayed a client-side archetype guess that could differ from the truth; full person↔twin↔template↔tools↔boundaries projection still open, blocked on G's wiring decision)
 
 - **Customer story:** "Whose twin is this? What can it do? With which tools?
   Under what boundaries?"
