@@ -9,7 +9,7 @@
 //          src/pages/app/Welcome.tsx, tests/msw/handlers.ts.
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router-dom";
@@ -176,18 +176,191 @@ describe("Dandelion — admin growth card (Phase 1237)", () => {
     expect(item).toHaveTextContent("Shweta is already part of your organization on David Odie's team");
     // ...names the ONE missing object...
     expect(item).toHaveTextContent("needs a first project or workspace");
-    // ...and the next step is honest text routing to real admin work — the
-    // card offers no fake "Add to workspace" action button (only Hide for now).
+    // ...and the next step is real: the honest routing text PLUS the working
+    // in-place Assign action ([PROD-UX-ASSIGN] — no fake buttons: this one is
+    // wired to POST /org/assignments).
     expect(item).toHaveTextContent("Next step: Assign Shweta to their first project or workspace.");
     const buttons = item.querySelectorAll("button");
-    expect(buttons).toHaveLength(1);
-    expect(buttons[0]!.textContent).toMatch(/hide for now/i);
+    expect(buttons).toHaveLength(2);
+    const labels = [...buttons].map((b) => b.textContent ?? "");
+    expect(labels.some((l) => /hide for now/i.test(l))).toBe(true);
+    expect(labels.some((l) => /assign project\/workspace/i.test(l))).toBe(true);
     // NEVER the misleading flattening — and no raw backend codes as copy.
     const text = item.textContent ?? "";
     expect(text).not.toMatch(/isn't connected|not connected|disconnected/i);
     expect(text).not.toContain("NEEDS_PROJECT_OR_WORKSPACE");
     expect(text).not.toContain("CONNECT_TEAMMATE");
     expect(text).not.toContain("ent-shweta"); // stable id keys, never rendered
+  });
+
+  // ── [PROD-UX-ASSIGN] fix the gap in place ──────────────────────────────────
+  function mockTargets(targets: Array<Record<string, unknown>>): void {
+    server.use(
+      http.get(`${API_BASE}/org/assignment-targets`, () =>
+        HttpResponse.json({ ok: true, targets }),
+      ),
+    );
+  }
+  const TWO_TARGETS = [
+    { kind: "project", target_id: "proj-1", label: "Launch Project", status: "ACTIVE", created_at: new Date().toISOString() },
+    { kind: "workspace", target_id: "ws-1", label: "Launch Workspace", status: "ACTIVE", created_at: new Date().toISOString() },
+  ];
+
+  it("the Assign affordance renders ONLY on NEEDS_PROJECT_OR_WORKSPACE cards that carry the stable person id", async () => {
+    const withContext = growthWithNeedsProject();
+    const noContext = growthWithNeedsProject();
+    delete (noContext.growth.recommendations[0] as Record<string, unknown>).context;
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () => HttpResponse.json(withContext)),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument(),
+    );
+    cleanup();
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () => HttpResponse.json(noContext)),
+    );
+    renderWithProviders(<Collaboration />);
+    await waitFor(() =>
+      expect(screen.getByTestId("dandelion-growth-card")).toBeInTheDocument(),
+    );
+    // Context missing + other kinds → no assign affordance anywhere.
+    expect(screen.queryByTestId("dandelion-assign-open")).toBeNull();
+  });
+
+  it("the picker loads org targets grouped Projects / Workspaces, human labels only", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithNeedsProject()),
+      ),
+    );
+    mockTargets(TWO_TARGETS);
+    renderWithProviders(<Collaboration />);
+    await waitFor(() => expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("dandelion-assign-open"));
+    const picker = await screen.findByTestId("dandelion-assign-picker");
+    expect(picker).toHaveTextContent("Choose where Shweta should start.");
+    expect(picker).toHaveTextContent("Projects");
+    expect(picker).toHaveTextContent("Workspaces");
+    const buttons = await screen.findAllByTestId("dandelion-assign-target");
+    expect(buttons).toHaveLength(2);
+    expect(picker).toHaveTextContent("Launch Project");
+    expect(picker).toHaveTextContent("Launch Workspace");
+    // Stable ids drive the buttons but are never rendered as copy.
+    expect(picker.textContent).not.toContain("proj-1");
+    expect(picker.textContent).not.toContain("ent-shweta");
+  });
+
+  it("no targets → honest empty copy, no fake action", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithNeedsProject()),
+      ),
+    );
+    renderWithProviders(<Collaboration />); // default targets handler: []
+    await waitFor(() => expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("dandelion-assign-open"));
+    const empty = await screen.findByTestId("dandelion-assign-empty");
+    expect(empty).toHaveTextContent("No active projects or workspaces yet.");
+    expect(empty).toHaveTextContent("Create or activate a project/workspace first.");
+    expect(screen.queryByTestId("dandelion-assign-target")).toBeNull();
+  });
+
+  it("assigning posts STABLE ids and the card disappears only after the server recompute drops it", async () => {
+    let assignBody: Record<string, unknown> | null = null;
+    let assigned = false;
+    server.use(
+      // The growth feed flips once the assignment lands (server truth).
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(
+          assigned
+            ? { ok: true, growth: { headline: "Your organization looks healthy this week.", recommendations: [], signals: { members_count: 4, external_collaborators_count: 0, unowned_external_count: 0, members_without_project_count: 0 }, generated_at: new Date().toISOString() } }
+            : growthWithNeedsProject(),
+        ),
+      ),
+      http.post(`${API_BASE}/org/assignments`, async ({ request }) => {
+        assignBody = (await request.json()) as Record<string, unknown>;
+        assigned = true;
+        return HttpResponse.json({
+          ok: true,
+          target_kind: assignBody.target_kind,
+          target_id: assignBody.target_id,
+          person_entity_id: assignBody.person_entity_id,
+          membership_id: "mem-1",
+          audit_event_id: "audit-1",
+        });
+      }),
+    );
+    mockTargets(TWO_TARGETS);
+    renderWithProviders(<Collaboration />);
+    await waitFor(() => expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("dandelion-assign-open"));
+    const buttons = await screen.findAllByTestId("dandelion-assign-target");
+    // Pick the WORKSPACE (second) — proves kind+id travel together.
+    await userEvent.click(buttons[1]!);
+    await waitFor(() => expect(assignBody).not.toBeNull());
+    expect(assignBody).toEqual({
+      person_entity_id: "ent-shweta",
+      target_kind: "workspace",
+      target_id: "ws-1",
+    });
+    // The card leaves only via the server refetch (the truth changed).
+    await waitFor(() =>
+      expect(screen.queryByTestId("dandelion-growth-item")).toBeNull(),
+    );
+  });
+
+  it("no optimistic hiding: while the server still returns the recommendation, a successful assign shows the success note and the card STAYS", async () => {
+    server.use(
+      // The growth feed keeps returning the rec (recompute hasn't dropped it).
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithNeedsProject()),
+      ),
+      http.post(`${API_BASE}/org/assignments`, () =>
+        HttpResponse.json({
+          ok: true,
+          target_kind: "project",
+          target_id: "proj-1",
+          person_entity_id: "ent-shweta",
+          membership_id: "mem-1",
+          audit_event_id: "audit-1",
+        }),
+      ),
+    );
+    mockTargets(TWO_TARGETS);
+    renderWithProviders(<Collaboration />);
+    await waitFor(() => expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("dandelion-assign-open"));
+    const buttons = await screen.findAllByTestId("dandelion-assign-target");
+    await userEvent.click(buttons[0]!);
+    const success = await screen.findByTestId("dandelion-assign-success");
+    expect(success).toHaveTextContent("Recorded in your organization's audit trail");
+    // Nothing hidden optimistically — the item is still there until the
+    // server recompute drops it.
+    expect(screen.getByTestId("dandelion-growth-item")).toBeInTheDocument();
+  });
+
+  it("a failed assignment keeps the card and shows human copy — never a raw code", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/dandelion/org-growth`, () =>
+        HttpResponse.json(growthWithNeedsProject()),
+      ),
+      http.post(`${API_BASE}/org/assignments`, () =>
+        HttpResponse.json({ ok: false, code: "TARGET_NOT_FOUND" }, { status: 404 }),
+      ),
+    );
+    mockTargets(TWO_TARGETS);
+    renderWithProviders(<Collaboration />);
+    await waitFor(() => expect(screen.getByTestId("dandelion-assign-open")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("dandelion-assign-open"));
+    const buttons = await screen.findAllByTestId("dandelion-assign-target");
+    await userEvent.click(buttons[0]!);
+    const err = await screen.findByTestId("dandelion-assign-error");
+    expect(err).toHaveTextContent("That project or workspace no longer exists.");
+    expect(err.textContent).not.toContain("TARGET_NOT_FOUND");
+    // The card stays — nothing was hidden on failure.
+    expect(screen.getByTestId("dandelion-growth-item")).toBeInTheDocument();
   });
 
   it("hiding a recommendation is honest about being temporary ('Hide for now', keyed by stable id)", async () => {

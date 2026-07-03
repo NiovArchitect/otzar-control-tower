@@ -4342,6 +4342,34 @@ export type DandelionRecommendationKind =
   | "NEEDS_PROJECT_OR_WORKSPACE"
   | "PREPARE_ONBOARDING";
 
+// [PROD-UX-ASSIGN] The org-wide picker feed + assignment result for the
+// People & Collaboration "Assign" flow (admin-gated, stable ids only).
+export interface AssignmentTarget {
+  kind: "project" | "workspace";
+  target_id: string;
+  label: string;
+  status: string;
+  created_at: string;
+}
+
+export interface AssignmentTargetsResponse {
+  ok: boolean;
+  targets?: AssignmentTarget[];
+  code?: string;
+}
+
+export interface AssignmentResponse {
+  ok: boolean;
+  target_kind?: "project" | "workspace";
+  target_id?: string;
+  person_entity_id?: string;
+  membership_id?: string | null;
+  audit_event_id?: string;
+  already_member?: boolean;
+  code?: string;
+  message?: string;
+}
+
 // [PROD-UX-BUGD] Structured source-of-truth metadata (mirrored from
 // Foundation) — the CT renders accurate copy from the server and keys
 // dismissal by the stable person id, never by display name.

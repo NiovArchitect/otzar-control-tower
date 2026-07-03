@@ -32,6 +32,7 @@ import { api } from "@/lib/api";
 import { resolveTargetGoverned } from "@/lib/work-os/target-resolution";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
+  AssignmentTarget,
   CollaborationRequestSafeView,
   CreateCollaborationRequestBody,
   TwinCollaborationBlockedReason,
@@ -651,6 +652,164 @@ function growthRecKey(r: { kind: string; title: string; context?: { person_entit
   return r.context !== undefined ? `${r.kind}:${r.context.person_entity_id}` : r.title;
 }
 
+// [PROD-UX-ASSIGN] Human copy for assignment failures — never a raw code.
+function assignErrorCopy(code: string): string {
+  switch (code) {
+    case "PERSON_NOT_IN_ORG":
+      return "That person isn't an active member of your organization anymore.";
+    case "TARGET_NOT_FOUND":
+      return "That project or workspace no longer exists.";
+    case "TARGET_NOT_ACTIVE":
+    case "PROJECT_ARCHIVED":
+      return "That destination isn't active anymore — pick another one.";
+    default:
+      return "Otzar couldn't complete the assignment — please try again.";
+  }
+}
+
+// [PROD-UX-ASSIGN] The in-place fix for a NEEDS_PROJECT_OR_WORKSPACE gap:
+// pick an org project/workspace and assign the person through the governed
+// rails. Uses STABLE ids end-to-end (person_entity_id from the server
+// context; target_id from the admin picker feed). On success the growth
+// query is invalidated and the card disappears only when the SERVER
+// recompute drops it — the truth changed; nothing is hidden optimistically.
+function AssignFromRecommendation({
+  personEntityId,
+  personLabel,
+}: {
+  personEntityId: string;
+  personLabel: string;
+}): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const targets = useQuery({
+    queryKey: ["org", "assignment-targets"],
+    queryFn: () => api.org.assignmentTargets(),
+    enabled: open,
+  });
+  const assign = useMutation({
+    mutationFn: (input: { target_kind: "project" | "workspace"; target_id: string }) =>
+      api.org
+        .assign({ person_entity_id: personEntityId, ...input })
+        .then((r) => {
+          if (r.ok && r.data.ok) return r.data;
+          throw new Error((!r.ok ? r.code : r.data.code) ?? "ASSIGN_FAILED");
+        }),
+    onSuccess: () => {
+      // The truth changed — let the server recompute decide the card's fate.
+      void queryClient.invalidateQueries({ queryKey: ["otzar", "dandelion", "org-growth"] });
+    },
+  });
+
+  const rows: AssignmentTarget[] =
+    targets.data?.ok === true && targets.data.data.ok ? (targets.data.data.targets ?? []) : [];
+  const projects = rows.filter((t) => t.kind === "project");
+  const workspaces = rows.filter((t) => t.kind === "workspace");
+
+  if (assign.isSuccess) {
+    return (
+      <p
+        className="mt-2 rounded border border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px]"
+        data-testid="dandelion-assign-success"
+      >
+        ✓ Assigned. Recorded in your organization's audit trail — this
+        recommendation will clear as Otzar updates the org picture.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2">
+      {!open ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          data-testid="dandelion-assign-open"
+        >
+          Assign project/workspace
+        </Button>
+      ) : (
+        <div className="rounded border border-border bg-muted/30 p-2" data-testid="dandelion-assign-picker">
+          <p className="text-[11px] font-medium">Choose where {personLabel} should start.</p>
+          <p className="text-[10px] text-muted-foreground">
+            Otzar will connect their work context and update this
+            recommendation after assignment.
+          </p>
+          {targets.isLoading ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">Loading projects and workspaces…</p>
+          ) : rows.length === 0 ? (
+            <p className="mt-1 text-[11px] text-muted-foreground" data-testid="dandelion-assign-empty">
+              No active projects or workspaces yet. Create or activate a
+              project/workspace first.
+            </p>
+          ) : (
+            <div className="mt-1 space-y-1">
+              {projects.length > 0 ? (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Projects</p>
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    {projects.map((t) => (
+                      <Button
+                        key={t.target_id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={assign.isPending}
+                        onClick={() => assign.mutate({ target_kind: "project", target_id: t.target_id })}
+                        data-testid="dandelion-assign-target"
+                        data-target-kind="project"
+                        data-target-id={t.target_id}
+                      >
+                        {t.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {workspaces.length > 0 ? (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Workspaces</p>
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    {workspaces.map((t) => (
+                      <Button
+                        key={t.target_id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={assign.isPending}
+                        onClick={() => assign.mutate({ target_kind: "workspace", target_id: t.target_id })}
+                        data-testid="dandelion-assign-target"
+                        data-target-kind="workspace"
+                        data-target-id={t.target_id}
+                      >
+                        {t.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+          {assign.isPending ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">Assigning…</p>
+          ) : null}
+          {assign.isError ? (
+            <p
+              className="mt-1 rounded border border-rose-400/40 bg-rose-500/5 p-1.5 text-[11px] text-rose-700 dark:text-rose-400"
+              role="alert"
+              data-testid="dandelion-assign-error"
+            >
+              {assignErrorCopy(assign.error instanceof Error ? assign.error.message : "")}
+            </p>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DandelionGrowthCard(): JSX.Element | null {
   const { capabilities } = useAuthStore();
   const admin = isOrgAdmin(capabilities);
@@ -712,6 +871,17 @@ function DandelionGrowthCard(): JSX.Element | null {
                     Hide for now
                   </Button>
                 </div>
+                {/* [PROD-UX-ASSIGN] Fix the gap IN PLACE: assign the person to
+                    a project/workspace. Only on cards that name this gap AND
+                    carry the stable person id. Assignment is a durable truth
+                    change (the card disappears on server recompute); "Hide for
+                    now" above stays the separate, session-local verb. */}
+                {rec.kind === "NEEDS_PROJECT_OR_WORKSPACE" && rec.context !== undefined ? (
+                  <AssignFromRecommendation
+                    personEntityId={rec.context.person_entity_id}
+                    personLabel={rec.people[0] ?? "this person"}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>

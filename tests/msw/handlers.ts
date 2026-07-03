@@ -290,6 +290,14 @@ const entitiesListHandler = http.get(
   },
 );
 
+// [PROD-UX-ASSIGN] Default assignment-targets feed (empty) so the People &
+// Collaboration assign picker has a handler under onUnhandledRequest:"error".
+// Tests needing targets override via server.use().
+const assignmentTargetsHandler = http.get(
+  `${API_BASE}/org/assignment-targets`,
+  () => HttpResponse.json({ ok: true, targets: [] }),
+);
+
 // [PROD-UX-APPROVAL-LOOP] Default single-entity read so surfaces that resolve
 // a requester display name (Review Center detail) have a handler under
 // onUnhandledRequest:"error". Tests needing specific names override.
@@ -3161,6 +3169,7 @@ export const handlers = [
   onboardingStartHandler,
   onboardingInviteHandler,
   entitiesListHandler,
+  assignmentTargetsHandler,
   entityDetailHandler,
   entitiesPatchHandler,
   auditListHandler,

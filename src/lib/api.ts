@@ -89,6 +89,8 @@ import type {
   WatcherFeedResponse,
   RecentCommsArtifactsResponse,
   PendingFollowUpsResponse,
+  AssignmentTargetsResponse,
+  AssignmentResponse,
   ResolveRecipientRequest,
   ResolveRecipientResponse,
   OperationalHealthResponse,
@@ -562,6 +564,27 @@ export class ApiClient {
           { method: "POST", body: input, retries: 0 },
         ),
     },
+
+    /** GET /api/v1/org/assignment-targets — [PROD-UX-ASSIGN] org-wide ACTIVE
+     *  projects + workspaces for the People & Collaboration "Assign" picker.
+     *  Admin-gated; safe scalars; stable ids. */
+    assignmentTargets: (): Promise<ApiResult<AssignmentTargetsResponse>> =>
+      this.request<AssignmentTargetsResponse>("/org/assignment-targets"),
+
+    /** POST /api/v1/org/assignments — [PROD-UX-ASSIGN] admin assigns a person
+     *  to a project/workspace through the EXISTING membership rails
+     *  (org-admin override; audited with via_org_admin provenance;
+     *  idempotent already_member). Stable ids only. */
+    assign: (input: {
+      person_entity_id: string;
+      target_kind: "project" | "workspace";
+      target_id: string;
+    }): Promise<ApiResult<AssignmentResponse>> =>
+      this.request<AssignmentResponse>("/org/assignments", {
+        method: "POST",
+        body: input,
+        retries: 0,
+      }),
 
     onboarding: {
       /** POST /api/v1/org/onboarding/start -- Phase 2 analyze. */
