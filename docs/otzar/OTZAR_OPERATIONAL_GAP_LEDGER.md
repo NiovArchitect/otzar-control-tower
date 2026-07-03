@@ -235,7 +235,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **Trust risk:** high long-term — twin collaboration without role authority
   is the "listed, not real" failure mode.
 
-### H. AI Teammates mapping clarity — 🟡 partially closed 2026-07-03 (stored role template + template recommendation + authority status + humanized behavior policy now render from server truth with honest 'Not set yet' states. Remaining: twin display_names are raw 'Twin of <uuid>' strings and owners show 'Unassigned' (owner resolution gap); the 12B.3 ExecutiveOverrideBadge renders the literal EXECUTIVE_OVERRIDE token — founder call whether to humanize that committed decision; tool readiness + last-active columns still open)
+### H. AI Teammates mapping clarity — 🟢 LARGELY CLOSED 2026-07-03 (FND `da52ac0`: list projects the authoritative owner from the same org-scoped edge that defines the twin set; CT `c6b5e5b`: names render "<Owner>'s AI Twin" + Owner column from server truth — raw 'Twin of <uuid>' strings and false 'Unassigned' eliminated, live-verified 10/10 owners. Remaining: tool-readiness + last-active columns; the 12B.3 ExecutiveOverrideBadge literal-token decision — founder call)
 
 - **Customer story:** "Whose twin is this? What can it do? With which tools?
   Under what boundaries?"
