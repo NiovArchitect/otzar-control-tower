@@ -281,10 +281,14 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   Routing must be driven by ingestion + org truth, not a manager-only rule.
   Fewer repeated questions, fewer "who owns this?" moments — Otzar
   harmonizes collaboration, it does not add homework.
-- **NEXT SLICE (documented, not built): lineage-aware clarity escalation** —
-  Ask-Otzar answers "who can clarify?" and offers a governed clarification
-  route to the best-known human source via the EXISTING escalation/action
-  rails (only real, governed actions — no fake affordances).
+- **NEXT SLICE — lineage-aware clarity escalation: DESIGN COMPLETE
+  2026-07-03** ([`OTZAR_CLARITY_ESCALATION_DESIGN.md`](./OTZAR_CLARITY_ESCALATION_DESIGN.md)):
+  audit-first, no code. Spine = existing `EscalationRequest` (arbitrary
+  lateral target + dormant `HUMAN_REVIEW_REQUIRED` AI-uncertainty type);
+  deterministic clarifier ranking from org truth (source author → owner →
+  requester → project OWNER → approver → named participant; manager ONLY
+  on authority questions); build slices CE-1..CE-4, smallest first =
+  read-only clarity projection. Awaiting GO.
 - **Remaining honest:** approval/assignment-origin rows don't record lineage
   yet (writers must record it first — lineage is never invented); D&K page
   lists connector sources, not knowledge rows, so full lineage *browsing*
