@@ -207,17 +207,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   approve leg unaffected; live smoke can reuse the approval-loop pattern
   (queue → reject with reason → sender sees reason).
 
-### F. Review Center badge refinement — 🔴 open
-
-- **Customer story:** "The badge said 3, but my approval queue shows 1 — what
-  am I missing?"
-- **Broken experience:** badges count all escalation types while the queue
-  view is approval-specific — numbers can disagree.
-- **Source of truth:** escalation store filtered by type/status.
-- **Trust risk:** medium — disagreeing numbers on a governance surface corrode
-  confidence fast.
-- **Recommended slice:** badge query = exactly the queue's query; test that
-  they can never diverge.
+### F. Review Center badge refinement — 🟢 CLOSED 2026-07-03 (CT-only: the Pending Approvals badge, the Approvals queue, AND the Home Command-Center/KPI numbers now consume the SAME /escalations/pending query (shared queryKey + cache — divergence impossible by construction; previously the badge counted ORG-targeted escalations via /org/analytics while the queue listed the CALLER's own). Review Center badge fallback tightened to count only PENDING_REVIEW rows from the queue's own list. 3 can-never-diverge unit tests + read-only live coherence smoke)
 
 ### G. Role-template→twin behavior wiring — 🟡 SLICE 1 SHIPPED 2026-07-03 (FND `dd7c4ab` + CT `e8cc7f5`: Option A ceiling-capped wire live — templates recommend, OrgSettings.twin_autonomy_ceiling caps (default APPROVAL_REQUIRED), provenance stored+audited, evaluator role slot filled with golden-proof zero behavior change, existing twins untouched (live-verified 0/10 provenance rows). Future: skills/tools wiring, TwinAuthorityGrant consumer-or-retire, ceiling admin UI. Incident note: shipped after a P0 auth outage caused by a silently no-op migration job — see the plan doc's deploy-order lesson) (plan: [`OTZAR_ROLE_TEMPLATE_TO_TWIN_AUTHORITY_PLAN.md`](./OTZAR_ROLE_TEMPLATE_TO_TWIN_AUTHORITY_PLAN.md) — recommended Option A ceiling-capped wire + evaluator slot-fill; day-one outcome change ZERO with ceiling default APPROVAL_REQUIRED; 3/13 seed templates carry EXECUTIVE_OVERRIDE defaults, which is why verbatim wiring is rejected; awaiting founder GO on the 4 approval points at the end of the plan) (full findings: [`OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md`](./OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md) — template drives the conduct persona only; enforcement runs on autonomy_level; 4 severed wires numbered; smallest wiring slice identified but PARKED for founder decision because it changes authority defaults of new twins)
 

@@ -17,11 +17,14 @@ export function useReviewableCount() {
     queryFn: () => api.reviews.list("org_reviewable"),
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
-    // Prefer the backend summary's pending count; fall back to the returned
-    // page length. null when the call fails (badge hidden).
+    // Prefer the backend summary's pending count; fall back to counting the
+    // PENDING_REVIEW rows in the same list the Review Center renders — never
+    // a broader count than the queue shows ([GAP-F]). null when the call
+    // fails (badge hidden).
     select: (result) =>
       result.ok
-        ? (result.data.summary?.pending_review_count ?? result.data.reviews.length)
+        ? (result.data.summary?.pending_review_count ??
+          result.data.reviews.filter((r) => r.status === "PENDING_REVIEW").length)
         : null,
   });
 }

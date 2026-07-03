@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
+import { usePendingApprovals } from "@/hooks/use-pending-approvals";
 import { getAuditEventLabel } from "@/lib/audit/event-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
@@ -52,6 +53,8 @@ export function HomePage() {
   const value: OrgAnalytics | null =
     analytics.data && analytics.data.ok ? analytics.data.data : null;
 
+  const { data: queueCount, isLoading: queueCountLoading } = usePendingApprovals();
+
   const adminEvents: AuditEvent[] = (() => {
     if (!audit.data || !audit.data.ok) return [];
     return audit.data.data.items
@@ -67,14 +70,16 @@ export function HomePage() {
       />
 
       {/* ── Phase 1255 slice 2 — Command Center panel ──────────── */}
+      {/* [GAP-F] Approvals numbers come from the SAME query the Pending
+          Approvals queue renders — one truth, every surface agrees. */}
       <CommandCenterPanel
-        pendingApprovals={value?.pending_approvals_count ?? null}
+        pendingApprovals={typeof queueCount === "number" ? queueCount : null}
       />
 
       {/* ── KPI cards (12A) ────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Pending approvals" loading={analytics.isLoading}>
-          {renderNumber(value?.pending_approvals_count)}
+        <KpiCard label="Pending approvals" loading={queueCountLoading}>
+          {renderNumber(typeof queueCount === "number" ? queueCount : undefined)}
         </KpiCard>
         <KpiCard label="Active AI teammates" loading={analytics.isLoading}>
           {renderNumber(value?.active_twins)}
