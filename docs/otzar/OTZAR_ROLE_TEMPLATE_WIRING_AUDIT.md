@@ -67,6 +67,11 @@ enforcement are real and audited, but they key off `autonomy_level`;
 
 ## Recommended smallest wiring slice (NOT executed — founder decision)
 
+> **2026-07-03 update:** the full implementation plan now exists at
+> [`OTZAR_ROLE_TEMPLATE_TO_TWIN_AUTHORITY_PLAN.md`](./OTZAR_ROLE_TEMPLATE_TO_TWIN_AUTHORITY_PLAN.md)
+> (Option A ceiling-capped wire recommended). Read that instead of the
+> sketch below.
+
 Seed `TwinConfig.autonomy_level` from `AgentTemplate.autonomy_default` at
 provisioning (`twin.service.ts:234`, template row already fetched at `:246`),
 keeping the `isAdmin` handling. This connects template → autonomy →

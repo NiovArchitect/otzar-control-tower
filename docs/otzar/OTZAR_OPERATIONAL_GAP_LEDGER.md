@@ -219,7 +219,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 - **Recommended slice:** badge query = exactly the queue's query; test that
   they can never diverge.
 
-### G. Role-template→twin behavior wiring — 🟡 AUDITED 2026-07-03 (full findings: [`OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md`](./OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md) — template drives the conduct persona only; enforcement runs on autonomy_level; 4 severed wires numbered; smallest wiring slice identified but PARKED for founder decision because it changes authority defaults of new twins)
+### G. Role-template→twin behavior wiring — 🟡 AUDITED + PLAN READY 2026-07-03 (plan: [`OTZAR_ROLE_TEMPLATE_TO_TWIN_AUTHORITY_PLAN.md`](./OTZAR_ROLE_TEMPLATE_TO_TWIN_AUTHORITY_PLAN.md) — recommended Option A ceiling-capped wire + evaluator slot-fill; day-one outcome change ZERO with ceiling default APPROVAL_REQUIRED; 3/13 seed templates carry EXECUTIVE_OVERRIDE defaults, which is why verbatim wiring is rejected; awaiting founder GO on the 4 approval points at the end of the plan) (full findings: [`OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md`](./OTZAR_ROLE_TEMPLATE_WIRING_AUDIT.md) — template drives the conduct persona only; enforcement runs on autonomy_level; 4 severed wires numbered; smallest wiring slice identified but PARKED for founder decision because it changes authority defaults of new twins)
 
 - **Customer story:** "My AI teammate should act like MY role allows — and my
   admin should see which template governs it."
