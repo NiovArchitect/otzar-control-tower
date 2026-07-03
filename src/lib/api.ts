@@ -624,8 +624,10 @@ export class ApiClient {
       list: (params: {
         skip?: number;
         take?: number;
-      } = {}): Promise<ApiResult<Paginated<AITeammateListItem>>> =>
-        this.request<Paginated<AITeammateListItem>>(
+      } = {}): Promise<
+        ApiResult<Paginated<AITeammateListItem> & { twin_autonomy_ceiling?: string }>
+      > =>
+        this.request<Paginated<AITeammateListItem> & { twin_autonomy_ceiling?: string }>(
           `/org/ai-teammates${qs(params)}`,
         ),
 

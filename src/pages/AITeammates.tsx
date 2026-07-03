@@ -51,6 +51,10 @@ import {
 } from "@/lib/labels/autonomy-levels";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { roleTemplateLabel } from "@/lib/labels/role-template";
+import {
+  authorityStatusLabel,
+  recommendedAutonomyLabel,
+} from "@/lib/labels/twin-authority";
 import type {
   AITeammateListItem,
   EntityStatus,
@@ -233,6 +237,20 @@ export function AITeammatesPage() {
         id: "role_template",
         header: "Role template",
         accessorFn: (row) => roleTemplateLabel(row.config?.role_template),
+      },
+      // [GAP-G SLICE-1] The authority truth pair: what the template
+      // RECOMMENDED vs where the current level came from. Server-stored
+      // provenance only — never a guess, never a capability claim beyond
+      // the enforced autonomy_level shown in Behavior Policy.
+      {
+        id: "template_recommendation",
+        header: "Template recommendation",
+        accessorFn: (row) => recommendedAutonomyLabel(row.config ?? null),
+      },
+      {
+        id: "authority_status",
+        header: "Authority status",
+        accessorFn: (row) => authorityStatusLabel(row.config ?? null),
       },
       {
         id: "behavior_policy",

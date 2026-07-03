@@ -333,6 +333,13 @@ export interface TwinConfig {
   role_template: string | null;
   is_admin_twin: boolean;
   approver_entity_id: string | null;
+  /** [GAP-G SLICE-1] What the role template RECOMMENDED at provisioning
+   *  (the org ceiling decides what applied). Optional: older backends. */
+  template_recommended_autonomy?: string | null;
+  /** [GAP-G SLICE-1] How autonomy_level was determined at provisioning:
+   *  role_template_default | org_ceiling_capped | system_default |
+   *  admin_twin. Provenance only — never authority. Optional. */
+  autonomy_source?: string | null;
   updated_at: string;
 }
 
