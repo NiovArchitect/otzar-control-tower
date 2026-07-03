@@ -402,13 +402,22 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   claimed); Chat correction UI silent on where learning lands; capsule
   label map ungrouped (personal/org split invisible despite backend
   routing truth, voice-note-provenance.ts:10).
-- **Safest next slice (S-1, recommended): boundary labeling — render
-  existing truth, move no data.** Tag the 20-entry capsule-types map
-  personal/org/device (matching the live routing invariant); mount the
-  already-built WalletProvenanceBadge on Data & Knowledge + Access
-  Control rows (its own header claims those consumers); fix the pronoun
-  flip (name the owner); add the one-line "where this learning lands"
-  copy to Chat corrections. NO export button, NO portability claim.
+- **S-1 boundary labeling — ✅ SHIPPED 2026-07-03 (CT `098976c`,
+  live-verified both roles):** the 20-entry capsule map now carries a
+  boundary class certified against the write-time routing truth
+  (personal/company/device/mixed — COMMITMENT and CONVERSATION_LEARNING
+  honestly "mixed: personal only after company details are stripped");
+  WalletProvenanceBadge de-overclaimed ("yours, not the company's" +
+  "export is not yet available") and mounted on My Memory (personal) +
+  Data & Knowledge (enterprise); Access Control matrix columns carry
+  muted ownership sub-labels; DataSovereigntyInline names the owner
+  ("company-owned work data, governed by your organization" — pronoun
+  flip fixed on Users/AI Teammates/Access Control); Chat + Corrections
+  state where learning lands ("Saved as personal learning in your
+  Digital Work Wallet"). NO export button, NO portability claim, NO
+  data movement, NO FND change. Live smoke read-only:
+  `screenshots/wallet-boundary-employee.png` +
+  `wallet-boundary-admin-data.png`.
   **Alternative (S-2, second):** backend ownership-class classifier —
   safe derived categories over existing rows (wallet join + capsule_type
   + scope_type), read-only projection, no data movement, no schema
