@@ -112,6 +112,40 @@ Graph already has one. In practice: **an adapter is ~50 lines that builds a
 `WorkSourceEvent` and calls `ingestSourceEvent` — anything bigger is
 probably violating the contract.**
 
+## 4b. Connector doctrine — org-scoped, never global (founder-directed, binding)
+
+Every organization connects ITS OWN tools. Otzar never connects to "the"
+Zoom or "the" Slack — it connects each org's governed workstream into its
+own private Org Truth Graph. **Org apps are org-scoped, permissioned,
+governed data sources**: Zoom for Org A is not Zoom for Org B; a user's
+personal Google/Slack/Zoom account is never automatically org authority.
+
+Canonical model: Org → ConnectorBinding (provider + account/workspace
+identity + scopes + status + audit) → source event → `ingestSourceEvent` →
+WorkLedger/Action/Audit/Memory → surface. Ingestion always resolves through
+the org's OWN binding/grant; no cross-org leakage; no shared-global-app
+assumption; no hardcoded provider behavior that ignores org policy.
+
+Seven org-scoping requirements every adapter must test:
+1. binding/credentials belong to the caller's org (Zoom: sealed per-org
+   OAuth envelope via `getProviderAccessTokenForOrg`);
+2. the source event carries org identity (spine resolves org from the
+   governed caller);
+3. dedupe is org-scoped (`findCaptureByExternalId(orgEntityId, key)`);
+4. the SAME provider source id in two orgs never collides (test-locked for
+   Zoom, FND PR #538);
+5. a revoked/never-connected org has no envelope → honest
+   NOT_CONNECTED/NOT_CONFIGURED (live-probed);
+6. missing connector → honest setup-required copy, never a silent failure;
+7. no secrets, tokens, or tokenized URLs cross the API (test-locked).
+
+Slack (next): source ids must be workspace+channel+message-scoped; dedupe
+org/workspace/channel/message-scoped; private/DM channels need separate
+policy; the org's OWN workspace binding gates every read. Google
+Meet/Calendar/Drive/Docs/Gmail: same rules — content becomes a SourceEvent
+only when org policy allows, with safe proof pointers, never casual raw
+exposure.
+
 ## 5. Verdicts
 
 - **Strongest source:** A — manual Comms transcript. The reference
