@@ -57,11 +57,20 @@ async function assignmentTargets(request: APIRequestContext, token: string): Pro
   return ((await res.json()).targets ?? []) as TargetRow[];
 }
 
-async function growthRecs(request: APIRequestContext, token: string): Promise<GrowthRec[]> {
+// NOTE: the recommendations list is CAPPED (MAX_RECOMMENDATIONS = 5) and
+// backfills when one clears, so list length is NOT a truth signal. Count
+// math must use the uncapped signals.members_without_project_count.
+async function growthView(
+  request: APIRequestContext,
+  token: string,
+): Promise<{ recs: GrowthRec[]; withoutCount: number }> {
   const res = await request.get(`${API}/otzar/dandelion/org-growth`, { headers: authed(token) });
   expect(res.status()).toBe(200);
   const body = await res.json();
-  return (body.growth?.recommendations ?? []) as GrowthRec[];
+  return {
+    recs: (body.growth?.recommendations ?? []) as GrowthRec[],
+    withoutCount: (body.growth?.signals?.members_without_project_count ?? -1) as number,
+  };
 }
 
 async function archiveProject(
@@ -96,6 +105,11 @@ async function uiLoginToCollaboration(page: Page): Promise<void> {
 let smokeProjectId = "";
 let smokeName = "";
 let personId = "";
+// Uncapped without-a-project counts at two reference points: before the
+// smoke project exists (the org's true prior state — S6 restores to this;
+// creating the project connects the ADMIN as OWNER, archiving undoes that
+// too) and after creation (S4's minus-one reference).
+let baselineWithoutCount = -1;
 let membersWithoutProjectBefore = -1;
 let archived = false;
 
@@ -119,6 +133,10 @@ test("S1 api: reversible smoke project exists as an ACTIVE assignment target; em
     const res = await archiveProject(request, adm, stale.target_id);
     expect(res.ok === true || res.code === "ALREADY_ARCHIVED").toBe(true);
   }
+
+  // The org's true prior state — S6 must restore exactly this.
+  baselineWithoutCount = (await growthView(request, adm)).withoutCount;
+  expect(baselineWithoutCount).toBeGreaterThan(0);
 
   // Create today's clearly-temporary fixture through the canonical rail.
   smokeName = `${SMOKE_PREFIX} — ${new Date().toISOString().slice(0, 10)}`;
@@ -152,14 +170,15 @@ test("S1 api: reversible smoke project exists as an ACTIVE assignment target; em
   // Pick the person to assign FROM SERVER TRUTH: creating the project made
   // the admin an OWNER member, so any remaining NEEDS_PROJECT_OR_WORKSPACE
   // recommendation is guaranteed to be someone else. Stable id only.
-  const recs = await growthRecs(request, adm);
-  const needs = recs.filter(
+  const view = await growthView(request, adm);
+  const needs = view.recs.filter(
     (r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context !== undefined,
   );
   expect(needs.length).toBeGreaterThan(0);
   personId = needs[0]?.context?.person_entity_id ?? "";
   expect(personId.length).toBeGreaterThan(0);
-  membersWithoutProjectBefore = needs.length;
+  membersWithoutProjectBefore = view.withoutCount;
+  expect(membersWithoutProjectBefore).toBeGreaterThan(0);
 });
 
 test("S2 ui: picker lists the smoke project in human language (screenshot)", async ({ page }) => {
@@ -220,19 +239,28 @@ test("S3 ui: assigning from the card changes server truth — membership, audit,
   expect(members.filter((m) => m.entity_id === personId)).toHaveLength(1);
 
   // Growth no longer recommends this person.
-  const recs = await growthRecs(request, adm);
+  const view = await growthView(request, adm);
   expect(
-    recs.some((r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context?.person_entity_id === personId),
+    view.recs.some(
+      (r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context?.person_entity_id === personId,
+    ),
   ).toBe(false);
 });
 
 test("S4 api: cross-surface coherence — one fewer person without a project, no duplicates", async ({ request }) => {
   const adm = await apiLogin(request, ADMIN_EMAIL);
-  const recs = await growthRecs(request, adm);
-  const needs = recs.filter((r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE");
-  expect(needs.length).toBe(membersWithoutProjectBefore - 1);
+  const view = await growthView(request, adm);
+  // Uncapped truth signal: exactly one fewer person without a project.
+  expect(view.withoutCount).toBe(membersWithoutProjectBefore - 1);
+  // The assigned person is out of the recommendation set (the capped list
+  // may backfill with OTHER people — that's correct behavior, not a leak).
+  expect(
+    view.recs.some(
+      (r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context?.person_entity_id === personId,
+    ),
+  ).toBe(false);
   // No raw backend codes surfaced anywhere in the growth copy.
-  const raw = JSON.stringify(recs);
+  const raw = JSON.stringify(view.recs);
   for (const codeToken of ["PROJECT_ARCHIVED", "PERSON_NOT_IN_ORG", "TARGET_NOT_FOUND"]) {
     expect(raw).not.toContain(codeToken);
   }
@@ -275,14 +303,17 @@ test("S6 cleanup: archiving the smoke project restores truth — recommendation 
   expect(rejoin.status()).toBe(422);
   expect((await rejoin.json()).code).toBe("PROJECT_ARCHIVED");
 
-  // Truth restored: the person's only membership points at an ARCHIVED
-  // project, so the recommendation RETURNS on server recompute.
-  const recs = await growthRecs(request, adm);
+  // Truth restored to the org's PRE-SMOKE state: the person's (and the
+  // admin-OWNER's) only smoke membership points at an ARCHIVED project, so
+  // the uncapped signal returns to the pre-create baseline and the
+  // person's recommendation comes back.
+  const view = await growthView(request, adm);
+  expect(view.withoutCount).toBe(baselineWithoutCount);
   expect(
-    recs.some((r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context?.person_entity_id === personId),
+    view.recs.some(
+      (r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context?.person_entity_id === personId,
+    ),
   ).toBe(true);
-  const needs = recs.filter((r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE");
-  expect(needs.length).toBe(membersWithoutProjectBefore);
 
   // And the customer sees it: the card is back with the assign affordance.
   await uiLoginToCollaboration(page);
