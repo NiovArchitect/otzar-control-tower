@@ -32,11 +32,13 @@ test("T1 api: my-work serves safe source_lineage — raw ids and dedupe keys nev
   });
   expect(res.status()).toBe(200);
   const body = await res.json();
-  const entries = (Array.isArray(body) ? body : (body.entries ?? [])) as Array<
+  const entries = (Array.isArray(body) ? body : (body.entries ?? body.items ?? [])) as Array<
     Record<string, unknown>
   >;
+  // The live org has real work rows — an empty parse would make every
+  // assertion below vacuous, so it fails loudly instead.
+  expect(entries.length).toBeGreaterThan(0);
   const withLineage = entries.filter((e) => e.source_lineage != null);
-  // Honest report either way; when lineage exists it must be the safe shape.
   console.log(`[lineage] my-work rows=${entries.length} with_lineage=${withLineage.length}`);
   for (const e of withLineage) {
     const l = e.source_lineage as Record<string, unknown>;
@@ -66,13 +68,15 @@ test("T2 ui: My Work cards stay calm; View/Why answers 'Came from' in human word
     history.pushState({}, "", "/app/my-work");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
-  // Settle: rows or an honest empty state.
+  // Settle: real rows or the page's explicit honest empty state — page
+  // chrome alone must not satisfy the wait (that made the card assertions
+  // vacuous on the first run).
   await expect
     .poll(
       async () =>
         (await page.getByTestId("work-ledger-item").count()) > 0 ||
-        ((await page.locator("main, body").first().textContent()) ?? "").length > 200,
-      { timeout: 30_000 },
+        (await page.getByTestId("my-work-empty").count()) > 0,
+      { timeout: 45_000 },
     )
     .toBe(true);
 
@@ -87,6 +91,19 @@ test("T2 ui: My Work cards stay calm; View/Why answers 'Came from' in human word
   const items = page.getByTestId("work-ledger-item");
   const count = await items.count();
   console.log(`[lineage] visible work items=${count}`);
+  // The live org has spine-ingested rows (transcript/Slack), so the calm
+  // card-face fragment must actually render somewhere on the page — the
+  // quiet label is real, not merely absent-noise.
+  const sourceFragments = page.getByTestId("work-ledger-item-source");
+  const fragmentCount = await sourceFragments.count();
+  console.log(`[lineage] calm source fragments=${fragmentCount}`);
+  if (count > 10) {
+    expect(fragmentCount, "at least one card shows a calm source label").toBeGreaterThan(0);
+    await sourceFragments.first().scrollIntoViewIfNeeded();
+    const fragmentText = (await sourceFragments.first().textContent()) ?? "";
+    console.log(`[lineage] first fragment: "${fragmentText.trim()}"`);
+    expect(fragmentText).toMatch(/From (Slack|Zoom recording|Comms transcript|a meeting)|Added manually/);
+  }
   if (count > 0) {
     // Open the first item's View detail → the shared Why panel must answer
     // "Came from" with human copy (a mapped label or the honest unknown).
