@@ -107,12 +107,21 @@ test("A3 ui: the Assign affordance + picker render for the admin (screenshot)", 
   await openBtn.click();
   const picker = page.getByTestId("dandelion-assign-picker");
   await picker.waitFor({ state: "visible", timeout: 15_000 });
+  // Real targets in human language OR the honest empty state — never a fake.
+  // Wait for the targets query to SETTLE first (the picker shows "Loading…" briefly).
+  await expect
+    .poll(
+      async () => {
+        const targets = await page.getByTestId("dandelion-assign-target").count();
+        const empty = await page.getByTestId("dandelion-assign-empty").count();
+        return targets > 0 || empty === 1;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
   const pickerText = (await picker.textContent()) ?? "";
   expect(pickerText).toContain("should start");
-  // Real targets in human language OR the honest empty state — never a fake.
   const targetCount = await page.getByTestId("dandelion-assign-target").count();
-  const emptyCount = await page.getByTestId("dandelion-assign-empty").count();
-  expect(targetCount > 0 || emptyCount === 1).toBe(true);
   if (targetCount > 0) {
     // Labels are human — no UUIDs rendered as copy.
     expect(pickerText).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
