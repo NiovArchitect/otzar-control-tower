@@ -232,4 +232,87 @@ describe("viewWhyFromCommsFollowUp", () => {
     const m = viewWhyFromCommsFollowUp(follow({ source_excerpt: null }), "LOCAL_FALLBACK");
     expect(m.proofNote).toBeTruthy();
   });
+
+  // ── [GAP-A] correction provenance in human words, inside "Why" only ────────
+  const whyPerson = (over: Partial<CommsSuggestedAction>) =>
+    viewWhyFromCommsFollowUp(follow(over), "LLM").rows.find(
+      (r) => r.label === "Why this person",
+    )?.value ?? null;
+
+  it("a prior team SELECT reads as 'Matched from a previous team choice' with the approval caveat", () => {
+    const v = whyPerson({
+      recipient_governance: mkRecipientGovernance({
+        recipientSafety: "likely",
+        evidence: {
+          quote: null,
+          source: "correction_memory",
+          matchedToken: "priya",
+          alternativeCandidates: ["Priya Menon"],
+        },
+      }),
+    });
+    expect(v).toBe("Matched from a previous team choice. Approval rules still apply.");
+  });
+
+  it("a prior team CONFIRM reads as 'Previously confirmed by your team' (no caveat once confirmed)", () => {
+    const v = whyPerson({
+      recipient_governance: mkRecipientGovernance({
+        recipientSafety: "confirmed",
+        evidence: {
+          quote: null,
+          source: "caller_confirmed",
+          matchedToken: null,
+          alternativeCandidates: [],
+        },
+      }),
+    });
+    expect(v).toBe("Previously confirmed by your team.");
+  });
+
+  it("a boundary state is framed as the boundary, never as confidence", () => {
+    const v = whyPerson({
+      recipient_governance: mkRecipientGovernance({
+        recipientSafety: "cross_team_needs_approval",
+        evidence: {
+          quote: null,
+          source: "caller_confirmed",
+          matchedToken: null,
+          alternativeCandidates: [],
+        },
+      }),
+    });
+    expect(v).toBe("Prior context found, but this still needs approval.");
+  });
+
+  it("normal transcript/mention proof renders NO correction provenance", () => {
+    expect(whyPerson({})).toBeNull(); // fixture default: explicit_mention
+  });
+
+  it("no backend vocabulary ever reaches the rendered rows", () => {
+    const m = viewWhyFromCommsFollowUp(
+      follow({
+        recipient_governance: mkRecipientGovernance({
+          recipientSafety: "likely",
+          evidence: {
+            quote: null,
+            source: "correction_memory",
+            matchedToken: "priya",
+            alternativeCandidates: [],
+          },
+        }),
+      }),
+      "LLM",
+    );
+    const rendered = m.rows.map((r) => `${r.label} ${String(r.value ?? "")}`).join(" ");
+    for (const banned of [
+      "correction_memory",
+      "caller_confirmed",
+      "evidence.source",
+      "FOLLOW_UP",
+      "ledger",
+      "prior correction from your organization",
+    ]) {
+      expect(rendered).not.toContain(banned);
+    }
+  });
 });

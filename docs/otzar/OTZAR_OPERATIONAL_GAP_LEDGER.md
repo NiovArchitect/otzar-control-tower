@@ -87,7 +87,7 @@ Standing architecture principles this ledger polices:
 
 Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record).
 
-### A. Customer-visible correction provenance — 🔴 open (copy approved, UI parked until built on the right surface)
+### A. Customer-visible correction provenance — 🟢 CLOSED 2026-07-03 (CT: 'Why this person' row in the shared View/Why panel for Comms follow-ups, binding human copy, boundary-honest; renders ONLY for the two correction proof sources; 5 unit tests incl. banned-vocabulary sweep. Live: content probe of the deployed bundle — no natural correction card existed live at closeout, so the pixel screenshot honestly waits for the next organic correction)
 
 - **Customer story:** "Why did Otzar pick this person? Did it remember what I
   chose last time? Will it still ask for approval?"

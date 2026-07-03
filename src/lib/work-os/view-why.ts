@@ -280,6 +280,26 @@ export function viewWhyFromAction(
   };
 }
 
+// [GAP-A] Correction provenance in HUMAN words, inside "Why" only — never a
+// badge, never a certainty claim, never backend vocabulary. Answers "why did
+// Otzar pick this person?" when (and only when) the backend proof source is a
+// prior governed team decision. Boundary states are framed as the boundary,
+// never as confidence — a correction can never read as bypassing approval.
+function correctionProvenance(s: CommsSuggestedAction): string | null {
+  const gov = s.recipient_governance;
+  const src = gov?.evidence?.source;
+  if (src !== "correction_memory" && src !== "caller_confirmed") return null;
+  const safety = gov?.recipientSafety;
+  if (safety === "cross_team_needs_approval" || safety === "unauthorized") {
+    return "Prior context found, but this still needs approval.";
+  }
+  const base =
+    src === "correction_memory"
+      ? "Matched from a previous team choice."
+      : "Previously confirmed by your team.";
+  return safety === "confirmed" ? base : `${base} Approval rules still apply.`;
+}
+
 // WHAT: shared View/Why for a Comms extracted follow-up. Surfaces the source
 //        excerpt, confidence, resolution, and extraction mode (Phase 1285-L).
 export function viewWhyFromCommsFollowUp(
@@ -289,6 +309,9 @@ export function viewWhyFromCommsFollowUp(
   const rows: ViewWhyRow[] = [
     { label: "Kind", value: "Follow-up (internal note)" },
     { label: "Target", value: entityLabel(s.target.display_name) },
+    // [GAP-A] Only present when a prior governed team decision backs the
+    // recipient — absent for normal transcript/mention proof.
+    { label: "Why this person", value: correctionProvenance(s) },
     { label: "Reason", value: s.reason },
     { label: "Source", value: s.source_excerpt !== null ? `“${s.source_excerpt}”` : null },
     { label: "Confidence", value: s.confidence.toLowerCase() },
