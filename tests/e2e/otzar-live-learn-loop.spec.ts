@@ -73,17 +73,23 @@ test("L2 armed: a labeled smoke ingest exercises the deployed read-path; cards c
   expect(res.status()).toBe(200);
   const body = await res.json();
   expect(body.ok).toBe(true);
-  const captureId = body.conversation?.meeting_capture_id as string | undefined;
+  // Route envelope: { ok, result: <IngestTranscriptResult> }.
+  const captureId = body.result?.conversation?.meeting_capture_id as string | undefined;
   expect(typeof captureId).toBe("string");
 
   // Cleanup: cancel any follow-up cards the smoke capture drafted (canonical
   // caller-owned PATCH -> CANCELLED, a done-status excluded from pending).
+  // Also catches stale cards from earlier smoke runs by the labeled draft text.
   const list = await request.get(`${API}/work-os/comms/follow-ups`, { headers: authed(tok) });
   const followUps = ((await list.json()).follow_ups ?? []) as Array<{
     ledger_entry_id: string;
     meeting_capture_id: string | null;
+    action?: { draft_text?: string; source_excerpt?: string | null };
   }>;
-  const smokeCards = followUps.filter((f) => f.meeting_capture_id === captureId);
+  const isSmoke = (f: (typeof followUps)[number]) =>
+    f.meeting_capture_id === captureId ||
+    /smoke checklist|learn.?loop/i.test(`${f.action?.draft_text ?? ""} ${f.action?.source_excerpt ?? ""}`);
+  const smokeCards = followUps.filter(isSmoke);
   for (const card of smokeCards) {
     const patched = await request.patch(`${API}/work-os/ledger/${card.ledger_entry_id}`, {
       headers: authed(tok),
@@ -93,8 +99,10 @@ test("L2 armed: a labeled smoke ingest exercises the deployed read-path; cards c
   }
   // No pending smoke residue.
   const after = await request.get(`${API}/work-os/comms/follow-ups`, { headers: authed(tok) });
-  const remaining = (((await after.json()).follow_ups ?? []) as Array<{ meeting_capture_id: string | null }>).filter(
-    (f) => f.meeting_capture_id === captureId,
-  );
+  const remaining = (((await after.json()).follow_ups ?? []) as Array<{
+    ledger_entry_id: string;
+    meeting_capture_id: string | null;
+    action?: { draft_text?: string; source_excerpt?: string | null };
+  }>).filter(isSmoke);
   expect(remaining.length).toBe(0);
 });
