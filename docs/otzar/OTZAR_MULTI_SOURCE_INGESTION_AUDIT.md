@@ -41,7 +41,7 @@ Statuses: **LIVE** (full loop) · **PARTIAL** · **PLACEHOLDER** ·
 | B | MeetingCapture (standalone route) | **PARTIAL** | `/otzar/meeting-capture/receive` (`otzar-meeting-capture.routes.ts:79`) → storage + consent audit ONLY | MeetingCapture rows; **zero work rows** | none (until re-ingested) | integration | no extraction hop — a captured meeting seeds nothing | R2, R3 |
 | B′ | Observe / OCR / screenshot | **PARTIAL** ⚠️ | `/otzar/observe/extract` → `ObserveCapture` + Collaboration* tables (`observe-intake.service.ts:174/315/326`) — **bypasses the spine** | A PARALLEL store, not WorkLedger | Workspace import | integration; **no live e2e** | private truth outside the ledger; cloud OCR engines are status-only stubs (`ocr-provider.ts:12`) | **R1**, R10 |
 | C | Zoom recording ingest | **LIVE** (provenance FIXED, FND `51d8700`) | `/zoom/recordings/ingest` (`connector-data.routes.ts:106`, admin-gated, real Zoom API + WebVTT) → `ingestComms` | Full spine set | Comms etc. | unit | ~~provenance loss~~ FIXED 2026-07-03: now sourceSystem ZOOM / CONNECTOR via the spine, dedupe ZOOM:<meeting_id>, re-ingest → honest 409 ALREADY_INGESTED, rows carry source lineage | — |
-| D | Slack — read | **NOT WIRED** | adapter EXISTS (`slackMessageToSourceEvent`, `source-event.ts:142`; real `slack-read.provider.ts`) but **no route invokes it** | — | — | unit only | the last wire is missing: nothing feeds Slack reads into the spine; no Events-API webhook | R9, R3 |
+| D | Slack — read | **WIRED (admin-triggered) — FIXED 2026-07-03 [SLACK-INGEST-1]** | `POST /api/v1/slack/messages/ingest` (admin-gated): org sealed OAuth envelope → `fetchSlackMessageForOrg` (public-only gate before any content read) → `slackMessageToSourceEvent` → spine | dedupe `org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>`; 409 `ALREADY_INGESTED`; cross-workspace + cross-org isolation test-locked | WorkLedger / follow-ups / Dandelion (spine surfaces) | unit + integration (spine lineage, idempotency, isolation, thread non-collision, route refusal chain) | admin-pull only: DMs/private channels parked by policy; no Events-API webhook yet (the ambient push wire is still gap N) | R3 partially closed |
 | D′ | Slack — write (executor) | **LIVE** | `INVOKE_CONNECTOR` action handler → `SlackWriteProvider` `chat.postMessage` (`slack-write.provider.ts:149`) | Action/audit rail | Action Center | unit + prior live smokes | outbound only — this is execution, not intake | — |
 | E | Google Docs | **NOT WIRED** | no `documents.get` anywhere | — | — | — | no content read exists at all | R9 |
 | F | Google Drive | **PARTIAL** | `drive.files.list` **metadata only** (`google-workspace-read.provider.ts:290`) | — | Tools & Connections status | unit | metadata can't seed work; no ingest hop | R3, R9 |
@@ -163,13 +163,16 @@ already-live Zoom ingest through `sourceSystem:"ZOOM"` with `source_id` +
 `dedupe_key` so re-ingesting a recording is idempotent and rows carry real
 provenance. Touches one route; the spine already supports it.
 
-**Slice 2 (the flagship): Slack read → canonical ingest.** Everything but
-the last wire exists (real read provider, `slackMessageToSourceEvent`,
-binding + OAuth rail, dedupe keys, the spine). Wiring channel history →
-`ingestSourceEvent` (poll first; Events-API webhook establishes the
-inbound-event pattern that closes N) delivers the first source where **work
-arrives without anyone pasting anything** — the ambient promise made real,
-and the template every later connector copies.
+**Slice 2 (the flagship): Slack read → canonical ingest.** ✅ SHIPPED
+2026-07-03 `[SLACK-INGEST-1]` (FND PR #539): admin-triggered public-channel
+message ingest via the org's sealed OAuth envelope through the canonical
+adapter into the spine, with the doctrine dedupe identity
+`org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>` (cross-workspace +
+cross-org isolation and thread non-collision test-locked). The safe first
+slice is pull-based and consent-recorded (the admin trigger). Remaining
+honest: the Events-API webhook (signature-verified inbound push — the
+pattern that closes N and makes arrival truly ambient), channel-sample
+ingest, and DM/private-channel policy — all parked deliberately.
 
 Then, in impact order: Data & Knowledge per-row lineage (multiple sources
 already write proof customers can't browse — closes part of Gap J/R7);
