@@ -17,7 +17,7 @@
 // RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-assign-from-people.spec.ts
 
-import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import { test, expect, type APIRequestContext } from "@playwright/test";
 
 test.describe.configure({ retries: 0 });
 
@@ -88,7 +88,7 @@ test("A2 api: assignment validation is honest — bad kind 422 with human copy, 
   expect((await ghost.json()).code).toBe("PERSON_NOT_IN_ORG");
 });
 
-test("A3 ui: the Assign affordance + picker render for the admin (screenshot)", async ({ page, request }) => {
+test("A3 ui: the Assign affordance + picker render for the admin (screenshot)", async ({ page }) => {
   test.setTimeout(150_000);
   await page.goto("/login");
   await page.getByLabel("Email").fill(ADMIN_EMAIL);
