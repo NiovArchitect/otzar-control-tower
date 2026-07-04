@@ -21,7 +21,6 @@
 //    refused). 4xx and 5xx are NOT retried -- those are real
 //    application states the caller needs to see.
 
-import { generateRandomPassword } from "./auth/random-password";
 import { summarizeNotificationBody } from "./work-os/notification-body";
 import type {
   ClarityAnswerView,
@@ -462,6 +461,18 @@ export class ApiClient {
 
     logout: (): Promise<ApiResult<{ ok: true }>> =>
       this.request<{ ok: true }>("/auth/logout", { method: "POST", authRoute: true }),
+
+    /** [P0-ONBOARD] POST /auth/activate — PUBLIC one-time token redemption
+     *  (activation or password reset). Sets the member's own password. */
+    activate: (
+      token: string,
+      password: string,
+    ): Promise<ApiResult<{ purpose: "ACTIVATION" | "PASSWORD_RESET" }>> =>
+      this.request<{ purpose: "ACTIVATION" | "PASSWORD_RESET" }>("/auth/activate", {
+        method: "POST",
+        body: { token, password },
+        authRoute: true,
+      }),
   };
 
   // ──────────────────────────────────────────────────────────────
@@ -514,24 +525,44 @@ export class ApiClient {
     members: {
       /** POST /api/v1/org/members -- single create. 12B.0 surfaces audit_event_id.
        *
-       *  12B.2: injects a random 32-char placeholder password via
-       *  generateRandomPassword() if the caller didn't supply one
-       *  (which they shouldn't -- per decision #21, no UI form
-       *  collects a password). Foundation requires a non-null
-       *  password to mint the row; the invitee's real access path
-       *  is Phase3Result.activation_credential, not this value.
+       *  [P0-ONBOARD]: no placeholder password. The member is created
+       *  credential-less (login fails closed) and sets their OWN password
+       *  through the one-time activation link minted at Phase 3.
        */
       create: (input: MemberInput): Promise<ApiResult<MemberCreateResponse>> =>
         this.request<MemberCreateResponse>("/org/members", {
           method: "POST",
           body: {
             ...input,
-            password: input.password ?? generateRandomPassword(),
+            ...(input.password !== undefined ? { password: input.password } : {}),
           },
         }),
 
+      /** [P0-ONBOARD] POST /org/members/:id/activation-link — admin-gated
+       *  one-time link mint (the controlled-pilot delivery channel until
+       *  email ships). The returned token is shown ONCE; minting
+       *  invalidates any prior open link. */
+      activationLink: (
+        id: string,
+      ): Promise<ApiResult<{ token: string; expires_at: string }>> =>
+        this.request<{ token: string; expires_at: string }>(
+          `/org/members/${id}/activation-link`,
+          { method: "POST" },
+        ),
+
+      /** [P0-ONBOARD] POST /org/members/:id/password-reset-link — same
+       *  one-time semantics, 1h expiry, invalidates the member's active
+       *  sessions when redeemed. */
+      passwordResetLink: (
+        id: string,
+      ): Promise<ApiResult<{ token: string; expires_at: string }>> =>
+        this.request<{ token: string; expires_at: string }>(
+          `/org/members/${id}/password-reset-link`,
+          { method: "POST" },
+        ),
+
       /** POST /api/v1/org/members/bulk -- batch create. Same
-       *  random-password injection applied per row. */
+       *  members are created credential-less per row ([P0-ONBOARD]). */
       bulk: (
         members: MemberInput[],
       ): Promise<ApiResult<MemberBulkResponse>> =>
@@ -540,7 +571,7 @@ export class ApiClient {
           body: {
             members: members.map((m) => ({
               ...m,
-              password: m.password ?? generateRandomPassword(),
+              ...(m.password !== undefined ? { password: m.password } : {}),
             })),
           },
         }),

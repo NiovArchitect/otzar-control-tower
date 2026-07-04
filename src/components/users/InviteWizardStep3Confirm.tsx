@@ -6,8 +6,10 @@
 // CONNECTS TO: InviteWizard (parent), AuditAwareButton,
 //              api.org.onboarding.invite.
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuditAwareButton } from "@/components/audit/AuditAwareButton";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
 import { resolveRoleArchetype } from "@/lib/role-archetypes";
@@ -31,10 +33,62 @@ export function InviteWizardStep3Confirm({
   isAdmin,
   onCompleted,
 }: InviteWizardStep3ConfirmProps) {
+  // [P0-ONBOARD] the one-time activation link. Held in state ONLY until the
+  // admin clicks Done — never persisted, never re-displayable.
+  const [activation, setActivation] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const targetDescription = `${newDisplayName} (${newEmail}) as ${isAdmin ? "an admin" : "a team member"}`;
-  const confirmationDescription = `This will activate ${newDisplayName} (${newEmail}) as ${
+  const confirmationDescription = `This will invite ${newDisplayName} (${newEmail}) as ${
     isAdmin ? "an admin" : "a team member"
-  } in your organization. A Digital Twin will be minted and an activation link will be issued.`;
+  }. A Digital Twin is minted and a one-time activation link is issued for you to share securely — no email is sent.`;
+
+  if (activation !== null) {
+    return (
+      <div className="space-y-4" data-testid="invite-activation-reveal">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {newDisplayName} is invited — share their activation link
+            </CardTitle>
+            <CardDescription>
+              Share this securely with the invitee. This link expires{" "}
+              {new Date(activation.expiresAt).toLocaleDateString()} and can
+              only be used once. It won&apos;t be shown again — you can
+              generate a new one from the Users list if needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p
+              className="break-all rounded-md border border-border bg-muted p-2 font-mono text-xs"
+              data-testid="invite-activation-link"
+            >
+              {activation.url}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                data-testid="invite-activation-copy"
+                onClick={() => {
+                  void navigator.clipboard.writeText(activation.url);
+                  setCopied(true);
+                }}
+              >
+                {copied ? "Copied" : "Copy activation link"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="invite-activation-done"
+                onClick={() => onCompleted()}
+              >
+                Done
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -42,8 +96,9 @@ export function InviteWizardStep3Confirm({
         <CardHeader>
           <CardTitle className="text-base">Ready to invite</CardTitle>
           <CardDescription>
-            Phase 2 analysis is complete. Confirming sends the activation
-            link and mints the AI Teammate.
+            Confirming mints the AI Teammate and creates a one-time
+            activation link you can copy and share securely — no email is
+            sent.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
@@ -93,7 +148,7 @@ export function InviteWizardStep3Confirm({
           auditEventType="ADMIN_ACTION"
           auditActionLabel="ONBOARDING_INVITE_ACCEPTED"
           requireConfirmation
-          confirmationTitle="Send invite?"
+          confirmationTitle="Invite this member?"
           confirmationDescription={confirmationDescription}
           targetDescription={targetDescription}
           onConfirm={async () => {
@@ -101,11 +156,16 @@ export function InviteWizardStep3Confirm({
             if (!r.ok) {
               return { ok: false, error: r.message };
             }
-            onCompleted();
+            // [P0-ONBOARD] hold the one-time link for the reveal card below;
+            // the wizard closes only when the admin clicks Done.
+            setActivation({
+              url: `${window.location.origin}/activate?token=${r.data.activation_token}`,
+              expiresAt: r.data.activation_expires_at,
+            });
             return { ok: true, audit_event_id: r.data.audit_event_id };
           }}
         >
-          Confirm and send invite
+          Confirm and invite
         </AuditAwareButton>
       </div>
     </div>

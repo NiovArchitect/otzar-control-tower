@@ -32,6 +32,7 @@ import {
   type BulkAction,
 } from "@/components/users/BulkActionsBar";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 import { formatPersonName } from "@/lib/identity/person-name";
 import { getEntityTypeLabel } from "@/lib/labels/entity-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -39,6 +40,58 @@ import type { Entity, EntityMembership, EntityStatus } from "@/lib/types/foundat
 import { buildOrgMap, type OrgMapPerson } from "@/lib/org/org-map";
 
 const PAGE_SIZE = 25;
+
+// [P0-ONBOARD] Onboarding access state + the one-time link mint. Clicking
+// mints a FRESH link (invalidating any prior open one) and copies it —
+// links are never re-displayed. Copy is honest: shared by the admin, never
+// "email sent".
+function ActivationCell({ row }: { row: Entity }): JSX.Element {
+  const status = row.activation_status;
+  const [busy, setBusy] = useState(false);
+  if (row.entity_type !== "PERSON" || status === undefined) return <span>—</span>;
+  const label =
+    status === "active" ? "Active"
+    : status === "activation_pending" ? "Activation pending"
+    : status === "expired" ? "Link expired"
+    : "Invited";
+  async function mint(): Promise<void> {
+    setBusy(true);
+    const r =
+      status === "active"
+        ? await api.org.members.passwordResetLink(row.entity_id)
+        : await api.org.members.activationLink(row.entity_id);
+    setBusy(false);
+    if (!r.ok) {
+      toast.error(r.message || "Couldn't create the link.");
+      return;
+    }
+    const url = `${window.location.origin}/activate?token=${r.data.token}`;
+    await navigator.clipboard.writeText(url);
+    toast.success(
+      status === "active"
+        ? "Password reset link copied. Share it securely — it expires in 1 hour and can only be used once."
+        : "Activation link copied. Share it securely — it expires and can only be used once.",
+    );
+  }
+  return (
+    <div className="flex items-center gap-2" data-testid="users-activation-cell">
+      <span>{label}</span>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-6 px-2 text-xs"
+        disabled={busy}
+        data-testid={status === "active" ? "users-copy-reset-link" : "users-copy-activation-link"}
+        onClick={(e) => {
+          e.stopPropagation();
+          void mint();
+        }}
+      >
+        {status === "active" ? "Copy reset link" : "Copy activation link"}
+      </Button>
+    </div>
+  );
+}
 
 function statusBadge(status: EntityStatus) {
   if (status === "ACTIVE") {
@@ -217,6 +270,11 @@ export function UsersPage() {
         id: "status",
         header: "Status",
         cell: ({ row }) => statusBadge(row.original.status),
+      },
+      {
+        id: "activation",
+        header: "Access",
+        cell: ({ row }) => <ActivationCell row={row.original} />,
       },
       {
         id: "last_updated",

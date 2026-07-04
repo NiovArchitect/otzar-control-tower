@@ -165,7 +165,13 @@ export type AuditEventType =
   // actually soft-revoked >= 1 caller-owned capsule (POST .../revoke-apply).
   // Mirrors the Foundation AuditEventType literal; the apply's returned audit_id
   // is this event. Per-capsule soft revokes still audit as CAPSULE_DELETED.
-  | "VOICE_NOTE_REVOKE_APPLIED";
+  | "VOICE_NOTE_REVOKE_APPLIED"
+  // [P0-ONBOARD] activation-token onboarding lifecycle.
+  | "USER_INVITED"
+  | "ACTIVATION_LINK_CREATED"
+  | "USER_ACTIVATED"
+  | "PASSWORD_RESET_LINK_CREATED"
+  | "PASSWORD_RESET_COMPLETED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";
@@ -203,6 +209,9 @@ export interface Entity {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  /** [P0-ONBOARD] safe server-derived onboarding state (org admin
+   *  projections only) — never exposes credentials or token material. */
+  activation_status?: "active" | "activation_pending" | "expired" | "invited";
 }
 
 // WHAT: Profile fields hung off an Entity (1:1).
@@ -761,7 +770,7 @@ export interface ExportAuditEventsSuccess {
 
 // WHAT: Body for POST /api/v1/org/members from the FRONTEND
 //        caller's perspective. Foundation's actual MemberInput
-//        requires `password` (non-null) -- but the random-password
+//        accepts an OPTIONAL password ([P0-ONBOARD]) -- the activation-link
 //        injection happens inside `api.org.members.create()` before
 //        the fetch fires, so frontend callers never pass it.
 // WHY: 12B.2 architectural dance per decision #21:
@@ -852,8 +861,12 @@ export interface Phase3Result {
   entity_id: string;
   twin_id: string;
   hive_membership_id: string | null;
-  activation_credential: string;
   audit_event_id: string;
+  /** [P0-ONBOARD] one-time activation token — shown ONCE to the admin as a
+   *  copyable link (the controlled-pilot delivery channel until email
+   *  ships). Never persisted client-side, never re-displayable. */
+  activation_token: string;
+  activation_expires_at: string;
 }
 
 // WHAT: POST /api/v1/org/onboarding/{reorder,status} response.

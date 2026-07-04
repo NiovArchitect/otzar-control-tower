@@ -8,10 +8,11 @@
 //              api.org.members.create.
 //
 // PASSWORD POSTURE (decision #21):
-// No password field is rendered. api.org.members.create injects a
-// random 32-char placeholder via generateRandomPassword(). The
+// No password field is rendered. [P0-ONBOARD] the member is created
+// credential-less; their real access path is the one-time activation
+// link shown to the admin at Step 3. The
 // invitee never sees that value -- their real onboarding path is
-// Phase3Result.activation_credential delivered by Phase 3.
+// one-time activation link delivered at Step 3.
 
 import { useFormContext } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";

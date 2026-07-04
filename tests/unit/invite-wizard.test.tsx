@@ -1,10 +1,12 @@
 // FILE: tests/unit/invite-wizard.test.tsx
 // PURPOSE: 12B.2 anchor test for the 3-step Dandelion invite wizard.
 //          Verifies (a) the 3 Foundation endpoints fire in correct
-//          order with correct payloads, and (b) the random password
-//          discipline holds (32 chars, never surfaced anywhere).
+//          order with correct payloads, and (b) [P0-ONBOARD] the
+//          credential-less posture: NO password is ever sent, the
+//          one-time activation link is revealed exactly once with
+//          honest share copy (never "email sent").
 // CONNECTS TO: src/components/users/InviteWizard.tsx,
-//              src/lib/auth/random-password.ts.
+//              src/components/users/InviteWizardStep3Confirm.tsx.
 //
 // SCOPE NOTE: The Stage 4 audit-toast / clickable audit_event_id
 // link contract is covered by tests/unit/audit-aware-button.test.tsx
@@ -49,7 +51,7 @@ afterEach(() => {
 });
 
 describe("InviteWizard", () => {
-  it("transitions Step 1 → Step 2 → Step 3, fires 3 endpoints in order, and never leaks the random password", async () => {
+  it("transitions Step 1 → Step 2 → Step 3, fires 3 endpoints in order, sends NO password, and reveals the one-time activation link honestly", async () => {
     const user = userEvent.setup();
     const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
     const consoleError = vi
@@ -71,15 +73,14 @@ describe("InviteWizard", () => {
       screen.getByRole("button", { name: /Continue to review/i }),
     );
 
-    // ─── Verify POST /org/members fired with random 32-char password
+    // ─── [P0-ONBOARD] POST /org/members fires with NO password — the
+    // member is created credential-less and activates via the link.
     await waitFor(() => {
       expect(getRecordedCalls().members).toBe(true);
     });
     const body = getLastMembersPostBody();
     expect(body.email).toBe("newhire@example.com");
-    expect(typeof body.password).toBe("string");
-    const sentPassword = body.password as string;
-    expect(sentPassword.length).toBe(32);
+    expect(body.password).toBeUndefined();
 
     // ─── Step 2: Phase 2 review renders → POST /org/onboarding/start
     await screen.findByText(/Propagation impact/i);
@@ -93,9 +94,9 @@ describe("InviteWizard", () => {
 
     // ─── Step 3: confirmation dialog opens via AuditAwareButton
     await user.click(
-      screen.getByRole("button", { name: /Confirm and send invite/i }),
+      screen.getByRole("button", { name: /Confirm and invite/i }),
     );
-    await screen.findByRole("heading", { name: /Send invite\?/i });
+    await screen.findByRole("heading", { name: /Invite this member\?/i });
 
     // Click the Confirm button INSIDE the dialog (not the trigger).
     const confirmInDialog = await screen.findByRole("button", {
@@ -117,12 +118,17 @@ describe("InviteWizard", () => {
     expect(calls.onboardingStart).toBe(true);
     expect(calls.onboardingInvite).toBe(true);
 
-    // ─── Password leakage discipline (decision #21) ─────────────
-    // The random password must NEVER appear in the visible DOM, in
-    // any toast text, or in console output during the wizard flow.
+    // ─── [P0-ONBOARD] the one-time activation link reveal ───────
+    // Shown once with honest share copy; the wizard does NOT auto-close
+    // (that would destroy the only reveal), and no "email sent" lie.
+    await screen.findByTestId("invite-activation-reveal");
+    const link = screen.getByTestId("invite-activation-link").textContent ?? "";
+    expect(link).toContain("/activate?token=tok-one-time-test");
     const fullText = document.body.textContent ?? "";
-    expect(fullText).not.toContain(sentPassword);
-
+    expect(fullText).toContain("Share this securely");
+    expect(fullText).toContain("can only be used once");
+    expect(fullText).not.toMatch(/email sent|invite delivered|reset email/i);
+    // No console leak of the token.
     const allLogArgs = [
       ...consoleLog.mock.calls.flat(),
       ...consoleError.mock.calls.flat(),
@@ -131,7 +137,7 @@ describe("InviteWizard", () => {
     for (const arg of allLogArgs) {
       const stringified =
         typeof arg === "string" ? arg : JSON.stringify(arg ?? "");
-      expect(stringified).not.toContain(sentPassword);
+      expect(stringified).not.toContain("tok-one-time-test");
     }
 
     consoleLog.mockRestore();

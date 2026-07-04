@@ -10,6 +10,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthGuard } from "@/components/AuthGuard";
+import { ActivatePage } from "@/pages/Activate";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -91,6 +92,9 @@ export function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            {/* [P0-ONBOARD] public activation / reset page — outside every
+                auth guard (the invitee has no session yet). */}
+            <Route path="/activate" element={<ActivatePage />} />
 
             {/* Employee Otzar shell -- EmployeeGuard admits product
                 users (can_read_capsules); does NOT require can_admin_org
