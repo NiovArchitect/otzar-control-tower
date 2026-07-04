@@ -18,6 +18,11 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
+    # [P0-OPS] autoDeploy is OFF — the binding rail is manual verified
+    # deploys (merge/push green -> API deploy with commitId -> poll
+    # "live <sha>" -> bundle-hash check -> smoke). See
+    # docs/otzar/OTZAR_PILOT_OPS_RUNBOOK.md.
+    autoDeploy: false
     envVars:
       - key: VITE_FOUNDATION_API_URL
         value: https://api.otzar.ai/api/v1

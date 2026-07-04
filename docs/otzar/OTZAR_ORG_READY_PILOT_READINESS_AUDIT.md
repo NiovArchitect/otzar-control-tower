@@ -68,7 +68,17 @@ one-time activation credential to the admin in Step 3 + force
 password-change-on-first-login + a working reset path. Email delivery can be
 P1.
 
-**P0-2. Production tenant hygiene — smokes and pilots share one org.**
+**P0-2. Production tenant hygiene — 🟡 PARTIALLY CLOSED 2026-07-04
+(P0-OPS).** Residue sweep executed read-only across persons/seeds/
+escalations/ledger/twins: 404 ledger rows + 97 seeds ZERO smoke-titled;
+only 2 suspended per-run smoke identities (canonical rail); 2 stale
+smoke escalations flagged for founder-authorized rejection. Interim
+tenancy rules + sweep procedure now BINDING in
+`OTZAR_PILOT_OPS_RUNBOOK.md` §3/§5; pilot-gate battery proven to clean
+after itself (post-run sweep byte-stable). REMAINING: the dedicated
+smoke org itself requires founder Phase-0 (`can_admin_niov` + dual
+control — verified unavailable to the operator account). Original
+finding:
 The 46-spec live battery mutates production data (≈41 mutating specs; per-spec
 cleanup rails + per-run idempotency keys, no isolated tenant). Documented
 residual intermittency exists, and the gap ledger's own R-gap notes live
@@ -77,7 +87,15 @@ and smokes must never touch pilot data. Fix: a dedicated smoke org (hard rule:
 smokes authenticate only into it), plus one residue sweep of the current live
 org before any pilot user arrives.
 
-**P0-3. Deploy gate — Render ships commits regardless of CI.**
+**P0-3. Deploy gate — ✅ CLOSED 2026-07-04 (P0-OPS).** autoDeploy
+turned OFF on BOTH Render services via API (verified `no`) and mirrored
+in both render.yamls — a push to main deploys nothing; the manual
+verified rail (merge on green → API deploy with commitId → poll
+`live <sha>` → bundle-hash check → smoke) is now BINDING in
+`OTZAR_PILOT_OPS_RUNBOOK.md` §1, with the migration-before-code rule
+(§2, the P2022 lesson) and stale-watcher rules codified.
+RENDER_API_KEY rotation: dashboard-only, plan documented (§7), current
+key verified working. Original finding:
 CT CI exists (typecheck/lint/test/build on push + PR) but Render's deploy is
 independent of check status; FND `render.yaml` has `autoDeploy: true` while
 actual practice is manual API deploys with commitId (this session's rail).

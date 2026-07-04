@@ -644,6 +644,20 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ---
 
+### T2. Pilot ops rail (P0-OPS) — 🟡 LARGELY CLOSED 2026-07-04
+
+- **State:** `OTZAR_PILOT_OPS_RUNBOOK.md` is the BINDING ops doc: manual
+  verified deploy rail (autoDeploy OFF on both services — verified via
+  API), migration-before-code (hardened canary→DDL→verify, the P2022
+  lesson), smoke tenancy + residue policy + sweep procedure, smoke gates
+  (`test:e2e:live:pilot-gate` — 11/11 green at authoring, cleans after
+  itself), rollback pointer + CT addendum, key-rotation plan.
+- **Remaining (founder actions):** create the dedicated smoke org
+  (Phase 0, dual control); authorize rejection of the 2 stale smoke
+  escalations (8fad318b…, ce8fca11…); rotate RENDER_API_KEY per §7;
+  rehearse one rollback on the smoke org. Engineering P1: codify the
+  migration job rail as a script; twin-deactivation rail.
+
 ### U. Organization Setup Journey / Admin Setup OS — 🔴 open (doctrine + audit COMPLETE 2026-07-04)
 
 - **Customer story:** "As a new organization adopting Otzar, I want a guided
