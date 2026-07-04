@@ -333,6 +333,15 @@ export function WorkLedgerItem({
                 {sourceLabel}
               </span>
             ) : null}
+            {/* [T-1] external-party context — one calm fragment, only when a
+                deterministic link proved it ("Waiting on Acme" /
+                "Client follow-up"). Context, not CRM. */}
+            {entry.external_context !== undefined ? (
+              <span data-testid="work-ledger-item-external">
+                {" · "}
+                {entry.external_context.safe_context_label}
+              </span>
+            ) : null}
           </div>
           {exec.state !== "tracking" ? (
             <div className="mt-0.5 text-[10px]" data-testid="work-ledger-item-exec-state" data-exec-state={exec.state}>

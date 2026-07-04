@@ -71,6 +71,36 @@ describe("[GAP-J] source lineage labels — one human map, honest fallbacks", ()
   });
 });
 
+// ── [T-1] external-party context — context, not CRM ──
+describe("[T-1] WorkLedgerItem — external context fragment", () => {
+  it("renders ONE calm fragment when a deterministic link proved external context", () => {
+    render(
+      <WorkLedgerItem
+        entry={entry({
+          external_context: {
+            external_party_type: "client",
+            external_org_label: "Acme",
+            external_person_label: "Jordan Vale",
+            relationship_label: "Client",
+            safe_context_label: "Waiting on Acme",
+            waiting_direction: "they_owe_us",
+            source: "external_commitment",
+          },
+        })}
+      />,
+    );
+    const el = screen.getByTestId("work-ledger-item-external");
+    expect(el.textContent).toContain("Waiting on Acme");
+    // No raw enums or machine tokens as card copy.
+    expect(el.textContent).not.toMatch(/EXTERNAL_OWES|external_commitment/);
+  });
+
+  it("no external context → SILENCE (no fragment, no CRM chrome)", () => {
+    render(<WorkLedgerItem entry={entry()} />);
+    expect(screen.queryByTestId("work-ledger-item-external")).toBeNull();
+  });
+});
+
 describe("[GAP-J] WorkLedgerItem card face — quiet by default", () => {
   it("a Slack-origin row shows ONE calm muted fragment: From Slack", () => {
     render(<WorkLedgerItem entry={entry({ source_lineage: lineage() })} />);

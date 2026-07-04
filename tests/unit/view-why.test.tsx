@@ -116,6 +116,28 @@ describe("viewWhyFromLedger — source lineage rows (GAP-J)", () => {
     const m = viewWhyFromLedger(ledger({}));
     expect(m.rows.find((r) => r.label === "Came from")?.value).toBe("Source not recorded yet");
   });
+
+  // [T-1] external-party rows — present only when the projection proved it.
+  it("external context renders person · company + relationship rows; absent rows drop", () => {
+    const m = viewWhyFromLedger(
+      ledger({
+        external_context: {
+          external_party_type: "client",
+          external_org_label: "Acme",
+          external_person_label: "Jordan Vale",
+          relationship_label: "Client",
+          safe_context_label: "Waiting on Acme",
+          waiting_direction: "they_owe_us",
+          source: "external_commitment",
+        },
+      }),
+    );
+    expect(m.rows.find((r) => r.label === "External party")?.value).toBe("Jordan Vale · Acme");
+    expect(m.rows.find((r) => r.label === "Relationship")?.value).toBe("Client");
+
+    const none = viewWhyFromLedger(ledger({}));
+    expect(none.rows.find((r) => r.label === "External party")?.value).toBeNull();
+  });
 });
 
 describe("viewWhyFromLedger — canonical identity, never a UUID", () => {

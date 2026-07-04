@@ -124,6 +124,21 @@ export function viewWhyFromLedger(entry: WorkLedgerEntryView): ViewWhyModel {
     { label: "Came from", value: sourceLineageWhyValue(entry.source_lineage) },
     { label: "Shared by", value: entry.source_lineage?.source_actor ?? null },
     { label: "Received", value: entry.source_lineage?.source_timestamp ?? null },
+    // [T-1] external-party context — rows render only when a deterministic
+    // link proved it (absent on most rows; the presenter drops nulls).
+    {
+      label: "External party",
+      value:
+        entry.external_context !== undefined
+          ? [entry.external_context.external_person_label, entry.external_context.external_org_label]
+              .filter((v): v is string => v !== undefined)
+              .join(" · ") || null
+          : null,
+    },
+    {
+      label: "Relationship",
+      value: entry.external_context?.relationship_label ?? null,
+    },
     { label: "Source", value: entry.source_command !== null ? `“${entry.source_command}”` : null },
     {
       label: "Owner",

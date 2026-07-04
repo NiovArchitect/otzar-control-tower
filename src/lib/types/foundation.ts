@@ -4681,6 +4681,28 @@ export interface ClarityAnswerView {
   };
 }
 
+// [T-1] External-party context (FND external-context.service.ts): safe
+// labels only, present only when a deterministic org-scoped link proves it
+// (governed collaborator/commitment or roster-first lineage match).
+// Context, not CRM — absent on most rows by design.
+export interface ExternalContextView {
+  external_party_type:
+    | "client"
+    | "prospect"
+    | "vendor"
+    | "partner"
+    | "contractor"
+    | "regulator"
+    | "customer"
+    | "unknown";
+  external_org_label?: string;
+  external_person_label?: string;
+  relationship_label?: string;
+  safe_context_label: string;
+  waiting_direction?: "we_owe_them" | "they_owe_us" | "unknown";
+  source: "external_collaborator" | "external_commitment" | "source_lineage" | "none";
+}
+
 // [GAP-J] The SAFE source-lineage block (FND SourceLineageProjection).
 // Closed-vocab scalars only — the raw source id, dedupe key, URL, and
 // connector identity deliberately never cross the API.
@@ -4758,6 +4780,9 @@ export interface WorkLedgerEntryView {
   // sourceLineageFromDetails). Present only when the row's source was
   // recorded by the ingest spine — the UI never invents an origin.
   source_lineage?: SourceLineageView;
+  // [T-1] — external-party context (context, not CRM). Present only when a
+  // deterministic org-scoped link proves it. Additive + optional.
+  external_context?: ExternalContextView;
   // Phase 1285-E — server-computed: the caller owns this active task and may
   // mark it complete (My Work only). Drives the "Mark complete" control.
   can_complete?: boolean;
