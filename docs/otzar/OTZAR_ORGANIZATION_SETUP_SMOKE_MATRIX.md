@@ -23,7 +23,7 @@ yet (honest gap; next-slice column says what it needs).
 | 10 | Approval policy unclear | "What can AI do alone?" | org/settings flags + twin ceiling | human-readable policy lines | "Sensitive AI actions require human approval." / ceiling as "Approval required" | /data-knowledge (+ Settings) | org-setup.test (no raw policy enums) | ✅ |
 | 11 | External data boundaries | Client-data leakage worry | doctrine + T-1→T-4 rails | governance boundary line | "Client and vendor data never becomes portable personal memory." | /data-knowledge | copy assertion in tests | 🟡 — external-scope detail panel future |
 | 12 | Retention setup missing | Compliance concern | (unmodeled — honest) | limitation always shown | "Retention controls are not configurable in-product yet. Keep this visible during pilot planning." | /retention (existing honest page) | overclaim test asserts the line renders | ✅ (as an honest limitation) |
-| 13 | Bulk onboarding pain | 100+ people, one-by-one invites | (unbuilt — honest) | limitation always shown | "Bulk import is not available yet — invite members one at a time from Users." | /users; CSV import is the named next slice | overclaim test asserts the line renders | ✅ (as an honest limitation) |
+| 13 | Bulk onboarding pain | 100+ people, one-by-one invites | CSV import (/setup/import-people) through the EXISTING rails: bulk create → per-person Phase-3 invite (twin + one-time link) → hierarchy assign | parser refuses forbidden columns; preview-first; confirmation-gated | "Preview first… You're about to invite N people with minimum access… No email is sent." Per-batch cap 20 with honest split copy. | /setup/import-people (linked from the People card + results link back to /setup) | csv-import.test 8 tests (stories 1–13 of the import list): empty/headers/invalid-email/dupes/existing/forbidden-columns/manager-resolution/self-manager/unknown-role/row-cap/no-write-before-confirm/partial-failure/one-time links | ✅ SLICE 2 |
 | 14 | "Can we go live?" | Implementation confidence gap | all of the above | top summary + ONE deterministic next step | "N areas need attention — start with the step below." / "You're in good shape." | the next-step link | priority-ladder unit test walks the full order | ✅ |
 
 ## Detection priority (the Next Best Step ladder, test-locked)
@@ -45,10 +45,9 @@ good shape". Foundation/bootstrap issues can't occur for a logged-in admin
   this slice by design.
 - **Go-live checklist as a formal gate** (story 14 full form) — the summary
   exists; a printable/pilot-gate handoff view is future.
-- **Bulk import** (story 13 repair) — the highest-risk remaining stall for
-  any pilot >15 people; recommended NEXT slice (CSV through the existing
-  bulk + hierarchy + activation rails; needs founder GO since it adds a
-  write-path UI).
+- ~~Bulk import~~ — SHIPPED as slice 2 (CSV, cap 20/batch, preview-first,
+  least-access by construction). Remaining bulk maturity: HRIS/directory
+  import, org-chart upload, >20-row streaming batches.
 
 None of these require schema changes; bulk import and setup-coach seeds
 require founder approval (write paths / new seed lane).

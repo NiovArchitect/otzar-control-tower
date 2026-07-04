@@ -25,6 +25,7 @@ const API = "http://localhost:3000/api/v1";
 // Routes registered in App.tsx that setup actions may point to.
 const REGISTERED = new Set([
   "/",
+  "/setup/import-people",
   "/users",
   "/ai-teammates",
   "/tools-connections",
@@ -175,7 +176,11 @@ describe("[GAP-U] Organization Setup — guided read-only journey", () => {
     // Overclaim sweep.
     expect(body).not.toMatch(/email sent|invite delivered/i);
     expect(body).not.toMatch(/self-serve onboarding/i);
-    expect(body).toContain("Bulk import is not available yet");
+    // [SLICE-2] bulk import now EXISTS — the card offers it honestly.
+    expect(body).toContain("Import them from a CSV");
+    expect(screen.getByTestId("setup-secondary-people").getAttribute("href")).toBe(
+      "/setup/import-people",
+    );
     expect(body).toContain("Retention controls are not configurable in-product yet");
     // Read-only proof: only GETs fired.
     await waitFor(() => expect(methods.length).toBeGreaterThan(0));

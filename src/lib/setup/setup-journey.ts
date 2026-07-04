@@ -61,6 +61,8 @@ export interface SetupSection {
   lines: SetupLine[];
   /** ONE primary link to the existing real fix surface. */
   action: { label: string; to: string };
+  /** Optional second door (used sparingly — e.g. the People card's CSV import). */
+  secondaryAction?: { label: string; to: string };
 }
 
 export interface NextBestStep {
@@ -197,8 +199,8 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
       });
     }
     peopleLines.push({
-      kind: "limit",
-      text: "Bulk import is not available yet — invite members one at a time from Users.",
+      kind: "ok",
+      text: "Adding many people at once? Import them from a CSV — everyone arrives with minimum access and their own activation link.",
     });
   }
   const peopleBlocked = waiting.length + expired.length + invitedOnly.length;
@@ -216,6 +218,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
           : "Ready",
     lines: peopleLines,
     action: { label: "Open Users", to: "/users" },
+    secondaryAction: { label: "Import people (CSV)", to: "/setup/import-people" },
   });
 
   // ── Roles & hierarchy ────────────────────────────────────────────────

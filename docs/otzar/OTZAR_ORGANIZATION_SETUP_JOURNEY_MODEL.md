@@ -329,6 +329,28 @@ Setup" in Overview). It is setup VISIBILITY, not setup automation:
   setup-coach seed lane, per-source data-flow panel, external-scope panel,
   go-live gate view, twin repair rail, ceiling/policy admin UI.
 
+## Implementation note — Slice 2: CSV people import (2026-07-04)
+
+**Shipped:** `/setup/import-people` — the first write-path setup slice.
+Preview-first, confirmation-gated, least-access by construction:
+
+- **Columns:** full_name + email required; title, department, manager_email
+  optional; role_template parsed for PREVIEW ONLY (assigned later from AI
+  Teammates). **Forbidden and hard-refused:** password, admin/authority,
+  permissions, tools, autonomy, data scopes, clearance, connector, wallet.
+- **Rails only, zero backend changes:** POST /org/members/bulk
+  (credential-less create, per-row audit, partial-success) → POST
+  /org/onboarding/invite per person (twin + ONE-TIME activation link — the
+  P0-ONBOARD rail) → POST /org/hierarchy/assign for manager/department
+  (cycle-safe, audited). Batch cap 20 (admin rate budget), honest split
+  copy for bigger files.
+- **Activation semantics:** imported people are passwordless until they
+  activate; links revealed once in the results ("copy all" supported); "No
+  email is sent" stated at confirm AND results.
+- **Not in this slice:** HRIS/directory import, org-chart upload, role
+  assignment writes, updating existing members (existing emails are
+  skipped with repair copy), >20-row batches.
+
 ## Part 4 — Final report
 
 1. **Current setup surfaces:** ten unsequenced admin pages + two API-only

@@ -658,7 +658,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   rehearse one rollback on the smoke org. Engineering P1: codify the
   migration job rail as a script; twin-deactivation rail.
 
-### U. Organization Setup Journey / Admin Setup OS — 🟡 SLICE 1 SHIPPED 2026-07-04 (read-only Organization Setup page at /setup: seven-section guided journey composing 7 existing GET projections, deterministic next-best-step ladder, least-access spine, honest limitations for bulk import/retention/ambient ingestion; failure-story smoke matrix in OTZAR_ORGANIZATION_SETUP_SMOKE_MATRIX.md; zero write paths, zero schema, zero backend changes. Remaining: CSV import [next, needs founder GO — write path], setup-coach seeds, per-source data-flow panel, go-live gate view)
+### U. Organization Setup Journey / Admin Setup OS — 🟡 SLICE 1 SHIPPED 2026-07-04 (read-only Organization Setup page at /setup: seven-section guided journey composing 7 existing GET projections, deterministic next-best-step ladder, least-access spine, honest limitations for bulk import/retention/ambient ingestion; failure-story smoke matrix in OTZAR_ORGANIZATION_SETUP_SMOKE_MATRIX.md; zero write paths, zero schema, zero backend changes. SLICE 2 SHIPPED 2026-07-04: CSV people import at /setup/import-people — preview-first, confirmation-gated, least-access by construction (forbidden columns hard-refused), rails-only (bulk create → per-person invite+one-time link → hierarchy assign), cap 20/batch. Remaining: setup-coach seeds, per-source data-flow panel, go-live gate view, HRIS/org-chart import)
 
 - **Customer story:** "As a new organization adopting Otzar, I want a guided
   AI-assisted setup process that helps me map my people, roles, tools, data

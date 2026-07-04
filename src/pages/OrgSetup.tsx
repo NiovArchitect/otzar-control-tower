@@ -200,18 +200,34 @@ export function OrgSetupPage() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    data-testid={`setup-action-${section.key}`}
-                  >
-                    <Link to={section.action.to}>
-                      {section.action.label}
-                      <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
-                    </Link>
-                  </Button>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      data-testid={`setup-action-${section.key}`}
+                    >
+                      <Link to={section.action.to}>
+                        {section.action.label}
+                        <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
+                      </Link>
+                    </Button>
+                    {section.secondaryAction !== undefined ? (
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        data-testid={`setup-secondary-${section.key}`}
+                      >
+                        <Link to={section.secondaryAction.to}>
+                          {section.secondaryAction.label}
+                          <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
+                        </Link>
+                      </Button>
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
             ))}
