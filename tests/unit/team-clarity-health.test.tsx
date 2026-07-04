@@ -96,3 +96,79 @@ describe("[CE-4B] Team Work — clarity exception summary (calm, patterns only)"
     expect(screen.queryByTestId("team-clarity-health")).toBeNull();
   });
 });
+
+// ── [T-4] external relationship exceptions — same box, one calm section ──
+describe("[T-4] Team Work — external exception section (calm, no CRM)", () => {
+  const extBlock = (over: Record<string, unknown> = {}) => ({
+    external_relationships: {
+      waiting_on_external_count: 0,
+      internal_commitments_to_external_count: 0,
+      overdue_external_count: 0,
+      external_review_pending_count: 0,
+      external_ownership_unclear_count: 0,
+      repeated_external_ambiguity_count: 0,
+      external_topics: [],
+      ...over,
+    },
+  });
+
+  it("renders ONE calm external line set when counts are non-zero — human copy, no CRM words, no ids/enums", async () => {
+    server.use(
+      healthHandler(
+        extBlock({
+          waiting_on_external_count: 3,
+          overdue_external_count: 2,
+          external_ownership_unclear_count: 1,
+          external_review_pending_count: 1,
+          external_topics: [{ label: "Acme", count: 3 }],
+          top_external_exception: {
+            label: "2 client commitments are overdue",
+            reason: "The other party may already be waiting — a nudge to the internal owner can prevent a dropped promise.",
+          },
+        }),
+      ),
+    );
+    render(<MemoryRouter><TeamWork /></MemoryRouter>);
+    await waitFor(() =>
+      expect(screen.getByTestId("team-external-exceptions")).toBeInTheDocument(),
+    );
+    const box = screen.getByTestId("team-external-exceptions").textContent ?? "";
+    expect(box).toContain("2 client commitments are overdue");
+    expect(box).toContain("3 items are waiting on Acme.");
+    expect(box).toContain("1 external commitment needs an internal owner.");
+    expect(box).toContain("1 external party needs review in Organization Seeding.");
+    // No CRM vocabulary, no backend enums, no ids, no emails/domains.
+    expect(box).not.toMatch(/pipeline|deal|opportunity|account stage|CRM/i);
+    expect(box).not.toMatch(/EXTERNAL_OWES_INTERNAL|INTERNAL_OWES_EXTERNAL|[0-9a-f]{8}-[0-9a-f]{4}|@/);
+  });
+
+  it("an absent or all-zero external block renders NO external section (clarity lines untouched)", async () => {
+    server.use(
+      healthHandler({
+        unresolved_clarifications_count: 1,
+        ...extBlock(),
+      }),
+    );
+    render(<MemoryRouter><TeamWork /></MemoryRouter>);
+    await waitFor(() =>
+      expect(screen.getByTestId("team-clarity-health")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("team-external-exceptions")).toBeNull();
+    expect(screen.getByTestId("team-clarity-health").textContent).toContain(
+      "1 clarification request waiting.",
+    );
+  });
+
+  it("external exceptions alone open the calm box even when clarity is all-zero", async () => {
+    server.use(
+      healthHandler(extBlock({ internal_commitments_to_external_count: 2 })),
+    );
+    render(<MemoryRouter><TeamWork /></MemoryRouter>);
+    await waitFor(() =>
+      expect(screen.getByTestId("team-external-exceptions")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("team-external-exceptions").textContent).toContain(
+      "2 commitments to external parties in flight.",
+    );
+  });
+});

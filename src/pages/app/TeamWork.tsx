@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import type {
   Entity,
   EntityMembership,
+  ExternalRelationshipsSummaryView,
   TeamClarityHealthView,
   WorkLedgerEntryView,
 } from "@/lib/types/foundation";
@@ -24,6 +25,22 @@ import { GlassPanel } from "@/components/ambient/GlassPanel";
 import { isWaitingOnItem, groupWaitingByOwner, ageOf } from "@/lib/work-os/team-waiting-on";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import { useWorkStateChanged } from "@/lib/events/work-state";
+
+// [T-4] the external section renders only when something needs attention —
+// an absent block or all-zero counts stay silent.
+function externalActive(
+  ext: ExternalRelationshipsSummaryView | undefined,
+): ext is ExternalRelationshipsSummaryView {
+  return (
+    ext !== undefined &&
+    (ext.waiting_on_external_count > 0 ||
+      ext.internal_commitments_to_external_count > 0 ||
+      ext.overdue_external_count > 0 ||
+      ext.external_review_pending_count > 0 ||
+      ext.external_ownership_unclear_count > 0 ||
+      ext.repeated_external_ambiguity_count > 0)
+  );
+}
 
 export function TeamWork(): JSX.Element {
   const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
@@ -142,11 +159,13 @@ export function TeamWork(): JSX.Element {
       {/* [CE-4B] clarity exceptions — ONE calm box, rendered only when a
           count is non-zero (silence otherwise). Patterns, never a feed:
           counts + org-internal labels; no source excerpts, no per-event
-          rows, no red badges. */}
+          rows, no red badges. [T-4] external relationship exceptions share
+          the same box as one additional calm section. */}
       {health !== null &&
       (health.unresolved_clarifications_count > 0 ||
         health.overdue_clarifications_count > 0 ||
-        health.ownership_unclear_count > 0) ? (
+        health.ownership_unclear_count > 0 ||
+        externalActive(health.external_relationships)) ? (
         <div
           className="rounded-md border border-border p-3 text-xs"
           data-testid="team-clarity-health"
@@ -180,6 +199,70 @@ export function TeamWork(): JSX.Element {
               </p>
             ))}
           </div>
+          {/* [T-4] external relationship exceptions — governed counts +
+              account labels only. Silence when absent/zero; no feed, no
+              badges, no CRM vocabulary. */}
+          {externalActive(health.external_relationships) ? (
+            <div
+              className="mt-2 border-t border-border pt-2"
+              data-testid="team-external-exceptions"
+            >
+              {health.external_relationships!.top_external_exception !== undefined ? (
+                <p className="font-medium text-foreground">
+                  {health.external_relationships!.top_external_exception.label}
+                  <span className="font-normal text-muted-foreground">
+                    {" — "}
+                    {health.external_relationships!.top_external_exception.reason}
+                  </span>
+                </p>
+              ) : null}
+              <div className="mt-1 space-y-0.5 text-muted-foreground">
+                {health.external_relationships!.waiting_on_external_count > 0 ? (
+                  <p>
+                    {health.external_relationships!.waiting_on_external_count} item
+                    {health.external_relationships!.waiting_on_external_count === 1
+                      ? " is"
+                      : "s are"}{" "}
+                    waiting on{" "}
+                    {health.external_relationships!.external_topics.length === 1
+                      ? health.external_relationships!.external_topics[0]!.label
+                      : "external parties"}
+                    .
+                  </p>
+                ) : null}
+                {health.external_relationships!.internal_commitments_to_external_count > 0 ? (
+                  <p>
+                    {health.external_relationships!.internal_commitments_to_external_count}{" "}
+                    commitment
+                    {health.external_relationships!.internal_commitments_to_external_count === 1
+                      ? ""
+                      : "s"}{" "}
+                    to external parties in flight.
+                  </p>
+                ) : null}
+                {health.external_relationships!.external_ownership_unclear_count > 0 ? (
+                  <p>
+                    {health.external_relationships!.external_ownership_unclear_count} external
+                    commitment
+                    {health.external_relationships!.external_ownership_unclear_count === 1
+                      ? " needs"
+                      : "s need"}{" "}
+                    an internal owner.
+                  </p>
+                ) : null}
+                {health.external_relationships!.external_review_pending_count > 0 ? (
+                  <p>
+                    {health.external_relationships!.external_review_pending_count} external
+                    part
+                    {health.external_relationships!.external_review_pending_count === 1
+                      ? "y needs"
+                      : "ies need"}{" "}
+                    review in Organization Seeding.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

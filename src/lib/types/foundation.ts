@@ -4678,6 +4678,21 @@ export interface TeamClarityHealthView {
   ownership_unclear_count: number;
   repeated_ambiguity_topics: Array<{ label: string; count: number }>;
   top_exception?: { label: string; reason: string };
+  external_relationships?: ExternalRelationshipsSummaryView;
+}
+
+// [T-4] External relationship exceptions on the same manager summary —
+// client/vendor work at risk as counts + governed account labels. Absent
+// (or all-zero) renders silence; never a CRM feed.
+export interface ExternalRelationshipsSummaryView {
+  waiting_on_external_count: number;
+  internal_commitments_to_external_count: number;
+  overdue_external_count: number;
+  external_review_pending_count: number;
+  external_ownership_unclear_count: number;
+  repeated_external_ambiguity_count: number;
+  top_external_exception?: { label: string; reason: string };
+  external_topics: Array<{ label: string; count: number }>;
 }
 
 // [CE-3] Structured clarity answer (FND clarity-answer.service.ts):
