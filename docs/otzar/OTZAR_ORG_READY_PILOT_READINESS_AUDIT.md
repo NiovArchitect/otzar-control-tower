@@ -40,7 +40,18 @@ security posture work.
 
 ## B. P0 blockers before a controlled pilot
 
-**P0-1. Credential delivery — the onboarding loop is severed.**
+**P0-1. Credential delivery — ✅ CLOSED 2026-07-04** (FND `1e21709` PR
+#554 + CT `7465e48`; additive `auth_setup_tokens` migration applied +
+verified on prod pre-merge via the hardened job rail). One-time
+activation/reset token rail: sha256 at rest, expiring (7d/1h), one-time,
+org-scoped; public `/auth/activate` + `/activate` page; admin-copied
+links are the sanctioned pilot delivery channel (honest copy, no "email
+sent"); `/auth/admin-reset` stub removed; members created
+credential-less (login fails closed); safe `activation_status`
+projections; 5 audit events. Live journey smoke green: invite →
+activate → first login → reset (old password dead, sessions
+invalidated) → leak sweep → suspend cleanup. Email delivery remains
+P1; SSO/SCIM future. Original finding for the record:
 The invite wizard is real (3 steps, `POST /org/members` →
 `/org/onboarding/start` → `/org/onboarding/invite`) and provisions Entity +
 Wallet + TAR + twin. But the invitee can never log in: the frontend injects a
