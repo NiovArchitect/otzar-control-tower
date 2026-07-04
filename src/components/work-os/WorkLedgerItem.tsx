@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type {
+  ClarityAnswerView,
   ClarityProjectionView,
   ExecutionAttemptView,
   WorkLedgerEntryView,
@@ -107,6 +108,37 @@ export function WorkLedgerItem({
       );
     } else {
       setClarifyErr("Couldn't send the clarification request. Try again.");
+    }
+  }
+
+  // [CE-3] quiet ask-about-this-work: read-only deterministic answer from
+  // Work OS truth. Asking never mutates; the suggested action goes through
+  // the EXISTING CE-2 request handler.
+  const [askText, setAskText] = useState("");
+  const [askBusy, setAskBusy] = useState(false);
+  const [askAnswer, setAskAnswer] = useState<ClarityAnswerView | null>(null);
+
+  async function askAboutWork(): Promise<void> {
+    const q = askText.trim();
+    if (q.length === 0 || askBusy) return;
+    setAskBusy(true);
+    const r = await api.workOs.ledgerClarityAnswer(entry.ledger_entry_id, q);
+    setAskBusy(false);
+    if (r.ok) {
+      setAskAnswer({
+        answer: r.data.answer,
+        confidence: r.data.confidence,
+        used_sources: r.data.used_sources,
+        ...(r.data.suggested_next_action !== undefined
+          ? { suggested_next_action: r.data.suggested_next_action }
+          : {}),
+      });
+    } else {
+      setAskAnswer({
+        answer: "Otzar couldn't answer right now. Try again.",
+        confidence: "low",
+        used_sources: [],
+      });
     }
   }
 
@@ -482,6 +514,53 @@ export function WorkLedgerItem({
               {clarifyErr !== null ? (
                 <div className="text-amber-600" data-testid="work-ledger-item-clarify-error">
                   {clarifyErr}
+                </div>
+              ) : null}
+
+              {/* [CE-3] ask about this work — one quiet inline row inside the
+                  already-open detail. Read-only truth answers; the suggested
+                  action rides the existing governed CE-2 handler. */}
+              <div className="mt-1 flex items-center gap-1" data-testid="work-ledger-item-ask-row">
+                <input
+                  type="text"
+                  value={askText}
+                  onChange={(e) => setAskText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void askAboutWork();
+                  }}
+                  placeholder="Ask about this work — e.g. where did this come from?"
+                  aria-label="Ask about this work"
+                  className="w-full rounded border border-border/70 bg-background px-1.5 py-0.5 text-[11px]"
+                  data-testid="work-ledger-item-ask-input"
+                />
+                <button
+                  type="button"
+                  className="rounded border border-border/70 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                  data-testid="work-ledger-item-ask"
+                  disabled={askBusy || askText.trim().length === 0}
+                  onClick={() => void askAboutWork()}
+                >
+                  {askBusy ? "…" : "Ask"}
+                </button>
+              </div>
+              {askAnswer !== null ? (
+                <div className="mt-0.5" data-testid="work-ledger-item-ask-answer">
+                  <span className="text-foreground">{askAnswer.answer}</span>
+                  {askAnswer.suggested_next_action !== undefined ? (
+                    <button
+                      type="button"
+                      className="ml-2 rounded border border-border/70 px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                      data-testid="work-ledger-item-ask-suggested"
+                      disabled={clarifyBusy !== null}
+                      onClick={() =>
+                        void requestClarification(
+                          askAnswer.suggested_next_action!.clarifier_entity_id,
+                        )
+                      }
+                    >
+                      {askAnswer.suggested_next_action.label}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>

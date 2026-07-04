@@ -174,6 +174,64 @@ describe("[CE-1] WorkLedgerItem — Who can clarify (read-only, lazy)", () => {
     expect(screen.queryAllByTestId("work-ledger-item-clarify").length).toBe(0);
   });
 
+  it("[CE-3] asking about the work renders the truth answer + wires the suggested action to the existing CE-2 handler; asking is GET-only", async () => {
+    const gets: string[] = [];
+    let clarifyPosted = false;
+    server.events.removeAllListeners();
+    server.events.on("request:start", ({ request }) => {
+      if (request.method === "GET") gets.push(new URL(request.url).pathname);
+    });
+    server.use(
+      clarityHandler(WITH_CANDIDATES),
+      http.get(`${API}/work-os/ledger/:id/clarity-answer`, ({ request }) => {
+        const q = new URL(request.url).searchParams.get("question") ?? "";
+        expect(q).toBe("Where did this come from?");
+        return HttpResponse.json({
+          ok: true,
+          answer: "This came from a Slack message. Eve shared it.",
+          confidence: "high",
+          used_sources: ["source_lineage"],
+          suggested_next_action: {
+            type: "request_clarification",
+            clarifier_entity_id: "u-eve",
+            label: "Ask Eve for clarification",
+          },
+        });
+      }),
+      http.post(`${API}/work-os/ledger/:id/clarify`, () => {
+        clarifyPosted = true;
+        return HttpResponse.json(
+          { ok: true, escalation_id: "esc-2", status: "PENDING", clarifier_entity_id: "u-eve", already_requested: false },
+          { status: 201 },
+        );
+      }),
+    );
+    render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
+    fireEvent.click(screen.getByTestId("work-ledger-item-view"));
+    await waitFor(() =>
+      expect(screen.getByTestId("work-ledger-item-ask-input")).toBeInTheDocument(),
+    );
+    fireEvent.change(screen.getByTestId("work-ledger-item-ask-input"), {
+      target: { value: "Where did this come from?" },
+    });
+    fireEvent.click(screen.getByTestId("work-ledger-item-ask"));
+    await waitFor(() =>
+      expect(screen.getByTestId("work-ledger-item-ask-answer")).toBeInTheDocument(),
+    );
+    const answer = screen.getByTestId("work-ledger-item-ask-answer").textContent ?? "";
+    expect(answer).toContain("This came from a Slack message. Eve shared it.");
+    // Asking mutated nothing.
+    expect(clarifyPosted).toBe(false);
+    // The suggested action is real and rides the EXISTING governed handler.
+    fireEvent.click(screen.getByTestId("work-ledger-item-ask-suggested"));
+    await waitFor(() =>
+      expect(screen.getByTestId("work-ledger-item-clarification-state")).toBeInTheDocument(),
+    );
+    expect(clarifyPosted).toBe(true);
+    // No raw tokens in the rendered answer block.
+    expect(answer).not.toMatch(/u-eve|source_lineage|HUMAN_REVIEW/);
+  });
+
   it("opening the detail performs NO mutation — no POST of any kind", async () => {
     const mutations: string[] = [];
     server.events.removeAllListeners();

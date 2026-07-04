@@ -24,6 +24,7 @@
 import { generateRandomPassword } from "./auth/random-password";
 import { summarizeNotificationBody } from "./work-os/notification-body";
 import type {
+  ClarityAnswerView,
   ClarityProjectionView,
   LoginResponse,
   LoginFailure,
@@ -1574,6 +1575,16 @@ export class ApiClient {
     ): Promise<ApiResult<{ ok: boolean; clarity: ClarityProjectionView }>> =>
       this.request<{ ok: boolean; clarity: ClarityProjectionView }>(
         `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/clarity`,
+      ),
+
+    /** GET /work-os/ledger/:id/clarity-answer — [CE-3] deterministic,
+     *  read-only clarity answer from canonical truth. Asking never mutates. */
+    ledgerClarityAnswer: (
+      ledgerEntryId: string,
+      question: string,
+    ): Promise<ApiResult<{ ok: boolean } & ClarityAnswerView>> =>
+      this.request<{ ok: boolean } & ClarityAnswerView>(
+        `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/clarity-answer?question=${encodeURIComponent(question)}`,
       ),
 
     /** POST /work-os/ledger/:id/clarify — [CE-2] governed clarification

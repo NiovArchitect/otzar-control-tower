@@ -4656,6 +4656,20 @@ export interface ClarityProjectionView {
   };
 }
 
+// [CE-3] Structured clarity answer (FND clarity-answer.service.ts):
+// deterministic, truth-composed, read-only. The suggested action is a
+// SUGGESTION the human clicks through the existing CE-2 rail.
+export interface ClarityAnswerView {
+  answer: string;
+  confidence: "high" | "medium" | "low";
+  used_sources: string[];
+  suggested_next_action?: {
+    type: "request_clarification";
+    clarifier_entity_id: string;
+    label: string;
+  };
+}
+
 // [GAP-J] The SAFE source-lineage block (FND SourceLineageProjection).
 // Closed-vocab scalars only — the raw source id, dedupe key, URL, and
 // connector identity deliberately never cross the API.
