@@ -480,6 +480,48 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   wallets (existing invariant locked); future portability = the ten
   proofs in doctrine §20.
 
+### T. External relationship / third-party work intelligence — 🔴 open (doctrine + audit COMPLETE 2026-07-03)
+
+- **Governing doc:** [`OTZAR_EXTERNAL_RELATIONSHIP_WORK_INTELLIGENCE_MODEL.md`](./OTZAR_EXTERNAL_RELATIONSHIP_WORK_INTELLIGENCE_MODEL.md)
+  — the external side of the Work OS: external communication → internal
+  understanding → routed work → proof-backed follow-up. NOT a CRM clone.
+- **Company story:** "External communication with clients, prospects,
+  vendors, and partners becomes organized, governed work — without losing
+  accuracy, proof, or client context."
+- **Client story:** "The company feels more accurate, responsive, and
+  aligned — not like it's using another internal tool."
+- **Headline audit finding:** TWO unlinked external-party systems —
+  `ExternalEntity` (ingestion-observed mention index) and
+  `ExternalCollaborator` (governed, manual, workspace-gated, with the
+  full 11-value `ExternalRelationshipType`, bidirectional
+  `ExternalCommitment` + internal-owner routing + access lifecycle) —
+  with NO bridge; the ingestion→ExternalCommitment auto-record is dead
+  code (`recordExternalCommitmentForCaller` has no callers); no
+  external-org/account model (free-string company names); identity
+  reconciliation cannot NAME an external (indistinguishable from unknown
+  internal); zero external context on work rows ("Waiting on {name}
+  ({company})" exists only inside workspace detail);
+  `internal_owner_entity_id` never renders. External send is safe BY
+  CONSTRUCTION (no executable external ActionType + REQUIRES_APPROVAL
+  policy vocabulary + connector EXTERNAL_SEND/CUSTOMER_SENSITIVE rails).
+- **Trust risks:** dropped client promises invisible until the client
+  notices (highest-cost failure for services businesses); cross-client
+  mixing (no sub-org partition — workspace-per-account is a convention,
+  not a boundary); external data is the MOST company-owned data — the
+  portable-twin boundary applies verbatim (client names/excerpts/contact
+  graph never portable).
+- **Build order (each needs GO):** T-1 read-only `external_context`
+  projection on work rows (one calm fragment "For Acme"/"Client
+  follow-up" + Why rows — the exact Gap J pattern); T-2 wire the dead
+  ingestion path + name the external state in reconciliation + an
+  external-party Dandelion seed (observed→governed promotion,
+  admin-approved); T-3 ExternalOrganization/account model (prerequisite
+  for rollups); T-4 manager client exceptions on the CE-4B Team Work box.
+- **Tests/smoke needed:** org-scoping + no-global-merge, no cross-client
+  leak, lineage safety, client-data-never-in-wallets (CE-4A
+  count-invariance pattern), owner routing, exceptions-only manager view,
+  no-CRM-claims copy sweep.
+
 ---
 
 ## Next-slice selection method
