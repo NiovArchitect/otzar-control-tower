@@ -536,9 +536,27 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   renders as "External collaborator review" in the existing queue. Live
   honest: 97 seeds / 0 external-review (no observed index live yet).
   Remaining honest for T-2.5: reconciliation still cannot NAME the
-  external state outside these links. NEXT: T-3
-  ExternalOrganization/account model (prerequisite for rollups); T-4
-  manager client exceptions on the CE-4B Team Work box.
+  external state outside these links. T-3 ✅ **SHIPPED 2026-07-03**
+  (FND `a438f56` PR #548; zero CT changes — projection shape
+  unchanged): the governed external identity key. ExternalOrganization
+  (org-scoped: same "Acme" in two customer orgs = two rows FOREVER via
+  @@unique(org, normalized_name)) + ExternalOrganizationIdentifier
+  (typed evidence with confidence + verified-by provenance; personal
+  email domains NEVER identify an org) + nullable
+  ExternalCollaborator.external_org_id (company_name stays the display
+  fallback). Live migration applied + verified via the hardened job
+  rail BEFORE merge (fail-capable canary → idempotent DDL →
+  independent print+exit-nonzero verification: column present, tables
+  exist, 0 rows touched). Matching policy: governed/manual paths only,
+  exact normalized reuse, ambiguity → null, never a merge; creation
+  audited. Wired: manual track (+corporate-domain evidence), Dandelion
+  promotion (company_label), T-1 prefers the organization label.
+  "Identity is layered" doctrine added to the external model doc
+  (person / membership / twin / collaborator / organization / future
+  pairwise refs — schema future-safe, nothing built beyond doctrine).
+  Remaining: T-3B collaborator identifiers; pairwise limited-disclosure
+  refs (future). NEXT: T-4 manager client exceptions on the CE-4B Team
+  Work box (now has a real account key to group by).
 - **Tests/smoke needed:** org-scoping + no-global-merge, no cross-client
   leak, lineage safety, client-data-never-in-wallets (CE-4A
   count-invariance pattern), owner routing, exceptions-only manager view,

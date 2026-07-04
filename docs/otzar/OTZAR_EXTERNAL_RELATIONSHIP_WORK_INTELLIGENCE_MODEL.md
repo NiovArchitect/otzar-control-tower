@@ -213,6 +213,51 @@ customer-safe outcome.
 - **T-4 — Manager client exceptions** on the existing Team Work exception
   box (reuses T-3 + the CE-4B pattern).
 
+## 7b. Identity is layered: person, org membership, twin, external collaborator, external organization, pairwise relationship
+
+**Names are labels, not identity. Identifiers are evidence, not identity
+by themselves. Evidence suggests a match; it never auto-merges.**
+
+The layers, mapped to real substrate:
+
+1. **Platform person identity** — the durable human: an `Entity` (PERSON)
+   with its personal wallet (DMW). Binds the twin and the portable
+   personal memory. Never exposes org data by default.
+2. **Org membership identity** — the person inside one company: the
+   active `EntityMembership` (org→person) plus role/hierarchy/TAR/
+   projects. The same person in two orgs is two membership contexts;
+   Company A data never travels into Company X.
+3. **AI Twin identity** — an `AI_AGENT` Entity bound to its human via the
+   person→twin `EntityMembership` edge (the Gap H owner projection reads
+   exactly this), with authority always org-scoped (`TwinConfig` +
+   org ceiling). The twin's portable memory follows the portability
+   doctrine; its company access never travels.
+4. **External party identity** — a third party is a LOCAL, org-owned
+   record: `ExternalCollaborator` (person) and, since T-3,
+   `ExternalOrganization` (account key, unique per
+   (org, normalized_name) — the same "Acme" in two Otzar customer orgs
+   is two rows forever). Observed signals (`ExternalEntity`, source
+   actors) are evidence that mints T-2 review seeds — never trusted
+   identity.
+5. **Evidence identifiers** — `ExternalOrganizationIdentifier` (typed:
+   domain/Slack team/Zoom account/CRM id/alias; confidence; verified-by
+   provenance). Personal email domains are never organization
+   identifiers. Collaborator-level identifiers are T-3B.
+6. **Pairwise / limited-disclosure match (FUTURE)** — when both sides use
+   Otzar, a pairwise reference could confirm "same verified party"
+   without exposing either org's graph: no global merge, no data
+   crossing, no access granted, org-approved only. The T-3 schema
+   reserves this as nullable additive columns
+   (`pairwise_identity_ref` / `counterpart_org_ref` /
+   `platform_person_ref`) — nothing built, nothing blocked.
+
+Identity rules (locked): twin binds to person, not just permissions;
+external collaborators stay local-org records even if the external
+person uses Otzar; cross-org matching is pairwise and permissioned,
+never global; verified identifiers improve matching but grant no
+access; matching never imports the counterpart's data; every verified
+link carries provenance/audit.
+
 ## 8. Test doctrine (for any future implementation)
 
 External party org-scoped; same contact in two orgs never merges;
