@@ -610,9 +610,33 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   all-zero silence, seed-driven counts, clarity half unchanged); CT
   suite 2162 green. Live read-only battery 6/6: live has no governed
   external commitments → block honestly ABSENT, section not rendered,
-  clarity box untouched, reads mutate nothing. Remaining:
+  clarity box untouched, reads mutate nothing.
+  T-2.5 ✅ **SHIPPED 2026-07-04** (FND `ef79149` PR #553; no schema
+  change, no new endpoint, ZERO CT changes): identity reconciliation
+  can now NAME the external state — `classifyExternalActor` /
+  `ExternalResolution` (external-collaborator-identity.service.ts):
+  internal_member | governed_external | observed_external_needs_review
+  | possible_external_match | unknown. Read-only (T-3B evidence order
+  with NO identifier backfill), org-scoped, roster always wins,
+  internal ambiguity stays internal (external tables never consulted),
+  cross-org/deleted invisible, labels only. comms-ingest T-2A rewired
+  through it with ONE approved behavior change: a GOVERNED external
+  actor no longer regenerates a review seed — their conversations'
+  work rows carry safe details.external_context at WRITE time (T-1
+  lights up with source "external_collaborator"; read-time lineage
+  fallback still locked for pre-T-2.5 rows). Observed keeps the exact
+  seed rail (idempotent via review_seed_id); possible/unknown stay
+  silent — no seed, no card certainty. NOT an identity merge system —
+  a naming layer that kills redundant admin re-review. Tests: new
+  external-resolution suite 6/6 (12 locked behaviors incl. leak sweep
+  + wallet invariance); T-1/T-2 suites updated to the new doctrine;
+  external+seed batch 46 green, ingest-chain batch 40 green; CI 5/5.
+  Live read-only battery 7/7 post-deploy (honest silence — no governed
+  externals live; reads mint no seeds, mutate nothing). Remaining:
   pairwise limited-disclosure refs (future); Account Pulse explicitly
-  NOT built (T-4 is exception visibility, not a CRM dashboard).
+  NOT built (T-4 is exception visibility, not a CRM dashboard); CT
+  surfacing of the named states only if a future slice needs it (T-1
+  context + chooser + Team Work already render the safe projections).
 - **Tests/smoke needed:** org-scoping + no-global-merge, no cross-client
   leak, lineage safety, client-data-never-in-wallets (CE-4A
   count-invariance pattern), owner routing, exceptions-only manager view,
