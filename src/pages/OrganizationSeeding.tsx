@@ -71,6 +71,22 @@ export function OrganizationSeedingPage(): JSX.Element {
     if (r.ok) await load();
   }
 
+  // [T-3C] the admin's explicit identity decision for an external review
+  // seed — link the chosen existing collaborator, or force a new record.
+  async function decide(
+    id: string,
+    decision: "link_existing" | "track_new",
+    linkId?: string,
+  ): Promise<void> {
+    setBusy(id);
+    const r = await api.otzar.dandelionSeeds.approve(id, {
+      decision,
+      ...(linkId !== undefined ? { link_external_collaborator_id: linkId } : {}),
+    });
+    setBusy(null);
+    if (r.ok) await load();
+  }
+
   // Cluster duplicate suggestions for the same person/target into ONE card and
   // organize into prioritized, comprehensible queues (scales past a flat wall).
   const grouped = groupSeeds(seeds ?? []);
@@ -129,7 +145,7 @@ export function OrganizationSeedingPage(): JSX.Element {
                 <p className="text-xs text-muted-foreground">{def.description}</p>
               </div>
               {groups.map((g) => (
-                <SeedGroupCard key={g.key} group={g} busy={busy} onAct={(id, v) => void act(id, v)} />
+                <SeedGroupCard key={g.key} group={g} busy={busy} onAct={(id, v) => void act(id, v)} onDecide={(id, d, link) => void decide(id, d, link)} />
               ))}
             </section>
           ))}
@@ -147,10 +163,12 @@ function SeedGroupCard({
   group,
   busy,
   onAct,
+  onDecide,
 }: {
   group: SeedGroup;
   busy: string | null;
   onAct: (id: string, v: "approve" | "reject" | "hold") => void;
+  onDecide: (id: string, d: "link_existing" | "track_new", linkId?: string) => void;
 }): JSX.Element {
   const title = group.subject_name ?? seedTypeLabel(group.seeds[0]!.seed_type);
   const multi = group.count > 1;
@@ -165,7 +183,7 @@ function SeedGroupCard({
         </div>
       ) : null}
       {group.seeds.map((s) => (
-        <SeedCard key={s.seed_id} seed={s} busy={busy === s.seed_id} onAct={(v) => onAct(s.seed_id, v)} actionable={isPending(s)} />
+        <SeedCard key={s.seed_id} seed={s} busy={busy === s.seed_id} onAct={(v) => onAct(s.seed_id, v)} onDecide={(d, link) => onDecide(s.seed_id, d, link)} actionable={isPending(s)} />
       ))}
     </div>
   );
@@ -175,11 +193,13 @@ function SeedCard({
   seed,
   busy,
   onAct,
+  onDecide,
   actionable,
 }: {
   seed: OrgSeed;
   busy: boolean;
   onAct: (v: "approve" | "reject" | "hold") => void;
+  onDecide: (d: "link_existing" | "track_new", linkId?: string) => void;
   actionable: boolean;
 }): JSX.Element {
   return (
@@ -212,6 +232,46 @@ function SeedCard({
         ) : null}
         {seed.rejection_reason ? (
           <p className="text-[11px] text-muted-foreground">Rejected: {seed.rejection_reason}</p>
+        ) : null}
+        {/* [T-3C] possible existing collaborators — the admin decides;
+            Otzar never merges automatically. Labels only, no emails/ids. */}
+        {actionable && seed.possible_matches !== undefined && seed.possible_matches.length > 0 ? (
+          <div className="space-y-1.5 rounded-md border border-border/60 p-2" data-testid="org-seed-possible-matches">
+            <p className="text-[11px] font-medium text-foreground">
+              Possible existing collaborator — review before linking.
+              <span className="font-normal text-muted-foreground"> Otzar will not merge this automatically.</span>
+            </p>
+            {seed.possible_matches.map((m) => (
+              <div key={m.external_collaborator_id} className="flex flex-wrap items-center gap-2 text-[11px]" data-testid="org-seed-match">
+                <span className="text-foreground">
+                  {m.display_label}
+                  {m.company_label !== undefined ? ` · ${m.company_label}` : ""}
+                  {m.relationship_label !== undefined ? ` (${m.relationship_label})` : ""}
+                </span>
+                <span className="text-muted-foreground">— {m.reason}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => onDecide("link_existing", m.external_collaborator_id)}
+                  data-testid="org-seed-link-existing"
+                >
+                  Link to existing
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => onDecide("track_new")}
+              data-testid="org-seed-track-new"
+            >
+              Track as new
+            </Button>
+          </div>
         ) : null}
         {actionable ? (
           <div className="flex gap-2 pt-1">

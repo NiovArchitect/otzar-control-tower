@@ -259,3 +259,63 @@ describe("Organization Seeding — external collaborator review (T-2)", () => {
     expect(card.textContent).not.toMatch(/pipeline|deal stage/i);
   });
 });
+
+// ── [T-3C] the possible-match review chooser — admin decides, never silent ──
+describe("Organization Seeding — external possible-match chooser (T-3C)", () => {
+  const extSeed = () =>
+    seed({
+      seed_id: "led-seed-choose-1",
+      seed_type: "review_external_party",
+      subject_name: "Jordy Vale",
+      recommended_action:
+        'Review external contact "Jordy Vale" — track as a governed external collaborator?',
+      possible_matches: [
+        {
+          external_collaborator_id: "col-1",
+          display_label: "Jordan Vale",
+          company_label: "Acme",
+          relationship_label: "Client",
+          reason: "Similar name in this account",
+          confidence: "low",
+        },
+      ],
+    });
+
+  it("renders candidates with calm review-first copy and NO ids/emails", async () => {
+    mockSeeds([extSeed()]);
+    renderPage();
+    const block = await screen.findByTestId("org-seed-possible-matches");
+    expect(block.textContent).toContain("Possible existing collaborator — review before linking.");
+    expect(block.textContent).toContain("Otzar will not merge this automatically.");
+    expect(block.textContent).toContain("Jordan Vale · Acme (Client)");
+    expect(block.textContent).toContain("Similar name in this account");
+    expect(block.textContent).not.toContain("col-1");
+    expect(block.textContent).not.toMatch(/@|verified match|automatically matched|CRM/i);
+  });
+
+  it("Link to existing and Track as new post the explicit decision", async () => {
+    const decisions: Array<Record<string, unknown>> = [];
+    mockSeeds([extSeed()]);
+    server.use(
+      http.post(`${API_BASE}/org/dandelion/seeds/:id/approve`, async ({ request }) => {
+        decisions.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ok: true, seed: extSeed() });
+      }),
+    );
+    renderPage();
+    await screen.findByTestId("org-seed-possible-matches");
+    await userEvent.click(screen.getByTestId("org-seed-link-existing"));
+    await waitFor(() => expect(decisions.length).toBe(1));
+    expect(decisions[0]).toEqual({
+      decision: "link_existing",
+      link_external_collaborator_id: "col-1",
+    });
+
+    mockSeeds([extSeed()]);
+    renderPage();
+    const trackButtons = await screen.findAllByTestId("org-seed-track-new");
+    await userEvent.click(trackButtons[trackButtons.length - 1]!);
+    await waitFor(() => expect(decisions.length).toBe(2));
+    expect(decisions[1]).toEqual({ decision: "track_new" });
+  });
+});

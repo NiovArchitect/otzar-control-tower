@@ -1344,10 +1344,23 @@ export interface CommsDandelionSeed {
 
 // The admin-actionable Dandelion seed (Organization Seeding queue). Mirrors
 // Foundation OrgSeedView.
+// [T-3C] Safe possible-match candidate for an external review seed —
+// labels + a machine id for the decision call; never emails/domains.
+export interface OrgSeedPossibleMatch {
+  external_collaborator_id: string;
+  display_label: string;
+  company_label?: string;
+  relationship_label?: string;
+  reason: string;
+  confidence: "high" | "medium" | "low";
+}
+
 export interface OrgSeed {
   seed_id: string;
   seed_type: string;
   subject_name: string | null;
+  /** [T-3C] present only on open external review seeds WITH candidates. */
+  possible_matches?: OrgSeedPossibleMatch[];
   /** Resolved org entity for the subject when known (Slice PROD-UX-P0E). */
   subject_entity_id?: string | null;
   /** Stable grouping key so duplicate suggestions for the same person/target

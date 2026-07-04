@@ -1011,8 +1011,13 @@ export class ApiClient {
     dandelionSeeds: {
       list: (): Promise<ApiResult<OrgSeedListResponse>> =>
         this.request<OrgSeedListResponse>("/org/dandelion/seeds"),
-      approve: (id: string): Promise<ApiResult<OrgSeedActionResponse>> =>
-        this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/approve`, { method: "POST", body: {} }),
+      approve: (
+        id: string,
+        // [T-3C] admin decision for external review seeds — absent = the
+        // safe default (evidence match or create).
+        body?: { decision?: "link_existing" | "track_new"; link_external_collaborator_id?: string },
+      ): Promise<ApiResult<OrgSeedActionResponse>> =>
+        this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/approve`, { method: "POST", body: body ?? {} }),
       reject: (id: string, reason?: string): Promise<ApiResult<OrgSeedActionResponse>> =>
         this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/reject`, { method: "POST", body: reason !== undefined ? { reason } : {} }),
       hold: (id: string, reason?: string): Promise<ApiResult<OrgSeedActionResponse>> =>
