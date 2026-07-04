@@ -23,6 +23,11 @@ export type CurrentSurfaceContextType =
   | "thread"
   | "notification"
   | "project"
+  // [CE-AMBIENT] an explicitly opened/selected Work Ledger item — carries
+  // ledgerEntryId so the ambient bar can answer "why is this here?" via the
+  // read-only clarity-answer route. Set when a user OPENS an item's View/Why
+  // (a deliberate act), cleared when they close it.
+  | "work_item"
   | "unknown";
 
 export interface CurrentSurfaceContext {
@@ -32,6 +37,9 @@ export interface CurrentSurfaceContext {
   text?: string;
   summary?: string;
   sourceLabel?: string;
+  /** [CE-AMBIENT] present only for type "work_item" — the machine handle for
+   *  read-only clarity answers; never rendered as customer copy. */
+  ledgerEntryId?: string;
   capturedAt: string;
   active: boolean;
   // The ONLY provenance this seed supports — the user explicitly provided it.
@@ -46,6 +54,8 @@ export interface ProvideSurfaceContextInput {
   text?: string;
   summary?: string;
   sourceLabel?: string;
+  /** [CE-AMBIENT] work_item only — see CurrentSurfaceContext.ledgerEntryId. */
+  ledgerEntryId?: string;
 }
 
 interface CurrentSurfaceContextStore {
@@ -80,6 +90,9 @@ export const useCurrentSurfaceContextStore = create<CurrentSurfaceContextStore>(
             : {}),
           ...(input.sourceLabel !== undefined && input.sourceLabel.length > 0
             ? { sourceLabel: input.sourceLabel }
+            : {}),
+          ...(input.ledgerEntryId !== undefined && input.ledgerEntryId.length > 0
+            ? { ledgerEntryId: input.ledgerEntryId }
             : {}),
           capturedAt: new Date().toISOString(),
           active: true,

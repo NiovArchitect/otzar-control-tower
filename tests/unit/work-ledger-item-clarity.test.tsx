@@ -14,6 +14,7 @@ import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
+import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 import type {
   ClarityProjectionView,
   WorkLedgerEntryView,
@@ -230,6 +231,23 @@ describe("[CE-1] WorkLedgerItem — Who can clarify (read-only, lazy)", () => {
     expect(clarifyPosted).toBe(true);
     // No raw tokens in the rendered answer block.
     expect(answer).not.toMatch(/u-eve|source_lineage|HUMAN_REVIEW/);
+  });
+
+  it("[CE-AMBIENT] opening View/Why provides the work_item surface context; closing clears it", async () => {
+    server.use(clarityHandler(WITH_CANDIDATES));
+    // The store is module-global — earlier tests in this file opened items;
+    // start from a clean slate.
+    useCurrentSurfaceContextStore.getState().clear();
+    render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
+    expect(useCurrentSurfaceContextStore.getState().context).toBeNull();
+    fireEvent.click(screen.getByTestId("work-ledger-item-view"));
+    const ctx = useCurrentSurfaceContextStore.getState().context;
+    expect(ctx?.type).toBe("work_item");
+    expect(ctx?.ledgerEntryId).toBe("led-clarity-1");
+    expect(ctx?.title).toBe("Grant the repo access");
+    // Closing clears OUR context so a stale "this" never resolves.
+    fireEvent.click(screen.getByTestId("work-ledger-item-view"));
+    expect(useCurrentSurfaceContextStore.getState().context).toBeNull();
   });
 
   it("opening the detail performs NO mutation — no POST of any kind", async () => {

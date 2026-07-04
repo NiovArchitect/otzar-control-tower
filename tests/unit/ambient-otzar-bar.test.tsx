@@ -2871,3 +2871,73 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(html).not.toContain("screen capture");
   });
 });
+
+// ── [CE-AMBIENT] clarity questions about the SELECTED work item ─────────────
+// "Why is this here?" / "Where did this come from?" answered by the READ-ONLY
+// clarity-answer route when a work_item surface context exists; honest copy
+// when it doesn't; asking never POSTs.
+describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () => {
+  it("with a selected work item, a clarity phrase calls clarity-answer (GET-only) and renders the truth answer", async () => {
+    let clarityHits = 0;
+    const mutations: string[] = [];
+    server.events.removeAllListeners();
+    server.events.on("request:start", ({ request }) => {
+      if (request.method !== "GET") mutations.push(`${request.method} ${new URL(request.url).pathname}`);
+    });
+    server.use(
+      http.get(`${API_BASE}/work-os/ledger/:id/clarity-answer`, ({ params, request }) => {
+        clarityHits += 1;
+        expect(params.id).toBe("led-ambient-1");
+        expect(new URL(request.url).searchParams.get("question")).toBe("Where did this come from?");
+        return HttpResponse.json({
+          ok: true,
+          answer: "This came from a Slack message. Eve shared it.",
+          confidence: "high",
+          used_sources: ["source_lineage"],
+        });
+      }),
+    );
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "work_item",
+      title: "Grant the repo access",
+      ledgerEntryId: "led-ambient-1",
+      sourceLabel: "Work item",
+    });
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "Where did this come from?");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/This came from a Slack message\. Eve shared it\./).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(clarityHits).toBe(1);
+    // Voice-intents / chat was never reached, and nothing mutated.
+    expect(mutations.filter((m) => !m.includes("/auth/"))).toEqual([]);
+    useCurrentSurfaceContextStore.getState().clear();
+  });
+
+  it("with NO selected work item, the same phrase gets honest copy — never a guess, never a fetch", async () => {
+    let clarityHits = 0;
+    server.use(
+      http.get(`${API_BASE}/work-os/ledger/:id/clarity-answer`, () => {
+        clarityHits += 1;
+        return HttpResponse.json({ ok: true, answer: "x", confidence: "low", used_sources: [] });
+      }),
+    );
+    useCurrentSurfaceContextStore.getState().clear();
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "Why is this here?");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/Open or select a work item first so Otzar knows what/i).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(clarityHits).toBe(0);
+  });
+});

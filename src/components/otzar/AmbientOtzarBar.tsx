@@ -180,6 +180,7 @@ import {
   composeRelationshipAnswer,
   RELATIONSHIP_QUERY_TYPES,
 } from "@/lib/work-os/thread-query";
+import { classifyClarityPhrase } from "@/lib/work-os/clarity-phrases";
 import {
   tomorrowWorkWindow,
   freeWindowsFromBusy,
@@ -3104,6 +3105,45 @@ export function AmbientOtzarBar(): JSX.Element {
         } else {
           sayMiss();
         }
+        return;
+      }
+    }
+
+    // [CE-AMBIENT] Clarity questions about the SELECTED work item — "why is
+    // this here?", "where did this come from?", "who can clarify this?" —
+    // answered by the READ-ONLY deterministic clarity-answer route (the same
+    // truth as the item's in-panel ask row), never the LLM. Requires an
+    // explicitly opened/selected work item (work_item surface context); a
+    // deictic "this" with no selection gets honest copy, never a guess.
+    {
+      const cq = classifyClarityPhrase(text);
+      const workCtx = useCurrentSurfaceContextStore.getState().context;
+      const hasWorkItem =
+        workCtx !== null &&
+        workCtx.active &&
+        workCtx.type === "work_item" &&
+        workCtx.ledgerEntryId !== undefined;
+      // Contextual phrases ("what should I do next?") are item-clarity ONLY
+      // when an item is selected — bare, they keep their existing route
+      // (day-level Twin question; locked behavior).
+      if (cq === "deictic" || (cq === "contextual" && hasWorkItem)) {
+        clearPendingClar();
+        const at0 = new Date().toISOString();
+        setDraft("");
+        setActionHeard(text);
+        setActionLabel("Work answer");
+        appendConversationEntry({ role: "user", text, at: at0 });
+        const say = (answer: string): void => {
+          setActionResult(answer);
+          appendConversationEntry({ role: "otzar", text: answer, at: at0 });
+          speakConfirmation(answer);
+        };
+        if (!hasWorkItem) {
+          say('Open or select a work item first so Otzar knows what "this" means.');
+          return;
+        }
+        const r = await api.workOs.ledgerClarityAnswer(workCtx.ledgerEntryId!, text);
+        say(r.ok ? r.data.answer : "Otzar couldn't answer that right now. Try again.");
         return;
       }
     }

@@ -27,6 +27,7 @@ import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
 import { routingLaneChip, routingLaneEdge, routingWhyLine } from "@/lib/work-os/routing-lane";
 import { formatOwnedByLine } from "@/lib/identity/owner-display";
 import { sourceLineageLabel } from "@/lib/labels/source-lineage";
+import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
 //        summarizeExecutionProof) so the badge + section agree.
@@ -257,6 +258,21 @@ export function WorkLedgerItem({
   async function toggle(): Promise<void> {
     const next = !open;
     setOpen(next);
+    // [CE-AMBIENT] opening an item's View/Why is the deliberate "I'm looking
+    // at this" act — provide it as the current work context so the ambient
+    // bar can answer "why is this here?" about THIS item. Closing clears it
+    // (only if it is still ours) so a stale "this" never resolves.
+    const ctxStore = useCurrentSurfaceContextStore.getState();
+    if (next) {
+      ctxStore.provide({
+        type: "work_item",
+        title: entry.title,
+        ledgerEntryId: entry.ledger_entry_id,
+        sourceLabel: "Work item",
+      });
+    } else if (ctxStore.context?.ledgerEntryId === entry.ledger_entry_id) {
+      ctxStore.clear();
+    }
     if (next && proofState === "idle") {
       setProofState("loading");
       const r = await api.workOs.executionAttempts(entry.ledger_entry_id);
