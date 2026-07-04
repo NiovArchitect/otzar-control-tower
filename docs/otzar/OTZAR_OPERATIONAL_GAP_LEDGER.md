@@ -644,6 +644,36 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ---
 
+### U. Organization Setup Journey / Admin Setup OS — 🔴 open (doctrine + audit COMPLETE 2026-07-04)
+
+- **Customer story:** "As a new organization adopting Otzar, I want a guided
+  AI-assisted setup process that helps me map my people, roles, tools, data
+  sources, policies, AI Twins, and first workflows so my team can start
+  using Otzar quickly and safely."
+- **Purpose:** make onboarding feel like a guided AI-native setup
+  experience, not a scattered admin console ("12 pages, good luck").
+- **State:** full doctrine + code-grounded audit in
+  [`OTZAR_ORGANIZATION_SETUP_JOURNEY_MODEL.md`](./OTZAR_ORGANIZATION_SETUP_JOURNEY_MODEL.md)
+  — the 8-phase journey (bootstrap → people → roles/twins → work structure
+  → tools/data → policy → first workflows → go-live check), the Dandelion
+  three-way split (setup coach / growth-ops / recommendation queue), the
+  org-vs-user connector doctrine (only org-level exists), the MCP
+  governed-capability chain, the pilot LLM policy (NIOV-managed
+  Anthropic-primary, no org choice), and the data-flow setup doctrine.
+  Key audit facts: NO bulk/CSV import (bulk route is API-only), NO
+  retention model anywhere, NO go-live checklist, NO twin repair rail, NO
+  setup sequence; activation loop ✅ (P0-ONBOARD), tool readiness honest,
+  OrgSettings substrate live but partially surfaced.
+- **Build order (after P0-OPS + Phase-0 runbook):** (1) read-only Org Setup
+  checklist page composing EXISTING projections (zero new writes, no fake
+  buttons), (2) CSV people import through the existing bulk + hierarchy +
+  activation rails, (3) setup-coach Dandelion seeds, (4) retention model +
+  policy UI, (5) twin repair rail.
+- **Hard boundaries:** no fake wizard, no fake readiness, no "connected"
+  copy beyond real connectors, no setup step that completes without the
+  underlying truth changing; the do-not-overclaim setup list in the model
+  doc is binding.
+
 ## Next-slice selection method
 
 Before starting ANY slice, answer for each candidate:
