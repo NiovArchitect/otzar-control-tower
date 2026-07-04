@@ -586,10 +586,33 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   reuse + alias + audit + T-1 light-up + wallet invariance; track_new /
   dismiss / cross-org+missing refused). CT chooser tests + full gates
   green. Live read-only battery 6/6 post-deploy (wire-shape sweep,
-  no CRM/auto-merge copy, reads mutate nothing). Remaining:
-  pairwise limited-disclosure refs (future). NEXT: T-4 manager client
-  exceptions on the CE-4B Team Work box (real account key + deduped
-  contacts to group by).
+  no CRM/auto-merge copy, reads mutate nothing).
+  T-4 ✅ **SHIPPED 2026-07-03** (FND `f5a38f8` PR #552 + CT `34df2b9`;
+  no schema change, no new endpoint): manager external-relationship
+  exceptions on the SAME CE-4B clarity-health summary — an optional
+  `external_relationships` block (omitted when all-zero) computed from
+  governed records only (open ExternalCommitments with active
+  collaborators + open review_external_party seeds). Two distinct gap
+  signals per founder direction: external_review_pending_count
+  (identity/governance gap) vs external_ownership_unclear_count
+  (execution/accountability gap). Counts: waiting-on-external,
+  we-owe-external, overdue, review-pending, ownership-unclear, repeated
+  ambiguity; topics prefer the governed ExternalOrganization label
+  (company_name fallback, else the T-3C closed relationship vocab —
+  RELATIONSHIP_LABELS now exported). Top exception priority: overdue >
+  unowned > waiting-on > we-owe > review-pending > repeated ambiguity.
+  Same manager gate as Team Work; org-keyed; best-effort (failure =
+  silence). CT renders ONE calm section inside the existing clarity box
+  (renders only when non-zero; external alone can open the box; no new
+  page/badges/CRM words). FND integration 9/9 (direction counts,
+  governed-label preference + priority, deleted/completed/cross-org
+  exclusion, non-manager gate, leak sweep, wallet count-invariance,
+  all-zero silence, seed-driven counts, clarity half unchanged); CT
+  suite 2162 green. Live read-only battery 6/6: live has no governed
+  external commitments → block honestly ABSENT, section not rendered,
+  clarity box untouched, reads mutate nothing. Remaining:
+  pairwise limited-disclosure refs (future); Account Pulse explicitly
+  NOT built (T-4 is exception visibility, not a CRM dashboard).
 - **Tests/smoke needed:** org-scoping + no-global-merge, no cross-client
   leak, lineage safety, client-data-never-in-wallets (CE-4A
   count-invariance pattern), owner routing, exceptions-only manager view,
