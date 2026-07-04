@@ -314,8 +314,21 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   recipient of this follow-up." + suggested governed action; pending
   0→0. Remaining honest: the ambient-bar composer intent ("this" →
   work item needs a ledger-aware surface-context type) and
-  conductSession/COE grounding are future; CE-4 (clarity learn-loop +
-  manager exception visibility on Team Work) not started.
+  conductSession/COE grounding are future. **CE-4 SHIPPED 2026-07-03**
+  (FND `e085894` PR #544 + CT `fcc4645`, live-verified): (A) READ-ONLY
+  clarity learn signal — candidates who resolved clarifications on
+  similar work (same project, else same source system+author) gain
+  prior_clarifications + "They clarified similar work here before.";
+  NOTHING written to MemoryCapsule/TwinCorrectionMemory
+  (count-invariance locked — company clarification truth never enters
+  portable personal memory), no approval suppression; the WRITE-loop
+  is **CE-4.5, future** (needs the doctrine's Category-C derivation
+  rail). (B) Manager exception visibility — GET
+  /work-os/team-clarity-health on the Team Work gate + ONE calm box
+  (silence when clear): live "8 items need ownership clarity" +
+  "Slack-sourced work has repeated clarifications (2)"; employee 403
+  blocker; counts + labels only, leak-swept. The ambient clarity loop
+  (CE-1→4) is complete at slice depth.
 - **Remaining honest:** approval/assignment-origin rows don't record lineage
   yet (writers must record it first — lineage is never invented); D&K page
   lists connector sources, not knowledge rows, so full lineage *browsing*
