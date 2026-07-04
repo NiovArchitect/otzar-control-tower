@@ -74,7 +74,8 @@ test("setup page renders the guided journey honestly; reads only; no leaks (scre
   // Overclaim sweep.
   expect(body).not.toMatch(/email sent|invite delivered/i);
   expect(body).toContain("Retention controls are not configurable in-product yet");
-  expect(body).toContain("Bulk import is not available yet");
+  // [SLICE-2] bulk import exists now — the card offers the CSV door.
+  expect(body).toContain("Import them from a CSV");
 
   await page.screenshot({ path: "screenshots/org-setup-live.png", fullPage: true });
 
