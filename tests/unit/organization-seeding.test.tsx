@@ -230,3 +230,32 @@ describe("Organization Seeding — meeting ingest card (CX-SLICE-3)", () => {
     expect(notice).not.toHaveTextContent(/NO_TRANSCRIPT/);
   });
 });
+
+// ── [T-2] external-collaborator review seed — calm copy, review-first ──
+describe("Organization Seeding — external collaborator review (T-2)", () => {
+  it("renders the external review seed with calm human copy and NO raw enums/emails", async () => {
+    mockSeeds([
+      seed({
+        seed_id: "led-seed-ext-1",
+        seed_type: "review_external_party",
+        subject_name: "Jordan Vale",
+        recommended_action:
+          'Review external contact "Jordan Vale" — track as a governed external collaborator?',
+        source_evidence: "Jordan Vale: we will send the signed SOW Friday",
+        risk_if_ignored:
+          "External asks from this contact stay unlabeled and client context is lost.",
+      }),
+    ]);
+    renderPage();
+    const card = await screen.findByTestId("org-seed-card");
+    expect(card.textContent).toMatch(/External collaborator review/);
+    expect(card.textContent).toMatch(/Jordan Vale/);
+    expect(card.textContent).toMatch(/track as a governed external collaborator/);
+    // Approve exists (the governed promotion), and nothing claims auto-add.
+    expect(screen.getByTestId("org-seed-approve")).toBeInTheDocument();
+    expect(card.textContent).not.toContain("review_external_party");
+    expect(card.textContent).not.toContain("led-seed-ext-1");
+    expect(card.textContent).not.toMatch(/@[a-z0-9-]+\.[a-z]{2,}/i);
+    expect(card.textContent).not.toMatch(/pipeline|deal stage/i);
+  });
+});

@@ -25,6 +25,9 @@ const SEED_TYPE_LABEL: Record<string, string> = {
   add_team_membership: "Team membership",
   confirm_support_role: "Confirm support role",
   add_work_owner_edge: "Confirm work owner",
+  // [T-2] Otzar noticed a possible external collaborator — review before
+  // tracking; nothing is added automatically.
+  review_external_party: "External collaborator review",
 };
 const STATUS_LABEL: Record<string, string> = {
   SEED_PROPOSED: "New suggestion",
