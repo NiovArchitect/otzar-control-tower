@@ -567,8 +567,26 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   match; cross-org never matches. The J1-ledgered duplicate
   (seed-promote + track = two records) is FIXED — one record, account
   backfilled, reuse audited ({reused, matched_by}), second workspace =
-  membership only. Live read-only battery green post-deploy. Remaining:
-  Option B "link to existing" review chooser for ambiguous cases;
+  membership only. Live read-only battery green post-deploy.
+  T-3C ✅ **SHIPPED 2026-07-03** (FND `d0b2c7c` PR #551 + CT `8f22457`;
+  no schema change): the admin experience layer over T-3B's safe
+  refusal — when identity is ambiguous, Otzar helps the admin decide,
+  never silently. `listPossibleCollaboratorMatches` projects up to 3
+  SAFE candidates on open review_external_party seeds (labels + machine
+  id only — reasons closed-vocab "Verified alias"/"Same company"/
+  "Similar name in this account"; org-scoped, active-only, no emails/
+  domains/identifier values/backend enums on the wire). approveSeed
+  gained decision: link_existing (validates org-scoped + active,
+  records the observed name as an ADMIN-VERIFIED alias when it differs,
+  audits {decision, from_seed_id, alias_added}) | track_new (forces a
+  distinct record); dismiss = existing reject (nothing created).
+  Chooser UI on Organization Seeding: "Possible existing collaborator —
+  review before linking. Otzar will not merge this automatically."
+  FND integration 3/3 (safe projection + leak sweep; link_existing
+  reuse + alias + audit + T-1 light-up + wallet invariance; track_new /
+  dismiss / cross-org+missing refused). CT chooser tests + full gates
+  green. Live read-only battery 6/6 post-deploy (wire-shape sweep,
+  no CRM/auto-merge copy, reads mutate nothing). Remaining:
   pairwise limited-disclosure refs (future). NEXT: T-4 manager client
   exceptions on the CE-4B Team Work box (real account key + deduped
   contacts to group by).
