@@ -510,9 +510,17 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   not a boundary); external data is the MOST company-owned data — the
   portable-twin boundary applies verbatim (client names/excerpts/contact
   graph never portable).
-- **Build order (each needs GO):** T-1 read-only `external_context`
-  projection on work rows (one calm fragment "For Acme"/"Client
-  follow-up" + Why rows — the exact Gap J pattern); T-2 wire the dead
+- **Build order (each needs GO):** T-1 ✅ **SHIPPED 2026-07-03**
+  (FND `fd10ebe` PR #546 + CT `854f682`, live-verified): read-only
+  `external_context` on ledger views from three deterministic org-scoped
+  links (validated details read-through = T-2's write target;
+  conversation-matched governed ExternalCommitment → "Waiting on Acme"
+  with direction; roster-first unique governed-name match from Gap J
+  lineage → "For Globex") — one calm card fragment + Why rows, silence
+  when unprovable, no emails/excerpts/ids projected (leak-swept), no
+  personal-memory writes (count-invariance). Live honest: 200 rows /
+  0 with context (no governed externals exist live yet — silence IS the
+  proof; happy path integration-locked). NEXT: T-2 wire the dead
   ingestion path + name the external state in reconciliation + an
   external-party Dandelion seed (observed→governed promotion,
   admin-approved); T-3 ExternalOrganization/account model (prerequisite
