@@ -37,8 +37,10 @@ describe("Admin Center IA — eight production sections", () => {
   });
 
   // Approved per-section VISIBLE membership (stub entries excluded by design).
-  it("Overview = Home + Billing & Entitlements", () => {
-    expect(routesIn("Overview")).toEqual(["/", "/billing"]);
+  it("Overview = Home + Organization Setup + Billing & Entitlements", () => {
+    // [GAP-U SLICE-1] /setup joins Overview — the guided read-only setup
+    // journey belongs beside Home, not buried in a sub-section.
+    expect(routesIn("Overview")).toEqual(["/", "/billing", "/setup"].sort());
   });
   it("People & Roles = Users, AI Teammates, Organization Seeding, Onboarding", () => {
     expect(routesIn("People & Roles")).toEqual(

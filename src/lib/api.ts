@@ -577,6 +577,23 @@ export class ApiClient {
         }),
     },
 
+    /** [GAP-U] GET /api/v1/org/settings — read-only policy snapshot for
+     *  the Organization Setup page. The PATCH surface stays where it is;
+     *  this client method adds NO write path. */
+    settings: {
+      get: (): Promise<
+        ApiResult<{
+          settings: {
+            require_human_approval?: boolean;
+            audit_ai_actions?: boolean;
+            twin_autonomy_ceiling?: string;
+            default_jurisdiction?: string | null;
+            industry?: string | null;
+          };
+        }>
+      > => this.request("/org/settings"),
+    },
+
     hierarchy: {
       /** GET /api/v1/org/hierarchy -- org->person AND person->person
        *  (manager) memberships for the caller's org. */

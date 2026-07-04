@@ -117,6 +117,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Overview",
   },
   {
+    label: "Organization Setup",
+    to: "/setup",
+    icon: Compass,
+    description: "A guided, read-only setup journey — what's ready, what's missing, why it matters, and the one next step.",
+    group: "Overview",
+  },
+  {
     label: "Billing & Entitlements",
     to: "/billing",
     icon: CreditCard,

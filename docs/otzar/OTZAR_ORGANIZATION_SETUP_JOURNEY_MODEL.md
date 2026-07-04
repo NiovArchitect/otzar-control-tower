@@ -302,6 +302,33 @@ truth; no invented labels.
 
 ---
 
+## Implementation note — Slice 1 (2026-07-04)
+
+**Shipped:** the read-only Organization Setup page (`/setup`, nav "Organization
+Setup" in Overview). It is setup VISIBILITY, not setup automation:
+
+- **Read-only.** Composes seven existing GET projections (org/entities with
+  activation_status, org/hierarchy, org/ai-teammates with tool_readiness +
+  ceiling, connectors/oauth/status, org/dandelion/seeds, org/analytics,
+  org/settings) through one pure derivation module
+  (`src/lib/setup/setup-journey.ts`). Zero write paths, zero schema, zero
+  backend changes (one read-only client method added for the existing
+  GET /org/settings route).
+- **What it intentionally does NOT do:** bulk import (labeled "not available
+  yet"), retention controls (labeled honestly, links to the existing
+  /retention page), setup-coach seeds (blockers render directly from truth),
+  AI setup assistant (page structure is ambient-consumable later), email
+  claims (none), self-serve onboarding claims (none).
+- **Least-access spine:** "Minimum access first — capability by role, scope
+  by data, authority by policy, action by approval" renders at the top;
+  hierarchy≠permission and twin-authority≠human-title are explicit copy;
+  admin authority renders as "admin-level authority… limit to trusted
+  operators." This adopts the least-access administrative pattern, not
+  Salesforce parity.
+- **P1/P2 remaining:** CSV people import (next; write path — founder GO),
+  setup-coach seed lane, per-source data-flow panel, external-scope panel,
+  go-live gate view, twin repair rail, ceiling/policy admin UI.
+
 ## Part 4 — Final report
 
 1. **Current setup surfaces:** ten unsequenced admin pages + two API-only
