@@ -10,7 +10,12 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { Entity, EntityMembership, WorkLedgerEntryView } from "@/lib/types/foundation";
+import type {
+  Entity,
+  EntityMembership,
+  TeamClarityHealthView,
+  WorkLedgerEntryView,
+} from "@/lib/types/foundation";
 import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import { bucketFor, BUCKET_ORDER } from "@/lib/work-os/work-buckets";
 import { buildTeamRollup } from "@/lib/work-os/team-rollup";
@@ -27,6 +32,8 @@ export function TeamWork(): JSX.Element {
   const [loadingMore, setLoadingMore] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
+  // [CE-4B] exception summary — counts + labels only; null renders nothing.
+  const [health, setHealth] = useState<TeamClarityHealthView | null>(null);
 
   // Reload — used on mount AND after any status change so completion by an
   // owner clears the item from the team waiting-on panel without a restart.
@@ -38,6 +45,10 @@ export function TeamWork(): JSX.Element {
     }
     else if (r.code === "TEAM_SCOPE_NOT_CONFIGURED") setBlocked(true);
     else setFailed(true);
+    // Exception summary is best-effort — a failure renders silence, never
+    // an error state (the work list is the page's job; this is seasoning).
+    const h = await api.workOs.teamClarityHealth();
+    if (h.ok) setHealth(h.data);
   }
 
   async function loadMore(): Promise<void> {
@@ -69,6 +80,13 @@ export function TeamWork(): JSX.Element {
       .catch(() => {
         if (!cancelled) setFailed(true);
       });
+    // [CE-4B] best-effort exception summary — failure renders silence.
+    api.workOs
+      .teamClarityHealth()
+      .then((h) => {
+        if (!cancelled && h.ok) setHealth(h.data);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -120,6 +138,50 @@ export function TeamWork(): JSX.Element {
           pending, what's stale, and what needs attention.
         </p>
       </div>
+
+      {/* [CE-4B] clarity exceptions — ONE calm box, rendered only when a
+          count is non-zero (silence otherwise). Patterns, never a feed:
+          counts + org-internal labels; no source excerpts, no per-event
+          rows, no red badges. */}
+      {health !== null &&
+      (health.unresolved_clarifications_count > 0 ||
+        health.overdue_clarifications_count > 0 ||
+        health.ownership_unclear_count > 0) ? (
+        <div
+          className="rounded-md border border-border p-3 text-xs"
+          data-testid="team-clarity-health"
+        >
+          {health.top_exception !== undefined ? (
+            <p className="font-medium text-foreground">
+              {health.top_exception.label}
+              <span className="font-normal text-muted-foreground">
+                {" — "}
+                {health.top_exception.reason}
+              </span>
+            </p>
+          ) : null}
+          <div className="mt-1 space-y-0.5 text-muted-foreground">
+            {health.unresolved_clarifications_count > 0 ? (
+              <p>
+                {health.unresolved_clarifications_count} clarification request
+                {health.unresolved_clarifications_count === 1 ? "" : "s"} waiting.
+              </p>
+            ) : null}
+            {health.ownership_unclear_count > 0 ? (
+              <p>
+                {health.ownership_unclear_count} item
+                {health.ownership_unclear_count === 1 ? " needs" : "s need"} ownership
+                clarity.
+              </p>
+            ) : null}
+            {health.repeated_ambiguity_topics.map((t) => (
+              <p key={t.label}>
+                {t.label} has repeated clarifications ({t.count}).
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {blocked ? (
         <div

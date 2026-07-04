@@ -26,6 +26,7 @@ import { summarizeNotificationBody } from "./work-os/notification-body";
 import type {
   ClarityAnswerView,
   ClarityProjectionView,
+  TeamClarityHealthView,
   LoginResponse,
   LoginFailure,
   PlatformHealth,
@@ -1575,6 +1576,16 @@ export class ApiClient {
     ): Promise<ApiResult<{ ok: boolean; clarity: ClarityProjectionView }>> =>
       this.request<{ ok: boolean; clarity: ClarityProjectionView }>(
         `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/clarity`,
+      ),
+
+    /** GET /work-os/team-clarity-health — [CE-4B] manager exception summary
+     *  (counts + labels only). 403 TEAM_SCOPE_NOT_CONFIGURED for
+     *  non-managers — the same honest gate as Team Work. */
+    teamClarityHealth: (): Promise<
+      ApiResult<{ ok: boolean } & TeamClarityHealthView>
+    > =>
+      this.request<{ ok: boolean } & TeamClarityHealthView>(
+        "/work-os/team-clarity-health",
       ),
 
     /** GET /work-os/ledger/:id/clarity-answer — [CE-3] deterministic,

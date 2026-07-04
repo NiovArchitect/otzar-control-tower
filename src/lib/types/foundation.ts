@@ -4656,6 +4656,17 @@ export interface ClarityProjectionView {
   };
 }
 
+// [CE-4B] Manager exception summary (FND team-clarity-health.service.ts):
+// counts + org-internal labels only — never answer text, excerpts, or
+// private activity. Rendered only when a count is non-zero (calm).
+export interface TeamClarityHealthView {
+  unresolved_clarifications_count: number;
+  overdue_clarifications_count: number;
+  ownership_unclear_count: number;
+  repeated_ambiguity_topics: Array<{ label: string; count: number }>;
+  top_exception?: { label: string; reason: string };
+}
+
 // [CE-3] Structured clarity answer (FND clarity-answer.service.ts):
 // deterministic, truth-composed, read-only. The suggested action is a
 // SUGGESTION the human clicks through the existing CE-2 rail.
