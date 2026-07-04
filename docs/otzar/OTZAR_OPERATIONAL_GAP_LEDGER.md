@@ -303,10 +303,19 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   asker sees requested→clarified/declined on the item's Why, Review
   Center labels it "Clarification request" (clarification ≠ approval).
   Live proof: clarifier pending 2→3→2 (exactly ±1, canonical reject
-  cleanup, zero residue). Remaining honest: resolution ANSWER text is
-  stored in resolution_metadata but not yet rendered to the asker
-  (only the state); CE-3 (ambient answer wiring) + CE-4 (clarity
-  learn-loop, manager exceptions) not started.
+  cleanup, zero residue). **CE-3 SHIPPED 2026-07-03** (FND `a68537e`
+  PR #543 + CT `2b6abc6`, live-verified read-only): deterministic
+  clarity ANSWER over Work OS truth — `GET :id/clarity-answer` (six
+  intents, zero LLM, structured payload, honest unknowns) + a quiet
+  "Ask about this work" row inside the opened Why. Surfaces the
+  clarifier's stored ANSWER text ('Eve clarified: "…"') — the CE-2
+  remaining-honest item is closed. Live answers: "This came from a
+  Comms transcript." / "Samiksha Sharma can clarify — they are the
+  recipient of this follow-up." + suggested governed action; pending
+  0→0. Remaining honest: the ambient-bar composer intent ("this" →
+  work item needs a ledger-aware surface-context type) and
+  conductSession/COE grounding are future; CE-4 (clarity learn-loop +
+  manager exception visibility on Team Work) not started.
 - **Remaining honest:** approval/assignment-origin rows don't record lineage
   yet (writers must record it first — lineage is never invented); D&K page
   lists connector sources, not knowledge rows, so full lineage *browsing*
