@@ -520,11 +520,25 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   when unprovable, no emails/excerpts/ids projected (leak-swept), no
   personal-memory writes (count-invariance). Live honest: 200 rows /
   0 with context (no governed externals exist live yet — silence IS the
-  proof; happy path integration-locked). NEXT: T-2 wire the dead
-  ingestion path + name the external state in reconciliation + an
-  external-party Dandelion seed (observed→governed promotion,
-  admin-approved); T-3 ExternalOrganization/account model (prerequisite
-  for rollups); T-4 manager client exceptions on the CE-4B Team Work box.
+  proof; happy path integration-locked). T-2 ✅ **SHIPPED 2026-07-03**
+  (FND `8ee0144` PR #547 + CT `a6e866a`, live-verified read-only):
+  governed promotion, not automatic CRM — new `review_external_party`
+  Dandelion seed on a DETERMINISTIC trigger (unresolved source actor ∩
+  the org's opt-in ExternalEntity mention index; one open seed per
+  subject; a mention never auto-promotes); admin approval creates the
+  org-scoped governed ExternalCollaborator (idempotent per org+name,
+  TRACKED_EXTERNAL, access NOT granted, audited); the DEAD
+  `recordExternalCommitmentForCaller` wire revived at its designed
+  caller (workspace comms-import, EXTERNAL_ALLOWED + workspace-linked
+  governed collaborator, unique-name only, source_conversation_id
+  preserved) — T-1 lights up both ways (test-locked: "For Morgan Reeve"
+  via lineage; "Waiting on Acme" via conversation link). CT: the seed
+  renders as "External collaborator review" in the existing queue. Live
+  honest: 97 seeds / 0 external-review (no observed index live yet).
+  Remaining honest for T-2.5: reconciliation still cannot NAME the
+  external state outside these links. NEXT: T-3
+  ExternalOrganization/account model (prerequisite for rollups); T-4
+  manager client exceptions on the CE-4B Team Work box.
 - **Tests/smoke needed:** org-scoping + no-global-merge, no cross-client
   leak, lineage safety, client-data-never-in-wallets (CE-4A
   count-invariance pattern), owner routing, exceptions-only manager view,

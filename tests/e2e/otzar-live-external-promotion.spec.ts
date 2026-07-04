@@ -19,8 +19,10 @@ const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
 test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
 
 async function apiLogin(request: APIRequestContext, email: string): Promise<string> {
+  // The seeds route gates on the admin_org OPERATION — it must be requested
+  // at login (a read/write token gets an honest 403).
   const lr = await request.post(`${API}/auth/login`, {
-    data: { email, password: PW, requested_operations: ["read", "write"] },
+    data: { email, password: PW, requested_operations: ["read", "write", "admin_org"] },
   });
   return (await lr.json()).token as string;
 }
@@ -56,8 +58,11 @@ test("seed queue is honest about external reviews; reading mutates nothing (scre
   });
   await expect
     .poll(
-      async () => ((await page.locator("main, body").first().textContent()) ?? "").length > 300,
-      { timeout: 45_000 },
+      async () => {
+        const text = (await page.locator("main, body").first().textContent()) ?? "";
+        return text.length > 300 && !text.includes("Loading suggestions");
+      },
+      { timeout: 60_000 },
     )
     .toBe(true);
   const main = (await page.locator("main, body").first().textContent()) ?? "";
