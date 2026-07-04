@@ -312,9 +312,21 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   remaining-honest item is closed. Live answers: "This came from a
   Comms transcript." / "Samiksha Sharma can clarify — they are the
   recipient of this follow-up." + suggested governed action; pending
-  0→0. Remaining honest: the ambient-bar composer intent ("this" →
-  work item needs a ledger-aware surface-context type) and
-  conductSession/COE grounding are future. **CE-4 SHIPPED 2026-07-03**
+  0→0. **CE-AMBIENT SHIPPED 2026-07-03** (FND `c9d7485` PR #545 + CT
+  `ad0e98b`, live-verified read-only): ledger-aware surface context —
+  opening an item's View/Why provides a `work_item` context
+  (ledgerEntryId; cleared on close), and the ambient bar's
+  deterministic clarity intercept answers deictic questions ("why is
+  this here / where did this come from / who owns this") via the
+  EXISTING clarity-answer route through the calm outcome line +
+  speech. Contextual phrases ("what should I do next?") are
+  item-clarity only when an item is selected — bare, they keep their
+  Twin route (locked, 111/111 bar suite). No selection → honest
+  "Open or select a work item first…". Live: both turns proven; the
+  bar's context chip shows "Using current context · Work item";
+  pending 0→0. Remaining honest: conductSession/COE grounding and
+  hardware/desktop wake-word capture are future (voice INPUT through
+  the composer already hits this intercept). **CE-4 SHIPPED 2026-07-03**
   (FND `e085894` PR #544 + CT `fcc4645`, live-verified): (A) READ-ONLY
   clarity learn signal — candidates who resolved clarifications on
   similar work (same project, else same source system+author) gain
