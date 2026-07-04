@@ -78,6 +78,53 @@ export function WorkLedgerItem({
   // [CE-1] read-only clarifier suggestions, lazy-loaded with the Why detail.
   const [clarity, setClarity] = useState<ClarityProjectionView | null>(null);
   const [clarityLoaded, setClarityLoaded] = useState(false);
+  // [CE-2] governed clarification request (per-candidate busy + honest error).
+  const [clarifyBusy, setClarifyBusy] = useState<string | null>(null);
+  const [clarifyErr, setClarifyErr] = useState<string | null>(null);
+
+  // [CE-2] one governed call; the backend enforces that the clarifier is a
+  // current candidate, dedupes, audits, and points the clarifier's inbox.
+  async function requestClarification(entityId: string): Promise<void> {
+    setClarifyBusy(entityId);
+    setClarifyErr(null);
+    const r = await api.workOs.ledgerClarify(entry.ledger_entry_id, entityId);
+    setClarifyBusy(null);
+    if (r.ok) {
+      const name =
+        clarity?.candidates.find((c) => c.entity_id === entityId)?.display_name ?? "them";
+      setClarity((prev) =>
+        prev === null
+          ? prev
+          : {
+              ...prev,
+              pending_clarification: {
+                escalation_id: r.data.escalation_id,
+                status: r.data.status,
+                clarifier_entity_id: entityId,
+                clarifier_display_name: name,
+              },
+            },
+      );
+    } else {
+      setClarifyErr("Couldn't send the clarification request. Try again.");
+    }
+  }
+
+  // [CE-2] honest lifecycle copy for the asker's own clarification.
+  function clarificationStateLine(p: NonNullable<ClarityProjectionView["pending_clarification"]>): string {
+    switch (p.status) {
+      case "PENDING":
+        return `Clarification requested from ${p.clarifier_display_name} — waiting.`;
+      case "APPROVED":
+        return `Clarified by ${p.clarifier_display_name}.`;
+      case "REJECTED":
+        return `${p.clarifier_display_name} declined this clarification request.`;
+      case "EXPIRED":
+        return `The clarification request to ${p.clarifier_display_name} expired.`;
+      default:
+        return `Clarification with ${p.clarifier_display_name}: ${p.status.toLowerCase()}.`;
+    }
+  }
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receipt, setReceipt] = useState<{ loading: boolean; text: string | null }>({ loading: false, text: null });
   const exec = deriveWorkItemExecution(entry);
@@ -399,11 +446,32 @@ export function WorkLedgerItem({
               data-testid="work-ledger-item-clarity"
             >
               <span className="text-muted-foreground">Who can clarify:</span>
-              {clarity !== null && clarity.candidates.length > 0 ? (
+              {clarity?.pending_clarification !== undefined ? (
+                // [CE-2] the asker's own clarification lifecycle — one calm line.
+                <div data-testid="work-ledger-item-clarification-state">
+                  {clarificationStateLine(clarity.pending_clarification)}
+                </div>
+              ) : clarity !== null && clarity.candidates.length > 0 ? (
                 clarity.candidates.map((c) => (
-                  <div key={c.entity_id} data-testid="work-ledger-item-clarifier">
-                    Ask {c.display_name} —{" "}
-                    {c.reason.charAt(0).toLowerCase() + c.reason.slice(1)}
+                  <div
+                    key={c.entity_id}
+                    className="flex items-center gap-2"
+                    data-testid="work-ledger-item-clarifier"
+                  >
+                    <span>
+                      Ask {c.display_name} —{" "}
+                      {c.reason.charAt(0).toLowerCase() + c.reason.slice(1)}
+                    </span>
+                    {/* [CE-2] governed request — clarification, not approval. */}
+                    <button
+                      type="button"
+                      className="rounded border border-border/70 px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                      data-testid="work-ledger-item-clarify"
+                      disabled={clarifyBusy !== null}
+                      onClick={() => void requestClarification(c.entity_id)}
+                    >
+                      {clarifyBusy === c.entity_id ? "Requesting…" : "Request"}
+                    </button>
                   </div>
                 ))
               ) : (
@@ -411,6 +479,11 @@ export function WorkLedgerItem({
                   Otzar does not have enough context to suggest a clarifier yet.
                 </div>
               )}
+              {clarifyErr !== null ? (
+                <div className="text-amber-600" data-testid="work-ledger-item-clarify-error">
+                  {clarifyErr}
+                </div>
+              ) : null}
             </div>
           ) : null}
 

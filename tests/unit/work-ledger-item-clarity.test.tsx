@@ -85,10 +85,10 @@ describe("[CE-1] WorkLedgerItem — Who can clarify (read-only, lazy)", () => {
     );
     expect(hits).toBe(1);
     const clarifiers = screen.getAllByTestId("work-ledger-item-clarifier");
-    expect(clarifiers[0]!.textContent).toBe(
+    expect(clarifiers[0]!.textContent).toContain(
       "Ask Eve — they sent the Slack message this work came from.",
     );
-    expect(clarifiers[1]!.textContent).toBe("Ask David — they own this work.");
+    expect(clarifiers[1]!.textContent).toContain("Ask David — they own this work.");
     // Raw ids and backend role enums never render.
     const block = screen.getByTestId("work-ledger-item-clarity").textContent ?? "";
     expect(block).not.toContain("u-eve");
@@ -113,6 +113,65 @@ describe("[CE-1] WorkLedgerItem — Who can clarify (read-only, lazy)", () => {
       screen.getByText("Otzar does not have enough context to suggest a clarifier yet."),
     ).toBeInTheDocument();
     expect(screen.queryAllByTestId("work-ledger-item-clarifier").length).toBe(0);
+  });
+
+  it("[CE-2] Request sends ONE governed call and flips to the calm requested state", async () => {
+    let posted: { url: string; body: unknown } | null = null;
+    server.use(
+      clarityHandler(WITH_CANDIDATES),
+      http.post(`${API}/work-os/ledger/:id/clarify`, async ({ request }) => {
+        posted = { url: new URL(request.url).pathname, body: await request.json() };
+        return HttpResponse.json(
+          {
+            ok: true,
+            escalation_id: "esc-1",
+            status: "PENDING",
+            clarifier_entity_id: "u-eve",
+            already_requested: false,
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
+    fireEvent.click(screen.getByTestId("work-ledger-item-view"));
+    await waitFor(() =>
+      expect(screen.getAllByTestId("work-ledger-item-clarify").length).toBeGreaterThan(0),
+    );
+    fireEvent.click(screen.getAllByTestId("work-ledger-item-clarify")[0]!);
+    await waitFor(() =>
+      expect(screen.getByTestId("work-ledger-item-clarification-state")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("work-ledger-item-clarification-state").textContent).toBe(
+      "Clarification requested from Eve — waiting.",
+    );
+    expect(posted).not.toBeNull();
+    expect((posted!.body as Record<string, unknown>).clarifier_entity_id).toBe("u-eve");
+    // The candidate buttons are gone — one clarification at a time, calm.
+    expect(screen.queryAllByTestId("work-ledger-item-clarify").length).toBe(0);
+  });
+
+  it("[CE-2] an existing clarification renders its lifecycle state instead of buttons", async () => {
+    server.use(
+      clarityHandler({
+        ...WITH_CANDIDATES,
+        pending_clarification: {
+          escalation_id: "esc-9",
+          status: "APPROVED",
+          clarifier_entity_id: "u-eve",
+          clarifier_display_name: "Eve",
+        },
+      }),
+    );
+    render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
+    fireEvent.click(screen.getByTestId("work-ledger-item-view"));
+    await waitFor(() =>
+      expect(screen.getByTestId("work-ledger-item-clarification-state")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("work-ledger-item-clarification-state").textContent).toBe(
+      "Clarified by Eve.",
+    );
+    expect(screen.queryAllByTestId("work-ledger-item-clarify").length).toBe(0);
   });
 
   it("opening the detail performs NO mutation — no POST of any kind", async () => {

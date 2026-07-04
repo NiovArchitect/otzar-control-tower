@@ -1576,6 +1576,27 @@ export class ApiClient {
         `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/clarity`,
       ),
 
+    /** POST /work-os/ledger/:id/clarify — [CE-2] governed clarification
+     *  request to a suggested clarifier. Clarification is NOT approval: it
+     *  creates a tracked, audited, duplicate-safe escalation on the existing
+     *  Review Center rails. 201 created / 200 already requested. */
+    ledgerClarify: (
+      ledgerEntryId: string,
+      clarifierEntityId: string,
+    ): Promise<
+      ApiResult<{
+        ok: boolean;
+        escalation_id: string;
+        status: string;
+        clarifier_entity_id: string;
+        already_requested: boolean;
+      }>
+    > =>
+      this.request(
+        `/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/clarify`,
+        { method: "POST", body: { clarifier_entity_id: clarifierEntityId } },
+      ),
+
     /** POST /api/v1/work-os/internal-messages — human-authority direct
      *  internal note. Delivers under the sender's own authority when policy
      *  allows; honest DELIVERED / NEEDS_RESOLUTION / GATED / BLOCKED. */

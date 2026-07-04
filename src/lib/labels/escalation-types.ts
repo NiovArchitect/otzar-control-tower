@@ -15,7 +15,9 @@ import type {
 
 // WHAT: Product-safe label per escalation type.
 export const ESCALATION_TYPE_LABELS: Record<EscalationType, string> = {
-  HUMAN_REVIEW_REQUIRED: "Human review",
+  // [CE-2] the AI-uncertainty type's only production writer is the
+  // clarification request — labeled as what it is (NOT an approval).
+  HUMAN_REVIEW_REQUIRED: "Clarification request",
   SOVEREIGNTY_VIOLATION: "Access boundary review",
   THRESHOLD_BREACH: "Threshold review",
   POLICY_CONFLICT: "Policy review",

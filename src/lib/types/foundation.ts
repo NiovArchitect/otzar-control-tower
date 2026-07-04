@@ -4646,6 +4646,14 @@ export interface ClarityProjectionView {
   authority_question: boolean;
   source_author_state: "resolved" | "ambiguous" | "unresolved" | "none";
   candidates: ClarityCandidateView[];
+  // [CE-2] the caller's own clarification on this row (latest), so the Why
+  // shows requested → clarified/declined without a new surface.
+  pending_clarification?: {
+    escalation_id: string;
+    status: string;
+    clarifier_entity_id: string;
+    clarifier_display_name: string;
+  };
 }
 
 // [GAP-J] The SAFE source-lineage block (FND SourceLineageProjection).
