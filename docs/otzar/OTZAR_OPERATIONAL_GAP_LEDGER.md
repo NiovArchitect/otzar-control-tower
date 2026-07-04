@@ -293,9 +293,20 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   inside View/Why — suggestions only, honest empty state, zero mutation
   (live proof: Review Center pending count unchanged; 6/25 probed live
   rows yield real candidates, e.g. "Ask David Odie — they own this
-  work."). Noted for CE-1.5: the row's TARGET (e.g. a follow-up's
-  recipient) is not in the approved ranking — consider adding with
-  founder sign-off. CE-2 (governed clarification request) awaits GO.
+  work."). **CE-1.5 + CE-2 SHIPPED 2026-07-03** (FND `3f0f333` PR #542 +
+  CT `0b01744`, live round-trip verified): target/recipient ranks 4th
+  (durable row data, plain recipient copy, deduped under stronger
+  roles); governed clarification request = the first production writer
+  of the dormant `HUMAN_REVIEW_REQUIRED` type — lateral target must be
+  a current candidate, duplicate-safe, 7-day expiry, audited at create,
+  DIRECT_MESSAGE pointer, linkage survives resolution (metadata MERGE),
+  asker sees requested→clarified/declined on the item's Why, Review
+  Center labels it "Clarification request" (clarification ≠ approval).
+  Live proof: clarifier pending 2→3→2 (exactly ±1, canonical reject
+  cleanup, zero residue). Remaining honest: resolution ANSWER text is
+  stored in resolution_metadata but not yet rendered to the asker
+  (only the state); CE-3 (ambient answer wiring) + CE-4 (clarity
+  learn-loop, manager exceptions) not started.
 - **Remaining honest:** approval/assignment-origin rows don't record lineage
   yet (writers must record it first — lineage is never invented); D&K page
   lists connector sources, not knowledge rows, so full lineage *browsing*
