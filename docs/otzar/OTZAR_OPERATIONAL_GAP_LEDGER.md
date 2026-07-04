@@ -554,9 +554,24 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   "Identity is layered" doctrine added to the external model doc
   (person / membership / twin / collaborator / organization / future
   pairwise refs — schema future-safe, nothing built beyond doctrine).
-  Remaining: T-3B collaborator identifiers; pairwise limited-disclosure
-  refs (future). NEXT: T-4 manager client exceptions on the CE-4B Team
-  Work box (now has a real account key to group by).
+  T-3B ✅ **SHIPPED 2026-07-03** (FND `28ec60d` PR #550; migration
+  applied + verified via the hardened rail pre-merge; zero CT changes):
+  ExternalCollaboratorIdentifier (typed evidence: EMAIL/SLACK_USER/
+  ZOOM_PARTICIPANT/CALENDAR_ATTENDEE/MANUAL_ALIAS/PHONE/OTHER,
+  confidence + verified-by provenance) + ONE governed matcher used by
+  both manual track and Dandelion promotion: EMAIL evidence reuses even
+  across differing names; legacy email column backfills; VERIFIED
+  aliases reuse (unverified never); unique consistent-account name
+  matches reuse; same name + DIFFERENT account = a different person
+  (never merges); ambiguity refuses to decide; revoked/deleted never
+  match; cross-org never matches. The J1-ledgered duplicate
+  (seed-promote + track = two records) is FIXED — one record, account
+  backfilled, reuse audited ({reused, matched_by}), second workspace =
+  membership only. Live read-only battery green post-deploy. Remaining:
+  Option B "link to existing" review chooser for ambiguous cases;
+  pairwise limited-disclosure refs (future). NEXT: T-4 manager client
+  exceptions on the CE-4B Team Work box (real account key + deduped
+  contacts to group by).
 - **Tests/smoke needed:** org-scoping + no-global-merge, no cross-client
   leak, lineage safety, client-data-never-in-wallets (CE-4A
   count-invariance pattern), owner routing, exceptions-only manager view,
