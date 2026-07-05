@@ -351,6 +351,22 @@ Preview-first, confirmation-gated, least-access by construction:
   assignment writes, updating existing members (existing emails are
   skipped with repair copy), >20-row batches.
 
+## Implementation note — Slice 3: per-source data-flow trust panel (2026-07-05)
+
+**Shipped:** `/setup/data-flow` ("How your data flows") — read-only, one live
+GET (connector OAuth status) merged with a STATIC capability matrix that
+states only what the product does today. Per source (manual communications,
+Zoom, Slack, Google Workspace, Microsoft 365, external & client context,
+memory & AI Teammate learning): what Otzar pulls, what it pushes back
+(nothing without approval; most sources: nothing), where data lands, who
+owns it (company-owned / company-governed / split wallet boundary), who can
+see it, and honest retention ("not configurable in-product yet" + link to
+/retention). Linked from the Tools & data and Governance cards on /setup.
+Nothing inferred beyond evidence: connected ≠ ingesting is explicit per
+source; unavailable capabilities say "not available yet". No writes, no
+schema, no backend changes. Closes smoke-matrix stories 7 and 11 at the
+setup-panel level; deeper per-account external views remain future.
+
 ## Part 4 — Final report
 
 1. **Current setup surfaces:** ten unsequenced admin pages + two API-only

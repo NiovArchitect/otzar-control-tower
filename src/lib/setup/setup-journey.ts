@@ -378,6 +378,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
           : "None connected",
     lines: toolLines,
     action: { label: "Open Tools & Connections", to: "/tools-connections" },
+    secondaryAction: { label: "How your data flows", to: "/setup/data-flow" },
   });
 
   // ── Governance & data boundary ───────────────────────────────────────
@@ -428,6 +429,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
           : "Safe defaults",
     lines: govLines,
     action: { label: "Open Data & Knowledge", to: "/data-knowledge" },
+    secondaryAction: { label: "How your data flows", to: "/setup/data-flow" },
   });
 
   // ── First workflows ──────────────────────────────────────────────────

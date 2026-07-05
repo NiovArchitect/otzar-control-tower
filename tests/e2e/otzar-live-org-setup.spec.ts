@@ -79,6 +79,18 @@ test("setup page renders the guided journey honestly; reads only; no leaks (scre
 
   await page.screenshot({ path: "screenshots/org-setup-live.png", fullPage: true });
 
+  // [SLICE-3] the data-flow trust panel renders read-only with honest rows.
+  await page.evaluate(() => {
+    history.pushState({}, "", "/setup/data-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByTestId("dataflow-row-manual_comms")).toBeVisible({ timeout: 30_000 });
+  const flowBody = (await page.locator("main, body").first().textContent()) ?? "";
+  expect(flowBody).toContain("they cannot take the company's work");
+  expect(flowBody).toContain("Retention controls are not configurable in-product yet");
+  expect(flowBody).not.toMatch(/synced|APP_CREDENTIALS_MISSING|source_lineage/);
+  await page.screenshot({ path: "screenshots/data-flow-live.png", fullPage: true });
+
   // Read-only proof: the page fired zero non-GET API calls.
   expect(nonGet).toEqual([]);
   console.log(`[setup] rendered; active=${activeCount}; nonGET=${nonGet.length}`);

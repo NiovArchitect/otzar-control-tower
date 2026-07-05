@@ -13,6 +13,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { ActivatePage } from "@/pages/Activate";
 import { OrgSetupPage } from "@/pages/OrgSetup";
 import { ImportPeoplePage } from "@/pages/ImportPeople";
+import { DataFlowPage } from "@/pages/DataFlow";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -167,6 +168,7 @@ export function App() {
               <Route index element={<HomePage />} />
               <Route path="setup" element={<OrgSetupPage />} />
               <Route path="setup/import-people" element={<ImportPeoplePage />} />
+              <Route path="setup/data-flow" element={<DataFlowPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="ai-teammates" element={<AITeammatesPage />} />
               {/* PROD-MODEL-P3 §9 — ONE Access Control destination (tabs);
