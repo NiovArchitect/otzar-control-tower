@@ -688,6 +688,31 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   underlying truth changing; the do-not-overclaim setup list in the model
   doc is binding.
 
+### V. Org Context Seeding + Employee Twin Calibration — 🔴 open (doctrine + audit COMPLETE 2026-07-05)
+
+- **Customer story:** "Now that we're set up, Otzar should know our
+  projects, history, clients, and how each of us works — safely."
+- **State:** doctrine + code-grounded audit in
+  [`OTZAR_ORG_CONTEXT_SEEDING_AND_TWIN_CALIBRATION_MODEL.md`](./OTZAR_ORG_CONTEXT_SEEDING_AND_TWIN_CALIBRATION_MODEL.md).
+  The three-lane split is binding: (1) Org Context Seeding —
+  company-owned, through the ONE spine with a seeded-source label and
+  actionability suppression (the stale-transcript rule: seeded history
+  creates context, NEVER to-dos/notifications); (2) Employee Twin
+  Calibration — personal wallet, propose-then-approve only (the Welcome
+  pattern), self-scoped; (3) Live Work Ingestion — the existing spine,
+  unchanged. Audit: spine/wallet/review/calibration substrates all LIVE;
+  what's missing is the seeding MODE (lineage label + suppression), the
+  admin seeding surface, and calibration expansion.
+- **Build order:** CS-1 seeded-context mode (FND) → CS-2 admin seeding
+  surface (CT) → CS-3 calibration expansion → CS-4 writing-sample style
+  (own GO) → CS-5 doc corpus (own GO + adapter contract). Prerequisite
+  P1: fix the MemoryCapsule content_hash placeholder before calibration
+  volume grows.
+- **Hard boundaries:** one spine, stale ≠ actionable, wallet law
+  untouchable (count-invariance mandatory), external trust never seeded,
+  deterministic identity only, everything reviewable + reversible, no
+  fake intelligence claims.
+
 ## Next-slice selection method
 
 Before starting ANY slice, answer for each candidate:
