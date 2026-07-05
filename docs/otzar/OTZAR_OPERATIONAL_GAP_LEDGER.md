@@ -726,8 +726,15 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   from all views; no current-truth/open-work/personal-memory leak —
   test-locked). One labeling gap: seeded lineage is stored but not yet
   rendered in View/Why.
-- **Build order:** AIX-1 ✅ SHIPPED 2026-07-05 (SeededOriginProjection on ledger views — origin/coverage/currentness/boundary labels; View/Why 'Context origin / How to treat it' rows; 'Seeded background' card fragment; clarity WHERE_FROM answers carry the background framing with medium confidence) → AIX-2
-  in-context "is this still current?" via the correction rail → AIX-3
+- **Build order:** AIX-1 ✅ SHIPPED 2026-07-05 (SeededOriginProjection on ledger views — origin/coverage/currentness/boundary labels; View/Why 'Context origin / How to treat it' rows; 'Seeded background' card fragment; clarity WHERE_FROM answers carry the background framing with medium confidence) → AIX-2 ✅ SHIPPED 2026-07-05
+  (the FIRST relevance write path: POST /work-os/ledger/:id/context-validation —
+  seeded-rows-only, party/manager-authorized, idempotent, additive
+  details.context_relevance JSON; five in-context choices on seeded rows
+  inside View/Why — Still current / Outdated / Wrong context / Conflicts
+  with newer work / Ask someone else; customer-safe validation labels in
+  the projection; additive audit event SEEDED_CONTEXT_VALIDATED; no
+  status change, no follow-ups/notifications/wallet writes, retrieval
+  still OFF) → AIX-3
   deterministic candidate relevance through the governed suggestion lane
   → AIX-4 retrieval with the ranking law (only after 1–3). Copy shipped
   now: both seeding surfaces state that admins never classify/tag.

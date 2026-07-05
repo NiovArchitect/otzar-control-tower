@@ -168,11 +168,23 @@ what exists, and the build order says where the rest lands.
    fragments label seeded rows ("Seeded history · covering 2025 ·
    background context"); clarity answers say when a source is seeded
    background and down-weight it verbally. No new writes.
-2. **AIX-2 — "Is this still current?" in-context validation:** one
-   targeted confirm/correct affordance on seeded rows inside View/Why /
-   clarification, writing through the existing correction rail; a
-   confirmation flips relevance_state to confirmed, a correction to
-   stale/contradicted (details JSON only).
+2. **AIX-2 ✅ SHIPPED 2026-07-05 — "Is this still current?" in-context
+   validation:** the first relevance write path. One targeted affordance
+   on seeded rows inside the opened View/Why: "This is seeded background
+   context. Is it still current for this work?" with five choices (Still
+   current / Outdated / Wrong context / Conflicts with newer work / Ask
+   someone else → internal states confirmed/stale/wrong_scope/
+   contradicted/needs_clarifier). Lands as additive
+   `details.context_relevance` JSON (state, confirmed_by, confirmed_at,
+   optional capped note, source `human_validation`, applies_to
+   `seeded_context`) via POST /work-os/ledger/:id/context-validation —
+   seeded-rows-only, authorized for managers/admins or a party the row
+   is about (ownerless org-wide documents are manager/admin-only),
+   idempotent, audited once (SEEDED_CONTEXT_VALIDATED). The projection
+   renders labels only (validation_state_label + validation_guidance);
+   no status change, no follow-ups, no notifications, no wallet writes,
+   and retrieval remains OFF — the recorded signal is what AIX-3/AIX-4
+   consume under the ranking law.
 3. **AIX-3 — Candidate relevance, softly:** deterministic signals only
    (shared project hints, name overlap through the T-2.5 classifier,
    time windows) minting *suggestions* through the governed lane —
