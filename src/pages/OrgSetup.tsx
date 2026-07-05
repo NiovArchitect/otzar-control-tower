@@ -26,6 +26,7 @@ import {
   type SetupInputs,
   type SetupSection,
 } from "@/lib/setup/setup-journey";
+import { deriveSetupCoach } from "@/lib/setup/setup-coach";
 
 function stateBadge(section: SetupSection) {
   const variant =
@@ -109,6 +110,7 @@ export function OrgSetupPage() {
     settings: settings.data ?? null,
   };
   const journey = deriveSetupJourney(inputs);
+  const coaching = deriveSetupCoach(inputs).slice(0, 3);
 
   return (
     <div className="space-y-6" data-testid="org-setup-page">
@@ -159,6 +161,41 @@ export function OrgSetupPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* [SLICE-5] the setup coach — Otzar noticing stalls, guiding
+              repair. Derived from the same facts (one grouped
+              recommendation per issue; disappears when fixed). These are
+              setup recommendations, not operational work. */}
+          {coaching.length > 0 ? (
+            <Card data-testid="setup-coach">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Otzar noticed</CardTitle>
+                <CardDescription className="text-xs">
+                  Setup recommendations — separate from your team's
+                  operational work. Each one disappears once it's fixed.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {coaching.map((rec) => (
+                    <li key={rec.key} className="flex items-start gap-2 text-xs" data-testid={`setup-coach-${rec.key}`}>
+                      <CircleDashed className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      <span className="min-w-0">
+                        <span className="font-medium text-foreground">{rec.label}</span>{" "}
+                        <span className="text-muted-foreground">{rec.whyItMatters}</span>{" "}
+                        <Link
+                          to={rec.repair.to}
+                          className="whitespace-nowrap text-foreground underline underline-offset-2"
+                        >
+                          {rec.repair.label}
+                        </Link>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/* The journey — seven calm sections, each with one action. */}
           <div className="grid gap-4 lg:grid-cols-2">

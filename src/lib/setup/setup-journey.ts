@@ -523,7 +523,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
   } else if (!workHasFlowed) {
     flowLines.push({
       kind: "action",
-      text: "No work has flowed into Otzar yet. Start by pasting a meeting transcript in Comms or uploading a meeting capture — Otzar finds the commitments, owners, and follow-ups inside it.",
+      text: "No work has flowed into Otzar yet. Start by pasting a meeting transcript in Comms (in the Otzar workspace) — Otzar finds the commitments, owners, and follow-ups inside it, and that becomes your organization's first work truth.",
     });
   } else {
     flowLines.push({

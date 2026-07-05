@@ -79,6 +79,15 @@ test("setup page renders the guided journey honestly; reads only; no leaks (scre
 
   await page.screenshot({ path: "screenshots/org-setup-live.png", fullPage: true });
 
+  // [SLICE-5] the setup coach renders grouped recommendations with the
+  // separation promise (the live org has role/manager/review stalls).
+  const coach = page.getByTestId("setup-coach");
+  await expect(coach).toBeVisible();
+  const coachText = (await coach.textContent()) ?? "";
+  expect(coachText).toContain("Otzar noticed");
+  expect(coachText).toContain("separate from your team's operational work");
+  expect(coachText).not.toMatch(/task generated|system seed|seed_type|AI decided/i);
+
   // [SLICE-3] the data-flow trust panel renders read-only with honest rows.
   await page.evaluate(() => {
     history.pushState({}, "", "/setup/data-flow");

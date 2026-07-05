@@ -283,9 +283,9 @@ export function deriveGoLiveReadiness(inputs: SetupInputs): GoLiveReadiness {
     workflow.push({
       label: "Ready to run the first workflow",
       whyItMatters:
-        "Paste a meeting transcript or upload a capture — Otzar finds the commitments, owners, and follow-ups inside it.",
+        "Paste a meeting transcript in Comms — Otzar finds the commitments, owners, and follow-ups inside it, and that becomes your first work truth.",
       severity: "ready",
-      repair: { label: "Open Organization Seeding", to: "/organization-seeding" },
+      repair: { label: "Open Comms", to: "/app/comms" },
       source: "live work records",
     });
   }
@@ -332,7 +332,7 @@ export function deriveGoLiveReadiness(inputs: SetupInputs): GoLiveReadiness {
         ? f.openSeeds > 0
           ? { title: "Review the waiting suggestions", to: "/organization-seeding", linkLabel: "Open Organization Seeding" }
           : { title: "Keep the loop running", to: "/", linkLabel: "Open Home" }
-        : { title: "Run the first workflow", to: "/organization-seeding", linkLabel: "Open Organization Seeding" };
+        : { title: "Run the first workflow", to: "/app/comms", linkLabel: "Open Comms" };
 
   return {
     verdict,

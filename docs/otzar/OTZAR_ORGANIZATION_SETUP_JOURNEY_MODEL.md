@@ -385,6 +385,34 @@ delivery, retention controls, org-creation self-service, ambient
 ingestion — all named. Remaining structural gap: the setup-coach seed lane
 (smoke-matrix story 9 full form).
 
+## Implementation note — Slice 5: setup coach + coherence sweep (2026-07-05)
+
+**Shipped:** the setup coach ("Otzar noticed") on /setup — DERIVED, typed,
+grouped recommendations from the shared computeSetupFacts. **Doctrine
+decision:** persisted Dandelion setup seeds were rejected — the
+approve/reject seed lifecycle is the wrong shape for repair items
+("approving" an activation stall changes no truth, which the no-fake-step
+rule bans). Derivation gives the noise rules by construction: one grouped
+recommendation per category, stable keys, disappears when fixed, never
+re-mints, zero writes, zero cross-org risk. The operational Dandelion lane
+(activate-person, tool-grant, external review — real approval semantics)
+stays untouched and separate; the coach card says so on its face.
+
+**Coherence sweep results:** first-workflow path now points at the REAL
+route (Comms in the Otzar workspace) from the journey card, the go-live
+gate, and the coach; cross-links verified (setup ↔ import ↔ data-flow ↔
+go-live ↔ repair surfaces; Home → setup pointer); overclaim grep across all
+setup surfaces clean (rendered copy — only code comments match); least-
+access anchors present on every setup surface; smoke matrix reconciled to
+14/14 with remaining maturity items named (HRIS/org-chart import,
+per-account external views, printable gate handoff, >20-row batches).
+
+**Setup arc status: coherent enough to receive starting context.** The
+next layer (Org Context Seeding + Employee Twin Calibration) can begin its
+doctrine/audit on top of: activation rails, least-access import, data-flow
+boundaries, go-live gating, and setup coaching — with wallet/lineage/
+external boundaries already rendered and test-enforced.
+
 ## Part 4 — Final report
 
 1. **Current setup surfaces:** ten unsequenced admin pages + two API-only

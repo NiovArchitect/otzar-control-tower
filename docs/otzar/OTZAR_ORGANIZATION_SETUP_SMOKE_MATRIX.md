@@ -6,8 +6,9 @@ onboarding commonly stalls, and ties each story to Otzar's detection, the
 admin-visible state, the repair path, and the test that proves it. It is
 implementation-bound, not theoretical: every "Covered" row cites a real test.
 
-**Legend:** ✅ covered by slice 1 · 🟡 partially covered · 🔴 not represented
-yet (honest gap; next-slice column says what it needs).
+**Legend:** ✅ covered (slice noted) · 🟡 partially covered · 🔴 not
+represented yet. **Status 2026-07-05: 14/14 stories covered** across
+slices 1–5; remaining maturity items listed at the bottom.
 
 | # | Story | Customer pain | Source of truth | Detection | Admin sees | Repair path | Test proof | Status |
 |---|---|---|---|---|---|---|---|---|
@@ -19,7 +20,7 @@ yet (honest gap; next-slice column says what it needs).
 | 6 | Tool connected but not useful | "We connected Slack" but nothing flows | connectors/oauth/status per provider | per-provider status → honest per-tool line | Zoom: "connected… ambient ingestion is not automatic yet". Slack: "message ingestion is not wired… yet". Missing creds: "not available yet — requires operator setup." | /tools-connections | org-setup.test ready-ish (connected ≠ ingesting) | ✅ |
 | 7 | Data pipeline unclear | "Where does our data go?" | doctrine (wallet boundary, audit, ledger) | governance section renders the boundary statements | "Company work data stays company-owned… never becomes portable personal memory." | /data-knowledge, /retention | data-flow.test (six trust fields per source; connected ≠ ingesting; honest retention) + live spec | ✅ SLICE 3 — /setup/data-flow answers pull/push/landing/ownership/visibility/retention per source |
 | 8 | Pipeline not flowing | Setup "done" but no work truth | analytics decision/capsule counts + seeds presence | zero-signal → "No work has flowed yet" + strongest first source | "Start by pasting a meeting transcript in Comms…" | /organization-seeding (+ Comms) | org-setup.test empty vs ready-ish flip | ✅ |
-| 9 | Recommendations disconnected | Setup feels scattered | open dandelion seeds count | pending review count on First workflows | "N suggestions are waiting for review in Organization Seeding." | /organization-seeding | org-setup.test ready-ish next-step | ✅ (setup-coach seed lane remains future) |
+| 9 | Recommendations disconnected | Setup feels scattered | open dandelion seeds count | pending review count on First workflows | "N suggestions are waiting for review in Organization Seeding." | /organization-seeding | org-setup.test ready-ish next-step + setup-coach.test (grouped/deduped/disappears-when-fixed/quiet-org/copy sweep) | ✅ SLICE 5 — setup coach shipped as DERIVED typed recommendations (doctrine: setup stalls need repair links, not approval — the Dandelion approve/reject lifecycle stays operational-only; ingestion-driven seeds with real approval semantics remain in Organization Seeding) |
 | 10 | Approval policy unclear | "What can AI do alone?" | org/settings flags + twin ceiling | human-readable policy lines | "Sensitive AI actions require human approval." / ceiling as "Approval required" | /data-knowledge (+ Settings) | org-setup.test (no raw policy enums) | ✅ |
 | 11 | External data boundaries | Client-data leakage worry | doctrine + T-1→T-4 rails | governance boundary line | "Client and vendor data never becomes portable personal memory." | /data-knowledge | data-flow.test external_context row (observed-never-trusted, never-portable, manager-vs-source visibility) | ✅ SLICE 3 — the External & client context row states the full boundary |
 | 12 | Retention setup missing | Compliance concern | (unmodeled — honest) | limitation always shown | "Retention controls are not configurable in-product yet. Keep this visible during pilot planning." | /retention (existing honest page) | overclaim test asserts the line renders | ✅ (as an honest limitation) |
@@ -38,9 +39,13 @@ good shape". Foundation/bootstrap issues can't occur for a logged-in admin
 - ~~Per-source data-flow panel~~ — SHIPPED as slice 3 (/setup/data-flow).
 - ~~External-scope panel~~ — covered by slice 3's External & client context
   row; a deeper per-account view remains future.
-- **Setup-coach Dandelion seeds** (story 9 full form) — needs the typed
-  seed-lane split (Gap U doctrine Part 3C); no new seed type was created in
-  this slice by design.
+- ~~Setup-coach lane~~ — SHIPPED as slice 5, DERIVED not persisted: the
+  coach card on /setup groups one recommendation per category from
+  computeSetupFacts, disappears when fixed, and never enters the
+  operational seed queue. Persisted setup seeds were deliberately rejected:
+  the approve/reject lifecycle is the wrong shape for repair items
+  (approving an activation stall changes no truth). Re-open only if a
+  setup decision with REAL approval semantics appears.
 - ~~Go-live gate~~ — SHIPPED as slice 4 (/setup/go-live).
 - ~~Bulk import~~ — SHIPPED as slice 2 (CSV, cap 20/batch, preview-first,
   least-access by construction). Remaining bulk maturity: HRIS/directory
