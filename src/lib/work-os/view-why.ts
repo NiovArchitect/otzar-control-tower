@@ -139,6 +139,22 @@ export function viewWhyFromLedger(entry: WorkLedgerEntryView): ViewWhyModel {
       label: "Relationship",
       value: entry.external_context?.relationship_label ?? null,
     },
+    // [AIX-1] seeded-origin lineage — present only on rows born from setup
+    // seeding: what it is, when it covers, and the background boundary.
+    { label: "Context origin", value: entry.seeded_origin?.origin_label ?? null },
+    {
+      label: "Covers",
+      value:
+        entry.seeded_origin?.covering_period_label?.replace(/^Covers /, "") ?? null,
+    },
+    { label: "Currentness", value: entry.seeded_origin?.currentness_label ?? null },
+    {
+      label: "How to treat it",
+      value:
+        entry.seeded_origin !== undefined
+          ? `${entry.seeded_origin.boundary_label} ${entry.seeded_origin.confidence_note}`
+          : null,
+    },
     { label: "Source", value: entry.source_command !== null ? `“${entry.source_command}”` : null },
     {
       label: "Owner",

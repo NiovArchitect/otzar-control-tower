@@ -4726,6 +4726,16 @@ export interface ClarityAnswerView {
 // labels only, present only when a deterministic org-scoped link proves it
 // (governed collaborator/commitment or roster-first lineage match).
 // Context, not CRM — absent on most rows by design.
+// [AIX-1] Mirror of FND SeededOriginProjection — customer-safe only.
+export interface SeededOriginView {
+  origin: "seeded_history" | "seeded_document";
+  origin_label: string;
+  currentness_label?: string;
+  covering_period_label?: string;
+  boundary_label: string;
+  confidence_note: string;
+}
+
 export interface ExternalContextView {
   external_party_type:
     | "client"
@@ -4824,6 +4834,9 @@ export interface WorkLedgerEntryView {
   // [T-1] — external-party context (context, not CRM). Present only when a
   // deterministic org-scoped link proves it. Additive + optional.
   external_context?: ExternalContextView;
+  /** [AIX-1] seeded-origin lineage — calm background labels for rows born
+   *  from setup seeding. Absent on live-work rows. */
+  seeded_origin?: SeededOriginView;
   // Phase 1285-E — server-computed: the caller owns this active task and may
   // mark it complete (My Work only). Drives the "Mark complete" control.
   can_complete?: boolean;

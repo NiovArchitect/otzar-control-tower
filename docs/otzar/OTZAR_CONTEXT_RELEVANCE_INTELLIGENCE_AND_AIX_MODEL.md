@@ -164,7 +164,7 @@ what exists, and the build order says where the rest lands.
 
 ## Part 7 — Safe next build order
 
-1. **AIX-1 — Seeded lineage rendered (read-only):** View/Why + card
+1. **AIX-1 ✅ SHIPPED 2026-07-05 — Seeded lineage rendered (read-only):** View/Why + card
    fragments label seeded rows ("Seeded history · covering 2025 ·
    background context"); clarity answers say when a source is seeded
    background and down-weight it verbally. No new writes.

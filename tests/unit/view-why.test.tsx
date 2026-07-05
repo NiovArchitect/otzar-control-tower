@@ -384,3 +384,37 @@ describe("viewWhyFromCommsFollowUp", () => {
     }
   });
 });
+
+// ── [AIX-1] seeded-origin lineage — background, never current truth ──────
+describe("viewWhyFromLedger — seeded origin (AIX-1)", () => {
+  it("a seeded-document row renders origin, coverage, currentness, and the background boundary", () => {
+    const model = viewWhyFromLedger(
+      ledger({
+        seeded_origin: {
+          origin: "seeded_document",
+          origin_label: "Seeded document context · Process / SOP",
+          currentness_label: "Historical",
+          covering_period_label: "Covers 2025",
+          boundary_label: "Company-owned background context — not personal Twin memory.",
+          confidence_note: "Use as background unless live work or the right person confirms it is current.",
+        },
+      }),
+    );
+    const rows = model.rows.filter((r) => r.value !== null);
+    const byLabel = Object.fromEntries(rows.map((r) => [r.label, r.value]));
+    expect(byLabel["Context origin"]).toBe("Seeded document context · Process / SOP");
+    expect(byLabel["Covers"]).toBe("2025");
+    expect(byLabel["Currentness"]).toBe("Historical");
+    expect(byLabel["How to treat it"]).toContain("Company-owned background context");
+    expect(byLabel["How to treat it"]).toContain("Use as background");
+    const raw = JSON.stringify(model);
+    expect(raw).not.toMatch(/seeded_context|DOCUMENT_CONTEXT|VERIFIED|source_lineage/);
+  });
+
+  it("live-work rows render NO seeded rows — silence, not empty labels", () => {
+    const model = viewWhyFromLedger(ledger({}));
+    const labels = model.rows.filter((r) => r.value !== null).map((r) => r.label);
+    expect(labels).not.toContain("Context origin");
+    expect(labels).not.toContain("How to treat it");
+  });
+});

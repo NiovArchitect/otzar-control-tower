@@ -726,7 +726,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   from all views; no current-truth/open-work/personal-memory leak —
   test-locked). One labeling gap: seeded lineage is stored but not yet
   rendered in View/Why.
-- **Build order:** AIX-1 seeded lineage rendered (read-only) → AIX-2
+- **Build order:** AIX-1 ✅ SHIPPED 2026-07-05 (SeededOriginProjection on ledger views — origin/coverage/currentness/boundary labels; View/Why 'Context origin / How to treat it' rows; 'Seeded background' card fragment; clarity WHERE_FROM answers carry the background framing with medium confidence) → AIX-2
   in-context "is this still current?" via the correction rail → AIX-3
   deterministic candidate relevance through the governed suggestion lane
   → AIX-4 retrieval with the ranking law (only after 1–3). Copy shipped

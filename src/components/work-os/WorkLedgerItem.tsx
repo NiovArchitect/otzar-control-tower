@@ -342,6 +342,14 @@ export function WorkLedgerItem({
                 {entry.external_context.safe_context_label}
               </span>
             ) : null}
+            {/* [AIX-1] seeded rows read as background wherever they already
+                appear — never as current truth. */}
+            {entry.seeded_origin !== undefined ? (
+              <span data-testid="work-ledger-item-seeded">
+                {" · "}
+                Seeded background
+              </span>
+            ) : null}
           </div>
           {exec.state !== "tracking" ? (
             <div className="mt-0.5 text-[10px]" data-testid="work-ledger-item-exec-state" data-exec-state={exec.state}>
