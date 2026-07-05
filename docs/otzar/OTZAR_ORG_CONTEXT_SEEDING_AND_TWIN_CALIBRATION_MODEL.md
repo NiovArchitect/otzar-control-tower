@@ -172,6 +172,28 @@ needs the multi-source adapter contract. Live smoke: page render only — no
 live save (no cleanup rail for personal memory proposals by design; the
 propose→approve loop is integration-locked instead).
 
+## Implementation note — CS-4: writing-sample style, safely (2026-07-05)
+
+**Shipped:** `/app/my-twin/calibration/writing-style` (doored from the
+calibration page). **The load-bearing design decision: the raw sample never
+leaves the browser.** The employee pastes a short sample (≤1200 chars,
+client-side only); deterministic guardrails refuse company/sensitive-
+looking content (token list + transcript-pattern + document-length — no
+classifier pretense) with the repair copy; a purely MECHANICAL mirror
+reflects structure back (sentence length, bullets, questions, greetings —
+counts, never judgments); the employee writes the guidance in their own
+words; an explicit consent checkbox + a byte-exact preview gate the save;
+only the guidance + structure line is proposed through the CS-3 consent
+rail (approve in Action Center → personal PREFERENCE capsule, revocable).
+**Defense in depth:** the server refuses credential/confidential-like
+calibration text (CALIBRATION_CONTENT_RISKY, deterministic, nothing
+created). **No LLM extraction was used** — the doctrine's fallback
+hierarchy preferred structured guidance over clever extraction, and the
+mechanical mirror + own-words pattern satisfies "style, not facts" without
+inventing a classifier. **Why CS-5 stays gated:** document corpora are a
+new source class needing the multi-source adapter contract; nothing in
+CS-4 touches files, documents, or transcripts by construction.
+
 ## Part 5 — Do-not-overclaim (context edition)
 
 Never say: "Otzar learned your company" (it ingested reviewable, lineaged

@@ -198,6 +198,16 @@ export function TwinCalibrationPage() {
                 </div>
               </div>
             ))}
+            <p className="text-xs text-muted-foreground" data-testid="calibration-style-pointer">
+              Want your twin to match your writing voice?{" "}
+              <Link
+                to="/app/my-twin/calibration/writing-style"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                Reflect a writing sample
+              </Link>{" "}
+              — it stays on your device; only style guidance is proposed.
+            </p>
             {TEXTS.map((t) => (
               <div key={t.key} className="space-y-1">
                 <Label htmlFor={t.key} className="text-xs font-medium">

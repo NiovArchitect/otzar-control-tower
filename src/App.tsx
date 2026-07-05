@@ -17,6 +17,7 @@ import { DataFlowPage } from "@/pages/DataFlow";
 import { GoLivePage } from "@/pages/GoLive";
 import { SeedHistoryPage } from "@/pages/SeedHistory";
 import { TwinCalibrationPage } from "@/pages/app/TwinCalibration";
+import { WritingStylePage } from "@/pages/app/WritingStyle";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -132,6 +133,7 @@ export function App() {
               <Route path="connector-health" element={<ConnectorHealth />} />
               <Route path="my-twin" element={<MyTwin />} />
               <Route path="my-twin/calibration" element={<TwinCalibrationPage />} />
+              <Route path="my-twin/calibration/writing-style" element={<WritingStylePage />} />
               <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="preferences" element={<Preferences />} />
               <Route path="collaboration" element={<Collaboration />} />
