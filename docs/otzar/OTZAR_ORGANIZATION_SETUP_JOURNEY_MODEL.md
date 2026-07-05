@@ -413,6 +413,23 @@ doctrine/audit on top of: activation rails, least-access import, data-flow
 boundaries, go-live gating, and setup coaching — with wallet/lineage/
 external boundaries already rendered and test-enforced.
 
+## Implementation note — CS-1 + CS-2: seeded organization history (2026-07-05)
+
+**Shipped (Gap V lanes begin):** CS-1 — seeded-context mode on the ONE
+ingestion spine (FND): a seededContext flag stamps every created row with
+{provided_by, covering_period, seeded_at} lineage, lands work items as
+VERIFIED context (terminal — absent from every open-work queue), mints
+ZERO follow-up cards and no nudges (the stale-transcript rule), and keeps
+external names on the observed→review rail. CS-2 — exposure: the comms
+ingest route accepts seeded_context ADMIN-GATED in the service
+(provided_by = session caller, never client-supplied), and
+`/setup/seed-history` gives the admin a confirmation-gated flow whose
+what-will-happen promises are the doctrine verbatim (context not to-dos,
+no notifications, external review, company-owned). Remaining in Gap V:
+CS-3 calibration expansion, CS-4 writing samples (own GO), CS-5 doc corpus
+(own GO), the seeded-history review/soft-delete view, and the
+content_hash P1.
+
 ## Part 4 — Final report
 
 1. **Current setup surfaces:** ten unsequenced admin pages + two API-only

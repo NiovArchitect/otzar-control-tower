@@ -585,6 +585,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
     stateLabel: "In place",
     lines: foundationLines,
     action: { label: "Open Settings", to: "/settings" },
+    secondaryAction: { label: "Seed organization history", to: "/setup/seed-history" },
   });
 
   // ── Next best step (deterministic; only truth-checkable steps) ───────

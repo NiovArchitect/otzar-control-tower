@@ -1047,6 +1047,9 @@ export class ApiClient {
       captured_text: string;
       title?: string;
       force_mode?: "DEMO_SCRIPTED" | "LLM" | "LOCAL_FALLBACK";
+      /** [CS-2] org-history seeding — ADMIN-GATED server-side. Rows land as
+       *  dated, lineaged context (never to-dos); see Gap V doctrine. */
+      seeded_context?: { covering_period?: string };
     }): Promise<ApiResult<CommsIngestResponse>> =>
       this.request<CommsIngestResponse>("/otzar/comms/ingest", {
         method: "POST",
