@@ -233,6 +233,13 @@ export function OrgSetupPage() {
             ))}
           </div>
 
+          <p className="text-xs text-muted-foreground" data-testid="setup-golive-pointer">
+            Wondering if you can start?{" "}
+            <Link to="/setup/go-live" className="font-medium text-foreground underline underline-offset-2">
+              Check go-live readiness
+            </Link>
+            .
+          </p>
           <p className="text-xs text-muted-foreground" data-testid="setup-honesty-note">
             This page reads your organization's real state — it never changes
             anything by itself. Some capabilities (bulk import, retention

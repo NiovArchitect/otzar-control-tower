@@ -151,6 +151,83 @@ export function connectorLine(row: OAuthStatusRow): SetupLine {
   }
 }
 
+// ── Shared setup FACTS — one computation, consumed by BOTH the setup
+//    journey and the go-live readiness gate (no duplicated readiness logic).
+export interface SetupFacts {
+  peopleLoaded: boolean;
+  twinsLoaded: boolean;
+  connectorsLoaded: boolean;
+  settingsLoaded: boolean;
+  active: Entity[];
+  waiting: number;
+  expired: number;
+  invitedOnly: number;
+  adminCount: number;
+  missingRole: number;
+  missingManager: number;
+  twinsTotal: number;
+  twinsReady: number;
+  twinsNeedSetup: number;
+  twinsNotConfigured: number;
+  connectedTools: number;
+  workHasFlowed: boolean;
+  openSeeds: number;
+  approvalOn: boolean | null;
+  auditOn: boolean | null;
+}
+
+export function computeSetupFacts(inputs: SetupInputs): SetupFacts {
+  const people = inputs.people ?? [];
+  const active = people.filter((p) => p.activation_status === "active" && p.status === "ACTIVE");
+  const memberships = inputs.memberships ?? [];
+  const org = inputs.orgEntityId;
+  const twins = inputs.twins ?? [];
+  const twinByOwner = new Map(
+    twins.filter((t) => t.owner_entity_id != null).map((t) => [t.owner_entity_id as string, t]),
+  );
+  const activeIds = new Set(active.map((p) => p.entity_id));
+  const readiness = (t: AITeammateListItem) => t.tool_readiness?.status ?? "unknown";
+  const managerEdges = memberships.filter(
+    (m) => m.parent_id !== org && m.is_active && activeIds.has(m.child_id),
+  );
+  const managed = new Set(managerEdges.map((m) => m.child_id));
+  const seeds = inputs.seeds ?? [];
+  const analytics = inputs.analytics;
+  return {
+    peopleLoaded: inputs.people !== null,
+    twinsLoaded: inputs.twins !== null,
+    connectorsLoaded: inputs.connectors !== null,
+    settingsLoaded: inputs.settings !== null,
+    active,
+    waiting: people.filter((p) => p.activation_status === "activation_pending").length,
+    expired: people.filter((p) => p.activation_status === "expired").length,
+    invitedOnly: people.filter((p) => p.activation_status === "invited").length,
+    adminCount: memberships.filter((m) => m.parent_id === org && m.is_active && m.is_admin).length,
+    missingRole: active.filter((p) => {
+      const t = twinByOwner.get(p.entity_id);
+      return t === undefined || t.config?.role_template == null;
+    }).length,
+    missingManager: active.filter((p) => !managed.has(p.entity_id)).length,
+    twinsTotal: twins.length,
+    twinsReady: twins.filter((t) => readiness(t) === "ready").length,
+    twinsNeedSetup: twins.filter((t) => readiness(t) === "needs_setup").length,
+    twinsNotConfigured: twins.filter(
+      (t) => readiness(t) === "not_configured" || readiness(t) === "unknown",
+    ).length,
+    connectedTools: (inputs.connectors ?? []).filter(
+      (c) => c.status === "VERIFIED" || c.status === "CONNECTED_UNVERIFIED",
+    ).length,
+    workHasFlowed:
+      analytics !== null &&
+      (analytics.decision_count > 0 || analytics.capsule_count > 0 || seeds.length > 0),
+    openSeeds: seeds.filter(
+      (x) => x.status === "SEED_NEEDS_REVIEW" || x.status === "SEED_PROPOSED",
+    ).length,
+    approvalOn: inputs.settings === null ? null : inputs.settings.require_human_approval !== false,
+    auditOn: inputs.settings === null ? null : inputs.settings.audit_ai_actions !== false,
+  };
+}
+
 /** The whole journey, derived from truth. Pure — no fetching, no writes. */
 export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
   const sections: SetupSection[] = [];
@@ -479,6 +556,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
           : "Not started",
     lines: flowLines,
     action: { label: "Open Organization Seeding", to: "/organization-seeding" },
+    secondaryAction: { label: "Go-live readiness", to: "/setup/go-live" },
   });
 
   // ── Foundation (rendered first; derived last so it can summarize) ────

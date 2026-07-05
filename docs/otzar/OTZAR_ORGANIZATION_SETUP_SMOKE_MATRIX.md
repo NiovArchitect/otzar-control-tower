@@ -24,7 +24,7 @@ yet (honest gap; next-slice column says what it needs).
 | 11 | External data boundaries | Client-data leakage worry | doctrine + T-1→T-4 rails | governance boundary line | "Client and vendor data never becomes portable personal memory." | /data-knowledge | data-flow.test external_context row (observed-never-trusted, never-portable, manager-vs-source visibility) | ✅ SLICE 3 — the External & client context row states the full boundary |
 | 12 | Retention setup missing | Compliance concern | (unmodeled — honest) | limitation always shown | "Retention controls are not configurable in-product yet. Keep this visible during pilot planning." | /retention (existing honest page) | overclaim test asserts the line renders | ✅ (as an honest limitation) |
 | 13 | Bulk onboarding pain | 100+ people, one-by-one invites | CSV import (/setup/import-people) through the EXISTING rails: bulk create → per-person Phase-3 invite (twin + one-time link) → hierarchy assign | parser refuses forbidden columns; preview-first; confirmation-gated | "Preview first… You're about to invite N people with minimum access… No email is sent." Per-batch cap 20 with honest split copy. | /setup/import-people (linked from the People card + results link back to /setup) | csv-import.test 8 tests (stories 1–13 of the import list): empty/headers/invalid-email/dupes/existing/forbidden-columns/manager-resolution/self-manager/unknown-role/row-cap/no-write-before-confirm/partial-failure/one-time links | ✅ SLICE 2 |
-| 14 | "Can we go live?" | Implementation confidence gap | all of the above | top summary + ONE deterministic next step | "N areas need attention — start with the step below." / "You're in good shape." | the next-step link | priority-ladder unit test walks the full order | ✅ |
+| 14 | "Can we go live?" | Implementation confidence gap | all of the above | top summary + ONE deterministic next step | "N areas need attention — start with the step below." / "You're in good shape." | /setup/go-live — the formal gate: deterministic verdict (Not ready / Needs admin setup / Ready for first workflow), ready/blocking/tidy/founder-action tally, per-item repair links, always-rendered "not self-serve complete" limitation | go-live.test (verdict ladder, founder actions apart, warnings never fake-block, overclaim sweep, GET-only) + live spec verdict check | ✅ SLICE 4 — the go-live gate is the graduation artifact |
 
 ## Detection priority (the Next Best Step ladder, test-locked)
 
@@ -41,8 +41,7 @@ good shape". Foundation/bootstrap issues can't occur for a logged-in admin
 - **Setup-coach Dandelion seeds** (story 9 full form) — needs the typed
   seed-lane split (Gap U doctrine Part 3C); no new seed type was created in
   this slice by design.
-- **Go-live checklist as a formal gate** (story 14 full form) — the summary
-  exists; a printable/pilot-gate handoff view is future.
+- ~~Go-live gate~~ — SHIPPED as slice 4 (/setup/go-live).
 - ~~Bulk import~~ — SHIPPED as slice 2 (CSV, cap 20/batch, preview-first,
   least-access by construction). Remaining bulk maturity: HRIS/directory
   import, org-chart upload, >20-row streaming batches.

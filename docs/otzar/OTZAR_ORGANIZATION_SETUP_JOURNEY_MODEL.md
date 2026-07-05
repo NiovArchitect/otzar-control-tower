@@ -367,6 +367,24 @@ source; unavailable capabilities say "not available yet". No writes, no
 schema, no backend changes. Closes smoke-matrix stories 7 and 11 at the
 setup-panel level; deeper per-account external views remain future.
 
+## Implementation note — Slice 4: Go-Live Readiness Gate (2026-07-05)
+
+**Shipped:** `/setup/go-live` — the launch confidence artifact. Read-only;
+consumes the SAME seven GET projections through a shared
+`computeSetupFacts` (extracted from the journey derivation — zero duplicated
+readiness logic). Three readiness levels kept strictly apart: (A) ready to
+run a first workflow — deterministic verdict from live truth (Not ready /
+Needs admin setup / Ready for first workflow); (B) controlled pilot — A
+plus the founder/operator runbook items, listed as founder actions, never
+as customer blockers; (C) founder-free self-serve onboarding — NOT
+complete, stated on every render. Warnings never fake-block (roles,
+managers, teammate readiness, connectors stay warnings while the manual
+communications route carries the first workflow). Positive proof (ready
+signals) renders alongside problems. What the gate does NOT prove: email
+delivery, retention controls, org-creation self-service, ambient
+ingestion — all named. Remaining structural gap: the setup-coach seed lane
+(smoke-matrix story 9 full form).
+
 ## Part 4 — Final report
 
 1. **Current setup surfaces:** ten unsequenced admin pages + two API-only

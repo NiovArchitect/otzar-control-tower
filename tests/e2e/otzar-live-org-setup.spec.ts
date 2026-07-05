@@ -91,6 +91,19 @@ test("setup page renders the guided journey honestly; reads only; no leaks (scre
   expect(flowBody).not.toMatch(/synced|APP_CREDENTIALS_MISSING|source_lineage/);
   await page.screenshot({ path: "screenshots/data-flow-live.png", fullPage: true });
 
+  // [SLICE-4] the go-live gate renders read-only with an honest verdict.
+  await page.evaluate(() => {
+    history.pushState({}, "", "/setup/go-live");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByTestId("go-live-verdict")).toBeVisible({ timeout: 30_000 });
+  const gateBody = (await page.locator("main, body").first().textContent()) ?? "";
+  // The live org has active people + flowing work → the honest verdict.
+  expect(gateBody).toContain("Ready to run a first workflow");
+  expect(gateBody).toContain("does not mean founder-free self-serve onboarding is complete");
+  expect(gateBody).not.toMatch(/launch certified|production ready|self-serve complete/i);
+  await page.screenshot({ path: "screenshots/go-live-live.png", fullPage: true });
+
   // Read-only proof: the page fired zero non-GET API calls.
   expect(nonGet).toEqual([]);
   console.log(`[setup] rendered; active=${activeCount}; nonGET=${nonGet.length}`);
