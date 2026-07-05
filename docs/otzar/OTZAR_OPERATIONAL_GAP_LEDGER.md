@@ -705,8 +705,8 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   admin seeding surface, and calibration expansion.
 - **Build order:** CS-1 ✅ SHIPPED 2026-07-05 (FND `2fd8daa`: seeded-context mode, stale-transcript rule enforced, 4/4 integration) → CS-2 ✅ SHIPPED 2026-07-05 (FND `3e25705`: admin-gated route exposure; CT `/setup/seed-history` confirmation-gated flow) → CS-3 calibration expansion → CS-4 writing-sample style
   (own GO) → CS-5 doc corpus (own GO + adapter contract). Prerequisite
-  P1: fix the MemoryCapsule content_hash placeholder before calibration
-  volume grows.
+  P1 ✅ SHIPPED 2026-07-05: real sha256 content_hash on new learning
+  capsules (legacy rows keep placeholders, never reported tampered).
 - **Hard boundaries:** one spine, stale ≠ actionable, wallet law
   untouchable (count-invariance mandatory), external trust never seeded,
   deterministic identity only, everything reviewable + reversible, no
