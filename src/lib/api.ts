@@ -1067,6 +1067,17 @@ export class ApiClient {
         body: input,
       }),
 
+    /** [CS-5] POST /otzar/context/seed-document — org corpus seeding
+     *  (ADMIN-GATED server-side). One document → one company-owned,
+     *  lineaged reference-context record; extraction OFF by contract. */
+    seedDocumentContext: (
+      input: Record<string, string>,
+    ): Promise<ApiResult<{ ledger_entry_id: string }>> =>
+      this.request<{ ledger_entry_id: string }>("/otzar/context/seed-document", {
+        method: "POST",
+        body: input,
+      }),
+
     /** Admin Organization-Seeding queue (Dandelion). Admin-only (the API gates on
      *  admin_org); non-admins get OPERATION_NOT_PERMITTED. Approve/reject/hold
      *  never auto-apply or grant access. */

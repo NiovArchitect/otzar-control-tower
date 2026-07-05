@@ -16,6 +16,7 @@ import { ImportPeoplePage } from "@/pages/ImportPeople";
 import { DataFlowPage } from "@/pages/DataFlow";
 import { GoLivePage } from "@/pages/GoLive";
 import { SeedHistoryPage } from "@/pages/SeedHistory";
+import { SeedCorpusPage } from "@/pages/SeedCorpus";
 import { TwinCalibrationPage } from "@/pages/app/TwinCalibration";
 import { WritingStylePage } from "@/pages/app/WritingStyle";
 import { Layout } from "@/components/Layout";
@@ -177,6 +178,7 @@ export function App() {
               <Route path="setup/data-flow" element={<DataFlowPage />} />
               <Route path="setup/go-live" element={<GoLivePage />} />
               <Route path="setup/seed-history" element={<SeedHistoryPage />} />
+              <Route path="setup/seed-corpus" element={<SeedCorpusPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="ai-teammates" element={<AITeammatesPage />} />
               {/* PROD-MODEL-P3 §9 — ONE Access Control destination (tabs);

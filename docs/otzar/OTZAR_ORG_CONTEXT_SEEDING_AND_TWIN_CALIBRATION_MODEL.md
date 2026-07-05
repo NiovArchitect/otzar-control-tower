@@ -194,6 +194,27 @@ inventing a classifier. **Why CS-5 stays gated:** document corpora are a
 new source class needing the multi-source adapter contract; nothing in
 CS-4 touches files, documents, or transcripts by construction.
 
+## Implementation note — CS-5: document-context adapter (2026-07-05)
+
+**Shipped:** the corpus pipe, kept deliberately narrow. The adapter
+contract (`DocumentContextSeedInput`: 9 source kinds, title/body caps,
+currentness current|historical|unknown, covering_period) normalizes ONE
+pasted document into exactly two org-owned records through the canonical
+writers: a durable MeetingCapture (full text) + ONE `DOCUMENT_CONTEXT`
+WorkLedger row — VERIFIED, ownerless, terminal, fully lineaged, with
+`extract_work:false` recorded on the row (the v1 contract). Registered as
+a first-class ledger type and excluded from every work view alongside
+ORG_SEEDING/GOAL — reference context never pollutes My Work / Team Work /
+org queries / clarity health. Admin-gated route + `/setup/seed-corpus`
+("Seed organization context": type → title → paste → currentness →
+what-will-happen review → confirm). **The stale-truth rule is structural**
+(currentness on the row; historical = background). **What CS-5 v1 does
+NOT do, on purpose:** file upload, folder/Drive/Notion sync, Slack
+exports, chunking/vectorization, semantic corpus search, work extraction,
+auto external trust, personal-wallet writes. External mentions inside
+documents route to review only when a future extract/review flow runs —
+a documented limitation. The pipe is correct; volume comes later.
+
 ## Part 5 — Do-not-overclaim (context edition)
 
 Never say: "Otzar learned your company" (it ingested reviewable, lineaged
