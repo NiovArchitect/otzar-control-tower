@@ -751,8 +751,15 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   vectors/embeddings/broad search; no action path consumes seeded
   context; CT unchanged — the ask surface renders answer prose).
   **Gap W is now CLOSED end-to-end: doctrine → lineage → validation →
-  candidates → governed retrieval.** Copy shipped
-  now: both seeding surfaces state that admins never classify/tag.
+  candidates → governed retrieval.** → AIX-5 ✅ SHIPPED 2026-07-05
+  (ambient expansion, narrowly: the ambient bar routes item-scoped
+  background questions to the SAME clarity-answer rail — terminal
+  this/it only, named subjects and action requests excluded by the
+  recognizer; FND test-locks the action boundary [7 action phrasings:
+  no retrieval intent, no seeded mention, no execution claim, no
+  writes]; zero new retrieval machinery; LLM priming stays OFF). Copy
+  shipped now: both seeding surfaces state that admins never
+  classify/tag.
 
 ## Next-slice selection method
 

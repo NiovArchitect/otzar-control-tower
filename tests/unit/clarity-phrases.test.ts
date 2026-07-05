@@ -49,4 +49,43 @@ describe("[CE-AMBIENT] classifyClarityPhrase", () => {
       expect(classifyClarityPhrase(q), q).toBeNull();
     }
   });
+
+  // [AIX-5] background/informational questions route to the governed
+  // AIX-4 retrieval via the clarity-answer route — item-scoped only.
+  it("background questions about THIS item classify (deictic with this/it, contextual when bare)", () => {
+    for (const q of [
+      "What do we know about this?",
+      "what do we know about it",
+      "Any background on this?",
+      "is there any context for this?",
+      "What context do we have about this?",
+      "Is there historical context for this?",
+    ]) {
+      expect(classifyClarityPhrase(q), q).toBe("deictic");
+    }
+    for (const q of ["What do we know?", "any background?", "what context do we have?"]) {
+      expect(classifyClarityPhrase(q), q).toBe("contextual");
+    }
+  });
+
+  it("background questions about OTHER subjects or action requests do NOT match — zero wrong-subject answers, zero action from context", () => {
+    for (const q of [
+      // Named-subject background questions keep their existing routes:
+      // answering them from the SELECTED item would be answering about
+      // the wrong thing.
+      "Any background on this customer?",
+      "What do we know about Project Phoenix?",
+      "any background on the Acme account",
+      // Action requests never enter the retrieval-backed clarity route.
+      "Send this to the customer",
+      "Assign this to Sarah",
+      "Approve this",
+      "Create tasks from this doc",
+      "Update the CRM with this",
+      "Tell the client we committed to Friday",
+      "Move this project to done",
+    ]) {
+      expect(classifyClarityPhrase(q), q).toBeNull();
+    }
+  });
 });

@@ -242,9 +242,32 @@ what exists, and the build order says where the rest lands.
    own GO):** broader ambient/conduct retrieval, vector/corpus search,
    document extraction/review flow, deeper project scoping,
    conflict-labeling instead of pure suppression.
-5. Retention model, corpus review/soft-delete (admin *boundary* view, not
-   a librarian queue), and extraction/review flows remain separate,
-   later, and gated.
+5. **AIX-5 ✅ SHIPPED 2026-07-05 — Ambient retrieval expansion,
+   narrowly:** the ambient bar / Ask Otzar now answers item-scoped
+   background questions ("What do we know about this?" / "Any
+   background on this?" / "Is there historical context for this?")
+   through the SAME governed rail — the deictic clarity recognizer
+   routes them verbatim to the clarity-answer route, where the AIX-4
+   retrieval answers with live-work-first attribution. **Zero new
+   retrieval machinery**: no new endpoint, no prompt stuffing, the LLM
+   is never in this path (the clarity rail is deterministic).
+   **Intent boundary (zero-error rule):** patterns require a TERMINAL
+   this/it — "any background on this customer?" and "what do we know
+   about Project Phoenix?" deliberately do NOT match, because answering
+   them from the selected item would answer about the wrong thing;
+   named-subject background questions keep their existing routes until
+   org-scoped retrieval is modeled. Bare forms ("what do we know?")
+   are item questions only when an item is selected; with no selection
+   the user gets honest "open or select" copy, never a guess.
+   **Action boundary (test-locked in FND):** seven action-like requests
+   ("Send this to the customer" … "Move this project to done") never
+   classify into the retrieval intent, never surface seeded content
+   even as a mention, never claim execution, never write. Broad
+   ambient/conduct LLM priming remains OFF.
+6. Retention model, corpus review/soft-delete (admin *boundary* view, not
+   a librarian queue), extraction/review flows, org-scoped named-subject
+   ambient retrieval, vector/corpus search, and conflict-labeling remain
+   separate, later, and gated — each needs its own GO.
 
 ## Part 8 — What this protects
 

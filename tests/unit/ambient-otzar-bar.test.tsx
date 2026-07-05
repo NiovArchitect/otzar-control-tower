@@ -2919,6 +2919,58 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
     useCurrentSurfaceContextStore.getState().clear();
   });
 
+  // [AIX-5] background questions ride the SAME governed rail: the ambient
+  // bar sends the phrase verbatim to clarity-answer (GET-only), where the
+  // AIX-4 retrieval answers with live-work-first attribution. No new
+  // retrieval machinery in the client; asking never mutates.
+  it("with a selected work item, 'What do we know about this?' gets the attributed background answer (GET-only)", async () => {
+    let clarityHits = 0;
+    const mutations: string[] = [];
+    server.events.removeAllListeners();
+    server.events.on("request:start", ({ request }) => {
+      if (request.method !== "GET") mutations.push(`${request.method} ${new URL(request.url).pathname}`);
+    });
+    const backgroundAnswer =
+      'Live work is the source of truth here: "Grant the repo access", owned by you. ' +
+      'Possible background context — "Access policy 2025": Not confirmed — use as background only, never for action. Background only.';
+    server.use(
+      http.get(`${API_BASE}/work-os/ledger/:id/clarity-answer`, ({ params, request }) => {
+        clarityHits += 1;
+        expect(params.id).toBe("led-ambient-2");
+        expect(new URL(request.url).searchParams.get("question")).toBe("What do we know about this?");
+        return HttpResponse.json({
+          ok: true,
+          answer: backgroundAnswer,
+          confidence: "low",
+          used_sources: ["work_ledger", "seeded_background_retrieval"],
+        });
+      }),
+    );
+    useCurrentSurfaceContextStore.getState().provide({
+      type: "work_item",
+      title: "Grant the repo access",
+      ledgerEntryId: "led-ambient-2",
+      sourceLabel: "Work item",
+    });
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(screen.getByLabelText(/Message to Otzar/i), "What do we know about this?");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/Live work is the source of truth here/).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(clarityHits).toBe(1);
+    // Attribution + how-to-treat language reached the user verbatim.
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("use as background only, never for action");
+    // Read-only end to end: no POST/PATCH left the ambient bar.
+    expect(mutations.filter((m) => !m.includes("/auth/"))).toEqual([]);
+    useCurrentSurfaceContextStore.getState().clear();
+  });
+
   it("with NO selected work item, the same phrase gets honest copy — never a guess, never a fetch", async () => {
     let clarityHits = 0;
     server.use(

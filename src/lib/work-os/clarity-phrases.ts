@@ -24,6 +24,17 @@ const DEICTIC_PHRASES: ReadonlyArray<RegExp> = [
   /why does (this|it) need (an )?approval/i,
   /what happened (to|with) (my |the )?clarification/i,
   /who (asked for|requested|owns?) (this|it)\??$/i,
+  // [AIX-5] informational/background questions about the selected item —
+  // routed verbatim to the clarity-answer route, where the AIX-4 governed
+  // retrieval (ranking law, attribution, confidence, permissions,
+  // suppression) answers them. TERMINAL this/it only: "any background on
+  // this customer?" must NOT match — it names a different subject and
+  // keeps its existing route (zero-error rule: never answer about the
+  // wrong thing).
+  /what do we know about (this|it)\??$/i,
+  /(any|is there( any)?) (background|context) (on|for|about) (this|it)\??$/i,
+  /what (background|context) do we have (on|for|about) (this|it)\??$/i,
+  /is there historical context for (this|it)\??$/i,
 ];
 
 // CONTEXTUAL phrases are item-clarity ONLY when a work item is selected —
@@ -33,6 +44,11 @@ const CONTEXTUAL_PHRASES: ReadonlyArray<RegExp> = [
   /what should i do next/i,
   /what('s| is) (the )?next step\??$/i,
   /who can clarify\??$/i,
+  // [AIX-5] bare background questions are item questions ONLY when an item
+  // is selected; bare with no selection they keep their existing route.
+  /what do we know\??$/i,
+  /any background\??$/i,
+  /what (background|context) do we have\??$/i,
 ];
 
 export type ClarityPhraseKind = "deictic" | "contextual";
