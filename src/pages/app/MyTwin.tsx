@@ -12,7 +12,7 @@
 // (api.ts onUnauthorized -> logout).
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -188,6 +188,15 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       {/* [GAP-H OPS] Partner transparency: what my twin recently did,
           source-of-truth backed, honest empty state. */}
       <MyTwinActivityPanel />
+
+      {/* [CS-3] the calibration door — one calm line, no new truth. */}
+      <p className="text-xs text-muted-foreground" data-testid="my-twin-calibration-pointer">
+        Want better help?{" "}
+        <Link to="/app/my-twin/calibration" className="font-medium text-foreground underline underline-offset-2">
+          Calibrate My AI Twin
+        </Link>{" "}
+        — teach it how you like summaries, tone, reminders, and what to avoid.
+      </p>
 
       <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
 

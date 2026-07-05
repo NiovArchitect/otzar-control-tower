@@ -16,6 +16,7 @@ import { ImportPeoplePage } from "@/pages/ImportPeople";
 import { DataFlowPage } from "@/pages/DataFlow";
 import { GoLivePage } from "@/pages/GoLive";
 import { SeedHistoryPage } from "@/pages/SeedHistory";
+import { TwinCalibrationPage } from "@/pages/app/TwinCalibration";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -130,6 +131,7 @@ export function App() {
               <Route path="my-memory" element={<MyMemory />} />
               <Route path="connector-health" element={<ConnectorHealth />} />
               <Route path="my-twin" element={<MyTwin />} />
+              <Route path="my-twin/calibration" element={<TwinCalibrationPage />} />
               <Route path="authority-grants" element={<AuthorityGrants />} />
               <Route path="preferences" element={<Preferences />} />
               <Route path="collaboration" element={<Collaboration />} />

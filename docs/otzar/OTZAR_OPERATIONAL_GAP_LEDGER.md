@@ -703,7 +703,7 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   unchanged. Audit: spine/wallet/review/calibration substrates all LIVE;
   what's missing is the seeding MODE (lineage label + suppression), the
   admin seeding surface, and calibration expansion.
-- **Build order:** CS-1 ✅ SHIPPED 2026-07-05 (FND `2fd8daa`: seeded-context mode, stale-transcript rule enforced, 4/4 integration) → CS-2 ✅ SHIPPED 2026-07-05 (FND `3e25705`: admin-gated route exposure; CT `/setup/seed-history` confirmation-gated flow) → CS-3 calibration expansion → CS-4 writing-sample style
+- **Build order:** CS-1 ✅ SHIPPED 2026-07-05 (FND `2fd8daa`: seeded-context mode, stale-transcript rule enforced, 4/4 integration) → CS-2 ✅ SHIPPED 2026-07-05 (FND `3e25705`: admin-gated route exposure; CT `/setup/seed-history` confirmation-gated flow) → CS-3 ✅ SHIPPED 2026-07-05 (FND PR #559: preference-only proposer on the consent gate; CT /app/my-twin/calibration boundary-first form) → CS-4 writing-sample style
   (own GO) → CS-5 doc corpus (own GO + adapter contract). Prerequisite
   P1 ✅ SHIPPED 2026-07-05: real sha256 content_hash on new learning
   capsules (legacy rows keep placeholders, never reported tampered).

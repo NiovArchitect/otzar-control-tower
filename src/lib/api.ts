@@ -1043,6 +1043,17 @@ export class ApiClient {
      *  owner is held for review, never auto-assigned). Returns the same governed
      *  extraction (so the trust-chip review surface is unchanged) plus the
      *  persisted conversation + the work items created. Requires "write". */
+    /** [CS-3] POST /otzar/twin/calibration — propose working-style
+     *  preferences to YOUR OWN twin (self-scoped server-side; consent-
+     *  gated: becomes memory only after you approve the proposed action). */
+    twinCalibration: (
+      input: Record<string, string>,
+    ): Promise<ApiResult<{ action: { action_id: string; status: string } }>> =>
+      this.request<{ action: { action_id: string; status: string } }>(
+        "/otzar/twin/calibration",
+        { method: "POST", body: input },
+      ),
+
     commsIngest: (input: {
       captured_text: string;
       title?: string;

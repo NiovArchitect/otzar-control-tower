@@ -153,6 +153,25 @@ Prerequisite P1 (from the twin audit, now load-bearing): fix the
 MemoryCapsule `content_hash` placeholder before calibration expands —
 tamper-evidence matters more once calibration volume grows.
 
+## Implementation note — CS-3: Twin calibration (2026-07-05)
+
+**Shipped:** `/app/my-twin/calibration` ("Calibrate My AI Twin", doored from
+My AI Twin) + `POST /otzar/twin/calibration`. **Field set (the safe first
+version):** four enumerated preferences (summary style, tone, reminders,
+decision framing) + three capped plain-text fields (working style in their
+own words, current focus/responsibilities, do-not-dos). **What it saves:**
+one consent-gated PREFERENCE proposal — Action(PROPOSED, RECORD_CAPSULE) →
+the user approves in Action Center → a calibration-tagged capsule in their
+PERSONAL wallet, sha256-hashed (CS-P1), revocable from My Memory. **What it
+never saves:** files (no upload exists), company documents/project records
+(boundary copy renders first and always), authority/tools/scopes (no such
+fields), anyone else's calibration (self-scoped by construction — no target
+parameter). **Why CS-4/CS-5 stay gated:** writing-sample style needs a
+shape-extraction design that provably strips company facts; doc corpus
+needs the multi-source adapter contract. Live smoke: page render only — no
+live save (no cleanup rail for personal memory proposals by design; the
+propose→approve loop is integration-locked instead).
+
 ## Part 5 — Do-not-overclaim (context edition)
 
 Never say: "Otzar learned your company" (it ingested reviewable, lineaged
