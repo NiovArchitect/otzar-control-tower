@@ -2971,6 +2971,53 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
     useCurrentSurfaceContextStore.getState().clear();
   });
 
+  // [AIX-6] named-subject background questions need NO selection: they
+  // ride the org-scoped background-answer rail (GET-only), where live
+  // work leads and seeded background follows with attribution.
+  it("with NO selection, 'What do we know about Project Phoenix?' gets the org-scoped background answer (GET-only)", async () => {
+    let hits = 0;
+    const mutations: string[] = [];
+    server.events.removeAllListeners();
+    server.events.on("request:start", ({ request }) => {
+      if (request.method !== "GET") mutations.push(`${request.method} ${new URL(request.url).pathname}`);
+    });
+    const backgroundAnswer =
+      'Live work is the source of truth here — it mentions Project Phoenix: "Phoenix launch checklist", owned by you. ' +
+      'Possible background context — "Phoenix launch runbook" (covers 2025): not confirmed — use as background only, never for action. Background only.';
+    server.use(
+      http.get(`${API_BASE}/work-os/context/background-answer`, ({ request }) => {
+        hits += 1;
+        expect(new URL(request.url).searchParams.get("question")).toBe(
+          "What do we know about Project Phoenix?",
+        );
+        return HttpResponse.json({
+          ok: true,
+          answer: backgroundAnswer,
+          confidence: "medium",
+          used_sources: ["work_ledger", "seeded_background_retrieval"],
+        });
+      }),
+    );
+    useCurrentSurfaceContextStore.getState().clear();
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    await user.type(
+      screen.getByLabelText(/Message to Otzar/i),
+      "What do we know about Project Phoenix?",
+    );
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/Live work is the source of truth here — it mentions Project Phoenix/).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(hits).toBe(1);
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("use as background only, never for action");
+    expect(mutations.filter((m) => !m.includes("/auth/"))).toEqual([]);
+  });
+
   it("with NO selected work item, the same phrase gets honest copy — never a guess, never a fetch", async () => {
     let clarityHits = 0;
     server.use(

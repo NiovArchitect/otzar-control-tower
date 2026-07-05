@@ -1595,6 +1595,15 @@ export class ApiClient {
         body: patch,
       }),
 
+    /** GET /api/v1/work-os/context/background-answer — [AIX-6] org-scoped
+     *  named-subject background answer ("What do we know about Project
+     *  Phoenix?"). Read-only; live work leads, seeded background follows
+     *  with attribution; unresolvable subjects refuse honestly (422). */
+    backgroundAnswer: (
+      question: string,
+    ): Promise<ApiResult<{ ok: boolean; answer: string; confidence: string; used_sources: string[] }>> =>
+      this.request(`/work-os/context/background-answer?question=${encodeURIComponent(question)}`),
+
     /** GET /api/v1/work-os/ledger/:id/context-candidates — [AIX-3] derived
      *  deterministic candidate relevance for one work row. Read-only and
      *  computed on demand; empty for non-managers (the pool is ownerless

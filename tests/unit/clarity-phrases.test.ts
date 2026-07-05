@@ -6,7 +6,10 @@
 // CONNECTS TO: src/lib/work-os/clarity-phrases.ts, AmbientOtzarBar dispatch.
 
 import { describe, expect, it } from "vitest";
-import { classifyClarityPhrase } from "@/lib/work-os/clarity-phrases";
+import {
+  classifyClarityPhrase,
+  isBackgroundSubjectQuestion,
+} from "@/lib/work-os/clarity-phrases";
 
 describe("[CE-AMBIENT] classifyClarityPhrase", () => {
   it("deictic phrases (this/it) classify as item questions even with nothing selected", () => {
@@ -68,11 +71,10 @@ describe("[CE-AMBIENT] classifyClarityPhrase", () => {
     }
   });
 
-  it("background questions about OTHER subjects or action requests do NOT match — zero wrong-subject answers, zero action from context", () => {
+  it("background questions about OTHER subjects or action requests do NOT match the ITEM rail — zero wrong-subject answers, zero action from context", () => {
     for (const q of [
-      // Named-subject background questions keep their existing routes:
-      // answering them from the SELECTED item would be answering about
-      // the wrong thing.
+      // Named-subject background questions are NOT item questions —
+      // [AIX-6] they now have their own org-scoped rail (below).
       "Any background on this customer?",
       "What do we know about Project Phoenix?",
       "any background on the Acme account",
@@ -86,6 +88,35 @@ describe("[CE-AMBIENT] classifyClarityPhrase", () => {
       "Move this project to done",
     ]) {
       expect(classifyClarityPhrase(q), q).toBeNull();
+    }
+  });
+
+  // [AIX-6] named-subject background questions route to the org-scoped
+  // background-answer rail — deictic subjects and action requests refuse.
+  it("named-subject background questions recognize; deictic subjects and action requests refuse", () => {
+    for (const q of [
+      "What do we know about Project Phoenix?",
+      "any background on the Acme account",
+      "Any background on the Q1 launch?",
+      "What context do we have on the onboarding rollout?",
+      "Is there historical context for the Atlas migration?",
+    ]) {
+      expect(isBackgroundSubjectQuestion(q), q).toBe(true);
+    }
+    for (const q of [
+      // Deictic subjects belong to the selected-item rail.
+      "What do we know about this?",
+      "what do we know about it",
+      "Any background on this customer?",
+      // Action requests and non-background questions refuse.
+      "Send this to the customer",
+      "Create tasks from this doc",
+      "Update the CRM with Project Phoenix",
+      "What did David say?",
+      "What should I do next?",
+      "",
+    ]) {
+      expect(isBackgroundSubjectQuestion(q), q).toBe(false);
     }
   });
 });

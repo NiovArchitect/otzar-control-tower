@@ -264,10 +264,27 @@ what exists, and the build order says where the rest lands.
    classify into the retrieval intent, never surface seeded content
    even as a mention, never claim execution, never write. Broad
    ambient/conduct LLM priming remains OFF.
-6. Retention model, corpus review/soft-delete (admin *boundary* view, not
-   a librarian queue), extraction/review flows, org-scoped named-subject
-   ambient retrieval, vector/corpus search, and conflict-labeling remain
-   separate, later, and gated — each needs its own GO.
+6. **AIX-6 ✅ SHIPPED 2026-07-05 — Org-scoped named-subject retrieval:**
+   "What do we know about Project Phoenix?" answered with NO selected
+   item, via GET /work-os/context/background-answer. Deterministic end
+   to end: tight subject extraction (four question shapes; deictic
+   subjects refuse — the item rail owns them; action phrasings never
+   match; vague subjects get an honest ask-for-a-name; unresolvable →
+   422, never a guess). **Subject fidelity:** every significant subject
+   token must appear in a match — "Phoenix" never returns Atlas
+   material. Live work leads (permission-scoped exactly like My Work /
+   Team Work: employees see only rows they are party to, managers
+   org-wide); seeded background follows via a SUBJECT-MODE derivation
+   beside the AIX-3 row-mode one (same pool, same AIX-2 suppression,
+   same cap — one matcher family), manager/admin-only, confirmed-first,
+   AIX-4 contract copy. Confidence never exceeds medium; the no-match
+   answer says "nothing was guessed" — literally. The ambient bar
+   routes these questions verbatim (recognizer mirrors the extractor);
+   asking never mutates.
+7. Retention model, corpus review/soft-delete (admin *boundary* view, not
+   a librarian queue), extraction/review flows, vector/corpus search,
+   and conflict-labeling remain separate, later, and gated — each needs
+   its own GO.
 
 ## Part 8 — What this protects
 

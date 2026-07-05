@@ -180,7 +180,7 @@ import {
   composeRelationshipAnswer,
   RELATIONSHIP_QUERY_TYPES,
 } from "@/lib/work-os/thread-query";
-import { classifyClarityPhrase } from "@/lib/work-os/clarity-phrases";
+import { classifyClarityPhrase, isBackgroundSubjectQuestion } from "@/lib/work-os/clarity-phrases";
 import {
   tomorrowWorkWindow,
   freeWindowsFromBusy,
@@ -3146,6 +3146,36 @@ export function AmbientOtzarBar(): JSX.Element {
         say(r.ok ? r.data.answer : "Otzar couldn't answer that right now. Try again.");
         return;
       }
+    }
+
+    // [AIX-6] NAMED-SUBJECT background questions — "What do we know about
+    // Project Phoenix?" with no item selected. Routed verbatim to the
+    // READ-ONLY org-scoped background-answer rail (live work leads, seeded
+    // background follows with attribution; the server refuses honestly
+    // when the subject can't be resolved). Never the LLM, never a guess,
+    // never a write. Runs AFTER the deictic block so "about this" stays
+    // item-scoped.
+    if (isBackgroundSubjectQuestion(text)) {
+      clearPendingClar();
+      const at0 = new Date().toISOString();
+      setDraft("");
+      setActionHeard(text);
+      setActionLabel("Background answer");
+      appendConversationEntry({ role: "user", text, at: at0 });
+      const say = (answer: string): void => {
+        setActionResult(answer);
+        appendConversationEntry({ role: "otzar", text: answer, at: at0 });
+        speakConfirmation(answer);
+      };
+      const r = await api.workOs.backgroundAnswer(text);
+      if (r.ok && typeof r.data.answer === "string") {
+        say(r.data.answer);
+      } else {
+        say(
+          'Otzar couldn\'t look that up as a named topic. Try naming the project or subject — for example, "What do we know about Project Phoenix?"',
+        );
+      }
+      return;
     }
 
     // [OTZAR-LIVE-6] Conversational working memory — resume a pending

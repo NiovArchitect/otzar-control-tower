@@ -53,6 +53,35 @@ const CONTEXTUAL_PHRASES: ReadonlyArray<RegExp> = [
 
 export type ClarityPhraseKind = "deictic" | "contextual";
 
+// [AIX-6] NAMED-SUBJECT background questions ("What do we know about
+// Project Phoenix?") — no selected item required. Mirrors the FND
+// extractor exactly; FND owns extraction and answers org-scoped with
+// live-work-first attribution. Deictic subjects (this/it/that…) refuse
+// here so the item-scoped rail above keeps owning them.
+const SUBJECT_QUESTION_PATTERNS: ReadonlyArray<RegExp> = [
+  /^what do we know about (.+?)[?.!\s]*$/i,
+  /^(?:any|is there(?: any)?) (?:background|context) (?:on|for|about) (.+?)[?.!\s]*$/i,
+  /^what (?:background|context) do we have (?:on|for|about) (.+?)[?.!\s]*$/i,
+  /^is there historical context for (.+?)[?.!\s]*$/i,
+];
+const DEICTIC_SUBJECT = /^(this|it|that)\b/i;
+
+/** True when the text is a named-subject background question — routed to
+ *  the org-scoped background-answer rail. Deictic subjects return false
+ *  (they belong to the selected-item clarity rail). */
+export function isBackgroundSubjectQuestion(text: string): boolean {
+  const t = text.trim();
+  if (t.length === 0 || t.length > 300) return false;
+  for (const re of SUBJECT_QUESTION_PATTERNS) {
+    const m = re.exec(t);
+    if (m !== null) {
+      const subject = (m[1] ?? "").trim();
+      return subject.length > 0 && !DEICTIC_SUBJECT.test(subject);
+    }
+  }
+  return false;
+}
+
 /** Classify a clarity question about the selected work item. Deictic phrases
  *  always classify; contextual ones only matter when a selection exists (the
  *  caller decides). Null = not a clarity phrase — keep existing routes. */

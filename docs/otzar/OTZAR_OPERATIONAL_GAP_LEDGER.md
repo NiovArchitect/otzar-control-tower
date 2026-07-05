@@ -757,7 +757,14 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   this/it only, named subjects and action requests excluded by the
   recognizer; FND test-locks the action boundary [7 action phrasings:
   no retrieval intent, no seeded mention, no execution claim, no
-  writes]; zero new retrieval machinery; LLM priming stays OFF). Copy
+  writes]; zero new retrieval machinery; LLM priming stays OFF).
+  → AIX-6 ✅ SHIPPED 2026-07-05 (org-scoped named-subject retrieval:
+  GET /work-os/context/background-answer — tight extraction with
+  deictic/action/vague refusals; subject fidelity [all tokens must
+  match]; live work leads permission-scoped like My Work / Team Work;
+  seeded follows via the subject-mode derivation, manager-only,
+  confirmed-first, AIX-4 copy; medium-capped; "nothing was guessed"
+  no-match honesty; ambient recognizer mirrors the extractor). Copy
   shipped now: both seeding surfaces state that admins never
   classify/tag.
 
