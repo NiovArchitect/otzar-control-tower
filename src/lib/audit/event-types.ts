@@ -51,6 +51,7 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   USER_ACTIVATED: "Member Activated",
   PASSWORD_RESET_LINK_CREATED: "Password Reset Link Created",
   PASSWORD_RESET_COMPLETED: "Password Reset Completed",
+  SEEDED_CONTEXT_VALIDATED: "Background Context Validated",
 } as const;
 
 // WHAT: Look up the customer-facing label for an AuditEventType.

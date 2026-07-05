@@ -171,7 +171,9 @@ export type AuditEventType =
   | "ACTIVATION_LINK_CREATED"
   | "USER_ACTIVATED"
   | "PASSWORD_RESET_LINK_CREATED"
-  | "PASSWORD_RESET_COMPLETED";
+  | "PASSWORD_RESET_COMPLETED"
+  // [AIX-2] a human validated seeded background context in-context.
+  | "SEEDED_CONTEXT_VALIDATED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";
@@ -4734,6 +4736,10 @@ export interface SeededOriginView {
   covering_period_label?: string;
   boundary_label: string;
   confidence_note: string;
+  // [AIX-2] human validation read-through — labels only; present only
+  // after someone answered "Is this still current?" on the row.
+  validation_state_label?: string;
+  validation_guidance?: string;
 }
 
 export interface ExternalContextView {

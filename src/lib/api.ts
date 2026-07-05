@@ -1594,6 +1594,19 @@ export class ApiClient {
         body: patch,
       }),
 
+    /** POST /api/v1/work-os/ledger/:id/context-validation — [AIX-2] record a
+     *  human "Is this still current?" answer on a SEEDED row. Seeded-rows-only
+     *  and authority-checked server-side; idempotent; additive details JSON —
+     *  never a status change, never a delete. */
+    validateSeededContext: (
+      ledgerEntryId: string,
+      body: { state: string; note?: string },
+    ): Promise<ApiResult<{ ok: boolean; entry?: WorkLedgerEntryView; code?: string; message?: string }>> =>
+      this.request(`/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/context-validation`, {
+        method: "POST",
+        body,
+      }),
+
     /** POST /api/v1/work-os/ledger/:id/execute — PROD-UX-P0A: promote a caller-owned
      *  commitment to a governed Action (Slice F). Never auto-sends; the Action runs
      *  only through the approved lifecycle. 404 FEATURE_DISABLED when write-back off. */

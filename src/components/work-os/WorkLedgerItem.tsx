@@ -23,6 +23,13 @@ import { emitWorkStateChanged } from "@/lib/events/work-state";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromLedger } from "@/lib/work-os/view-why";
+import {
+  CONTEXT_VALIDATION_DONE,
+  CONTEXT_VALIDATION_FAILED,
+  CONTEXT_VALIDATION_OPTIONS,
+  CONTEXT_VALIDATION_QUESTION,
+  type ContextValidationState,
+} from "@/lib/work-os/context-validation";
 import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
 import { routingLaneChip, routingLaneEdge, routingWhyLine } from "@/lib/work-os/routing-lane";
 import { formatOwnedByLine } from "@/lib/identity/owner-display";
@@ -160,6 +167,28 @@ export function WorkLedgerItem({
   }
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receipt, setReceipt] = useState<{ loading: boolean; text: string | null }>({ loading: false, text: null });
+
+  // [AIX-2] in-context validation of seeded background context — the one
+  // targeted "Is this still current?" affordance. Renders ONLY on seeded
+  // rows, inside the already-open detail. Nothing is written until the
+  // user explicitly picks an option; authority is enforced server-side.
+  const [validationBusy, setValidationBusy] = useState<ContextValidationState | null>(null);
+  const [validationDone, setValidationDone] = useState<string | null>(null);
+  const [validationErr, setValidationErr] = useState<string | null>(null);
+
+  async function validateContext(state: ContextValidationState): Promise<void> {
+    if (validationBusy !== null) return;
+    setValidationBusy(state);
+    setValidationErr(null);
+    const r = await api.workOs.validateSeededContext(entry.ledger_entry_id, { state });
+    setValidationBusy(null);
+    if (r.ok && r.data.ok) {
+      setValidationDone(CONTEXT_VALIDATION_DONE[state]);
+      onChanged?.();
+    } else {
+      setValidationErr(CONTEXT_VALIDATION_FAILED);
+    }
+  }
   const exec = deriveWorkItemExecution(entry);
   const sourceLabel = sourceLineageLabel(entry.source_lineage);
   // PROD-UX-P0R — the routing decision projection (attached by getMyWork).
@@ -500,6 +529,42 @@ export function WorkLedgerItem({
               never UUIDs), work, and provenance rows render identically on My
               Work, Team Work, Thread, and People cockpit. */}
           <ViewWhyPanel model={viewWhyFromLedger(entry)} />
+
+          {/* [AIX-2] in-context validation — seeded rows ONLY. One quiet
+              question where the work already is; never a review queue. */}
+          {entry.seeded_origin !== undefined ? (
+            <div
+              className="mt-1 border-t border-border/50 pt-1"
+              data-testid="work-ledger-item-context-validation"
+            >
+              {validationDone !== null ? (
+                <div data-testid="context-validation-done">{validationDone}</div>
+              ) : (
+                <>
+                  <div>{CONTEXT_VALIDATION_QUESTION}</div>
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    {CONTEXT_VALIDATION_OPTIONS.map((o) => (
+                      <button
+                        key={o.state}
+                        type="button"
+                        className="rounded border border-border/70 px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                        data-testid={`context-validation-${o.state}`}
+                        disabled={validationBusy !== null}
+                        onClick={() => void validateContext(o.state)}
+                      >
+                        {validationBusy === o.state ? "Recording…" : o.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {validationErr !== null ? (
+                <div className="text-amber-600" data-testid="context-validation-error">
+                  {validationErr}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* [CE-1] Who can clarify — read-only suggestions ranked from
               source lineage + org truth. Text only: nothing is created,

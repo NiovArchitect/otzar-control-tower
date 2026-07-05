@@ -417,4 +417,41 @@ describe("viewWhyFromLedger — seeded origin (AIX-1)", () => {
     expect(labels).not.toContain("Context origin");
     expect(labels).not.toContain("How to treat it");
   });
+
+  // [AIX-2] the human validation read-through — one calm row, labels only.
+  it("a validated seeded row adds the Validation row; unvalidated rows stay silent", () => {
+    const validated = viewWhyFromLedger(
+      ledger({
+        seeded_origin: {
+          origin: "seeded_document",
+          origin_label: "Seeded document context · Process / SOP",
+          boundary_label: "Company-owned background context — not personal Twin memory.",
+          confidence_note: "Use as background unless live work or the right person confirms it is current.",
+          validation_state_label: "Confirmed current",
+          validation_guidance: "Confirmed as current by your team.",
+        },
+      }),
+    );
+    const byLabel = Object.fromEntries(
+      validated.rows.filter((r) => r.value !== null).map((r) => [r.label, r.value]),
+    );
+    expect(byLabel["Validation"]).toBe(
+      "Confirmed current — Confirmed as current by your team.",
+    );
+    const raw = JSON.stringify(validated);
+    expect(raw).not.toMatch(/context_relevance|human_validation|confirmed_by|wrong_scope/);
+
+    const unvalidated = viewWhyFromLedger(
+      ledger({
+        seeded_origin: {
+          origin: "seeded_history",
+          origin_label: "Seeded history",
+          boundary_label: "Company-owned background context — not personal Twin memory.",
+          confidence_note: "Use as background unless live work or the right person confirms it is current.",
+        },
+      }),
+    );
+    const labels = unvalidated.rows.filter((r) => r.value !== null).map((r) => r.label);
+    expect(labels).not.toContain("Validation");
+  });
 });

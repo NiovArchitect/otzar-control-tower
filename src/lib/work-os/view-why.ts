@@ -155,6 +155,19 @@ export function viewWhyFromLedger(entry: WorkLedgerEntryView): ViewWhyModel {
           ? `${entry.seeded_origin.boundary_label} ${entry.seeded_origin.confidence_note}`
           : null,
     },
+    // [AIX-2] the human validation, once someone answered "Is this still
+    // current?" — labels only, straight from the projection.
+    {
+      label: "Validation",
+      value:
+        entry.seeded_origin?.validation_state_label !== undefined
+          ? `${entry.seeded_origin.validation_state_label}${
+              entry.seeded_origin.validation_guidance !== undefined
+                ? ` — ${entry.seeded_origin.validation_guidance}`
+                : ""
+            }`
+          : null,
+    },
     { label: "Source", value: entry.source_command !== null ? `“${entry.source_command}”` : null },
     {
       label: "Owner",
