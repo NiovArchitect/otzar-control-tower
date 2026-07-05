@@ -25,6 +25,7 @@ import { summarizeNotificationBody } from "./work-os/notification-body";
 import type {
   ClarityAnswerView,
   ClarityProjectionView,
+  ContextCandidateView,
   TeamClarityHealthView,
   LoginResponse,
   LoginFailure,
@@ -1593,6 +1594,15 @@ export class ApiClient {
         method: "PATCH",
         body: patch,
       }),
+
+    /** GET /api/v1/work-os/ledger/:id/context-candidates — [AIX-3] derived
+     *  deterministic candidate relevance for one work row. Read-only and
+     *  computed on demand; empty for non-managers (the pool is ownerless
+     *  org-wide context) and for seeded rows themselves. */
+    ledgerContextCandidates: (
+      ledgerEntryId: string,
+    ): Promise<ApiResult<{ ok: boolean; candidates: ContextCandidateView[] }>> =>
+      this.request(`/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/context-candidates`),
 
     /** POST /api/v1/work-os/ledger/:id/context-validation — [AIX-2] record a
      *  human "Is this still current?" answer on a SEEDED row. Seeded-rows-only

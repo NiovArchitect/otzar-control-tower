@@ -4742,6 +4742,21 @@ export interface SeededOriginView {
   validation_guidance?: string;
 }
 
+// [AIX-3] Mirror of FND ContextCandidateProjection — derived candidate
+// relevance ("may relate — needs confirmation"). Labels only; the
+// ledger_entry_id exists solely to route AIX-2 validation, never as copy.
+export interface ContextCandidateView {
+  ledger_entry_id: string;
+  title_label: string;
+  origin_label: string;
+  covering_period_label?: string;
+  status_label: string;
+  reason_label: string;
+  signal_labels: string[];
+  validation_state_label?: string;
+  validation_guidance?: string;
+}
+
 export interface ExternalContextView {
   external_party_type:
     | "client"

@@ -185,10 +185,31 @@ what exists, and the build order says where the rest lands.
    no status change, no follow-ups, no notifications, no wallet writes,
    and retrieval remains OFF — the recorded signal is what AIX-3/AIX-4
    consume under the ranking law.
-3. **AIX-3 — Candidate relevance, softly:** deterministic signals only
-   (shared project hints, name overlap through the T-2.5 classifier,
-   time windows) minting *suggestions* through the governed lane —
-   "may relate to X. Confirm?" — never auto-assignment.
+3. **AIX-3 ✅ SHIPPED 2026-07-05 — Candidate relevance, softly (DERIVED,
+   not persisted):** GET /work-os/ledger/:id/context-candidates computes
+   on demand which seeded documents MAY relate to a work row — never
+   stored, never acted on. **Design decision:** the Dandelion seed lane's
+   APPROVE carries operational apply semantics (resulting_action), so
+   persisting relevance there would make approval fake or truth-promoting
+   — the setup-coach lesson applied; candidates are therefore derived
+   pure-functionally per view. **Deterministic signals only:** ≥2 shared
+   significant title/summary tokens, or an internal participant's full
+   display name in the seeded text (external names NEVER match);
+   covering-period year overlap is supporting-only and never a candidate
+   by itself. **Noise policy:** one candidate per seeded source, ≥1
+   strong signal required, hard cap 3 per row, most-signals first, and
+   the AIX-2 human loop feeds back — stale/wrong_scope/contradicted
+   context is suppressed (wrong_scope suppresses globally in v1: the
+   validation record carries no scope, so conservative), confirmed/
+   needs_clarifier surface with their labels. **Validation path:** every
+   candidate renders the SAME AIX-2 five-choice affordance posted
+   against the seeded source row — no second validation mechanism.
+   **Permissions:** the v1 pool is ownerless org-wide DOCUMENT_CONTEXT —
+   a manager/admin read under the existing party model; non-managers get
+   silence, never leaked titles. **What AIX-3 does not do:** no
+   retrieval (still OFF — answers never consume seeded content), no
+   assignment, no current-truth promotion, no writes of any kind, no
+   external trust, no personal memory, no admin curation queue.
 4. **AIX-4 — Retrieval with the ranking law:** only after 1–3, seeded
    background may inform answers with mandatory attribution + the
    confidence ladder; live work always outranks; contradiction triggers

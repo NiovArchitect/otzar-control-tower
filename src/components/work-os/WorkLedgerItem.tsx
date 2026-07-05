@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import type {
   ClarityAnswerView,
   ClarityProjectionView,
+  ContextCandidateView,
   ExecutionAttemptView,
   WorkLedgerEntryView,
 } from "@/lib/types/foundation";
@@ -23,13 +24,7 @@ import { emitWorkStateChanged } from "@/lib/events/work-state";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromLedger } from "@/lib/work-os/view-why";
-import {
-  CONTEXT_VALIDATION_DONE,
-  CONTEXT_VALIDATION_FAILED,
-  CONTEXT_VALIDATION_OPTIONS,
-  CONTEXT_VALIDATION_QUESTION,
-  type ContextValidationState,
-} from "@/lib/work-os/context-validation";
+import { ContextValidationChoices } from "@/components/work-os/ContextValidationChoices";
 import { deriveWorkItemExecution } from "@/lib/work-os/work-item-execution";
 import { routingLaneChip, routingLaneEdge, routingWhyLine } from "@/lib/work-os/routing-lane";
 import { formatOwnedByLine } from "@/lib/identity/owner-display";
@@ -168,27 +163,11 @@ export function WorkLedgerItem({
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receipt, setReceipt] = useState<{ loading: boolean; text: string | null }>({ loading: false, text: null });
 
-  // [AIX-2] in-context validation of seeded background context — the one
-  // targeted "Is this still current?" affordance. Renders ONLY on seeded
-  // rows, inside the already-open detail. Nothing is written until the
-  // user explicitly picks an option; authority is enforced server-side.
-  const [validationBusy, setValidationBusy] = useState<ContextValidationState | null>(null);
-  const [validationDone, setValidationDone] = useState<string | null>(null);
-  const [validationErr, setValidationErr] = useState<string | null>(null);
-
-  async function validateContext(state: ContextValidationState): Promise<void> {
-    if (validationBusy !== null) return;
-    setValidationBusy(state);
-    setValidationErr(null);
-    const r = await api.workOs.validateSeededContext(entry.ledger_entry_id, { state });
-    setValidationBusy(null);
-    if (r.ok && r.data.ok) {
-      setValidationDone(CONTEXT_VALIDATION_DONE[state]);
-      onChanged?.();
-    } else {
-      setValidationErr(CONTEXT_VALIDATION_FAILED);
-    }
-  }
+  // [AIX-3] derived candidate relevance — read-only, loaded lazily on
+  // open (same pattern as clarity), and only for non-seeded rows (context
+  // is never suggested for context). Empty for most rows by design.
+  const [candidates, setCandidates] = useState<ContextCandidateView[] | null>(null);
+  const [candidatesLoaded, setCandidatesLoaded] = useState(false);
   const exec = deriveWorkItemExecution(entry);
   const sourceLabel = sourceLineageLabel(entry.source_lineage);
   // PROD-UX-P0R — the routing decision projection (attached by getMyWork).
@@ -318,6 +297,13 @@ export function WorkLedgerItem({
       const c = await api.workOs.ledgerClarity(entry.ledger_entry_id);
       setClarityLoaded(true);
       if (c.ok) setClarity(c.data.clarity);
+    }
+    // [AIX-3] possible background context — read-only; skipped entirely
+    // for seeded rows (they validate themselves via AIX-2 directly).
+    if (next && entry.seeded_origin === undefined && candidates === null && !candidatesLoaded) {
+      const r = await api.workOs.ledgerContextCandidates(entry.ledger_entry_id);
+      setCandidatesLoaded(true);
+      if (r.ok) setCandidates(r.data.candidates ?? []);
     }
   }
 
@@ -537,32 +523,42 @@ export function WorkLedgerItem({
               className="mt-1 border-t border-border/50 pt-1"
               data-testid="work-ledger-item-context-validation"
             >
-              {validationDone !== null ? (
-                <div data-testid="context-validation-done">{validationDone}</div>
-              ) : (
-                <>
-                  <div>{CONTEXT_VALIDATION_QUESTION}</div>
-                  <div className="mt-0.5 flex flex-wrap gap-1">
-                    {CONTEXT_VALIDATION_OPTIONS.map((o) => (
-                      <button
-                        key={o.state}
-                        type="button"
-                        className="rounded border border-border/70 px-1 text-[10px] text-muted-foreground hover:text-foreground"
-                        data-testid={`context-validation-${o.state}`}
-                        disabled={validationBusy !== null}
-                        onClick={() => void validateContext(o.state)}
-                      >
-                        {validationBusy === o.state ? "Recording…" : o.label}
-                      </button>
-                    ))}
+              <ContextValidationChoices
+                ledgerEntryId={entry.ledger_entry_id}
+                onValidated={onChanged}
+              />
+            </div>
+          ) : null}
+
+          {/* [AIX-3] possible background context — derived, deterministic,
+              confirmation-first. Each candidate routes to the SAME AIX-2
+              validation (posted against the seeded source row). Silence
+              when empty; never a queue, never an assignment. */}
+          {candidates !== null && candidates.length > 0 ? (
+            <div
+              className="mt-1 border-t border-border/50 pt-1"
+              data-testid="work-ledger-item-context-candidates"
+            >
+              <span className="text-muted-foreground">Possible background context:</span>
+              {candidates.map((c) => (
+                <div key={c.ledger_entry_id} className="mt-0.5" data-testid="context-candidate">
+                  <div>
+                    “{c.title_label}” — {c.status_label}
                   </div>
-                </>
-              )}
-              {validationErr !== null ? (
-                <div className="text-amber-600" data-testid="context-validation-error">
-                  {validationErr}
+                  <div className="text-muted-foreground">{c.reason_label}</div>
+                  {c.validation_state_label !== undefined ? (
+                    <div data-testid="context-candidate-validated">
+                      {c.validation_state_label}
+                      {c.validation_guidance !== undefined ? ` — ${c.validation_guidance}` : ""}
+                    </div>
+                  ) : null}
+                  <ContextValidationChoices
+                    ledgerEntryId={c.ledger_entry_id}
+                    testIdPrefix={`candidate-validation-${c.ledger_entry_id}`}
+                    onValidated={onChanged}
+                  />
                 </div>
-              ) : null}
+              ))}
             </div>
           ) : null}
 

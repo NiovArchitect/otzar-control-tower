@@ -734,8 +734,14 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   with newer work / Ask someone else; customer-safe validation labels in
   the projection; additive audit event SEEDED_CONTEXT_VALIDATED; no
   status change, no follow-ups/notifications/wallet writes, retrieval
-  still OFF) → AIX-3
-  deterministic candidate relevance through the governed suggestion lane
+  still OFF) → AIX-3 ✅ SHIPPED 2026-07-05 (derived-only deterministic
+  candidate relevance: GET /work-os/ledger/:id/context-candidates — zero
+  writes, no persisted seeds [Dandelion approval has apply semantics, so
+  persistence would fake it]; signals = ≥2 shared title tokens or
+  internal participant full-name match, year overlap supporting-only;
+  cap 3, one per source, AIX-2 states suppress/label; manager-scoped
+  visibility; CT "Possible background context" block inside View/Why
+  reusing the ONE AIX-2 validation affordance per candidate)
   → AIX-4 retrieval with the ranking law (only after 1–3). Copy shipped
   now: both seeding surfaces state that admins never classify/tag.
 

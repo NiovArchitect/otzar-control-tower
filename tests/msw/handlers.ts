@@ -3143,8 +3143,17 @@ const actionsListHandler = http.get(`${API_BASE}/actions`, () =>
   HttpResponse.json({ ok: true, items: [], page: 1, page_size: 50, total: 0 }),
 );
 
+// [AIX-3] Default derived candidate-relevance read (fires when a work
+// item's View/Why opens). Empty by default — candidates are rare by
+// design; tests needing candidates override via server.use().
+const contextCandidatesHandler = http.get(
+  `${API_BASE}/work-os/ledger/:id/context-candidates`,
+  () => HttpResponse.json({ ok: true, candidates: [] }),
+);
+
 export const handlers = [
   actionsListHandler,
+  contextCandidatesHandler,
   workOsAuthorityHandler,
   runtimeCapabilitiesHandler,
   workLedgerCreateHandler,
