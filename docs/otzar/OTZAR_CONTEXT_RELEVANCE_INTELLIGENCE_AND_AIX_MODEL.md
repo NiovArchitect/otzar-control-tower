@@ -210,10 +210,38 @@ what exists, and the build order says where the rest lands.
    retrieval (still OFF — answers never consume seeded content), no
    assignment, no current-truth promotion, no writes of any kind, no
    external trust, no personal memory, no admin curation queue.
-4. **AIX-4 — Retrieval with the ranking law:** only after 1–3, seeded
-   background may inform answers with mandatory attribution + the
-   confidence ladder; live work always outranks; contradiction triggers
-   clarification, never action.
+4. **AIX-4 ✅ SHIPPED 2026-07-05 — Retrieval with the ranking law:**
+   seeded background now informs answers — on ONE surface, the
+   deterministic clarity-answer rail (chosen because it is explanatory,
+   read-only, and already provenance/confidence-disciplined; broad
+   ambient/conduct priming stays OFF). **The ranking law is code:**
+   `CONTEXT_RANKING_LAW` in `context-retrieval.service.ts` (live work 1
+   > corrections 2 > approved decisions 3 > confirmed seeded 4 >
+   candidate relevance 5 > unvalidated background 6 > historical 7 >
+   suppressed 8); this surface emits ranks 4–5 and always LEADS with
+   rank-1 live truth. **No second matcher:** retrieval flows through
+   the AIX-3 deterministic gate, inheriting permission scope
+   (ownerless org-wide docs = manager/admin; non-managers get silence,
+   no titles/snippets), strong signals, the noise cap, and AIX-2
+   suppression (stale/wrong_scope/contradicted never returns — v1
+   suppresses rather than conflict-labels). **Contract:** every
+   retrieval result carries source/origin/confidence labels, rank,
+   why_included, how_to_treat, requires_confirmation, and
+   `should_not_act: true` — seeded context supports explanation and
+   confidence framing only; it can never authorize sending, approving,
+   assigning, task/follow-up creation, connector writes, Dandelion
+   seeds, or authority changes. **Copy law:** "Confirmed seeded
+   context — … live work still wins if they conflict" / "Possible
+   background context — … Not confirmed — use as background only,
+   never for action" / needs_clarifier → "needs the right person";
+   confidence is capped at medium — never high from seeded content.
+   The intent is `WHAT_BACKGROUND` ("what do we know / any background /
+   is there context"); a seeded row asked about itself explains itself
+   as background. CT needed NO code: the ask surface renders answer
+   prose, and `used_sources` never renders. **Future (each needs its
+   own GO):** broader ambient/conduct retrieval, vector/corpus search,
+   document extraction/review flow, deeper project scoping,
+   conflict-labeling instead of pure suppression.
 5. Retention model, corpus review/soft-delete (admin *boundary* view, not
    a librarian queue), and extraction/review flows remain separate,
    later, and gated.

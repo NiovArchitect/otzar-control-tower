@@ -742,7 +742,16 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   cap 3, one per source, AIX-2 states suppress/label; manager-scoped
   visibility; CT "Possible background context" block inside View/Why
   reusing the ONE AIX-2 validation affordance per candidate)
-  → AIX-4 retrieval with the ranking law (only after 1–3). Copy shipped
+  → AIX-4 ✅ SHIPPED 2026-07-05 (confidence-aware retrieval on the
+  clarity-answer surface ONLY: WHAT_BACKGROUND intent; CONTEXT_RANKING_LAW
+  codified [live work 1 → suppressed 8, this surface emits 4–5]; live
+  truth leads every answer; mandatory attribution + medium-capped
+  confidence + should_not_act on every result; retrieval reuses the
+  AIX-3 gate [permissions, signals, cap, AIX-2 suppression]; no
+  vectors/embeddings/broad search; no action path consumes seeded
+  context; CT unchanged — the ask surface renders answer prose).
+  **Gap W is now CLOSED end-to-end: doctrine → lineage → validation →
+  candidates → governed retrieval.** Copy shipped
   now: both seeding surfaces state that admins never classify/tag.
 
 ## Next-slice selection method
