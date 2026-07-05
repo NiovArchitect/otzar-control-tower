@@ -43,6 +43,9 @@ describe("[CS-5] Seed organization context — boundary-first, confirmation-gate
     expect(boundary).toContain("never becomes anyone's personal Twin memory");
     expect(boundary).toContain("background, not current truth");
     expect(boundary).toContain("No tasks or follow-ups");
+    // [AIX] admins are never context librarians — the promise is on the page.
+    expect(boundary).toContain("You don't need to classify");
+    expect(boundary).toContain("Otzar manages relevance");
     // No file input exists anywhere.
     expect(document.querySelector('input[type="file"]')).toBeNull();
 

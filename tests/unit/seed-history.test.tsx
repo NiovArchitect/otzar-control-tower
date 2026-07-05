@@ -41,6 +41,13 @@ describe("[CS-2] Seed organization history — confirmation-gated, honest", () =
     expect(screen.getByTestId("seed-history-doctrine").textContent).toContain(
       "context, not current work",
     );
+    // [AIX] no sorting/tagging homework; background until confirmed.
+    expect(screen.getByTestId("seed-history-doctrine").textContent).toContain(
+      "you don't need to sort or tag",
+    );
+    expect(screen.getByTestId("seed-history-doctrine").textContent).toContain(
+      "background until live work or the right person confirms it",
+    );
     await userEvent.type(screen.getByTestId("seed-history-period"), "2025 Q3");
     await userEvent.click(screen.getByTestId("seed-history-text"));
     await userEvent.paste("Old meeting: David agreed to own repo access.");

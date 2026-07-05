@@ -92,7 +92,8 @@ export function SeedCorpusPage() {
         governed by your organization — it never becomes anyone's personal
         Twin memory. If the document is historical, Otzar treats it as
         background, not current truth. No tasks or follow-ups are created
-        from it.{" "}
+        from it. You don't need to classify what it relates to — Otzar
+        manages relevance and asks the right person when context matters.{" "}
         <Link to="/setup/seed-history" className="font-medium text-foreground underline underline-offset-2">
           Seeding a meeting transcript instead?
         </Link>

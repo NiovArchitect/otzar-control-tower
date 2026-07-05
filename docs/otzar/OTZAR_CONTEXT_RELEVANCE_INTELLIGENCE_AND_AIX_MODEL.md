@@ -1,0 +1,197 @@
+# Context Relevance Intelligence + AIX — Doctrine + Audit
+
+**Status:** 2026-07-05 (Fable 5). Doctrine + audit; only safe copy changes
+shipped alongside. **State at authoring:** FND `503a012` · CT `79f1348`
+(both live). Gap U (setup arc) and Gap V (CS-1→CS-5) are closed: orgs can
+seed history and documents; employees calibrate their twins; live work
+flows governed.
+**Companions:** `OTZAR_ORG_CONTEXT_SEEDING_AND_TWIN_CALIBRATION_MODEL.md`,
+FND `DOMAIN_GENERAL_INTELLIGENCE_DOCTRINE.md`, the clarity escalation
+model, the operational ledger (Gap W).
+
+**The non-negotiable this doc locks:**
+
+> **Admins govern boundaries. Otzar manages relevance. Employees and
+> workflows validate nuance.**
+
+No admin — small company or enterprise — can know what every document is
+relevant to. If Otzar asks them to curate the corpus, Otzar has created a
+job. Otzar exists to remove hidden operational weight, so the relevance
+burden belongs to Otzar itself, with humans validating nuance exactly
+where the work already is.
+
+---
+
+## Part 1 — AIX: Artificial Intelligence Experience
+
+UX asks: *how does the human experience the product?*
+**AIX asks: how does the AI experience the organization, so it can serve
+humans correctly?**
+
+Otzar is an ambient AI Work OS. Its intelligence is only as good as the
+world it perceives. If the AI's experience of the org is noisy —
+undated context, unlineaged claims, unlabeled staleness, unclear
+boundaries — the AI becomes passive, overconfident, or unsafe. If its
+experience is legible — every context object carrying source, time,
+scope, confidence, and boundary — the AI can act, clarify, wait, or ask
+with precision.
+
+AIX is therefore a design surface of its own. Domain general intelligence
+does not come from dumping documents into an LLM. It comes from governed
+context: source lineage, role/hierarchy understanding, permissions,
+confidence, staleness, corrections, live work, clarification loops,
+audit, memory boundaries, tool constraints, approval policies, and human
+feedback. Otzar already builds most of these as rails; AIX names the
+discipline of composing them into what the AI perceives.
+
+**The three simultaneous experiences every setup/context feature must
+serve:**
+1. **Human Experience** — setup feels simple, guided, safe; never a job.
+2. **Organization Experience** — people, tools, projects, policies, and
+   history become coherent inside Otzar.
+3. **AI Experience** — context arrives structured, permissioned,
+   lineaged, dated, and confidence-aware, so the AI can serve.
+
+## Part 2 — The role split (binding)
+
+**Admins:** govern boundaries — connect sources, seed broad context,
+set policy, manage access, see trust/risk states. Admins do NOT tag
+documents to projects, classify transcripts, validate seeded facts, or
+retire stale items. There will be no context-librarian UI.
+
+**Otzar:** carries the relevance burden — preserves lineage and time,
+infers possible relevance *softly*, prefers live work over history,
+refuses to act on uncertain context, detects contradictions, down-ranks
+stale material, routes targeted clarification to the person who would
+actually know, and keeps every boundary (wallet, external, permission)
+intact while doing so.
+
+**Employees / project owners:** validate nuance — confirm what is still
+current, correct stale assumptions, answer targeted clarifications, teach
+their own twin.
+
+**Workflows:** are the strongest truth signal — live ingestion updates
+truth, approvals confirm authority, corrections improve behavior,
+completions create proof, new source events supersede old context.
+
+## Part 3 — Context relevance states (the future retrieval contract)
+
+1. **Background Context** — company-owned starting context (all of CS-2/
+   CS-5 today). Orientation value, low authority. Creates no work, no
+   decisions, no access.
+2. **Candidate Relevance** — Otzar softly believes a source may relate to
+   a project/team/person/customer. Rendered only as "possible context /
+   may relate to this work." Never trusted, never acted on.
+3. **Confirmed Relevance** — a project owner, live workflow, correction,
+   or approved review confirmed it. Usable with attribution.
+4. **Current Work Truth** — live WorkLedger, approvals, corrections,
+   recent source events. **Always outranks seeded history.**
+5. **Stale / Superseded** — newer work or correction overtook it.
+   Down-ranked and labeled.
+6. **Contradicted** — conflicts with newer truth or explicit correction.
+   Never used for action without clarification.
+
+**Live work wins — the ranking law:** recent ledger truth > corrections >
+approved decisions > confirmed relevance > candidate relevance >
+background context. On conflict, Otzar asks instead of acting: *"Based on
+seeded historical context this may be true — but I need confirmation
+before acting"* — never *"this is true because it appeared in an old
+transcript."*
+
+## Part 4 — Human validation is in-context, never a queue
+
+Validation happens where the work already is: on a work card, inside
+View/Why, during a clarification, in Review Center when an action
+matters, in Dandelion when a recommendation matters, in My Work when the
+user is the right clarifier, in Team Work when a manager sees a pattern.
+Setup/Data-Flow surfaces exist for *boundary awareness only*.
+
+Good prompts: "This comes from seeded history — is it still current?" ·
+"This may relate to Project Phoenix. Confirm?" · "A newer update appears
+to conflict with this. Which should Otzar follow?"
+Banned prompts: "Admin, review all documents." · "Tag every seeded
+document." · "Clean up the corpus."
+
+## Part 5 — AIX metadata target (per context object, eventually)
+
+source · source kind · owner · org scope · project/workspace/team scope
+when known · provided_by · seeded_at/created_at · covering_period ·
+currentness · confidence · relevance state · permission boundary · memory
+boundary · can-support-answers · can-support-actions ·
+requires-clarification · external/client-related · personal-vs-company ·
+stale/contradicted flags · clarifier/repair path.
+
+Not all fields exist today, and that is correct — the audit below says
+what exists, and the build order says where the rest lands.
+
+## Part 6 — Audit findings (code-grounded, 2026-07-05)
+
+1. **Seeded context is STORED-ONLY today.** `seeded_context` appears in
+   exactly three write-side files (comms-ingest, document-context, the
+   route) and **zero read paths**. Conduct priming reads memory capsules /
+   patterns / observed externals — never seeded rows. Clarity answers
+   compose from row truth generically without seeded awareness.
+2. **Can seeded context influence answers/routing/Dandelion/clarity?**
+   Documents: no — `DOCUMENT_CONTEXT` is excluded from every work view,
+   org query, and clarity computation (six exclusion sites). Seeded
+   history: only as inert VERIFIED terminal records in generic lists; it
+   feeds no AI decision path.
+3. **Unsafe current-truth path?** None found for action (no follow-ups,
+   no nudges, no notifications, terminal statuses, test-locked). One
+   labeling gap: seeded-history work items carry status VERIFIED, which
+   in projections could read as "verified/completed current truth" —
+   the lineage that says "seeded history" is stored but **not yet
+   rendered** in View/Why or card fragments. This is the first
+   retrieval-layer gap to close.
+4. **Open-work pollution?** No — integration-locked (zero follow-ups,
+   absent from open work, exactly-one-row for documents).
+5. **Personal-memory pollution?** No — count-invariance locked on every
+   seeding and calibration slice; lanes share no write paths.
+6. **Currentness / covering_period:** stored on every seeded row; used by
+   nothing (no ranking logic exists to use them — correct for now).
+7. **Live work override:** trivially true today *by absence* — seeded
+   context isn't retrieved into any decision path. The ranking law must
+   be implemented the day retrieval begins, not after.
+8. **Corrections → stale/contradicted:** no mechanism exists yet.
+9. **Where relevance/confidence should live:** on the rows' `details`
+   JSON (`relevance_state`, `confidence`) + the projection layer — no
+   schema needed; candidate-relevance suggestions ride the existing
+   governed Dandelion lane when they arrive.
+10. **Where in-context validation lands first:** View/Why (render the
+    seeded lineage: "From seeded history, provided by X, covering Y —
+    is this still current?") and clarity answers (label seeded sources
+    and prefer live rows). Both are existing surfaces.
+
+## Part 7 — Safe next build order
+
+1. **AIX-1 — Seeded lineage rendered (read-only):** View/Why + card
+   fragments label seeded rows ("Seeded history · covering 2025 ·
+   background context"); clarity answers say when a source is seeded
+   background and down-weight it verbally. No new writes.
+2. **AIX-2 — "Is this still current?" in-context validation:** one
+   targeted confirm/correct affordance on seeded rows inside View/Why /
+   clarification, writing through the existing correction rail; a
+   confirmation flips relevance_state to confirmed, a correction to
+   stale/contradicted (details JSON only).
+3. **AIX-3 — Candidate relevance, softly:** deterministic signals only
+   (shared project hints, name overlap through the T-2.5 classifier,
+   time windows) minting *suggestions* through the governed lane —
+   "may relate to X. Confirm?" — never auto-assignment.
+4. **AIX-4 — Retrieval with the ranking law:** only after 1–3, seeded
+   background may inform answers with mandatory attribution + the
+   confidence ladder; live work always outranks; contradiction triggers
+   clarification, never action.
+5. Retention model, corpus review/soft-delete (admin *boundary* view, not
+   a librarian queue), and extraction/review flows remain separate,
+   later, and gated.
+
+## Part 8 — What this protects
+
+**Customer experience:** no new admin job — the copy now says so
+explicitly on both seeding surfaces. **AIX:** the AI's world stays
+legible — everything it will ever retrieve is dated, lineaged, scoped,
+and confidence-labeled *before* retrieval is built, so Otzar's
+intelligence compounds from governed context instead of guessing from a
+pile. That is the domain-general-intelligence path: the corpus brain is
+not built before the relevance model — and now the relevance model is
+written down.

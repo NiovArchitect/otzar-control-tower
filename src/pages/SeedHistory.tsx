@@ -75,7 +75,9 @@ export function SeedHistoryPage() {
         Seeded history is context, not current work: no follow-ups are
         drafted, nobody is notified, and nothing lands in anyone's task list.
         External names found in history still go to review before they're
-        trusted. Everything stays company-owned.{" "}
+        trusted. Everything stays company-owned — and you don't need to sort
+        or tag any of it: Otzar treats seeded history as background until
+        live work or the right person confirms it.{" "}
         <Link to="/setup/seed-corpus" className="font-medium text-foreground underline underline-offset-2">
           Seeding a document instead?
         </Link>

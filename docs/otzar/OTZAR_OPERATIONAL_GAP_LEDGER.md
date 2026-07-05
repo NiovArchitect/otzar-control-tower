@@ -711,6 +711,27 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   deterministic identity only, everything reviewable + reversible, no
   fake intelligence claims.
 
+### W. Context Relevance Intelligence + AIX — 🔴 open (doctrine + audit COMPLETE 2026-07-05)
+
+- **Non-negotiable:** admins govern boundaries; OTZAR manages relevance;
+  employees and workflows validate nuance — no context-librarian UI, no
+  manual relevance tagging, ever.
+- **State:** doctrine + code-grounded audit in
+  [`OTZAR_CONTEXT_RELEVANCE_INTELLIGENCE_AND_AIX_MODEL.md`](./OTZAR_CONTEXT_RELEVANCE_INTELLIGENCE_AND_AIX_MODEL.md)
+  — AIX defined (the AI's designed experience of the organization), the
+  six relevance states (background → candidate → confirmed → current →
+  stale → contradicted), the live-work-wins ranking law, in-context
+  validation doctrine. **Audit verdict: seeded context is STORED-ONLY
+  today** (zero read paths consume seeded_context; documents excluded
+  from all views; no current-truth/open-work/personal-memory leak —
+  test-locked). One labeling gap: seeded lineage is stored but not yet
+  rendered in View/Why.
+- **Build order:** AIX-1 seeded lineage rendered (read-only) → AIX-2
+  in-context "is this still current?" via the correction rail → AIX-3
+  deterministic candidate relevance through the governed suggestion lane
+  → AIX-4 retrieval with the ranking law (only after 1–3). Copy shipped
+  now: both seeding surfaces state that admins never classify/tag.
+
 ## Next-slice selection method
 
 Before starting ANY slice, answer for each candidate:

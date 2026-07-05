@@ -215,6 +215,15 @@ auto external trust, personal-wallet writes. External mentions inside
 documents route to review only when a future extract/review flow runs —
 a documented limitation. The pipe is correct; volume comes later.
 
+## Successor doctrine — relevance + AIX (2026-07-05)
+
+How seeded context becomes *useful* without becoming a burden or a lie is
+now governed by
+[`OTZAR_CONTEXT_RELEVANCE_INTELLIGENCE_AND_AIX_MODEL.md`](./OTZAR_CONTEXT_RELEVANCE_INTELLIGENCE_AND_AIX_MODEL.md):
+admins govern boundaries, Otzar manages relevance, employees and
+workflows validate nuance; seeded context is background until confirmed;
+live work always wins; retrieval waits for the relevance model (AIX-1→4).
+
 ## Part 5 — Do-not-overclaim (context edition)
 
 Never say: "Otzar learned your company" (it ingested reviewable, lineaged
