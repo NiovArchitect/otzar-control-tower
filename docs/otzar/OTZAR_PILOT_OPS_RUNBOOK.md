@@ -179,6 +179,39 @@ check: `GET /org/activation-email/status` (admin) returns
 `configured: false` until the env is present. Copy-link fallback
 always remains.
 
+### 6b.1 Controlled live-send verification (run ONCE after env is set)
+
+Pre-conditions (all must hold before any send):
+1. FND health 200; record the live SHA (an env change redeploys the
+   same commit).
+2. Authenticated admin probe `GET /org/activation-email/status`
+   returns `configured: true`. If false → stop; env not landed.
+3. A SAFE smoke recipient exists: in-org, activation_pending, a
+   test/demo-category address (never a real customer/employee unless
+   explicitly designated), safe to receive exactly one email. Find via
+   read-only `GET /org/entities?type=PERSON` (activation_status
+   projection). If none exists → SKIP the send and report "provider
+   configured; no safe recipient; product ready for controlled send" —
+   do NOT create a member just to test.
+
+The send (exactly one; never batch; never repeated):
+- `POST /org/members/<id>/activation-email` (admin token).
+- Expect `{ok: true, status: "sent"}` — provider ACCEPTED; nothing
+  more is claimed.
+
+Post-send verification (all read-only):
+- Response contains NO token / activation URL.
+- ONE `ACTIVATION_EMAIL_SENT` audit row for the target; details carry
+  token_id + provider category only — never token/URL/body.
+- Target's activation_status remains pending (nobody activated).
+- Copy-link fallback still mints (do not click the emailed link unless
+  explicitly testing activation completion).
+
+Provider failure path: expect honest `PROVIDER_FAILED` + ONE
+`ACTIVATION_EMAIL_FAILED` audit (ERROR outcome, no token/URL); UI
+points to the copy-link fallback. Do not retry repeatedly — diagnose
+the Resend dashboard/sender verification first.
+
 ## 7. Secrets & key rotation
 
 - No secret is ever committed, echoed, logged, or pasted into a doc. Render
