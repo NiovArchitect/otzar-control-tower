@@ -118,6 +118,725 @@ that determines, per required production section:
 
 ---
 
+## ✅ REDWOOD-ATLAS · Communication-lineage doctrine + simulation harness · SHIPPED (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `9c7c852` (PR #575 squash on green 5/5 — harness
+authored pre-crash as local `c9be947`, pushed/merged post-recovery) ·
+CT `main` = `df122dc` (doctrine README pointer, direct-push, live).
+
+- **BINDING doctrine** (CT `docs/otzar/simulation/redwood-atlas/README.md`):
+  communication performs organizational work — truth weight = decision
+  rights + communication act + source lineage + currentness,
+  context-aware; NEVER newest-document-wins, NEVER hierarchy-always-wins.
+- FND fixtures `tests/fixtures/redwood-atlas/`: `corpus.json` — 48
+  artifacts across 8 weeks (21 meeting transcripts + statement-level call
+  notes, chats, email threads, seeded google-doc simulations); every
+  statement carries WHO said WHAT at WHAT TIME in WHAT role as WHICH
+  communication act (16-act vocabulary, all 16 exercised);
+  `authority_basis` on every internal decision/approval/assignment
+  resolving into owns/can_approve rights; out-of-authority commitments
+  flagged `exceeds_authority`; supersession lineage explicit.
+  `people.json` (8 people + decision rights, PT/MT/ET/CT) · `clients.json`
+  (3, seeded conflicts) · `expected-behavior-matrix.json` (44 BINDING
+  checks — the final test fails if any check id goes unexecuted).
+- Harness `tests/integration/redwood-atlas-simulation.test.ts` (15/15
+  green): corpus integrity incl. "no decision without decision rights" +
+  currentness-beats-recency; the PRODUCTION `computeDecisionRights` engine
+  resolves all 8 binding conflict patterns (approved date actionable /
+  stale target never; sales-vs-scope blocks + escalates to the scope
+  owner; client request is not policy; "ship Friday" aspirational against
+  the engineering owner's evidence; policy outranks the CEO; routing
+  follows the latest valid assignment; expertise alone never finalizes);
+  the PRODUCTION scheduling engine (local-words conflicts, per-person
+  lunch, weekend refusal, conforming alternative, proposal-only connector
+  truth).
+- **Real vs simulated:** the decision-rights + scheduling engines are REAL
+  production code exercised by the harness; Redwood Atlas Studio (org,
+  people, clients, corpus) is SIMULATED fixture data; google-doc artifacts
+  are seeded simulations (no Google connector exists). No production code
+  changes; NO schema; no deploy needed (test/fixture-only); no production
+  mutation.
+- **Open:** speech-act metadata not yet on runtime ingestion; source /
+  authority / agreement lineage not persisted on live rows; hierarchy +
+  role-access + Twin access boundaries unbuilt → Block 3 (pre-code plan
+  next, no implementation without GO).
+
+## ✅ ORG-SUBSTRATE · Org/person timezones + scheduling policy + company surfaces · LIVE-VERIFIED (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `7be24fa` (PR #574 squash on green 5/5, live —
+`/org/operating-profile` + `/org/me/work-profile` answer 401 unauthed,
+not 404) · CT `main` = `c7c47e8` (direct-push, live — bundle
+`index-cbuAuRtw.js` carries "Work Schedule" + "never claims it created
+an event").
+
+- **ZERO schema:** timezones live on EntityProfile (existing column) —
+  the ORG entity carries the org timezone; each person their own.
+  GET/PATCH `/org/operating-profile` (read: any member; write: admin,
+  audited) · GET/PATCH `/org/me/work-profile` (SELF-scoped — a person
+  sets their own timezone without admin help; audited
+  WORK_PROFILE_UPDATED). IANA validation via Intl.
+- `scheduling-policy.service.ts`: PURE deterministic engine — default
+  working hours 09:00–17:30 Mon–Fri, lunch/protected 12:00–13:00 local;
+  `evaluateMeetingProposal` renders every attendee's LOCAL
+  timezone-labeled time, names conflicts per person in human words
+  (outside working hours / during their lunch block / not a working day),
+  proposes a conforming same-day alternative. PROPOSAL-ONLY BY DOCTRINE:
+  engine + routes state that creating events requires a connected
+  calendar, which does not exist (Google Calendar = OAuth descriptor
+  only — verified). Per-person working-hours STORAGE deliberately future
+  (schema); the engine takes per-attendee overrides so fixtures and
+  future storage plug in unchanged.
+- CT: `/setup/company-profile` (admin, linked from /setup — org timezone
+  saves through the operating-profile rail; defaults stated honestly
+  "not configurable in-product yet"; calendar doctrine copy) ·
+  `/app/work-schedule` (employee More nav beside Account & Security —
+  YOUR timezone, "yours to set, not your admin's") ·
+  `api.org.operatingProfile` + `api.org.me.workProfile` · audit label
+  "Work Profile Updated".
+- Tests: FND `work-profile.test.ts` 3/3; CT suite 2236/2236 across 208
+  (work-profile-pages +2, no-overclaim sweep). No production mutation
+  (post-crash recovery probes were read-only GETs; no live writes).
+
+## ✅ PASSWORD-LIFECYCLE · Change / forgot / admin reset · LIVE-VERIFIED (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `28ad701` (PR #573 squash on green 5/5, live) ·
+CT `main` = `8304543` (direct-push, live — bundle `index-Gn-3jLU6.js`
+carries "Forgot password?"). FND suite 3/3 new + activation/email/twin
+regression; CT suite 2234/2234 across 207; live smoke 2/2 + read-only
+enumeration probe live-verified (unknown email → the safe sentence).
+
+- ONE token rail (PASSWORD_RESET: 1h, one-time, supersedes, /activate
+  redeem, all-sessions invalidated). Admins can NEVER see/set passwords.
+- POST /auth/change-password (current required; other sessions die,
+  current survives; audit PASSWORD_CHANGED). POST /auth/forgot-password
+  (public, byte-identical enumeration-safe; distinct reset template via
+  the ACT-EMAIL provider; no token burned when unconfigured).
+  POST /org/members/:id/password-reset-email (ACTIVE only; pending →
+  409 "activation instead"; the purposes never blur).
+- CT: Login "Forgot password?" → /forgot-password ·
+  /app/account-security ("Account & Security" in employee More nav) ·
+  Users "Send password reset" for active rows (copy-link fallback
+  stays). Runbook §6d incl. honest lockout rule (5 fails → SUSPENDED;
+  reset does NOT unsuspend — reactivate first; self-recovery = future).
+- No live password mutation performed (per stop rule).
+
+## ✅ TWIN-BOOTSTRAP · Post-activation starter-Twin guarantee · LIVE-VERIFIED (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `ed2d8c5` (PR #572 squash on green 5/5, live) ·
+CT `main` = `6b39cfe` (direct-push, live — bundle `index-CGyfqfiV.js`
+carries the identity-aware copy). FND twin-bootstrap suite 3/3 +
+activation/email regression 11/11; CT suite 2230/2230 across 206;
+live journey smoke 2/2.
+
+- **Root cause (live `twin_not_found`):** Twins are minted by Phase-3
+  INVITE; bulk-created + email-activated members skip invite → no
+  twin. Exactly hypothesis F.
+- **Fix on the existing rail:** `ensureStarterTwinForMember` (reuses
+  executePhase3Invite: twin + personal wallet + TAR + default-Hive
+  join; shell only — no tools/authority/role template) wired NON-
+  FATALLY into /auth/activate redemption + admin repair route
+  POST /org/members/:id/ensure-twin. Audited
+  STARTER_TWIN_PROVISIONED (trigger activation|admin_repair).
+- **LIVE REPAIR EXECUTED (authorized, single member):** smoke member
+  `lewissadeil@gmail.com` repaired — `created: true`, twin
+  `7727d7a1…`; ONE audit row (admin_repair, SUCCESS); idempotent
+  repeat `created: false`. Production mutation = exactly this one
+  intentional repair.
+- CT: My Twin 404 → identity-aware first-run state ("account is
+  active… Twin hasn't been prepared… basic help only"); Ask maps
+  TWIN_NOT_FOUND to honest prepare-your-twin copy (no "try again").
+- **FOUNDER-AUTHORIZED LIVE LOGIN VERIFIED (2026-07-06):** logged in AS
+  the smoke member via scripted browser (creds env-only, never
+  committed/echoed; env file shredded after) → landed on /app → My
+  Twin rendered the REAL twin card → Ask answered org-aware: "Hey
+  Smoke! I'm your digital twin here at NIOV Labs. Right now I can help
+  you with: …" — zero twin_not_found, zero raw errors, no fake-ready
+  claims. Durable spec: otzar-live-starter-member.spec.ts (CT
+  `ebb9de7`). The full new-employee journey (invite → email → activate
+  → recognized → conversant) is LIVE-PROVEN end to end.
+
+## ✅ ACT-EMAIL-LIVE · First real activation email SENT + verified · (2026-07-06, Fable 5)
+
+**§6b.1 completed end-to-end.** FND `24ca8a8` live · `configured: true`
+· sender `Otzar <onboarding@niovlabs.com>` (niovlabs.com verified in
+Resend; otzar.ai still unverified — swap FROM back once verified).
+
+- **Exactly one email sent** to the authorized smoke member
+  (`lewissadeil@gmail.com`, created under explicit founder GO;
+  activation_pending before and after — nobody activated).
+- Provider ACCEPTED; response + audit clean: ONE
+  ACTIVATION_EMAIL_SENT (SUCCESS, token_id + category only — no
+  token/URL/body/password anywhere). 4 historical FAILED rows = the
+  honest failure path exercised during provider debugging (key-empty
+  saves → sandbox owner-only → unverified domains; each audited once).
+- Env-var lesson recorded: Render dashboard saves repeatedly failed to
+  land; the working rails are the Render API (non-secret vars, founder-
+  authorized) and the founder's local curl for the secret.
+- **Founder follow-ups:** click-through activation of the smoke member
+  is OPTIONAL (would complete the loop live; the emailed link is valid
+  7 days, one-time) · verify otzar.ai in Resend to move FROM to the
+  product domain · smoke org + Phase-0/rollback rehearsal ·
+  RENDER_API_KEY rotation · 2 stale escalation authorizations.
+
+## ✅ ACT-EMAIL-VERIFY · Provider enablement verification plan · STAGED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `24ca8a8` (live; a same-SHA redeploy occurred
+but env NOT yet set — status probe still `configured: false`) · CT
+`main` = `de0bbc2` (docs-only, live; bundle unchanged
+`index-C6TCURDc.js`).
+
+- **No email sent; no send possible** (`configured: false`); no
+  production mutation beyond the docs deploy.
+- **Runbook §6b.1 added:** the one-shot controlled live-send procedure
+  (pre-conditions → single send → post-send read-only checks →
+  failure path). Executable the moment env lands.
+- **Read-only recipient scan: ZERO pending-activation members exist
+  live** (14 people, all active) — so even at `configured: true` the
+  send must be SKIPPED per spec until a safe smoke recipient exists.
+  Natural moment: the founder's Phase-0 smoke-org rehearsal (creates a
+  smoke member anyway). I will not create a member for this.
+
+## ✅ ACT-EMAIL · Email delivery for activation links · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `24ca8a8` (PR #571 squash, live) · CT `main` =
+`ff2349f` (direct-push, live — bundle `index-C6TCURDc.js` carries
+"Send activation email"). CT suite **2229/2229 across 206**; FND 3/3
+new + onboarding-activation regression; live battery 4/4 (read-only).
+**NO real email was sent** — the live status endpoint honestly returns
+`configured: false` (read-only authenticated probe).
+
+- **Same rail, delivery only:** sending mints a fresh one-time token
+  via mintSetupToken (supersedes priors) and emails the /activate
+  link. Token ONLY in the link — never logged/audited/returned.
+- **Provider abstraction, honest gate:** Resend behind
+  ACTIVATION_EMAIL_USE_REAL=1 + RESEND_API_KEY +
+  ACTIVATION_EMAIL_FROM (links from CONTROL_TOWER_URL). Missing env →
+  refuses BEFORE minting with "Email delivery isn't configured yet —
+  copy the activation link instead." "Sent" = provider ACCEPTED;
+  delivery/open tracking never claimed.
+- Routes (admin_org, org-scoped): status · single send (already-active
+  409, cross-org 404) · batch cap 20 with per-row results. Audit:
+  ACTIVATION_EMAIL_SENT / ACTIVATION_EMAIL_FAILED (token_id +
+  category only; FAILED = ERROR outcome).
+- CT: Users row "Send activation email" (non-active only, copy-link
+  fallback stays) + CSV result "Send activation emails now" (explicit
+  click, exact invited ids). Summary copy now "No email is sent
+  automatically…".
+- **FOUNDER ACTION to enable live email:** set the three env vars on
+  FND `srv-d8t17sm7r5hc73ed5h6g` (runbook §6b) + verified Resend
+  sender; until then the product stays honest.
+
+## ✅ DEEP-SMOKE · Customer-experience smoke + scorecard · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `87d1bbd` (unchanged, live) · CT `main` =
+`a94bef8` (tests/docs only — bundle unchanged `index-D7e5-U-b.js`, live).
+**Evidence:** Layer A = CT suite 2227/2227 across 205 (one flake on
+first run, clean on rerun); Layer B = FND arc battery 12 suites/48
+green; Layer C = live battery **6/6** incl. the NEW employee walk
+(vishesh login → /app/my-twin/calibration + writing-style boundaries +
+zero file inputs + ambient bar present + zero non-GET writes).
+Banned-claims sweep clean (only code-comment negations).
+
+- **Scorecard:** `docs/otzar/OTZAR_DEEP_ONBOARDING_UX_AIX_SMOKE_SCORECARD.md`
+  — 16 scenario groups, every rating citing its test/spec proof; all ✅
+  with named limitations (no 🔴).
+- **Honest friction (named, not repaired):** no email delivery
+  (admin-copied activation links — top friction) · seeded-document
+  browsing beyond recent/20 = future · non-manager employees see no
+  candidate relevance (correct v1 conservatism) · founder-gated
+  bootstrap (by design).
+- **Verdict held:** first workflow YES · founder-operated controlled
+  pilot YES (subject to standing founder actions) · self-serve NO.
+- **Recommended next slice: email delivery for activation links.**
+
+## ✅ CONSOLIDATION · Pilot readiness truth pass · LIVE-VERIFIED (2026-07-05, Fable 5) — ARC CLOSED
+
+**HEADs:** FND `main` = `87d1bbd` (unchanged, live) · CT `main` =
+`6cad718` (live). CT suite **2227/2227 across 205**; live battery
+**5/5** incl. the NEW `otzar-live-pilot-journey.spec.ts` — one
+read-only pass over /setup → go-live → data-flow → context-boundaries
+→ /retention → seed-corpus → seed-history with coherent governed copy,
+no overclaims/raw internals, and ZERO writes across the entire walk.
+
+- **Claim drift fixed:** 4 surfaces + 7 test anchors still said
+  "Retention controls are not configurable in-product yet" — all now
+  state governed-lifecycle truth (retire with audit preserved; windows/
+  deletion honestly not configurable yet).
+- **Smoke matrix 23/23:** story 12 upgraded to governed capability;
+  9 new arc stories (15–23) each citing real tests.
+- **Readiness audit Section A reconciled — the three claims, separate:**
+  (1) Ready for first workflow: YES. (2) Controlled founder-operated
+  pilot: YES, subject to standing founder actions. (3) Founder-free
+  self-serve onboarding: NO (email delivery, org bootstrap, HRIS,
+  Slack ingest UI, webhooks, billing all future — and the product's
+  own go-live gate says so).
+- Setup journey model doc: reconciliation header maps closed findings
+  to shipped slices.
+- **Standing founder actions (unchanged, not mine to run):** smoke-org
+  creation + Phase-0 rehearsal (runbook §6 rollback rehearsal still
+  unrun) · RENDER_API_KEY rotation · authorize rejection of 2 stale
+  escalations (8fad318b…, ce8fca11…).
+- **Gated future:** true deletion/retention windows · broader corpus
+  extraction · connector sync · vector/corpus search ·
+  conflict-labeling · email delivery · HRIS import · Slack ingest UI.
+
+## ✅ RETENTION · Governed context lifecycle (retire/restore, never delete) · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `87d1bbd` (PR #570 squash, live; unauthed
+documents/lifecycle probes 401/401) · CT `main` = `3d7b20e`
+(direct-push, live — bundle `index-D_sIPZwC.js` carries "Retire from
+active use"). CT suite **2227/2227 across 205**; FND 2/2 new + full
+context-arc regression 22/22; live smoke 3/3 (read-only).
+
+- **The retention model is real:** POST
+  `/work-os/ledger/:id/context-lifecycle` (admin-gated, seeded rows
+  only, idempotent, reversible) writes additive
+  `details.context_lifecycle` — retire/restore, NEVER delete.
+- **Preservation total:** row + capture + audit + lineage + extracted
+  reviewed work all survive (work lifecycle ≠ document lifecycle —
+  test-locked). **Suppression total:** `isContextRetired` at the AIX-3
+  gate removes retired context from candidates + AIX-4/5/6 answers;
+  extraction preview refuses (SOURCE_RETIRED).
+- Audited once per real change (SEEDED_CONTEXT_RETIRED/RESTORED;
+  reason never in audit). New additive audit types + CT labels.
+- `/retention`: 3 new lifecycle category rows + the Seeded context
+  lifecycle card (GET `/work-os/context/documents` admin list;
+  two-step confirm — nothing writes before explicit confirm; restore).
+  Context Boundaries: "becoming governed lifecycle controls" + retired
+  count. Personal calibration stays employee-revocable only.
+- **Deliberately NOT built (stated honestly in copy):** hard delete ·
+  purge · legal hold · retention windows · automated expiry ·
+  compliance export/deletion.
+- Gated future: true deletion/retention-window policy · broader corpus
+  extraction · connector sync · vector/corpus search ·
+  conflict-labeling.
+
+## ✅ CTX-BOUNDARY · Context Boundaries (admin boundary view) · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `a9059c3` (PR #569 squash, live; unauthed route
+probe 401) · CT `main` = `37aaa03` (direct-push, live — bundle
+`index-BhOMxhgY.js` carries the page + links). CT suite **2224/2224
+across 204**; FND 2/2 new; live smoke 3/3 (read-only; /setup renders
+the new boundaries pointer clean).
+
+- `/setup/context-boundaries` — "See what company context Otzar has
+  been given and how it is governed." A BOUNDARY view, not a librarian
+  queue: seven can/cannot groups (seeded history · seeded documents ·
+  reviewed extracted work · Twin calibration · writing style · live
+  work · external context); zero classify/tag/retire/cleanup asks.
+- FND: GET `/work-os/context/boundaries` — manager-gated, read-only,
+  tenant-isolated; exact counts for the three ledger-derived groups
+  (seeded history via seeded-lineage JSON path, DOCUMENT_CONTEXT count,
+  document_extraction_review count) + 3 recent seeded documents as
+  AIX-1 labels only. Groups without a safe projection are copy-only on
+  purpose (calibration/external counts = documented future).
+- Retention stated honestly: "not configurable in-product yet…
+  nothing here deletes or archives sources" → links /retention. No
+  delete/purge/archive rails built (none exist safely).
+- Linked from /setup, /setup/data-flow, /retention.
+- Gated future: retention model + archive/retire · broader corpus
+  extraction · connector sync · vector/corpus search ·
+  conflict-labeling.
+
+## ✅ DOC-EXTRACT · Review-first document extraction · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `b2fb92f` (PR #568 squash, live; unauthed route
+probe 401 — first probe 404 was a zero-downtime rollout race, resolved) ·
+CT `main` = `2cf75d5` (direct-push, live — bundle `index-BaxZA0Hr.js`
+carries "Scan for possible work to review"). CT suite **2222/2222
+across 203**; FND 3/3 new + CS-5 regression 3/3; live smoke 4/4
+(render-only incl. seed-corpus page; NO live extraction — no cleanup
+rail, integration-locked instead).
+
+- **CS-5's governed successor.** Lane: PREVIEW-ONLY (Option C) —
+  Dandelion approve mints resulting_actions, Review Center is the
+  dual-control send lane; both wrong semantics, so candidates are never
+  persisted; deterministic re-derivation replaces dedupe tables.
+- POST `/otzar/context/extract-preview` — admin_org-gated, explicit
+  click only (seeding still extracts nothing — test-locked), READ-ONLY,
+  reuses the ONE engine (extractFromCapturedText: structured LLM or
+  honest LOCAL_FALLBACK). "Possible action/decision/blocker/owner"
+  labels; per-kind cap 3 + overall 8; dedupe; excerpt anchoring to real
+  source lines; owner candidates info-only; review promise server-side;
+  no UUIDs cross back.
+- Approval = the EXISTING work rail: PROPOSED, owned by the approver,
+  details {source: document_extraction_review,
+  source_document_ledger_id, human_reviewed: true, source_excerpt} —
+  real work, no seeded affordances. Rejection = client dismiss, nothing
+  persisted.
+- CT: seed-corpus done-card gains promise copy + scan button + review
+  panel (create/dismiss per candidate, honest empty/failure states).
+- Gated future: broader corpus extraction · connector sync ·
+  vector/corpus search · conflict-labeling · retention boundary view.
+
+## ✅ AIX-6 · Org-scoped named-subject retrieval · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `c188f6f` (PR #567 squash, live) · CT `main` =
+`49717ad` (direct-push, live — bundle `index-BPNsCEr1.js` carries the
+background-answer wiring). CT suite **2220/2220 across 202**; FND AIX
+suite 3/3 new + 19/19 regression; live smoke 3/3 (read-only; unauthed
+route probe 401).
+
+- "What do we know about Project Phoenix?" now answers with NO selected
+  item: GET `/work-os/context/background-answer` — tight subject
+  extraction (deictic subjects → item rail; action phrasings never
+  match; vague → honest ask-for-a-name; unresolvable → 422, never a
+  guess).
+- **Subject fidelity:** ALL significant subject tokens must match —
+  "Phoenix" never returns Atlas material.
+- Live work leads, permission-scoped like My Work / Team Work
+  (employees: party rows only; managers: org-wide). Seeded background
+  follows via the new SUBJECT-MODE derivation beside AIX-3's row-mode
+  (same pool/suppression/cap — one matcher family), manager-only,
+  confirmed-first, AIX-4 contract copy. Confidence ≤ medium.
+- Ambient bar recognizer mirrors the extractor exactly; GET-only;
+  labeled "Background answer"; no LLM in the path.
+- Gated future: extraction/review flow · vector/corpus search ·
+  conflict-labeling · retention/corpus boundary view.
+
+## ✅ AIX-5 · Ambient retrieval expansion, narrowly · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `55e7938` (PR #566 test-only, live) · CT `main` =
+`17c5098` (direct-push, live — bundle `index-B2ba5Mwf.js` carries the
+recognizer). CT suite **2218/2218**; FND AIX suite 5/5 (new action-
+boundary lock); live smoke 3/3 (read-only).
+
+- Ambient bar answers item-scoped background questions ("What do we
+  know about this?" / "Any background on this?" / "Is there historical
+  context for this?") by routing them verbatim through the existing
+  deictic clarity intercept → clarity-answer route → AIX-4 governed
+  retrieval. ZERO new retrieval machinery; no LLM in the path; GET-only.
+- Zero-error intent boundary: TERMINAL this/it required — "any
+  background on this customer?" / "Project Phoenix" deliberately refuse
+  (wrong-subject answers are worse than no answer); bare forms need a
+  selected item, else honest "open or select" copy.
+- Action boundary test-locked server-side (FND #566): 7 action
+  phrasings → no retrieval intent, no seeded mention, no execution
+  claim, zero writes.
+- Broad ambient/conduct LLM priming remains OFF. Gated future: org-
+  scoped named-subject retrieval · extraction/review · vector/corpus
+  search · conflict-labeling.
+
+## ✅ AIX-4 · Confidence-aware retrieval + ranking law · LIVE-VERIFIED (2026-07-05, Fable 5) — GAP W CLOSED END-TO-END
+
+**HEADs:** FND `main` = `f53e82a` (PR #565 squash, live) · CT `main` =
+`1ef082e` (docs-only on top of `96b9a0d` code, live). FND targeted
+integration 4/4 + clarity/AIX regression 14/14; CT gates green (suite
+unchanged at 2215/2215 — CT needed NO code); live smoke 3/3 (read-only).
+
+- **First retrieval surface:** the deterministic clarity-answer rail —
+  new `WHAT_BACKGROUND` intent ("what do we know / any background / is
+  there context"). Broad ambient/conduct priming stays OFF.
+- **Ranking law codified:** `CONTEXT_RANKING_LAW` in
+  `context-retrieval.service.ts` (live work 1 → suppressed 8; surface
+  emits 4–5; every answer LEADS with rank-1 live truth).
+- **No second matcher:** retrieval reuses the AIX-3 gate — permissions
+  (non-managers: silence, no titles), strong signals, cap 3, AIX-2
+  suppression (stale/wrong_scope/contradicted never returns).
+- **Contract:** attribution + confidence labels + requires_confirmation
+  + `should_not_act: true` on every result; confidence capped at
+  medium; no suggested action from this intent ever; a seeded row asked
+  about itself explains itself as background.
+- **Boundaries:** read-only (audit/capsule/notification/row invariants
+  test-locked); no vectors/embeddings/broad search; no action path
+  consumes seeded context.
+- **Next (each needs its own GO):** broader ambient retrieval ·
+  document extraction/review flow · conflict-labeling instead of pure
+  suppression · vector/corpus search.
+
+## ✅ AIX-3 · Derived deterministic candidate relevance · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `1f24705` (PR #564 squash, live) · CT `main` =
+`96b9a0d` (direct-push, live — bundle `index-WIyycxXf.js` carries
+"Possible background context"). CT suite **2215/2215**; FND targeted
+integration 5/5 + AIX-2/seeded regression 11/11; live smoke 3/3
+(read-only).
+
+- **Design decision: DERIVED, not persisted.** Dandelion SEED_APPROVED
+  carries operational apply semantics (resulting_action) — persisting
+  relevance seeds would make approval fake or truth-promoting. So:
+  `context-candidates.service.ts` pure derivation + GET
+  `/work-os/ledger/:id/context-candidates`, ZERO writes, no schema,
+  computed per view.
+- Deterministic signals only: ≥2 shared significant title/summary
+  tokens, or internal participant full-name match (external names
+  never); covering-period year overlap supporting-only. Noise: one
+  candidate per source, ≥1 strong signal, cap 3, most-signals first.
+- AIX-2 loop feeds back: stale/wrong_scope/contradicted suppressed;
+  confirmed/needs_clarifier surface with labels.
+- CT: "Possible background context" block inside opened View/Why
+  (non-seeded rows only); each candidate reuses the ONE AIX-2
+  affordance (`ContextValidationChoices`, extracted — same copy, same
+  route, posted to the seeded SOURCE row). Silence when empty.
+- Permissions: pool = ownerless DOCUMENT_CONTEXT ⇒ manager/admin-scoped;
+  non-managers get empty, never leaked titles. Retrieval remains OFF.
+- **Next:** AIX-4 (confidence-aware retrieval with the live-work-wins
+  ranking law) — needs its own explicit GO.
+
+## ✅ AIX-2 · In-context seeded-context validation (first relevance write path) · LIVE-VERIFIED (2026-07-05, Fable 5)
+
+**HEADs:** FND `main` = `a9064d3` (PR #563 squash, live on Render) ·
+CT `main` = `0db9572` (direct-push, live — bundle `index-CTI-EPGp.js`
+carries the AIX-2 copy). CT suite **2211/2211 across 201 files**;
+FND targeted integration 4/4 + seeded regression 7/7; live smoke 3/3
+(org-setup + source-lineage, read-only).
+
+- FND: `context-relevance.service.ts` + POST
+  `/work-os/ledger/:id/context-validation` — seeded-rows-only,
+  party/manager-authorized (ownerless org-wide docs = manager/admin
+  only), idempotent, additive `details.context_relevance` JSON
+  (state confirmed/stale/wrong_scope/contradicted/needs_clarifier,
+  confirmed_by, confirmed_at, ≤280-char note, source
+  human_validation, applies_to seeded_context). New additive audit
+  event `SEEDED_CONTEXT_VALIDATED` (never carries the note).
+  `seededOriginFromDetails` renders labels only
+  (validation_state_label + validation_guidance).
+- CT: five-choice affordance (Still current / Outdated / Wrong
+  context / Conflicts with newer work / Ask someone else) inside the
+  opened View/Why on seeded rows ONLY; no write before explicit
+  click; honest per-state done copy; honest failure copy; View/Why
+  "Validation" row; audit label map entry.
+- Boundaries test-locked: no status change, no follow-ups, no
+  notifications, no wallet writes, open-work exclusion intact,
+  retrieval still OFF. Gap W ledger + AIX model doc mark AIX-2 ✅.
+- **Next:** AIX-3 (deterministic candidate relevance via the governed
+  suggestion lane) — needs its own explicit GO.
+
+## ✅ PROD-UX-APPROVAL-LOOP · Approver queue UX + Action⇄Escalation reconciliation · LIVE-VERIFIED (2026-07-02, Fable 5)
+
+**The loop closed:** send → "Submitted for approval" (truth copy, never
+optimistic "Sent") → approver's Review Center queue (human context: "Second
+approval for: Internal note", requester NAME) → approve/reject with reason →
+paired Action reconciles → approved sends DELIVER (scheduler/executor) →
+sender's Action Center shows "Sent" / "Not approved". **First completed
+governed send delivered live** (labeled verification note to Samiksha).
+
+- **Foundation** — PR **#525** merged **`8c10788`** (CI 5/5, deployed,
+  behaviorally live-probed): REJECTED mirror block in
+  `transitionPendingForCaller` (canonical state-machine guard,
+  ACTION_REJECTED audit + `approver_reason` safe scalar, no-op guards);
+  reject route accepts plain `reason` (was silently dropped). Unit tier 2918;
+  workos-writeback +3, escalation +3.
+- **SECURITY FIX** — PR **#526** merged **`9dce631`** (CI 5/5, deployed,
+  leak-closed verified live): `GET /org/entities` (list AND detail) returned
+  raw entity rows exposing every member's bcrypt `password_hash` to org
+  admins. SAFE_ENTITY_SELECT allowlist on both; leak test. Found by this
+  slice's live smoke.
+- **Control Tower** — `main` **`85237d0`** (commits `084767f` + `31ef3ee` +
+  `85237d0`), bundle **`index-tEAqSQ1x.js`**, all copy probes FOUND:
+  ProposedActionCard "submitted" truth state; Action Center REJECTED → "Not
+  approved"; Review Center deny-reason field + humanized description +
+  requester name (live wrapped-shape fix). Suite 2067; +7 unit tests.
+- **Live smoke — 3 tests / 12 nuanced scenarios, all PASS**
+  (`otzar-live-approval-loop.spec.ts`): approve leg (submitted → mid-flight
+  Action Center pending → self-approve 403 + absent from own queue →
+  humanized approver context → approve → SUCCEEDED delivery → sender "Sent" →
+  queue cleared → verdict finality → ACTION_APPROVED audit); reject leg
+  (reason durable on escalation + ACTION_REJECTED audit `approver_reason` →
+  Action REJECTED → sender "Not approved", no raw codes → flip-flop refused);
+  idempotency (same key → same action, exactly one escalation). Screenshots
+  loop-1…7. Org clean (2 pre-existing connector escalations remain, founder
+  to disposition).
+
+**Remaining honest:** rejection reason not yet projected on the sender's
+/actions list view (lives on the escalation + audit); approver queue badges
+count all escalation types; Approved-tab "0" while executor transits quickly.
+
+---
+
+## ✅ P0-ARC-FINAL · Cross-surface verification pass · COMPLETE (2026-07-02, Fable 5)
+
+Founder-directed verification-only pass over the closed A–D arc. CT `main` =
+**`eb74128`**. Full record:
+`docs/otzar/OTZAR_COMMS_PEOPLE_P0_ARC_FINAL_VERIFICATION.md` (22-check
+pass/fail table, six answers, screenshot index).
+
+- **New live suite** `otzar-live-arc-coherence.spec.ts` (C1–C4): ledger
+  coherence across My Work/Team Work (same ids, no double count), governed
+  send → approver pending queue → verdict, recipient-review org-audit proof,
+  employee Action Center raw-code sweep.
+- **All core scenarios green live**; smokes hardened from real findings
+  (vacuous-navigation bug in the bugb helper — rail labels never matched —
+  now genuine + loud; settled-count polling; per-run idempotency keys; 90s
+  LLM-ingest timeout). One residual in-sequence nav intermittency documented.
+- **FINDING (pinned in C2):** Action⇄Escalation reconciliation gap — the
+  approver's verdict does not flip the caller's Action off PROPOSED; the CT
+  "Sent" confirmation is optimistic (truth: submitted for approval).
+- **Recommended next slice:** approver/admin queue UX + Action⇄Escalation
+  reconciliation (completes the loop the dual-control fix opened; unblocks
+  the demo's completed send). Runner-up: project/workspace assignment from
+  People & Collaboration.
+- Cleanup: pending follow-ups 0; all smoke escalations approver-rejected; 2
+  pre-existing INVOKE_CONNECTOR escalations left for founder disposition.
+
+---
+
+## ✅ PROD-UX-BUGD · Connectedness truth + dual-control regression fix · LIVE-VERIFIED (2026-07-02, Fable 5)
+
+**The bug:** People & Collaboration said org members "aren't connected to any
+project or workspace yet" — technically true for project membership, but read
+as *disconnected from the org* for people who already had a manager, team, and
+hierarchy. Trust-breaking flattening.
+
+- **Foundation** — PR **#524** squash-merged as **`8e3423b`** (commit
+  `b3e6be9`), CI 5/5, deployed (live copy flipped). Kind
+  `CONNECT_TEAMMATE`→`NEEDS_PROJECT_OR_WORKSPACE`; pure copy helper ("X is
+  already part of your organization on M's team / in DEPT, but isn't assigned
+  to a project or workspace yet…"); structured `context` per recommendation
+  (person_entity_id · org_member · has_department · has_manager ·
+  has_project_or_workspace · missing_connection_type), each fact from its
+  canonical store; signal renamed `members_without_project_count`. Unit tier
+  2915; dandelion + dual-control integration green.
+- **REGRESSION FIX (exposed by BUGD's manager-edge fixture — the real cause of
+  the live "no approver" send rejections):** `resolveDualControlTarget` Class B
+  took the highest-hierarchy_level membership as "the org" → with manager
+  edges that's the caller's MANAGER → `NO_ELIGIBLE_TARGET` for everyone with a
+  manager. Fixed to the canonical COMPANY resolver (`getOrgEntityId`) +
+  regression test. **Live-proven:** vishesh's send now returns `PROPOSED` +
+  escalation to the org admin (was 503); approver reject flow works. Memory
+  `project_demo_org_no_approver` updated to RESOLVED.
+- **Control Tower** — `main` **`7e44e09`** (+ smoke/docs `f80d106`). Type
+  mirror; stable person-id keying for hiding; control relabeled **"Hide for
+  now"** (session-local — honest; durable dismiss remains unbuilt). Gates:
+  typecheck 0 · lint 0 · build ✓ · tests **2062** (+2). Deployed: bundle
+  `index-D3gweUg-.js` → **`index-l51ZNusG.js`**.
+- **Live smoke — FIVE scenarios, all PASS** (`otzar-live-bugd-connectedness`):
+  S1 API copy+context truth · S2 admin UI renders accurately (screenshot;
+  admin login ~5s → admin shell; /app/collaboration via pushState+popstate to
+  keep the in-memory session) · S3 hide returns on remount (honestly
+  session-local) · S4 employee isolation (no card, no disconnection language)
+  · S5 managed employee's send queues for approval + governed approver-reject
+  cleanup. Screenshots: bugd-1-admin-people-collab / bugd-2-after-hide /
+  bugd-3-employee-people.
+
+**Comms/People P0 arc (BUGS A–E) is fully closed.** Remaining honest:
+durable (server-side) recommendation dismiss unbuilt; correction-memory
+learn-loop still not wired into ingest (TODO markers); future gap categories
+(NEEDS_MANAGER / NEEDS_DEPARTMENT / NEEDS_AI_TWIN / NEEDS_ROLE_TOOLS)
+structured-for but deliberately not built.
+
+---
+
+## ✅ PROD-UX-BUGC · Recipient review completion · LIVE-VERIFIED (2026-07-02, Fable 5)
+
+**The bug:** a blocked recipient review (outside-context / ambiguous /
+cross-team) left the caller stuck — the card explained the block but offered no
+way to complete the review, and nothing persisted.
+
+**Governance rule (founder-ratified):** confirm unlocks `out_of_scope`/`likely`
+(caller vouches — distinct `caller_confirmed` proof source, audited); select
+resolves `ambiguous` via server-supplied id-based `select_candidates`;
+`unauthorized`/`cross_team_needs_approval` are NEVER caller-overridable (honest
+copy, API 403, no fake approval completion).
+
+- **Foundation** — PR **#523** squash-merged as **`d280cfc`** (commits
+  `9a47e8b` + `9165172`), CI 5/5. `resolveFollowUpRecipient` +
+  `POST /work-os/comms/follow-ups/:id/resolve-recipient` + `caller_confirmed`
+  EvidenceSource + `select_candidates` on the projection (identity stays
+  server-side/id-based — `/org/entities` is admin-gated; names never resolve
+  identity). Audit `ADMIN_ACTION`/`FOLLOW_UP_RECIPIENT_RESOLVED`, pointer on
+  the row. 17 unit + 1 real-DB integration. Deployed (route 404→401); live
+  probes: unauth 401 · invalid/missing decision 422 human copy · missing row
+  404. Learn-loop honestly deferred (ingest doesn't load corrections; TODO).
+- **Control Tower** — `main` **`fcb2a2a`**. `resolveCommsFollowUpRecipient`;
+  `RecipientReviewActions` per the matrix; reload-on-success; "You confirmed
+  this recipient" provenance; server (human) failure copy. Gates: typecheck 0 ·
+  lint 0 · build ✓ · tests **2060** (+8). Deployed: bundle
+  `index-3mI39i9q.js` → **`index-D3gweUg-.js`**; content probes all FOUND.
+- **Live smoke** (`otzar-live-bugc-recipient-review.spec.ts`, PASS, org clean):
+  real out_of_scope + cross-team fixtures via product API → API 403
+  APPROVAL_REQUIRED on the boundary → UI Confirm → row flips to
+  confirmed/caller_confirmed (server-verified) → leave/return → decision
+  persists, Send unlocked → boundary card untouched, no override affordance →
+  cleanup to 0. Screenshots: bugc-1-blocked / bugc-2-confirmed /
+  bugc-3-after-nav-still-confirmed.
+
+**Next:** BUG D (People & Collaboration connectedness copy — FND
+`dandelionOrgGrowth` copy + durable dismiss).
+
+---
+
+## ✅ PROD-UX-BUGB · Durable Comms follow-up recovery · LIVE-VERIFIED (2026-07-02, Fable 5)
+
+**The bug:** Comms follow-up send-cards rendered from the volatile ingest
+response, so they vanished when a customer left Comms and came back — even
+though the extracted work was already durable.
+
+**Fix (single store = Work Ledger; ZERO schema migration).** The durable home is
+a `FOLLOW_UP` `WorkLedgerEntry` (already a first-class `ledger_type`), NOT a new
+`MeetingCapture` column (that earlier proposal was retracted — it would have been
+the forbidden second follow-up store per the data-flow contract).
+
+- **Foundation** — PR **#522**, squash-merged to `main` as **`85fdfbe`**
+  (branch `prod-ux-bugb-followup-durable`, commit `5b8a77e`). Ingest persists
+  each `suggested_action` as a FOLLOW_UP row (`conversation_id` = capture,
+  owner/requester = caller, full send-card under `details.follow_up`,
+  `next_action` set); `getPendingFollowUps` projection + route
+  `GET /work-os/comms/follow-ups`; FOLLOW_UP stays first-class caller-owned work
+  (no exclusion from My Work — the 2 execution-proof tests proved it belongs).
+  CI: Typecheck / Unit 371 / Integration 111 / Elixir / Python all green.
+  Deployed (route 404→401→authed `ok:true`).
+- **Control Tower** — `main` **`0e584a6`** (branch `prod-ux-bugb-comms-reload`).
+  `api.workOs.commsPendingFollowUps()`; Comms loads durable follow-ups on mount +
+  after ingest and renders them in a top-level "Follow-ups waiting for you"
+  section (all phases → survives navigation); send→EXECUTED (keeps audit
+  confirmation, drops on reload), dismiss→CANCELLED (removed), failed send stays
+  DRAFT/recoverable; outside-context review renders from the durable payload.
+  Gates: typecheck 0 · lint 0 · build ✓ · tests **2052** (comms-page +6 BUG B).
+  Deployed: bundle `index-BDEIvZ4l.js` → **`index-3mI39i9q.js`**.
+- **Live smoke** (`otzar-live-bugb-followup-durable.spec.ts`, vishesh on
+  app.otzar.ai, PASS, org left clean): ingest → cards appear → leave Comms →
+  return → **cards still there** → My Work shows the FOLLOW_UP (authed API) →
+  attempt Send → dismiss → row CANCELLED, stays gone after navigation.
+  **Send finding:** the governed pipeline REJECTS the send in vishesh's org
+  (`DUAL_CONTROL_NO_APPROVER_AVAILABLE` — no eligible approver configured), so
+  the card stays DRAFT/recoverable (criterion 5, live). The send→EXECUTED happy
+  path is unit-verified; to demo a completed send an approver / low-risk
+  auto-approve must be configured. See memory `project_demo_org_no_approver`.
+
+**Docs:** `OTZAR_COMMS_INGESTION_ETL_REPAIR.md` (design corrected + retraction),
+`OTZAR_PAGE_PROJECTION_MATRIX.md` (Comms ✅), `OTZAR_AGENTIC_DATA_FLOW_CONTRACT.md`
+(rule 1 updated). **Next:** BUG C (recipient-review completion — now unblocked by
+B's durable cards), then BUG D (People "not connected" copy).
+
+---
+
+## ✅ PROD-UX-AMBIENT third pass · CLOSED-pending-live-verify (2026-07-01, Fable 5 session)
+
+**Cross-repo HEADs at this closeout:**
+- Control Tower `main`: `42c3ec2` (pushed → Render deploy in flight)
+- Foundation `main`: `e8017eb` (PR #517); **PR #518 (P0R routing projection)
+  all-5-CI-green, awaiting founder squash-merge** — agent self-merge is
+  permission-blocked. Merge it to light up the live P0R lane assertion (UX-3).
+
+**What landed this pass (all Fable 5, adopted prior-session work re-verified
+line-by-line + tests written where the prior session had none):**
+- `7a13fe8` P0G browser server-STT fallback + P0H draggable orb (+46 unit tests
+  the prior session skipped: `stt-path` 23, `orb-position` 23)
+- `682027d` P0R CT surface: routing lane chip + View/Why routing block (13 tests)
+- `db3e01f` P0F Tools & Connections: SlackWriteSetupCard (UI registration of the
+  Slice-F SLACK_WRITE binding), connector-error-copy wired, human copy pass
+- `23cdc97` P2 copy gate: owner-name guard wired into Comms, dead
+  `/admin/connector-rails` button fixed → `/tools-connections`, leak-gate test
+- `4d3edeb` P1: AITeammates human mapping; Members renders `/org/hierarchy`
+  (Role/Department/Reports-to)
+- `bae8580` lint-gate hygiene (presenceRing → `lib/ambient/presence-ring.ts`,
+  bucketFor → `lib/work-os/work-buckets.ts`)
+- `4404c89` ux-coherence live smoke (8 scenarios, UX-1..8, honest skips)
+
+**Gates at closeout:** typecheck 0 · lint 0/0 · vitest **176 files / 2011
+tests** green · build OK · dev 200 · install clean. FND: routing-decision 31
+unit tests + apps/api tsc clean + PR CI 5/5.
+
+**Open items:** (1) founder merges FND PR #518 → Foundation deploy → rerun
+`npm run test:e2e:live:workos:ux-coherence` (UX-3 stops skipping);
+(2) live ux-coherence + deep Work OS suite runs against app.otzar.ai after the
+Render deploy lands (creds: DEMO_SHARED_PASSWORD);
+(3) FND untracked strays left untouched: `docs/live5-latest-sanitized-result.tmp.md`,
+`scripts/repair-live-demo-twins.ts` (LIVE-5 artifacts — founder to keep or drop).
+
+---
+
 ## 🔧 Foundation 12C.0 batch — STATUS UPDATE (2026-05-28)
 
 Cross-repo planning round (`[ADMIN-RECONCILIATION-AND-12C0-FOUNDATION-BATCH-PLANNING-QLOCK]`)
