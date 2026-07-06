@@ -861,11 +861,21 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   recommend-only / recollection rows; Twin-boundary LOCKED in tests
   (AI_AGENT caller NOT_FOUND, cross-org NOT_FOUND, rights via human
   roster only, recommend-only can never finalize for any caller).
-- **Remaining (future, own GO):** per-domain thresholds (budget
-  limits); supersession chains across >2 hops; lineage-aware ranking on
-  the AIX-5/6 ambient + named-subject surfaces (currently the clarity
-  rail only); Redwood corpus load into a future SMOKE org (never
-  prod/demo).
+- **REDWOOD-RUNTIME SHIPPED 2026-07-06 (FND):** the smoke-org
+  simulation run — the arc proven over real HTTP (provision → rights →
+  timezones → ingest → supersession → calm correction → boundary
+  honesty) with dynamic per-run identities, all-8-persona true-UX
+  walks, and human-copy sweeps on every read string. Found + fixed a
+  REAL production gap: last-name speakers ("Torres") never resolved
+  structured rights (first-token-only matching) — now unique
+  name-token-subset matching with ambiguity → honest unknown.
+- **Remaining (future, own GO):** LIVE smoke-org rerun (blocked on
+  founder Phase-0 dual-control creation of `NIOV Smoke Org` — runbook
+  §3.1; this spec is the script to point at it); per-domain thresholds
+  (budget limits); supersession chains across >2 hops; lineage-aware
+  ranking on the AIX-5/6 ambient + named-subject surfaces (currently
+  the clarity rail only). Redwood corpus stays out of prod/demo,
+  always.
 
 ## Next-slice selection method
 

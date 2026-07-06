@@ -118,6 +118,46 @@ that determines, per required production section:
 
 ---
 
+## ✅ REDWOOD-RUNTIME · The smoke-org simulation run · LIVE (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `b2700c4` (PR #579 squash on green 5/5, deployed
+`dep-d9632jnaqgkc73ad7f3g`) · CT `main` = this commit (docs-only).
+
+- **The arc's proof, over real HTTP** (`redwood-atlas-runtime.test.ts`,
+  2 chunky DYNAMIC tests, per-run dynamic identities per runbook §3):
+  Redwood Atlas Studio + all 8 people.json personas provisioned; every
+  posture admin-authored through the 3A route; org/person timezones
+  through the work-profile routes; then a TRUE-UX WALK — all 8 people
+  log in, read their OWN posture (assertions DERIVED from the fixture
+  mapping — drift fails loudly), each sees the safe org summary (no
+  emails/TAR/password material, ever); stored timezones feed
+  evaluateMeetingProposal (07:00-Pacific rejects with the human
+  conflict sentence; 10:00 Eastern reads fine; the same-day alternative
+  is RE-VERIFIED conforming; proposal-only note asserted).
+- **Conflict patterns live through the product surface:** Elena ingests
+  the July plan then the explicit August 7 replacement via POST
+  /otzar/comms/ingest — supersession links at ingest (act
+  superseding_decision, authority owns:technical) and GET
+  /work-os/ledger/:id/clarity-answer LEADS with the calm correction;
+  Naomi (non-party) gets an enumeration-safe 404 with ZERO title leak;
+  Theo's "full automation" promise in Elena's domain lands
+  exceeds_authority / can-never-finalize and his own clarity answer
+  says so quietly; TAR untouched throughout; EVERY human-read string
+  passes the no-raw-enum / no-UUID / no-mechanics sweep.
+- **Real production gap found + fixed by the dynamic run:** the
+  responsibility graph captures speakers as single name tokens
+  ("Torres"), but rights matching compared full names or FIRST tokens
+  only — last-name speakers never resolved structured rights.
+  rightsFor/holdersPresent + the 3A matchesParty now match unique
+  name-token subsets; ambiguity (two Torreses) → honest unknown, never
+  guessed authority. All prior suites stay green (16/16 lineage-family,
+  comms-ingest 10/10, unit 2989/2989).
+- **Tenancy honesty:** simulation ran on the LOCAL test DB. The LIVE
+  smoke-org rerun is blocked ONLY on founder Phase-0 (dual-control
+  `NIOV Smoke Org` creation, runbook §3.1) — this spec is the script to
+  point at it. The Redwood corpus was NOT loaded into prod/demo and
+  never will be. No production mutation beyond the code deploy.
+
 ## ✅ BLOCK-3C · Truth-weight retrieval + supersession + Twin-boundary lock · LIVE (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `7f6f8d4` (PR #578 squash on green 5/5, deployed

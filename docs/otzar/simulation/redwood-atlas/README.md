@@ -127,6 +127,20 @@ owns/can_approve/recommend_only by DecisionDomain, admin-authored on
 Company Profile, employee posture on Work Schedule, audited, overlaid
 onto the heuristics before the engine runs — the runtime analog of this
 pack's `people.json` rights; rights grant no tools/permissions/authority).
+**Real since REDWOOD-RUNTIME (FND):** the SMOKE-ORG SIMULATION RUN —
+the whole substrate arc executed through the product's real HTTP
+surface (`tests/integration/redwood-atlas-runtime.test.ts`): the
+Redwood org + all 8 people provisioned; every posture admin-authored
+through the 3A route and read back by EACH person (true-UX walk,
+fixture-derived assertions); timezones through the work-profile
+routes feeding the scheduling engine's local-words verdicts +
+re-verified alternative; the July→August supersession linked at ingest
+with the calm correction on the clarity route; the sales
+full-automation promise flagged exceeds-authority on Theo's own
+answer; non-party 404 with zero title leak; every human-read string
+swept for raw enums/UUIDs/mechanics. Tenancy: LOCAL test DB — the live
+smoke-org rerun waits on the founder's Phase-0 dual-control org
+creation (runbook §3.1); the corpus is never loaded into prod/demo.
 **Real since Block 3C (FND):** TRUTH-WEIGHT RETRIEVAL — the clarity/
 background rail weighs stamped lineage through the 8-class law
 (authorized decisions beat newer proposals; references never become
