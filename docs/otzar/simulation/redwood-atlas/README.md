@@ -127,10 +127,20 @@ owns/can_approve/recommend_only by DecisionDomain, admin-authored on
 Company Profile, employee posture on Work Schedule, audited, overlaid
 onto the heuristics before the engine runs — the runtime analog of this
 pack's `people.json` rights; rights grant no tools/permissions/authority).
+**Real since Block 3B (FND):** statement-level speech-act + authority
+lineage STAMPED AT INGEST — every conversation-derived work row /
+follow-up carries `details.communication_lineage` (the 16-act vocabulary
+adopted from THIS corpus exactly; deterministic marker classification;
+authority_basis/status resolved through the Block 3A rights store with
+honest `unknown` fallback; memory references and unresolved questions
+never promoted to decisions; supersession pointers left null rather than
+guessed — deterministic linking is Block 3C). The conversation row
+carries artifact-level lineage (source, date, participants).
 **Simulated (fixtures):** Google-Docs-like sources (labeled
 `seeded_google_doc_simulation` — copy must say seeded/manual), calendar
-availability fixtures, communication-act metadata (runtime speech-act +
-lineage persistence is Block 3B).
+availability fixtures, corpus-side communication-act annotations (the
+fixture statements remain hand-labeled; runtime rows are stamped by the
+deterministic classifier).
 **Future (gated):** real Google Docs/Calendar/Meet connectors,
 per-person working-hours storage (schema), NL speech-act extraction at
 production scale, loading into the smoke org (after Phase-0).

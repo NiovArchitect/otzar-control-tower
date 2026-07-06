@@ -311,6 +311,13 @@ inform how Otzar weighs and routes decisions.
   via scripts/activate-decision-rights-prod-schema.ts — approval-gated,
   idempotent, never DROP/ALTER, no backfill). Absence of a row = no
   structured rights.
+- **Lineage at ingest (Block 3B):** every conversation-derived work
+  row / follow-up is stamped with `details.communication_lineage`
+  (speech act from the 16-act vocabulary, speaker + role, source
+  artifact, authority basis/status via decision rights, currentness).
+  Deterministic, fail-open, zero admin work — nobody classifies
+  messages. This metadata informs future truth-weighting only; it
+  grants nothing and changes no behavior today.
 
 ## 7. Secrets & key rotation
 

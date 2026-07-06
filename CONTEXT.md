@@ -118,6 +118,52 @@ that determines, per required production section:
 
 ---
 
+## ✅ BLOCK-3B · Communication lineage at ingest · LIVE (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `0ef2fce` (PR #577 squash on green 5/5, deployed
+`dep-d961tovaqgkc73ab0ei0`, live — health 200, all existing surfaces
+answer unchanged; read-only smoke only) · CT `main` = this commit
+(docs-only — NO UI built by design; deployed CT code stays `77db133`).
+
+- **Speech acts create organizational reality.** Every conversation-
+  derived COMMITMENT/FOLLOW_UP row is stamped at ingest with
+  `details.communication_lineage` (AIX-2 additive-JSON precedent, ZERO
+  schema): speaker + entity + role-at-time · source artifact/title/
+  date/participants · communication_act (the Redwood Atlas 16-act
+  vocabulary adopted EXACTLY, test-locked against corpus.json) ·
+  decision_domain · authority_basis/authority_status (via the 3A rights
+  store) · decision_makers_present · required_approvers_present ·
+  agreement_participants · supersedes/superseded_by (persisted, LEFT
+  NULL — deterministic linking is 3C; unresolved beats guessed) ·
+  currentness · confidence · permission_scope (follows row visibility).
+  MEETING row carries artifact-level lineage; ORG_SEEDING rows
+  deliberately unstamped (Otzar's own suggestions are not speech acts).
+- **Doctrine locked mechanically (7 examples in tests):** a memory
+  reference ("I think the old date was July 24") can NEVER become a
+  decision; a request never becomes policy; unresolved questions stay
+  unresolved; "we agreed …" outranks an embedded report of dissent; a
+  recommend-only speaker claiming finality (sales "full automation") is
+  marked exceeds_authority — never approved truth; the domain owner's
+  objection stays a within-authority signal; the CEO's "let's do it" on
+  a finance item still respects the finance approval holder; no
+  structured rights → honest "unknown", ingestion never blocked
+  (fail-open).
+- Deterministic-first honestly: explicit linguistic markers only, no
+  LLM claim; classifier ordered so weak-claim acts are recognized
+  before decision markers. Zero customer-facing behavior change
+  (comms-ingest suite unchanged 10/10); no tools/TAR/approval/
+  permission contact; no admin classification work ever.
+- Tests: communication-lineage 5/5 (vocabulary lock 16/16 · doctrine
+  examples · real-DB stamping with rights + TAR byte-identical ·
+  no-rights fallback · FOLLOW_UP stamps); unit tier 2989/2989; targeted
+  integration 52/52. Docs: runbook §6e lineage note · gap ledger X
+  (3B shipped, 3C remaining) · Redwood README real-vs-simulated · AIX
+  model doc Part 5b.
+- **No production mutation** (deploy + read-only GET probes only).
+  **Next (own GO): Block 3C — truth-weight retrieval composing rights +
+  act + lineage + currentness + permissions, deterministic supersession
+  linking, Twin-boundary lock probes on live surfaces.**
+
 ## ✅ BLOCK-3A · Decision-rights truth (org substrate plane 3) · LIVE-VERIFIED (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `912318e` (PR #576 squash on green 5/5, deployed

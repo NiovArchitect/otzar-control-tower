@@ -124,6 +124,27 @@ stale/contradicted flags · clarifier/repair path.
 Not all fields exist today, and that is correct — the audit below says
 what exists, and the build order says where the rest lands.
 
+### Part 5b — Communication lineage at ingest (SHIPPED 2026-07-06, Block 3B)
+
+Communication is a first-class source of truth, but not all
+communication is equal — speech acts create organizational reality.
+Since Block 3B, every conversation-derived work row and follow-up is
+stamped at ingest with `details.communication_lineage`: WHO said it
+(speaker + entity + role-at-time), WHERE (source artifact/title/date/
+participants), AS WHAT ACT (the Redwood Atlas 16-act vocabulary,
+adopted exactly and test-locked against the corpus), WITH WHAT
+AUTHORITY (authority_basis/status through the Block 3A decision-rights
+store: owner/approver within_authority · recommend-only marked, never
+final · finality inside someone else's domain = exceeds_authority · no
+rights = honest unknown), and HOW CURRENT (memory references are never
+current truth; unresolved questions stay unresolved; supersession
+pointers exist but stay null until deterministic linking lands in 3C —
+unresolved beats guessed). Deterministic markers only, fail-open, zero
+admin classification work, zero behavior change today. Truth weight in
+3C composes: decision rights + communication act + source lineage +
+authority lineage + agreement lineage + currentness + permissions —
+never newest-wins, never executive-wins, never hierarchy-wins.
+
 ## Part 6 — Audit findings (code-grounded, 2026-07-05)
 
 1. **Seeded context is STORED-ONLY today.** `seeded_context` appears in

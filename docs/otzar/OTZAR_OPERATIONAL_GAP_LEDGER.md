@@ -835,11 +835,24 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   including AI_AGENT rows unwritable + never surfaced (a Twin resolves
   through its human). CT: Company Profile "Decision rights" editor +
   Work Schedule read-only posture.
-- **Remaining (Block 3B/3C, each needs its own GO):** speech-act +
-  source/authority/agreement lineage persisted at ingest; supersession
-  pointers; truth-weight retrieval ranking; Twin-boundary lock probes on
-  live retrieval surfaces; per-domain thresholds (e.g. budget limits)
-  deliberately not modeled yet.
+- **Block 3B SHIPPED 2026-07-06 (FND):** speech-act + source/authority
+  lineage stamped at ingest — `details.communication_lineage` on every
+  conversation-derived COMMITMENT/FOLLOW_UP row + artifact-level lineage
+  on the MEETING row (AIX-2 additive-JSON precedent; zero schema). The
+  16-act vocabulary is adopted from the Redwood corpus EXACTLY and
+  test-locked against it; deterministic marker classification
+  (memory_reference/unresolved_question recognized BEFORE decision
+  markers so they can never be promoted); authority_basis/status through
+  the 3A rights store (owner/approver within_authority; recommend-only
+  marked; finality in someone else's domain = exceeds_authority; no
+  rights = honest unknown, ingestion never blocked); supersedes/
+  superseded_by left null rather than guessed. Stamping changes NO
+  customer-facing behavior (comms-ingest suite unchanged 10/10).
+- **Remaining (Block 3C, own GO):** truth-weight retrieval ranking
+  composing rights + act + lineage + currentness + permissions;
+  deterministic supersession LINKING (pointers exist, unfilled);
+  Twin-boundary lock probes on live retrieval surfaces; per-domain
+  thresholds (e.g. budget limits) deliberately not modeled yet.
 
 ## Next-slice selection method
 
