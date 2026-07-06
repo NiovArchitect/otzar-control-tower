@@ -26,6 +26,7 @@ import type {
   ClarityAnswerView,
   ClarityProjectionView,
   ContextCandidateView,
+  DocumentExtractPreviewResponse,
   TeamClarityHealthView,
   LoginResponse,
   LoginFailure,
@@ -1077,6 +1078,18 @@ export class ApiClient {
       this.request<{ ledger_entry_id: string }>("/otzar/context/seed-document", {
         method: "POST",
         body: input,
+      }),
+
+    /** [DOC-EXTRACT] POST /otzar/context/extract-preview — review-first scan
+     *  of ONE seeded document (ADMIN-GATED server-side). READ-ONLY preview:
+     *  candidates are never persisted; a human approves items into work
+     *  through the existing work-creation rail. */
+    extractDocumentPreview: (
+      ledgerEntryId: string,
+    ): Promise<ApiResult<DocumentExtractPreviewResponse>> =>
+      this.request<DocumentExtractPreviewResponse>("/otzar/context/extract-preview", {
+        method: "POST",
+        body: { ledger_entry_id: ledgerEntryId },
       }),
 
     /** Admin Organization-Seeding queue (Dandelion). Admin-only (the API gates on

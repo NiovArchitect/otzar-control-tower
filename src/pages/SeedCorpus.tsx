@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import type { DocumentWorkCandidateView } from "@/lib/types/foundation";
 
 const KINDS: Array<{ value: string; label: string }> = [
   { value: "PROJECT_BRIEF", label: "Project brief" },
@@ -45,8 +46,20 @@ type Phase =
   | { kind: "input" }
   | { kind: "confirm" }
   | { kind: "seeding" }
-  | { kind: "done" }
+  | { kind: "done"; ledgerEntryId: string }
   | { kind: "failed"; message: string };
+
+// [DOC-EXTRACT] the review-first scan of the just-seeded document.
+// Candidates live only in this state — nothing is persisted until the
+// human explicitly creates an item through the existing work rail.
+type ReviewCandidate = DocumentWorkCandidateView & {
+  state: "open" | "creating" | "created" | "dismissed";
+};
+type Scan =
+  | { kind: "idle" }
+  | { kind: "scanning" }
+  | { kind: "failed"; message: string }
+  | { kind: "ready"; note: string; sourceLabel: string; candidates: ReviewCandidate[] };
 
 export function SeedCorpusPage() {
   const [docKind, setDocKind] = useState("");
@@ -55,6 +68,66 @@ export function SeedCorpusPage() {
   const [currentness, setCurrentness] = useState("");
   const [period, setPeriod] = useState("");
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
+  const [scan, setScan] = useState<Scan>({ kind: "idle" });
+
+  // [DOC-EXTRACT] explicit-click scan — never automatic on seeding.
+  async function scanForWork(ledgerEntryId: string): Promise<void> {
+    setScan({ kind: "scanning" });
+    const r = await api.otzar.extractDocumentPreview(ledgerEntryId);
+    if (!r.ok) {
+      setScan({
+        kind: "failed",
+        message: "The scan couldn't run right now. Nothing was created — try again.",
+      });
+      return;
+    }
+    setScan({
+      kind: "ready",
+      note: r.data.review_note,
+      sourceLabel: `${r.data.source.origin_label}${r.data.source.covering_period_label !== undefined ? ` · ${r.data.source.covering_period_label}` : ""}${r.data.source.currentness_label !== undefined ? ` · ${r.data.source.currentness_label}` : ""}`,
+      candidates: r.data.candidates.map((c) => ({ ...c, state: "open" })),
+    });
+  }
+
+  function setCandidateState(index: number, state: ReviewCandidate["state"]): void {
+    setScan((prev) =>
+      prev.kind === "ready"
+        ? {
+            ...prev,
+            candidates: prev.candidates.map((c, i) => (i === index ? { ...c, state } : c)),
+          }
+        : prev,
+    );
+  }
+
+  // [DOC-EXTRACT] approval = the EXISTING governed work rail: PROPOSED
+  // status, explicitly owned by the approving admin, extraction lineage
+  // + human_reviewed on the row. Never automatic.
+  async function approveCandidate(index: number, ledgerEntryId: string): Promise<void> {
+    if (scan.kind !== "ready") return;
+    const c = scan.candidates[index];
+    if (c === undefined || !c.can_create || c.suggested_ledger_type === undefined) return;
+    setCandidateState(index, "creating");
+    const r = await api.workOs.createLedgerEntry({
+      ledger_type: c.suggested_ledger_type,
+      title: c.text,
+      status: "PROPOSED",
+      details: {
+        source: "document_extraction_review",
+        source_document_ledger_id: ledgerEntryId,
+        human_reviewed: true,
+        ...(c.excerpt !== undefined ? { source_excerpt: c.excerpt } : {}),
+      },
+    });
+    setCandidateState(index, r.ok ? "created" : "open");
+    if (!r.ok && scan.kind === "ready") {
+      setScan((prev) =>
+        prev.kind === "ready"
+          ? { ...prev, note: "That item couldn't be created. Nothing changed — try again." }
+          : prev,
+      );
+    }
+  }
 
   const ready =
     docKind.length > 0 && title.trim().length > 0 && body.trim().length > 0 && currentness.length > 0;
@@ -78,7 +151,8 @@ export function SeedCorpusPage() {
       });
       return;
     }
-    setPhase({ kind: "done" });
+    setScan({ kind: "idle" });
+    setPhase({ kind: "done", ledgerEntryId: r.data.ledger_entry_id });
   }
 
   return (
@@ -252,25 +326,124 @@ export function SeedCorpusPage() {
               it doesn't create work or change anyone's access.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              onClick={() => {
-                setTitle("");
-                setBody("");
-                setPeriod("");
-                setPhase({ kind: "input" });
-              }}
-              data-testid="corpus-more"
-            >
-              Seed another
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/data-knowledge">Open Data & Knowledge</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" data-testid="corpus-back-to-setup">
-              <Link to="/setup">Back to Organization Setup</Link>
-            </Button>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setTitle("");
+                  setBody("");
+                  setPeriod("");
+                  setScan({ kind: "idle" });
+                  setPhase({ kind: "input" });
+                }}
+                data-testid="corpus-more"
+              >
+                Seed another
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/data-knowledge">Open Data & Knowledge</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" data-testid="corpus-back-to-setup">
+                <Link to="/setup">Back to Organization Setup</Link>
+              </Button>
+            </div>
+
+            {/* [DOC-EXTRACT] review-first scan — explicit click only. */}
+            {scan.kind === "idle" ? (
+              <div className="space-y-1 border-t border-border/50 pt-2">
+                <p className="text-xs text-muted-foreground" data-testid="extract-promise">
+                  Otzar can scan this seeded document for possible work to
+                  review. Nothing becomes a task, follow-up, or assignment
+                  unless a human approves it.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void scanForWork(phase.ledgerEntryId)}
+                  data-testid="extract-scan"
+                >
+                  Scan for possible work to review
+                </Button>
+              </div>
+            ) : null}
+            {scan.kind === "scanning" ? (
+              <p className="text-xs text-muted-foreground" data-testid="extract-scanning">
+                Scanning… nothing is created by the scan itself.
+              </p>
+            ) : null}
+            {scan.kind === "failed" ? (
+              <p className="text-xs text-amber-600" data-testid="extract-failed">
+                {scan.message}
+              </p>
+            ) : null}
+            {scan.kind === "ready" ? (
+              <div className="space-y-2 border-t border-border/50 pt-2" data-testid="extract-review">
+                <p className="text-xs text-muted-foreground" data-testid="extract-note">
+                  {scan.note} <span className="text-foreground/70">{scan.sourceLabel}</span>
+                </p>
+                {scan.candidates.length === 0 ? (
+                  <p className="text-xs text-muted-foreground" data-testid="extract-empty">
+                    Otzar didn't find possible work items to suggest from this
+                    document — nothing was created.
+                  </p>
+                ) : (
+                  scan.candidates.map((c, i) => (
+                    <div
+                      key={`${c.kind_label}-${i}`}
+                      className="rounded border border-border/60 p-2 text-xs"
+                      data-testid="extract-candidate"
+                    >
+                      <div className="font-medium">
+                        {c.kind_label} — {c.text}
+                      </div>
+                      {c.excerpt !== undefined ? (
+                        <div className="mt-0.5 text-muted-foreground" data-testid="extract-excerpt">
+                          From the document: “{c.excerpt}”
+                        </div>
+                      ) : null}
+                      {c.state === "created" ? (
+                        <div className="mt-1 text-emerald-700" data-testid="extract-created">
+                          Approved item created as governed work — it starts as
+                          proposed work owned by you.
+                        </div>
+                      ) : c.state === "dismissed" ? (
+                        <div className="mt-1 text-muted-foreground" data-testid="extract-dismissed">
+                          Rejected. Otzar will not use this extraction as work.
+                        </div>
+                      ) : (
+                        <div className="mt-1 flex gap-2">
+                          {c.can_create ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={c.state === "creating"}
+                              onClick={() => void approveCandidate(i, phase.ledgerEntryId)}
+                              data-testid="extract-approve"
+                            >
+                              {c.state === "creating" ? "Creating…" : "Create as governed work"}
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground" data-testid="extract-info-only">
+                              For awareness only — confirm ownership with the
+                              person on real work.
+                            </span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setCandidateState(i, "dismissed")}
+                            data-testid="extract-dismiss"
+                          >
+                            Dismiss
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

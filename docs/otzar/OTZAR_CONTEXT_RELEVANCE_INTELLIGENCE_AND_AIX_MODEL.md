@@ -281,10 +281,32 @@ what exists, and the build order says where the rest lands.
    answer says "nothing was guessed" — literally. The ambient bar
    routes these questions verbatim (recognizer mirrors the extractor);
    asking never mutates.
-7. Retention model, corpus review/soft-delete (admin *boundary* view, not
-   a librarian queue), extraction/review flows, vector/corpus search,
-   and conflict-labeling remain separate, later, and gated — each needs
-   its own GO.
+7. **DOC-EXTRACT ✅ SHIPPED 2026-07-05 — Review-first document
+   extraction (the CS-5 extract_work:false successor):** an admin can
+   explicitly ask Otzar to scan ONE seeded document for possible work —
+   POST /otzar/context/extract-preview (admin_org-gated, READ-ONLY).
+   **Lane decision: preview-only, zero persistence** — Dandelion
+   APPROVE mints operational resulting_actions and Review Center is the
+   dual-control send lane, both wrong semantics; candidates exist only
+   in the response and deterministic re-derivation replaces persistence.
+   Extraction reuses the ONE engine (extractFromCapturedText —
+   structured LLM output or honest LOCAL_FALLBACK). Candidates are
+   possibilities, never facts: Possible action / Possible decision /
+   Possible blocker / Possible owner (info-only — ownership is never
+   created from a document), per-kind cap 3 + overall cap 8, deduped,
+   excerpt-anchored to real source lines, review promise repeated
+   server-side, no UUIDs cross back. **Approval = the existing work
+   rail:** a human-approved candidate lands as PROPOSED work, owned
+   explicitly by the approver, with extraction lineage
+   (source: document_extraction_review, source_document_ledger_id,
+   human_reviewed: true, source_excerpt) — real work with NO seeded
+   affordances. Rejection is a client-side dismiss: nothing persisted,
+   nothing to clean. Seeding still creates no work — extraction only on
+   explicit click, never on upload (test-locked).
+8. Retention model, corpus review/soft-delete (admin *boundary* view, not
+   a librarian queue), broader corpus extraction, connector sync,
+   vector/corpus search, and conflict-labeling remain separate, later,
+   and gated — each needs its own GO.
 
 ## Part 8 — What this protects
 

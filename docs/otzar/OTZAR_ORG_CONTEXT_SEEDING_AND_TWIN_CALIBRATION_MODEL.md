@@ -215,6 +215,16 @@ auto external trust, personal-wallet writes. External mentions inside
 documents route to review only when a future extract/review flow runs —
 a documented limitation. The pipe is correct; volume comes later.
 
+**Successor shipped (2026-07-05) — review-first extraction:** the
+extract/review flow now exists as DOC-EXTRACT (see the AIX model doc,
+Part 7 item 7): an admin explicitly scans ONE seeded document for
+"Possible action / decision / blocker / owner" candidates
+(preview-only, nothing persisted); a human approves items into PROPOSED
+work through the existing rail with extraction lineage +
+human_reviewed. The CS-5 contract is unchanged: seeding alone still
+extracts nothing, and `extract_work:false` remains recorded on every
+seeded row.
+
 ## Successor doctrine — relevance + AIX (2026-07-05)
 
 How seeded context becomes *useful* without becoming a burden or a lie is

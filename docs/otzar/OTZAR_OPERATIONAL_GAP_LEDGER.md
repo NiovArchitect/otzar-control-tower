@@ -764,7 +764,16 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   match]; live work leads permission-scoped like My Work / Team Work;
   seeded follows via the subject-mode derivation, manager-only,
   confirmed-first, AIX-4 copy; medium-capped; "nothing was guessed"
-  no-match honesty; ambient recognizer mirrors the extractor). Copy
+  no-match honesty; ambient recognizer mirrors the extractor).
+  → DOC-EXTRACT ✅ SHIPPED 2026-07-05 (review-first extraction preview:
+  POST /otzar/context/extract-preview — admin-gated, read-only,
+  preview-only [no persisted candidates; Dandelion/Review Center
+  semantics deliberately not reused]; one engine; Possible action/
+  decision/blocker/owner labels; per-kind cap 3 + overall 8; excerpt
+  anchoring; approval = existing work rail with PROPOSED + extraction
+  lineage + human_reviewed; rejection persists nothing; CS-5
+  no-extraction-on-upload contract intact and test-locked; CT
+  seed-corpus page gains the explicit-click scan + review panel). Copy
   shipped now: both seeding surfaces state that admins never
   classify/tag.
 

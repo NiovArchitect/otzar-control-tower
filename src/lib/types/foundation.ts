@@ -4757,6 +4757,28 @@ export interface ContextCandidateView {
   validation_guidance?: string;
 }
 
+// [DOC-EXTRACT] Review-first extraction preview (FND ExtractPreviewResult).
+// Candidates are possibilities for human review — never facts, never work
+// until a human approves one through the existing work rail.
+export interface DocumentWorkCandidateView {
+  kind_label: string;
+  text: string;
+  can_create: boolean;
+  suggested_ledger_type?: "TASK" | "DECISION" | "BLOCKER";
+  excerpt?: string;
+}
+export interface DocumentExtractPreviewResponse {
+  ok: boolean;
+  source: {
+    title_label: string;
+    origin_label: string;
+    currentness_label?: string;
+    covering_period_label?: string;
+  };
+  candidates: DocumentWorkCandidateView[];
+  review_note: string;
+}
+
 export interface ExternalContextView {
   external_party_type:
     | "client"
