@@ -217,7 +217,33 @@ describe("[GAP-U SLICE-2] Import people page — preview-first, confirmation-gat
     expect(summary).toContain("2 invited");
     expect(summary).toContain("1 failed");
     expect(summary).toContain("shown once");
-    expect(summary).toContain("No email is sent");
+    expect(summary).toContain("No email is sent automatically");
+
+    // [ACT-EMAIL] batch send is EXPLICIT: nothing has posted yet; the
+    // click posts exactly the invited ids; "sent" copy claims provider
+    // acceptance, never delivery.
+    const emailBatches: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(`${API}/org/members/activation-emails`, async ({ request }) => {
+        emailBatches.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({
+          ok: true,
+          sent: 2,
+          failed: 0,
+          results: [
+            { entity_id: "e-1", ok: true },
+            { entity_id: "e-2", ok: true },
+          ],
+        });
+      }),
+    );
+    expect(emailBatches).toEqual([]);
+    await userEvent.click(screen.getByTestId("import-send-emails"));
+    const emailResult = await screen.findByTestId("import-email-result");
+    expect(emailBatches).toEqual([{ entity_ids: ["e-1", "e-2"] }]);
+    expect(emailResult.textContent).toContain("2 activation emails sent");
+    expect(emailResult.textContent).toContain("provider accepted");
+    expect(emailResult.textContent).not.toMatch(/delivered|opened|received/i);
     // One-time links present; failure row reads as repair, not stack trace.
     expect(screen.getAllByTestId("import-copy-link").length).toBe(2);
     const rows = screen.getByTestId("import-result-rows").textContent ?? "";

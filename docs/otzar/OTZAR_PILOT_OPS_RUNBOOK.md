@@ -160,6 +160,25 @@ the same API rail (`commitId: <previous>`), verify bundle hash reverted,
 re-run the touched smoke gate. Keep the last-known-good SHA of both
 services in the deploy notes at all times.
 
+## 6b. Activation email delivery (ACT-EMAIL, shipped 2026-07-05)
+
+Email delivery for activation links exists on the FND service but is
+OFF until three env vars are set on `srv-d8t17sm7r5hc73ed5h6g`
+(founder action; set via Render dashboard, then redeploy):
+
+- `ACTIVATION_EMAIL_USE_REAL=1` — master switch (repo `*_USE_REAL` pattern)
+- `RESEND_API_KEY` — Resend API key (never committed, never logged)
+- `ACTIVATION_EMAIL_FROM` — verified sender, e.g. `Otzar <onboarding@otzar.ai>`
+- (`CONTROL_TOWER_URL` already set — used as the activation-link base)
+
+Semantics: "sent" = provider ACCEPTED the message (no delivery/open
+tracking exists or is claimed). Sending mints a fresh one-time token on
+the existing rail (superseding priors); the token exists only inside
+the emailed link — never in logs, audit, or API responses. Honest
+check: `GET /org/activation-email/status` (admin) returns
+`configured: false` until the env is present. Copy-link fallback
+always remains.
+
 ## 7. Secrets & key rotation
 
 - No secret is ever committed, echoed, logged, or pasted into a doc. Render

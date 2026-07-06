@@ -779,6 +779,15 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   read-only manager-gated GET /work-os/context/boundaries with exact
   counts + recent document labels only; honest retention limitation;
   linked from /setup, data-flow, retention; zero curation asks).
+  → ACT-EMAIL ✅ SHIPPED 2026-07-05 (activation-email delivery on the
+  existing token rail: provider abstraction with honest not-configured
+  gate [Resend behind ACTIVATION_EMAIL_USE_REAL + RESEND_API_KEY +
+  ACTIVATION_EMAIL_FROM]; "sent" = provider accepted; token only in
+  the link, never logged/audited/returned; admin-only org-scoped
+  single + batch-20 sends; already-active 409; Users row + CSV-result
+  explicit-click surfaces; copy-link fallback preserved; audit
+  ACTIVATION_EMAIL_SENT/FAILED; env not yet set live — honest
+  "not configured" until founder enables).
   → RETENTION ✅ SHIPPED 2026-07-05 (governed lifecycle: admin
   retire/restore of seeded context via additive details JSON — total
   preservation [row/capture/audit/lineage/extracted work], total

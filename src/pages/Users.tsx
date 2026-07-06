@@ -73,6 +73,25 @@ function ActivationCell({ row }: { row: Entity }): JSX.Element {
         : "Activation link copied. Share it securely — it expires and can only be used once.",
     );
   }
+  // [ACT-EMAIL] explicit send — "sent" means the provider accepted the
+  // message; the honest not-configured result keeps the copy-link rail
+  // as the fallback. Never shown for active members.
+  async function sendEmail(): Promise<void> {
+    setBusy(true);
+    const r = await api.org.members.activationEmail(row.entity_id);
+    setBusy(false);
+    if (r.ok && r.data.ok) {
+      toast.success(
+        "Activation email sent — “sent” means our email provider accepted it. The copy-link fallback still works.",
+      );
+    } else if (!r.ok && r.code === "EMAIL_NOT_CONFIGURED") {
+      toast.info("Email delivery isn't configured yet — copy the activation link instead.");
+    } else {
+      toast.error(
+        (!r.ok && r.message) || "The email couldn't be sent. Nothing was delivered — copy the link instead.",
+      );
+    }
+  }
   return (
     <div className="flex items-center gap-2" data-testid="users-activation-cell">
       <span>{label}</span>
@@ -89,6 +108,21 @@ function ActivationCell({ row }: { row: Entity }): JSX.Element {
       >
         {status === "active" ? "Copy reset link" : "Copy activation link"}
       </Button>
+      {status !== "active" ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs"
+          disabled={busy}
+          data-testid="users-send-activation-email"
+          onClick={(e) => {
+            e.stopPropagation();
+            void sendEmail();
+          }}
+        >
+          Send activation email
+        </Button>
+      ) : null}
     </div>
   );
 }

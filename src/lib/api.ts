@@ -542,6 +542,24 @@ export class ApiClient {
           },
         }),
 
+      /** [ACT-EMAIL] POST /org/members/:id/activation-email — send ONE
+       *  activation email on the existing token rail. "Sent" means the
+       *  provider accepted the message; the token is never returned. */
+      activationEmail: (
+        id: string,
+      ): Promise<ApiResult<{ ok: boolean; status?: string; code?: string; message?: string }>> =>
+        this.request(`/org/members/${id}/activation-email`, { method: "POST", body: {} }),
+
+      /** [ACT-EMAIL] POST /org/members/activation-emails — batch send
+       *  (cap 20) with per-row results. */
+      activationEmails: (
+        entityIds: string[],
+      ): Promise<ApiResult<{ ok: boolean; sent: number; failed: number; results: Array<{ entity_id: string; ok: boolean; code?: string }> }>> =>
+        this.request(`/org/members/activation-emails`, {
+          method: "POST",
+          body: { entity_ids: entityIds },
+        }),
+
       /** [P0-ONBOARD] POST /org/members/:id/activation-link — admin-gated
        *  one-time link mint (the controlled-pilot delivery channel until
        *  email ships). The returned token is shown ONCE; minting

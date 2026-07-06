@@ -39,7 +39,13 @@ RETENTION).
    tenant hygiene is 🟡 (residue swept read-only; dedicated smoke org
    still founder-gated).
 3. **Ready for founder-free self-serve onboarding: NO.** Org bootstrap is
-   founder-gated (P0-4 🔴 by design); email delivery does not exist
+   founder-gated (P0-4 🔴 by design); email delivery SHIPPED 2026-07-05
+   as [ACT-EMAIL] but is NOT enabled until the founder sets the env
+   (ACTIVATION_EMAIL_USE_REAL=1 + RESEND_API_KEY +
+   ACTIVATION_EMAIL_FROM on the FND Render service) — until then the
+   product honestly says "Email delivery isn't configured yet" and
+   admin-copied links remain the rail; previously: email delivery did
+   not exist
    (activation links are admin-copied); HRIS import, Slack ingest UI,
    ambient capture webhooks, billing, and enterprise security posture
    remain future. The go-live gate itself renders the "not self-serve

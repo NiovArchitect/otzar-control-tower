@@ -176,7 +176,10 @@ export type AuditEventType =
   | "SEEDED_CONTEXT_VALIDATED"
   // [RETENTION] seeded-context lifecycle (retire/restore — never delete).
   | "SEEDED_CONTEXT_RETIRED"
-  | "SEEDED_CONTEXT_RESTORED";
+  | "SEEDED_CONTEXT_RESTORED"
+  // [ACT-EMAIL] activation-email delivery attempts.
+  | "ACTIVATION_EMAIL_SENT"
+  | "ACTIVATION_EMAIL_FAILED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";

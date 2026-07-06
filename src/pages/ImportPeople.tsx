@@ -38,6 +38,8 @@ type ResultRow = {
   detail: string;
   activationUrl?: string;
   managerMapped?: boolean;
+  /** [ACT-EMAIL] the batch-send target — data only, never rendered. */
+  entityId?: string;
 };
 
 type Phase =
@@ -48,6 +50,31 @@ type Phase =
 
 export function ImportPeoplePage() {
   const [raw, setRaw] = useState("");
+  // [ACT-EMAIL] explicit batch email send from the results phase.
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailResult, setEmailResult] = useState<string | null>(null);
+
+  async function sendActivationEmails(results: ResultRow[]): Promise<void> {
+    const ids = results
+      .filter((r) => r.state === "invited" && r.entityId !== undefined)
+      .map((r) => r.entityId!);
+    if (ids.length === 0 || emailBusy) return;
+    setEmailBusy(true);
+    const r = await api.org.members.activationEmails(ids);
+    setEmailBusy(false);
+    if (r.ok && r.data.ok) {
+      const allNotConfigured =
+        r.data.sent === 0 &&
+        r.data.results.every((row) => row.code === "EMAIL_NOT_CONFIGURED");
+      setEmailResult(
+        allNotConfigured
+          ? "Email delivery isn't configured yet — copy the activation links above instead."
+          : `${r.data.sent} activation email${r.data.sent === 1 ? "" : "s"} sent — “sent” means our email provider accepted them${r.data.failed > 0 ? `; ${r.data.failed} couldn't be sent — copy those links instead` : ""}.`,
+      );
+    } else {
+      setEmailResult("The emails couldn't be sent. Nothing was delivered — copy the links above instead.");
+    }
+  }
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
   const [copiedAll, setCopiedAll] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -164,6 +191,7 @@ export function ImportPeoplePage() {
             : "Created, but the activation link couldn't be minted. Generate one from Users.",
         ...(activationUrl !== undefined ? { activationUrl } : {}),
         ...(managerMapped !== undefined ? { managerMapped } : {}),
+        entityId,
       });
       done++;
       setPhase({ kind: "importing", done, total: rows.length });
@@ -366,10 +394,33 @@ export function ImportPeoplePage() {
               {phase.results.filter((r) => r.state === "invited").length} invited ·{" "}
               {phase.results.filter((r) => r.state === "created_no_link").length} need a link from Users ·{" "}
               {phase.results.filter((r) => r.state === "failed").length} failed. Activation links are
-              shown once — copy them now and share securely. No email is sent.
+              shown once — copy them now and share securely. No email is sent automatically — you
+              can send activation emails below, or copy links instead.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* [ACT-EMAIL] explicit batch send for the just-invited people.
+                Nothing is emailed until this click; the honest
+                not-configured result keeps copy-links as the fallback. */}
+            {phase.results.some((r) => r.state === "invited" && r.entityId !== undefined) ? (
+              <div className="space-y-1" data-testid="import-email-block">
+                {emailResult === null ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={emailBusy}
+                    data-testid="import-send-emails"
+                    onClick={() => void sendActivationEmails(phase.results)}
+                  >
+                    {emailBusy ? "Sending…" : "Send activation emails now"}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground" data-testid="import-email-result">
+                    {emailResult}
+                  </p>
+                )}
+              </div>
+            ) : null}
             <ul className="space-y-2" data-testid="import-result-rows">
               {phase.results.map((r) => (
                 <li key={r.row.email} className="flex items-start gap-2 text-xs">

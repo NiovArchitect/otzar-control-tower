@@ -45,9 +45,11 @@ the work is, retire what's stale. Every surface states what it can and
 cannot do, and the walk from /setup to /retention never contradicts
 itself (live-verified after this pass's copy reconciliation).
 
-**Remaining friction (honest):** (1) activation links are admin-copied —
-no email delivery, the single biggest onboarding friction for a real
-company; (2) seeded documents are managed from /retention and boundaries
+**Remaining friction (honest):** (1) ~~activation links are admin-copied —
+no email delivery~~ **REPAIRED 2026-07-05 ([ACT-EMAIL]):** activation
+emails ship on the existing token rail (Users row send/resend + CSV
+result batch send, both explicit-click; honest "not configured" until
+the founder sets the Resend env; copy-link fallback always remains); (2) seeded documents are managed from /retention and boundaries
 but have no browsing surface beyond recent/20 — acceptable for pilot
 volume, not for corpus scale; (3) non-manager employees see no candidate
 relevance (correct conservatism, but managers carry validation load
