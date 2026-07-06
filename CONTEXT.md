@@ -118,6 +118,36 @@ that determines, per required production section:
 
 ---
 
+## ✅ AIX-SURFACES · Truth-weight on named-subject + ambient · LIVE (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `2497050` (PR #580 squash on green 5/5, deployed
+`dep-d963dkeq1p3s73fme96g`) · CT `main` = this commit (docs-only).
+**Truth-weight now covers ALL retrieval surfaces:** the clarity rail
+(3C) · AIX-6 named-subject · AIX-5 ambient (locked).
+
+- **AIX-6 named-subject** (background-answer.service.ts): live matches
+  weigh through stamped lineage BEFORE presentation — a superseded row
+  is never presented as live truth; it becomes ONE calm correction
+  naming the current source (successor title only when the caller
+  passes the same visibility model; honest generic line otherwise);
+  remaining matches order by weight class (the authorized August 7
+  decision presents BEFORE the flagged automation promise regardless of
+  recency); a flagged row carries ONE quiet honest flag. Unstamped rows
+  weigh neutrally — byte-identical behavior for orgs without lineage
+  (background-answer suite unchanged 3/3).
+- **AIX-5 ambient LOCKED:** it rides the clarity rail, so the 3C
+  correction flows through it — all three recognizer phrasings ("What
+  do we know about this?" / "Any background on this?" / "Is there
+  historical context for this?") answer a superseded row with the calm
+  correction + current source, mechanics-free (no raw enums, no UUIDs).
+- Tests: truth-weight-retrieval 5/5 (+1 surface test) · regression
+  background-answer 3/3 · clarity-answer 5/5 · comms-ingest 10/10 ·
+  communication-lineage 5/5 · redwood-runtime 2/2 · unit 2989/2989 ·
+  tsc 0. Zero schema; read-only surfaces; no production mutation
+  (deploy + read-only probes only).
+- Remaining (own GO): founder Phase-0 → live smoke-org rerun ·
+  per-domain thresholds · >2-hop supersession chains.
+
 ## ✅ REDWOOD-RUNTIME · The smoke-org simulation run · LIVE (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `b2700c4` (PR #579 squash on green 5/5, deployed

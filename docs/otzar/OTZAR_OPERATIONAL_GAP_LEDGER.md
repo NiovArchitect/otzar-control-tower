@@ -869,13 +869,17 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   REAL production gap: last-name speakers ("Torres") never resolved
   structured rights (first-token-only matching) — now unique
   name-token-subset matching with ambiguity → honest unknown.
+- **AIX-SURFACES SHIPPED 2026-07-06 (FND):** truth-weight now covers
+  ALL THREE retrieval surfaces — the clarity rail (3C), AIX-6
+  named-subject (superseded rows never present as live truth; ONE calm
+  correction with the visibility-gated current source; weight-ordered
+  matches; quiet honest flags; unstamped orgs byte-identical), and
+  AIX-5 ambient locked across all three recognizer phrasings.
 - **Remaining (future, own GO):** LIVE smoke-org rerun (blocked on
   founder Phase-0 dual-control creation of `NIOV Smoke Org` — runbook
-  §3.1; this spec is the script to point at it); per-domain thresholds
-  (budget limits); supersession chains across >2 hops; lineage-aware
-  ranking on the AIX-5/6 ambient + named-subject surfaces (currently
-  the clarity rail only). Redwood corpus stays out of prod/demo,
-  always.
+  §3.1; the redwood-atlas-runtime spec is the script to point at it);
+  per-domain thresholds (budget limits); supersession chains across
+  >2 hops. Redwood corpus stays out of prod/demo, always.
 
 ## Next-slice selection method
 
