@@ -25,6 +25,7 @@ import { summarizeNotificationBody } from "./work-os/notification-body";
 import type {
   ClarityAnswerView,
   ClarityProjectionView,
+  ContextBoundariesView,
   ContextCandidateView,
   DocumentExtractPreviewResponse,
   TeamClarityHealthView,
@@ -1607,6 +1608,12 @@ export class ApiClient {
         method: "PATCH",
         body: patch,
       }),
+
+    /** GET /api/v1/work-os/context/boundaries — [CTX-BOUNDARY] the admin
+     *  boundary view's grouped counts + recent seeded-document labels.
+     *  Read-only; manager/admin-gated server-side (employees get 403). */
+    contextBoundaries: (): Promise<ApiResult<{ ok: boolean; boundaries: ContextBoundariesView }>> =>
+      this.request(`/work-os/context/boundaries`),
 
     /** GET /api/v1/work-os/context/background-answer — [AIX-6] org-scoped
      *  named-subject background answer ("What do we know about Project

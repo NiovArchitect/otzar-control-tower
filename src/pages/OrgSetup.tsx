@@ -277,6 +277,13 @@ export function OrgSetupPage() {
             </Link>
             .
           </p>
+          <p className="text-xs text-muted-foreground" data-testid="setup-boundaries-pointer">
+            Wondering what context Otzar has and how it's governed?{" "}
+            <Link to="/setup/context-boundaries" className="font-medium text-foreground underline underline-offset-2">
+              See Context Boundaries
+            </Link>
+            .
+          </p>
           <p className="text-xs text-muted-foreground" data-testid="setup-honesty-note">
             This page reads your organization's real state — it never changes
             anything by itself. Some capabilities (bulk import, retention

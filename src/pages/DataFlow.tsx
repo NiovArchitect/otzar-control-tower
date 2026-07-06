@@ -111,6 +111,9 @@ export function DataFlowPage() {
         <Button asChild variant="outline" size="sm" data-testid="dataflow-retention-link">
           <Link to="/retention">Retention & lifecycle details</Link>
         </Button>
+        <Button asChild variant="outline" size="sm" data-testid="dataflow-boundaries-link">
+          <Link to="/setup/context-boundaries">Context Boundaries</Link>
+        </Button>
         <Button asChild variant="outline" size="sm" data-testid="dataflow-back-to-setup">
           <Link to="/setup">Back to Organization Setup</Link>
         </Button>

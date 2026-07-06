@@ -773,7 +773,12 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   anchoring; approval = existing work rail with PROPOSED + extraction
   lineage + human_reviewed; rejection persists nothing; CS-5
   no-extraction-on-upload contract intact and test-locked; CT
-  seed-corpus page gains the explicit-click scan + review panel). Copy
+  seed-corpus page gains the explicit-click scan + review panel).
+  → CTX-BOUNDARY ✅ SHIPPED 2026-07-05 (/setup/context-boundaries — the
+  admin BOUNDARY view, not a relevance queue: seven can/cannot groups;
+  read-only manager-gated GET /work-os/context/boundaries with exact
+  counts + recent document labels only; honest retention limitation;
+  linked from /setup, data-flow, retention; zero curation asks). Copy
   shipped now: both seeding surfaces state that admins never
   classify/tag.
 

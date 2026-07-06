@@ -92,6 +92,20 @@ export default function Retention(): JSX.Element {
             <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </Link>
           <Link
+            to="/setup/context-boundaries"
+            className="flex items-center justify-between rounded-xl border border-border/70 p-3 hover:border-primary/40"
+            data-testid="retention-boundaries-link"
+          >
+            <span>
+              <span className="font-medium text-foreground">
+                See Context Boundaries
+              </span>{" "}
+              — what company context Otzar has been given and how it is
+              governed.
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+          <Link
             to="/security-audit"
             className="flex items-center justify-between rounded-xl border border-border/70 p-3 hover:border-primary/40"
           >

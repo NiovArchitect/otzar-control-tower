@@ -4779,6 +4779,21 @@ export interface DocumentExtractPreviewResponse {
   review_note: string;
 }
 
+// [CTX-BOUNDARY] Mirror of FND ContextBoundariesProjection — grouped
+// counts + recent seeded-document labels for the admin boundary view.
+export interface ContextBoundariesView {
+  seeded_history_count: number;
+  seeded_document_count: number;
+  extracted_reviewed_count: number;
+  recent_documents: Array<{
+    title_label: string;
+    origin_label: string;
+    currentness_label?: string;
+    covering_period_label?: string;
+    seeded_on: string;
+  }>;
+}
+
 export interface ExternalContextView {
   external_party_type:
     | "client"

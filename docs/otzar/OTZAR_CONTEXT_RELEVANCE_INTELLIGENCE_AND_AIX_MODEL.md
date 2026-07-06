@@ -303,10 +303,24 @@ what exists, and the build order says where the rest lands.
    affordances. Rejection is a client-side dismiss: nothing persisted,
    nothing to clean. Seeding still creates no work — extraction only on
    explicit click, never on upload (test-locked).
-8. Retention model, corpus review/soft-delete (admin *boundary* view, not
-   a librarian queue), broader corpus extraction, connector sync,
-   vector/corpus search, and conflict-labeling remain separate, later,
-   and gated — each needs its own GO.
+8. **CTX-BOUNDARY ✅ SHIPPED 2026-07-05 — Context Boundaries (the admin
+   boundary view, NOT a librarian queue):** `/setup/context-boundaries`
+   ("See what company context Otzar has been given and how it is
+   governed"), linked from /setup, /setup/data-flow, and /retention.
+   Seven boundary groups with can/cannot copy (seeded history, seeded
+   documents, reviewed extracted work, Twin calibration, writing style,
+   live work, external context), backed by a read-only manager-gated
+   FND projection (GET /work-os/context/boundaries): exact counts for
+   the three ledger-derived groups + the 3 most recent seeded documents
+   as AIX-1 labels only (never bodies/ids/enums). Groups without a safe
+   existing projection are deliberately copy-only, not approximately
+   counted. Retention is stated honestly ("Retention controls are not
+   configurable in-product yet… nothing here deletes or archives
+   sources") with a link to /retention. No classify/tag/retire/cleanup
+   asks anywhere — admins govern boundaries; Otzar manages relevance.
+9. Retention model + archive/retire rails, broader corpus extraction,
+   connector sync, vector/corpus search, and conflict-labeling remain
+   separate, later, and gated — each needs its own GO.
 
 ## Part 8 — What this protects
 
