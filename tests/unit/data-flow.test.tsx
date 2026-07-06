@@ -67,7 +67,7 @@ describe("[GAP-U SLICE-3] deriveDataFlows — honest per-source truth", () => {
     const mem = rows.find((r) => r.key === "memory_boundary")!;
     expect(mem.lands).toContain("they cannot take the company's work");
     for (const r of rows) {
-      expect(r.retention).toContain("not configurable in-product yet");
+      expect(r.retention).toContain("Retention windows and deletion are not configurable yet");
       expect(r.ownership.length).toBeGreaterThan(0);
     }
   });
@@ -122,7 +122,7 @@ describe("[GAP-U SLICE-3] DataFlow page — calm, read-only, no overclaim", () =
     expect(body).not.toMatch(/ambient ingest(ion)? is (on|enabled|active)/i);
     expect(body).not.toMatch(/retention (is )?configured/i);
     expect(body).not.toMatch(/email sent/i);
-    expect(body).toContain("Retention controls are not configurable in-product yet");
+    expect(body).toContain("retired from active use (audit preserved)");
     // Repair + footer links target real routes.
     expect(screen.getByTestId("dataflow-retention-link").getAttribute("href")).toBe("/retention");
     expect(screen.getByTestId("dataflow-back-to-setup").getAttribute("href")).toBe("/setup");

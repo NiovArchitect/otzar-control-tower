@@ -181,7 +181,7 @@ describe("[GAP-U] Organization Setup — guided read-only journey", () => {
     expect(screen.getByTestId("setup-secondary-people").getAttribute("href")).toBe(
       "/setup/import-people",
     );
-    expect(body).toContain("Retention controls are not configurable in-product yet");
+    expect(body).toContain("Retention windows and deletion are not configurable yet");
     // Read-only proof: only GETs fired.
     await waitFor(() => expect(methods.length).toBeGreaterThan(0));
     expect(methods.every((m) => m === "GET")).toBe(true);

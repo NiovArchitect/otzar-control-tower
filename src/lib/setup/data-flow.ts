@@ -32,7 +32,7 @@ export interface DataFlowRow {
 }
 
 const RETENTION_HONEST =
-  "Retention controls are not configurable in-product yet — records follow the platform lifecycle described on the Retention page.";
+  "Retention is governed lifecycle: seeded context can be retired from active use (audit preserved). Retention windows and deletion are not configurable yet — see the Retention page.";
 
 /** Static product-capability truth per connector slug. States ONLY what is
  *  wired today; anything else is "not available yet". */

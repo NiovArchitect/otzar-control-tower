@@ -484,7 +484,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
     });
     govLines.push({
       kind: "limit",
-      text: "Retention controls are not configurable in-product yet. Keep this visible during pilot planning.",
+      text: "Retention is governed lifecycle: seeded context can be retired from active use with audit preserved. Retention windows and deletion are not configurable yet — keep this visible during pilot planning.",
     });
   }
   sections.push({

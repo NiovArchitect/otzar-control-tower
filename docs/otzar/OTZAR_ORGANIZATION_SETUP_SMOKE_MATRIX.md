@@ -7,8 +7,10 @@ admin-visible state, the repair path, and the test that proves it. It is
 implementation-bound, not theoretical: every "Covered" row cites a real test.
 
 **Legend:** ✅ covered (slice noted) · 🟡 partially covered · 🔴 not
-represented yet. **Status 2026-07-05: 14/14 stories covered** across
-slices 1–5; remaining maturity items listed at the bottom.
+represented yet. **Status 2026-07-05 (consolidation): 23/23 stories
+covered** — setup slices 1–5, the Gap V seeding/calibration arc, the
+Gap W AIX arc, extraction review, boundaries, and retention lifecycle;
+remaining maturity items listed at the bottom.
 
 | # | Story | Customer pain | Source of truth | Detection | Admin sees | Repair path | Test proof | Status |
 |---|---|---|---|---|---|---|---|---|
@@ -23,7 +25,7 @@ slices 1–5; remaining maturity items listed at the bottom.
 | 9 | Recommendations disconnected | Setup feels scattered | open dandelion seeds count | pending review count on First workflows | "N suggestions are waiting for review in Organization Seeding." | /organization-seeding | org-setup.test ready-ish next-step + setup-coach.test (grouped/deduped/disappears-when-fixed/quiet-org/copy sweep) | ✅ SLICE 5 — setup coach shipped as DERIVED typed recommendations (doctrine: setup stalls need repair links, not approval — the Dandelion approve/reject lifecycle stays operational-only; ingestion-driven seeds with real approval semantics remain in Organization Seeding) |
 | 10 | Approval policy unclear | "What can AI do alone?" | org/settings flags + twin ceiling | human-readable policy lines | "Sensitive AI actions require human approval." / ceiling as "Approval required" | /data-knowledge (+ Settings) | org-setup.test (no raw policy enums) | ✅ |
 | 11 | External data boundaries | Client-data leakage worry | doctrine + T-1→T-4 rails | governance boundary line | "Client and vendor data never becomes portable personal memory." | /data-knowledge | data-flow.test external_context row (observed-never-trusted, never-portable, manager-vs-source visibility) | ✅ SLICE 3 — the External & client context row states the full boundary |
-| 12 | Retention setup missing | Compliance concern | (unmodeled — honest) | limitation always shown | "Retention controls are not configurable in-product yet. Keep this visible during pilot planning." | /retention (existing honest page) | overclaim test asserts the line renders | ✅ (as an honest limitation) |
+| 12 | Retention setup missing | Compliance concern | details.context_lifecycle (RETENTION slice) + honest limits | governed lifecycle shown; windows/deletion honestly absent | "Retention is governed lifecycle: seeded context can be retired from active use (audit preserved); retention windows and deletion are not configurable yet." | /retention (lifecycle card: retire/restore, two-step confirm) | retention-lifecycle.test (3) + context-lifecycle.test FND (2) + overclaim anchors updated in data-flow/org-setup/seed-corpus/live spec | ✅ RETENTION — upgraded from honest limitation to governed capability |
 | 13 | Bulk onboarding pain | 100+ people, one-by-one invites | CSV import (/setup/import-people) through the EXISTING rails: bulk create → per-person Phase-3 invite (twin + one-time link) → hierarchy assign | parser refuses forbidden columns; preview-first; confirmation-gated | "Preview first… You're about to invite N people with minimum access… No email is sent." Per-batch cap 20 with honest split copy. | /setup/import-people (linked from the People card + results link back to /setup) | csv-import.test 8 tests (stories 1–13 of the import list): empty/headers/invalid-email/dupes/existing/forbidden-columns/manager-resolution/self-manager/unknown-role/row-cap/no-write-before-confirm/partial-failure/one-time links | ✅ SLICE 2 |
 | 14 | "Can we go live?" | Implementation confidence gap | all of the above | top summary + ONE deterministic next step | "N areas need attention — start with the step below." / "You're in good shape." | /setup/go-live — the formal gate: deterministic verdict (Not ready / Needs admin setup / Ready for first workflow), ready/blocking/tidy/founder-action tally, per-item repair links, always-rendered "not self-serve complete" limitation | go-live.test (verdict ladder, founder actions apart, warnings never fake-block, overclaim sweep, GET-only) + live spec verdict check | ✅ SLICE 4 — the go-live gate is the graduation artifact |
 
@@ -33,6 +35,20 @@ activate people → assign roles → map managers → connect first tool → fin
 twin setup → ingest first conversation → review pending suggestions → "in
 good shape". Foundation/bootstrap issues can't occur for a logged-in admin
 (the org exists by construction), so the ladder starts at people.
+
+## Context / AIX / retention arc stories (consolidation 2026-07-05)
+
+| # | Story | Customer pain | Detection / rail | Test proof | Status |
+|---|---|---|---|---|---|
+| 15 | Org history seeding | "Otzar knows nothing about our past" | /setup/seed-history — confirmation-gated CS-1/CS-2 lane; context, never to-dos | seed-history.test + seeded-context.test (FND) | ✅ CS-2 |
+| 16 | Document corpus seeding | "Can it read our SOPs?" | /setup/seed-corpus — paste-only, extraction OFF by contract | seed-corpus.test + document-context.test (FND) | ✅ CS-5 |
+| 17 | Employee Twin calibration | "The AI doesn't work like me" | /app/my-twin/calibration — consent-gated propose→approve, personal wallet | twin-calibration.test (CT+FND) | ✅ CS-3 |
+| 18 | Writing style | "Drafts don't sound like me" | writing-style — raw sample never leaves browser | writing-style.test | ✅ CS-4 |
+| 19 | Seeded context read as truth | Overtrust risk | AIX-1 lineage labels + AIX-2 five-choice in-context validation in View/Why | view-why.test + context-validation.test + context-relevance.test (FND) | ✅ AIX-1/2 |
+| 20 | Context nobody validates | Relevance burden lands on admins | AIX-3 derived candidates + AIX-4 clarity retrieval + AIX-5 ambient + AIX-6 named-subject — all through one gate, ranking law codified | context-candidates/retrieval/background-answer tests (FND) + CT candidates/phrases/ambient tests | ✅ AIX-3–6 |
+| 21 | Old docs become task spam | Workflow pollution fear | DOC-EXTRACT preview-only scan; human approves into PROPOSED work | document-extraction.test (FND) + document-extract-review.test | ✅ DOC-EXTRACT |
+| 22 | "What does Otzar have on us?" | Governance opacity | /setup/context-boundaries — seven can/cannot groups, exact counts, no curation asks | context-boundaries.test (CT+FND) | ✅ CTX-BOUNDARY |
+| 23 | "Can we stop using old context?" | Lifecycle control | /retention lifecycle card — retire/restore, total preservation, total active-use suppression | retention-lifecycle.test + context-lifecycle.test (FND) | ✅ RETENTION |
 
 ## Remaining unimplemented stories (honest)
 

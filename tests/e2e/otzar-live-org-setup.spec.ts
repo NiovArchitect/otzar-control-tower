@@ -73,7 +73,7 @@ test("setup page renders the guided journey honestly; reads only; no leaks (scre
   expect(body).not.toMatch(/EXECUTIVE_OVERRIDE|activation_pending|SEED_NEEDS_REVIEW|APP_CREDENTIALS_MISSING|connector_policy/);
   // Overclaim sweep.
   expect(body).not.toMatch(/email sent|invite delivered/i);
-  expect(body).toContain("Retention controls are not configurable in-product yet");
+  expect(body).toContain("Retention windows and deletion are not configurable yet");
   // [SLICE-2] bulk import exists now — the card offers the CSV door.
   expect(body).toContain("Import them from a CSV");
 

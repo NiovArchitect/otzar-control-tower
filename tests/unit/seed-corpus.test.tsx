@@ -64,7 +64,7 @@ describe("[CS-5] Seed organization context — boundary-first, confirmation-gate
     expect(copy).toContain("fully lineaged");
     expect(copy).toContain("never becomes anyone's personal Twin memory");
     expect(copy).toContain("not trusted automatically");
-    expect(copy).toContain("Retention controls are not configurable in-product yet");
+    expect(copy).toContain("retire it from active use later on the Retention page");
     // Review happened — zero writes so far.
     expect(bodies).toEqual([]);
 

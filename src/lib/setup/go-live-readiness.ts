@@ -244,7 +244,7 @@ export function deriveGoLiveReadiness(inputs: SetupInputs): GoLiveReadiness {
     });
   }
   governance.push({
-    label: "Retention controls are not configurable in-product yet",
+    label: "Retention is governed lifecycle: seeded context can be retired from active use (audit preserved); retention windows and deletion are not configurable yet",
     whyItMatters: "Keep this visible during pilot planning.",
     severity: "not_available",
     repair: { label: "Retention & lifecycle", to: "/retention" },

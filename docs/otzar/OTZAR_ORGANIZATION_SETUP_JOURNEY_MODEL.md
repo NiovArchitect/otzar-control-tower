@@ -1,5 +1,22 @@
 # Otzar Organization Setup Journey — Doctrine + Audit
 
+> **RECONCILIATION 2026-07-05 (consolidation):** this audit's gap findings
+> are the map the arc was built from — most are now CLOSED. Since
+> authoring: the setup journey shipped as slices 1–5 (/setup checklist ·
+> /setup/import-people CSV · /setup/data-flow · /setup/go-live gate ·
+> setup coach), org context seeding shipped (CS-1–5: /setup/seed-history,
+> /setup/seed-corpus, Twin calibration, writing style), the AIX arc
+> shipped (lineage → validation → candidates → governed retrieval →
+> ambient + named-subject answers), extraction review shipped
+> (DOC-EXTRACT), the boundary view shipped (/setup/context-boundaries),
+> and retention became governed lifecycle (retire/restore with total
+> preservation — finding #13 below is superseded: lifecycle exists;
+> retention WINDOWS and deletion remain unbuilt and honestly stated).
+> "Go-live readiness check — MISSING" is superseded by /setup/go-live.
+> Findings below are preserved as the historical audit record; current
+> truth lives in the Gap Ledger, the smoke matrix (23/23), and the
+> readiness audit's reconciled Section A.
+
 **Status:** 2026-07-04 (Fable 5). Doctrine + audit only — no product code in
 this pass. **State at authoring:** CT `main` `751fe2c` · FND `main` `1e21709`
 (both live). P0-ONBOARD (activation loop) is CLOSED; this is the next layer.

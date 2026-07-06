@@ -14,7 +14,45 @@ doc-claimed.
 
 ---
 
-## A. Production readiness verdict
+## A. Production readiness verdict — RECONCILED 2026-07-05 (consolidation)
+
+The 2026-07-04 verdict below is superseded. Its three named blockers all
+closed: credential delivery shipped (P0-ONBOARD activation rail), the
+deploy gate shipped (autoDeploy OFF + merge-on-green + binding rail,
+P0-OPS), and live smokes are read-only by discipline (render-only
+batteries; every write path integration-locked instead). Since then the
+full setup/context/AIX/retention arc shipped and live-verified (Gap U
+slices 1–5, Gap V CS-1–5, Gap W AIX-1–6, DOC-EXTRACT, CTX-BOUNDARY,
+RETENTION).
+
+**The three claims, kept separate (do not collapse):**
+
+1. **Ready for a first workflow: YES.** The go-live gate can reach "Ready
+   for first workflow" on real state; transcript→ledger→Action Center→
+   governed send→audit is live-verified; seeded context informs answers
+   under the ranking law with attribution; extraction is review-first;
+   lifecycle is governed.
+2. **Ready for a controlled founder-operated pilot: YES, subject to the
+   standing founder actions** (smoke org creation + Phase-0 rehearsal,
+   RENDER_API_KEY rotation, the two stale escalation rejections —
+   Section E). The operator rail (runbook §1–8) is binding and exercised;
+   tenant hygiene is 🟡 (residue swept read-only; dedicated smoke org
+   still founder-gated).
+3. **Ready for founder-free self-serve onboarding: NO.** Org bootstrap is
+   founder-gated (P0-4 🔴 by design); email delivery does not exist
+   (activation links are admin-copied); HRIS import, Slack ingest UI,
+   ambient capture webhooks, billing, and enterprise security posture
+   remain future. The go-live gate itself renders the "not self-serve
+   complete" limitation — the product does not overclaim this.
+
+Scale: Not ready ▸ **Controlled pilot ready (current, founder-operated)**
+▸ Design-partner ready ▸ Production ready. Design-partner readiness still
+needs ambient capture (webhooks), email/push notifications, and the Slack
+loop. Production readiness additionally needs billing, migration/rollback
+rehearsal, true deletion/retention-window policy, and enterprise security
+posture work.
+
+<details><summary>Superseded 2026-07-04 verdict (history)</summary>
 
 **NOT READY for an unattended controlled pilot — but close, and the gap is
 narrow and specific.** The honest position:
@@ -28,13 +66,7 @@ narrow and specific.** The honest position:
 > by CI** (a red build can ship). None of these is a big build — they are
 > P0-sized slices, not features.
 
-Scale: **Not ready** ▸ *Controlled pilot ready* ▸ Design-partner ready ▸
-Production ready. Current: **Not ready**, with controlled-pilot readiness
-achievable in one short slice-run (P0 list below — estimated 3–4 slices).
-Design-partner readiness additionally needs ambient capture (webhooks),
-email/push notifications, and the Slack loop. Production readiness
-additionally needs billing, migration/rollback rehearsal, and enterprise
-security posture work.
+</details>
 
 ---
 

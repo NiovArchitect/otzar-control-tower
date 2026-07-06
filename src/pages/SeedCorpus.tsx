@@ -282,7 +282,7 @@ export function SeedCorpusPage() {
                 "No tasks, follow-ups, or notifications are created — reference context never becomes homework.",
                 "It never becomes anyone's personal Twin memory.",
                 "External or client names inside it are not trusted automatically.",
-                "Retention controls are not configurable in-product yet.",
+                "You can retire it from active use later on the Retention page — audit preserved, nothing deleted.",
               ].map((line, i) => (
                 <li key={i} className="flex items-start gap-2">
                   <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
