@@ -316,8 +316,19 @@ inform how Otzar weighs and routes decisions.
   (speech act from the 16-act vocabulary, speaker + role, source
   artifact, authority basis/status via decision rights, currentness).
   Deterministic, fail-open, zero admin work — nobody classifies
-  messages. This metadata informs future truth-weighting only; it
-  grants nothing and changes no behavior today.
+  messages.
+- **Truth-weight retrieval (Block 3C):** the clarity/background answer
+  rail now weighs that lineage. A within-authority decision beats a
+  newer proposal; memory references and open questions are never
+  current truth; recommend-only informs but never finalizes;
+  exceeds-authority commitments are flagged, never approved truth;
+  policy constraints outrank preference; superseded rows lose to their
+  successor. Supersession links ONLY on explicit language + a unique
+  older match — ambiguity links nothing. When someone works from an
+  older plan, Otzar answers with a brief calm correction plus the
+  current source (never a dump, never "you are wrong"). Twins retrieve
+  strictly through their human's session and inherit no authority —
+  test-locked.
 
 ## 7. Secrets & key rotation
 

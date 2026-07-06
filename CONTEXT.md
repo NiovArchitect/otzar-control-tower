@@ -118,6 +118,60 @@ that determines, per required production section:
 
 ---
 
+## ✅ BLOCK-3C · Truth-weight retrieval + supersession + Twin-boundary lock · LIVE (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `7f6f8d4` (PR #578 squash on green 5/5, deployed
+`dep-d962jnu8bjmc73cmuph0`, live — read-only smoke only) · CT `main` =
+this commit (docs-only — no UI by design; deployed CT code stays
+`77db133`). **The org-substrate arc 3A→3B→3C is CLOSED end to end.**
+
+- **The composition law is executable:** truth weight = decision rights
+  + communication act + source lineage + authority lineage + agreement
+  lineage + currentness + permissions. `truth-weight.service.ts` (pure,
+  8 classes): policy_constraint > authorized_decision >
+  unverified_decision > work_signal > recommendation > reference_only >
+  exceeds_authority > superseded. Recency breaks ties ONLY within a
+  class — a newer proposal can never outrank an authorized decision; a
+  memory reference / open question is never current truth;
+  recommend-only informs, never finalizes; exceeds-authority is
+  flagged, never approved truth; policy outranks preference; superseded
+  loses to its successor.
+- **Deterministic supersession linking at ingest:** explicit
+  superseding language + same decision domain + ≥2 shared CONTENT
+  tokens (title + statement quote; participant-name tokens excluded so
+  generic "Follow-up owned by X" titles can never degenerate-match) +
+  EXACTLY ONE older stamped candidate → fills supersedes/superseded_by
+  + currentness=superseded (additive JSON only). Zero or many
+  candidates → nothing links; unresolved beats guessed; fail-open;
+  seeded history never supersedes live work.
+- **Calm correction on the clarity rail:** asking about a superseded
+  row leads with ONE sentence ("You may be looking at an older plan —
+  … was superseded. The current decision is …") + the successor title
+  ONLY when the caller passes the same party-or-manager gate for that
+  row; quiet one-line flags for exceeds-authority / recommend-only /
+  recollection rows. Never a source dump, never "you are wrong", never
+  raw ranking mechanics (test-locked).
+- **Twin-boundary LOCKED at retrieval:** AI_AGENT caller → NOT_FOUND on
+  its human's rows (a twin reaches work only through its human's
+  authenticated session); cross-org NOT_FOUND (enumeration-safe);
+  rights load through the HUMAN roster only (force-created twin rights
+  rows never surface); no caller can turn a recommend-only posture into
+  finality. Permissions gate BEFORE ranking, unchanged.
+- Tests: truth-weight-retrieval 4/4 (ten ranking rules · supersession
+  e2e through real ingest + calm correction · ambiguity links nothing ·
+  permission/Twin probes); unit tier 2989/2989; targeted integration
+  44/44 (clarity-answer 5/5 unchanged). ZERO schema; no
+  customer-facing regression; no production mutation (read-only
+  probes).
+- **Redwood Atlas status:** the doctrine's conflict patterns now hold
+  END TO END at runtime — a future SMOKE-org corpus load is
+  structurally possible (own GO; never prod/demo). Remaining (future
+  GOs): ambient/named-subject surfaces consume truth-weight ·
+  supersession chains >2 hops · per-domain thresholds.
+- Ops: repos relocated to `~/dev/NIOV Labs/github` (out of iCloud)
+  before this block — ZERO " 2" corruption artifacts appeared during
+  3C (first clean slice since the hazard was identified).
+
 ## ✅ BLOCK-3B · Communication lineage at ingest · LIVE (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `0ef2fce` (PR #577 squash on green 5/5, deployed

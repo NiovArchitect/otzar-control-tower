@@ -127,6 +127,16 @@ owns/can_approve/recommend_only by DecisionDomain, admin-authored on
 Company Profile, employee posture on Work Schedule, audited, overlaid
 onto the heuristics before the engine runs — the runtime analog of this
 pack's `people.json` rights; rights grant no tools/permissions/authority).
+**Real since Block 3C (FND):** TRUTH-WEIGHT RETRIEVAL — the clarity/
+background rail weighs stamped lineage through the 8-class law
+(authorized decisions beat newer proposals; references never become
+truth; recommend-only never finalizes; exceeds-authority flagged;
+policy outranks preference; superseded loses to its successor);
+deterministic supersession linking at ingest (explicit language +
+unique content match only); Twin boundary test-locked on retrieval.
+The doctrine's conflict patterns now hold END TO END at runtime, which
+makes a future SMOKE-org load of this corpus structurally possible
+(still gated on its own GO; never prod/demo).
 **Real since Block 3B (FND):** statement-level speech-act + authority
 lineage STAMPED AT INGEST — every conversation-derived work row /
 follow-up carries `details.communication_lineage` (the 16-act vocabulary

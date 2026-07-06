@@ -145,6 +145,25 @@ admin classification work, zero behavior change today. Truth weight in
 authority lineage + agreement lineage + currentness + permissions —
 never newest-wins, never executive-wins, never hierarchy-wins.
 
+### Part 5c — Truth-weight retrieval (SHIPPED 2026-07-06, Block 3C)
+
+The composition law is now EXECUTABLE on the clarity/background rail:
+`computeTruthWeight` classifies every stamped statement into eight
+classes (policy_constraint > authorized_decision > unverified_decision
+> work_signal > recommendation > reference_only > exceeds_authority >
+superseded) — recency breaks ties only WITHIN a class, so a newer
+proposal can never outrank an authorized decision and a memory
+reference can never outrank anything decided. Supersession pointers
+fill DETERMINISTICALLY at ingest (explicit superseding language + same
+domain + unique older content match, participant names excluded from
+matching; ambiguity links nothing). The user experience stays calm: a
+question about a superseded row leads with a one-sentence correction
+plus the current source — never a dump, never "you are wrong", never
+raw mechanics. Permissions gate before ranking (party-or-manager,
+tenant-safe), and the Twin boundary is test-locked: a Twin retrieves
+only through its human's session and can never inherit authority or
+finalize from a recommend-only posture.
+
 ## Part 6 — Audit findings (code-grounded, 2026-07-05)
 
 1. **Seeded context is STORED-ONLY today.** `seeded_context` appears in

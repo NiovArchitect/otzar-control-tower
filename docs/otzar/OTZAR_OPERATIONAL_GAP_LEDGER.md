@@ -848,11 +848,24 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   rights = honest unknown, ingestion never blocked); supersedes/
   superseded_by left null rather than guessed. Stamping changes NO
   customer-facing behavior (comms-ingest suite unchanged 10/10).
-- **Remaining (Block 3C, own GO):** truth-weight retrieval ranking
-  composing rights + act + lineage + currentness + permissions;
-  deterministic supersession LINKING (pointers exist, unfilled);
-  Twin-boundary lock probes on live retrieval surfaces; per-domain
-  thresholds (e.g. budget limits) deliberately not modeled yet.
+- **Block 3C SHIPPED 2026-07-06 (FND):** truth-weight retrieval live —
+  pure 8-class weight law (policy_constraint > authorized_decision >
+  unverified_decision > work_signal > recommendation > reference_only >
+  exceeds_authority > superseded; recency breaks ties only WITHIN a
+  class); deterministic supersession linking at ingest (explicit
+  language + same domain + ≥2 shared content tokens with participant
+  names excluded + exactly-one older candidate; ambiguity links
+  NOTHING); clarity WHAT_BACKGROUND leads with the calm correction when
+  a row is superseded (successor named only if the caller passes the
+  same party-or-manager gate) + one quiet flag for exceeds-authority /
+  recommend-only / recollection rows; Twin-boundary LOCKED in tests
+  (AI_AGENT caller NOT_FOUND, cross-org NOT_FOUND, rights via human
+  roster only, recommend-only can never finalize for any caller).
+- **Remaining (future, own GO):** per-domain thresholds (budget
+  limits); supersession chains across >2 hops; lineage-aware ranking on
+  the AIX-5/6 ambient + named-subject surfaces (currently the clarity
+  rail only); Redwood corpus load into a future SMOKE org (never
+  prod/demo).
 
 ## Next-slice selection method
 
