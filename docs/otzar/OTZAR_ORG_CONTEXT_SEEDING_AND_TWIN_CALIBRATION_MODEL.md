@@ -215,6 +215,16 @@ auto external trust, personal-wallet writes. External mentions inside
 documents route to review only when a future extract/review flow runs —
 a documented limitation. The pipe is correct; volume comes later.
 
+**Successor shipped (2026-07-05) — governed lifecycle (RETENTION):**
+seeded context now has a retention rail: admins can retire any seeded
+row from active use (and restore it) — Otzar stops consuming it as
+background/candidates/extraction while the row, capture, audit, and
+lineage are fully preserved. Work lifecycle stays independent of
+document lifecycle (reviewed extracted work survives its source's
+retirement), and personal Twin calibration remains employee-revocable
+only — never admin-controlled. Hard delete/purge/windows remain
+unbuilt and honestly stated.
+
 **Successor shipped (2026-07-05) — review-first extraction:** the
 extract/review flow now exists as DOC-EXTRACT (see the AIX model doc,
 Part 7 item 7): an admin explicitly scans ONE seeded document for

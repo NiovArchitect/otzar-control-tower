@@ -173,7 +173,10 @@ export type AuditEventType =
   | "PASSWORD_RESET_LINK_CREATED"
   | "PASSWORD_RESET_COMPLETED"
   // [AIX-2] a human validated seeded background context in-context.
-  | "SEEDED_CONTEXT_VALIDATED";
+  | "SEEDED_CONTEXT_VALIDATED"
+  // [RETENTION] seeded-context lifecycle (retire/restore — never delete).
+  | "SEEDED_CONTEXT_RETIRED"
+  | "SEEDED_CONTEXT_RESTORED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";
@@ -4785,6 +4788,8 @@ export interface ContextBoundariesView {
   seeded_history_count: number;
   seeded_document_count: number;
   extracted_reviewed_count: number;
+  /** [RETENTION] retired from active use — still preserved. */
+  retired_context_count: number;
   recent_documents: Array<{
     title_label: string;
     origin_label: string;
@@ -4792,6 +4797,18 @@ export interface ContextBoundariesView {
     covering_period_label?: string;
     seeded_on: string;
   }>;
+}
+
+// [RETENTION] one row of the admin seeded-document lifecycle list. The
+// id exists only as the retire/restore POST target — never as copy.
+export interface SeededDocumentLifecycleRowView {
+  ledger_entry_id: string;
+  title_label: string;
+  origin_label: string;
+  currentness_label?: string;
+  covering_period_label?: string;
+  seeded_on: string;
+  lifecycle_state_label: string;
 }
 
 export interface ExternalContextView {

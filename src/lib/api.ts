@@ -28,6 +28,7 @@ import type {
   ContextBoundariesView,
   ContextCandidateView,
   DocumentExtractPreviewResponse,
+  SeededDocumentLifecycleRowView,
   TeamClarityHealthView,
   LoginResponse,
   LoginFailure,
@@ -1614,6 +1615,25 @@ export class ApiClient {
      *  Read-only; manager/admin-gated server-side (employees get 403). */
     contextBoundaries: (): Promise<ApiResult<{ ok: boolean; boundaries: ContextBoundariesView }>> =>
       this.request(`/work-os/context/boundaries`),
+
+    /** GET /api/v1/work-os/context/documents — [RETENTION] the admin
+     *  seeded-document lifecycle list (labels + state; ids only as POST
+     *  targets). Read-only; manager/admin-gated server-side. */
+    contextDocuments: (): Promise<ApiResult<{ ok: boolean; documents: SeededDocumentLifecycleRowView[] }>> =>
+      this.request(`/work-os/context/documents`),
+
+    /** POST /api/v1/work-os/ledger/:id/context-lifecycle — [RETENTION]
+     *  retire seeded context from active use, or restore it. NEVER a
+     *  delete: the row, capture, audit, and lineage are preserved;
+     *  retired context is suppressed from active retrieval/extraction. */
+    setContextLifecycle: (
+      ledgerEntryId: string,
+      body: { state: "retired" | "active"; reason?: string },
+    ): Promise<ApiResult<{ ok: boolean; entry?: WorkLedgerEntryView; code?: string; message?: string }>> =>
+      this.request(`/work-os/ledger/${encodeURIComponent(ledgerEntryId)}/context-lifecycle`, {
+        method: "POST",
+        body,
+      }),
 
     /** GET /api/v1/work-os/context/background-answer — [AIX-6] org-scoped
      *  named-subject background answer ("What do we know about Project

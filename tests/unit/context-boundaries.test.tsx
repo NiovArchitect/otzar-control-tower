@@ -42,6 +42,7 @@ describe("[CTX-BOUNDARY] Context Boundaries — a boundary view, never a librari
             seeded_history_count: 12,
             seeded_document_count: 4,
             extracted_reviewed_count: 2,
+            retired_context_count: 1,
             recent_documents: [
               {
                 title_label: "Support escalation SOP",
@@ -96,10 +97,13 @@ describe("[CTX-BOUNDARY] Context Boundaries — a boundary view, never a librari
     expect(recent).toContain("Historical");
     expect(recent).toContain("seeded 2026-07-05");
 
-    // Retention: honest limitation + the /retention link.
+    // Retention: governed lifecycle framing, retired count, honest limits.
     const retention = screen.getByTestId("boundaries-retention-copy").textContent ?? "";
-    expect(retention).toContain("Retention controls are not configurable in-product yet");
-    expect(retention).toContain("nothing here deletes or archives sources");
+    expect(retention).toContain("becoming governed lifecycle controls");
+    expect(retention).toContain("audit trail, and source lineage are preserved");
+    expect(retention).toContain("1 record is currently retired");
+    expect(retention).toContain("Hard delete and compliance purge are not available yet");
+    expect(retention).toContain("nothing here deletes sources");
 
     // READ-ONLY: loading the page issued zero non-GET requests.
     expect(mutations).toEqual([]);
@@ -108,7 +112,11 @@ describe("[CTX-BOUNDARY] Context Boundaries — a boundary view, never a librari
     const all = document.body.textContent ?? "";
     expect(all).not.toMatch(/DOCUMENT_CONTEXT|seeded_context|source_lineage|VERIFIED|PROPOSED\b/);
     expect(all).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-    expect(all).not.toMatch(/trained|AI learned|delete forever|purge|vector|embedding|corpus cleanup|relevance queue/i);
+    expect(all).not.toMatch(/trained|AI learned|delete forever|vector|embedding|corpus cleanup|relevance queue/i);
+    // "purge" may appear ONLY inside the honest negation ("Hard delete and
+    // compliance purge are not available yet").
+    expect(all).not.toMatch(/(?<!compliance )purge/i);
+    expect(all).not.toMatch(/purge(?! are not available yet)/i);
     expect(all).not.toMatch(/retention configured/i);
     // "current truth" may appear ONLY as the negated boundary ("cannot
     // become current truth…") — never as a claim about seeded context.

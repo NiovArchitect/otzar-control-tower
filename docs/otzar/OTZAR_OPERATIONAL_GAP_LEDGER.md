@@ -778,7 +778,15 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   admin BOUNDARY view, not a relevance queue: seven can/cannot groups;
   read-only manager-gated GET /work-os/context/boundaries with exact
   counts + recent document labels only; honest retention limitation;
-  linked from /setup, data-flow, retention; zero curation asks). Copy
+  linked from /setup, data-flow, retention; zero curation asks).
+  → RETENTION ✅ SHIPPED 2026-07-05 (governed lifecycle: admin
+  retire/restore of seeded context via additive details JSON — total
+  preservation [row/capture/audit/lineage/extracted work], total
+  active-use suppression [AIX gate + extraction refusal], idempotent,
+  audited once, reversible; /retention gains lifecycle categories +
+  the two-step-confirm document list; boundaries counts retired; hard
+  delete/purge/windows/compliance deliberately NOT built and honestly
+  stated). Copy
   shipped now: both seeding surfaces state that admins never
   classify/tag.
 

@@ -207,11 +207,17 @@ export function ContextBoundariesPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Retention</CardTitle>
           <CardDescription className="text-xs" data-testid="boundaries-retention-copy">
-            Retention controls are not configurable in-product yet. Seeded
-            context stays company-owned, dated, and lineaged; nothing here
-            deletes or archives sources.{" "}
+            Retention controls are becoming governed lifecycle controls:
+            admins can retire seeded context from active use — Otzar stops
+            using it as background while the record, audit trail, and source
+            lineage are preserved.
+            {state === "ready" && boundaries !== null && boundaries.retired_context_count > 0
+              ? ` ${boundaries.retired_context_count} ${boundaries.retired_context_count === 1 ? "record is" : "records are"} currently retired.`
+              : ""}{" "}
+            Hard delete and compliance purge are not available yet; nothing
+            here deletes sources.{" "}
             <Link to="/retention" className="font-medium text-foreground underline underline-offset-2">
-              See the current retention posture
+              Manage the seeded context lifecycle
             </Link>
             .
           </CardDescription>

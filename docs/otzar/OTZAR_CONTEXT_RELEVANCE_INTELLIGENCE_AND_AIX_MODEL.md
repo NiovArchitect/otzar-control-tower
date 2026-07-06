@@ -318,8 +318,30 @@ what exists, and the build order says where the rest lands.
    configurable in-product yet… nothing here deletes or archives
    sources") with a link to /retention. No classify/tag/retire/cleanup
    asks anywhere — admins govern boundaries; Otzar manages relevance.
-9. Retention model + archive/retire rails, broader corpus extraction,
-   connector sync, vector/corpus search, and conflict-labeling remain
+9. **RETENTION ✅ SHIPPED 2026-07-05 — Governed context lifecycle
+   (retire/restore, never delete):** admins can retire seeded context
+   from active use via POST /work-os/ledger/:id/context-lifecycle —
+   additive `details.context_lifecycle` JSON on seeded rows only
+   (state active|retired, set_by, set_at, reason≤280, source
+   admin_lifecycle). **Preservation is total:** the row, its capture,
+   its audit trail, its source lineage, and any human-reviewed
+   extracted work survive untouched (work lifecycle ≠ document
+   lifecycle). **Suppression is total across active use:**
+   `isContextRetired` gates the AIX-3 derivations, which removes
+   retired context from candidates, AIX-4 clarity retrieval, AIX-5
+   ambient answers, and AIX-6 named-subject answers; the extraction
+   preview refuses retired sources (SOURCE_RETIRED). Idempotent,
+   audited once per real change (SEEDED_CONTEXT_RETIRED/RESTORED — the
+   free-text reason never enters audit), reversible via the same rail.
+   Surfaces: /retention gains the lifecycle categories + the admin
+   seeded-document lifecycle list (GET /work-os/context/documents;
+   two-step confirm, nothing writes before explicit confirm); Context
+   Boundaries counts retired context and reframes retention as
+   "becoming governed lifecycle controls". **Deliberately NOT built:**
+   hard delete, purge, legal hold, retention windows, automated
+   expiry, compliance export/deletion — each stated honestly in copy.
+10. Broader corpus extraction, connector sync, vector/corpus search,
+   conflict-labeling, and true deletion/retention-window policy remain
    separate, later, and gated — each needs its own GO.
 
 ## Part 8 — What this protects
