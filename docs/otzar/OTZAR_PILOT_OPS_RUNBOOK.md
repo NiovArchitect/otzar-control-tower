@@ -105,6 +105,35 @@ set `OTZAR_SMOKE_ADMIN_EMAIL`/`OTZAR_SMOKE_*` env for the live configs →
 migrate the mutating specs' logins to the smoke org → the demo org then
 accepts READ-ONLY smokes only.
 
+### 3.1 Phase-0 execution script (verified against the code, 2026-07-06)
+
+Authority reality (re-verified live): the pilot operator account's
+session clamps to `read/write/admin_org` — `admin_niov` is silently
+dropped, so Phase 0 CANNOT run from it. It needs the NIOV root account
+(TAR `can_admin_niov`) **plus a second NIOV approver** (dual control).
+
+1. Log in as the NIOV root account with
+   `requested_operations: ["read","write","admin_niov"]` — confirm
+   `allowed_operations` echoes `admin_niov` back.
+2. `POST /api/v1/platform/orgs` with
+   `{"company_name":"NIOV Smoke Org","admin_email":"smoke-admin@niovlabs.com","admin_password":"<one-time strong>","admin_first_name":"Smoke","admin_last_name":"Admin"}`.
+   **The FIRST call is DESIGNED to 403** — it creates a PENDING
+   `DUAL_CONTROL_REQUIRED` EscalationRequest and audits the request.
+3. The SECOND NIOV approver approves that escalation (Review Center /
+   escalation approve). Self-approval is blocked by design.
+4. RETRY the identical POST → `201 {org_entity_id, …}` — executePhase0
+   creates the org, the first admin, the default enterprise hive, and
+   audits `DANDELION_PHASE_0_COMPLETE`.
+5. Post-create baseline + env switches per the checklist above; then run
+   the §6 rollback rehearsal against the smoke org, and migrate mutating
+   smoke specs.
+
+**Stale-escalation note:** two PENDING `DUAL_CONTROL_REQUIRED`
+escalations from 2026-07-01 16:50 (`8fad318b…`, `ce8fca11…`, created
+26s apart — the two-rapid-attempts signature) still await a decision;
+deciding them (likely reject) requires the same NIOV authority — fold
+it into the same session as Phase 0.
+
 ## 4. Smoke gates (the pilot battery)
 
 Run after every deploy that touches the area; ALL before any pilot
