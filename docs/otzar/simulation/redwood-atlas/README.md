@@ -1,9 +1,15 @@
 # Redwood Atlas Studio — Customer Org Simulation + DGI Harness
 
-**Status:** 2026-07-06 (Fable 5) — Block 1 (substrate + doctrine +
-fixtures schema). The corpus and integration harness are the next
-autonomous block. **Nothing here loads into production/demo orgs** —
-fixtures-first, test-database next, smoke org only after Phase-0.
+**Status:** 2026-07-06 (Fable 5) — Block 2 SHIPPED: the executable
+harness lives in Foundation at `tests/fixtures/redwood-atlas/`
+(people, clients, the 48-artifact 8-week corpus with statement-level
+who/when/act metadata, the 44-check expected-behavior matrix) and
+`tests/integration/redwood-atlas-simulation.test.ts` (the matrix is
+BINDING — the suite fails if any check id goes unexecuted). Foundation
+fixtures are canonical for machine-readable data; this folder holds the
+doctrine + human-readable copies. **Nothing here loads into
+production/demo orgs** — fixtures-first, test-database next, smoke org
+only after Phase-0.
 
 ## What this is
 
@@ -123,10 +129,34 @@ availability fixtures, communication-act metadata.
 per-person working-hours storage (schema), NL speech-act extraction at
 production scale, loading into the smoke org (after Phase-0).
 
-## Next autonomous block
+## The executable harness (Foundation)
 
-Generate the 8-week corpus (40–60 artifacts incl. 20+ transcripts with
-statement-level who/when/act metadata), the 40+ expected-behavior
-matrix as executable checks, and `tests/integration/
-redwood-atlas-simulation.test.ts` driving the existing rails
-(seed → retrieve → schedule → align) against the fixtures.
+Four mechanisms, one binding matrix
+(`tests/fixtures/redwood-atlas/expected-behavior-matrix.json`, 44
+checks — C=corpus integrity, R=decision rights, S=scheduling,
+D=governed retrieval):
+
+- **corpus** — deterministic fixture-integrity checks: every statement
+  is who/role/when/text/act from the 16-act vocabulary (all 16
+  exercised); every internal decision/approval/assignment names an
+  `authority_basis` found in that person's owns/can_approve rights;
+  out-of-authority commitments carry `exceeds_authority: true`;
+  supersession lineage resolves and non-current currentness follows it;
+  all 8 conflict patterns have build-up AND resolution artifacts;
+  simulated docs are labeled `seeded_google_doc_simulation`.
+- **rights** — the PRODUCTION `computeDecisionRights` engine resolves
+  all 8 conflict patterns from corpus framing: the approved August 7
+  decision is actionable while the stale July 24 target never is;
+  sales-vs-scope blocks and escalates to the scope owner; a client
+  request is not policy; "ship Friday" stays aspirational against the
+  engineering owner's evidence; policy outranks the CEO; routing
+  follows the latest valid assignment; expertise alone never finalizes.
+- **sched** — the PRODUCTION scheduling engine: per-person local-time
+  conflicts named in local words, protected lunch per-person, weekend
+  refusal, conforming alternatives, proposal-only connector truth.
+- **db** — real Postgres: the contradicted July 24 brief is SUPPRESSED
+  from governed retrieval, the confirmed August 7 decision log leads,
+  retrieval is read-only and carries `should_not_act` on every result.
+
+The suite's final test fails if any matrix check id was not executed —
+coverage of the doctrine is enforced, not aspirational.
