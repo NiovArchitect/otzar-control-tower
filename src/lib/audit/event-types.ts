@@ -61,6 +61,7 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   PASSWORD_RESET_EMAIL_SENT: "Password Reset Email Sent",
   PASSWORD_RESET_EMAIL_FAILED: "Password Reset Email Failed",
   WORK_PROFILE_UPDATED: "Work Profile Updated",
+  DECISION_RIGHTS_UPDATED: "Decision Rights Updated",
 } as const;
 
 // WHAT: Look up the customer-facing label for an AuditEventType.

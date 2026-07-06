@@ -816,6 +816,31 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   shipped now: both seeding surfaces state that admins never
   classify/tag.
 
+### X. Org operating substrate — decision-rights truth — 🟡 BLOCK 3A SHIPPED 2026-07-06
+
+- **Doctrine (binding, from the Redwood Atlas pack):** truth weight =
+  decision rights + communication act + source lineage + currentness,
+  context-aware — never newest-wins, never hierarchy-always-wins. The
+  three planes never collapse: reporting hierarchy (EntityMembership) ·
+  approval authority (dual-control/policy/TAR) · domain decision
+  rights (this store).
+- **Block 3A shipped (FND `912318e` PR #576 + CT this commit):**
+  `entity_decision_rights` (additive, per org+person, owns/can_approve/
+  recommend_only by DecisionDomain, admin-authored, audited
+  DECISION_RIGHTS_UPDATED) + the pure overlay feeding the production
+  `computeDecisionRights` engine (owner beats recommend-only
+  floor-holder; approver seats when no owner; recommend-only never
+  finalizes; heuristic fallback byte-identical when unset; policy
+  outranks). Rights grant NO tools/TAR/templates/authority — test-locked,
+  including AI_AGENT rows unwritable + never surfaced (a Twin resolves
+  through its human). CT: Company Profile "Decision rights" editor +
+  Work Schedule read-only posture.
+- **Remaining (Block 3B/3C, each needs its own GO):** speech-act +
+  source/authority/agreement lineage persisted at ingest; supersession
+  pointers; truth-weight retrieval ranking; Twin-boundary lock probes on
+  live retrieval surfaces; per-domain thresholds (e.g. budget limits)
+  deliberately not modeled yet.
+
 ## Next-slice selection method
 
 Before starting ANY slice, answer for each candidate:

@@ -11,10 +11,12 @@
 //          tests/unit/work-schedule.test.tsx.
 
 import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
+import { Clock, Scale } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import type { DecisionRightsPosture } from "@/lib/types/foundation";
+import { decisionDomainLabel } from "@/lib/labels/decision-domains";
 
 const COMMON_TIMEZONES = [
   "America/Los_Angeles",
@@ -36,11 +38,17 @@ export function WorkSchedulePage() {
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // [BLOCK-3A] the caller's own decision-rights posture (read-only).
+  const [rights, setRights] = useState<DecisionRightsPosture | null>(null);
+  const [rightsNote, setRightsNote] = useState("");
 
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const r = await api.org.me.workProfile.get();
+      const [r, dr] = await Promise.all([
+        api.org.me.workProfile.get(),
+        api.org.me.decisionRights.get(),
+      ]);
       if (!alive) return;
       if (r.ok) {
         setTimezone(r.data.timezone ?? "");
@@ -49,6 +57,10 @@ export function WorkSchedulePage() {
         setState("ready");
       } else {
         setState("failed");
+      }
+      if (dr.ok) {
+        setRights(dr.data.rights);
+        setRightsNote(dr.data.note);
       }
     })();
     return () => {
@@ -131,6 +143,53 @@ export function WorkSchedulePage() {
               ? schedulingNote
               : "Proposed times only — creating calendar events requires a connected calendar, which isn't set up yet."}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="decision-rights-posture">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Scale className="h-4 w-4" aria-hidden /> Your decision rights
+          </CardTitle>
+          <CardDescription className="text-xs" data-testid="decision-rights-posture-doctrine">
+            Decision rights help Otzar route decisions and avoid
+            overstepping. Decision rights do not grant tool access. Your AI
+            Twin follows your access and authority boundaries.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {rights === null ? (
+            <p className="text-xs text-muted-foreground" data-testid="decision-rights-posture-empty">
+              {rightsNote.length > 0
+                ? rightsNote
+                : "No structured decision rights are set for you yet. Otzar reads decision signals from conversations until your admin sets them."}
+            </p>
+          ) : (
+            <div className="space-y-1 text-xs" data-testid="decision-rights-posture-lists">
+              {rights.owns.length > 0 ? (
+                <p data-testid="decision-rights-owns">
+                  <span className="font-medium">You own:</span>{" "}
+                  {rights.owns.map(decisionDomainLabel).join(", ")}
+                </p>
+              ) : null}
+              {rights.can_approve.length > 0 ? (
+                <p data-testid="decision-rights-approves">
+                  <span className="font-medium">You can approve:</span>{" "}
+                  {rights.can_approve.map(decisionDomainLabel).join(", ")}
+                </p>
+              ) : null}
+              {rights.recommend_only.length > 0 ? (
+                <p data-testid="decision-rights-recommends">
+                  <span className="font-medium">You can recommend (not finalize):</span>{" "}
+                  {rights.recommend_only.map(decisionDomainLabel).join(", ")}
+                </p>
+              ) : null}
+              <p className="text-muted-foreground" data-testid="decision-rights-escalation">
+                Anything outside these areas is one to recommend and
+                escalate to its owner — Otzar helps route it there.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -121,10 +121,16 @@ working-hours/lunch scheduling engine (proposal-only), seeded
 context/corpus with lineage/currentness/validation/suppression,
 governed retrieval + ranking law, decision-rights extraction
 (computeDecisionRights) in the comms spine, role templates, hierarchy,
-Twin calibration.
+Twin calibration, **and — since Block 3A (FND `912318e`) — STORED
+per-(org, person) domain decision rights** (`entity_decision_rights`:
+owns/can_approve/recommend_only by DecisionDomain, admin-authored on
+Company Profile, employee posture on Work Schedule, audited, overlaid
+onto the heuristics before the engine runs — the runtime analog of this
+pack's `people.json` rights; rights grant no tools/permissions/authority).
 **Simulated (fixtures):** Google-Docs-like sources (labeled
 `seeded_google_doc_simulation` — copy must say seeded/manual), calendar
-availability fixtures, communication-act metadata.
+availability fixtures, communication-act metadata (runtime speech-act +
+lineage persistence is Block 3B).
 **Future (gated):** real Google Docs/Calendar/Meet connectors,
 per-person working-hours storage (schema), NL speech-act extraction at
 production scale, loading into the smoke org (after Phase-0).

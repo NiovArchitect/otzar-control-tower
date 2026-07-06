@@ -286,6 +286,32 @@ password.
   existing PASSWORD_RESET_LINK_CREATED / PASSWORD_RESET_COMPLETED) —
   never a password, token, URL, or body.
 
+## 6e. Domain decision rights (BLOCK-3A, 2026-07-06)
+
+Plane 3 of the org operating substrate: who OWNS, can APPROVE, or can
+only RECOMMEND per decision domain (Strategy / Technical / Product /
+Design / Security / Legal / Finance / People / Customers / Execution /
+Architecture / Timelines). Distinct by construction from reporting
+hierarchy (Members) and approval authority (Review Center / policy).
+Rights grant NO tools, NO permissions, NO admin authority — they only
+inform how Otzar weighs and routes decisions.
+
+- **Admin:** /setup/company-profile → "Decision rights" card — pick a
+  person, set a posture per domain, save. Audited
+  DECISION_RIGHTS_UPDATED (ids + domain lists only).
+- **Employee:** /app/work-schedule → "Your decision rights" —
+  read-only posture + escalation guidance. AI Twins follow their
+  person's boundaries; rights never widen what a twin can do.
+- **Engine truth:** with rights set, the domain owner outweighs a
+  meeting lead / executive floor-holder in that domain; a
+  recommend-only person can never finalize; policy still outranks
+  everything. With NO rights set, Otzar honestly falls back to
+  reading decision signals from conversations.
+- **Schema:** entity_decision_rights (additive-only; applied to prod
+  via scripts/activate-decision-rights-prod-schema.ts — approval-gated,
+  idempotent, never DROP/ALTER, no backfill). Absence of a row = no
+  structured rights.
+
 ## 7. Secrets & key rotation
 
 - No secret is ever committed, echoed, logged, or pasted into a doc. Render

@@ -187,7 +187,36 @@ export type AuditEventType =
   | "PASSWORD_RESET_EMAIL_SENT"
   | "PASSWORD_RESET_EMAIL_FAILED"
   // [ORG-SUBSTRATE] self work-profile update.
-  | "WORK_PROFILE_UPDATED";
+  | "WORK_PROFILE_UPDATED"
+  // [BLOCK-3A] admin set a member's domain decision rights (ids +
+  // domain lists only; rights grant no tools/permissions/authority).
+  | "DECISION_RIGHTS_UPDATED";
+
+// [BLOCK-3A] Mirror of Foundation's DecisionDomain vocabulary
+// (decision-rights.ts). "unknown" is a classifier bucket and is never
+// assignable, so it does not appear here.
+export type DecisionDomain =
+  | "strategic"
+  | "technical"
+  | "product"
+  | "design"
+  | "security"
+  | "legal"
+  | "finance"
+  | "people"
+  | "customer"
+  | "execution"
+  | "architecture"
+  | "deadline";
+
+// [BLOCK-3A] A person's domain decision-rights posture. A domain holds
+// at most ONE posture per person; absence everywhere = no structured
+// rights (Otzar reads decision signals from conversations instead).
+export interface DecisionRightsPosture {
+  owns: DecisionDomain[];
+  can_approve: DecisionDomain[];
+  recommend_only: DecisionDomain[];
+}
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";

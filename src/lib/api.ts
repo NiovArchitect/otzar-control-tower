@@ -284,6 +284,9 @@ import type {
   ReceiveAudioResponse,
   ListAudioCapturesResponse,
   GetAudioCaptureDetailResponse,
+  // [BLOCK-3A]
+  DecisionDomain,
+  DecisionRightsPosture,
 } from "./types/foundation";
 import type {
   ListConnectorBindingsSuccess,
@@ -533,6 +536,31 @@ export class ApiClient {
         }),
     },
 
+    /** [BLOCK-3A] Domain decision rights — plane 3 of the org substrate.
+     *  Rights inform decision/truth/routing only; they never grant tools,
+     *  permissions, or admin authority. */
+    decisionRights: {
+      /** GET /api/v1/org/decision-rights — member-readable safe summary
+       *  (names + domains only). */
+      list: (): Promise<
+        ApiResult<{
+          ok: boolean;
+          members: Array<{ entity_id: string; display_name: string } & DecisionRightsPosture>;
+          settable_domains: DecisionDomain[];
+        }>
+      > => this.request(`/org/decision-rights`),
+      /** PATCH /api/v1/org/members/:id/decision-rights — admin sets a
+       *  member's posture (audited DECISION_RIGHTS_UPDATED). */
+      setForMember: (
+        id: string,
+        rights: DecisionRightsPosture,
+      ): Promise<ApiResult<{ ok: boolean; rights: DecisionRightsPosture & { updated_at: string } }>> =>
+        this.request(`/org/members/${encodeURIComponent(id)}/decision-rights`, {
+          method: "PATCH",
+          body: { ...rights },
+        }),
+    },
+
     /** [ORG-SUBSTRATE] the caller's own work profile (self-scoped). */
     me: {
       workProfile: {
@@ -547,6 +575,12 @@ export class ApiClient {
         > => this.request(`/org/me/work-profile`),
         patch: (timezone: string): Promise<ApiResult<{ ok: boolean; timezone?: string }>> =>
           this.request(`/org/me/work-profile`, { method: "PATCH", body: { timezone } }),
+      },
+      /** [BLOCK-3A] the caller's own decision-rights posture (read-only). */
+      decisionRights: {
+        get: (): Promise<
+          ApiResult<{ ok: boolean; rights: (DecisionRightsPosture & { updated_at: string }) | null; note: string }>
+        > => this.request(`/org/me/decision-rights`),
       },
     },
 
