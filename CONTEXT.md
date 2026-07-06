@@ -118,6 +118,67 @@ that determines, per required production section:
 
 ---
 
+## ✅ BLOCK-3A · Decision-rights truth (org substrate plane 3) · LIVE-VERIFIED (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `912318e` (PR #576 squash on green 5/5, deployed
+`dep-d961a828qa3s73dplrpg`, live — all 3 routes 401 unauth, not 404) ·
+CT `main` = `77db133` (direct-push + API deploy `dep-d961bdks728c73e7ahu0`,
+live — bundle `index-cbuAuRtw.js` → `index-BRdgP2Yb.js` carries all 5
+content probes incl. "Decision rights do not grant tool access").
+
+- **Founder-approved Option A schema (the ONE additive migration):**
+  `entity_decision_rights` — per (org, person) owns / can_approve /
+  recommend_only as service-validated String[] against the
+  DecisionDomain vocabulary ("unknown" never assignable); unique
+  (org, entity); NO backfill; NO existing row/object touched; absence
+  of a row = heuristics continue. **Prod schema applied via the
+  sanctioned 1305-B mechanism** (activate-decision-rights-prod-schema
+  .ts: dry-run verified target + DDL → approval-gated apply; before
+  table=false → after table=true; 6 safety unit tests). This was the
+  ONLY production mutation: schema DDL, zero rows written, zero rights
+  set on real users.
+- **Plane discipline (binding):** hierarchy stays on EntityMembership;
+  approval authority stays on dual-control/policy/TAR; rights grant NO
+  tools, NO TAR capabilities, NO role templates, NO admin authority —
+  decision/truth/routing input only. Test-locked: TAR/profile/
+  memberships byte-identical across a rights write; AI_AGENT targets
+  404; a force-created AI_AGENT row never surfaces (a Twin resolves
+  THROUGH its human — no authority inversion).
+- **Engine wiring:** pure overlay applyStructuredRightsToDecisionInput
+  before computeDecisionRights in governExtraction (loaded once per
+  ingest, human roster only, fail-open): domain OWNER seats as
+  authority (meeting-lead/executive heuristics demote to expertise —
+  the executive does not always win); APPROVER seats when no owner;
+  RECOMMEND-ONLY is demoted and can never finalize; no rights →
+  byte-identical heuristic input (same object reference, tested);
+  policy still outranks everything.
+- Routes: GET /org/me/decision-rights (self posture, honest unset
+  note) · GET /org/decision-rights (member-readable names+domains
+  summary) · PATCH /org/members/:id/decision-rights (can_admin_org,
+  cross-org 404, 422 vocabulary + one-posture-per-domain, audited
+  DECISION_RIGHTS_UPDATED ids+domains only).
+- CT: Company Profile "Decision rights" card (safe summary with
+  humanized labels — new decision-domains label map, 12 entries,
+  compile-time exhaustive; calm per-person editor, exact three-list
+  PATCH) · Work Schedule "Your decision rights" read-only posture +
+  escalation guidance + the binding copy ("Decision rights help Otzar
+  route decisions and avoid overstepping" / "do not grant tool
+  access" / "Your AI Twin follows your access and authority
+  boundaries").
+- Tests: FND decision-rights integration 5/5 + activation-script 6/6;
+  unit tier 2989/2989; targeted regression 39/39 (redwood/comms-ingest/
+  work-profile/twin/password). CT 2240/2240 across 209; typecheck 0 ·
+  lint 0 · build ✓ · dev 200 · install ✓.
+- Docs: runbook §6e · gap ledger X · Redwood Atlas README
+  real-vs-simulated updated. **Next (own GO required): Block 3B —
+  speech-act + source/authority/agreement lineage persisted at ingest;
+  then 3C truth-weight retrieval + Twin-boundary lock on live
+  surfaces.**
+- Ops note: cloud-sync corruption recurred mid-slice (" 2" duplicate
+  files in both repos incl. a null CT ref `origin/main 2` and a
+  duplicated `.git/index 2`) — swept by explicit filename, fsck clean
+  both repos; pre-commit sweeps held (no duplicate ever committed).
+
 ## ✅ REDWOOD-ATLAS · Communication-lineage doctrine + simulation harness · SHIPPED (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `9c7c852` (PR #575 squash on green 5/5 — harness
