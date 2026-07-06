@@ -72,6 +72,8 @@ describe("nav-employee.ts — primary / more groupings", () => {
       // [PASSWORD-LIFECYCLE] self-service credential control belongs to
       // the employee, quietly in More — admins never see or set it.
       "Account & Security",
+      // [ORG-SUBSTRATE] personal operating context (time zone, hours).
+      "Work Schedule",
       "Blind Spots",
       "Work health",
       "Workspaces",

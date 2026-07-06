@@ -284,6 +284,13 @@ export function OrgSetupPage() {
             </Link>
             .
           </p>
+          <p className="text-xs text-muted-foreground" data-testid="setup-company-profile-pointer">
+            Time zone, working hours, and scheduling truth live in{" "}
+            <Link to="/setup/company-profile" className="font-medium text-foreground underline underline-offset-2">
+              Company Profile
+            </Link>
+            .
+          </p>
           <p className="text-xs text-muted-foreground" data-testid="setup-honesty-note">
             This page reads your organization's real state — it never changes
             anything by itself. Some capabilities (bulk import, retention

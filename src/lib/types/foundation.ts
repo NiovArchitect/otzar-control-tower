@@ -185,7 +185,9 @@ export type AuditEventType =
   // [PASSWORD-LIFECYCLE] password lifecycle.
   | "PASSWORD_CHANGED"
   | "PASSWORD_RESET_EMAIL_SENT"
-  | "PASSWORD_RESET_EMAIL_FAILED";
+  | "PASSWORD_RESET_EMAIL_FAILED"
+  // [ORG-SUBSTRATE] self work-profile update.
+  | "WORK_PROFILE_UPDATED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";

@@ -512,6 +512,44 @@ export class ApiClient {
   // org.*  (12A: analytics; 12B.1: full org-identity surface)
   // ──────────────────────────────────────────────────────────────
   org = {
+    /** [ORG-SUBSTRATE] the org operating profile — company time zone +
+     *  working-policy defaults + honest scheduling truth. Read: any
+     *  member; write: admin (server-gated). */
+    operatingProfile: {
+      get: (): Promise<
+        ApiResult<{
+          ok: boolean;
+          org_display_name: string | null;
+          org_timezone: string | null;
+          working_policy: Record<string, unknown>;
+          calendar_connected: boolean;
+          scheduling_note: string;
+        }>
+      > => this.request(`/org/operating-profile`),
+      patch: (orgTimezone: string): Promise<ApiResult<{ ok: boolean; org_timezone?: string }>> =>
+        this.request(`/org/operating-profile`, {
+          method: "PATCH",
+          body: { org_timezone: orgTimezone },
+        }),
+    },
+
+    /** [ORG-SUBSTRATE] the caller's own work profile (self-scoped). */
+    me: {
+      workProfile: {
+        get: (): Promise<
+          ApiResult<{
+            ok: boolean;
+            timezone: string | null;
+            org_timezone: string | null;
+            working_policy: Record<string, unknown>;
+            scheduling_note: string;
+          }>
+        > => this.request(`/org/me/work-profile`),
+        patch: (timezone: string): Promise<ApiResult<{ ok: boolean; timezone?: string }>> =>
+          this.request(`/org/me/work-profile`, { method: "PATCH", body: { timezone } }),
+      },
+    },
+
     /** GET /api/v1/org/analytics -- compound score + counts. */
     analytics: (): Promise<ApiResult<OrgAnalytics>> =>
       this.request<OrgAnalytics>("/org/analytics"),

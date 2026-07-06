@@ -155,6 +155,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "more",
   },
   {
+    // [ORG-SUBSTRATE] personal operating context — yours, not admin's.
+    label: "Work Schedule",
+    to: "/app/work-schedule",
+    icon: Sun,
+    description: "Your time zone and working hours. Otzar schedules around them.",
+    group: "more",
+  },
+  {
     label: "Blind Spots",
     to: "/app/blind-spots",
     icon: AlertTriangle,

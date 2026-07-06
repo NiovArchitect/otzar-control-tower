@@ -19,6 +19,8 @@ import { SeedHistoryPage } from "@/pages/SeedHistory";
 import { SeedCorpusPage } from "@/pages/SeedCorpus";
 import { ContextBoundariesPage } from "@/pages/ContextBoundaries";
 import { ForgotPasswordPage } from "@/pages/ForgotPassword";
+import { CompanyProfilePage } from "@/pages/CompanyProfile";
+import { WorkSchedulePage } from "@/pages/app/WorkSchedule";
 import { AccountSecurityPage } from "@/pages/app/AccountSecurity";
 import { TwinCalibrationPage } from "@/pages/app/TwinCalibration";
 import { WritingStylePage } from "@/pages/app/WritingStyle";
@@ -136,6 +138,7 @@ export function App() {
               <Route path="my-organization" element={<MyOrganization />} />
               <Route path="my-memory" element={<MyMemory />} />
               <Route path="account-security" element={<AccountSecurityPage />} />
+              <Route path="work-schedule" element={<WorkSchedulePage />} />
               <Route path="connector-health" element={<ConnectorHealth />} />
               <Route path="my-twin" element={<MyTwin />} />
               <Route path="my-twin/calibration" element={<TwinCalibrationPage />} />
@@ -185,6 +188,7 @@ export function App() {
               <Route path="setup/seed-history" element={<SeedHistoryPage />} />
               <Route path="setup/seed-corpus" element={<SeedCorpusPage />} />
               <Route path="setup/context-boundaries" element={<ContextBoundariesPage />} />
+              <Route path="setup/company-profile" element={<CompanyProfilePage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="ai-teammates" element={<AITeammatesPage />} />
               {/* PROD-MODEL-P3 §9 — ONE Access Control destination (tabs);
