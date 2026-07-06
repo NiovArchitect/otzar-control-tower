@@ -78,6 +78,11 @@ test("the full pilot journey renders read-only with coherent governed copy", asy
   await go("/setup/seed-history");
   await expect(page.getByTestId("seed-history-doctrine")).toBeVisible({ timeout: 60_000 });
 
+  // 7) Bulk import — least-access-first promise, preview-first form.
+  await go("/setup/import-people");
+  await expect(page.getByTestId("import-people-page")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("import-least-access")).toBeVisible();
+
   // Coherence sweep over everything this walk rendered: no overclaims,
   // no raw internals. ("purge"/"current truth" appear only in negation —
   // covered by unit sweeps; here we ban the unambiguous claims.)
@@ -87,5 +92,59 @@ test("the full pilot journey renders read-only with coherent governed copy", asy
   expect(body).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
 
   // THE proof: the entire journey fired zero writes.
+  expect(nonGet).toEqual([]);
+});
+
+// [DEEP-SMOKE] the EMPLOYEE side of onboarding: personal calibration and
+// writing style carry the personal/company boundary, and the ambient bar
+// renders — all read-only.
+const EMPLOYEE_EMAIL = process.env.OTZAR_SMOKE_EMPLOYEE_EMAIL ?? "vishesh@niovlabs.com";
+
+test("the employee calibration journey renders read-only with the personal/company boundary", async ({ page }) => {
+  test.setTimeout(300_000);
+
+  const nonGet: string[] = [];
+  page.on("request", (req) => {
+    if (req.url().includes("api.otzar.ai") && req.method() !== "GET" && !req.url().includes("/auth/login")) {
+      nonGet.push(`${req.method()} ${req.url()}`);
+    }
+  });
+
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(EMPLOYEE_EMAIL);
+  await page.getByLabel("Password").fill(PW as string);
+  await page.getByRole("button", { name: /sign in/i }).click();
+  await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, {
+    timeout: 45_000,
+  });
+  await page.waitForTimeout(2000);
+
+  const go = async (path: string): Promise<void> => {
+    await page.evaluate((p) => {
+      history.pushState({}, "", p);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }, path);
+  };
+
+  // Twin calibration — personal preference memory, consent-gated.
+  await go("/app/my-twin/calibration");
+  await expect(page.getByTestId("calibration-boundary")).toBeVisible({ timeout: 60_000 });
+
+  // Writing style — the raw sample never leaves the browser; no uploads.
+  await go("/app/my-twin/calibration/writing-style");
+  await expect(page.getByTestId("style-boundary")).toBeVisible({ timeout: 60_000 });
+  expect(await page.locator('input[type="file"]').count()).toBe(0);
+
+  // The ambient bar is present on the employee shell.
+  await expect(page.getByLabel("Talk to Otzar").first()).toBeVisible({ timeout: 60_000 });
+
+  // Coherence sweep: personal/company boundary language present; no
+  // overclaims or raw internals anywhere on the walk.
+  const body = (await page.locator("body").textContent()) ?? "";
+  expect(body).not.toMatch(/self-serve complete|compliance ready|retention configured|AI trained|company brain|Otzar knows everything/i);
+  expect(body).not.toMatch(/DOCUMENT_CONTEXT|seeded_context|source_lineage|context_lifecycle|EXECUTIVE_OVERRIDE/);
+  expect(body).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+
+  // Zero writes across the employee walk.
   expect(nonGet).toEqual([]);
 });
