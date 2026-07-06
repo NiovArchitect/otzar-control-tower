@@ -56,6 +56,7 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   SEEDED_CONTEXT_RESTORED: "Background Context Restored",
   ACTIVATION_EMAIL_SENT: "Activation Email Sent",
   ACTIVATION_EMAIL_FAILED: "Activation Email Failed",
+  STARTER_TWIN_PROVISIONED: "AI Twin Prepared",
 } as const;
 
 // WHAT: Look up the customer-facing label for an AuditEventType.

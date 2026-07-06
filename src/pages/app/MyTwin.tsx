@@ -80,13 +80,29 @@ function MyTwinError({
 }) {
   if (result.ok) return null;
   if (result.status === 404 || result.code === "TWIN_NOT_FOUND") {
+    // [TWIN-BOOTSTRAP] first-run identity context, never a bare error:
+    // the account is real and active — the Twin shell simply hasn't been
+    // prepared (it is prepared automatically on activation now; stranded
+    // accounts get repaired by an admin). Honest about what a starter
+    // Twin will and won't be able to do.
     return (
       <Card>
         <CardContent
-          className="py-6 text-sm text-muted-foreground"
+          className="space-y-2 py-6 text-sm text-muted-foreground"
           data-testid="my-twin-empty"
         >
-          No AI teammate assigned yet.
+          <p className="text-foreground">
+            Your account is active, but your AI Twin hasn't been prepared yet.
+          </p>
+          <p>
+            An admin can prepare it from the Users page. Once prepared, your
+            Twin starts with basic help only. It still needs role and tool
+            setup before it can route or perform work confidently.
+          </p>
+          <p>
+            You keep your current access either way, and nothing about your
+            account is lost.
+          </p>
         </CardContent>
       </Card>
     );
@@ -555,6 +571,10 @@ function AskAnswer({ data }: { data: ConversationMessageResponse }): JSX.Element
 
 function humanizeAskError(code: string): string {
   switch (code) {
+    // [TWIN-BOOTSTRAP] never a raw twin_not_found, and never a misleading
+    // "try again" — retrying won't create a Twin; an admin repair will.
+    case "TWIN_NOT_FOUND":
+      return "Your AI Twin hasn't been prepared yet. Your account is active. Ask your admin to prepare your Twin, then this will work.";
     case "NETWORK_ERROR":
       return "Couldn't reach your Twin just now. Check your connection and try again.";
     case "SESSION_EXPIRED":

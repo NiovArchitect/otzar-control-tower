@@ -49,7 +49,13 @@ itself (live-verified after this pass's copy reconciliation).
 no email delivery~~ **REPAIRED 2026-07-05 ([ACT-EMAIL]):** activation
 emails ship on the existing token rail (Users row send/resend + CSV
 result batch send, both explicit-click; honest "not configured" until
-the founder sets the Resend env; copy-link fallback always remains); (2) seeded documents are managed from /retention and boundaries
+the founder sets the Resend env; copy-link fallback always remains) —
+**and LIVE-PROVEN 2026-07-06**: a real activation email was delivered
+and redeemed end-to-end. That live pass exposed (1b) **post-activation
+`twin_not_found`** — bulk+email members skipped the Phase-3 twin mint —
+**REPAIRED 2026-07-06 ([TWIN-BOOTSTRAP]):** activation now ensures a
+starter Twin (shell only), stranded members get an admin repair route,
+and the UI explains identity/Twin readiness honestly; (2) seeded documents are managed from /retention and boundaries
 but have no browsing surface beyond recent/20 — acceptable for pilot
 volume, not for corpus scale; (3) non-manager employees see no candidate
 relevance (correct conservatism, but managers carry validation load

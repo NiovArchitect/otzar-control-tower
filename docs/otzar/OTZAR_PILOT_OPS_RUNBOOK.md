@@ -212,6 +212,23 @@ Provider failure path: expect honest `PROVIDER_FAILED` + ONE
 points to the copy-link fallback. Do not retry repeatedly — diagnose
 the Resend dashboard/sender verification first.
 
+## 6c. Starter-Twin guarantee (TWIN-BOOTSTRAP, shipped 2026-07-06)
+
+Root cause it closes: members created via bulk-create + activation
+EMAIL never pass Phase-3 invite (the Twin-minting step) — the live
+smoke member activated successfully but had no Twin (`twin_not_found`).
+
+The guarantee now: activation redemption (POST /auth/activate) ensures
+a STARTER twin best-effort (same Phase-3 rail: twin + personal wallet +
+TAR + default-Hive join; shell only — no tools, no authority, no role
+template; audited STARTER_TWIN_PROVISIONED trigger "activation").
+
+Repair for stranded active members (admin, idempotent):
+`POST /org/members/<id>/ensure-twin` → `{ok, created, twin_id}` —
+audited with trigger "admin_repair" when it creates. Employees 403;
+unknown/cross-org 404. Requires the org's default enterprise hive
+(Phase 0 creates it).
+
 ## 7. Secrets & key rotation
 
 - No secret is ever committed, echoed, logged, or pasted into a doc. Render

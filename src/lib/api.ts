@@ -542,6 +542,14 @@ export class ApiClient {
           },
         }),
 
+      /** [TWIN-BOOTSTRAP] POST /org/members/:id/ensure-twin — admin repair:
+       *  idempotent starter-Twin guarantee for an active member (shell
+       *  only — no tools, no authority, no role template). */
+      ensureTwin: (
+        id: string,
+      ): Promise<ApiResult<{ ok: boolean; created: boolean; twin_id: string | null }>> =>
+        this.request(`/org/members/${id}/ensure-twin`, { method: "POST", body: {} }),
+
       /** [ACT-EMAIL] POST /org/members/:id/activation-email — send ONE
        *  activation email on the existing token rail. "Sent" means the
        *  provider accepted the message; the token is never returned. */

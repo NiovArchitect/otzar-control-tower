@@ -133,7 +133,7 @@ describe("MyTwin (employee Otzar)", () => {
     );
   });
 
-  it("renders the no-teammate empty state on 404 TWIN_NOT_FOUND", async () => {
+  it("renders the identity-aware empty state on 404 TWIN_NOT_FOUND — never a raw code, always a repair path", async () => {
     server.use(
       http.get(`${API_BASE}/otzar/my-twin`, async () =>
         HttpResponse.json(
@@ -143,7 +143,33 @@ describe("MyTwin (employee Otzar)", () => {
       ),
     );
     renderMyTwin();
-    expect(await screen.findByTestId("my-twin-empty")).toBeInTheDocument();
+    const empty = await screen.findByTestId("my-twin-empty");
+    // [TWIN-BOOTSTRAP] first-run identity context: account is real,
+    // Twin not prepared, admin repair path, honest starter limits.
+    expect(empty.textContent).toContain("Your account is active");
+    expect(empty.textContent).toContain("hasn't been prepared yet");
+    expect(empty.textContent).toContain("An admin can prepare it");
+    expect(empty.textContent).toContain("basic help only");
+    expect(empty.textContent).not.toMatch(/TWIN_NOT_FOUND|twin_not_found/);
+    expect(empty.textContent).not.toMatch(/fully ready|can do all work/i);
+  });
+
+  it("Ask your Twin maps TWIN_NOT_FOUND to honest prepare-your-twin copy, never a retry suggestion", async () => {
+    server.use(
+      http.post(`${API_BASE}/otzar/conversation/message`, async () =>
+        HttpResponse.json(
+          { ok: false, code: "TWIN_NOT_FOUND", message: "Caller has no digital twin" },
+          { status: 404 },
+        ),
+      ),
+    );
+    renderMyTwin();
+    const input = await screen.findByTestId("ask-your-twin-input");
+    await userEvent.type(input, "What should I work on?{Enter}");
+    const err = await screen.findByText(/hasn't been prepared yet/);
+    expect(err.textContent).toContain("Ask your admin to prepare your Twin");
+    expect(err.textContent).not.toMatch(/try again/i);
+    expect(document.body.textContent ?? "").not.toContain("TWIN_NOT_FOUND");
   });
 
   it("renders the Ask your Twin box without an em dash in its copy", async () => {

@@ -779,6 +779,14 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   read-only manager-gated GET /work-os/context/boundaries with exact
   counts + recent document labels only; honest retention limitation;
   linked from /setup, data-flow, retention; zero curation asks).
+  → TWIN-BOOTSTRAP ✅ SHIPPED 2026-07-06 (the live smoke's
+  `twin_not_found` root cause closed: bulk+email members skipped
+  Phase-3 invite [the twin-minting step]; now activation redemption
+  ensures a STARTER twin on the same rail [shell only: no tools/
+  authority/role template; audited STARTER_TWIN_PROVISIONED], plus
+  admin repair POST /org/members/:id/ensure-twin for stranded actives;
+  CT: identity-aware My Twin empty state + honest TWIN_NOT_FOUND ask
+  mapping — never a raw code, never a useless "try again").
   → ACT-EMAIL ✅ SHIPPED 2026-07-05 (activation-email delivery on the
   existing token rail: provider abstraction with honest not-configured
   gate [Resend behind ACTIVATION_EMAIL_USE_REAL + RESEND_API_KEY +

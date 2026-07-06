@@ -179,7 +179,9 @@ export type AuditEventType =
   | "SEEDED_CONTEXT_RESTORED"
   // [ACT-EMAIL] activation-email delivery attempts.
   | "ACTIVATION_EMAIL_SENT"
-  | "ACTIVATION_EMAIL_FAILED";
+  | "ACTIVATION_EMAIL_FAILED"
+  // [TWIN-BOOTSTRAP] starter-twin guarantee.
+  | "STARTER_TWIN_PROVISIONED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";
