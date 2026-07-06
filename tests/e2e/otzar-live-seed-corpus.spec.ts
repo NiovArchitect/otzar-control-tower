@@ -42,7 +42,7 @@ test("seed-corpus renders boundary-first with honest review; zero writes; seed n
   await expect(confirm).toBeVisible();
   const copy = (await confirm.textContent()) ?? "";
   expect(copy).toContain("historical background, not current truth");
-  expect(copy).toContain("Retention controls are not configurable in-product yet");
+  expect(copy).toContain("retire it from active use later on the Retention page");
   await page.screenshot({ path: "screenshots/seed-corpus-live.png", fullPage: true });
   // THE proof: zero writes; the seed button was never clicked.
   expect(nonGet).toEqual([]);

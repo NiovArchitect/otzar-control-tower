@@ -96,7 +96,7 @@ test("setup page renders the guided journey honestly; reads only; no leaks (scre
   await expect(page.getByTestId("dataflow-row-manual_comms")).toBeVisible({ timeout: 30_000 });
   const flowBody = (await page.locator("main, body").first().textContent()) ?? "";
   expect(flowBody).toContain("they cannot take the company's work");
-  expect(flowBody).toContain("Retention controls are not configurable in-product yet");
+  expect(flowBody).toContain("retired from active use (audit preserved)");
   expect(flowBody).not.toMatch(/synced|APP_CREDENTIALS_MISSING|source_lineage/);
   await page.screenshot({ path: "screenshots/data-flow-live.png", fullPage: true });
 
