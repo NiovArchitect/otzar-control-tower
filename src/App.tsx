@@ -18,6 +18,8 @@ import { GoLivePage } from "@/pages/GoLive";
 import { SeedHistoryPage } from "@/pages/SeedHistory";
 import { SeedCorpusPage } from "@/pages/SeedCorpus";
 import { ContextBoundariesPage } from "@/pages/ContextBoundaries";
+import { ForgotPasswordPage } from "@/pages/ForgotPassword";
+import { AccountSecurityPage } from "@/pages/app/AccountSecurity";
 import { TwinCalibrationPage } from "@/pages/app/TwinCalibration";
 import { WritingStylePage } from "@/pages/app/WritingStyle";
 import { Layout } from "@/components/Layout";
@@ -104,6 +106,7 @@ export function App() {
             {/* [P0-ONBOARD] public activation / reset page — outside every
                 auth guard (the invitee has no session yet). */}
             <Route path="/activate" element={<ActivatePage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
             {/* Employee Otzar shell -- EmployeeGuard admits product
                 users (can_read_capsules); does NOT require can_admin_org
@@ -132,6 +135,7 @@ export function App() {
               <Route path="comms" element={<Comms />} />
               <Route path="my-organization" element={<MyOrganization />} />
               <Route path="my-memory" element={<MyMemory />} />
+              <Route path="account-security" element={<AccountSecurityPage />} />
               <Route path="connector-health" element={<ConnectorHealth />} />
               <Route path="my-twin" element={<MyTwin />} />
               <Route path="my-twin/calibration" element={<TwinCalibrationPage />} />

@@ -466,6 +466,27 @@ export class ApiClient {
     logout: (): Promise<ApiResult<{ ok: true }>> =>
       this.request<{ ok: true }>("/auth/logout", { method: "POST", authRoute: true }),
 
+    /** [PASSWORD-LIFECYCLE] POST /auth/forgot-password — PUBLIC and
+     *  enumeration-safe: the response is identical whether or not the
+     *  email exists. No token or URL ever reaches the browser. */
+    forgotPassword: (email: string): Promise<ApiResult<{ ok: boolean; message: string }>> =>
+      this.request(`/auth/forgot-password`, {
+        method: "POST",
+        body: { email },
+        authRoute: true,
+      }),
+
+    /** [PASSWORD-LIFECYCLE] POST /auth/change-password — self-service:
+     *  requires the current password; other sessions are signed out. */
+    changePassword: (
+      currentPassword: string,
+      newPassword: string,
+    ): Promise<ApiResult<{ ok: boolean; code?: string; message?: string }>> =>
+      this.request(`/auth/change-password`, {
+        method: "POST",
+        body: { current_password: currentPassword, new_password: newPassword },
+      }),
+
     /** [P0-ONBOARD] POST /auth/activate — PUBLIC one-time token redemption
      *  (activation or password reset). Sets the member's own password. */
     activate: (
@@ -541,6 +562,15 @@ export class ApiClient {
             ...(input.password !== undefined ? { password: input.password } : {}),
           },
         }),
+
+      /** [PASSWORD-LIFECYCLE] POST /org/members/:id/password-reset-email —
+       *  emails a one-time reset link to an ACTIVE member. The admin
+       *  never sees or sets the password; pending members refuse (409 —
+       *  activation is the right action). */
+      passwordResetEmail: (
+        id: string,
+      ): Promise<ApiResult<{ ok: boolean; status?: string; code?: string; message?: string }>> =>
+        this.request(`/org/members/${id}/password-reset-email`, { method: "POST", body: {} }),
 
       /** [TWIN-BOOTSTRAP] POST /org/members/:id/ensure-twin — admin repair:
        *  idempotent starter-Twin guarantee for an active member (shell

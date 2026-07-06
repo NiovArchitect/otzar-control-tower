@@ -779,6 +779,15 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   read-only manager-gated GET /work-os/context/boundaries with exact
   counts + recent document labels only; honest retention limitation;
   linked from /setup, data-flow, retention; zero curation asks).
+  → PASSWORD-LIFECYCLE ✅ SHIPPED 2026-07-06 (self-service account
+  access on the one token rail: authed change-password [current
+  required, other sessions die, current survives]; public
+  enumeration-safe forgot-password [distinct reset template via the
+  ACT-EMAIL provider; no token burned when unconfigured]; admin
+  "Send password reset" for ACTIVE members [pending → 409 activation;
+  admins never see/set passwords]; /app/account-security page +
+  /forgot-password page + Login door; 3 new audit events; lockout
+  behavior documented honestly [reset does not unsuspend]).
   → TWIN-BOOTSTRAP ✅ SHIPPED 2026-07-06 (the live smoke's
   `twin_not_found` root cause closed: bulk+email members skipped
   Phase-3 invite [the twin-minting step]; now activation redemption

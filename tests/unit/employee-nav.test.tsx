@@ -69,6 +69,9 @@ describe("nav-employee.ts — primary / more groupings", () => {
     // automatic ingestion, and admin-governed twin authority).
     expect(labels).toEqual([
       "My Twin",
+      // [PASSWORD-LIFECYCLE] self-service credential control belongs to
+      // the employee, quietly in More — admins never see or set it.
+      "Account & Security",
       "Blind Spots",
       "Work health",
       "Workspaces",

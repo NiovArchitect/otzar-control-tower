@@ -146,6 +146,15 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "more",
   },
   {
+    // [PASSWORD-LIFECYCLE] self-service credential control — admins
+    // never see or set passwords.
+    label: "Account & Security",
+    to: "/app/account-security",
+    icon: ShieldCheck,
+    description: "Change your password. Admins never see or set it.",
+    group: "more",
+  },
+  {
     label: "Blind Spots",
     to: "/app/blind-spots",
     icon: AlertTriangle,

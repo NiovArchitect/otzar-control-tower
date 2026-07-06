@@ -73,6 +73,25 @@ function ActivationCell({ row }: { row: Entity }): JSX.Element {
         : "Activation link copied. Share it securely — it expires and can only be used once.",
     );
   }
+  // [PASSWORD-LIFECYCLE] admin-triggered reset email — the admin never
+  // sees or sets the password; "sent" = provider accepted.
+  async function sendResetEmail(): Promise<void> {
+    setBusy(true);
+    const r = await api.org.members.passwordResetEmail(row.entity_id);
+    setBusy(false);
+    if (r.ok && r.data.ok) {
+      toast.success(
+        "Password reset email sent — “sent” means our email provider accepted it. You never see or set their password.",
+      );
+    } else if (!r.ok && r.code === "EMAIL_NOT_CONFIGURED") {
+      toast.info("Email delivery isn't configured yet — copy the reset link instead.");
+    } else {
+      toast.error(
+        (!r.ok && r.message) || "The reset email couldn't be sent. Nothing was delivered — copy the reset link instead.",
+      );
+    }
+  }
+
   // [ACT-EMAIL] explicit send — "sent" means the provider accepted the
   // message; the honest not-configured result keeps the copy-link rail
   // as the fallback. Never shown for active members.
@@ -122,7 +141,21 @@ function ActivationCell({ row }: { row: Entity }): JSX.Element {
         >
           Send activation email
         </Button>
-      ) : null}
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs"
+          disabled={busy}
+          data-testid="users-send-reset-email"
+          onClick={(e) => {
+            e.stopPropagation();
+            void sendResetEmail();
+          }}
+        >
+          Send password reset
+        </Button>
+      )}
     </div>
   );
 }

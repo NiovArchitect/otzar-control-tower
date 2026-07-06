@@ -181,7 +181,11 @@ export type AuditEventType =
   | "ACTIVATION_EMAIL_SENT"
   | "ACTIVATION_EMAIL_FAILED"
   // [TWIN-BOOTSTRAP] starter-twin guarantee.
-  | "STARTER_TWIN_PROVISIONED";
+  | "STARTER_TWIN_PROVISIONED"
+  // [PASSWORD-LIFECYCLE] password lifecycle.
+  | "PASSWORD_CHANGED"
+  | "PASSWORD_RESET_EMAIL_SENT"
+  | "PASSWORD_RESET_EMAIL_FAILED";
 
 // WHAT: Mirror of Foundation's AuditOutcome enum.
 export type AuditOutcome = "SUCCESS" | "FAILURE" | "DENIED";

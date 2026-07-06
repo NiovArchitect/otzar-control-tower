@@ -258,6 +258,34 @@ audited with trigger "admin_repair" when it creates. Employees 403;
 unknown/cross-org 404. Requires the org's default enterprise hive
 (Phase 0 creates it).
 
+## 6d. Account access / password lifecycle (PASSWORD-LIFECYCLE, 2026-07-06)
+
+The full lifecycle rides the ONE setup-token rail (PASSWORD_RESET
+purpose: 1h TTL, one-time, supersedes priors, redeemed at /activate,
+invalidates ALL sessions, audited). Admins can NEVER see or set a
+password.
+
+- **Employee, logged in:** /app/account-security → change password
+  (current password required; every OTHER device signed out; audited
+  PASSWORD_CHANGED).
+- **Employee, logged out:** Login → "Forgot password?" →
+  /forgot-password. ENUMERATION-SAFE: identical response whether the
+  email exists or not; eligible ACTIVE members get a reset email
+  (distinct template) when the provider is configured; no token is
+  burned when it isn't.
+- **Admin:** Users row → "Send password reset" (ACTIVE members;
+  pending members keep "Send activation email" — the purposes never
+  blur; the API refuses with 409 pointing at activation). Copy-link
+  fallback remains. "Sent" = provider ACCEPTED, never delivered.
+- **Lockout:** 5 failed logins → ENTITY SUSPENDED (audited). A reset
+  alone does NOT unsuspend (deliberate: lockout-suspension and
+  admin-suspension aren't distinguishable, and reset must not bypass
+  an intentional admin suspension) — reactivate the member first,
+  then reset. Future: model lockout separately for self-recovery.
+- Audit: PASSWORD_CHANGED · PASSWORD_RESET_EMAIL_SENT/FAILED (+
+  existing PASSWORD_RESET_LINK_CREATED / PASSWORD_RESET_COMPLETED) —
+  never a password, token, URL, or body.
+
 ## 7. Secrets & key rotation
 
 - No secret is ever committed, echoed, logged, or pasted into a doc. Render
