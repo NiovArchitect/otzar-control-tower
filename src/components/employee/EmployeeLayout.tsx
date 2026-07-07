@@ -41,7 +41,14 @@ export function EmployeeLayout() {
       <AmbientNav />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-white/50 bg-white/40 px-4 backdrop-blur-xl">
+        {/* [OVERLAY-LAYERING] relative z-40: the header's backdrop-blur
+            creates a stacking context, which CAPS the notification
+            dropdown's z-50 inside it — while the frosted ambient cards in
+            <main> (later in DOM order, own blur contexts) painted over it.
+            z-40 lifts the whole header chrome above the z-auto content
+            plane and keeps it under the ambient overlay ladder (edge glow
+            z-[55] < notification stack z-[58] < Otzar bar z-[60]). */}
+        <header className="relative z-40 flex h-14 items-center justify-between border-b border-white/50 bg-white/40 px-4 backdrop-blur-xl">
           <span className="text-sm font-semibold tracking-tight text-slate-900">
             Otzar
           </span>
