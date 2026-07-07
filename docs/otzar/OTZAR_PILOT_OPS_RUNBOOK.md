@@ -172,6 +172,7 @@ milestone. One command each (`npm run …` from CT):
 | Wallet/data boundary | `otzar-live-wallet-boundary.spec.ts` | No |
 | Pilot gate (all of the above) | `test:e2e:live:pilot-gate` | Mixed — per-spec rails |
 | Redwood truth-weight probe (SMOKE ORG ONLY) | `test:e2e:live:redwood` (`otzar-live-redwood-probe.spec.ts`) | YES — smoke-org only: dynamic personas via invite/activate, conflict-pair ingest, supersession + calm correction + overreach + boundary-404 asserted; cleanup cancels its ledger rows (settled history per FND `b564da8`) + suspends personas; repeat-safe (proven back-to-back). Needs `OTZAR_SMOKE_ADMIN_PASSWORD`; skips without it — can never target the demo org |
+| Redwood FULL corpus (SMOKE ORG ONLY, ~21 min) | `test:e2e:live:redwood:corpus` (`otzar-live-redwood-corpus.spec.ts`) | YES — smoke-org only: all 8 people.json personas via rails + 3A rights, ALL 48 corpus artifacts through governed ingest (36 conversations + 12 seeded docs, transient-5xx retry built in), honest zero-invented-owners at scale (LOCAL_FALLBACK), conflict-pair supersession/overreach/404 proofs, connector honesty, escalations stay 0; cleanup cancels every run row + suspends all personas (proven live 2026-07-06, 4 runs, zero residue). Same `OTZAR_SMOKE_ADMIN_PASSWORD` guard |
 
 `DEMO_SHARED_PASSWORD` comes from the operator env, never from a file, and
 is never echoed.

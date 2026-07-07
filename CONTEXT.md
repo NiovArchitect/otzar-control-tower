@@ -118,6 +118,57 @@ that determines, per required production section:
 
 ---
 
+## ✅ REDWOOD-CORPUS-LIVE · FULL 48-artifact corpus proven on the smoke org · LIVE (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `b564da8` (unchanged — zero runtime edits) ·
+CT `main` = this commit (corpus fixture copy + live spec + runbook row).
+**All mutation scoped to the NIOV Smoke Org. Demo org untouched.**
+
+- **The full corpus GO executed** (`otzar-live-redwood-corpus.spec.ts`,
+  `npm run test:e2e:live:redwood:corpus`, ~21 min): all 8 people.json
+  personas provisioned through the live rails (create → invite →
+  activate → password login) → admin-authored 3A rights, postures
+  read back 8/8 → self-set timezones → **ALL 48 corpus artifacts through
+  the governed ingest rail** (36 conversations as speaker-attributed
+  flattened text + 12 simulated docs via the seeded-context rail,
+  simulation label kept honest) → conflict-pair truth proofs →
+  enumeration-safe 404 → pending escalations 0 → full cleanup.
+  CT corpus.json is byte-identical to FND `tests/fixtures/redwood-atlas/`.
+- **Took 4 live runs to green; every failure was spec-level, zero
+  runtime bugs, cleanup rails held every time:**
+  1. `rwcfpgjhr` — transient edge 502 mid-ingest → `ingestWithRetry`
+     (5xx-only bounded backoff; non-5xx return immediately).
+  2. `rwcoephif` — 48/48 accepted but `owned=0` tripped a wrong
+     assertion. **Doctrine lesson locked:** forced LOCAL_FALLBACK
+     extraction is honest-EMPTY and the responsibility-graph rail mints
+     owned work ONLY from explicit ownership grammar — realistic
+     conversational prose mints ZERO owned rows. That IS the
+     no-invented-owners proof at scale; the spec now asserts
+     `owned === 0` and the stamped-lineage mint proof lives in the
+     controlled §4 ingests.
+  3. `rwcnrpnaq` — §4 conflict pair broke amid ~50 ACTIVE corpus rows
+     (probe never faced this): generic prose classified into the
+     execution domain Jordan now OWNS → false `exceeds_authority` flag
+     on Elena; and "with the client this week" let the topic regex
+     hijack the row title ("Client this week"). **Fix: domain + token
+     isolation** — "backend" pins the pair to Elena's technical domain;
+     shared pair tokens (proj + cutover/backend/migration) have zero
+     corpus occurrences so the ≥2-token/exactly-one-candidate
+     supersession matcher stays unique; no "with/on/for" phrasing;
+     row picked by title match, not `work_items[0]`.
+  4. `rwcqflsnj` — **GREEN end to end (1244 s).**
+- **Cleanup proof across all 4 runs (live sweep, admin token):** pending
+  escalations 0 · zero active run personas (suspended logins fail closed
+  403) · 217 ledger rows swept, zero non-cancelled run rows · demo org
+  never touched. Repeat-safety held: 4 corpus runs + prior probes coexist
+  as settled history (FND `b564da8`).
+- **Security note:** the bootstrap secrets file was displayed once in
+  the recovery session while locating creds — rotation was already
+  mandated within 24 h of creation (2026-07-06 21:02); **rotate all
+  three now.**
+- **Next:** §6 rollback rehearsal on the smoke org; password rotation;
+  then pilot-milestone gates per runbook §4.
+
 ## ✅ REDWOOD-LIVE-PROBE · 2-persona truth-weight arc proven on the smoke org · LIVE (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `b564da8` (PR #584 settled-history fix, squash on
