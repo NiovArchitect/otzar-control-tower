@@ -112,18 +112,34 @@ session clamps to `read/write/admin_org` — `admin_niov` is silently
 dropped, so Phase 0 CANNOT run from it. It needs the NIOV root account
 (TAR `can_admin_niov`) **plus a second NIOV approver** (dual control).
 
+**[G1-DUAL-CONTROL, 2026-07-06] the org-creation approval is SINGLE-USE
+and PAYLOAD-BOUND:** the escalation carries a canonical sha256 of the
+exact request body (`admin_password` redacted — it never affects the hash
+and never reaches escalation metadata or audit), the approval matches ONLY
+that hash, and the 201 consumes it atomically inside executePhase0's
+transaction (APPROVED → EXPIRED + `consumed_at` +
+`DUAL_CONTROL_APPROVAL_CONSUMED` audit). Consequences for this script:
+steps 2 and 4 MUST send the byte-identical JSON body (field order may
+differ; values may not — except the password, which may differ); a
+re-POST after the 201 does NOT create a second org — it opens a fresh
+PENDING escalation (403), and a true concurrent replay 409s
+`DUAL_CONTROL_APPROVAL_CONSUMED`.
+
 1. Log in as the NIOV root account with
    `requested_operations: ["read","write","admin_niov"]` — confirm
    `allowed_operations` echoes `admin_niov` back.
 2. `POST /api/v1/platform/orgs` with
    `{"company_name":"NIOV Smoke Org","admin_email":"smoke-admin@niovlabs.com","admin_password":"<one-time strong>","admin_first_name":"Smoke","admin_last_name":"Admin"}`.
    **The FIRST call is DESIGNED to 403** — it creates a PENDING
-   `DUAL_CONTROL_REQUIRED` EscalationRequest and audits the request.
+   `DUAL_CONTROL_REQUIRED` EscalationRequest stamped with the payload
+   hash, and audits the request.
 3. The SECOND NIOV approver approves that escalation (Review Center /
-   escalation approve). Self-approval is blocked by design.
+   escalation approve). Self-approval is blocked by design. The approval
+   authorizes that one payload only.
 4. RETRY the identical POST → `201 {org_entity_id, …}` — executePhase0
-   creates the org, the first admin, the default enterprise hive, and
-   audits `DANDELION_PHASE_0_COMPLETE`.
+   consumes the approval and creates the org, the first admin, the
+   default enterprise hive, and audits `DANDELION_PHASE_0_COMPLETE` +
+   `DUAL_CONTROL_APPROVAL_CONSUMED`.
 5. Post-create baseline + env switches per the checklist above; then run
    the §6 rollback rehearsal against the smoke org, and migrate mutating
    smoke specs.

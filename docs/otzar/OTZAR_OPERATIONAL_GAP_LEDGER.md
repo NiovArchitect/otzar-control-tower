@@ -652,8 +652,22 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   lesson), smoke tenancy + residue policy + sweep procedure, smoke gates
   (`test:e2e:live:pilot-gate` — 11/11 green at authoring, cleans after
   itself), rollback pointer + CT addendum, key-rotation plan.
+- **G1 DUAL-CONTROL REPAIR — CLOSED 2026-07-06 (FND):** the Phase-0
+  pre-flight found org-creation dual-control approvals were STANDING
+  (no expiry, no consume, matched by operation type — a spent approval
+  could re-create orgs with any payload). Repaired before Phase-0 ran:
+  `PLATFORM_ORG_CREATION` approvals are now payload-bound (canonical
+  sha256 of the body, `admin_password` redacted from hash + metadata +
+  audit; body itself never stored per no-leak guard) and single-use
+  (consumed atomically inside executePhase0's transaction, APPROVED →
+  EXPIRED + `DUAL_CONTROL_APPROVAL_CONSUMED` audit; concurrent replay
+  409s). Other dual-control operations keep standing semantics by
+  design; extending payload binding is per-operation (monetization
+  config is the next candidate). Canonical record Amendment 2 + runbook
+  §3.1 updated.
 - **Remaining (founder actions):** create the dedicated smoke org
-  (Phase 0, dual control); authorize rejection of the 2 stale smoke
+  (Phase 0, dual control — now single-use/payload-bound per §3.1);
+  authorize rejection of the 2 stale smoke
   escalations (8fad318b…, ce8fca11…); rotate RENDER_API_KEY per §7;
   rehearse one rollback on the smoke org. Engineering P1: codify the
   migration job rail as a script; twin-deactivation rail.

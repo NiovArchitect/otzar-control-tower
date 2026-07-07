@@ -118,6 +118,40 @@ that determines, per required production section:
 
 ---
 
+## ✅ G1-DUAL-CONTROL · Org-creation approvals payload-bound + single-use · LIVE (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `b26b397` (PR #581 squash on green 5/5, deployed
+`dep-d96671e7r5hc73frlev0`) · CT `main` = this commit (docs-only).
+**Why before Phase-0:** the smoke-org pre-flight found dual-control
+approvals were STANDING — no expiry, no consume, matched by (source,
+operation type) only; a spent `PLATFORM_ORG_CREATION` approval could
+re-create orgs with ANY payload. Founder paused Phase-0 and ordered the
+repair first.
+
+- **Payload-bound:** approval matches ONLY the canonical sha256 of the
+  exact body (key-sorted, `admin_password` redacted — never in hash,
+  metadata, or audit; body itself never stored per the no-leak guard;
+  hash + redacted-field NAMES only). A different payload opens its own
+  PENDING escalation stamped with its own hash.
+- **Single-use, atomic with the effect:** executePhase0 STEP 0 spends the
+  approval inside the SAME transaction (APPROVED → EXPIRED
+  compare-and-swap, the break-glass pattern; `consumed_at`/`consumed_by`
+  in metadata; `DUAL_CONTROL_APPROVAL_CONSUMED` Zone U1 marker in-tx).
+  Raced/replayed spend throws → full rollback → no duplicate org; route
+  maps the race to 409. Consume-on-success only (a 422 leaves it
+  spendable). Replay after 201 → 403 + fresh PENDING.
+- **Scope:** LIVE on `PLATFORM_ORG_CREATION` only; the other 6 registry
+  entries keep Pattern-5 standing semantics (canonical record Amendment 2;
+  monetization config is the next binding candidate). Zero schema.
+- Tests: binding-orgs reworked + 4 new cases (single-use inversion,
+  payload mismatch, password redaction, atomic double-consume) 11/11 ·
+  registry unit + canonicalDualControlPayload suites · unit 2995/2995 ·
+  integration 193 files (2069+1 skipped) on fresh DB · tsc 0 · CI 5/5.
+- Docs: runbook §3.1 now states single-use + payload-bound (byte-identical
+  body on retry); gap ledger T2 G1 entry CLOSED.
+- **No production mutation:** deploy + read-only probes only. Phase-0
+  (smoke-org creation) remains the next founder action — now safe.
+
 ## ✅ AIX-SURFACES · Truth-weight on named-subject + ambient · LIVE (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `2497050` (PR #580 squash on green 5/5, deployed
