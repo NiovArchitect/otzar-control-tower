@@ -1,36 +1,34 @@
 // FILE: otzar-live-clarification-roundtrip.spec.ts
 // PURPOSE: [CE-2] LIVE reversible round-trip of the governed clarification
-//          request: asker (vishesh) requests clarification from a suggested
-//          clarifier (sadeil — the API-loginable candidate), the clarifier's
-//          Review Center gains EXACTLY 1 "Clarification request", the asker
-//          sees the waiting state on the item's Why, then the clarifier
-//          resolves through the canonical reject rail — pending count back
-//          to baseline, asker sees the declined state, no pending residue.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
+//          request: the asker requests clarification from a suggested
+//          clarifier, the clarifier's Review Center gains EXACTLY 1
+//          "Clarification request", the asker sees the waiting state on the
+//          item's Why, then the clarifier resolves through the canonical
+//          reject rail — pending count back to baseline, asker sees the
+//          declined state, no pending residue.
+//          TENANCY (cast port 2026-07-07): SMOKE ORG ONLY — the asker is
+//          the per-run cast actor and the clarifier is the per-run cast
+//          colleague, made a rankClarifiers candidate BY DURABLE ROW DATA
+//          (the fixture's target_entity_id — the CE-1.5 "target" role), not
+//          by scanning pre-existing rows. Fully self-contained; demo org
+//          untouched.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-clarification-roundtrip.spec.ts
 
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  cleanupSmokeCast,
+  provisionSmokeCast,
+  type SmokeCast,
+} from "./live-tenancy";
 
 test.describe.configure({ retries: 0 });
 
-const ASKER_EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
-const CLARIFIER_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
 
-// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
-// mutation is demo-fixture-bound (named demo people / approver edges)
-// and stays disabled until its smoke-org cast port (gap ledger P1).
-// Write coverage remains in integration tests.
-test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
-
-async function apiLogin(request: APIRequestContext, email: string, ops: string[]): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email, password: PW, requested_operations: ops },
-  });
-  return (await lr.json()).token as string;
-}
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 
 async function pendingIds(request: APIRequestContext, token: string): Promise<string[]> {
   const res = await request.get(`${API}/escalations/pending`, {
@@ -42,10 +40,10 @@ async function pendingIds(request: APIRequestContext, token: string): Promise<st
     : [];
 }
 
-async function uiLogin(page: Page, email: string): Promise<void> {
+async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(PW as string);
+  await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: /sign in/i }).click();
   await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, {
     timeout: 45_000,
@@ -53,59 +51,81 @@ async function uiLogin(page: Page, email: string): Promise<void> {
   await page.waitForTimeout(2500);
 }
 
+// A caller-owned FOLLOW_UP fixture addressed to the clarifier — durable row
+// data makes them a rankClarifiers candidate (CE-1.5 "target" role).
+async function mkClarifiableRow(
+  request: APIRequestContext,
+  cast: SmokeCast,
+): Promise<{ ledgerId: string; title: string }> {
+  const c = cast.colleague;
+  const title = `CE2-SMOKE clarification fixture ${cast.runId}`;
+  const res = await request.post(`${API}/work-os/ledger`, {
+    headers: { authorization: `Bearer ${cast.employee.token}` },
+    data: {
+      ledger_type: "FOLLOW_UP",
+      source_type: "TRANSCRIPT",
+      target_entity_id: c.entityId,
+      title,
+      summary: `${c.firstName} — please confirm the CE2 smoke timeline. (safe to cancel)`,
+      status: "DRAFT",
+      next_action: "Review and send this follow-up.",
+      details: {
+        follow_up: {
+          local_id: `ce2-smoke-${cast.runId}`,
+          action_type: "SEND_INTERNAL_NOTIFICATION",
+          target: { entity_id: c.entityId, display_name: c.displayName, email: c.email },
+          draft_text: `${c.firstName} — please confirm the CE2 smoke timeline. (safe to cancel)`,
+          reason: "Named in the conversation.",
+          source_excerpt: null,
+          confidence: "MEDIUM",
+          resolution_status: "RESOLVED",
+          recipient_governance: {
+            entity_id: c.entityId, display_name: c.displayName, email: c.email, role: null,
+            participantStatus: "unknown", mentionStatus: "explicitly_mentioned",
+            workConnectionType: "transcript_assignee",
+            evidence: { quote: null, source: "explicit_mention", matchedToken: c.firstName.toLowerCase(), alternativeCandidates: [] },
+            roleMatch: "unknown", hierarchyConnection: "unknown", projectConnection: "unknown",
+            policyStatus: "allowed", sensitivity: "internal", confidence: "high",
+            recipientSafety: "confirmed", autonomyEligibility: "draft_only",
+          },
+          autonomy: {
+            futureAutoEligible: false, reasons: [], requiresApprovalReason: null,
+            actionRisk: "low", minimizedContextScope: "draft_only", ledgerState: "needs_review",
+          },
+        },
+      },
+    },
+  });
+  const body = await res.json();
+  expect(body.ok).toBe(true);
+  return { ledgerId: body.entry.ledger_entry_id as string, title };
+}
+
 test("governed clarification round-trip: request → clarifier queue +1 → asker sees waiting → canonical resolve → no residue", async ({ page, request }) => {
-  test.setTimeout(300_000);
-  const asker = await apiLogin(request, ASKER_EMAIL, ["read", "write"]);
-  const clarifier = await apiLogin(request, CLARIFIER_EMAIL, ["read", "write"]);
+  test.setTimeout(360_000);
+  const cast = await provisionSmokeCast(request);
+  try {
+  const asker = cast.employee.token;
+  const clarifier = cast.colleague.token;
   const clarifierBefore = await pendingIds(request, clarifier);
   console.log(`[ce2] clarifier pending BEFORE: ${clarifierBefore.length}`);
 
-  // 1. Find a row whose suggested clarifiers include the loginable clarifier.
-  const mw = await request.get(`${API}/work-os/my-work`, {
+  // 1. Create the caller-owned fixture; the colleague is a candidate by row
+  //    data (target role) — assert that from the same projection the UI uses.
+  const { ledgerId, title: ledgerTitle } = await mkClarifiableRow(request, cast);
+  const clarityRes = await request.get(`${API}/work-os/ledger/${ledgerId}/clarity`, {
     headers: { authorization: `Bearer ${asker}` },
   });
-  const mwBody = await mw.json();
-  const entries = (Array.isArray(mwBody) ? mwBody : (mwBody.entries ?? mwBody.items ?? [])) as Array<
-    Record<string, unknown>
-  >;
-  let ledgerId: string | null = null;
-  let ledgerTitle = "";
-  let clarifierEntityId: string | null = null;
-  // Oldest-first (the Slack-authored rows are the old ones), 10 concurrent
-  // per batch so the probe fits the test budget.
-  const ordered = [...entries].reverse();
-  for (let i = 0; i < ordered.length && ledgerId === null; i += 10) {
-    const batch = ordered.slice(i, i + 10);
-    const results = await Promise.all(
-      batch.map(async (e) => {
-        const id = e.ledger_entry_id as string;
-        const cr = await request.get(`${API}/work-os/ledger/${id}/clarity`, {
-          headers: { authorization: `Bearer ${asker}` },
-        });
-        const cb = await cr.json().catch(() => null);
-        return { e, id, clarity: cb?.clarity };
-      }),
-    );
-    for (const r of results) {
-      if (r.clarity === undefined || r.clarity === null) continue;
-      // Skip rows that already carry a clarification (idempotent rail would
-      // return the old one — we want a fresh, fully reversible round-trip).
-      if (r.clarity.pending_clarification !== undefined) continue;
-      const cands = (r.clarity.candidates ?? []) as Array<{
-        entity_id: string;
-        display_name: string;
-      }>;
-      const hit = cands.find((c) => /sadeil/i.test(c.display_name));
-      if (hit !== undefined) {
-        ledgerId = r.id;
-        ledgerTitle = String(r.e.title ?? "");
-        clarifierEntityId = hit.entity_id;
-        break;
-      }
-    }
-  }
+  expect(clarityRes.status()).toBe(200);
+  const cands = (((await clarityRes.json()).clarity?.candidates ?? []) as Array<{
+    entity_id: string;
+    display_name: string;
+  }>);
+  const clarifierEntityId = cands.find((c) => c.entity_id === cast.colleague.entityId)?.entity_id;
+  expect(clarifierEntityId, "the row's target must be a suggested clarifier").toBe(
+    cast.colleague.entityId,
+  );
   console.log(`[ce2] target row: ${ledgerId} "${ledgerTitle}" clarifier=${clarifierEntityId}`);
-  test.skip(ledgerId === null, "No live row suggests the loginable clarifier — honest skip, no fake data.");
 
   // 2. The governed request (as the asker).
   const create = await request.post(`${API}/work-os/ledger/${ledgerId}/clarify`, {
@@ -123,7 +143,7 @@ test("governed clarification round-trip: request → clarifier queue +1 → aske
   expect(clarifierAfter).toContain(escalationId);
 
   // 4. The asker sees the waiting state on the item's Why (UI + screenshot).
-  await uiLogin(page, ASKER_EMAIL);
+  await uiLogin(page, cast.employee.email, cast.employee.password);
   await page.evaluate(() => {
     history.pushState({}, "", "/app/my-work");
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -187,4 +207,13 @@ test("governed clarification round-trip: request → clarifier queue +1 → aske
   console.log(`[ce2] final asker clarity state: ${fc?.clarity?.pending_clarification?.status}`);
   expect(fc?.clarity?.pending_clarification?.status).toBe("REJECTED");
   console.log(`[ce2] clarifier pending FINAL: ${clarifierFinal.length} (baseline restored)`);
+
+  // 7. Cancel the fixture row (settled history) before suspending the cast.
+  await request.patch(`${API}/work-os/ledger/${ledgerId}`, {
+    headers: { authorization: `Bearer ${asker}` },
+    data: { status: "CANCELLED" },
+  });
+  } finally {
+    await cleanupSmokeCast(request, cast);
+  }
 });

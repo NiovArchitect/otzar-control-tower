@@ -118,6 +118,50 @@ that determines, per required production section:
 
 ---
 
+## ✅ SMOKE-CAST · Governance cast ports all demo-locked arcs to the smoke org · COMPLETE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `9f97ae2` (unchanged — zero backend edits this
+slice) · CT `main` = this commit. **Founder GO. Demo org untouched.**
+
+- **The governance cast** (`provisionSmokeCast` / `cleanupSmokeCast` in
+  `tests/e2e/live-tenancy.ts`, HYBRID design): durable approver
+  backbone = smoke-admin — the org's only admin, so the dual-control
+  org-admin pool resolves to it deterministically for any non-admin
+  actor; per-run dynamic actor ("Riley ActorXxx") + colleague ("Casey
+  ColleagueXxx") through the live onboarding rails (run-suffixed names
+  = repeat-safety doctrine, no stored credentials); optional REAL
+  manager edge via the canonical `POST /org/hierarchy/assign` rail.
+  Cleanup rejects leftover cast-sourced pending escalations, cancels
+  their follow-up rows, suspends both per-run identities.
+- **All 7 formerly demo-locked arcs migrated + GREEN live on the smoke
+  org:** approval-loop 3/3 (approve→deliver→SUCCEEDED with Review
+  Center UI, reject-with-reason durable on escalation + audit,
+  idempotency) · arc-coherence 4/4 · bugb follow-up durability (live
+  LLM ingest naming the colleague) · bugc recipient review (confirm
+  durable, boundary 403) · clarification-roundtrip (now fully
+  self-contained: the clarifier is a rankClarifiers candidate by
+  DURABLE ROW DATA — the fixture's target_entity_id, CE-1.5 target
+  role — no more scanning old demo rows) · bugd S5 (real manager edge,
+  send still queues — never NO_ELIGIBLE_TARGET) · reject-reason R2
+  (sender sees "From your approver:"). Read-only demo scenarios
+  (bugd S1–S4, reject R1) unchanged.
+- **Product improvement caught & recorded:** arc-coherence C2's pinned
+  FINDING (approver verdict didn't reconcile onto the caller's Action)
+  has SHIPPED since — verified live; assertion flipped to REJECTED.
+- **Two harness truths from the port:** (1) `action-center-list`
+  renders only when the ACTIVE tab has rows — a fresh cast sender's
+  pending tab is honestly empty, so tab-select must precede the list
+  wait (demo leftovers had masked this); (2) rail-link clicks after a
+  fresh login race hydration — `clientRoute` (pushState+popstate) is
+  the proven pattern.
+- **Residue proof:** pending escalations 0 · 85 pilot-smoke identities,
+  0 ACTIVE · 0 active fixtures · 0 pending follow-ups · growth at
+  baseline (members_count 1). `test:e2e:live:mutating` now carries all
+  12 mutating specs (workers=1).
+- **Next:** sadeil@ + RENDER_API_KEY rotation (founder); P1s: governed
+  can_admin_niov grant route, migration-job script, twin-deactivation
+  rail.
+
 ## ✅ SMOKE-TENANCY · Demo org read-only; mutating smokes migrated to the NIOV Smoke Org · BINDING (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `9f97ae2` (PR #586 growth-roster fix, 5/5 CI,

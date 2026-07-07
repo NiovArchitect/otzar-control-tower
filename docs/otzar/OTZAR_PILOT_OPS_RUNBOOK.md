@@ -106,13 +106,23 @@ admin-bootstrap runbook §5A/§7).
   provisions a per-run dynamic member as its assignee via the live
   onboarding rails and suspends it in cleanup); `redwood-probe` /
   `redwood-corpus` were smoke-native from birth.
-- Demo-locked pending the smoke-org cast port (gap ledger P1 — their
-  mutating arcs are bound to named demo people / approver edges):
-  `approval-loop`, `arc-coherence`, `bugb-followup-durable`,
-  `bugc-recipient-review`, `clarification-roundtrip` (whole-file
-  `skip`), `bugd-connectedness` S5 + `reject-reason` R2 (scenario
-  `skip`; their read-only scenarios still run on demo). Write coverage
-  for those arcs remains in FND integration tests.
+- **CAST PORT COMPLETE 2026-07-07:** the seven formerly demo-locked
+  governed-action arcs run on the smoke org via the GOVERNANCE CAST
+  (`provisionSmokeCast` in `live-tenancy.ts` — hybrid design: durable
+  approver backbone = smoke-admin, the org's only admin, so the
+  dual-control org-admin pool resolves to it deterministically;
+  per-run dynamic actor + colleague with run-suffixed names via the
+  live rails; optional manager edge via `POST /org/hierarchy/assign`;
+  `cleanupSmokeCast` rejects leftover pending escalations sourced by
+  the cast, cancels their follow-up rows, suspends both identities).
+  Migrated & proven live: `approval-loop` (full approve→deliver→
+  SUCCEEDED + reject-with-reason + idempotency), `arc-coherence` 4/4,
+  `bugb-followup-durable`, `bugc-recipient-review`,
+  `clarification-roundtrip` (self-contained fixture — the clarifier
+  is a candidate by durable row data, CE-1.5 target role),
+  `bugd-connectedness` S5 (real manager edge, still queues),
+  `reject-reason` R2. Their read-only scenarios (bugd S1–S4,
+  reject R1) still run on demo with `DEMO_SHARED_PASSWORD`.
 - `collaboration-matrix` + `employee-flow`: `OTZAR_SMOKE_ALLOW_WRITES=1`
   now arms writes ONLY when the account structurally resolves to the
   smoke org; on a demo account the flag is ignored (read-only matrix

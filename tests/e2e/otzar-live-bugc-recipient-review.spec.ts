@@ -8,35 +8,29 @@
 //          override affordance and the API rejects the override (403). Fixtures
 //          are created through the product API (POST /work-os/ledger,
 //          caller-owned) and cleaned up. Env-gated; skips without creds.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
+//          TENANCY (cast port 2026-07-07): SMOKE ORG ONLY — the caller is
+//          the per-run cast actor, the fixture target is the per-run cast
+//          colleague. Demo org untouched.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-bugc-recipient-review.spec.ts
 
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import {
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  cleanupSmokeCast,
+  provisionSmokeCast,
+  type SmokeCast,
+} from "./live-tenancy";
 
 // Mutates live data (fixtures + review decisions); never retry on top of a
 // partial prior attempt.
 test.describe.configure({ retries: 0 });
 
-const EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const TAG = process.env.OTZAR_SHOT_TAG ?? "bugc";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
-// Live demo-org member (David Odie) — the out_of_scope fixture's target.
-const DAVID = "6a49a936-cd60-4bde-b08c-2e31b11c4230";
 
-// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
-// mutation is demo-fixture-bound (named demo people / approver edges)
-// and stays disabled until its smoke-org cast port (gap ledger P1).
-// Write coverage remains in integration tests.
-test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
-
-async function apiLogin(request: APIRequestContext): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email: EMAIL, password: PW, requested_operations: ["read", "write"] },
-  });
-  return (await lr.json()).token as string;
-}
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 
 async function cleanupPending(request: APIRequestContext, token: string): Promise<void> {
   for (let round = 0; round < 6; round++) {
@@ -56,13 +50,14 @@ async function cleanupPending(request: APIRequestContext, token: string): Promis
 
 // A follow-up payload in a given blocked governance state — the same shape
 // ingest persists. Created through the product API as the caller's own row.
-function fixturePayload(safety: "out_of_scope" | "cross_team_needs_approval") {
+function fixturePayload(cast: SmokeCast, safety: "out_of_scope" | "cross_team_needs_approval") {
+  const target = cast.colleague;
   return {
     ledger_type: "FOLLOW_UP",
     source_type: "TRANSCRIPT",
-    target_entity_id: DAVID,
-    title: "Follow-up to David Odie",
-    summary: "David — please confirm the rollout timeline. (BUG C live smoke)",
+    target_entity_id: target.entityId,
+    title: `Follow-up to ${target.displayName}`,
+    summary: `${target.firstName} — please confirm the rollout timeline. (BUG C live smoke)`,
     status: "DRAFT",
     next_action: "Review and send this follow-up.",
     details: {
@@ -70,21 +65,21 @@ function fixturePayload(safety: "out_of_scope" | "cross_team_needs_approval") {
       follow_up: {
         local_id: `bugc-smoke-${safety}`,
         action_type: "SEND_INTERNAL_NOTIFICATION",
-        target: { entity_id: DAVID, display_name: "David Odie", email: "david@niovlabs.com" },
-        draft_text: "David — please confirm the rollout timeline. (BUG C live smoke)",
+        target: { entity_id: target.entityId, display_name: target.displayName, email: target.email },
+        draft_text: `${target.firstName} — please confirm the rollout timeline. (BUG C live smoke)`,
         reason: "Named in the conversation.",
         source_excerpt: "please confirm the rollout timeline",
         confidence: "MEDIUM",
         resolution_status: "RESTRICTED",
         recipient_governance: {
-          entity_id: DAVID,
-          display_name: "David Odie",
-          email: "david@niovlabs.com",
+          entity_id: target.entityId,
+          display_name: target.displayName,
+          email: target.email,
           role: null,
           participantStatus: "unknown",
           mentionStatus: "explicitly_mentioned",
           workConnectionType: "none",
-          evidence: { quote: null, source: "fuzzy_only", matchedToken: "david", alternativeCandidates: [] },
+          evidence: { quote: null, source: "fuzzy_only", matchedToken: target.firstName.toLowerCase(), alternativeCandidates: [] },
           roleMatch: "unknown",
           hierarchyConnection: "unknown",
           projectConnection: "unknown",
@@ -107,10 +102,10 @@ function fixturePayload(safety: "out_of_scope" | "cross_team_needs_approval") {
   };
 }
 
-async function login(p: Page): Promise<void> {
+async function login(p: Page, email: string, password: string): Promise<void> {
   await p.goto("/login");
-  await p.getByLabel("Email").fill(EMAIL);
-  await p.getByLabel("Password").fill(PW as string);
+  await p.getByLabel("Email").fill(email);
+  await p.getByLabel("Password").fill(password);
   await p.getByRole("button", { name: /sign in/i }).click();
   await p.waitForURL(/\/app/, { timeout: 25_000 });
 }
@@ -134,15 +129,17 @@ async function leaveAndReturn(p: Page): Promise<void> {
 }
 
 test("live: blocked recipient review completes durably; approval boundary is not overridable", async ({ page, request }) => {
-  test.setTimeout(180_000);
-  const token = await apiLogin(request);
+  test.setTimeout(300_000);
+  const cast = await provisionSmokeCast(request);
+  try {
+  const token = cast.employee.token;
   await cleanupPending(request, token); // known-clean baseline
 
   // ── Fixtures via the product API (caller-owned durable rows).
   const mk = async (safety: "out_of_scope" | "cross_team_needs_approval") => {
     const res = await request.post(`${API}/work-os/ledger`, {
       headers: { authorization: `Bearer ${token}` },
-      data: fixturePayload(safety),
+      data: fixturePayload(cast, safety),
     });
     const body = await res.json();
     expect(body.ok).toBe(true);
@@ -162,7 +159,7 @@ test("live: blocked recipient review completes durably; approval boundary is not
   expect(xb.message).toMatch(/approver/i);
 
   // ── UI: both cards render from the durable feed with the right affordances.
-  await login(page);
+  await login(page, cast.employee.email, cast.employee.password);
   await gotoComms(page);
   await page.getByTestId("comms-pending-follow-ups").waitFor({ state: "visible", timeout: 20_000 });
   await expect(page.getByTestId("comms-review-confirm")).toBeVisible({ timeout: 15_000 });
@@ -212,4 +209,7 @@ test("live: blocked recipient review completes durably; approval boundary is not
     headers: { authorization: `Bearer ${token}` },
   });
   expect((((await after.json()).follow_ups ?? []) as unknown[]).length).toBe(0);
+  } finally {
+    await cleanupSmokeCast(request, cast);
+  }
 });

@@ -20,6 +20,12 @@
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-bugd-connectedness.spec.ts
 
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import {
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  cleanupSmokeCast,
+  provisionSmokeCast,
+} from "./live-tenancy";
 
 // Scenario 5 mutates live data (creates a governed action) — no retries.
 test.describe.configure({ retries: 0 });
@@ -29,12 +35,11 @@ const EMPLOYEE_EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
 const PW = process.env.DEMO_SHARED_PASSWORD;
 const TAG = process.env.OTZAR_SHOT_TAG ?? "bugd";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
-// Live demo-org member (Samiksha) — scenario 5's recipient.
-const SAMIKSHA = "a378367c-5baf-43f6-9b0d-675dc74cb9a6";
 
 const BANNED = /isn't connected|not connected|disconnected/i;
 
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
+// S1–S4 are read-only demo checks (demo creds, per-test gate); S5 is the
+// smoke-org governed-send scenario (smoke cast).
 
 async function apiLogin(request: APIRequestContext, email: string): Promise<string> {
   const lr = await request.post(`${API}/auth/login`, {
@@ -67,6 +72,7 @@ async function clientRoute(p: Page, path: string): Promise<void> {
 
 // ── Scenario 1 — API source-of-truth (admin view) ───────────────────────────
 test("S1 api: recommendations state true org placement with structured context — never 'not connected'", async ({ request }) => {
+  test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
   const token = await apiLogin(request, ADMIN_EMAIL);
   const gr = await request.get(`${API}/otzar/dandelion/org-growth`, {
     headers: { authorization: `Bearer ${token}` },
@@ -112,6 +118,7 @@ test("S1 api: recommendations state true org placement with structured context �
 
 // ── Scenario 2 — Admin UI renders the truth (screenshot) ────────────────────
 test("S2 admin ui: People & Collaboration card reads accurately, honest hide control, no raw ids", async ({ page }) => {
+  test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
   test.setTimeout(150_000);
   await uiLogin(page, ADMIN_EMAIL);
   await clientRoute(page, "/app/collaboration");
@@ -134,6 +141,7 @@ test("S2 admin ui: People & Collaboration card reads accurately, honest hide con
 
 // ── Scenario 3 — "Hide for now" is honestly session-local ───────────────────
 test("S3 admin ui: a hidden recommendation returns on remount (session-local, not fake-durable)", async ({ page }) => {
+  test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
   test.setTimeout(150_000);
   await uiLogin(page, ADMIN_EMAIL);
   await clientRoute(page, "/app/collaboration");
@@ -153,6 +161,7 @@ test("S3 admin ui: a hidden recommendation returns on remount (session-local, no
 
 // ── Scenario 4 — Employee isolation + no disconnection language ─────────────
 test("S4 employee ui: non-admin never sees the growth card; page carries no disconnection language", async ({ page }) => {
+  test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
   test.setTimeout(120_000);
   await uiLogin(page, EMPLOYEE_EMAIL);
   await page.getByTestId("ambient-nav").getByRole("link", { name: /people/i }).first().click();
@@ -166,39 +175,45 @@ test("S4 employee ui: non-admin never sees the growth card; page carries no disc
 
 // ── Scenario 5 — dual-control regression: managed employee's send QUEUES ────
 test("S5 governance: a managed employee's send queues for approval (no manager-edge NO_ELIGIBLE_TARGET)", async ({ request }) => {
-  // [SMOKE-TENANCY 2026-07-07] Demo org is read-only: S5 creates a governed
-  // action against demo people/approver edges — disabled until the smoke-org
-  // cast port (gap ledger P1). S1–S4 above stay read-only-green on demo.
-  test.skip(true, "Demo org is read-only (2026-07-07); S5's mutating arc awaits the smoke-org cast port (gap ledger P1).");
-  const employeeToken = await apiLogin(request, EMPLOYEE_EMAIL);
-  const key = `bugd-smoke-dualcontrol-${Date.now()}`; // per-run key — a reused key replays the prior (already-resolved) action
-  const send = await request.post(`${API}/actions`, {
-    headers: { authorization: `Bearer ${employeeToken}` },
-    data: {
-      action_type: "SEND_INTERNAL_NOTIFICATION",
-      idempotency_key: key,
-      payload_summary: "BUGD smoke: dual-control approver resolution",
-      payload_redacted: {
-        recipient_entity_id: SAMIKSHA,
-        notification_class: "OTZAR_INTERNAL_NOTE",
-        body_summary: "BUGD smoke: verifying approver resolution — will be rejected by the approver.",
+  // [SMOKE-CAST 2026-07-07] SMOKE ORG ONLY: the per-run actor gets a REAL
+  // manager edge (actor → smoke-admin via the canonical hierarchy rail) —
+  // exactly the shape that used to break approver resolution — then the
+  // governed send must still queue (never NO_ELIGIBLE_TARGET). S1–S4 above
+  // stay read-only on the demo org.
+  test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
+  test.setTimeout(240_000);
+  const cast = await provisionSmokeCast(request, { managerEdge: true });
+  try {
+    const key = `bugd-smoke-dualcontrol-${cast.runId}`; // per-run key — a reused key replays the prior (already-resolved) action
+    const send = await request.post(`${API}/actions`, {
+      headers: { authorization: `Bearer ${cast.employee.token}` },
+      data: {
+        action_type: "SEND_INTERNAL_NOTIFICATION",
+        idempotency_key: key,
+        payload_summary: "BUGD smoke: dual-control approver resolution",
+        payload_redacted: {
+          recipient_entity_id: cast.colleague.entityId,
+          notification_class: "OTZAR_INTERNAL_NOTE",
+          body_summary: "BUGD smoke: verifying approver resolution — will be rejected by the approver.",
+        },
       },
-    },
-  });
-  const body = await send.json();
-  // The regression returned 503 DUAL_CONTROL_NO_APPROVER_AVAILABLE here.
-  expect(body.ok).toBe(true);
-  expect(body.action.status).toBe("PROPOSED");
-  expect(body.action.requires_approval).toBe(true);
-  expect(body.action.escalation_id ?? null).not.toBeNull();
+    });
+    const body = await send.json();
+    // The regression returned 503 DUAL_CONTROL_NO_APPROVER_AVAILABLE here.
+    expect(body.ok).toBe(true);
+    expect(body.action.status).toBe("PROPOSED");
+    expect(body.action.requires_approval).toBe(true);
+    expect(body.action.escalation_id ?? null).not.toBeNull();
 
-  // Governed cleanup: the approver rejects the smoke escalation (idempotency
-  // key means retries reuse the same action rather than piling up).
-  const adminToken = await apiLogin(request, ADMIN_EMAIL);
-  const rej = await request.post(`${API}/escalations/${body.action.escalation_id}/reject`, {
-    headers: { authorization: `Bearer ${adminToken}` },
-    data: { reason: "BUGD live smoke — governed cleanup, not a real send." },
-  });
-  const rb = await rej.json();
-  expect(rb.ok).toBe(true);
+    // Governed cleanup: the approver rejects the smoke escalation (idempotency
+    // key means retries reuse the same action rather than piling up).
+    const rej = await request.post(`${API}/escalations/${body.action.escalation_id}/reject`, {
+      headers: { authorization: `Bearer ${cast.adminToken}` },
+      data: { reason: "BUGD live smoke — governed cleanup, not a real send." },
+    });
+    const rb = await rej.json();
+    expect(rb.ok).toBe(true);
+  } finally {
+    await cleanupSmokeCast(request, cast);
+  }
 });

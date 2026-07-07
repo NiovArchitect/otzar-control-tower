@@ -5,33 +5,36 @@
 //          coming back (the reported bug), and that dismiss transitions the
 //          backing row to CANCELLED so it stays gone. Resilient to the live LLM
 //          (asserts on whatever cards extraction produces). Cleans up the rows
-//          it creates. Env-gated (DEMO_SHARED_PASSWORD); skips without creds.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
+//          it creates. Env-gated; skips without creds.
+//          TENANCY (cast port 2026-07-07): SMOKE ORG ONLY — the caller is
+//          the per-run cast actor and the transcript names the per-run cast
+//          colleague (run-suffixed, roster-resolvable). Demo org untouched.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-bugb-followup-durable.spec.ts
 
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import {
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  cleanupSmokeCast,
+  provisionSmokeCast,
+  type SmokeCast,
+} from "./live-tenancy";
 
 // This smoke mutates live data (ingest creates rows; send/dismiss transition
 // them). Retries would re-ingest on top of a partial prior attempt and make
 // counts drift — run it exactly once and start from a known-clean baseline.
 test.describe.configure({ retries: 0 });
 
-const EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const TAG = process.env.OTZAR_SHOT_TAG ?? "bugb";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
 
-// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
-// mutation is demo-fixture-bound (named demo people / approver edges)
-// and stays disabled until its smoke-org cast port (gap ledger P1).
-// Write coverage remains in integration tests.
-test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 
-async function login(p: Page): Promise<void> {
+async function login(p: Page, email: string, password: string): Promise<void> {
   await p.goto("/login");
-  await p.getByLabel("Email").fill(EMAIL);
-  await p.getByLabel("Password").fill(PW as string);
+  await p.getByLabel("Email").fill(email);
+  await p.getByLabel("Password").fill(password);
   await p.getByRole("button", { name: /sign in/i }).click();
   await p.waitForURL(/\/app/, { timeout: 25_000 });
   await p.getByRole("button", { name: /log out/i }).first().waitFor({ state: "visible", timeout: 9000 }).catch(() => undefined);
@@ -97,9 +100,15 @@ async function leaveAndReturn(p: Page): Promise<void> {
   await gotoComms(p);
 }
 
-const TRANSCRIPT =
-  "Launch sync. David will lead this push. Please follow up with David about the UI review, " +
-  "and ask Samiksha to confirm the auth refresh status before Friday.";
+// The transcript names the per-run cast colleague (roster-resolvable,
+// run-suffixed — repeat-safe by construction).
+function transcriptFor(cast: SmokeCast): string {
+  const c = cast.colleague.displayName;
+  return (
+    `Launch sync. ${c} will lead this push. Please follow up with ${c} about the UI review, ` +
+    `and ask ${c} to confirm the auth refresh status before Friday.`
+  );
+}
 
 async function cardCount(p: Page): Promise<number> {
   return p.getByTestId("comms-follow-up-row").count();
@@ -107,11 +116,7 @@ async function cardCount(p: Page): Promise<number> {
 
 // Start from a known-clean baseline: cancel any pending FOLLOW_UP rows left by a
 // prior run so this smoke's counts reflect only what it creates.
-async function cleanupPending(request: APIRequestContext): Promise<void> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email: EMAIL, password: PW, requested_operations: ["read", "write"] },
-  });
-  const token = (await lr.json()).token as string;
+async function cleanupPending(request: APIRequestContext, token: string): Promise<void> {
   for (let round = 0; round < 6; round++) {
     const res = await request.get(`${API}/work-os/comms/follow-ups`, {
       headers: { authorization: `Bearer ${token}` },
@@ -142,14 +147,16 @@ async function stableCardCount(p: Page): Promise<number> {
 }
 
 test("live: Comms follow-ups are durable — survive nav; send + dismiss transition the row; My Work shows it", async ({ page, request }) => {
-  test.setTimeout(300_000); // live: cleanup + ingest + multi-step nav/transition
-  await cleanupPending(request); // known-clean baseline (no leftover rows)
-  await login(page);
+  test.setTimeout(420_000); // live: cast + cleanup + ingest + multi-step nav/transition
+  const cast = await provisionSmokeCast(request);
+  try {
+  await cleanupPending(request, cast.employee.token); // known-clean baseline (no leftover rows)
+  await login(page, cast.employee.email, cast.employee.password);
   await gotoComms(page);
 
   // Ingest a conversation via Import notes.
   await page.getByTestId("comms-import-toggle").click();
-  await page.getByTestId("comms-import-textarea").fill(TRANSCRIPT);
+  await page.getByTestId("comms-import-textarea").fill(transcriptFor(cast));
   await page.getByTestId("comms-import-submit").click();
   await page.getByTestId("comms-review").waitFor({ state: "visible", timeout: 40_000 }).catch(() => undefined);
 
@@ -179,12 +186,8 @@ test("live: Comms follow-ups are durable — survive nav; send + dismiss transit
   // ── My Work shows the caller-owned FOLLOW_UP. ('My Work' lives under the
   //    ambient 'More' menu; assert against the exact route My Work renders from,
   //    via the authed API, rather than a fragile menu walk.)
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email: EMAIL, password: PW, requested_operations: ["read"] },
-  });
-  const token = (await lr.json()).token as string;
   const mwRes = await request.get(`${API}/work-os/my-work`, {
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${cast.employee.token}` },
   });
   const myWork = ((await mwRes.json()).items ?? []) as Array<{ ledger_type?: string }>;
   expect(myWork.some((i) => i.ledger_type === "FOLLOW_UP")).toBe(true);
@@ -300,6 +303,11 @@ test("live: Comms follow-ups are durable — survive nav; send + dismiss transit
     await cancel.click({ force: true }).catch(() => undefined);
     await page.waitForTimeout(600);
   }
-  await cleanupPending(request); // authoritative API cleanup — org left clean
+  await cleanupPending(request, cast.employee.token); // authoritative API cleanup — org left clean
   await page.screenshot({ path: `screenshots/${TAG}-5-cleaned.png`, fullPage: true });
+  } finally {
+    // Cast cleanup also rejects any pending escalation the send leg queued
+    // (governed containment) before suspending the per-run identities.
+    await cleanupSmokeCast(request, cast);
+  }
 });

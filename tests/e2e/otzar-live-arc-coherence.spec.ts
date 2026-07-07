@@ -20,30 +20,32 @@
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-arc-coherence.spec.ts
 
 import { test, expect, type APIRequestContext } from "@playwright/test";
+import {
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  cleanupSmokeCast,
+  provisionSmokeCast,
+  type SmokeCast,
+} from "./live-tenancy";
 
 test.describe.configure({ retries: 0 }); // live mutations — never retry on top of a partial run
 
-const ADMIN_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
-const EMPLOYEE_EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const TAG = process.env.OTZAR_SHOT_TAG ?? "arc";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
-const SAMIKSHA = "a378367c-5baf-43f6-9b0d-675dc74cb9a6";
-const DAVID = "6a49a936-cd60-4bde-b08c-2e31b11c4230";
 
-// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
-// mutation is demo-fixture-bound (named demo people / approver edges)
-// and stays disabled until its smoke-org cast port (gap ledger P1).
-// Write coverage remains in integration tests.
-test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
+// [SMOKE-CAST 2026-07-07] SMOKE ORG ONLY: the caller is the per-run cast
+// actor, the doer/recipient is the per-run cast colleague, the approver is
+// smoke-admin (deterministic org-admin pool). Demo org untouched.
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 
-async function apiLogin(request: APIRequestContext, email: string): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email, password: PW, requested_operations: ["read", "write"] },
-  });
-  return (await lr.json()).token as string;
-}
+// One cast for the whole file (fullyParallel:false — in-file serial order).
+let cast: SmokeCast;
+test.beforeAll(async ({ request }) => {
+  cast = await provisionSmokeCast(request);
+});
+test.afterAll(async ({ request }) => {
+  if (cast !== undefined) await cleanupSmokeCast(request, cast);
+});
 
 function authed(token: string): { authorization: string } {
   return { authorization: `Bearer ${token}` };
@@ -83,7 +85,7 @@ async function cleanupCallerSmokeRows(request: APIRequestContext, token: string)
 // ── C1 — WorkLedger coherence: caller FOLLOW_UPs vs doer COMMITMENTs ─────────
 test("C1 ledger: follow-ups are caller-owned, commitments doer-owned, no double count, manager view agrees", async ({ request }) => {
   test.setTimeout(120_000);
-  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
+  const emp = cast.employee.token;
   await cleanupCallerSmokeRows(request, emp);
 
   // Ingest through the product API — David owns work; a follow-up is drafted.
@@ -92,8 +94,8 @@ test("C1 ledger: follow-ups are caller-owned, commitments doer-owned, no double 
     headers: authed(emp),
     data: {
       captured_text:
-        "ARC-SMOKE sync. David owns the ARC-SMOKE rollout review and will confirm it this week. " +
-        "Please follow up with David about the ARC-SMOKE rollout timeline.",
+        `ARC-SMOKE sync. ${cast.colleague.displayName} owns the ARC-SMOKE rollout review and will confirm it this week. ` +
+        `Please follow up with ${cast.colleague.displayName} about the ARC-SMOKE rollout timeline.`,
       title: "ARC-SMOKE coherence check",
     },
   });
@@ -122,7 +124,7 @@ test("C1 ledger: follow-ups are caller-owned, commitments doer-owned, no double 
   for (const c of commitments) expect(pendIds.has(c.ledger_entry_id)).toBe(false);
 
   // Manager view (org-wide Team Work) sees the SAME ledger ids — one truth.
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = cast.adminToken;
   const tw = await request.get(`${API}/work-os/team-work`, { headers: authed(adm) });
   const teamItems = ((await tw.json()).entries ?? []) as Array<{ ledger_entry_id: string }>;
   const teamIds = new Set(teamItems.map((t) => t.ledger_entry_id));
@@ -136,8 +138,8 @@ test("C1 ledger: follow-ups are caller-owned, commitments doer-owned, no double 
 // ── C2 — governed send routes to the approver and reflects back ─────────────
 test("C2 governance: send -> PROPOSED + escalation -> caller's Action feed + approver's pending queue -> verdict reflects", async ({ request }) => {
   test.setTimeout(120_000);
-  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
-  const key = `arc-smoke-send-${Date.now()}`; // per-run key — a reused key replays the prior (already-resolved) action
+  const emp = cast.employee.token;
+  const key = `arc-smoke-send-${cast.runId}`; // per-run key — a reused key replays the prior (already-resolved) action
   const send = await request.post(`${API}/actions`, {
     headers: authed(emp),
     data: {
@@ -145,7 +147,7 @@ test("C2 governance: send -> PROPOSED + escalation -> caller's Action feed + app
       idempotency_key: key,
       payload_summary: "ARC-SMOKE governed send coherence",
       payload_redacted: {
-        recipient_entity_id: SAMIKSHA,
+        recipient_entity_id: cast.colleague.entityId,
         notification_class: "OTZAR_INTERNAL_NOTE",
         body_summary: "ARC-SMOKE: coherence verification — the approver will reject this.",
       },
@@ -165,7 +167,7 @@ test("C2 governance: send -> PROPOSED + escalation -> caller's Action feed + app
   expect(mine?.status).toBe("PROPOSED");
 
   // The APPROVER's pending queue carries the escalation (the human surface).
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = cast.adminToken;
   const pq = await request.get(`${API}/escalations/pending`, { headers: authed(adm) });
   const pendingEsc = ((await pq.json()).escalations ?? []) as Array<{ escalation_id: string }>;
   expect(pendingEsc.some((e) => e.escalation_id === escalationId)).toBe(true);
@@ -181,23 +183,22 @@ test("C2 governance: send -> PROPOSED + escalation -> caller's Action feed + app
   const escBody = await escAfter.json();
   expect((escBody.escalation ?? escBody).status).toBe("REJECTED");
 
-  // ⚠️ FINDING (P0-ARC-FINAL, pinned deliberately): the approver's verdict does
-  // NOT currently reconcile back onto the caller's Action — it stays PROPOSED
-  // on the caller's feed even after the escalation is REJECTED. A real
-  // Action⇄Escalation coherence gap (next-slice candidate: approver/admin
-  // queue UX). When reconciliation ships, THIS assertion should fail — update
-  // it to expect "REJECTED" then.
+  // RESOLVED (verified live 2026-07-07 during the smoke-cast port): the
+  // Action⇄Escalation reconciliation gap pinned by the original P0-ARC-FINAL
+  // FINDING has since shipped — the approver's verdict now reconciles back
+  // onto the caller's Action. The caller's feed tells the same truth as the
+  // escalation record.
   const after = await request.get(`${API}/actions`, { headers: authed(emp) });
   const mineAfter = (((await after.json()).items ?? []) as Array<{ action_id: string; status: string }>).find(
     (a) => a.action_id === actionId,
   );
-  expect(mineAfter?.status).toBe("PROPOSED"); // documented gap — see FINDING above
+  expect(mineAfter?.status).toBe("REJECTED"); // verdict reconciled onto the caller's Action
 });
 
 // ── C3 — recipient review leaves a real audit trail; boundary still holds ───
 test("C3 audit: caller-confirmed review is org-audited; approval boundary rejects 403", async ({ request }) => {
   test.setTimeout(120_000);
-  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
+  const emp = cast.employee.token;
 
   const mkFixture = async (safety: "out_of_scope" | "cross_team_needs_approval") => {
     const res = await request.post(`${API}/work-os/ledger`, {
@@ -205,8 +206,8 @@ test("C3 audit: caller-confirmed review is org-audited; approval boundary reject
       data: {
         ledger_type: "FOLLOW_UP",
         source_type: "TRANSCRIPT",
-        target_entity_id: DAVID,
-        title: "ARC-SMOKE Follow-up to David Odie",
+        target_entity_id: cast.colleague.entityId,
+        title: `ARC-SMOKE Follow-up to ${cast.colleague.displayName}`,
         summary: "ARC-SMOKE: audit coherence fixture",
         status: "DRAFT",
         next_action: "Review and send this follow-up.",
@@ -214,21 +215,21 @@ test("C3 audit: caller-confirmed review is org-audited; approval boundary reject
           follow_up: {
             local_id: `arc-${safety}`,
             action_type: "SEND_INTERNAL_NOTIFICATION",
-            target: { entity_id: DAVID, display_name: "David Odie", email: null },
+            target: { entity_id: cast.colleague.entityId, display_name: cast.colleague.displayName, email: null },
             draft_text: "ARC-SMOKE: audit coherence fixture",
             reason: "Named in the conversation.",
             source_excerpt: null,
             confidence: "MEDIUM",
             resolution_status: "RESTRICTED",
             recipient_governance: {
-              entity_id: DAVID,
-              display_name: "David Odie",
+              entity_id: cast.colleague.entityId,
+              display_name: cast.colleague.displayName,
               email: null,
               role: null,
               participantStatus: "unknown",
               mentionStatus: "explicitly_mentioned",
               workConnectionType: "none",
-              evidence: { quote: null, source: "fuzzy_only", matchedToken: "david", alternativeCandidates: [] },
+              evidence: { quote: null, source: "fuzzy_only", matchedToken: cast.colleague.firstName.toLowerCase(), alternativeCandidates: [] },
               roleMatch: "unknown",
               hierarchyConnection: "unknown",
               projectConnection: "unknown",
@@ -262,7 +263,7 @@ test("C3 audit: caller-confirmed review is org-audited; approval boundary reject
   // A REAL org-audit row exists for the decision (admin audit surface).
   // Filter to ADMIN_ACTION — smoke-heavy days flood the unfiltered feed past
   // any single page (each dual-control attempt writes several events).
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = cast.adminToken;
   const audit = await request.get(`${API}/org/audit?take=100&event_type=ADMIN_ACTION`, { headers: authed(adm) });
   const events = ((await audit.json()).items ?? []) as Array<{
     audit_id?: string;
@@ -291,8 +292,8 @@ test("C3 audit: caller-confirmed review is org-audited; approval boundary reject
 test("C4 ui: employee Action Center loads governed work without raw backend codes", async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto("/login");
-  await page.getByLabel("Email").fill(EMPLOYEE_EMAIL);
-  await page.getByLabel("Password").fill(PW as string);
+  await page.getByLabel("Email").fill(cast.employee.email);
+  await page.getByLabel("Password").fill(cast.employee.password);
   await page.getByRole("button", { name: /sign in/i }).click();
   await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, { timeout: 45_000 });
   await page.waitForTimeout(2000);

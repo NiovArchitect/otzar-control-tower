@@ -100,6 +100,8 @@ export interface SmokeMember {
   entityId: string;
   email: string;
   password: string;
+  displayName: string;
+  firstName: string;
 }
 
 /** Provision a per-run dynamic member on the smoke org through the LIVE
@@ -110,12 +112,15 @@ export async function provisionSmokeMember(
   adminToken: string,
   runId: string,
   slug = "member",
+  names?: { first: string; last: string },
 ): Promise<SmokeMember> {
   const auth = { authorization: `Bearer ${adminToken}` };
   const email = `pilot-smoke+${runId}-${slug}@niovlabs.com`;
+  const first = names?.first ?? "Pilot";
+  const last = names?.last ?? `Smoke-${slug}-${runId}`;
   const created = await request.post(`${SMOKE_API}/org/members`, {
     headers: auth,
-    data: { email, first_name: "Pilot", last_name: `Smoke-${slug}-${runId}` },
+    data: { email, first_name: first, last_name: last },
   });
   expect(created.status()).toBe(201);
   const entityId = ((await created.json()) as { entity_id: string }).entity_id;
@@ -131,7 +136,145 @@ export async function provisionSmokeMember(
     data: { token, password },
   });
   expect(activated.status()).toBe(200);
-  return { entityId, email, password };
+  return { entityId, email, password, displayName: `${first} ${last}`, firstName: first };
+}
+
+/** Resolve any org member's entity id by email (admin projection). */
+export async function resolveEntityIdByEmail(
+  request: APIRequestContext,
+  adminToken: string,
+  email: string,
+): Promise<string> {
+  const res = await request.get(`${SMOKE_API}/org/entities?type=PERSON&take=250`, {
+    headers: { authorization: `Bearer ${adminToken}` },
+  });
+  expect(res.status()).toBe(200);
+  const items = ((await res.json()) as { items?: Array<{ entity_id: string; email?: string }> }).items ?? [];
+  const hit = items.find((i) => i.email === email);
+  expect(hit, `entity for ${email} must exist on the smoke org`).toBeDefined();
+  return hit!.entity_id;
+}
+
+export interface SmokeCastMember extends SmokeMember {
+  token: string;
+}
+
+/** The smoke-org GOVERNANCE CAST (hybrid design, 2026-07-07): the durable
+ *  approver backbone is smoke-admin (the org's only admin — the dual-control
+ *  org-admin pool therefore resolves to it deterministically for any
+ *  non-admin actor); the actor + colleague are per-run dynamic members with
+ *  run-suffixed names (repeat-safety doctrine — no stored credentials, no
+ *  cross-run memory pollution), suspended by cleanupSmokeCast(). */
+export interface SmokeCast {
+  runId: string;
+  adminToken: string;
+  adminEntityId: string;
+  /** The employee/source actor for governed sends & fixtures. */
+  employee: SmokeCastMember;
+  /** The recipient / review target / clarifier. */
+  colleague: SmokeCastMember;
+}
+
+async function memberLogin(
+  request: APIRequestContext,
+  member: SmokeMember,
+): Promise<string> {
+  const res = await request.post(`${SMOKE_API}/auth/login`, {
+    data: {
+      email: member.email,
+      password: member.password,
+      requested_operations: ["read", "write"],
+    },
+  });
+  expect(res.status()).toBe(200);
+  return ((await res.json()) as { token: string }).token;
+}
+
+export async function provisionSmokeCast(
+  request: APIRequestContext,
+  opts?: { managerEdge?: boolean },
+): Promise<SmokeCast> {
+  const adminToken = await smokeAdminLogin(request);
+  const adminEntityId = await resolveEntityIdByEmail(
+    request,
+    adminToken,
+    SMOKE_ADMIN_EMAIL,
+  );
+  const runId = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+  const cap = runId.charAt(0).toUpperCase() + runId.slice(1);
+  const employeeRaw = await provisionSmokeMember(request, adminToken, runId, "actor", {
+    first: "Riley",
+    last: `Actor${cap}`,
+  });
+  const colleagueRaw = await provisionSmokeMember(request, adminToken, runId, "colleague", {
+    first: "Casey",
+    last: `Colleague${cap}`,
+  });
+  if (opts?.managerEdge === true) {
+    // Canonical hierarchy rail: the actor reports to the durable approver.
+    const edge = await request.post(`${SMOKE_API}/org/hierarchy/assign`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+      data: {
+        person_entity_id: employeeRaw.entityId,
+        manager_entity_id: adminEntityId,
+        role_title: "Smoke Actor",
+      },
+    });
+    expect(edge.status()).toBe(200);
+  }
+  return {
+    runId,
+    adminToken,
+    adminEntityId,
+    employee: { ...employeeRaw, token: await memberLogin(request, employeeRaw) },
+    colleague: { ...colleagueRaw, token: await memberLogin(request, colleagueRaw) },
+  };
+}
+
+/** Cast cleanup: reject any pending escalations the cast's actors sourced
+ *  (governed containment), cancel the actors' pending follow-up rows, then
+ *  suspend both per-run identities. The durable approver (smoke-admin) is
+ *  never touched. */
+export async function cleanupSmokeCast(
+  request: APIRequestContext,
+  cast: SmokeCast,
+): Promise<void> {
+  const adminToken = await smokeAdminLogin(request);
+  for (const member of [cast.employee, cast.colleague]) {
+    // Cancel the member's own pending follow-up rows (caller-owned rail).
+    for (let round = 0; round < 4; round++) {
+      const r = await request.get(`${SMOKE_API}/work-os/comms/follow-ups`, {
+        headers: { authorization: `Bearer ${member.token}` },
+      });
+      if (r.status() !== 200) break;
+      const fus = (((await r.json()) as { follow_ups?: Array<{ ledger_entry_id: string }> })
+        .follow_ups ?? []);
+      if (fus.length === 0) break;
+      for (const f of fus) {
+        await request.patch(`${SMOKE_API}/work-os/ledger/${f.ledger_entry_id}`, {
+          headers: { authorization: `Bearer ${member.token}` },
+          data: { status: "CANCELLED" },
+        });
+      }
+    }
+  }
+  // Reject any still-pending escalations sourced by the cast's actors.
+  const pq = await request.get(`${SMOKE_API}/escalations/pending`, {
+    headers: { authorization: `Bearer ${adminToken}` },
+  });
+  const pending = (((await pq.json()) as {
+    escalations?: Array<{ escalation_id: string; source_entity_id?: string }>;
+  }).escalations ?? []);
+  const castIds = new Set([cast.employee.entityId, cast.colleague.entityId]);
+  for (const e of pending) {
+    if (!castIds.has(e.source_entity_id ?? "")) continue;
+    await request.post(`${SMOKE_API}/escalations/${e.escalation_id}/reject`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+      data: { reason: "Smoke-cast cleanup: containing a leftover pending approval." },
+    });
+  }
+  await suspendEntity(request, adminToken, cast.employee.entityId);
+  await suspendEntity(request, adminToken, cast.colleague.entityId);
 }
 
 /** Canonical soft-rail cleanup for dynamic identities (RULE 10). */

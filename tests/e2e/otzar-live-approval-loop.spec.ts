@@ -6,49 +6,55 @@
 //          approves in the Review Center UI → paired Action reconciles →
 //          scheduler/executor DELIVERS the note (SUCCEEDED) → sender's Action
 //          Center shows "Sent". Founder-authorized: this delivers ONE real,
-//          clearly-labeled verification note to Samiksha.
+//          clearly-labeled verification note to the per-run cast colleague.
 //          REJECT leg — second send → approver rejects WITH a reason via the
 //          new reason field → escalation REJECTED → paired Action REJECTED →
 //          sender's Action Center shows "Not approved".
 //          Fixtures via product APIs; org left clean. Env-gated.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
+//          TENANCY (cast port 2026-07-07): SMOKE ORG ONLY — sender is the
+//          per-run cast actor, the delivered note goes to the per-run cast
+//          colleague, and the approver is smoke-admin (the deterministic
+//          org-admin-pool target). Demo org untouched.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-approval-loop.spec.ts
 
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import {
+  SMOKE_ADMIN_EMAIL,
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  cleanupSmokeCast,
+  provisionSmokeCast,
+  type SmokeCast,
+} from "./live-tenancy";
 
 test.describe.configure({ retries: 0 }); // live mutations — never retry over a partial run
 
-const ADMIN_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
-const EMPLOYEE_EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const TAG = process.env.OTZAR_SHOT_TAG ?? "loop";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
-const SAMIKSHA = "a378367c-5baf-43f6-9b0d-675dc74cb9a6";
 
 const APPROVE_NOTE =
   "Verification note from Otzar smoke test: confirming governed approval delivery path. No action needed.";
 const REJECT_NOTE =
   "Verification note from Otzar smoke test (reject leg): this note is expected to be rejected. No action needed.";
 
-// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
-// mutation is demo-fixture-bound (named demo people / approver edges)
-// and stays disabled until its smoke-org cast port (gap ledger P1).
-// Write coverage remains in integration tests.
-test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 
-async function apiLogin(request: APIRequestContext, email: string): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email, password: PW, requested_operations: ["read", "write"] },
-  });
-  return (await lr.json()).token as string;
-}
+// One cast for the whole file (fullyParallel:false — in-file serial order).
+let cast: SmokeCast;
+test.beforeAll(async ({ request }) => {
+  cast = await provisionSmokeCast(request);
+});
+test.afterAll(async ({ request }) => {
+  if (cast !== undefined) await cleanupSmokeCast(request, cast);
+});
+
 const authed = (t: string) => ({ authorization: `Bearer ${t}` });
 
-async function uiLogin(p: Page, email: string): Promise<void> {
+async function uiLogin(p: Page, email: string, password: string): Promise<void> {
   await p.goto("/login");
   await p.getByLabel("Email").fill(email);
-  await p.getByLabel("Password").fill(PW as string);
+  await p.getByLabel("Password").fill(password);
   await p.getByRole("button", { name: /sign in/i }).click();
   await p.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, { timeout: 45_000 });
   await p.waitForTimeout(2000);
@@ -71,13 +77,14 @@ async function mkSendableCard(
   draft: string,
   localId: string,
 ): Promise<string> {
+  const c = cast.colleague;
   const res = await request.post(`${API}/work-os/ledger`, {
     headers: authed(token),
     data: {
       ledger_type: "FOLLOW_UP",
       source_type: "TRANSCRIPT",
-      target_entity_id: SAMIKSHA,
-      title: "Follow-up to Samiksha Sharma",
+      target_entity_id: c.entityId,
+      title: `Follow-up to ${c.displayName}`,
       summary: draft,
       status: "DRAFT",
       next_action: "Review and send this follow-up.",
@@ -85,17 +92,17 @@ async function mkSendableCard(
         follow_up: {
           local_id: localId,
           action_type: "SEND_INTERNAL_NOTIFICATION",
-          target: { entity_id: SAMIKSHA, display_name: "Samiksha Sharma", email: null },
+          target: { entity_id: c.entityId, display_name: c.displayName, email: null },
           draft_text: draft,
           reason: "Verification smoke.",
           source_excerpt: null,
           confidence: "HIGH",
           resolution_status: "RESOLVED",
           recipient_governance: {
-            entity_id: SAMIKSHA, display_name: "Samiksha Sharma", email: null, role: null,
+            entity_id: c.entityId, display_name: c.displayName, email: null, role: null,
             participantStatus: "unknown", mentionStatus: "explicitly_mentioned",
             workConnectionType: "transcript_assignee",
-            evidence: { quote: null, source: "explicit_mention", matchedToken: "samiksha", alternativeCandidates: [] },
+            evidence: { quote: null, source: "explicit_mention", matchedToken: c.firstName.toLowerCase(), alternativeCandidates: [] },
             roleMatch: "unknown", hierarchyConnection: "unknown", projectConnection: "unknown",
             policyStatus: "allowed", sensitivity: "internal", confidence: "high",
             recipientSafety: "confirmed", autonomyEligibility: "draft_only",
@@ -133,7 +140,7 @@ async function senderSendsCard(
   empToken: string,
   screenshotName: string,
 ): Promise<{ actionId: string; escalationId: string }> {
-  await uiLogin(page, EMPLOYEE_EMAIL);
+  await uiLogin(page, cast.employee.email, cast.employee.password);
   await page.getByTestId("ambient-nav").getByRole("link", { name: /^Comms/ }).first().click();
   await page.getByTestId("comms-pending-follow-ups").waitFor({ state: "visible", timeout: 25_000 });
   const send = page.getByTestId("ctx-send-button").first();
@@ -163,7 +170,7 @@ async function senderSendsCard(
 // ── APPROVE leg ──────────────────────────────────────────────────────────────
 test("approve leg: submitted → approver queue → approve in Review Center → delivered → sender sees Sent", async ({ page, request }) => {
   test.setTimeout(420_000);
-  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
+  const emp = cast.employee.token;
   await cleanupPendingFollowUps(request, emp);
   await mkSendableCard(request, emp, APPROVE_NOTE, "loop-approve-1");
 
@@ -192,7 +199,7 @@ test("approve leg: submitted → approver queue → approve in Review Center →
   ).toBe(false);
 
   // The escalation is in the approver's pending queue (API truth).
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = cast.adminToken;
   const pq = await request.get(`${API}/escalations/pending`, { headers: authed(adm) });
   expect(
     (((await pq.json()).escalations ?? []) as Array<{ escalation_id: string }>).some(
@@ -202,7 +209,7 @@ test("approve leg: submitted → approver queue → approve in Review Center →
 
   // Approver UI: Review Center pending queue → detail → two-step approve.
   await page.getByRole("button", { name: /log out/i }).first().click().catch(() => undefined);
-  await uiLogin(page, ADMIN_EMAIL);
+  await uiLogin(page, SMOKE_ADMIN_EMAIL, SMOKE_ADMIN_PASSWORD as string);
   await clientRoute(page, "/approvals");
   await page.getByTestId("approval-list").waitFor({ state: "visible", timeout: 25_000 });
   await page.screenshot({ path: `screenshots/${TAG}-2-approver-queue.png`, fullPage: true });
@@ -268,10 +275,16 @@ test("approve leg: submitted → approver queue → approve in Review Center →
 
   // Sender's Action Center shows the delivered truth: "Sent" under Completed.
   await page.getByRole("button", { name: /log out/i }).first().click().catch(() => undefined);
-  await uiLogin(page, EMPLOYEE_EMAIL);
-  await page.getByTestId("ambient-nav").getByRole("link", { name: /^Needs me/ }).first().click();
-  await page.getByTestId("action-center-list").waitFor({ state: "visible", timeout: 25_000 });
+  await uiLogin(page, cast.employee.email, cast.employee.password);
+  // clientRoute, not a rail click — the fresh-login rail can still be
+  // hydrating and the click races (proven pattern from the mid-flight check).
+  await clientRoute(page, "/app/action-center");
+  // Select the Completed tab FIRST: the list testid renders only when the
+  // ACTIVE tab has rows, and the cast sender's only action is already
+  // SUCCEEDED — the default (pending) tab is honestly empty.
+  await page.getByTestId("action-tab-completed").waitFor({ state: "visible", timeout: 25_000 });
   await page.getByTestId("action-tab-completed").click();
+  await page.getByTestId("action-center-list").waitFor({ state: "visible", timeout: 25_000 });
   await page.waitForTimeout(1500);
   const completed = (await page.getByTestId("action-center-list").textContent()) ?? "";
   expect(completed).toContain("Sent");
@@ -281,7 +294,7 @@ test("approve leg: submitted → approver queue → approve in Review Center →
 // ── REJECT leg ───────────────────────────────────────────────────────────────
 test("reject leg: submitted → approver rejects with reason → Action REJECTED → sender sees Not approved", async ({ page, request }) => {
   test.setTimeout(300_000);
-  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
+  const emp = cast.employee.token;
   await cleanupPendingFollowUps(request, emp);
   await mkSendableCard(request, emp, REJECT_NOTE, "loop-reject-1");
 
@@ -289,7 +302,7 @@ test("reject leg: submitted → approver rejects with reason → Action REJECTED
 
   // Approver UI: reject WITH the reason via the new reason field.
   await page.getByRole("button", { name: /log out/i }).first().click().catch(() => undefined);
-  await uiLogin(page, ADMIN_EMAIL);
+  await uiLogin(page, SMOKE_ADMIN_EMAIL, SMOKE_ADMIN_PASSWORD as string);
   await clientRoute(page, "/approvals");
   await page.getByTestId("approval-list").waitFor({ state: "visible", timeout: 25_000 });
   await page.getByTestId(`approval-row-button-${escalationId}`).click();
@@ -305,7 +318,7 @@ test("reject leg: submitted → approver rejects with reason → Action REJECTED
 
   // Both records tell the same truth: escalation REJECTED, Action REJECTED —
   // and the approver's reason is DURABLE on the escalation.
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = cast.adminToken;
   const esc = await request.get(`${API}/escalations/${escalationId}`, { headers: authed(adm) });
   const escBody = await esc.json();
   const escRow = escBody.escalation ?? escBody;
@@ -345,10 +358,13 @@ test("reject leg: submitted → approver rejects with reason → Action REJECTED
 
   // Sender's Action Center shows the honest verdict — no eternal "pending".
   await page.getByRole("button", { name: /log out/i }).first().click().catch(() => undefined);
-  await uiLogin(page, EMPLOYEE_EMAIL);
-  await page.getByTestId("ambient-nav").getByRole("link", { name: /^Needs me/ }).first().click();
-  await page.getByTestId("action-center-list").waitFor({ state: "visible", timeout: 25_000 });
+  await uiLogin(page, cast.employee.email, cast.employee.password);
+  // clientRoute, not a rail click (see approve leg); Blocked tab FIRST —
+  // the cast sender's only action is REJECTED, so pending is honestly empty.
+  await clientRoute(page, "/app/action-center");
+  await page.getByTestId("action-tab-blocked").waitFor({ state: "visible", timeout: 25_000 });
   await page.getByTestId("action-tab-blocked").click();
+  await page.getByTestId("action-center-list").waitFor({ state: "visible", timeout: 25_000 });
   await page.waitForTimeout(1500);
   const blocked = (await page.getByTestId("action-center-list").textContent()) ?? "";
   expect(blocked).toContain("Not approved");
@@ -361,15 +377,15 @@ test("reject leg: submitted → approver rejects with reason → Action REJECTED
 // ── NUANCE — idempotency: a retried send never duplicates the approval ───────
 test("idempotency: replaying the same send key returns the SAME action — no duplicate approvals pile up", async ({ request }) => {
   test.setTimeout(120_000);
-  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
-  const adm = await apiLogin(request, ADMIN_EMAIL);
-  const key = `loop-idem-${Date.now()}`;
+  const emp = cast.employee.token;
+  const adm = cast.adminToken;
+  const key = `loop-idem-${cast.runId}`;
   const body = {
     action_type: "SEND_INTERNAL_NOTIFICATION",
     idempotency_key: key,
     payload_summary: "Idempotency verification (smoke)",
     payload_redacted: {
-      recipient_entity_id: SAMIKSHA,
+      recipient_entity_id: cast.colleague.entityId,
       notification_class: "OTZAR_INTERNAL_NOTE",
       body_summary:
         "Verification note from Otzar smoke test (idempotency): duplicate-protection check — will be rejected. No action needed.",
