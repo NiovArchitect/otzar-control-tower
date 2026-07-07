@@ -756,6 +756,17 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
      RULE 10 soft rail, config untouched). Integration 2/2;
      live-proven on the smoke org (create → deactivate → 409 repeat →
      reactivate → retire).
+- **GOOGLE WORKSPACE CONNECTED + VERIFIED LIVE 2026-07-07:** the last
+  founder-tier blocker on the Google arc is CLEARED. OAuth creds landed
+  on otzar-api (a same-SHA redeploy re-read them; the client secret had
+  first saved empty -- both diagnosed and fixed), consent completed as
+  sadeil@niovlabs.com, token stored + VERIFIED. Proven by use on the
+  Meridian sim org: real Calendar free/busy read, real Drive docs list,
+  one selected doc imported (real export + sha256 lineage, dedupe
+  ALREADY_IMPORTED, cancelled clean). Meet honestly SCOPE_REAUTH_REQUIRED
+  (Meet REST path unavailable for this account -- no fabrication).
+  Calendar create stays proposal-only (NEEDS_SELECTED_TIME, zero write
+  scopes). Connection persists; demo org untouched; residue zero.
 - **§6b ACTIVATION EMAIL VERIFIED 2026-07-07:** env present on Render
   (key names verified, values never read), status probe
   `configured: true`, one controlled live send on the smoke org —

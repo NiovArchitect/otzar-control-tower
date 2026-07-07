@@ -509,6 +509,29 @@ requests exactly these — `connector-oauth.service.ts` GOOGLE profile):**
    Render env for `otzar-api` (never in chat, never in a repo file),
    then redeploy the same live SHA so the process re-reads env.
 
+**✅ VERIFIED LIVE 2026-07-07 (Meridian sim org):** env landed on
+`otzar-api` (a same-SHA redeploy was needed to re-read it — a value-only
+env edit did not auto-trigger one, and note `GOOGLE_OAUTH_CLIENT_SECRET`
+had first saved empty), adapter flipped `BLOCKED_BY_CREDENTIAL` →
+`BLOCKED_BY_APP_REVIEW`, OAuth `APP_CREDENTIALS_MISSING` →
+`READY_FOR_CONSENT`; the authorize URL carried the exact redirect_uri +
+all 9 read-only scopes; after the founder's browser consent
+(sadeil@niovlabs.com) the callback stored the token → `CONNECTED_UNVERIFIED`
+→ verify probe `VERIFIED`. **By use:** Calendar free/busy read = 200
+(google provider, intervals returned, no event titles, no token leak);
+Drive docs list = 200 (real docs, no export URLs/tokens); one selected
+doc imported end-to-end (real text export + sha256 content hash + full
+external_source lineage — proven by the identical re-import refusing
+`ALREADY_IMPORTED`, which matches exactly on stored file_id + hash — then
+CANCELLED so the sim tenant kept zero residue); Meet records =
+`SCOPE_REAUTH_REQUIRED` (honest — the Meet REST API path is not available
+for this account; NO transcript was fabricated); Calendar create = 409
+`NEEDS_SELECTED_TIME`, blocked, no fake-creation language. Connection
+persists VERIFIED; escalations 0; demo org untouched. **First-consent
+gotcha:** the signed OAuth `state` has a 10-minute TTL — a slow round-trip
+expires it and the callback stores nothing (status stays
+READY_FOR_CONSENT); just re-mint and complete promptly.
+
 **Post-env verification (Claude runs all of it; say "GO google verify"):**
 1. `GET /connectors/adapters` → GOOGLE_WORKSPACE flips
    `BLOCKED_BY_CREDENTIAL` → `BLOCKED_BY_APP_REVIEW` (the registry's

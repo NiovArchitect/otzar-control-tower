@@ -118,6 +118,44 @@ that determines, per required production section:
 
 ---
 
+## ✅ GOOGLE-CONNECTED · Real Google Workspace VERIFIED live by use on Meridian · LIVE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `ff801cf` (bridges live) · CT `main` = this
+commit (docs). **Founder GO; consent completed as sadeil@niovlabs.com.**
+
+- **The last Google blocker is CLEARED — real OAuth is connected and
+  proven by use.** Env landed on `otzar-api` after two dashboard
+  false-starts (staged-but-unsaved, then `GOOGLE_OAUTH_CLIENT_SECRET`
+  saved empty — both diagnosed from key-name/length checks, never
+  values); a **same-SHA redeploy was required** to re-read env (a
+  value-only env edit did NOT auto-trigger one — a real ops lesson,
+  now in runbook §1/§6f).
+- **Verification chain, all green:** adapter
+  `BLOCKED_BY_CREDENTIAL → BLOCKED_BY_APP_REVIEW`; OAuth
+  `APP_CREDENTIALS_MISSING → READY_FOR_CONSENT`; authorize URL carried
+  the exact redirect_uri + all 9 read-only scopes bound to the Meridian
+  org; browser consent → callback stored token →
+  `CONNECTED_UNVERIFIED` → verify probe `VERIFIED`. (First consent
+  attempt stored nothing — the signed OAuth `state` has a 10-min TTL and
+  a slow round-trip expired it; re-mint + prompt completion fixed it.)
+- **By-use proofs on Meridian (all honest, all clean):** Calendar
+  free/busy read = 200 (google provider, intervals, NO event titles, no
+  token leak) · Drive docs list = 200 (real docs, no export URLs/tokens)
+  · ONE selected doc imported end-to-end (real text export + sha256
+  content hash + external_source lineage — proven by the identical
+  re-import refusing `ALREADY_IMPORTED`, which matches exactly on stored
+  file_id + hash — then CANCELLED so the sim tenant kept zero residue) ·
+  Meet records = `SCOPE_REAUTH_REQUIRED` (honest: the Meet REST path is
+  not available for this account; **no transcript fabricated** — this is
+  the designed NO-fake branch) · Calendar create = 409
+  `NEEDS_SELECTED_TIME`, blocked, zero fake-creation language (proposal
+  -only holds; zero write scopes exist).
+- **State after:** Google connection persists `VERIFIED`, 0 active
+  DOCUMENT_CONTEXT residue, escalations 0, demo org untouched.
+- **Customer Sim v2 is now unblocked** for real Google imports (Docs +
+  Calendar availability are live; Meet stays the honest NO_TRANSCRIPT
+  branch until the Meet REST API is enabled/available for the account).
+
 ## ✅ GOOGLE-ARC + CUSTOMER-SIM-V1 · Connector bridges shipped + Meridian reality run GREEN · LIVE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `ff801cf` (PR #591, 5/5 CI, deployed + live) ·
