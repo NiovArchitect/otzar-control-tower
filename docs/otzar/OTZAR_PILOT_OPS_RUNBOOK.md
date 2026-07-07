@@ -81,12 +81,16 @@ none have been needed; keep it that way.
 ## 3. Smoke tenancy + residue policy
 
 **Target state:** a dedicated smoke org so pilot data and smoke traffic
-never share a tenant. **Current state (honest):** creating an org requires
-`can_admin_niov` + dual control — a two-person NIOV operation the operator
-account cannot perform (verified: login clamps to
-`read/write/admin_org`). **Founder action required:** run Phase 0 for
-`NIOV Smoke Org` (see checklist below). Until it exists, the interim rules
-are binding:
+never share a tenant. **✅ ACHIEVED 2026-07-06:** `NIOV Smoke Org` exists
+— org `ad9515e2-7a9a-4cbc-a6b9-ff1ec2ba4e54`, first admin
+`smoke-admin@niovlabs.com`, created via founder-authorized Phase-0 dual
+control (operator-1 source, operator-2 approver; the two dedicated
+platform operators were bootstrapped the same day per the FND
+admin-bootstrap runbook §5A/§7). Remaining migration steps: set
+`OTZAR_SMOKE_ADMIN_EMAIL`/`OTZAR_SMOKE_*` env for the live configs and
+move the mutating specs' logins over — until a spec is migrated, the
+interim rules below still bind it; the demo org accepts READ-ONLY
+smokes only once migration completes:
 
 - Mutating smokes run ONLY with per-run dynamic identities
   (`pilot-smoke+<runid>@…`, `__niov_test__` prefixes) and MUST end with
@@ -144,11 +148,14 @@ PENDING escalation (403), and a true concurrent replay 409s
    the §6 rollback rehearsal against the smoke org, and migrate mutating
    smoke specs.
 
-**Stale-escalation note:** two PENDING `DUAL_CONTROL_REQUIRED`
-escalations from 2026-07-01 16:50 (`8fad318b…`, `ce8fca11…`, created
-26s apart — the two-rapid-attempts signature) still await a decision;
-deciding them (likely reject) requires the same NIOV authority — fold
-it into the same session as Phase 0.
+**Stale-escalation note — ✅ RESOLVED 2026-07-06:** the two PENDING
+`DUAL_CONTROL_REQUIRED` escalations from 2026-07-01
+(`8fad318b…`, `ce8fca11…` — writeback-smoke
+`ACTION_CREATE_INVOKE_CONNECTOR` residue, NOT Phase-0 attempts) were
+rejected with reason by their designated target (the org-admin
+account) in the Phase-0 session; the pending queue returned to 0.
+Lesson recorded: deciding an escalation requires its TARGET, not
+generic NIOV authority — the source can never self-resolve.
 
 ## 4. Smoke gates (the pilot battery)
 

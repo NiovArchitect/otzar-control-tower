@@ -118,6 +118,53 @@ that determines, per required production section:
 
 ---
 
+## ✅ PHASE-0-SMOKE-ORG · Operators bootstrapped + NIOV Smoke Org live · EXECUTED (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `3aa8ca6` (bootstrap rail #582 `03018da` + §7
+history #583; G1 repair live since `b26b397`) · CT `main` = this commit
+(docs-only). **Founder-authorized production execution.**
+
+- **Platform-root existed nowhere** (census 0 — confirmed via founder-run
+  Supabase SELECT; the daily sadeil@ login is org-admin by design, per
+  founder-bootstrap.ts). Two dedicated operators bootstrapped via
+  `scripts/bootstrap-niov-operator.ts` (§5A rail; allowlist + census
+  gating + dry-run + confirm phrase, all exercised live):
+  operator-1 `1b9e4c2f-d6c8-4f5d-8fa0-182602a3f04c`, operator-2
+  `9cc65426-704e-40f2-8abe-583177626ba9`; census 2; both probes echo
+  `admin_niov`.
+- **Phase-0 under G1 — first production use, flawless:** operator-1 POST
+  → 403 + escalation `c5981a96…` (payload-hash stamped,
+  `admin_password` redacted); operator-1 self-approval → 403
+  ESCALATION_FORBIDDEN; operator-2 approve → APPROVED; byte-identical
+  retry → **201**; approval consumed APPROVED→EXPIRED in-tx
+  (`consumed_at` 2026-07-07T03:28Z, `consumed_by` = operator-1). No
+  replay attempted.
+- **NIOV Smoke Org:** org `ad9515e2-7a9a-4cbc-a6b9-ff1ec2ba4e54` ·
+  admin `ec3d04d9-5955-49f6-8839-c2b0a6a20308`
+  (smoke-admin@niovlabs.com, `admin_org` echoed) · twin
+  `4dfebc8a-7feb-4365-8da9-4f2526262df4` · default hive
+  `17b56fac-f9ab-4ade-90fd-e30b4e366798`. Baseline ALL green: approval
+  ON · audit ON · ceiling APPROVAL_REQUIRED · default enterprise hive ·
+  membership · Executive Twin · operating/work-profile +
+  decision-rights routes 200 authed / 401 unauthenticated ·
+  `DANDELION_PHASE_0_COMPLETE` + `HIVE_CREATED` in org audit.
+- **Stale escalations CLEARED:** `8fad318b…` + `ce8fca11…`
+  (2026-07-01 writeback-smoke `ACTION_CREATE_INVOKE_CONNECTOR`
+  residue) rejected by their designated target (sadeil) with reason;
+  pending queue 0.
+- **Secrets:** three one-time passwords in ONE local 600-perm scratch
+  file (session scratchpad `.niov-bootstrap-secrets`) pending founder
+  retrieval → then deleted. NEVER in repo/docs/audit/chat. **Rotation
+  required <24h:** operator-1, operator-2, smoke-admin, AND sadeil@
+  (pasted into chat earlier).
+- **Demo org untouched.** Production mutation = exactly the authorized
+  bootstrap/escalation/org-creation/rejection writes above.
+- **Next (own GO):** Redwood Runtime smoke-org rerun — ready (invite
+  personas via live rails, password-auth only → 2-persona probe →
+  full corpus only after probe cleanup proven). Then: §6 rollback
+  rehearsal on the smoke org · migrate mutating smoke specs to
+  OTZAR_SMOKE_* · P1 governed can_admin_niov grant route.
+
 ## ✅ G1-DUAL-CONTROL · Org-creation approvals payload-bound + single-use · LIVE (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `b26b397` (PR #581 squash on green 5/5, deployed
