@@ -26,6 +26,12 @@ const SOURCE_SYSTEM_LABELS: Record<string, string> = {
   MANUAL: "Added manually",
   APPROVAL: "From approval decision",
   ASSIGNMENT: "From org update",
+  // [GOOGLE-DOCS + GOOGLE-MEET] The Google read bridges (selected-doc
+  // Drive import + post-meeting Meet transcript) record these systems;
+  // mapped here so the chips speak human the day rows first carry them.
+  DRIVE: "From Google Docs",
+  CALENDAR: "From Calendar",
+  GMAIL: "From Gmail",
 };
 
 // WHAT: the calm card-face label. Known system → short human label; unknown,

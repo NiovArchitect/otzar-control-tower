@@ -1,7 +1,23 @@
 # Customer-Org Simulation — Readiness Plan (pre-GO)
 
-> STATUS: PLAN ONLY (2026-07-07). Nothing in this document has been
-> loaded anywhere. Loading requires the exact GO defined in §9. The
+> STATUS: **v1 EXECUTED 2026-07-07** — founder GO received. The dedicated
+> tenant `Meridian Field Systems` (org `69c07a00-2b39-4771-95c3-22c214e7ae6c`)
+> was created through the dual-controlled Phase-0 rail (operator-1
+> requested → 403 payload-bound pending → operator-2 approved → 201,
+> approval consumed single-use). Customer Org Simulation v1 ran GREEN
+> first-pass (8.4 min, `otzar-live-customer-sim.spec.ts` /
+> `test:e2e:live:customer-sim`): 8-identity cast + hierarchy + 3A rights
+> + org timezone via live rails; 4 dated reference docs incl. an explicit
+> supersession pair; HONEST missing-Google state (adapter
+> BLOCKED_BY_CREDENTIAL, /drive/docs refuses — never a fake connect);
+> truth arc (calm supersession correction, sales-overreach flag, zero
+> invented owners); employee reality (starter twins, role-boundary 403s,
+> enumeration-safe 404); calendar proposal-only honesty; full cleanup
+> (rows cancelled, identities suspended — the tenant persists clean).
+> v2 scope (needs its own GO): full 16-identity cast, ~20-transcript
+> lived-in layer, Google Docs/Meet imports once OAuth credentials exist,
+> admin/employee UI walk-throughs. The sections below remain the
+> blueprint. The
 > Redwood Atlas doctrine (`redwood-atlas/README.md`, corpus/people/
 > clients fixtures, the 44-check matrix) is the parent discipline; this
 > plan scales it from a truth-weight proof to a LIVED-IN customer org.

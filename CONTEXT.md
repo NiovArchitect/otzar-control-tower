@@ -118,6 +118,56 @@ that determines, per required production section:
 
 ---
 
+## ✅ GOOGLE-ARC + CUSTOMER-SIM-V1 · Connector bridges shipped + Meridian reality run GREEN · LIVE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `ff801cf` (PR #591, 5/5 CI, deployed + live) ·
+CT `main` = this commit. **Founder GO (Google connector arc → Customer
+Org Simulation v1).**
+
+- **Google connector arc (honestly bounded):** the substrate largely
+  EXISTED (OAuth rail w/ AES-256-GCM token envelopes + honest status
+  vocab, GOOGLE_WORKSPACE adapter descriptor w/ readonly scopes,
+  fixture-first GOOGLE_WORKSPACE_READ provider, REAL calendar free/busy
+  read bridge, proposal-only calendar-create gate ladder that never
+  creates, GOOGLE_MEET capture provenance). Shipped the missing pieces
+  (PR #591): **selected-doc Google Docs import** (GET /drive/docs SAFE
+  list + POST /drive/docs/ingest → DOCUMENT_CONTEXT rail with file id /
+  modified time / view link / sha256 lineage; content-identical
+  re-import 409s; DOC_TOO_LARGE refuses, never truncates) and
+  **post-meeting Meet transcript import** (GET /meet/conference-records
+  + POST /meet/transcripts/ingest → comms spine, sourceId
+  GOOGLE_MEET:<record_id>, lineage-distinct from Docs-file and manual
+  transcripts; NO_TRANSCRIPT honest). Scopes stay read-only
+  least-privilege (+drive.readonly +meetings.space.readonly; ZERO write
+  scopes). Unit 8/8 mocked. CT: DRIVE/CALENDAR/GMAIL lineage labels +
+  data-flow copy ("imports on request only… cannot create the event
+  until Calendar write access is connected and approved").
+  **HARD BOUNDARY (founder dashboard):** no GOOGLE_OAUTH_CLIENT_ID/
+  SECRET exist — real OAuth cannot run until a Google Cloud project +
+  consent screen (readonly scopes; ~6wk app review) + client creds land
+  in Render env; until then every surface honestly reports
+  BLOCKED_BY_CREDENTIAL / NOT_CONNECTED.
+- **Meridian Field Systems created** through the dual-controlled
+  Phase-0 rail (operator-1 → 403 payload-bound pending → operator-2
+  approve → 201, consumed single-use): org
+  `69c07a00-2b39-4771-95c3-22c214e7ae6c`, admin
+  meridian-admin@niovlabs.com (credential in the secure file).
+- **Customer Org Simulation v1 GREEN first-pass (8.4 min,
+  `test:e2e:live:customer-sim`):** admin arc (org timezone rail,
+  8-identity cast via live rails, reporting tree, 3A rights w/ posture
+  read-back, 4 dated docs incl. explicit supersession pair) · honest
+  missing-Google state asserted (adapter BLOCKED_BY_CREDENTIAL, oauth
+  status googleless, /drive/docs refuses) · truth arc (calm "You may be
+  looking at an older plan" supersession lead; sales overreach "beyond
+  the speaker's decision rights"; noise standup mints ZERO — no
+  invented owners) · employee reality (starter twins exist, role
+  boundary 403s, non-party probe enumeration-safe 404, zero
+  UUID/enum/mechanics leaks) · calendar honesty (propose + create both
+  blocker-honest, nothing claims creation) · cleanup (11 rows
+  CANCELLED, 8/8 suspended; tenant persists clean). v2 (own GO): 16
+  identities, ~20-transcript lived-in layer, real Google imports once
+  credentials exist, UI walk-throughs.
+
 ## ✅ PILOT-READINESS · §6b act-email verified + final sweep + sim plan + UX pass · COMPLETE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `a1d7908` (runtime `d21389b` live) · CT `main`

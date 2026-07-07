@@ -57,11 +57,13 @@ const CONNECTOR_CAPABILITY: Record<
     lands: "No Slack data lands anywhere yet.",
   },
   google: {
-    connectedStatus: "Connected — no product flow yet",
+    connectedStatus: "Connected — imports on request only",
     pulls:
-      "Nothing flows into the product yet — Gmail, Drive, and Calendar ingestion aren't wired into a product flow.",
-    pushes: "Nothing. Otzar does not write to Google Workspace.",
-    lands: "No Google Workspace data lands anywhere yet.",
+      "Nothing flows automatically. An admin can import ONE selected Google Doc at a time (company reference context) and ONE Google Meet transcript at a time (post-meeting only). Calendar is read for availability (free/busy). Gmail is not ingested.",
+    pushes:
+      "Nothing. Otzar does not write to Google Workspace — it can propose a meeting time, but cannot create the event until Calendar write access is connected and approved.",
+    lands:
+      "Imported docs land as company-owned reference context with full lineage (file, modified time, content hash); imported Meet transcripts land on the same governed rail as pasted transcripts, labeled as coming from Google Meet.",
   },
   microsoft: {
     connectedStatus: "Connected — no product flow yet",
