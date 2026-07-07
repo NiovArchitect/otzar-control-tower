@@ -60,6 +60,29 @@ function expectHumanCopy(text: string): void {
   expect(text).not.toMatch(/\btruth[_ ]weight\b|\brank\b/i);
 }
 
+/** One live ingest with bounded retry on transient gateway errors
+ *  (502/503/504) — ported from the corpus spec (proven 2026-07-07): a
+ *  single edge blip must not fail the probe. Non-5xx statuses return
+ *  immediately (they are real answers, not transport noise). */
+async function ingestWithRetry(
+  request: APIRequestContext,
+  token: string,
+  data: Record<string, unknown>,
+): Promise<import("@playwright/test").APIResponse> {
+  let last: import("@playwright/test").APIResponse | null = null;
+  for (const backoffMs of [0, 5_000, 15_000]) {
+    if (backoffMs > 0) await new Promise((r) => setTimeout(r, backoffMs));
+    last = await request.post(`${API}/otzar/comms/ingest`, {
+      headers: { authorization: `Bearer ${token}` },
+      data,
+      timeout: 90_000,
+    });
+    if (![502, 503, 504].includes(last.status())) return last;
+    console.log(`[redwood-probe] transient ${last.status()} on ingest — retrying`);
+  }
+  return last!;
+}
+
 async function login(
   request: APIRequestContext,
   email: string,
@@ -152,22 +175,16 @@ test("Redwood 2-persona conflict-pattern probe on the smoke org: rails-only prov
     const elenaName = `Elena ${personas[0].last}`;
     const proj = `Sunspear${SUF.charAt(0).toUpperCase()}${SUF.slice(1)}`;
     const phase = `Gateway${SUF.charAt(0).toUpperCase()}${SUF.slice(1)}`;
-    const ingest1 = await request.post(`${API}/otzar/comms/ingest`, {
-      headers: auth(tokens.elena!),
-      data: {
+    const ingest1 = await ingestWithRetry(request, tokens.elena!, {
         captured_text: `${elenaName} owns the ${proj} ${phase} migration kickoff work and will confirm the July 24 date this week.`,
         title: `${proj} planning sync`,
         force_mode: "LOCAL_FALLBACK",
-      },
-      timeout: 90_000,
-    });
+      });
     expect(ingest1.status()).toBe(200);
     const row1 = ((await ingest1.json()) as {
       result: { work_items: Array<{ ledger_entry_id: string }> };
     }).result.work_items[0]!.ledger_entry_id;
-    const ingest2 = await request.post(`${API}/otzar/comms/ingest`, {
-      headers: auth(tokens.elena!),
-      data: {
+    const ingest2 = await ingestWithRetry(request, tokens.elena!, {
         captured_text: [
           `${elenaName} owns the ${proj} ${phase} migration replan work and will move the kickoff to August 7 — this replaces the old July 24 plan.`,
           "I think the old date was July 24.",
@@ -175,9 +192,7 @@ test("Redwood 2-persona conflict-pattern probe on the smoke org: rails-only prov
         ].join("\n"),
         title: `${proj} replan sync`,
         force_mode: "LOCAL_FALLBACK",
-      },
-      timeout: 90_000,
-    });
+      });
     expect(ingest2.status()).toBe(200);
 
     // ── Truth: the OLD row answers with the calm correction ──
@@ -194,15 +209,11 @@ test("Redwood 2-persona conflict-pattern probe on the smoke org: rails-only prov
 
     // ── Sales overreach in Elena's domain: flagged, never approved truth ──
     const theoName = `Theo ${personas[1].last}`;
-    const overreach = await request.post(`${API}/otzar/comms/ingest`, {
-      headers: auth(tokens.theo!),
-      data: {
+    const overreach = await ingestWithRetry(request, tokens.theo!, {
         captured_text: `${theoName} owns the ${proj} automation pitch work and will deliver full API integration automation by launch.`,
         title: `${proj} client call`,
         force_mode: "LOCAL_FALLBACK",
-      },
-      timeout: 90_000,
-    });
+      });
     expect(overreach.status()).toBe(200);
     const theoRow = ((await overreach.json()) as {
       result: { work_items: Array<{ ledger_entry_id: string }> };

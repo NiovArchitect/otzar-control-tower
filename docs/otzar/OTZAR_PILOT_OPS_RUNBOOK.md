@@ -280,9 +280,22 @@ leave `main`.
 
 ## 6b. Activation email delivery (ACT-EMAIL, shipped 2026-07-05)
 
-Email delivery for activation links exists on the FND service but is
-OFF until three env vars are set on `srv-d8t17sm7r5hc73ed5h6g`
-(founder action; set via Render dashboard, then redeploy):
+**✅ LIVE + VERIFIED 2026-07-07:** all three env vars are set on
+`srv-d8t17sm7r5hc73ed5h6g` (verified by key-name listing, values never
+read) and `GET /org/activation-email/status` returns `configured: true`.
+The §6b.1 controlled live-send executed ONCE on the NIOV Smoke Org
+(dynamic invitee): provider ACCEPTED (`status: "sent"`), exactly one
+leak-clean `ACTIVATION_EMAIL_SENT` audit row, invitee stayed
+activation_pending, response carried no token/URL. The email send
+superseded the earlier copy-link token as designed (old token 410).
+INBOX DELIVERY IS NOT CLAIMED — acceptance only (no inbox access).
+Activation completion itself is separately proven via the copy-link
+rail (activate 200 → login 200) in the same session. Original setup
+notes below for reference:
+
+Email delivery for activation links exists on the FND service and
+required three env vars on `srv-d8t17sm7r5hc73ed5h6g`
+(set via Render dashboard, then redeploy):
 
 - `ACTIVATION_EMAIL_USE_REAL=1` — master switch (repo `*_USE_REAL` pattern)
 - `RESEND_API_KEY` — Resend API key (never committed, never logged)

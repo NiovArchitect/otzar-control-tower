@@ -90,7 +90,12 @@ export function AIBreakdownButton({
   }, [open]);
 
   return (
-    <div className="relative inline-block" ref={popRef}>
+    // [OVERLAY-LAYERING] z-30 while open: the ambient frosted cards are
+    // backdrop-blur stacking contexts, so an open popover inside one card
+    // would otherwise paint UNDER the next sibling card (the same trap as
+    // the notification bell). z-30 keeps it above the z-auto content plane
+    // and below the header chrome (z-40) + ambient ladder (55/58/60).
+    <div className={`relative inline-block ${open ? "z-30" : ""}`} ref={popRef}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

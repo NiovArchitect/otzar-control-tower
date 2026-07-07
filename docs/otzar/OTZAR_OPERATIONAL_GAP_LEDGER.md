@@ -756,6 +756,13 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
      RULE 10 soft rail, config untouched). Integration 2/2;
      live-proven on the smoke org (create → deactivate → 409 repeat →
      reactivate → retire).
+- **§6b ACTIVATION EMAIL VERIFIED 2026-07-07:** env present on Render
+  (key names verified, values never read), status probe
+  `configured: true`, one controlled live send on the smoke org —
+  provider ACCEPTED, audit row leak-clean, invitee stayed pending,
+  copy-link supersession behaved as designed. Inbox delivery honestly
+  NOT claimed (acceptance only). No founder-tier items remain except
+  DEMO_SHARED_PASSWORD rotation at pilot start.
 - **UI hardening shipped 2026-07-07:** employee notification overlay
   layering fix (CT `f99a859`, bundle `index-CKWYNwPi.js` verified live)
   — the bell dropdown rendered BEHIND the ambient cards (header

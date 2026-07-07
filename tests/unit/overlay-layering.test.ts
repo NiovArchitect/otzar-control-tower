@@ -49,6 +49,13 @@ describe("[OVERLAY-LAYERING] employee shell stacking contract", () => {
     expect(dropdown![1]).toContain("absolute");
   });
 
+  it("in-card popovers elevate their positioned ancestor while open (z-30 under the header chrome)", () => {
+    const breakdown = read("src/components/otzar/AIBreakdownButton.tsx");
+    // The frosted cards are backdrop-blur stacking contexts; without the
+    // open-state elevation the popover paints under the NEXT sibling card.
+    expect(breakdown).toContain('open ? "z-30" : ""');
+  });
+
   it("the ambient overlay ladder keeps its documented order (55 < 58 < 60)", () => {
     expect(read("src/components/otzar/AmbientEdgeGlow.tsx")).toContain("z-[55]");
     expect(read("src/components/otzar/AmbientNotificationStack.tsx")).toContain(

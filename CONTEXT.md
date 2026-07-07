@@ -118,6 +118,47 @@ that determines, per required production section:
 
 ---
 
+## ✅ PILOT-READINESS · §6b act-email verified + final sweep + sim plan + UX pass · COMPLETE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `a1d7908` (runtime `d21389b` live) · CT `main`
+= this commit. **Founder GO + autonomous-continuation addendum.**
+
+- **§6b activation email — VERIFIED (acceptance, honestly scoped):**
+  all three env vars present on Render (key names checked, values never
+  read); `GET /org/activation-email/status` → `configured: true`; ONE
+  controlled §6b.1 send on the smoke org: provider ACCEPTED
+  (`status:"sent"`), one leak-clean ACTIVATION_EMAIL_SENT audit row,
+  invitee stayed pending, no token/URL anywhere, and the email send
+  superseded the earlier copy-link token exactly as designed (410).
+  INBOX DELIVERY NOT CLAIMED (no inbox access). Activation completion
+  proven separately via copy-link (activate 200 → login 200). Invitees
+  suspended; escalations 0.
+- **Pilot-readiness sweep:** health/db ✓ smoke-admin login+admin_org ✓
+  escalations 0 ✓ verify-chain true ✓ ledger reads ✓ CT /login 200 ✓ ·
+  Redwood probe GREEN (161.9s) after porting the corpus's
+  `ingestWithRetry` to the probe (a transient edge 502 failed one run —
+  spec-hardening, not a regression; residue from the failed run
+  self-cleaned) · residue sweep: 91 pilot-smoke identities, 0 ACTIVE,
+  0 fixtures, growth baseline · demo-readonly battery SKIPPED honestly
+  (DEMO_SHARED_PASSWORD not in operator env — by design).
+- **Ambient UX layering pass:** found + fixed the sibling of the bell
+  bug — `AIBreakdownButton`'s "Why this matters" popover could paint
+  UNDER the next frosted card (ambient cards are backdrop-blur stacking
+  contexts). Wrapper now elevates to z-30 while open; layering contract
+  test extended to 4 assertions. Layer map locked: content (z-auto) <
+  in-card popovers (z-30, open only) < header chrome (z-40) < edge glow
+  (55) < notification stack (58) < Otzar bar (60). No other non-portal
+  absolute overlays found; shadcn/radix surfaces are portaled.
+- **Customer-org simulation readiness plan authored** (PLAN ONLY):
+  `docs/otzar/simulation/CUSTOMER_ORG_SIMULATION_PLAN.md` — Meridian
+  Field Systems profile, timezones/hours, 16-identity hierarchy via
+  live rails, 3A rights, dated + superseded seeded docs, ~20
+  conflict-bearing transcripts, role-specific twins (deactivation rail
+  = cleanup), BINDING no-fake-Google honesty, reset strategy, and the
+  exact GO wording required before anything loads.
+- **Remaining founder/manual:** DEMO_SHARED_PASSWORD rotation at pilot
+  start; optional inbox-delivery spot-check of the one accepted email.
+
 ## ✅ P1-HARDENING · All three ops P1s + overlay fix shipped · LIVE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `d21389b` (+ docs PR #590; PRs #588 #589, all
