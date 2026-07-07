@@ -118,6 +118,41 @@ that determines, per required production section:
 
 ---
 
+## ✅ ROLLBACK-REHEARSAL · §6 deploy-rail rollback rehearsed on production FND · EXECUTED (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `b564da8` (unchanged; runbook §6 history row via
+PR) · CT `main` = this commit (docs only). **Founder GO. Smoke org only;
+demo org untouched; zero data/schema mutation.**
+
+- **The rehearsal, over the real deploy rail** (Render API, `commitId`):
+  pre-rollback verify-chain snapshot (`verified:true`, §2.3 discipline)
+  → window `b26b397..b564da8` verified CODE-ONLY (zero migrations —
+  §4.1 class; target = the previous SHA Render actually served) →
+  rollback deploy `dep-d96ah96q…` to `b26b397` live in ~4 min → gates
+  green on the rollback SHA (health/db · smoke-admin login +
+  `admin_org` · escalations 0 · verify-chain true · ledger reads · CT
+  `/login` 200) → roll-forward deploy `dep-d96aiepo…` to `b564da8` live
+  in ~4 min → same gates green → **Redwood 2-persona probe green
+  (162.8s)**, re-proving the restored SHA's settled-history
+  supersession semantics live.
+- **Passwords rotated first (same day):** operator-1/2 + smoke-admin via
+  the shipped `POST /auth/change-password` rail after the bootstrap
+  secrets file was exposed in-session; old passwords 401, new logins
+  verified with expected grants; secure file rewritten chmod 600; zero
+  leakage in tracked files or full git history of either repo.
+  sadeil@ rotation deliberately NOT done (explicitly out of scope).
+- **Doctrine notes locked:** deploy-rail rollback needs NO git revert
+  (revert is for real incidents where bad code must leave `main`);
+  the Redwood corpus spec is NOT a rollback gate (it asserts `b564da8`
+  behavior); previous-good = previous SHA Render served, not the
+  previous git commit (docs-only commits never built).
+- **Production mutation:** two deploys (back + forward, same two SHAs
+  that were already built) + login/session/audit rows from
+  verification + the probe's standard repeat-safe smoke-org rows
+  (cancelled + suspended by its cleanup rail). Nothing else.
+- **Next:** OTZAR_SMOKE_* env migration of mutating smokes; sadeil@ +
+  RENDER_API_KEY rotation (founder); pilot-milestone gates per §4.
+
 ## ✅ REDWOOD-CORPUS-LIVE · FULL 48-artifact corpus proven on the smoke org · LIVE (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `b564da8` (unchanged — zero runtime edits) ·

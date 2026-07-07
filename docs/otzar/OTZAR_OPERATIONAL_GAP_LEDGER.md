@@ -674,14 +674,26 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   (approval ON / audit ON / APPROVAL_REQUIRED / default hive / twin).
   The 2 stale smoke escalations (8fad318b…, ce8fca11…) REJECTED by
   their designated target; pending queue 0. Demo org untouched.
-- **Remaining (founder actions):** rotate the four bootstrap-session
-  passwords <24h (operator-1, operator-2, smoke-admin, sadeil@); set
+- **PASSWORDS ROTATED 2026-07-07:** operator-1, operator-2 and
+  smoke-admin rotated through the shipped `POST /auth/change-password`
+  lifecycle rail after an in-session exposure of the bootstrap secrets
+  file (old passwords verified dead 401, new logins verified with
+  `admin_niov` / `admin_org` grants, secure file rewritten chmod 600,
+  zero secret leakage in tracked files or git history of either repo).
+- **ROLLBACK REHEARSED 2026-07-07 (runbook §6):** FND rolled back
+  `b564da8` → `b26b397` via the Render API rail (`commitId`), all
+  gates green on the rollback SHA (health/db, smoke-admin login,
+  escalations 0, verify-chain true, ledger reads, CT loads), rolled
+  forward to `b564da8`, gates green again + the Redwood 2-persona
+  probe passed (162.8s) proving the restored SHA's supersession
+  semantics live. Code-only window (zero migrations), smoke org only,
+  demo org untouched. FND rollback-runbook §6 history row appended.
+- **Remaining (founder actions):** rotate sadeil@ password; set
   `OTZAR_SMOKE_*` env for the live configs and migrate mutating smoke
   specs to the smoke org (demo org then READ-ONLY smokes only); rotate
-  RENDER_API_KEY per §7; rehearse one rollback on the smoke org.
-  Engineering P1: governed can_admin_niov grant route (operator #2
-  used the founder rail); codify the migration job rail as a script;
-  twin-deactivation rail.
+  RENDER_API_KEY per §7. Engineering P1: governed can_admin_niov grant
+  route (operator #2 used the founder rail); codify the migration job
+  rail as a script; twin-deactivation rail.
 
 ### U. Organization Setup Journey / Admin Setup OS — 🟡 SLICE 1 SHIPPED 2026-07-04 (read-only Organization Setup page at /setup: seven-section guided journey composing 7 existing GET projections, deterministic next-best-step ladder, least-access spine, honest limitations for bulk import/retention/ambient ingestion; failure-story smoke matrix in OTZAR_ORGANIZATION_SETUP_SMOKE_MATRIX.md; zero write paths, zero schema, zero backend changes. SLICE 2 SHIPPED 2026-07-04: CSV people import at /setup/import-people — preview-first, confirmation-gated, least-access by construction (forbidden columns hard-refused), rails-only (bulk create → per-person invite+one-time link → hierarchy assign), cap 20/batch. SLICE 3 SHIPPED 2026-07-05: /setup/data-flow per-source trust panel (pull/push/landing/ownership/visibility/retention per source; connected ≠ ingesting explicit; wallet doctrine on-page; read-only, matrix stories 7+11 covered). SLICE 4 SHIPPED 2026-07-05: /setup/go-live readiness gate (deterministic verdict, founder actions apart, warnings never fake-block, self-serve limitation always rendered; shared computeSetupFacts — no duplicated readiness logic). SLICE 5 SHIPPED 2026-07-05: setup coach on /setup — DERIVED typed recommendations (persisted seeds deliberately rejected: approval lifecycle is the wrong shape for repair items; noise rules free by construction) + coherence sweep (first-workflow path → real Comms route; overclaim grep clean; matrix 14/14). Setup arc COHERENT — ready for the Org Context Seeding + Employee Twin Calibration doctrine. Remaining maturity: HRIS/org-chart import, per-account external views, printable gate handoff)
 

@@ -207,12 +207,23 @@ founder authorization**; externals clean.
 ## 6. Rollback (pointer + CT addendum)
 
 FND: `docs/operations/rollback-runbook.md` is authoritative (git revert
-never reset, additive-schema-stays, destructive = Founder + PITR). Note its
-§6 history is EMPTY — schedule one rollback rehearsal on the smoke org
-before pilot. CT addendum: rollback = redeploy the previous good SHA via
-the same API rail (`commitId: <previous>`), verify bundle hash reverted,
-re-run the touched smoke gate. Keep the last-known-good SHA of both
-services in the deploy notes at all times.
+never reset, additive-schema-stays, destructive = Founder + PITR). CT
+addendum: rollback = redeploy the previous good SHA via the same API rail
+(`commitId: <previous>`), verify bundle hash reverted, re-run the touched
+smoke gate. Keep the last-known-good SHA of both services in the deploy
+notes at all times.
+
+**REHEARSED 2026-07-07 (founder GO, smoke org):** `b564da8` → `b26b397`
+→ `b564da8` on `otzar-api` via the Render API rail. Pre-rollback
+verify-chain snapshot taken (§2.3 discipline); window verified code-only
+(zero migrations — §4.1 class); every checkpoint green on BOTH SHAs
+(health/db, smoke-admin login + `admin_org`, pending escalations 0,
+verify-chain `verified:true`, ledger reads, CT `/login` 200); the
+Redwood 2-persona probe re-proved the restored SHA's supersession
+semantics. Rollback deploy ~4 min to live; roll-forward ~4 min. History
+row appended in the FND runbook §6. Deploy-rail rollback needs NO git
+revert — revert commits are for real incidents where the bad code must
+leave `main`.
 
 ## 6b. Activation email delivery (ACT-EMAIL, shipped 2026-07-05)
 
