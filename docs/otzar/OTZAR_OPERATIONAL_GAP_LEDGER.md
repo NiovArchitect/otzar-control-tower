@@ -900,11 +900,17 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   correction with the visibility-gated current source; weight-ordered
   matches; quiet honest flags; unstamped orgs byte-identical), and
   AIX-5 ambient locked across all three recognizer phrasings.
-- **Remaining (future, own GO):** LIVE smoke-org rerun (blocked on
-  founder Phase-0 dual-control creation of `NIOV Smoke Org` — runbook
-  §3.1; the redwood-atlas-runtime spec is the script to point at it);
-  per-domain thresholds (budget limits); supersession chains across
-  >2 hops. Redwood corpus stays out of prod/demo, always.
+- **REDWOOD-LIVE-PROBE SHIPPED 2026-07-06:** the 2-persona truth-weight
+  arc proven LIVE on the NIOV Smoke Org over rails only (invite/activate
+  → 3A rights → conflict-pair ingest → supersession + calm correction →
+  overreach flag → boundary 404 → no-mechanics sweep), now a durable
+  repeat-safe gate (`test:e2e:live:redwood`, two consecutive green
+  runs). Substrate fix landed from the live lesson: CANCELLED/EXPIRED
+  rows are settled history for supersession candidacy (FND `b564da8`).
+- **Remaining (future, own GO):** full 48-artifact Redwood corpus run
+  against the smoke org (the probe is the proven template); per-domain
+  thresholds (budget limits); supersession chains across >2 hops.
+  Redwood corpus stays out of prod/demo, always.
 
 ## Next-slice selection method
 

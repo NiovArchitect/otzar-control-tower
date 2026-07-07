@@ -118,6 +118,41 @@ that determines, per required production section:
 
 ---
 
+## ✅ REDWOOD-LIVE-PROBE · 2-persona truth-weight arc proven on the smoke org · LIVE (2026-07-06, Fable 5)
+
+**HEADs:** FND `main` = `b564da8` (PR #584 settled-history fix, squash on
+green 5/5, deployed `dep-d968bqv7f7vs73d4nngg`) · CT `main` = this commit
+(live spec + docs). **All mutation scoped to the NIOV Smoke Org.**
+
+- **The arc, live over HTTPS, rails-only** (no direct DB writes, no
+  Google/OAuth claims — password auth end to end): smoke-admin invites
+  dynamic personas (member create → invite → activate → login) → 3A
+  rights (Elena owns technical/architecture; Theo recommend-only) →
+  self-set timezones → conflict-pair ingest → **supersession links at
+  ingest and the clarity rail LEADS with the calm correction** → Theo's
+  overreach lands "beyond the speaker's decision rights", never approved
+  truth → non-party probe = enumeration-safe 404, zero title leak →
+  every human answer passes the no-UUID/no-enum/no-mechanics sweep.
+- **Two real substrate lessons from live (both now locked):**
+  (1) the responsibility-graph speaker pattern captures ONE capitalized
+  token directly before "owns" — transcripts must end "… Torres owns";
+  (2) probe residue in the same keyword-classified domain made the
+  supersession matcher honestly refuse ("unresolved beats guessed"), so
+  FND now excludes **CANCELLED/EXPIRED rows as settled history** from
+  candidacy (`supersession-linking.service.ts`, + settled-history test;
+  truth-weight 6/6, lineage family 32/32, CI 5/5).
+- **Durable gate shipped:** `tests/e2e/otzar-live-redwood-probe.spec.ts`
+  (`npm run test:e2e:live:redwood`) — smoke-org only (skips without
+  `OTZAR_SMOKE_ADMIN_PASSWORD`), run-unique names/tokens, cleanup rails
+  built in (cancel rows → settled history; suspend personas → logins
+  fail closed). **Repeat-safety proven: two consecutive green runs.**
+- **Cleanup proof:** all probe residue cancelled via the canonical PATCH
+  rail (0 live COMMITMENT/MEETING rows between runs); personas
+  SUSPENDED; pending escalations 0; demo org untouched throughout.
+- **Next (own GO): full 48-artifact Redwood corpus** against the smoke
+  org — the probe proves the rails; the corpus load stays forbidden
+  until that GO. Then §6 rollback rehearsal; password rotation still due.
+
 ## ✅ PHASE-0-SMOKE-ORG · Operators bootstrapped + NIOV Smoke Org live · EXECUTED (2026-07-06, Fable 5)
 
 **HEADs:** FND `main` = `3aa8ca6` (bootstrap rail #582 `03018da` + §7

@@ -39,7 +39,8 @@
     "test:e2e:live:onboard": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-onboard-activation.spec.ts",
     "test:e2e:live:external": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-external-context.spec.ts tests/e2e/otzar-live-external-promotion.spec.ts tests/e2e/otzar-live-external-chooser.spec.ts tests/e2e/otzar-live-team-external.spec.ts",
     "test:e2e:live:pilot-gate": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-onboard-activation.spec.ts tests/e2e/otzar-live-external-context.spec.ts tests/e2e/otzar-live-external-chooser.spec.ts tests/e2e/otzar-live-team-external.spec.ts tests/e2e/otzar-live-ambient-clarity.spec.ts tests/e2e/otzar-live-twin-authority.spec.ts tests/e2e/otzar-live-wallet-boundary.spec.ts tests/e2e/otzar-live-org-setup.spec.ts",
-    "test:e2e:live:setup": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-org-setup.spec.ts"
+    "test:e2e:live:setup": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-org-setup.spec.ts",
+    "test:e2e:live:redwood": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-redwood-probe.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
