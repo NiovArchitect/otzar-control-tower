@@ -12,27 +12,26 @@
 //             proves the deployed read-path runs without error. Any follow-up
 //             cards created by the smoke capture are cancelled (canonical
 //             PATCH), leaving no pending smoke residue.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
-//      [OTZAR_LEARN_SMOKE_MUTATE=1] \
+//          TENANCY (migrated 2026-07-07): SMOKE ORG ONLY — the caller is
+//          smoke-admin via OTZAR_SMOKE_ADMIN_PASSWORD with the structural
+//          tenancy guard before the L2 ingest. Demo org is read-only.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… [OTZAR_LEARN_SMOKE_MUTATE=1] \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-learn-loop.spec.ts
 
-import { test, expect, type APIRequestContext } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import {
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  smokeAdminLogin,
+} from "./live-tenancy";
 
 test.describe.configure({ mode: "serial", retries: 0 });
 
-const CALLER_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const ARMED = process.env.OTZAR_LEARN_SMOKE_MUTATE === "1";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
 
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 
-async function apiLogin(request: APIRequestContext, email: string): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email, password: PW, requested_operations: ["read", "write"] },
-  });
-  return (await lr.json()).token as string;
-}
 const authed = (t: string) => ({ authorization: `Bearer ${t}` });
 
 test("L1 read-only: ingest + follow-ups routes refuse unauth; projection loads safe fields", async ({ request }) => {
@@ -43,7 +42,7 @@ test("L1 read-only: ingest + follow-ups routes refuse unauth; projection loads s
   const unauthList = await request.get(`${API}/work-os/comms/follow-ups`);
   expect(unauthList.status()).toBe(401);
 
-  const tok = await apiLogin(request, CALLER_EMAIL);
+  const tok = await smokeAdminLogin(request, ["read", "write"]);
   const list = await request.get(`${API}/work-os/comms/follow-ups`, { headers: authed(tok) });
   expect(list.status()).toBe(200);
   const raw = await list.text();
@@ -55,9 +54,9 @@ test("L1 read-only: ingest + follow-ups routes refuse unauth; projection loads s
 test("L2 armed: a labeled smoke ingest exercises the deployed read-path; cards cancelled after", async ({ request }) => {
   test.skip(!ARMED, "Set OTZAR_LEARN_SMOKE_MUTATE=1 to run the labeled smoke ingest.");
   test.setTimeout(240_000);
-  const tok = await apiLogin(request, CALLER_EMAIL);
+  const tok = await smokeAdminLogin(request, ["read", "write"]);
 
-  // Names only the caller — no ambiguity, no vouch, no correction is created.
+  // Names nobody — no ambiguity, no vouch, no correction is created.
   // Reading prior corrections is side-effect-free; this proves the deployed
   // ingest (which now loads/derives them on every call) completes cleanly.
   const res = await request.post(`${API}/otzar/comms/ingest`, {
@@ -66,7 +65,7 @@ test("L2 armed: a labeled smoke ingest exercises the deployed read-path; cards c
       title: "Otzar Smoke — Learn Loop read-path",
       captured_text:
         "Smoke check for the learn-loop read path (safe to cancel). " +
-        "Sadeil will review the smoke checklist tomorrow morning.",
+        "The caller will review the smoke checklist tomorrow morning.",
     },
     timeout: 180_000,
   });

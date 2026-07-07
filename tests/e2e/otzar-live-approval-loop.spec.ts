@@ -30,6 +30,11 @@ const APPROVE_NOTE =
 const REJECT_NOTE =
   "Verification note from Otzar smoke test (reject leg): this note is expected to be rejected. No action needed.";
 
+// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
+// mutation is demo-fixture-bound (named demo people / approver edges)
+// and stays disabled until its smoke-org cast port (gap ledger P1).
+// Write coverage remains in integration tests.
+test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
 test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
 
 async function apiLogin(request: APIRequestContext, email: string): Promise<string> {

@@ -688,12 +688,29 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   probe passed (162.8s) proving the restored SHA's supersession
   semantics live. Code-only window (zero migrations), smoke org only,
   demo org untouched. FND rollback-runbook §6 history row appended.
-- **Remaining (founder actions):** rotate sadeil@ password; set
-  `OTZAR_SMOKE_*` env for the live configs and migrate mutating smoke
-  specs to the smoke org (demo org then READ-ONLY smokes only); rotate
-  RENDER_API_KEY per §7. Engineering P1: governed can_admin_niov grant
-  route (operator #2 used the founder rail); codify the migration job
-  rail as a script; twin-deactivation rail.
+- **SMOKE-TENANCY MIGRATION COMPLETE 2026-07-07 (runbook §3 BINDING):**
+  the demo org is READ-ONLY smoke territory; mutating live specs run on
+  the NIOV Smoke Org via `tests/e2e/live-tenancy.ts` (smoke-admin creds
+  + structural org-id guard before any write + per-run dynamic-member
+  rail). Migrated & proven live: onboard-activation, learn-loop,
+  assign-active-target, assign-workspace (10/10 assign scenarios,
+  full UI loop), alongside the smoke-native redwood pair. Demo-locked
+  pending the cast port: approval-loop, arc-coherence, bugb, bugc,
+  clarification-roundtrip (whole-file), bugd S5, reject-reason R2
+  (scenario) — verified skipping even with a password set.
+  collaboration-matrix/employee-flow writes arm only for smoke-org
+  accounts. New batteries: `test:e2e:live:mutating` (smoke, workers=1),
+  `test:e2e:live:demo-readonly`. FND fix shipped en route (PR #586,
+  `9f97ae2`, live): growth roster excludes SUSPENDED/soft-deleted
+  members — suspended smoke identities no longer flood growth recs
+  (tenant-general copy fix).
+- **Remaining (founder actions):** rotate sadeil@ password; rotate
+  RENDER_API_KEY per §7. Engineering P1: **smoke-org cast port** (a
+  durable smoke cast — members + manager/approver edges — so the
+  demo-locked governed-action arcs above regain live coverage on the
+  smoke org); governed can_admin_niov grant route (operator #2 used
+  the founder rail); codify the migration job rail as a script;
+  twin-deactivation rail.
 
 ### U. Organization Setup Journey / Admin Setup OS — 🟡 SLICE 1 SHIPPED 2026-07-04 (read-only Organization Setup page at /setup: seven-section guided journey composing 7 existing GET projections, deterministic next-best-step ladder, least-access spine, honest limitations for bulk import/retention/ambient ingestion; failure-story smoke matrix in OTZAR_ORGANIZATION_SETUP_SMOKE_MATRIX.md; zero write paths, zero schema, zero backend changes. SLICE 2 SHIPPED 2026-07-04: CSV people import at /setup/import-people — preview-first, confirmation-gated, least-access by construction (forbidden columns hard-refused), rails-only (bulk create → per-person invite+one-time link → hierarchy assign), cap 20/batch. SLICE 3 SHIPPED 2026-07-05: /setup/data-flow per-source trust panel (pull/push/landing/ownership/visibility/retention per source; connected ≠ ingesting explicit; wallet doctrine on-page; read-only, matrix stories 7+11 covered). SLICE 4 SHIPPED 2026-07-05: /setup/go-live readiness gate (deterministic verdict, founder actions apart, warnings never fake-block, self-serve limitation always rendered; shared computeSetupFacts — no duplicated readiness logic). SLICE 5 SHIPPED 2026-07-05: setup coach on /setup — DERIVED typed recommendations (persisted seeds deliberately rejected: approval lifecycle is the wrong shape for repair items; noise rules free by construction) + coherence sweep (first-workflow path → real Comms route; overclaim grep clean; matrix 14/14). Setup arc COHERENT — ready for the Org Context Seeding + Employee Twin Calibration doctrine. Remaining maturity: HRIS/org-chart import, per-account external views, printable gate handoff)
 

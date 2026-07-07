@@ -10,11 +10,27 @@
 // CONNECTS TO: playwright.live.config.ts, AmbientOtzarBar, Login.
 
 import { test, expect } from "@playwright/test";
+import { SMOKE_ORG_ENTITY_ID, resolveOrgEntityId } from "./live-tenancy";
 
 const EMAIL = process.env.OTZAR_SMOKE_EMAIL;
 const PASSWORD = process.env.DEMO_SHARED_PASSWORD;
-const ALLOW_WRITES = process.env.OTZAR_SMOKE_ALLOW_WRITES === "1";
+// [SMOKE-TENANCY 2026-07-07] The demo org is READ-ONLY: the correction
+// write arms ONLY when the flag is set AND the account structurally
+// resolves to the NIOV Smoke Org (resolved in beforeAll).
+const ALLOW_WRITES_FLAG = process.env.OTZAR_SMOKE_ALLOW_WRITES === "1";
+let ALLOW_WRITES = false;
 const haveCreds = Boolean(EMAIL && PASSWORD);
+
+test.beforeAll(async ({ request }) => {
+  if (!ALLOW_WRITES_FLAG || !haveCreds) return;
+  const orgId = await resolveOrgEntityId(request, EMAIL as string, PASSWORD as string);
+  ALLOW_WRITES = orgId === SMOKE_ORG_ENTITY_ID;
+  if (!ALLOW_WRITES) {
+    console.log(
+      "[tenancy] OTZAR_SMOKE_ALLOW_WRITES=1 ignored: account does not resolve to the NIOV Smoke Org (demo org is read-only).",
+    );
+  }
+});
 
 test.describe("Otzar employee flow — credentialed live smoke", () => {
   test.skip(

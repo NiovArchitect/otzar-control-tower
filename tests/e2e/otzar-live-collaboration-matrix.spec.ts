@@ -15,6 +15,7 @@
 // CONNECTS TO: playwright.live.config.ts, AmbientOtzarBar, EmployeeNav, Login.
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { appendFileSync } from "node:fs";
+import { SMOKE_ORG_ENTITY_ID, resolveOrgEntityId } from "./live-tenancy";
 
 // Optional real-time, line-buffered progress log (sanitized; timestamps). Lets a
 // runner watch per-section timing without fighting pipe block-buffering.
@@ -23,10 +24,26 @@ const LOGF = process.env.OTZAR_SMOKE_LOG_FILE;
 const EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
 const PASSWORD = process.env.DEMO_SHARED_PASSWORD;
 const PARTNER = process.env.OTZAR_SMOKE_PARTNER_EMAIL ?? "david@niovlabs.com";
-const ALLOW_WRITES = process.env.OTZAR_SMOKE_ALLOW_WRITES === "1";
+// [SMOKE-TENANCY 2026-07-07] The demo org is READ-ONLY: the write sections
+// (I/J/S/CO) arm ONLY when the flag is set AND the account structurally
+// resolves to the NIOV Smoke Org — resolved once in beforeAll. A demo
+// account with the flag set is demoted to the read-only matrix.
+const ALLOW_WRITES_FLAG = process.env.OTZAR_SMOKE_ALLOW_WRITES === "1";
+let ALLOW_WRITES = false;
 const haveCreds = Boolean(EMAIL && PASSWORD);
 
 test.describe.configure({ retries: 0, timeout: 1_500_000 });
+
+test.beforeAll(async ({ request }) => {
+  if (!ALLOW_WRITES_FLAG || !haveCreds) return;
+  const orgId = await resolveOrgEntityId(request, EMAIL, PASSWORD as string);
+  ALLOW_WRITES = orgId === SMOKE_ORG_ENTITY_ID;
+  if (!ALLOW_WRITES) {
+    console.log(
+      "[tenancy] OTZAR_SMOKE_ALLOW_WRITES=1 ignored: account does not resolve to the NIOV Smoke Org (demo org is read-only).",
+    );
+  }
+});
 
 type Status = "PASS" | "FAIL" | "SKIP";
 type Cls =

@@ -118,6 +118,50 @@ that determines, per required production section:
 
 ---
 
+## ✅ SMOKE-TENANCY · Demo org read-only; mutating smokes migrated to the NIOV Smoke Org · BINDING (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `9f97ae2` (PR #586 growth-roster fix, 5/5 CI,
+deployed + verified live) · CT `main` = this commit. **Founder GO.**
+
+- **The tenancy contract** (`tests/e2e/live-tenancy.ts`, runbook §3
+  BINDING): mutating live specs use `OTZAR_SMOKE_ADMIN_EMAIL`
+  (default smoke-admin) + `OTZAR_SMOKE_ADMIN_PASSWORD` (skip without),
+  and STRUCTURALLY verify the token's `GET /org/hierarchy`
+  `org_entity_id` equals the smoke org id before any write — wrong
+  creds fail loudly instead of mutating the wrong tenant. Per-run
+  dynamic-member rail (create→invite→activate, suspend in cleanup)
+  replaces every named-demo-person dependency in the migrated specs.
+- **Migrated + proven live on the smoke org:** onboard-activation
+  (invite→activate→reset→leak sweep→suspend), learn-loop L1+L2
+  (labeled ingest, cards cancelled), assign-active-target 6/6 +
+  assign-workspace 4/4 (full UI assignment loop with a per-run
+  dynamic assignee; project/workspace archived + member suspended).
+  Redwood probe/corpus were smoke-native already. Battery:
+  `test:e2e:live:mutating` (workers=1 — the assign specs share
+  org-wide growth-count baselines and must never interleave).
+- **Demo-locked pending the smoke-org cast port (P1):** approval-loop,
+  arc-coherence, bugb-followup-durable, bugc-recipient-review,
+  clarification-roundtrip (whole-file skip), bugd S5 + reject-reason
+  R2 (scenario skip) — their mutating arcs are bound to named demo
+  people/approver edges; verified skipping even with a password set;
+  read-only scenarios still run on demo (`test:e2e:live:demo-readonly`).
+  collaboration-matrix + employee-flow: `OTZAR_SMOKE_ALLOW_WRITES=1`
+  arms writes ONLY when the account resolves to the smoke org.
+- **FND fix shipped en route (found live):** the growth roster counted
+  SUSPENDED members ("needs a first project" for suspended people —
+  54 suspended smoke personas flooded the smoke org's growth card, and
+  any customer org suspending a member got wrong copy). `orgMembers()`
+  now requires entity `status ACTIVE + deleted_at null` at the single
+  shared source. PR #586 → `9f97ae2`, dandelion-growth 12/12 incl. the
+  new suspension regression test, deployed + verified live (smoke org
+  growth: members_count 54→1).
+- **Residue proof after all runs:** pending escalations 0 · 55
+  pilot-smoke identities, 0 ACTIVE · 0 active smoke fixtures ·
+  0 pending follow-ups · growth signals at baseline. Demo org: never
+  logged into during the migration; locked specs proven to skip.
+- **Next:** smoke-org cast port (P1) to restore live coverage for the
+  demo-locked governed-action arcs; sadeil@ + RENDER_API_KEY rotation.
+
 ## ✅ ROLLBACK-REHEARSAL · §6 deploy-rail rollback rehearsed on production FND · EXECUTED (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `b564da8` (unchanged; runbook §6 history row via

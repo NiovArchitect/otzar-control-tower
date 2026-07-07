@@ -166,6 +166,10 @@ test("S4 employee ui: non-admin never sees the growth card; page carries no disc
 
 // ── Scenario 5 — dual-control regression: managed employee's send QUEUES ────
 test("S5 governance: a managed employee's send queues for approval (no manager-edge NO_ELIGIBLE_TARGET)", async ({ request }) => {
+  // [SMOKE-TENANCY 2026-07-07] Demo org is read-only: S5 creates a governed
+  // action against demo people/approver edges — disabled until the smoke-org
+  // cast port (gap ledger P1). S1–S4 above stay read-only-green on demo.
+  test.skip(true, "Demo org is read-only (2026-07-07); S5's mutating arc awaits the smoke-org cast port (gap ledger P1).");
   const employeeToken = await apiLogin(request, EMPLOYEE_EMAIL);
   const key = `bugd-smoke-dualcontrol-${Date.now()}`; // per-run key — a reused key replays the prior (already-resolved) action
   const send = await request.post(`${API}/actions`, {

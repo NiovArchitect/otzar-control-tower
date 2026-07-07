@@ -55,6 +55,10 @@ test("R1 read-only: the sender's action list serves safe fields only", async ({ 
 });
 
 test("R2 armed: reject with a reason → the sender sees the approver's words (screenshot)", async ({ page, request }) => {
+  // [SMOKE-TENANCY 2026-07-07] Demo org is read-only: R2 creates a governed
+  // action against demo people/approver edges — disabled until the smoke-org
+  // cast port (gap ledger P1). R1 above stays read-only-green on demo.
+  test.skip(true, "Demo org is read-only (2026-07-07); R2's mutating arc awaits the smoke-org cast port (gap ledger P1).");
   test.skip(!ARMED, "Set OTZAR_REJECT_SMOKE_MUTATE=1 to run the reject-loop smoke.");
   test.setTimeout(240_000);
   const emp = await apiLogin(request, EMPLOYEE_EMAIL);

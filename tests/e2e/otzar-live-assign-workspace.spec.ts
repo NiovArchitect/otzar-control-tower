@@ -7,31 +7,35 @@
 //          it, assignment refuses honestly, recommendation returns, org
 //          restored to its pre-create baseline. Armed ONLY when
 //          OTZAR_ASSIGN_SMOKE_MUTATE=1. Guaranteed afterAll archive.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
-//      OTZAR_ASSIGN_SMOKE_MUTATE=1 \
+//          TENANCY (migrated 2026-07-07): SMOKE ORG ONLY — smoke-admin +
+//          structural tenancy guard; the assignee is a per-run dynamic
+//          member (live rails), SUSPENDED in cleanup. Demo org read-only.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… OTZAR_ASSIGN_SMOKE_MUTATE=1 \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-assign-workspace.spec.ts
 
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  SMOKE_ADMIN_EMAIL,
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  provisionSmokeMember,
+  smokeAdminLogin,
+  suspendEntity,
+  type SmokeMember,
+} from "./live-tenancy";
 
 test.describe.configure({ mode: "serial", retries: 0 });
 
-const ADMIN_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const ARMED = process.env.OTZAR_ASSIGN_SMOKE_MUTATE === "1";
 const TAG = process.env.OTZAR_SHOT_TAG ?? "assign-ws";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
+const RUN = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
 
 const SMOKE_PREFIX = "Otzar Smoke Workspace — Assignment Flow";
 
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 test.skip(!ARMED, "Set OTZAR_ASSIGN_SMOKE_MUTATE=1 to run the reversible-mutation smoke.");
 
-async function apiLogin(request: APIRequestContext, email: string): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email, password: PW, requested_operations: ["read", "write"] },
-  });
-  return (await lr.json()).token as string;
-}
 const authed = (t: string) => ({ authorization: `Bearer ${t}` });
 
 interface TargetRow {
@@ -78,8 +82,8 @@ async function archiveWorkspace(
 
 async function uiLoginToCollaboration(page: Page): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(ADMIN_EMAIL);
-  await page.getByLabel("Password").fill(PW as string);
+  await page.getByLabel("Email").fill(SMOKE_ADMIN_EMAIL);
+  await page.getByLabel("Password").fill(SMOKE_ADMIN_PASSWORD as string);
   await page.getByRole("button", { name: /sign in/i }).click();
   await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, {
     timeout: 45_000,
@@ -97,17 +101,22 @@ let smokeTitle = "";
 let personId = "";
 let baselineWithoutCount = -1;
 let archived = false;
+let smokeMember: SmokeMember | null = null;
 
 test.afterAll(async ({ request }) => {
   if (smokeWorkspaceId !== "" && !archived) {
-    const adm = await apiLogin(request, ADMIN_EMAIL);
+    const adm = await smokeAdminLogin(request);
     await archiveWorkspace(request, adm, smokeWorkspaceId);
+  }
+  if (smokeMember !== null) {
+    const adm = await smokeAdminLogin(request);
+    await suspendEntity(request, adm, smokeMember.entityId);
   }
 });
 
 test("W1 api: reversible smoke workspace exists as an ACTIVE assignment target", async ({ request }) => {
-  test.setTimeout(120_000);
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  test.setTimeout(180_000);
+  const adm = await smokeAdminLogin(request);
 
   // Pre-clean stale smoke workspaces from earlier runs via the archive rail.
   const before = await assignmentTargets(request, adm);
@@ -115,6 +124,9 @@ test("W1 api: reversible smoke workspace exists as an ACTIVE assignment target",
     const res = await archiveWorkspace(request, adm, stale.target_id);
     expect(res.ok === true || res.code === "ALREADY_ARCHIVED").toBe(true);
   }
+
+  // Per-run dynamic member = the person the growth card recommends.
+  smokeMember = await provisionSmokeMember(request, adm, RUN, "ws-assignee");
 
   baselineWithoutCount = (await growthView(request, adm)).withoutCount;
   expect(baselineWithoutCount).toBeGreaterThan(0);
@@ -139,14 +151,18 @@ test("W1 api: reversible smoke workspace exists as an ACTIVE assignment target",
   expect(mine?.status).toBe("ACTIVE");
 
   // Pick the person from server truth (creating the workspace connected the
-  // admin as APPROVE member, so any remaining recommendation is someone else).
+  // admin as APPROVE member, so the run's dynamic member must be the rec).
   const view = await growthView(request, adm);
   const needs = view.recs.filter(
     (r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context !== undefined,
   );
   expect(needs.length).toBeGreaterThan(0);
-  personId = needs[0]?.context?.person_entity_id ?? "";
-  expect(personId.length).toBeGreaterThan(0);
+  personId =
+    needs.find((r) => r.context?.person_entity_id === smokeMember!.entityId)
+      ?.context?.person_entity_id ?? "";
+  expect(personId, "the run's dynamic member must appear in the growth recommendations").toBe(
+    smokeMember!.entityId,
+  );
 });
 
 test("W2 ui: assigning to the WORKSPACE from the card changes server truth (screenshot)", async ({ page, request }) => {
@@ -180,7 +196,7 @@ test("W2 ui: assigning to the WORKSPACE from the card changes server truth (scre
     .toBe(0);
   await page.screenshot({ path: `screenshots/${TAG}-1-after-assign.png`, fullPage: true });
 
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = await smokeAdminLogin(request);
   const view = await growthView(request, adm);
   expect(
     view.recs.some(
@@ -190,7 +206,7 @@ test("W2 ui: assigning to the WORKSPACE from the card changes server truth (scre
 });
 
 test("W3 api: repeat assignment is idempotent", async ({ request }) => {
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = await smokeAdminLogin(request);
   const repeat = await request.post(`${API}/org/assignments`, {
     headers: authed(adm),
     data: { person_entity_id: personId, target_kind: "workspace", target_id: smokeWorkspaceId },
@@ -201,7 +217,7 @@ test("W3 api: repeat assignment is idempotent", async ({ request }) => {
 
 test("W4 cleanup: the archive rail restores truth — targets drop it, assignment refuses, recommendation returns", async ({ request }) => {
   test.setTimeout(120_000);
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = await smokeAdminLogin(request);
 
   const res = await archiveWorkspace(request, adm, smokeWorkspaceId);
   expect(res.ok).toBe(true);

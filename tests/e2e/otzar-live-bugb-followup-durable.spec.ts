@@ -21,6 +21,11 @@ const PW = process.env.DEMO_SHARED_PASSWORD;
 const TAG = process.env.OTZAR_SHOT_TAG ?? "bugb";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
 
+// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
+// mutation is demo-fixture-bound (named demo people / approver edges)
+// and stays disabled until its smoke-org cast port (gap ledger P1).
+// Write coverage remains in integration tests.
+test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
 test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
 
 async function login(p: Page): Promise<void> {

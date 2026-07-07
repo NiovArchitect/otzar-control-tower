@@ -24,6 +24,11 @@ const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
 // Live demo-org member (David Odie) — the out_of_scope fixture's target.
 const DAVID = "6a49a936-cd60-4bde-b08c-2e31b11c4230";
 
+// [SMOKE-TENANCY 2026-07-07] DEMO ORG IS READ-ONLY: this arc's live
+// mutation is demo-fixture-bound (named demo people / approver edges)
+// and stays disabled until its smoke-org cast port (gap ledger P1).
+// Write coverage remains in integration tests.
+test.skip(true, "Demo org is read-only (2026-07-07); mutating arc awaits the smoke-org cast port (gap ledger P1).");
 test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
 
 async function apiLogin(request: APIRequestContext): Promise<string> {

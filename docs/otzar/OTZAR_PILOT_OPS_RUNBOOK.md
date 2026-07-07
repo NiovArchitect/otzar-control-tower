@@ -86,11 +86,37 @@ never share a tenant. **✅ ACHIEVED 2026-07-06:** `NIOV Smoke Org` exists
 `smoke-admin@niovlabs.com`, created via founder-authorized Phase-0 dual
 control (operator-1 source, operator-2 approver; the two dedicated
 platform operators were bootstrapped the same day per the FND
-admin-bootstrap runbook §5A/§7). Remaining migration steps: set
-`OTZAR_SMOKE_ADMIN_EMAIL`/`OTZAR_SMOKE_*` env for the live configs and
-move the mutating specs' logins over — until a spec is migrated, the
-interim rules below still bind it; the demo org accepts READ-ONLY
-smokes only once migration completes:
+admin-bootstrap runbook §5A/§7).
+
+**✅ MIGRATION COMPLETE 2026-07-07 — the tenancy is now BINDING:**
+
+- **The demo org is READ-ONLY smoke territory.** Every mutating live
+  spec targets the NIOV Smoke Org.
+- `tests/e2e/live-tenancy.ts` is the single tenancy contract: smoke
+  creds come from `OTZAR_SMOKE_ADMIN_EMAIL` (default
+  `smoke-admin@niovlabs.com`) + `OTZAR_SMOKE_ADMIN_PASSWORD` (required —
+  mutating specs skip without it), and every mutating spec structurally
+  verifies its token resolves to the smoke org (`GET /org/hierarchy` →
+  `org_entity_id` must equal `OTZAR_SMOKE_ORG_ENTITY_ID`, default the
+  Phase-0 id above) BEFORE any write. Wrong creds fail loudly instead
+  of mutating the wrong tenant.
+- Migrated to the smoke org (dynamic per-run identities, canonical
+  cleanup): `onboard-activation`, `learn-loop`,
+  `assign-active-target`, `assign-workspace` (the assign pair
+  provisions a per-run dynamic member as its assignee via the live
+  onboarding rails and suspends it in cleanup); `redwood-probe` /
+  `redwood-corpus` were smoke-native from birth.
+- Demo-locked pending the smoke-org cast port (gap ledger P1 — their
+  mutating arcs are bound to named demo people / approver edges):
+  `approval-loop`, `arc-coherence`, `bugb-followup-durable`,
+  `bugc-recipient-review`, `clarification-roundtrip` (whole-file
+  `skip`), `bugd-connectedness` S5 + `reject-reason` R2 (scenario
+  `skip`; their read-only scenarios still run on demo). Write coverage
+  for those arcs remains in FND integration tests.
+- `collaboration-matrix` + `employee-flow`: `OTZAR_SMOKE_ALLOW_WRITES=1`
+  now arms writes ONLY when the account structurally resolves to the
+  smoke org; on a demo account the flag is ignored (read-only matrix
+  still runs) with an explicit console note.
 
 - Mutating smokes run ONLY with per-run dynamic identities
   (`pilot-smoke+<runid>@…`, `__niov_test__` prefixes) and MUST end with
@@ -102,12 +128,21 @@ smokes only once migration completes:
 - **Residue sweep cadence:** before any pilot user arrives, and after any
   smoke failure mid-run, run the sweep in Section 5.
 
-**Smoke-org creation checklist (founder, once):** Phase 0 create
-(`company_name: NIOV Smoke Org`) → first admin `smoke-admin@niovlabs.com` →
-baseline OrgSettings (approval ON, audit ON, ceiling APPROVAL_REQUIRED) →
-set `OTZAR_SMOKE_ADMIN_EMAIL`/`OTZAR_SMOKE_*` env for the live configs →
-migrate the mutating specs' logins to the smoke org → the demo org then
-accepts READ-ONLY smokes only.
+**Env contract (live configs):** `OTZAR_SMOKE_ADMIN_EMAIL`,
+`OTZAR_SMOKE_ADMIN_PASSWORD` (operator env, never a file, never echoed),
+`OTZAR_SMOKE_ORG_ENTITY_ID` (optional override; defaults to the Phase-0
+org id), `OTZAR_SMOKE_DEFAULT_HIVE_ID` (informational), plus the
+existing `OTZAR_SMOKE_API_URL` / `OTZAR_SMOKE_BASE_URL` and the
+read-only demo vars (`OTZAR_SMOKE_EMAIL`, `DEMO_SHARED_PASSWORD`).
+
+**Batteries:** `test:e2e:live:mutating` = the smoke-org mutating battery
+(onboard + learn-loop + assign pair + redwood probe; arms
+`OTZAR_ASSIGN_SMOKE_MUTATE`/`OTZAR_LEARN_SMOKE_MUTATE`, `--workers=1` —
+the assign specs share org-wide growth-count baselines and must never
+interleave). `test:e2e:live:demo-readonly` = the demo read-only battery
+(external battery + ambient clarity + twin authority + wallet boundary +
+org setup). `test:e2e:live:pilot-gate` = demo-readonly + onboarding
+(needs BOTH `DEMO_SHARED_PASSWORD` and `OTZAR_SMOKE_ADMIN_PASSWORD`).
 
 ### 3.1 Phase-0 execution script (verified against the code, 2026-07-06)
 
@@ -164,11 +199,13 @@ milestone. One command each (`npm run …` from CT):
 
 | Gate | Spec(s) | Mutates? |
 |---|---|---|
-| Onboarding activation | `test:e2e:live:onboard` (`otzar-live-onboard-activation.spec.ts`) | YES — dynamic invitee, suspended in cleanup |
+| Onboarding activation (SMOKE ORG, migrated 2026-07-07) | `test:e2e:live:onboard` (`otzar-live-onboard-activation.spec.ts`) | YES — smoke org only (tenancy-guarded); dynamic invitee, suspended in cleanup |
 | External identity battery | `test:e2e:live:external` (context + promotion + chooser + team-external) | No — read-only, seed counts byte-checked |
 | Clarity ambient | `otzar-live-ambient-clarity.spec.ts` + `otzar-live-clarity.spec.ts` | No |
 | AI Teammates truth | `otzar-live-twin-authority.spec.ts` | No |
-| Assignment/readiness | `otzar-live-assign-from-people.spec.ts` / `assign-workspace` | YES — reversible loop, archived in cleanup |
+| Assignment/readiness | `otzar-live-assign-from-people.spec.ts` (read-only by design) / `assign-active-target` + `assign-workspace` (SMOKE ORG, migrated 2026-07-07) | Mixed — assign-from-people never writes; the armed pair is smoke-org only (tenancy-guarded), reversible loop, archived + member suspended in cleanup |
+| Smoke-org mutating battery (SMOKE ORG ONLY) | `test:e2e:live:mutating` (onboard + learn-loop + assign pair + redwood probe, `--workers=1`) | YES — smoke org only, every spec tenancy-guarded + cleanup rails built in |
+| Demo read-only battery | `test:e2e:live:demo-readonly` (externals + ambient clarity + twin authority + wallet boundary + org setup) | No — the demo org accepts read-only smokes only (BINDING 2026-07-07) |
 | Wallet/data boundary | `otzar-live-wallet-boundary.spec.ts` | No |
 | Pilot gate (all of the above) | `test:e2e:live:pilot-gate` | Mixed — per-spec rails |
 | Redwood truth-weight probe (SMOKE ORG ONLY) | `test:e2e:live:redwood` (`otzar-live-redwood-probe.spec.ts`) | YES — smoke-org only: dynamic personas via invite/activate, conflict-pair ingest, supersession + calm correction + overreach + boundary-404 asserted; cleanup cancels its ledger rows (settled history per FND `b564da8`) + suspends personas; repeat-safe (proven back-to-back). Needs `OTZAR_SMOKE_ADMIN_PASSWORD`; skips without it — can never target the demo org |

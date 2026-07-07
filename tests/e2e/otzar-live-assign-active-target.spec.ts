@@ -11,32 +11,36 @@
 //          OTZAR_ASSIGN_SMOKE_MUTATE=1 so routine live runs stay read-only.
 //          Workspaces are intentionally NOT smoked live: no archive/remove
 //          rail exists for them, so the workspace leg stays integration-only.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
-//      OTZAR_ASSIGN_SMOKE_MUTATE=1 \
+//          TENANCY (migrated 2026-07-07): SMOKE ORG ONLY — smoke-admin +
+//          structural tenancy guard; the assignee is a per-run dynamic
+//          member provisioned through the live onboarding rails and
+//          SUSPENDED in cleanup. Demo org is read-only.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… OTZAR_ASSIGN_SMOKE_MUTATE=1 \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-assign-active-target.spec.ts
 
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  SMOKE_ADMIN_EMAIL,
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  provisionSmokeMember,
+  smokeAdminLogin,
+  suspendEntity,
+  type SmokeMember,
+} from "./live-tenancy";
 
 test.describe.configure({ mode: "serial", retries: 0 });
 
-const ADMIN_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
-const EMPLOYEE_EMAIL = process.env.OTZAR_SMOKE_EMAIL ?? "vishesh@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const ARMED = process.env.OTZAR_ASSIGN_SMOKE_MUTATE === "1";
 const TAG = process.env.OTZAR_SHOT_TAG ?? "assign-live";
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
+const RUN = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
 
 const SMOKE_PREFIX = "Otzar Smoke Project — Assignment Flow";
 
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 test.skip(!ARMED, "Set OTZAR_ASSIGN_SMOKE_MUTATE=1 to run the reversible-mutation smoke.");
 
-async function apiLogin(request: APIRequestContext, email: string): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email, password: PW, requested_operations: ["read", "write"] },
-  });
-  return (await lr.json()).token as string;
-}
 const authed = (t: string) => ({ authorization: `Bearer ${t}` });
 
 interface TargetRow {
@@ -86,8 +90,8 @@ async function archiveProject(
 
 async function uiLoginToCollaboration(page: Page): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(ADMIN_EMAIL);
-  await page.getByLabel("Password").fill(PW as string);
+  await page.getByLabel("Email").fill(SMOKE_ADMIN_EMAIL);
+  await page.getByLabel("Password").fill(SMOKE_ADMIN_PASSWORD as string);
   await page.getByRole("button", { name: /sign in/i }).click();
   await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, {
     timeout: 45_000,
@@ -112,19 +116,25 @@ let personId = "";
 let baselineWithoutCount = -1;
 let membersWithoutProjectBefore = -1;
 let archived = false;
+let smokeMember: SmokeMember | null = null;
 
 test.afterAll(async ({ request }) => {
   // Guaranteed cleanup: whatever happened above, no ACTIVE smoke project
-  // may survive this spec. ALREADY_ARCHIVED is fine.
+  // may survive this spec (ALREADY_ARCHIVED is fine) and the dynamic
+  // member is SUSPENDED (soft rail).
   if (smokeProjectId !== "" && !archived) {
-    const adm = await apiLogin(request, ADMIN_EMAIL);
+    const adm = await smokeAdminLogin(request);
     await archiveProject(request, adm, smokeProjectId);
+  }
+  if (smokeMember !== null) {
+    const adm = await smokeAdminLogin(request);
+    await suspendEntity(request, adm, smokeMember.entityId);
   }
 });
 
 test("S1 api: reversible smoke project exists as an ACTIVE assignment target; employee refused", async ({ request }) => {
-  test.setTimeout(120_000);
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  test.setTimeout(180_000);
+  const adm = await smokeAdminLogin(request);
 
   // Pre-clean: archive any stale smoke fixtures from earlier runs so
   // duplicates never pile up. (Admin created them, so admin is OWNER.)
@@ -133,6 +143,11 @@ test("S1 api: reversible smoke project exists as an ACTIVE assignment target; em
     const res = await archiveProject(request, adm, stale.target_id);
     expect(res.ok === true || res.code === "ALREADY_ARCHIVED").toBe(true);
   }
+
+  // The smoke org carries no standing cast: provision this run's dynamic
+  // member through the live rails — it is the person the growth card will
+  // recommend, and the employee-403 account below. Suspended in afterAll.
+  smokeMember = await provisionSmokeMember(request, adm, RUN, "assignee");
 
   // The org's true prior state — S6 must restore exactly this.
   baselineWithoutCount = (await growthView(request, adm)).withoutCount;
@@ -162,21 +177,34 @@ test("S1 api: reversible smoke project exists as an ACTIVE assignment target; em
     expect(raw).not.toContain(banned);
   }
 
-  // Employees still cannot see targets or assign.
-  const emp = await apiLogin(request, EMPLOYEE_EMAIL);
+  // Employees still cannot see targets or assign (the dynamic member's
+  // own live login proves the 403 — no demo account involved).
+  const empLogin = await request.post(`${API}/auth/login`, {
+    data: {
+      email: smokeMember!.email,
+      password: smokeMember!.password,
+      requested_operations: ["read", "write"],
+    },
+  });
+  expect(empLogin.status()).toBe(200);
+  const emp = ((await empLogin.json()) as { token: string }).token;
   const empRes = await request.get(`${API}/org/assignment-targets`, { headers: authed(emp) });
   expect(empRes.status()).toBe(403);
 
   // Pick the person to assign FROM SERVER TRUTH: creating the project made
-  // the admin an OWNER member, so any remaining NEEDS_PROJECT_OR_WORKSPACE
-  // recommendation is guaranteed to be someone else. Stable id only.
+  // the admin an OWNER member, so the run's dynamic member must be in the
+  // NEEDS_PROJECT_OR_WORKSPACE recommendations. Stable id only.
   const view = await growthView(request, adm);
   const needs = view.recs.filter(
     (r) => r.kind === "NEEDS_PROJECT_OR_WORKSPACE" && r.context !== undefined,
   );
   expect(needs.length).toBeGreaterThan(0);
-  personId = needs[0]?.context?.person_entity_id ?? "";
-  expect(personId.length).toBeGreaterThan(0);
+  personId =
+    needs.find((r) => r.context?.person_entity_id === smokeMember!.entityId)
+      ?.context?.person_entity_id ?? "";
+  expect(personId, "the run's dynamic member must appear in the growth recommendations").toBe(
+    smokeMember!.entityId,
+  );
   membersWithoutProjectBefore = view.withoutCount;
   expect(membersWithoutProjectBefore).toBeGreaterThan(0);
 });
@@ -230,7 +258,7 @@ test("S3 ui: assigning from the card changes server truth — membership, audit,
   await page.screenshot({ path: `screenshots/${TAG}-2-after-assign.png`, fullPage: true });
 
   // Server truth: canonical membership row exists exactly once.
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = await smokeAdminLogin(request);
   const membersRes = await request.get(`${API}/otzar/work-projects/${smokeProjectId}/members`, {
     headers: authed(adm),
   });
@@ -248,7 +276,7 @@ test("S3 ui: assigning from the card changes server truth — membership, audit,
 });
 
 test("S4 api: cross-surface coherence — one fewer person without a project, no duplicates", async ({ request }) => {
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = await smokeAdminLogin(request);
   const view = await growthView(request, adm);
   // Uncapped truth signal: exactly one fewer person without a project.
   expect(view.withoutCount).toBe(membersWithoutProjectBefore - 1);
@@ -267,7 +295,7 @@ test("S4 api: cross-surface coherence — one fewer person without a project, no
 });
 
 test("S5 api: repeating the assignment is idempotent — already_member, still one row", async ({ request }) => {
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = await smokeAdminLogin(request);
   const repeat = await request.post(`${API}/org/assignments`, {
     headers: authed(adm),
     data: { person_entity_id: personId, target_kind: "project", target_id: smokeProjectId },
@@ -285,7 +313,7 @@ test("S5 api: repeating the assignment is idempotent — already_member, still o
 
 test("S6 cleanup: archiving the smoke project restores truth — recommendation returns (screenshot)", async ({ page, request }) => {
   test.setTimeout(180_000);
-  const adm = await apiLogin(request, ADMIN_EMAIL);
+  const adm = await smokeAdminLogin(request);
 
   const res = await archiveProject(request, adm, smokeProjectId);
   expect(res.ok).toBe(true);

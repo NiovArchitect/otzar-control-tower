@@ -8,32 +8,30 @@
 //          admin wire) → cleanup: the smoke user is SUSPENDED (soft rail).
 //          Uses a per-run pilot-smoke+<runid> identity — never a real
 //          person, never the demo logins.
-// RUN: OTZAR_SMOKE_BASE_URL=https://app.otzar.ai DEMO_SHARED_PASSWORD=… \
+//          TENANCY (migrated 2026-07-07): SMOKE ORG ONLY — admin is
+//          smoke-admin via OTZAR_SMOKE_ADMIN_PASSWORD, and the tenancy
+//          guard refuses to mutate any other org. Demo org is read-only.
+// RUN: OTZAR_SMOKE_ADMIN_PASSWORD=… \
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-onboard-activation.spec.ts
 
-import { test, expect, type APIRequestContext } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import {
+  SMOKE_ADMIN_PASSWORD,
+  SMOKE_GATE_MESSAGE,
+  smokeAdminLogin,
+} from "./live-tenancy";
 
 test.describe.configure({ retries: 0 });
 
-const ADMIN_EMAIL = process.env.OTZAR_SMOKE_ADMIN_EMAIL ?? "sadeil@niovlabs.com";
-const PW = process.env.DEMO_SHARED_PASSWORD;
 const API = process.env.OTZAR_SMOKE_API_URL ?? "https://api.otzar.ai/api/v1";
 const APP = process.env.OTZAR_SMOKE_BASE_URL ?? "https://app.otzar.ai";
 const RUN = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
 
-test.skip(!PW, "Set DEMO_SHARED_PASSWORD.");
-
-async function adminLogin(request: APIRequestContext): Promise<string> {
-  const lr = await request.post(`${API}/auth/login`, {
-    data: { email: ADMIN_EMAIL, password: PW, requested_operations: ["read", "write", "admin_org"] },
-  });
-  expect(lr.status()).toBe(200);
-  return (await lr.json()).token as string;
-}
+test.skip(!SMOKE_ADMIN_PASSWORD, SMOKE_GATE_MESSAGE);
 
 test("invite → activate → first login → reset → cleanup, with a full leak sweep", async ({ page, request }) => {
   test.setTimeout(300_000);
-  const admin = await adminLogin(request);
+  const admin = await smokeAdminLogin(request);
   const email = `pilot-smoke+${RUN}@niovlabs.com`;
 
   // 1) Admin invites a dynamic member (credential-less create + Phase 3).
