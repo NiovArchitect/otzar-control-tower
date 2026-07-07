@@ -426,8 +426,21 @@ inform how Otzar weighs and routes decisions.
      verify by USE, not by claimed scope.)
   4. DELETE the old key in the dashboard (invalidation = deletion; verify
      the old key now 401s on `GET /v1/services`).
-  5. Record the rotation date here. Rotations: [pending first rotation —
-     current key verified working 2026-07-04].
+  5. Record the rotation date here. Rotations: **2026-07-07** — first
+     rotation executed per this exact rail: new key verified by use
+     (services read + otzar-api deploy list, no deploy triggered) BEFORE
+     the old key was deleted; old key verified 401 after deletion; new
+     key re-verified 200 after. Distinct-key proof held throughout (the
+     old and new keys were confirmed different credentials before
+     deletion).
+- **Account-password rotations (all via the shipped
+  `POST /auth/change-password` rail, old password verified dead 401,
+  new grants verified by login):** 2026-07-07 — operator-1, operator-2,
+  smoke-admin (post-exposure of the bootstrap secrets file), sadeil@
+  (post-exposure in chat), operator-1 again (second in-session exposure
+  during a secure-file inspection; the lesson is BINDING — secure-file
+  inspection may only print line numbers/lengths/label classifications,
+  never content-matching grep/sed output).
 - `DEMO_SHARED_PASSWORD` rotates when the pilot starts (the demo org
   becomes read-only-smoke territory).
 
