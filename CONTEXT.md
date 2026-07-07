@@ -118,6 +118,42 @@ that determines, per required production section:
 
 ---
 
+## ✅ LOCKOUT-RECOVERY · Sole-admin lockout rail shipped + rotations complete · LIVE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `20e99f4` (PR #587, 5/5 CI, deployed live) ·
+CT `main` = this commit (docs). **Founder GO throughout.**
+
+- **The incident:** after the sadeil@ rotation, the founder retried the
+  OLD password 5× in the UI → the auth layer fail-closed the entity
+  (5 failed logins → SUSPENDED, audited). The demo org's ONLY admin was
+  bricked: the sole reactivation rail (`PATCH /org/entities/:id`)
+  requires an org admin of that same org. The concurrent Render-key
+  deletion was unrelated (auth never touches Render).
+- **The rail (not a backdoor):**
+  `POST /platform/entities/:entityId/clear-lockout` (`can_admin_niov`;
+  `:entityId` = UUID or email; mandatory reason, stored in audit and
+  never echoed). Three-part proof-of-cause — SUSPENDED + counter at
+  `FAILED_AUTH_LOCKOUT` + newest ENTITY_SUSPENDED audit row is the
+  actorless "5 failed attempts" record — so admin-authored suspensions
+  refuse 409. Touches ONLY entity status + failed counter; TAR,
+  memberships, passwords untouched; writes ENTITY_REACTIVATED
+  (`PLATFORM_LOCKOUT_CLEARED` + actor/target_email/reason/prior-state).
+- **Proven:** integration suite drives the REAL lockout over HTTP —
+  5/5 (clear + email-addressed clear + non-lockout refusal + ACTIVE/
+  blank-reason/unknown refusals + org-admin-only 403 / unauth 401,
+  TAR-hash unchanged, no password material in audit). First live use:
+  operator-1 cleared sadeil@ (prior_failed_attempts=5, audit
+  `d3b21edf…`), login 200 with all six operations.
+- **Rotations closed the same day (runbook §7 log):** operator-1 (×2 —
+  re-rotated after a second in-session exposure), operator-2,
+  smoke-admin, sadeil@, RENDER_API_KEY (verified-by-use before old-key
+  deletion; old key 401 after). BINDING lesson: secure-file inspection
+  prints line numbers/lengths/labels only — never content-matching
+  grep/sed.
+- **Next:** P1s unchanged (governed can_admin_niov grant route,
+  migration-job script, twin-deactivation rail); future 6d item —
+  self-recovery UX for non-sole-admin lockouts.
+
 ## ✅ SMOKE-CAST · Governance cast ports all demo-locked arcs to the smoke org · COMPLETE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `9f97ae2` (unchanged — zero backend edits this

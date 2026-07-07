@@ -715,10 +715,23 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   Bonus finding recorded: the Action⇄Escalation reconciliation gap
   pinned in arc-coherence C2 has SHIPPED — the caller's Action now
   reflects the approver's verdict (assertion flipped to REJECTED).
-- **Remaining (founder actions):** rotate sadeil@ password; rotate
-  RENDER_API_KEY per §7. Engineering P1: governed can_admin_niov grant
-  route (operator #2 used the founder rail); codify the migration job
-  rail as a script; twin-deactivation rail.
+- **ROTATIONS COMPLETE 2026-07-07:** sadeil@ rotated via the
+  change-password rail (old dead 401, six operations verified);
+  RENDER_API_KEY rotated per §7 (new key verified by use before old-key
+  deletion; old key verified 401 after). Every credential exposed
+  during this arc is rotated and verified dead.
+- **SOLE-ADMIN LOCKOUT RECOVERY shipped 2026-07-07 (FND `20e99f4`,
+  PR #587):** found live when the founder retried a pre-rotation
+  password 5× and the demo org's only admin was fail-closed SUSPENDED
+  with no recovery path. New `can_admin_niov` rail
+  `POST /platform/entities/:entityId/clear-lockout` — proof-of-cause
+  gated (never a general unsuspend), audit-of-record verified,
+  entity-status + failed-counter only. First live use recovered
+  sadeil@ (operator-1; audited ENTITY_REACTIVATED). Runbook §6d
+  documents it.
+- **Remaining engineering P1:** governed can_admin_niov grant route
+  (operator #2 used the founder rail); codify the migration job rail
+  as a script; twin-deactivation rail.
 
 ### U. Organization Setup Journey / Admin Setup OS — 🟡 SLICE 1 SHIPPED 2026-07-04 (read-only Organization Setup page at /setup: seven-section guided journey composing 7 existing GET projections, deterministic next-best-step ladder, least-access spine, honest limitations for bulk import/retention/ambient ingestion; failure-story smoke matrix in OTZAR_ORGANIZATION_SETUP_SMOKE_MATRIX.md; zero write paths, zero schema, zero backend changes. SLICE 2 SHIPPED 2026-07-04: CSV people import at /setup/import-people — preview-first, confirmation-gated, least-access by construction (forbidden columns hard-refused), rails-only (bulk create → per-person invite+one-time link → hierarchy assign), cap 20/batch. SLICE 3 SHIPPED 2026-07-05: /setup/data-flow per-source trust panel (pull/push/landing/ownership/visibility/retention per source; connected ≠ ingesting explicit; wallet doctrine on-page; read-only, matrix stories 7+11 covered). SLICE 4 SHIPPED 2026-07-05: /setup/go-live readiness gate (deterministic verdict, founder actions apart, warnings never fake-block, self-serve limitation always rendered; shared computeSetupFacts — no duplicated readiness logic). SLICE 5 SHIPPED 2026-07-05: setup coach on /setup — DERIVED typed recommendations (persisted seeds deliberately rejected: approval lifecycle is the wrong shape for repair items; noise rules free by construction) + coherence sweep (first-workflow path → real Comms route; overclaim grep clean; matrix 14/14). Setup arc COHERENT — ready for the Org Context Seeding + Employee Twin Calibration doctrine. Remaining maturity: HRIS/org-chart import, per-account external views, printable gate handoff)
 

@@ -361,10 +361,25 @@ password.
   blur; the API refuses with 409 pointing at activation). Copy-link
   fallback remains. "Sent" = provider ACCEPTED, never delivered.
 - **Lockout:** 5 failed logins → ENTITY SUSPENDED (audited). A reset
-  alone does NOT unsuspend (deliberate: lockout-suspension and
-  admin-suspension aren't distinguishable, and reset must not bypass
-  an intentional admin suspension) — reactivate the member first,
-  then reset. Future: model lockout separately for self-recovery.
+  alone does NOT unsuspend (deliberate: reset must not bypass an
+  intentional admin suspension) — reactivate the member first, then
+  reset. An org admin reactivates via Users / `PATCH /org/entities/:id`.
+- **Sole-admin lockout (LOCKOUT-RECOVERY, shipped 2026-07-07, FND
+  `20e99f4`):** when the locked-out member IS the org's only admin, the
+  org has no self-service path — a NIOV platform operator recovers via
+  `POST /platform/entities/:entityId/clear-lockout` (`can_admin_niov`;
+  `:entityId` accepts the UUID or the account email; mandatory human
+  reason). NOT a general unsuspend rail: it refuses (409) unless the
+  suspension is PROVABLY the auth layer's lockout — entity SUSPENDED +
+  `failed_auth_attempts` at threshold + the newest ENTITY_SUSPENDED
+  audit row being the actorless "5 failed attempts" record. It touches
+  ONLY entity status + the failed counter (never TAR / memberships /
+  passwords) and writes ENTITY_REACTIVATED
+  (`PLATFORM_LOCKOUT_CLEARED`, actor/target/reason/prior-state).
+  First live use 2026-07-07: the founder locked the demo-org sole
+  admin out by retrying a pre-rotation password 5× (the concurrent
+  Render key deletion was unrelated — auth never touches Render);
+  operator-1 cleared it, login verified with all six operations.
 - Audit: PASSWORD_CHANGED · PASSWORD_RESET_EMAIL_SENT/FAILED (+
   existing PASSWORD_RESET_LINK_CREATED / PASSWORD_RESET_COMPLETED) —
   never a password, token, URL, or body.
