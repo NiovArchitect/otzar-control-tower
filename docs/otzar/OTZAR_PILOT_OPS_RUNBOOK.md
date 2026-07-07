@@ -78,6 +78,12 @@ Local `prisma db push` targets ONLY the test DB via the guarded scripts
 require Founder authorization + the rollback runbook's restore posture —
 none have been needed; keep it that way.
 
+**CODIFIED 2026-07-07:** the whole §2 sequence is one fail-closed script —
+FND `scripts/migration-job-rail.mjs` (`--ddl <file> --verify <file>
+[--execute]`; dry-run by default; needs `RENDER_API_KEY` in the operator
+env). It aborts on a lying canary, on DDL without idempotence guards, and
+on verify scripts that cannot fail. Manual curl is no longer the rail.
+
 ## 3. Smoke tenancy + residue policy
 
 **Target state:** a dedicated smoke org so pilot data and smoke traffic

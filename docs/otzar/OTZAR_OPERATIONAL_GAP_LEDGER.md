@@ -729,9 +729,39 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
   entity-status + failed-counter only. First live use recovered
   sadeil@ (operator-1; audited ENTITY_REACTIVATED). Runbook §6d
   documents it.
-- **Remaining engineering P1:** governed can_admin_niov grant route
-  (operator #2 used the founder rail); codify the migration job rail
-  as a script; twin-deactivation rail.
+- **ALL THREE ENGINEERING P1s CLOSED 2026-07-07:**
+  1. **Governed can_admin_niov grant/revoke** (FND PR #588 `56fb75c`,
+     live): `POST /platform/admin-niov-grants` + `/admin-niov-revocations`
+     — can_admin_niov + dual control, payload-bound + single-use (target
+     in the BODY so an approval can never be replayed against a
+     different person), self-grant refused, org-admin targets
+     structurally ungrantable (protects daily accounts + the demo
+     admin), revoke floor-protected (≥2 active operators), consumption
+     + TAR write + audit in one transaction via the extracted
+     `updateTARPermissionsInTx`. Integration 6/6; registry census
+     updated 7→9 (payload-bound set = org-creation + the pair).
+     Live-verified: interception 403 ESCALATION_PENDING → payload-bound
+     pending row targeting operator-2 → governed reject → queue 0;
+     zero authority moved. Founder bootstrap script is now ZERO-ROOT
+     ONLY (FND admin-bootstrap runbook §5A).
+  2. **Migration-job rail script** (FND PR #589 `d21389b`):
+     `scripts/migration-job-rail.mjs` codifies runbook §2 (fail-capable
+     canary → idempotent DDL → independent verify) fail-closed; dry-run
+     default, `--execute` required, refuses unguarded DDL and
+     unfalsifiable verify scripts. Unit 7/7. No destructive execution
+     performed.
+  3. **Twin-deactivation rail** (same PR, live):
+     `POST /org/ai-teammates/:id/{deactivate,reactivate}` (org-admin,
+     org-scoped owner walk, enumeration-safe 404s, audited reason,
+     RULE 10 soft rail, config untouched). Integration 2/2;
+     live-proven on the smoke org (create → deactivate → 409 repeat →
+     reactivate → retire).
+- **UI hardening shipped 2026-07-07:** employee notification overlay
+  layering fix (CT `f99a859`, bundle `index-CKWYNwPi.js` verified live)
+  — the bell dropdown rendered BEHIND the ambient cards (header
+  backdrop-blur stacking-context trap); header chrome now an explicit
+  z-40 layer under the ambient overlay ladder (55/58/60); stacking
+  contract locked by `tests/unit/overlay-layering.test.ts`.
 
 ### U. Organization Setup Journey / Admin Setup OS — 🟡 SLICE 1 SHIPPED 2026-07-04 (read-only Organization Setup page at /setup: seven-section guided journey composing 7 existing GET projections, deterministic next-best-step ladder, least-access spine, honest limitations for bulk import/retention/ambient ingestion; failure-story smoke matrix in OTZAR_ORGANIZATION_SETUP_SMOKE_MATRIX.md; zero write paths, zero schema, zero backend changes. SLICE 2 SHIPPED 2026-07-04: CSV people import at /setup/import-people — preview-first, confirmation-gated, least-access by construction (forbidden columns hard-refused), rails-only (bulk create → per-person invite+one-time link → hierarchy assign), cap 20/batch. SLICE 3 SHIPPED 2026-07-05: /setup/data-flow per-source trust panel (pull/push/landing/ownership/visibility/retention per source; connected ≠ ingesting explicit; wallet doctrine on-page; read-only, matrix stories 7+11 covered). SLICE 4 SHIPPED 2026-07-05: /setup/go-live readiness gate (deterministic verdict, founder actions apart, warnings never fake-block, self-serve limitation always rendered; shared computeSetupFacts — no duplicated readiness logic). SLICE 5 SHIPPED 2026-07-05: setup coach on /setup — DERIVED typed recommendations (persisted seeds deliberately rejected: approval lifecycle is the wrong shape for repair items; noise rules free by construction) + coherence sweep (first-workflow path → real Comms route; overclaim grep clean; matrix 14/14). Setup arc COHERENT — ready for the Org Context Seeding + Employee Twin Calibration doctrine. Remaining maturity: HRIS/org-chart import, per-account external views, printable gate handoff)
 

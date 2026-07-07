@@ -118,6 +118,54 @@ that determines, per required production section:
 
 ---
 
+## ✅ P1-HARDENING · All three ops P1s + overlay fix shipped · LIVE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `d21389b` (+ docs PR #590; PRs #588 #589, all
+5/5 CI, deployed + live-verified) · CT `main` = this commit (overlay fix
+`f99a859` live, bundle `index-CKWYNwPi.js` verified). **Founder GO,
+autonomous-execution addendum.**
+
+- **1. Governed can_admin_niov grant/revoke (PR #588):**
+  `POST /platform/admin-niov-grants` + `/admin-niov-revocations` —
+  can_admin_niov + dual control, PAYLOAD-BOUND + SINGLE-USE (the target
+  lives in the body precisely so the approval binds it; replay against
+  a different person is structurally impossible). Self-grant refused;
+  targets must be dedicated identities (ACTIVE PERSON + ACTIVE TAR +
+  NOT can_admin_org — daily org accounts and the demo admin are
+  ungrantable); no-op grant/revoke refuse WITHOUT consuming the
+  approval; revoke floor-protected (≥2 active operators). Consumption +
+  TAR write + ADMIN_ACTION audit in ONE transaction via the new
+  `updateTARPermissionsInTx` (the canonical TAR path, extracted not
+  duplicated). Integration 6/6; registry census 7→9. Live-verified
+  interception-only: 403 ESCALATION_PENDING → payload-bound pending row
+  → operator-2 governed reject → queue 0; zero authority moved.
+  Founder bootstrap script = ZERO-ROOT ONLY (FND runbook §5A, PR #590).
+- **2. Migration-job rail script (PR #589):**
+  `scripts/migration-job-rail.mjs` — runbook §2 as one fail-closed
+  rail (lying-canary abort, guard-checked DDL, fail-capable verify),
+  dry-run default. Unit 7/7. Nothing executed against prod.
+- **3. Twin-deactivation rail (PR #589):**
+  `POST /org/ai-teammates/:id/{deactivate,reactivate}` — org-admin,
+  org-scoped owner walk (twins are children of MEMBERS, which is why
+  the entities PATCH never reached them), audited reason, RULE 10 soft
+  rail, TwinConfig untouched. Integration 2/2; live-proven on the
+  smoke org (create 201 → deactivate SUSPENDED audited → 409 repeat →
+  reactivate ACTIVE → final retire SUSPENDED).
+- **4. Employee notification overlay fix (CT `f99a859`):** the bell
+  dropdown rendered BEHIND the ambient cards — the header's
+  backdrop-blur stacking context capped its z-50 while later-DOM
+  frosted cards painted over it. Header chrome is now an explicit
+  `relative z-40` layer under the ambient ladder (edge glow 55 <
+  stack 58 < bar 60). Contract locked by
+  `tests/unit/overlay-layering.test.ts` (25/25 with the bell suite);
+  live bundle verified.
+- **Residue proof after all live work:** pending escalations 0 ·
+  0 active pilot-smoke identities · 0 active fixtures · growth at
+  baseline. Demo org untouched throughout.
+- **Remaining engineering P1s: NONE.** Open founder-tier items only:
+  §6b activation-email env, DEMO_SHARED_PASSWORD rotation at pilot
+  start.
+
 ## ✅ LOCKOUT-RECOVERY · Sole-admin lockout rail shipped + rotations complete · LIVE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `20e99f4` (PR #587, 5/5 CI, deployed live) ·
