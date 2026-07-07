@@ -448,6 +448,91 @@ inform how Otzar weighs and routes decisions.
   strictly through their human's session and inherit no authority —
   test-locked.
 
+## 6f. Google Workspace OAuth setup (GOOGLE-ARC, authored 2026-07-07)
+
+The Docs/Meet/Calendar read bridges shipped at FND `ff801cf` and stay
+honestly OFF (`BLOCKED_BY_CREDENTIAL` / `NOT_CONNECTED`) until the
+founder completes this dashboard-only setup. Nothing here can be done
+by the API; nothing below requires pasting a secret into chat.
+
+**Env vars required on `otzar-api` (srv-d8t17sm7r5hc73ed5h6g):**
+1. `GOOGLE_OAUTH_CLIENT_ID` — from the OAuth client created below.
+2. `GOOGLE_OAUTH_CLIENT_SECRET` — same client (sync: false).
+3. `OAUTH_REDIRECT_BASE_URL=https://api.otzar.ai` — **currently MISSING
+   and required**: without it the callback derives from the
+   `http://localhost:3000` dev default and every consent round-trip
+   fails in production.
+
+**The exact redirect URI to register (verbatim):**
+`https://api.otzar.ai/api/v1/connectors/oauth/callback/google`
+
+**The scopes the consent screen must list (all READ-ONLY; the code
+requests exactly these — `connector-oauth.service.ts` GOOGLE profile):**
+- `https://www.googleapis.com/auth/calendar.readonly` (sensitive)
+- `https://www.googleapis.com/auth/calendar.freebusy`
+- `https://www.googleapis.com/auth/calendar.events.freebusy`
+- `https://www.googleapis.com/auth/calendar.calendarlist.readonly`
+- `https://www.googleapis.com/auth/calendar.settings.readonly`
+- `https://www.googleapis.com/auth/gmail.readonly` (**restricted** —
+  requested for the read-first provider surface; Gmail is NOT ingested
+  by any product flow; dropping it is the single biggest review-burden
+  reduction if ever needed)
+- `https://www.googleapis.com/auth/drive.metadata.readonly` (sensitive)
+- `https://www.googleapis.com/auth/drive.readonly` (**restricted** —
+  the selected-doc import)
+- `https://www.googleapis.com/auth/meetings.space.readonly` (sensitive —
+  post-meeting Meet records/transcripts)
+
+**Google Cloud Console steps (founder, ~15 min):**
+1. console.cloud.google.com → create (or select) project, e.g.
+   `otzar-workspace-connector`, under the niovlabs.com organization.
+2. APIs & Services → **enable**: Google Calendar API, Google Drive API,
+   Google Meet REST API, Gmail API.
+3. APIs & Services → OAuth consent screen:
+   - **User type: INTERNAL** (STRONGLY RECOMMENDED — niovlabs.com is a
+     Google Workspace domain, so Internal skips Google app review AND
+     the restricted-scope CASA security assessment entirely, has no
+     7-day refresh-token expiry, and limits consent to niovlabs.com
+     accounts — exactly the pilot posture). If External is ever needed
+     for customer domains: publish status "Testing" allows up to 100
+     named test users WITHOUT review, but refresh tokens then expire
+     every 7 days (weekly re-consent) until verification + CASA pass
+     (~6 weeks for restricted scopes).
+   - App name: `Otzar`; support email: sadeil@niovlabs.com;
+     authorized domain: `otzar.ai`; developer contact:
+     sadeil@niovlabs.com.
+   - Add ALL nine scopes above on the scopes step.
+4. APIs & Services → Credentials → Create credentials → **OAuth client
+   ID** → type **Web application** → name `otzar-api` → Authorized
+   redirect URIs: the exact URI above (no trailing slash). Create.
+5. Put the client id + secret + `OAUTH_REDIRECT_BASE_URL` into the
+   Render env for `otzar-api` (never in chat, never in a repo file),
+   then redeploy the same live SHA so the process re-reads env.
+
+**Post-env verification (Claude runs all of it; say "GO google verify"):**
+1. `GET /connectors/adapters` → GOOGLE_WORKSPACE flips
+   `BLOCKED_BY_CREDENTIAL` → `BLOCKED_BY_APP_REVIEW` (the registry's
+   conservative label — accurate for External; for Internal apps review
+   is not applicable and the OAuth flow below is the real proof).
+2. `GET /connectors/oauth/status` → google `APP_CREDENTIALS_MISSING` →
+   `READY_FOR_CONSENT`.
+3. `POST /connectors/oauth/google/start` (org admin — recommend the
+   MERIDIAN sim org so real imports land in the customer-sim tenant)
+   returns the authorize URL → **founder browser step**: open it,
+   consent with the designated niovlabs.com Google account → callback →
+   status `CONNECTED_UNVERIFIED` → `POST /connectors/oauth/google/verify`
+   probes a real calendarList read → `VERIFIED`.
+4. Claude then verifies by USE, read-only + one selected import each:
+   - `GET /calendar/freebusy` → real busy intervals (no titles);
+   - `GET /drive/docs` → real list; `POST /drive/docs/ingest` on ONE
+     founder-designated doc → DOCUMENT_CONTEXT row with full lineage;
+   - `GET /meet/conference-records` → if a post-meeting transcript
+     exists, ONE `POST /meet/transcripts/ingest`; if none,
+     `NO_TRANSCRIPT` is reported honestly — never fabricated.
+5. Calendar remains PROPOSAL-ONLY regardless: zero write scopes are
+   requested; `POST /calendar/events/create` keeps answering with
+   honest blockers until a founder-gated write slice ever ships.
+
 ## 7. Secrets & key rotation
 
 - No secret is ever committed, echoed, logged, or pasted into a doc. Render
