@@ -101,6 +101,52 @@ changed in a visual dry-run):
 6. **Auth not persisted across hard reload (minor UX).** A full page reload / deep
    link to a protected route redirects to `/login` (in-memory auth). Clicking
    through the app works; a presenter should not hard-refresh mid-demo.
+   → See the STOP analysis directly below.
+
+## Enterprise session continuity — hard-reload / deep-link auth restore — 🛑 STOP-and-DOCUMENT (2026-07-08, Opus 4.8)
+
+**Directive:** safest enterprise-grade session continuity so a logged-in user can
+hard-reload or open a protected deep link without being bounced to `/login` —
+WITHOUT custodying customer data client-side. Explicit STOP if the only safe path
+needs a long-lived localStorage token, a schema migration, a cookie/CORS/domain
+dashboard action, a backend auth redesign, or if the permission boundary is unclear.
+
+**Finding (grep-first, no code written).** The bounce-to-login is **by design**, not a
+bug. `src/lib/stores/auth.ts` (header comment, lines ~2–13) holds the JWT in
+**in-memory Zustand state only**: verbatim *"NO localStorage. NO sessionStorage. NO
+cookies. Refresh-token-via-httpOnly-cookie work lands in Section 16. Adding
+localStorage as a 'small helpful improvement' is [prohibited]."* Corroborated:
+- The only browser-storage writes in CT are non-sensitive UI state (orb position,
+  conversation/action-detail UI caches). **No auth token in any browser storage.**
+- **No `/auth/me`, `/auth/session`, or refresh/restore endpoint exists** in
+  `src/lib/api.ts` (grep returned nothing). There is nothing to rehydrate from.
+
+**Why this STOPs.** The only *secure* restore is the preferred pattern (A): a
+server-set **HttpOnly · Secure · SameSite** session/refresh cookie plus an
+`/auth/me` capability-rehydration endpoint. Standing that up requires **Foundation
+auth changes (cookie-setting login + `/auth/me`) + a cookie/CORS/domain
+configuration across the `api.otzar.ai` ↔ `app.otzar.ai` boundary** — i.e. a
+backend auth change and a CORS/domain dashboard action. Both are named STOP
+conditions. Pattern (B) short-lived `sessionStorage` token and (C) `localStorage`
+bearer are **rejected**: neither is already designed here, `sessionStorage` still
+custodies a bearer credential client-side (survives reload, readable by any script
+in the origin — an XSS token-theft surface), and `localStorage` is explicitly
+prohibited by the auth-store contract. **No unsafe shortcut was taken.**
+
+**Recommended safe path (NOT built — Section 16):** on login, Foundation sets an
+HttpOnly·Secure·SameSite=strict refresh cookie scoped to `api.otzar.ai`; CT calls a
+new `GET /auth/me` on boot which, if the cookie is valid, returns a fresh
+short-lived access token + capabilities → the store rehydrates in memory; on 401 the
+guards redirect to `/login` exactly as today. This keeps the token out of JS-readable
+storage, keeps **permissions always rehydrated from Foundation** (never trusted from
+the client), and logout clears both the cookie (server) and the in-memory store. It
+is a cross-repo change (Foundation lands first per cross-repo discipline) gated on the
+CORS/cookie-domain configuration — hence deferred, not hacked in.
+
+**Coupling to the navigation block:** deep-link *return-to-previous* after a reload is
+downstream of this — with a memory-only token it cannot survive a reload regardless of
+router work, so it stays deferred WITH Section 16. The in-app Back button (below) does
+NOT depend on it and ships independently.
 
 ---
 

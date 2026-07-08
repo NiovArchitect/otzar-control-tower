@@ -8,7 +8,13 @@
 //              Layout. Routes are kept aligned with src/lib/nav.ts.
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Navigate,
+  Route,
+  RouterProvider,
+} from "react-router-dom";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ActivatePage } from "@/pages/Activate";
 import { OrgSetupPage } from "@/pages/OrgSetup";
@@ -98,13 +104,16 @@ import { AccessGrantsPage } from "@/pages/AccessGrants";
 import { NotFoundPage } from "@/pages/NotFound";
 import { VoiceTwinPage } from "@/pages/VoiceTwin";
 
-export function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+// [APP-NAV-CONTINUITY] Data router (createBrowserRouter) — same route tree,
+// authored as JSX and adapted via createRoutesFromElements, so the entire map
+// below is byte-for-byte the prior <Routes> content. The data router is what
+// unlocks a STABLE useBlocker (react-router 6.7+), which the unsaved-work guard
+// uses to intercept EVERY in-app navigation vector (sidebar, Back button,
+// programmatic redirects) with one calm confirmation — not just reload/close.
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
+      <Route path="/login" element={<LoginPage />} />
             {/* [P0-ONBOARD] public activation / reset page — outside every
                 auth guard (the invitee has no session yet). */}
             <Route path="/activate" element={<ActivatePage />} />
@@ -235,9 +244,16 @@ export function App() {
               {/* Catch-all inside the chrome so the sidebar still works */}
               <Route path="*" element={<NotFoundPage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </>,
+  ),
+);
+
+export function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <RouterProvider router={router} />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { useUnsavedChanges } from "@/lib/navigation/unsaved-changes";
 import {
   SAMPLE_MAX_CHARS,
   checkSample,
@@ -40,6 +41,14 @@ export function WritingStylePage() {
   const [consented, setConsented] = useState(false);
   const [guardMessage, setGuardMessage] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: "sample" });
+
+  // [APP-NAV-CONTINUITY] Warn before leaving with typed-but-unproposed input.
+  // Tracks only this boolean — the sample/own-words text is NEVER persisted or
+  // read by the guard (the sample already never leaves this page by design).
+  useUnsavedChanges(
+    "writing-style",
+    (sample.trim() !== "" || ownWords.trim() !== "") && phase.kind !== "done",
+  );
 
   function reflect(): void {
     const check = checkSample(sample);

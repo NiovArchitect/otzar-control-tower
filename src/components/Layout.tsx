@@ -10,6 +10,8 @@ import { LogOut, Menu, Mic } from "lucide-react";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { AMBIENT_FIELD } from "@/lib/ambient/glass";
 import { AdminCommandLayer } from "@/components/AdminCommandLayer";
+import { AppBackButton } from "@/components/navigation/AppBackButton";
+import { NavigationGuard } from "@/components/navigation/NavigationGuard";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import { DataSovereigntyBadge } from "@/components/DataSovereigntyBadge";
@@ -61,6 +63,9 @@ export function Layout() {
                 </SheetContent>
               </Sheet>
             )}
+            {/* [APP-NAV-CONTINUITY] upper-left Back / Return — falls back to the
+                command-center home (/) when there is no in-app history. */}
+            <AppBackButton fallback="/" />
           </div>
           <div className="flex items-center gap-3 text-sm">
             <AdminCommandLayer />
@@ -111,6 +116,9 @@ export function Layout() {
           /app. Gated on isEmployee so true-pure-admin users (no
           can_read_capsules) do not see the chat dock. */}
       {isEmployee(capabilities) ? <AmbientOtzarBar /> : null}
+
+      {/* [APP-NAV-CONTINUITY] unsaved-work guard — one per mounted shell. */}
+      <NavigationGuard />
     </div>
   );
 }

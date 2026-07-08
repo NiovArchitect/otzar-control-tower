@@ -14,6 +14,8 @@
 import { Link, Outlet } from "react-router-dom";
 import { LogOut, PanelsTopLeft } from "lucide-react";
 import { AmbientNav } from "@/components/ambient/AmbientNav";
+import { AppBackButton } from "@/components/navigation/AppBackButton";
+import { NavigationGuard } from "@/components/navigation/NavigationGuard";
 import { FlowTraceOverlay } from "@/components/ambient/FlowTraceOverlay";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
@@ -49,9 +51,14 @@ export function EmployeeLayout() {
             plane and keeps it under the ambient overlay ladder (edge glow
             z-[55] < notification stack z-[58] < Otzar bar z-[60]). */}
         <header className="relative z-40 flex h-14 items-center justify-between border-b border-white/50 bg-white/40 px-4 backdrop-blur-xl">
-          <span className="text-sm font-semibold tracking-tight text-slate-900">
-            Otzar
-          </span>
+          <div className="flex items-center gap-2">
+            {/* [APP-NAV-CONTINUITY] upper-left Back / Return — falls back to
+                the Otzar home (/app) when there is no in-app history. */}
+            <AppBackButton fallback="/app" />
+            <span className="text-sm font-semibold tracking-tight text-slate-900">
+              Otzar
+            </span>
+          </div>
           <div className="ml-auto flex items-center gap-1.5">
             <NotificationBell />
             {isOrgAdmin(capabilities) ? (
@@ -88,6 +95,9 @@ export function EmployeeLayout() {
       <FlowTraceOverlay />
       <AmbientNotificationStack />
       <AmbientOtzarBar />
+
+      {/* [APP-NAV-CONTINUITY] unsaved-work guard — one per mounted shell. */}
+      <NavigationGuard />
     </div>
   );
 }

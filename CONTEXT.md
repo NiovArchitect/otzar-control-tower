@@ -118,6 +118,50 @@ that determines, per required production section:
 
 ---
 
+## ✅ APP-NAV-CONTINUITY · Safe Back button + unsaved-work guard + 🛑 session-continuity STOP · (2026-07-08, Opus 4.8)
+
+**HEADs:** CT (this commit) · FND unchanged (`71c3fa7`). CT-only; no schema.
+
+Two coupled directives handled together:
+
+**🛑 Enterprise session continuity (hard-reload / deep-link auth restore) —
+STOP-and-documented.** Grep-first found the JWT is memory-only *by design*
+(`src/lib/stores/auth.ts`: "NO localStorage. NO sessionStorage. NO cookies …
+Section 16"), no `/auth/me` restore endpoint exists, and the only safe restore
+(HttpOnly·Secure cookie + `/auth/me`) needs a Foundation auth change + cookie/CORS
+config across `api.otzar.ai ↔ app.otzar.ai` — named STOP conditions. localStorage/
+sessionStorage bearer rejected (prohibited + XSS token-theft surface). Recommended
+Section-16 path written to the gap ledger. No unsafe shortcut taken.
+
+**✅ App navigation continuity — built + verified.**
+- `AppBackButton` upper-left in BOTH shells (admin fallback `/`, employee
+  `/app`), frosted premium, `aria-label="Go back"`, never on `/login`, z-safe
+  (below orb z-60 / dropdown z-70). Reads `history.state.idx`: >0 → `navigate(-1)`
+  (login uses replace, so never lands on /login), 0 → safe home; hides when
+  there's nowhere to go (no dead button).
+- Unsaved-work protection: `NavigationGuard` (one per shell) + `useUnsavedChanges`
+  hook. **useBlocker** (the reason `App.tsx` moved BrowserRouter→
+  `createBrowserRouter`+`createRoutesFromElements`, same route tree) intercepts
+  EVERY in-app nav vector — sidebar, Back, programmatic — with one calm dialog
+  (Stay / Leave). `beforeunload` covers reload/close (browser's own generic
+  prompt). Esc/outside-click/X = Stay (never a silent discard). Reference-wired on
+  the Writing style form.
+- **Security:** the registry tracks only a per-form BOOLEAN — never form values,
+  nothing to localStorage/sessionStorage/cookies (unit-asserted). Deep-link return
+  deferred WITH Section 16 (memory-only token can't survive reload regardless);
+  Back button ships independently.
+
+**Verify:** typecheck 0 · lint 0 · build ✓ · full unit suite green (+12 new:
+`unsaved-changes` 5, `app-back-button` 4, `navigation-guard` 3). Data-router
+navigation-completing paths (Leave-proceeds, clean-passthrough, Back-history)
+proven in real Chromium by `test:e2e` `otzar-live-nav-continuity.spec.ts` — jsdom+
+undici+MSW hit an AbortSignal instanceof incompat on completed data-router nav, so
+each property is proven where reliable. Docs:
+`docs/otzar/OTZAR_APP_NAV_CONTINUITY.md` + gap-ledger STOP entry. Meridian-only
+live; no mutation (typed sample never leaves the page; "Propose" never clicked).
+
+---
+
 ## ✅ SECURITY-AUDIT-LABELS · Forensic label vocab polish (values kept forensic) · (2026-07-08, Opus 4.8)
 
 **HEADs:** CT (this commit) · FND unchanged (`71c3fa7`). CT copy-only.
