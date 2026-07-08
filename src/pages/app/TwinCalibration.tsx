@@ -123,13 +123,13 @@ export function TwinCalibrationPage() {
   return (
     <div className="space-y-6" data-testid="twin-calibration-page">
       <PageHeader
-        title="Calibrate My AI Twin"
-        description="Teach your AI Twin how you like help — summaries, tone, reminders, and what to avoid."
+        title="Calibrate My AI Teammate"
+        description="Teach your AI Teammate how you like help — summaries, tone, reminders, and what to avoid."
       />
       {/* The boundary — first, always. */}
       <div className="rounded-md border border-border bg-muted/40 p-3 text-xs" data-testid="calibration-boundary">
         <p className="font-medium text-foreground">
-          Your AI Twin can learn the shape of how you work. It cannot take
+          Your AI Teammate can learn the shape of how you work. It cannot take
           ownership of company work.
         </p>
         <p className="mt-1 text-muted-foreground">
@@ -159,7 +159,7 @@ export function TwinCalibrationPage() {
               <Link to="/app/action-center">Open Action Center</Link>
             </Button>
             <Button asChild variant="outline" size="sm" data-testid="calibration-back">
-              <Link to="/app/my-twin">Back to My AI Twin</Link>
+              <Link to="/app/my-twin">Back to My AI Teammate</Link>
             </Button>
           </CardContent>
         </Card>

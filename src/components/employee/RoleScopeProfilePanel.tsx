@@ -45,7 +45,7 @@ export function RoleScopeProfilePanel({ profile }: RoleScopeProfilePanelProps) {
     <Card data-testid="role-scope-panel">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">
-          Your Twin works within your role and access
+          Your AI Teammate works within your role and access
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           It supports your work using governed organization knowledge within
@@ -82,7 +82,7 @@ export function RoleScopeProfilePanel({ profile }: RoleScopeProfilePanelProps) {
           </dl>
         </Section>
 
-        <Section title="How your Twin helps">
+        <Section title="How your AI Teammate helps">
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field
               label="Behavior mode"
@@ -123,7 +123,7 @@ export function RoleScopeProfilePanel({ profile }: RoleScopeProfilePanelProps) {
 
         <Section title="Continuity and drift prevention">
           <p className="text-sm text-muted-foreground">
-            Your Twin helps prevent drift from stale or incomplete context,
+            Your AI Teammate helps prevent drift from stale or incomplete context,
             grounded in your governed scope.
           </p>
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">

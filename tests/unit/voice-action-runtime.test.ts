@@ -286,7 +286,7 @@ describe("Work OS action classifier", () => {
     expect(a.kind).toBe("ASK_TWIN");
     expect(a.route).toBe("/app/collaboration");
     // Disabled-honest: never answers for / impersonates someone else's Twin.
-    expect(a.spoken.toLowerCase()).toContain("won't answer for someone else's twin");
+    expect(a.spoken.toLowerCase()).toContain("won't answer for someone else's ai teammate");
     expect(a.spoken).not.toContain("—"); // recipient copy is em-dash-free
   });
 

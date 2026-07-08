@@ -30,7 +30,7 @@ interface Props {
 }
 
 const STATUS_LABEL: Record<ContextHealthStatus, string> = {
-  READY: "Twin context ready",
+  READY: "AI Teammate context ready",
   PARTIAL: "Partial context",
   UNCONFIGURED: "Context not wired",
 };
@@ -76,7 +76,7 @@ export function ContextHealthBadge({ className }: Props): JSX.Element {
         className={`rounded-md border p-3 text-sm text-muted-foreground ${className ?? ""}`}
         data-testid="context-health-loading"
       >
-        Loading AI Twin context…
+        Loading AI Teammate context…
       </div>
     );
   }
@@ -90,7 +90,7 @@ export function ContextHealthBadge({ className }: Props): JSX.Element {
       >
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-rose-500" aria-hidden />
-          <span className="font-medium">AI Twin context unavailable</span>
+          <span className="font-medium">AI Teammate context unavailable</span>
         </div>
         <div className="mt-1 text-muted-foreground">
           {error ?? "Unknown error"}.

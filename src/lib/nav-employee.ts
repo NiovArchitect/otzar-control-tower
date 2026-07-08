@@ -139,7 +139,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
 
   // ── More — secondary but useful, curated ─────────────────────
   {
-    label: "My Twin",
+    label: "My AI Teammate",
     to: "/app/my-twin",
     icon: Bot,
     description: "Your aligned AI teammate.",
@@ -234,7 +234,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     label: "Authority",
     to: "/app/authority-grants",
     icon: KeyRound,
-    description: "Choose what your Twin may do for you.",
+    description: "Choose what your AI Teammate may do for you.",
     group: "more",
     // PROD-MODEL-P3 §7 — employees must not grant/revoke twin authority unless org policy allows; admin governs this. Route stays until the org-policy model lands.
     hidden: true,
@@ -243,7 +243,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     label: "Preferences",
     to: "/app/preferences",
     icon: BookOpen,
-    description: "Teach your Twin how you work.",
+    description: "Teach your AI Teammate how you work.",
     group: "more",
   },
   {

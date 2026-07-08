@@ -154,7 +154,7 @@ export function WorkSchedulePage() {
           <CardDescription className="text-xs" data-testid="decision-rights-posture-doctrine">
             Decision rights help Otzar route decisions and avoid
             overstepping. Decision rights do not grant tool access. Your AI
-            Twin follows your access and authority boundaries.
+            Teammate follows your access and authority boundaries.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">

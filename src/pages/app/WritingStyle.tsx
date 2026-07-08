@@ -73,11 +73,11 @@ export function WritingStylePage() {
     <div className="space-y-6" data-testid="writing-style-page">
       <PageHeader
         title="Writing style"
-        description="Help your AI Twin learn how you write — tone, structure, and phrasing. Style, not facts."
+        description="Help your AI Teammate learn how you write — tone, structure, and phrasing. Style, not facts."
       />
       <div className="rounded-md border border-border bg-muted/40 p-3 text-xs" data-testid="style-boundary">
         <p className="font-medium text-foreground">
-          Your AI Twin can learn how you write. It cannot take ownership of
+          Your AI Teammate can learn how you write. It cannot take ownership of
           company work.
         </p>
         <p className="mt-1 text-muted-foreground">

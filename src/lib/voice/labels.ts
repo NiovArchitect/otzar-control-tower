@@ -39,7 +39,7 @@ export const VOICE_SOURCE_SURFACE_LABELS: Readonly<
       "Pending approvals, audit chain summaries, and policy posture briefings.",
   },
   AI_TWIN: {
-    display: "Your AI Twin",
+    display: "Your AI Teammate",
     description:
       "Daily work questions — meetings, commitments, drafts, and personal context.",
   },

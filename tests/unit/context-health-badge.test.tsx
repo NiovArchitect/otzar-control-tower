@@ -104,7 +104,7 @@ describe("ContextHealthBadge — happy paths (status mapping)", () => {
     );
     const badge = screen.getByTestId("context-health-badge");
     expect(badge.getAttribute("data-status")).toBe("READY");
-    expect(screen.getByText("Twin context ready")).toBeInTheDocument();
+    expect(screen.getByText("AI Teammate context ready")).toBeInTheDocument();
     expect(screen.getByTestId("ctx-viewer")).toHaveTextContent("Sadeil Lewis");
     expect(screen.getByTestId("ctx-email")).toHaveTextContent(
       "sadeil@niovlabs.com",
@@ -232,7 +232,7 @@ describe("ContextHealthBadge — error states", () => {
       expect(screen.getByTestId("context-health-error")).toBeInTheDocument(),
     );
     expect(
-      screen.getByText("AI Twin context unavailable"),
+      screen.getByText("AI Teammate context unavailable"),
     ).toBeInTheDocument();
   });
 

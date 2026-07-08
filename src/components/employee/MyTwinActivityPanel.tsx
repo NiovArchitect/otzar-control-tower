@@ -57,9 +57,9 @@ export function MyTwinActivityPanel(): JSX.Element {
   return (
     <Card data-testid="my-twin-activity">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">My AI Twin</CardTitle>
+        <CardTitle className="text-sm">My AI Teammate</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Recent work your twin helped move.
+          Recent work your AI Teammate helped move.
         </p>
       </CardHeader>
       <CardContent className="space-y-1.5 text-xs">
@@ -67,7 +67,7 @@ export function MyTwinActivityPanel(): JSX.Element {
           <p className="text-muted-foreground">Loading…</p>
         ) : !hasAnything ? (
           <p className="text-muted-foreground" data-testid="my-twin-activity-empty">
-            Your AI Twin has no recorded activity yet. When it drafts, routes,
+            Your AI Teammate has no recorded activity yet. When it drafts, routes,
             or submits work for you, it will appear here.
           </p>
         ) : (

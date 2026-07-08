@@ -67,7 +67,7 @@ describe("Preferences page (EDX-5)", () => {
       ),
     );
     renderPage();
-    expect(await screen.findByText("Teach your Twin")).toBeInTheDocument();
+    expect(await screen.findByText("Teach your AI Teammate")).toBeInTheDocument();
     // "Personal items stay personal" appears in both the header copy
     // and the bullet list; assert at least one match.
     expect(

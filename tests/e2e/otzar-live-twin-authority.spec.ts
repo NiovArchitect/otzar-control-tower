@@ -71,7 +71,7 @@ test("T2 ui: AI Teammates renders the truth columns in human words (screenshot)"
   expect(main).toContain("Not set yet");
   // [GAP-H] Identity truth: owner-based names, never raw twin-uuid strings,
   // never a false "Unassigned".
-  expect(main).toContain("'s AI Twin");
+  expect(main).toContain("'s AI Teammate");
   expect(main).not.toContain("Twin of ");
   expect(main).not.toContain("Unassigned");
   // Human labels only — the badge is humanized ("Admin-level authority"),
@@ -120,7 +120,7 @@ test("T3 ui: employee sees their own twin's honest activity panel (screenshot)",
   });
   const panel = page.getByTestId("my-twin-activity");
   await panel.waitFor({ state: "visible", timeout: 30_000 });
-  await expect(panel).toContainText("My AI Twin");
+  await expect(panel).toContainText("My AI Teammate");
   await expect(panel).toContainText("Recent work your twin helped move.");
   // Wait for the three self-scoped queries to SETTLE (the panel shows
   // "Loading…" first), then assert honest content: source-backed rows OR
@@ -138,7 +138,7 @@ test("T3 ui: employee sees their own twin's honest activity panel (screenshot)",
   const text = (await panel.textContent()) ?? "";
   const hasRows = await page.getByTestId("my-twin-activity-row").count();
   if (hasRows === 0) {
-    expect(text).toContain("Your AI Twin has no recorded activity yet.");
+    expect(text).toContain("Your AI Teammate has no recorded activity yet.");
   }
   expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
   for (const banned of ["correction_memory", "caller_confirmed", "PROPOSED", "escalation"]) {

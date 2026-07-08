@@ -72,13 +72,13 @@ export function TwinScopePanel(): JSX.Element | null {
     <Card data-testid="twin-scope-panel">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <ShieldCheck className="h-4 w-4" aria-hidden /> What your Twin can — and
+          <ShieldCheck className="h-4 w-4" aria-hidden /> What your AI Teammate can — and
           cannot — do
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-xs">
         <p className="text-muted-foreground">
-          Your AI Twin operates inside your authority
+          Your AI Teammate operates inside your authority
           {id.org.name ? ` at ${id.org.name}` : ""}. It can only reach what you
           can reach, and every action it takes is recorded.
         </p>

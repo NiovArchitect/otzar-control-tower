@@ -139,7 +139,7 @@ describe("[GAP-H OPS] MyTwinActivityPanel", () => {
       expect(screen.getAllByTestId("my-twin-activity-row").length).toBeGreaterThan(0),
     );
     const panel = screen.getByTestId("my-twin-activity");
-    expect(panel).toHaveTextContent("Recent work your twin helped move.");
+    expect(panel).toHaveTextContent("Recent work your AI Teammate helped move.");
     expect(panel).toHaveTextContent(/Talked with you .*ago/);
     expect(panel).toHaveTextContent("Drafted a follow-up for Samiksha Sharma.");
     expect(panel).toHaveTextContent("1 draft ready for your review.");
@@ -179,7 +179,7 @@ describe("[GAP-H OPS] MyTwinActivityPanel", () => {
       expect(screen.getByTestId("my-twin-activity-empty")).toBeInTheDocument(),
     );
     expect(screen.getByTestId("my-twin-activity-empty")).toHaveTextContent(
-      "Your AI Twin has no recorded activity yet. When it drafts, routes, or submits work for you, it will appear here.",
+      "Your AI Teammate has no recorded activity yet. When it drafts, routes, or submits work for you, it will appear here.",
     );
     // Never fake activity.
     expect(screen.queryAllByTestId("my-twin-activity-row")).toHaveLength(0);

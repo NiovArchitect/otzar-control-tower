@@ -57,7 +57,7 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   SEEDED_CONTEXT_RESTORED: "Background Context Restored",
   ACTIVATION_EMAIL_SENT: "Activation Email Sent",
   ACTIVATION_EMAIL_FAILED: "Activation Email Failed",
-  STARTER_TWIN_PROVISIONED: "AI Twin Prepared",
+  STARTER_TWIN_PROVISIONED: "AI Teammate Prepared",
   PASSWORD_CHANGED: "Password Changed",
   PASSWORD_RESET_EMAIL_SENT: "Password Reset Email Sent",
   PASSWORD_RESET_EMAIL_FAILED: "Password Reset Email Failed",

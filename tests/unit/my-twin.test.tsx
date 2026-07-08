@@ -167,7 +167,7 @@ describe("MyTwin (employee Otzar)", () => {
     const input = await screen.findByTestId("ask-your-twin-input");
     await userEvent.type(input, "What should I work on?{Enter}");
     const err = await screen.findByText(/hasn't been prepared yet/);
-    expect(err.textContent).toContain("Ask your admin to prepare your Twin");
+    expect(err.textContent).toContain("Ask your admin to prepare your AI Teammate");
     expect(err.textContent).not.toMatch(/try again/i);
     expect(document.body.textContent ?? "").not.toContain("TWIN_NOT_FOUND");
   });

@@ -83,7 +83,7 @@ export function MyMemory(): JSX.Element {
       <div className="space-y-6" data-testid="my-memory-loading">
         <PageHeader
           title="My Digital Work Wallet"
-          description="How you work, what your Twin has learned, and what moves with you — your portable work identity."
+          description="How you work, what your AI Teammate has learned, and what moves with you — your portable work identity."
         />
         <Card>
           <CardContent className="py-4 text-sm text-muted-foreground">
@@ -99,7 +99,7 @@ export function MyMemory(): JSX.Element {
       <div className="space-y-6" data-testid="my-memory-error">
         <PageHeader
           title="My Digital Work Wallet"
-          description="How you work, what your Twin has learned, and what moves with you — your portable work identity."
+          description="How you work, what your AI Teammate has learned, and what moves with you — your portable work identity."
         />
         <Card className="border-rose-400/40 bg-rose-500/5">
           <CardContent className="py-4 text-sm">
@@ -116,7 +116,7 @@ export function MyMemory(): JSX.Element {
     <div className="space-y-6" data-testid="my-memory-page">
       <PageHeader
         title="My Digital Work Wallet"
-        description="How you work, what your Twin has learned, and what moves with you. Your methods, skills, and preferences are YOURS — your organization's records stay with the organization."
+        description="How you work, what your AI Teammate has learned, and what moves with you. Your methods, skills, and preferences are YOURS — your organization's records stay with the organization."
       />
 
       {/* [GAP-S S-1] The ownership boundary, rendered where the wallet
@@ -171,12 +171,12 @@ export function MyMemory(): JSX.Element {
             <Stat
               label="Collaborations inbound"
               value={i.context_signals.collaboration_inbound_count}
-              hint="Times another teammate asked you or your Twin for something."
+              hint="Times another teammate asked you or your AI Teammate for something."
             />
             <Stat
               label="Collaborations outbound"
               value={i.context_signals.collaboration_outbound_count}
-              hint="Times you or your Twin asked someone else for something."
+              hint="Times you or your AI Teammate asked someone else for something."
             />
           </div>
         </CardContent>
@@ -245,10 +245,10 @@ export function MyMemory(): JSX.Element {
           >
             <KeyRound className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
             <div>
-              <p className="font-medium text-foreground">What your Twin may do</p>
+              <p className="font-medium text-foreground">What your AI Teammate may do</p>
               <p className="text-muted-foreground">
                 Set by your organization's role and access policies. Teach and
-                correct your Twin any time — granting or removing authority is
+                correct your AI Teammate any time — granting or removing authority is
                 an admin decision, recorded in the audit trail.
               </p>
             </div>
@@ -256,17 +256,17 @@ export function MyMemory(): JSX.Element {
           <RevocableRow
             icon={<PencilLine className="h-3 w-3" aria-hidden />}
             label="Preferences and corrections"
-            description="Teach your Twin how you work. Edit or remove what it learned."
+            description="Teach your AI Teammate how you work. Edit or remove what it learned."
             to="/app/preferences"
             cta="Open preferences"
             testid="my-mem-revoke-preferences"
           />
           <RevocableRow
             icon={<Wallet className="h-3 w-3" aria-hidden />}
-            label="Your Twin (identity + briefing)"
-            description="See your Twin's current configuration and adjust as needed."
+            label="Your AI Teammate (identity + briefing)"
+            description="See your AI Teammate's current configuration and adjust as needed."
             to="/app/my-twin"
-            cta="Open My Twin"
+            cta="Open My AI Teammate"
             testid="my-mem-revoke-twin"
           />
         </CardContent>

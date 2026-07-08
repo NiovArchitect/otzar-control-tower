@@ -13,10 +13,10 @@ export function twinDisplayLabel(item: {
 }): string {
   const owner = item.owner_display_name;
   if (typeof owner === "string" && owner.trim().length > 0) {
-    return `${owner}'s AI Twin`;
+    return `${owner}'s AI Teammate`;
   }
   // Never surface the raw stored "Twin of <uuid> (…)" string as a name.
-  return "AI Twin";
+  return "AI Teammate";
 }
 
 /** The Owner cell: the person's name, or the honest missing state. */

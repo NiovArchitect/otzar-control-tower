@@ -63,7 +63,7 @@ function labelTarget(t: TwinCollaborationTargetType): string {
     case "EMPLOYEE":
       return "A coworker";
     case "EMPLOYEE_TWIN":
-      return "A coworker's Twin";
+      return "A coworker's AI Teammate";
     case "TEAM":
       return "A team";
     case "PROJECT":

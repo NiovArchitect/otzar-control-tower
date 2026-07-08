@@ -14,12 +14,12 @@ describe("[GAP-H] twinDisplayLabel", () => {
   it("renders the owner-based human name when the owner exists", () => {
     expect(
       twinDisplayLabel({ display_name: RAW, owner_display_name: "Sadeil Lewis" }),
-    ).toBe("Sadeil Lewis's AI Twin");
+    ).toBe("Sadeil Lewis's AI Teammate");
   });
   it("NEVER surfaces the raw 'Twin of <uuid>' string — honest generic when ownerless", () => {
     for (const missing of [null, undefined, "", "   "]) {
       const label = twinDisplayLabel({ display_name: RAW, owner_display_name: missing });
-      expect(label).toBe("AI Twin");
+      expect(label).toBe("AI Teammate");
       expect(label).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i);
     }
   });

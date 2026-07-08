@@ -42,7 +42,7 @@ export function EmployeeHome() {
         role="note"
       >
         <span className="font-medium text-foreground">Live today:</span> Chat,
-        Observe, Corrections, Approvals, My Twin, and Conversations talk to your
+        Observe, Corrections, Approvals, My AI Teammate, and Conversations talk to your
         organization's Otzar backend. Everything else below is reserved and not
         yet active. Otzar answers and learns from governed memory — it does not
         perform tasks or act in outside tools.
@@ -75,7 +75,7 @@ export function EmployeeHome() {
         />
         <LiveCard
           to="/app/my-twin"
-          title="My Twin"
+          title="My AI Teammate"
           icon={<Bot className="h-4 w-4" aria-hidden />}
           description="View your aligned AI teammate's identity and skills."
         />

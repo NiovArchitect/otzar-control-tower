@@ -68,7 +68,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
     // Authority are demoted to route-only (redundant with Action Center,
     // automatic ingestion, and admin-governed twin authority).
     expect(labels).toEqual([
-      "My Twin",
+      "My AI Teammate",
       // [PASSWORD-LIFECYCLE] self-service credential control belongs to
       // the employee, quietly in More — admins never see or set it.
       "Account & Security",

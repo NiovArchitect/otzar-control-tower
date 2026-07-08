@@ -175,14 +175,14 @@ export function MyOrganization(): JSX.Element {
             <Bot className="h-3 w-3" aria-hidden />
             {i.twin.active && i.twin.display_name !== null ? (
               <span>
-                Your AI Twin is{" "}
+                Your AI Teammate is{" "}
                 <span className="font-medium text-foreground">
                   {i.twin.display_name}
                 </span>
                 .
               </span>
             ) : (
-              <span>Your AI Twin is not configured yet.</span>
+              <span>Your AI Teammate is not configured yet.</span>
             )}
           </div>
           {(() => {

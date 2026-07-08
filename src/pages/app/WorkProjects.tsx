@@ -61,7 +61,7 @@ export function WorkProjects() {
     <div className="space-y-6">
       <PageHeader
         title="Work projects"
-        description="Create projects so your Twin understands which work belongs together. Same-project collaboration usually flows automatically; cross-project work asks for approval."
+        description="Create projects so your AI Teammate understands which work belongs together. Same-project collaboration usually flows automatically; cross-project work asks for approval."
       />
 
       <CreateProjectForm onCreated={invalidate} />

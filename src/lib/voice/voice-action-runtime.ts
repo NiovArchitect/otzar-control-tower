@@ -150,7 +150,7 @@ const ACTION_DESTINATIONS: ReadonlyArray<{
   // ── Employee surfaces (real routes only) ─────────────────────
   { keywords: ["employee chat", "chat"], route: "/app/chat", label: "Employee Chat", admin_only: false },
   { keywords: ["employee page", "employee home", "employee"], route: "/app", label: "Employee home", admin_only: false },
-  { keywords: ["my twin"], route: "/app/my-twin", label: "My Twin", admin_only: false },
+  { keywords: ["my twin"], route: "/app/my-twin", label: "My AI Teammate", admin_only: false },
   { keywords: ["authority"], route: "/app/authority-grants", label: "Authority", admin_only: false },
   { keywords: ["preferences"], route: "/app/preferences", label: "Preferences", admin_only: false },
   { keywords: ["projects"], route: "/app/work-projects", label: "Projects", admin_only: false },
@@ -687,9 +687,9 @@ export function classifyVoiceAction(
     return {
       kind: "ASK_TWIN",
       heard,
-      actionLabel: target ? `Ask Twin → ${target}` : "Ask a Twin / agent",
+      actionLabel: target ? `Ask Twin → ${target}` : "Ask an AI Teammate / agent",
       spoken:
-        "Routing your request through Collaboration. I won't answer for someone else's Twin or speak for them. I create the governed request and route it.",
+        "Routing your request through Collaboration. I won't answer for someone else's AI Teammate or speak for them. I create the governed request and route it.",
       route: COLLABORATION_ROUTE,
       ...(target !== undefined ? { targetEntity: target } : {}),
       requiresApproval: false,

@@ -118,8 +118,8 @@ export function Preferences() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Teach your Twin"
-        description="Help your AI Twin understand how you work. Personal preferences, tone, project context, sensitivity boundaries, and ask-before-acting rules. Personal items stay personal; team/org candidates are candidates only."
+        title="Teach your AI Teammate"
+        description="Help your AI Teammate understand how you work. Personal preferences, tone, project context, sensitivity boundaries, and ask-before-acting rules. Personal items stay personal; team/org candidates are candidates only."
       />
 
       <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
@@ -140,7 +140,7 @@ export function Preferences() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">What your Twin knows</CardTitle>
+          <CardTitle className="text-lg">What your AI Teammate knows</CardTitle>
         </CardHeader>
         <CardContent>
           {list.isLoading && <Skeleton className="h-24 w-full" />}
@@ -258,7 +258,7 @@ function CreatePreferenceForm({ onCreated }: { onCreated: () => void }) {
             disabled={create.isPending}
             data-testid="pref-submit"
           >
-            {create.isPending ? "Teaching…" : "Teach my Twin"}
+            {create.isPending ? "Teaching…" : "Teach my AI Teammate"}
           </Button>
         </form>
       </CardContent>

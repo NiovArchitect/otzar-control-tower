@@ -69,7 +69,7 @@ describe("AuthorityGrants page", () => {
     );
     renderPage();
     expect(
-      await screen.findByText(/Authority you have granted your Twin/),
+      await screen.findByText(/Authority you have granted your AI Teammate/),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Indefinite does not mean unlimited\./),

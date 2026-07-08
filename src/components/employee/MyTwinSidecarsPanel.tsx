@@ -105,7 +105,7 @@ export function MyTwinSidecarsPanel({ twin }: MyTwinSidecarsPanelProps) {
   return (
     <Card data-testid="my-twin-sidecars-panel">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">What your Twin is tracking</CardTitle>
+        <CardTitle className="text-lg">What your AI Teammate is tracking</CardTitle>
       </CardHeader>
       <CardContent>
         <div
@@ -244,7 +244,7 @@ function ActiveAuthorityTile({
   }
   return (
     <Tile
-      label="Authority you have granted your Twin"
+      label="Authority you have granted your AI Teammate"
       primary={`${summary.active_grant_count} grants`}
       secondary={detail.length > 0 ? detail.join(" · ") : undefined}
       testId="sidecar-active-authority"
@@ -267,7 +267,7 @@ function PersonalPreferencesTile({
     summary.active_ask_before_acting_count;
   return (
     <Tile
-      label="Personal preferences your Twin knows"
+      label="Personal preferences your AI Teammate knows"
       primary={`${total} active`}
       secondary={
         summary.last_correction_at

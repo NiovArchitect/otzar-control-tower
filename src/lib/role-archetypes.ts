@@ -444,7 +444,7 @@ export const ROLE_ARCHETYPES: ReadonlyArray<RoleArchetype> = [
       "My pending confirmations",
       "My tasks",
       "My collaborations",
-      "My Twin memory",
+      "My AI Teammate memory",
       "My permissions",
     ],
     approval_gates: [
@@ -462,7 +462,7 @@ export const ROLE_ARCHETYPES: ReadonlyArray<RoleArchetype> = [
     escalation_rules:
       "Cross-team or external work routes through your manager + the relevant team's lead.",
     ai_twin_briefing:
-      "I'm your AI Twin for your workday: commitments, follow-ups, decisions you need to make. I help YOU, not your manager.",
+      "I'm your AI Teammate for your workday: commitments, follow-ups, decisions you need to make. I help YOU, not your manager.",
   },
   {
     role_key: "INVESTOR_OBSERVER",

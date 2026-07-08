@@ -48,7 +48,7 @@ export function MyTwin() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="My Twin"
+        title="My AI Teammate"
         description="Your aligned AI teammate. Its identity, behavior mode, and the skills it can use on your behalf."
       />
 
@@ -92,11 +92,11 @@ function MyTwinError({
           data-testid="my-twin-empty"
         >
           <p className="text-foreground">
-            Your account is active, but your AI Twin hasn't been prepared yet.
+            Your account is active, but your AI Teammate hasn't been prepared yet.
           </p>
           <p>
             An admin can prepare it from the Users page. Once prepared, your
-            Twin starts with basic help only. It still needs role and tool
+            AI Teammate starts with basic help only. It still needs role and tool
             setup before it can route or perform work confidently.
           </p>
           <p>
@@ -148,7 +148,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
             {/* [GAP-H OPS] The viewer IS the owner — never render the raw
                 stored "Twin of <uuid>" string as the page identity. */}
             <CardTitle className="text-lg">
-              {/^twin of /i.test(t.display_name) ? "Your AI Twin" : formatPersonName(t.display_name)}
+              {/^twin of /i.test(t.display_name) ? "Your AI Teammate" : formatPersonName(t.display_name)}
             </CardTitle>
             <Badge>{labelConversationStatus(t.status)}</Badge>
           </div>
@@ -209,7 +209,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       <p className="text-xs text-muted-foreground" data-testid="my-twin-calibration-pointer">
         Want better help?{" "}
         <Link to="/app/my-twin/calibration" className="font-medium text-foreground underline underline-offset-2">
-          Calibrate My AI Twin
+          Calibrate My AI Teammate
         </Link>{" "}
         — teach it how you like summaries, tone, reminders, and what to avoid.
       </p>
@@ -283,10 +283,10 @@ function AskYourTwin(): JSX.Element {
   return (
     <Card data-testid="ask-your-twin">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Ask your Twin</CardTitle>
+        <CardTitle className="text-base">Ask your AI Teammate</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Your Twin acts under your authority. It can answer from your allowed
-          context and route governed work to teammates or their Twins under
+          Your AI Teammate acts under your authority. It can answer from your allowed
+          context and route governed work to teammates or their AI Teammates under
           company policy.
         </p>
       </CardHeader>
@@ -299,7 +299,7 @@ function AskYourTwin(): JSX.Element {
             onKeyDown={(e) => {
               if (e.key === "Enter") void ask();
             }}
-            placeholder="Ask your Twin about your work..."
+            placeholder="Ask your AI Teammate about your work..."
             className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
             data-testid="ask-your-twin-input"
           />
@@ -315,7 +315,7 @@ function AskYourTwin(): JSX.Element {
 
         {state.phase === "loading" ? (
           <p className="text-sm text-muted-foreground" data-testid="ask-your-twin-loading">
-            Your Twin is checking your governed context...
+            Your AI Teammate is checking your governed context...
           </p>
         ) : null}
 
@@ -326,7 +326,7 @@ function AskYourTwin(): JSX.Element {
           >
             <p className="text-amber-700 dark:text-amber-400">
               Otzar will not answer for{" "}
-              {state.target !== null ? `${state.target}'s` : "someone else's"} Twin
+              {state.target !== null ? `${state.target}'s` : "someone else's"} AI Teammate
               or speak on their behalf. You can ask Otzar to create a governed
               request instead.
             </p>
@@ -517,7 +517,7 @@ function AskAnswer({ data }: { data: ConversationMessageResponse }): JSX.Element
         {data.response}
       </p>
       <p className="text-[11px] text-muted-foreground" data-testid="ask-your-twin-attribution">
-        Answered by your Twin from your governed context.
+        Answered by your AI Teammate from your governed context.
       </p>
 
       {data.approval_required ? (
@@ -574,9 +574,9 @@ function humanizeAskError(code: string): string {
     // [TWIN-BOOTSTRAP] never a raw twin_not_found, and never a misleading
     // "try again" — retrying won't create a Twin; an admin repair will.
     case "TWIN_NOT_FOUND":
-      return "Your AI Twin hasn't been prepared yet. Your account is active. Ask your admin to prepare your Twin, then this will work.";
+      return "Your AI Teammate hasn't been prepared yet. Your account is active. Ask your admin to prepare your AI Teammate, then this will work.";
     case "NETWORK_ERROR":
-      return "Couldn't reach your Twin just now. Check your connection and try again.";
+      return "Couldn't reach your AI Teammate just now. Check your connection and try again.";
     case "SESSION_EXPIRED":
     case "SESSION_INVALID":
     case "SESSION_INVALIDATED":
@@ -584,7 +584,7 @@ function humanizeAskError(code: string): string {
     case "OPERATION_NOT_PERMITTED":
       return "Your session needs to be refreshed. Please sign out and back in.";
     default:
-      return "Your Twin couldn't answer that just now. Please try again in a moment.";
+      return "Your AI Teammate couldn't answer that just now. Please try again in a moment.";
   }
 }
 

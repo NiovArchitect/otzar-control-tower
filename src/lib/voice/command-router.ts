@@ -113,7 +113,7 @@ export const VOICE_SURFACES: readonly VoiceSurface[] = [
   },
   {
     surface_id: "memory",
-    label: "My Twin & memory",
+    label: "My AI Teammate & memory",
     route: "/app/my-twin",
     aliases: ["save this to memory", "what do you remember", "forget this", "do not remember that", "my twin", "show me what memory you used", "why are you using that memory"],
     admin_only: false,

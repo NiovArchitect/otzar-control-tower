@@ -147,7 +147,7 @@ export function Conversations() {
                 <Link to="/app/chat">Talk with your AI teammate</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link to="/app/my-twin">Ask your Twin</Link>
+                <Link to="/app/my-twin">Ask your AI Teammate</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
                 <Link to="/app/comms">Open Comms</Link>

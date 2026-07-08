@@ -193,7 +193,7 @@ describe("[BLOCK-3A] Work Schedule — the employee's own posture", () => {
     const doctrine = (await screen.findByTestId("decision-rights-posture-doctrine")).textContent ?? "";
     expect(doctrine).toContain("Decision rights help Otzar route decisions and avoid overstepping.");
     expect(doctrine).toContain("Decision rights do not grant tool access.");
-    expect(doctrine).toContain("Your AI Twin follows your access and authority boundaries.");
+    expect(doctrine).toContain("Your AI Teammate follows your access and authority boundaries.");
 
     expect((await screen.findByTestId("decision-rights-owns")).textContent).toContain("Technical");
     expect(screen.getByTestId("decision-rights-approves").textContent).toContain("Execution");

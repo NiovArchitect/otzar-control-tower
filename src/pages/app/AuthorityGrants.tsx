@@ -131,8 +131,8 @@ export function AuthorityGrants() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Authority you have granted your Twin"
-        description="Choose what your AI Twin may do for you, for how long, and revoke it whenever you want. Org policy, memory scope, audit, and approvals still apply."
+        title="Authority you have granted your AI Teammate"
+        description="Choose what your AI Teammate may do for you, for how long, and revoke it whenever you want. Org policy, memory scope, audit, and approvals still apply."
       />
 
       <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
@@ -386,7 +386,7 @@ function GrantList({
   if (grants.length === 0) {
     return (
       <p className="text-sm text-muted-foreground" data-testid="grants-empty">
-        No grants yet. Grant your Twin its first authority above.
+        No grants yet. Grant your AI Teammate its first authority above.
       </p>
     );
   }

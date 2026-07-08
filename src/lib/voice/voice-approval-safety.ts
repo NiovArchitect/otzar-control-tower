@@ -99,7 +99,7 @@ const ROUTE_COPY: Record<VoiceSafetyRoute, RouteCopy> = {
   },
   ask_twin: {
     title: "Ask Twin",
-    summary: "Otzar will ask your Twin. No privileged action.",
+    summary: "Otzar will ask your AI Teammate. No privileged action.",
     next_step: "Ask Twin with this transcript.",
     reason: "INFORMATIONAL_NO_ACTION",
   },
