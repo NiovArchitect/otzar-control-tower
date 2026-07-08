@@ -118,6 +118,25 @@ that determines, per required production section:
 
 ---
 
+## ✅ DEMO-CONSOLIDATION · Full 5-spec Meridian rehearsal green + demo story includes ORGX · (2026-07-08, Opus 4.8)
+
+**HEADs:** FND `016d7ca` · CT `1ea2a8b` (this commit adds the ORGX demo beats).
+No code change — docs consolidation + full-suite rehearsal.
+
+- **Consolidated rehearsal (serial, all GREEN):** `customer-sim:v2` (13.3m) ·
+  `source-integrity` (32s) · `org-autonomy` (1.7m) · `participant-coordination`
+  (1.3m) · `notification-layering` (54s). Post-suite residue **0** everywhere
+  (escalations / MEETING / DOCUMENT_CONTEXT / calendar busy); demo org untouched.
+- **Demo script now carries the ORGX meeting-flow beats:** required vs optional
+  attendees (optional doesn't block, required blocks), Scheduled lane as handled
+  work (not a task), notified-not-invited, non-party sees nothing, no redundant
+  asks, "Needs you" stays action-required. Plus honesty boundaries: NL live
+  execution + external invites = documented future work.
+- Demo script + technical proof appendix (with a 5-spec proof matrix) + runbook +
+  gap ledger are consolidated and current.
+
+---
+
 ## ✅ ORGX · Participant coordination + Scheduled lane + NL-event decision · LIVE + PROVEN on Meridian (2026-07-08, Opus 4.8)
 
 **HEADs:** FND `016d7ca` (PR #595 merged + **deployed live**, deploy

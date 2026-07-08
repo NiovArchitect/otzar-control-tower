@@ -8,8 +8,8 @@ as an honest boundary.
 
 | | |
 |---|---|
-| FND live | `971d827` (api.otzar.ai, `otzar-api` srv-d8t17sm7r5hc73ed5h6g) |
-| CT live | `9c95101` (app.otzar.ai, `otzar-app` srv-d8t1qpj7uimc73db2il0) |
+| FND live | `016d7ca` (api.otzar.ai, `otzar-api` srv-d8t17sm7r5hc73ed5h6g) |
+| CT live | `1ea2a8b` (app.otzar.ai, `otzar-app` srv-d8t1qpj7uimc73db2il0) |
 | Tenant | Meridian Field Systems `69c07a00-2b39-4771-95c3-22c214e7ae6c` |
 | Demo org | **untouched** (every mutating call asserts org == Meridian) |
 | Google | VERIFIED, 10 scopes incl `calendar.events` (read+write) |
@@ -49,26 +49,24 @@ as an honest boundary.
 | 14 | No UUID/enum/mechanics leak in normal copy | v2 `expectNoFakeGoogle` + copy assertions | ✅ |
 | 15 | Cleanup leaves zero active residue | v2 + source-integrity sweeps + preflight #10 | ✅ |
 
-## Rehearsal runs (this session, 2026-07-07 — dress rehearsal)
+## Consolidated rehearsal (2026-07-08 — FND `016d7ca` · CT `1ea2a8b`)
 
-- **`test:e2e:live:customer-sim:v2`** — **1 passed (14.0m)**. Real Drive list
-  (25 docs), real Google Doc lineage, 6 seeded reference docs (supersession
-  pair + policy + scope + stale + budget), truth engine (supersession-lead +
-  sales-overreach-flag + memory/question/request-not-work + zero-invention),
-  employee/Twin boundaries (starter twins, admin 403s, non-party 404 no-leak),
-  **real calendar event created (`0himpisre6…`) → deleted → delete-again
-  idempotent → zero residue**, Meet honest branch (409 SCOPE_REAUTH_REQUIRED,
-  no fabricated transcript). Cleanup cancelled 14 run rows.
-- **`test:e2e:live:source-integrity`** — **1 passed (34.6s)**. Imported one real
-  Google Doc → `source_integrity` AVAILABLE; revalidated unchanged upstream →
-  state AVAILABLE, `changed:false`, no token leak; cleanup swept 1 row.
+Full 5-spec suite run **serially** on Meridian, all GREEN:
 
-**Post-rehearsal residue check (live):** pending escalations **0** · active
-`DOCUMENT_CONTEXT` rows **0** (of 36, all CANCELLED) · `SOURCE_VERIFIED` audit
-events **2** (original proof + this rehearsal). Meridian clean; demo org
-untouched.
+| # | Spec | Result | Proves |
+|---|---|---|---|
+| 1 | `customer-sim:v2` | **1 passed (13.3m)** | Full org reality: cast/hierarchy/decision-rights/timezones, real Google Docs lineage, calendar create→delete→idempotent, honest Meet, truth engine, Twin boundaries, cleanup |
+| 2 | `source-integrity` | **1 passed (32.2s)** | Import → revalidate AVAILABLE/changed:false → `SOURCE_VERIFIED` audit → sweep clean |
+| 3 | `org-autonomy` | **1 passed (1.7m)** | Gated real event → permission-scoped notify (creator+attendee, **non-party 0**) → delete → cancel |
+| 4 | `participant-coordination` | **1 passed (1.3m)** | **Optional doesn't block · required blocks (`PARTICIPANT_UNRESOLVED`) · safe roster (no ids) · non-party sees 0 meetings** |
+| 5 | `notification-layering` | **1 passed (54.0s)** | Dropdown portaled to `<body>` at `z-[70]` above the orb; calendar FYI doesn't nag "Needs you" |
 
-_(Run serially — both touch `DOCUMENT_CONTEXT` rows on the same tenant.)_
+**Post-suite residue (live):** org = Meridian · pending escalations **0** · active
+`MEETING` rows **0** · active `DOCUMENT_CONTEXT` rows **0** · calendar busy
+intervals **0**. Meridian clean; **demo org untouched** (every spec is
+tenancy-guarded to Meridian).
+
+_(Run serially — they share `DOCUMENT_CONTEXT` + `MEETING` rows on the one tenant.)_
 
 ## Google / Calendar proof detail
 

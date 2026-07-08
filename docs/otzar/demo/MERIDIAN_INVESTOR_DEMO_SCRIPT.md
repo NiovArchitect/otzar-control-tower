@@ -140,7 +140,24 @@ Log in as an **employee** (or show the employee surfaces):
    real availability, respected who had authority, scheduled it, and told the
    right people — without creating a single new task for anyone. And a non-party
    never sees it."
-5. **Meet honesty.** If asked for a meeting transcript, Otzar returns an honest
+5. **ORGX participant coordination — the org feels led, no one feels nagged.**
+   The meeting has a **required** decision owner and an **optional** attendee.
+   - Otzar **schedules when only the optional attendee is missing** — an optional
+     person's unavailability never blocks the team.
+   - Otzar **blocks when a required attendee is unresolved** (`PARTICIPANT_UNRESOLVED`)
+     and routes the one missing question to the right owner — it does **not** ask
+     everyone.
+   - The scheduled meeting appears in Action Center's **"Scheduled" lane as
+     handled work — "no action needed"** — never as a task under "Needs you."
+   - Otzar says "attendees were **notified**," never "invited" — it does not claim
+     a Google invite it didn't send. **Adding a customer's guest needs approval**
+     (external invites cross a boundary); a customer request is not internal scope
+     approval.
+   - A **non-party employee sees none of it** — the Scheduled lane is
+     caller-scoped. *Talk:* "Otzar carries the org's coordination so people don't
+     have to — it knows who's required, who's optional, who only needs to know,
+     and it never nags anyone for something already handled."
+6. **Meet honesty.** If asked for a meeting transcript, Otzar returns an honest
    "not available / reconnect required" — it never fabricates a transcript.
 
 ---
@@ -157,6 +174,11 @@ Log in as an **employee** (or show the employee surfaces):
 - Sales overreach **flagged**, compliance/finance guardrails **held**.
 - A **real** Google Calendar event id returned on create, then deleted; a
   second delete is idempotent (already-gone).
+- **ORGX:** an optional attendee missing → still scheduled; a required attendee
+  unresolved → blocked; the meeting shows in the **Scheduled lane as "no action
+  needed"** (never under "Needs you"); a **non-party sees zero meetings**; roster
+  shows friendly roles (Required/Optional/Informed) with **no raw ids**; copy says
+  "notified," never "invited."
 - Non-party retrieval → **404, no title leak**; no UUIDs/enums/data-model words
   ("Entity", "Capsule", "Twin" as a primitive, "Permission", "Wallet") in
   normal-facing copy.
@@ -174,6 +196,15 @@ Log in as an **employee** (or show the employee surfaces):
   or lost *access* upstream) are proven in the backend test suite via a mocked
   upstream — **not** demonstrated live, because that would mean corrupting or
   deleting a real founder document.
+- **"Add X to the meeting" notifies X internally — it does NOT add X to the Google
+  invite** (the calendar event carries no attendee list yet). We say "notified,"
+  never "invited."
+- **Natural-language scheduling** ("schedule tomorrow at 2 with Priya") is **future
+  work** — the write scope is live, but it needs relative-time normalization and a
+  confirm-the-resolved-time step before Otzar auto-creates from free text (we don't
+  auto-fire an irreversible calendar write off an unconfirmed parse).
+- **External / customer-guest invites** are **future work** — they cross the
+  internal-only doctrine boundary and require an explicit approval path.
 
 ## 6. Cleanup (leave zero residue)
 
@@ -185,17 +216,27 @@ verification are in the technical appendix.
 
 ## 7. Exact run commands (the rehearsal that backs this script)
 
-```
-# Full org reality run (cast, hierarchy, decision rights, Google Docs, calendar
-# read+write, honest Meet, truth engine, Twin boundary, cleanup):
-OTZAR_CUSTSIM_ADMIN_PASSWORD=… npm run test:e2e:live:customer-sim:v2
+The full consolidated rehearsal — run **serially** (they share `DOCUMENT_CONTEXT`
+and `MEETING` rows on the one tenant):
 
-# Source integrity: import one real doc → revalidate → AVAILABLE + SOURCE_VERIFIED
-# audit → sweep clean:
-OTZAR_CUSTSIM_ADMIN_PASSWORD=… npm run test:e2e:live:source-integrity
+```
+export OTZAR_CUSTSIM_ADMIN_PASSWORD=…
+# 1. Full org reality (cast, hierarchy, decision rights, Google Docs, calendar
+#    read+write, honest Meet, truth engine, Twin boundary, cleanup):
+npm run test:e2e:live:customer-sim:v2
+# 2. Source integrity: import → revalidate → AVAILABLE + SOURCE_VERIFIED → sweep:
+npm run test:e2e:live:source-integrity
+# 3. Org autonomy: gated real event → permission-scoped notify (non-party 0) →
+#    delete → cancel → zero residue:
+npm run test:e2e:live:org-autonomy
+# 4. ORGX participant coordination: optional doesn't block · required blocks ·
+#    safe roster · non-party sees zero:
+npm run test:e2e:live:participant-coordination
+# 5. Notification dropdown layering (portaled above the orb) + before/after nag:
+npm run test:e2e:live:notification-layering
 ```
 
-(Run them one at a time — both touch `DOCUMENT_CONTEXT` rows on the same tenant.)
+(All are Meridian-tenancy-guarded; the demo org can never be a target.)
 
 ---
 
@@ -211,7 +252,7 @@ Two shells (router: `src/App.tsx`). Admin lands at `/`, employees at `/app`.
 | Decision rights (3A) | `/setup/company-profile` (admin) · `/app/work-schedule` (self read-only) | Owns / Can approve / Recommend-only — **separate from hierarchy** |
 | Data & Knowledge / source-trust | `/data-knowledge` · `/setup/data-flow` | Live OAuth status; honest "what Otzar pulls/pushes/owns/retains" |
 | My Twin | `/app/my-twin` (+ `/app/my-twin/calibration`) | Starter-twin state graceful; "Calibrate / teach" pointer |
-| Action Center / Needs you / What changed | `/app` (ambient home) · `/app/action-center` | "You're all caught up. Otzar is listening." when empty |
+| Action Center / Needs you / What changed | `/app` (ambient home) · `/app/action-center` | "You're all caught up. Otzar is listening." when empty. **Scheduled lane** (caller-scoped, read-only) lists the viewer's meetings as "Scheduled — no action needed" with friendly roster roles — never under "Needs you" |
 | Ask Otzar | the ambient **orb** (both shells) · admin ⌘K palette | Asks one focused clarification when ambiguous |
 | Security & Audit | `/security-audit` | **Renders the new source-integrity labels** ("Source Verified", "Source Changed Upstream", "Import Quarantined") via `getAuditEventLabel` |
 
