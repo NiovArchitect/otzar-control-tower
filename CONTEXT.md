@@ -118,6 +118,44 @@ that determines, per required production section:
 
 ---
 
+## 🟡 SOURCE-INTEGRITY · Imported-source lifecycle hardened + revalidation · MERGED, live-proof pending deploy (2026-07-07, Opus 4.8)
+
+**HEADs:** FND `971d827` (PR #593 squash-merged to `main`, **not yet
+deployed** — autoDeploy OFF; production deploy of api.otzar.ai awaits an
+explicit operator go) · CT source-integrity commits (audit vocab + live spec).
+
+Closes the post-import trust gaps for imported Google Docs with **no schema
+migration** (status/event_type are validated Strings; source lifecycle is
+additive `details.source_integrity` JSON). Full write-up:
+`docs/otzar/OTZAR_SOURCE_INTEGRITY_HARDENING.md` (16-question report).
+
+- **Retrieval leak closed (sharpest bug):** all 3 answer pools
+  (context-candidates, background-answer, context-boundaries) were filtering
+  only `org+ledger_type`, so a withdrawn (CANCELLED) or changed doc kept
+  answering. Now **allowlisted** to `status:"VERIFIED"` AND
+  source-integrity-active. Load-bearing test: a revalidated-changed row leaves
+  all 3 pools **while status stays VERIFIED**.
+- **Import validation (no partial trusted row):** empty→`SOURCE_EMPTY`,
+  binary/null-byte/>10%-control→`SOURCE_UNREADABLE`, rejected **before the
+  hash**, `IMPORT_QUARANTINED` audited, **no row created**.
+- **Revalidation (manual, admin-gated, snapshot-preserving):** `POST
+  /api/v1/drive/docs/:id/revalidate` — same-hash→AVAILABLE+SOURCE_VERIFIED;
+  changed→CHANGED_UPSTREAM (records upstream_hash, PRESERVES snapshot);
+  404→SOURCE_DELETED; 403→ACCESS_REVOKED; corrupt→CORRUPT_OR_INVALID. A
+  transient error returns `REVALIDATION_UNAVAILABLE` and never demotes a good
+  snapshot.
+- **6 audit types** mirrored FND↔CT: SOURCE_VERIFIED, SOURCE_CHANGED_UPSTREAM,
+  SOURCE_ACCESS_REVOKED, SOURCE_DELETED, IMPORT_QUARANTINED, IMPORT_FAILED.
+- **Verification:** FND typecheck 0 · unit 14 · integration 17 · no-leak 2 ·
+  5/5 CI green. CT typecheck 0 · lint clean · 2244 unit pass.
+- **Live proof (`test:e2e:live:source-integrity`, Meridian):** durable spec
+  written + typechecked; proves same-hash=current live. Mutation branches
+  (changed/deleted/revoked/corrupt) proven in FND integration via injected
+  fetch seam — never live (no corrupting/deleting real founder docs).
+  **Runs the moment 971d827 is deployed.**
+
+---
+
 ## ✅ CUSTOMER-SIM-V2-FINAL · v2 gate proves REAL calendar create→delete inline · LIVE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `c017c20` (calendar-write runtime already live) ·
