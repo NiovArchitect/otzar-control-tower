@@ -39,8 +39,15 @@ export interface PresenceSignals {
   quietReason: "IN_MEETING" | "FOCUS_TIME" | "OTHER" | null;
   /** Items waiting on the user's decision (proposed actions). */
   approvalsCount: number;
-  /** Unread notes for the user. */
+  /** Total unread notes for the user (includes FYI). Drives the bell badge. */
   unreadCount: number;
+  /**
+   * Unread notes that ACTUALLY need the user to do something — total unread
+   * minus calm FYI classes (e.g. CALENDAR_EVENT_CREATED/CANCELLED, which say
+   * "no action needed"). "Needs you" surfaces read THIS, so a scheduled-meeting
+   * FYI never nags as action-required. [ORG-AUTONOMY]
+   */
+  actionUnreadCount: number;
   /** Voice cannot work right now (no mic permission / unsupported). */
   voiceBlocked: boolean;
   /** Millisecond timestamps of the last transient outcomes. */
@@ -55,6 +62,7 @@ const INITIAL_SIGNALS: PresenceSignals = {
   quietReason: null,
   approvalsCount: 0,
   unreadCount: 0,
+  actionUnreadCount: 0,
   voiceBlocked: false,
   lastSuccessAt: null,
   lastFailureAt: null,
@@ -115,6 +123,7 @@ export function usePresenceState(): OtzarPresenceState {
       quietReason: s.quietReason,
       approvalsCount: s.approvalsCount,
       unreadCount: s.unreadCount,
+      actionUnreadCount: s.actionUnreadCount,
       voiceBlocked: s.voiceBlocked,
       lastSuccessAt: s.lastSuccessAt,
       lastFailureAt: s.lastFailureAt,

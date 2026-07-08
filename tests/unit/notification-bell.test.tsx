@@ -17,6 +17,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { NotificationBell } from "@/components/otzar/NotificationBell";
 import { useAuthStore } from "@/lib/stores/auth";
+import { usePresenceStore } from "@/lib/stores/presence";
 import type { SafeNotificationView } from "@/lib/types/foundation";
 
 const API_BASE = "http://localhost:3000/api/v1";
@@ -106,6 +107,23 @@ describe("NotificationBell — unread badge", () => {
       const badge = screen.getByTestId("notification-bell-badge");
       // 2 unread (n-1, n-2); n-3 is read.
       expect(badge.textContent).toBe("2");
+    });
+  });
+
+  it("[ORG-AUTONOMY] a calm FYI (CALENDAR_EVENT_CREATED) counts in the badge but NOT as action-required", async () => {
+    mockList([
+      buildNotification({ notification_id: "fyi-1", notification_class: "CALENDAR_EVENT_CREATED", read_at: null }),
+      buildNotification({ notification_id: "act-1", notification_class: "OTZAR_INTERNAL_NOTE", read_at: null }),
+    ]);
+    renderBell();
+    await waitFor(() => {
+      // Badge = total unread (FYI lives in the inbox).
+      expect(screen.getByTestId("notification-bell-badge").textContent).toBe("2");
+    });
+    await waitFor(() => {
+      // But only the non-FYI note is action-required — "Needs you" reads this.
+      expect(usePresenceStore.getState().actionUnreadCount).toBe(1);
+      expect(usePresenceStore.getState().unreadCount).toBe(2);
     });
   });
 

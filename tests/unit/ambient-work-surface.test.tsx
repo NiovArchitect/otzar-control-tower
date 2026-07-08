@@ -56,7 +56,7 @@ describe("AmbientWorkSurface — real-state ambient summaries", () => {
   });
 
   it("shows arrived replies under 'Needs you' as replies to review (human must read)", () => {
-    usePresenceStore.getState().setSignals({ unreadCount: 1 });
+    usePresenceStore.getState().setSignals({ unreadCount: 1, actionUnreadCount: 1 });
     renderSurface();
     const replies = screen.getByTestId("needs-replies");
     expect(replies).toHaveTextContent(/1 reply to review/i);
@@ -66,8 +66,18 @@ describe("AmbientWorkSurface — real-state ambient summaries", () => {
     expect(replies.textContent ?? "").not.toMatch(/tracking/i);
   });
 
+  it("[ORG-AUTONOMY] a calm FYI (unread but no action needed) never nags under 'Needs you'", () => {
+    // 1 unread notification, but it is a calm FYI (e.g. a scheduled-meeting
+    // notice): actionUnreadCount is 0. "Needs you" must stay silent — the FYI
+    // lives in the bell, not the action banner.
+    usePresenceStore.getState().setSignals({ unreadCount: 1, actionUnreadCount: 0 });
+    renderSurface();
+    expect(screen.queryByTestId("needs-replies")).toBeNull();
+    expect(screen.queryByTestId("needs-me-panel")).toBeNull();
+  });
+
   it("never labels arrived inbox as 'Otzar is handling' (no overclaim)", () => {
-    usePresenceStore.getState().setSignals({ unreadCount: 3 });
+    usePresenceStore.getState().setSignals({ unreadCount: 3, actionUnreadCount: 3 });
     const { container } = render(
       <MemoryRouter>
         <AmbientWorkSurface />
@@ -133,7 +143,7 @@ describe("AmbientWorkSurface — real node strip (collapsed, never decorative)",
   });
 
   it("never invents a node / never a hardcoded demo name", () => {
-    usePresenceStore.getState().setSignals({ unreadCount: 1 });
+    usePresenceStore.getState().setSignals({ unreadCount: 1, actionUnreadCount: 1 });
     renderSurface();
     const strip = screen.getByTestId("surface-work-nodes");
     expect(strip.textContent ?? "").not.toMatch(/\b(David|Samiksha|Vishesh)\b/);

@@ -47,7 +47,8 @@
     "test:e2e:live:customer-sim": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-customer-sim.spec.ts",
     "test:e2e:live:customer-sim:v2": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-customer-sim-v2.spec.ts",
     "test:e2e:live:source-integrity": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-source-integrity.spec.ts",
-    "test:e2e:live:org-autonomy": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-org-autonomy.spec.ts"
+    "test:e2e:live:org-autonomy": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-org-autonomy.spec.ts",
+    "test:e2e:live:notification-layering": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-notification-layering.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

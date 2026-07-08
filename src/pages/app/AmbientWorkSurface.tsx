@@ -42,6 +42,9 @@ export function AmbientWorkSurface(): JSX.Element {
   const quiet = usePresenceStore((s) => s.quiet);
   const approvalsCount = usePresenceStore((s) => s.approvalsCount);
   const unreadCount = usePresenceStore((s) => s.unreadCount);
+  // [ORG-AUTONOMY] "Needs you" reads the action-required count (total unread
+  // minus calm FYIs like scheduled-meeting notices), so an FYI never nags.
+  const actionUnreadCount = usePresenceStore((s) => s.actionUnreadCount);
   const surfaceContext = useCurrentSurfaceContextStore((s) => s.context);
   const clearContext = useCurrentSurfaceContextStore((s) => s.clear);
   const [headline, setHeadline] = useState<string | null>(null);
@@ -95,7 +98,7 @@ export function AmbientWorkSurface(): JSX.Element {
     };
   }, []);
   const nothingInFlight =
-    approvalsCount === 0 && unreadCount === 0 && urgentBlindSpots === 0;
+    approvalsCount === 0 && actionUnreadCount === 0 && urgentBlindSpots === 0;
 
   // [OTZAR-LIVE-6] Real work nodes — what Otzar is connected to RIGHT NOW, built
   // only from current home state (context, approvals, replies). No node without
@@ -135,7 +138,7 @@ export function AmbientWorkSurface(): JSX.Element {
       {/* NEEDS YOU — only when the human must act: approvals to decide and
           replies that arrived for them to read. Category-specific copy, never
           "items"/"things"/vague counts. */}
-      {(approvalsCount > 0 || unreadCount > 0 || urgentBlindSpots > 0) ? (
+      {(approvalsCount > 0 || actionUnreadCount > 0 || urgentBlindSpots > 0) ? (
         <GlassPanel
           intensity="attention"
           label="Needs you"
@@ -172,16 +175,16 @@ export function AmbientWorkSurface(): JSX.Element {
                 <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
               </Link>
             ) : null}
-            {unreadCount > 0 ? (
+            {actionUnreadCount > 0 ? (
               <Link
                 to="/app/comms"
                 className="flex items-center justify-between gap-3 text-slate-800 hover:text-slate-900"
                 data-testid="needs-replies"
               >
                 <span>
-                  {unreadCount === 1
+                  {actionUnreadCount === 1
                     ? "1 reply to review"
-                    : `${unreadCount} replies to review`}
+                    : `${actionUnreadCount} replies to review`}
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
               </Link>

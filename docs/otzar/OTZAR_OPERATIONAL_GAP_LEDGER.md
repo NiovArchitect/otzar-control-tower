@@ -48,13 +48,33 @@ sweep (`POST /drive/docs/health-sweep`) notifies on demoted sources; notificatio
 dropdown portal-fixed. All migration-free, reusing existing primitives.
 
 **Remaining honest gaps (next hardening layer, NOT demo blockers):**
-1. **Action Center calendar lifecycle (large product decision — deferred).**
-   Action Center reads the ADR-0057 `Action` model, not WorkLedger/notifications.
-   A scheduled meeting surfaces in the **bell + "What changed"** (correct
-   "no action needed" behavior), but calendar events are not yet first-class
-   Action rows with scheduled/awaiting-approval/conflict/rescheduled/cancelled
-   states. Making them so is a real product-model decision, not a wiring change —
-   documented here rather than built, per the STOP rule.
+1. **Action Center calendar lifecycle — investigated, STOPPED on migration; safe
+   layer shipped (2026-07-08).** Verdict: the ADR-0057 `Action` model **cannot**
+   host calendar lifecycle without a Prisma migration, and even a "reuse" hack is
+   **unsafe** — `Action.action_type` + `status` are Postgres **enums**
+   (`schema.prisma:2328/2335`, ActionType has 4 values, none calendar; ActionStatus
+   lacks awaiting_attendee_confirmation / rescheduled / conflict_found), AND the
+   Action table is a **live execution queue** (scheduler claims `APPROVED`,
+   executor claims `SCHEDULED` with no type filter — `scheduler.ts:87`,
+   `executor.ts:141`), so a calendar row parked at `SCHEDULED` would be
+   **dispatched by the executor**. Tab semantics also mis-frame (`CANCELLED`→
+   "Blocked/Not approved"), and list scoping is by `source_entity_id` (attendees
+   wouldn't see it). Per the STOP rule we did NOT migrate.
+   - **Shipped instead (safe, backend-free, no migration):** a **class-aware
+     ambient split** — `notification_class` now separates calm FYIs
+     (`CALENDAR_EVENT_CREATED/CANCELLED`, allowlist in `NotificationBell.tsx`) from
+     action-required unread. New presence field `actionUnreadCount`; the "Needs
+     you" banner + the floating "replies to review" card read it, so a
+     scheduled-meeting FYI **stays in the bell but never nags** as action-required.
+     The bell badge + neutral "Connected now" strip keep the total. Conservative:
+     any unlisted class stays action-required (nothing a human must act on is
+     hidden).
+   - **Safe forward path (first-class WITHOUT the execution queue):** the existing
+     terminal `MEETING`/`EXECUTED` WorkLedger rows are the natural source for a
+     **read-only "Scheduled" lane** in Action Center — surface calendar lifecycle
+     from WorkLedger (+ the approval path's escalations for awaiting_approval),
+     never by writing calendar rows into the execution-queue Action model. That is
+     the recommended product direction when calendar lifecycle is made first-class.
 2. **Calendar-change autonomy / Google webhooks (future).** Otzar detects
    create/delete it performs, but does NOT observe upstream calendar changes
    (attendee decline, external reschedule, time change). Google Calendar

@@ -71,7 +71,10 @@ function quietCopy(reason: "IN_MEETING" | "FOCUS_TIME" | "OTHER" | null): string
 
 export function AmbientNotificationStack(): JSX.Element | null {
   const approvalsCount = usePresenceStore((s) => s.approvalsCount);
-  const unreadCount = usePresenceStore((s) => s.unreadCount);
+  // [ORG-AUTONOMY] The floating "replies to review" card fires on the
+  // action-required unread count only — a calm FYI (e.g. a scheduled-meeting
+  // notice) stays in the bell and never pops an ambient nag.
+  const actionUnreadCount = usePresenceStore((s) => s.actionUnreadCount);
   const quiet = usePresenceStore((s) => s.quiet);
   const quietReason = usePresenceStore((s) => s.quietReason);
   const voiceBlocked = usePresenceStore((s) => s.voiceBlocked);
@@ -146,12 +149,12 @@ export function AmbientNotificationStack(): JSX.Element | null {
     setDismissed((prev) => {
       const next = new Set(prev);
       if (approvalsCount === 0) next.delete("approvals");
-      if (unreadCount === 0) next.delete("notes");
+      if (actionUnreadCount === 0) next.delete("notes");
       if (!quiet) next.delete("quiet");
       if (!voiceBlocked) next.delete("voice-blocked");
       return next.size === prev.size ? prev : next;
     });
-  }, [approvalsCount, unreadCount, quiet, voiceBlocked]);
+  }, [approvalsCount, actionUnreadCount, quiet, voiceBlocked]);
 
   const cards: AmbientCard[] = [];
   if (approvalsCount > 0 && !dismissed.has("approvals")) {
@@ -176,7 +179,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
       to: null,
       linkLabel: null,
     });
-  } else if (unreadCount > 0 && !dismissed.has("notes")) {
+  } else if (actionUnreadCount > 0 && !dismissed.has("notes")) {
     // Notes stay out of the way during quiet mode — approvals only.
     cards.push({
       kind: "notes",
@@ -187,12 +190,12 @@ export function AmbientNotificationStack(): JSX.Element | null {
       // vaguer "notes"/"items".
       text:
         replySender !== null
-          ? unreadCount === 1
+          ? actionUnreadCount === 1
             ? `${replySender} replied.`
-            : `${unreadCount} replies to review.`
-          : unreadCount === 1
+            : `${actionUnreadCount} replies to review.`
+          : actionUnreadCount === 1
             ? "1 reply to review."
-            : `${unreadCount} replies to review.`,
+            : `${actionUnreadCount} replies to review.`,
       to: "/app/comms",
       linkLabel: "Open",
     });

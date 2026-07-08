@@ -53,6 +53,7 @@ function signals(overrides: Partial<PresenceSignals> = {}): PresenceSignals {
     quietReason: null,
     approvalsCount: 0,
     unreadCount: 0,
+    actionUnreadCount: 0,
     voiceBlocked: false,
     lastSuccessAt: null,
     lastFailureAt: null,
@@ -236,7 +237,7 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
   });
 
   it("[OTZAR-LIVE-6] names the reply from real notification data ('Priya replied')", async () => {
-    usePresenceStore.getState().setSignals({ unreadCount: 1 });
+    usePresenceStore.getState().setSignals({ unreadCount: 1, actionUnreadCount: 1 });
     server.use(
       http.get(`${API_BASE}/notifications`, () =>
         HttpResponse.json({
@@ -271,7 +272,7 @@ describe("Phase 1251 — AmbientNotificationStack", () => {
   });
 
   it("[OTZAR-LIVE-6] falls back to the count when no human sender is known (no fake name)", async () => {
-    usePresenceStore.getState().setSignals({ unreadCount: 2 });
+    usePresenceStore.getState().setSignals({ unreadCount: 2, actionUnreadCount: 2 });
     server.use(
       http.get(`${API_BASE}/notifications`, () =>
         HttpResponse.json({

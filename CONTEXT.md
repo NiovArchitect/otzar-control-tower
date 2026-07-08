@@ -118,6 +118,40 @@ that determines, per required production section:
 
 ---
 
+## ✅ ACTION-CENTER-LIFECYCLE · Dropdown verified live + calendar-lifecycle STOP + class-aware "Needs you" · (2026-07-08, Opus 4.8)
+
+**HEADs:** CT (this commit; class-aware ambient split) · FND `23ff045` unchanged
+(NO backend change — the safe layer is backend-free).
+
+- **Dropdown layering VERIFIED live** on the Meridian employee shell
+  (`test:e2e:live:notification-layering`): dropdown `z=70`, **portaled to
+  `<body>`**, `384×258`, orb seen at `z=60` → paints above the orb (geometry +
+  screenshot). The screenshot also captured the real `CALENDAR_EVENT_CREATED`
+  notification rendering with the calm "no action needed" copy.
+- **Action Center calendar lifecycle — STOPPED on migration (product decision).**
+  The ADR-0057 `Action` model can't host calendar lifecycle without a Prisma
+  migration, and reuse is **unsafe**: `action_type`/`status` are Postgres enums
+  (no calendar type; 3 states missing) AND the Action table is a **live execution
+  queue** (executor claims `SCHEDULED` rows with no type filter → a parked
+  calendar row would be dispatched). Tab semantics mis-frame; list-scope hides
+  attendees. Per the STOP rule, did NOT migrate. Documented forward path: a
+  read-only "Scheduled" lane sourced from the existing `MEETING`/`EXECUTED`
+  WorkLedger rows (+ escalations), never the execution-queue Action model.
+- **Shipped instead — class-aware ambient split (backend-free):** new presence
+  field `actionUnreadCount` = total unread minus a **conservative FYI allowlist**
+  (`CALENDAR_EVENT_CREATED/CANCELLED`). "Needs you" banner + floating "replies to
+  review" card read `actionUnreadCount`, so a scheduled-meeting FYI **stays in the
+  bell but never nags**. Bell badge + "Connected now" strip keep the total. Any
+  unlisted class stays action-required (nothing actionable is hidden).
+- **Tests:** reframed the ambient "replies" tests to `actionUnreadCount`; added
+  load-bearing tests — an unread `CALENDAR_EVENT_CREATED` counts in the bell badge
+  but yields `actionUnreadCount=0` and does NOT surface "Needs you". CT typecheck
+  0 · lint · full suite green.
+- Doctrine now holds end-to-end: **"Needs you" = a human must act; FYI = handled,
+  no nag.**
+
+---
+
 ## ✅ ORG-AUTONOMY · Agreement→calendar→notify→ambient loop + source-health sweep · LIVE + PROVEN on Meridian (2026-07-07, Opus 4.8)
 
 **HEADs:** FND `23ff045` (PR #594 merged + **deployed live**, deploy

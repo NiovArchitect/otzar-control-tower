@@ -58,6 +58,19 @@ function randomIdempotencyKey(): string {
 const DEFAULT_POLL_MS = 30_000;
 const PAGE_SIZE = 20;
 
+/**
+ * [ORG-AUTONOMY] Notification classes that are calm FYIs — Otzar already handled
+ * something and the copy explicitly says "no action needed." They stay in the
+ * inbox (the bell badge counts them) but are excluded from the action-required
+ * count that drives "Needs you". CONSERVATIVE by design: only classes we KNOW
+ * require no action belong here; any class NOT listed is treated as
+ * action-required so nothing a human must act on is ever silently hidden.
+ */
+export const FYI_NOTIFICATION_CLASSES: ReadonlySet<string> = new Set([
+  "CALENDAR_EVENT_CREATED",
+  "CALENDAR_EVENT_CANCELLED",
+]);
+
 interface Props {
   /** Optional override of the poll interval (ms). Tests pass 0 to
    *  disable polling entirely and drive list refreshes manually. */
@@ -162,13 +175,21 @@ export function NotificationBell({
 
   const unread = state.items.filter((n) => n.read_at === null);
   const unreadCount = unread.length;
+  // [ORG-AUTONOMY] Calm FYI classes explicitly say "no action needed" — they
+  // belong in the inbox (bell badge counts them) but must NOT nag the user as
+  // action-required. Conservative allowlist: only classes we KNOW are FYI.
+  // Anything not listed keeps its current action-required behavior (an unknown
+  // class must never silently drop out of "Needs you").
+  const actionUnreadCount = unread.filter(
+    (n) => !FYI_NOTIFICATION_CLASSES.has(n.notification_class),
+  ).length;
 
   // Phase 1251 — feed the edge presence so the glow + ambient cards
   // know about new notes without polling twice.
   const setPresenceSignals = usePresenceStore((s) => s.setSignals);
   useEffect(() => {
-    setPresenceSignals({ unreadCount });
-  }, [unreadCount, setPresenceSignals]);
+    setPresenceSignals({ unreadCount, actionUnreadCount });
+  }, [unreadCount, actionUnreadCount, setPresenceSignals]);
 
   function openReply(notificationId: string): void {
     setState((s) => ({
