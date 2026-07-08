@@ -108,6 +108,50 @@ proves the new type is registered in the deployed backend). Event carries
 - No direct DB writes; no schema migration; no broad Drive sync.
 - Demo org is never a target in any command in this appendix.
 
+## Org-autonomy loop proof (FND PR #594, CT `6cf58dc`)
+
+The loop — agreement/context → gated create → permission-scoped notify → ambient
+update → audit → no redundant ask:
+
+- **Notification fanout is real + closed-set.** On a SUCCESS create, a
+  `CALENDAR_EVENT_CREATED` notification goes to `dedupe([actor, resolved
+  participants w/ entity_id, owner])` — `source_entity_id` is always the
+  authenticated actor, and `createInternalNotification` re-checks same-org active
+  membership, so a **non-party is never notified** (proven by FND integration
+  "notifies the CLOSED derived set … nobody else" + the live spec's non-party=0
+  assertion). Delete re-fans `CALENDAR_EVENT_CANCELLED` to the persisted set.
+- **Permission boundary.** Notification reads are self-scoped to the session
+  `entity_id` (FND integration "recipient A's notification is not returned when
+  reading as B"); auth carries no impersonation, so a Twin cannot read a human's
+  inbox.
+- **Terminal work row.** A `MEETING`/`EXECUTED` WorkLedger row records the event
+  as *done* (in the DONE set, excluded from blind-spots, `can_complete=false`) —
+  it reads as "what Otzar handled," never as a new task.
+- **No redundant ask + best-effort.** A gate-blocked or scope-less create writes
+  **zero** notifications/ledger rows; side-effects are swallow-and-continue so a
+  notify failure never unwinds a real event.
+- **Ambient surface.** The bell renders the notification; "What changed"
+  (`myDayIntelligence`) reads `unread_notifications_count`. Copy is calm and
+  non-mechanical ("no action needed"). Making calendar events first-class Action
+  Center rows is documented as a future product decision.
+- **Source-health sweep.** `POST /drive/docs/health-sweep` re-verifies ≤50
+  already-imported docs and emits `SOURCE_HEALTH_CHANGED` only for demoted
+  sources — bounded, never a Drive crawl, transient blips ignored (FND
+  integration: four-outcome tally + one notification per demoted doc).
+- **UI.** The notification dropdown is portaled (`fixed z-[70]`) above the
+  ambient ladder; `overlay-layering.test.ts` pins it. On-screen visual check
+  recommended.
+- **Tests:** FND integration 6 (loop) + 2 (sweep), unit 15, no-leak 2, typecheck
+  0. CT typecheck 0, lint, 2244 unit.
+- **Live (Meridian, FND `23ff045`):** `test:e2e:live:org-autonomy` **1 passed
+  (1.7m)** — provisioned attendee + non-party; gated real create → notify
+  **creator ✓ + attendee ✓ + non-party 0** (no leak); delete → cancellation to
+  the party; cleanup dismissed 5 notifications + suspended 2 identities + swept
+  MEETING rows. Source-health sweep called live: a healthy imported doc →
+  `checked:1, verified:1, notified:0` (quiet when healthy). Post-run residue:
+  escalations 0 · active MEETING rows 0 · active imported docs 0 · calendar busy
+  intervals 0.
+
 ## Remaining honest gaps
 
 1. A 200 export with a silently-truncated-but-plausible body is caught only at

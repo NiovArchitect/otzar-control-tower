@@ -118,6 +118,54 @@ that determines, per required production section:
 
 ---
 
+## ✅ ORG-AUTONOMY · Agreement→calendar→notify→ambient loop + source-health sweep · LIVE + PROVEN on Meridian (2026-07-07, Opus 4.8)
+
+**HEADs:** FND `23ff045` (PR #594 merged + **deployed live**, deploy
+`dep-d96ujqsvikkc73d9c190`) · CT `6cf58dc`+ (portal fix + calendar audit labels +
+vocab + live spec; deploying). NO schema migration.
+
+The gap: Otzar could create real calendar events but nothing surfaced after —
+no notification, no ambient update. Now the loop closes, reusing existing
+primitives (Notification model, WorkLedger, revalidation):
+
+- **Calendar → notify + ledger (spine).** A gated real create writes a terminal
+  `MEETING`/`EXECUTED` WorkLedger row (reads as *done*, never needs-action) +
+  fans out a `CALENDAR_EVENT_CREATED` notification to a **closed, derived**
+  recipient set `{actor, resolved participants w/ entity_id, owner}` — source is
+  always the authenticated actor, and `createInternalNotification` enforces
+  same-org active membership so **non-parties are never notified**. Recipients
+  persist on `details.recipient_entity_ids`; delete re-fans
+  `CALENDAR_EVENT_CANCELLED`. Side-effects are best-effort (never unwind a real
+  event); gate-blocked / scope-less create → zero notifications.
+- **Surfaces:** bell ← `/notifications`; "What changed" (`myDayIntelligence`)
+  reads `unread_notifications_count`. Copy is calm: "Scheduled after approval and
+  calendar availability were confirmed — no action needed." Making calendar
+  events first-class **Action Center** rows (scheduled/conflict/rescheduled
+  states in the `Action` model) is a larger product decision — documented, not
+  built.
+- **Source-health sweep (addendum A).** `POST /drive/docs/health-sweep` (admin):
+  re-verifies ≤50 already-imported docs via the snapshot-preserving revalidation
+  and notifies the admin (`SOURCE_HEALTH_CHANGED`) only on a demoted doc — never
+  for AVAILABLE, never for a transient blip; never crawls Drive.
+- **Permission boundary (STOP-checked):** no on-behalf/impersonation in auth;
+  notification reads are self-scoped to the session entity_id, so a Twin can't
+  read a human's inbox; fanout recipient set is closed/derived. Not unclear → no
+  STOP.
+- **UI:** notification dropdown portal-fixed (createPortal → `fixed z-[70]` above
+  the ambient ladder; `overlay-layering.test.ts` updated). On-screen check still
+  recommended (jsdom can't verify real positioning).
+- **Verification:** FND typecheck 0 · integration 6 (loop) + 2 (sweep) · unit 15
+  · no-leak 2. CT typecheck 0 · lint · 2244 tests.
+- **Live proof (`test:e2e:live:org-autonomy`, Meridian, FND `23ff045`) — GREEN
+  (1.7m):** gated real event → **creator ✓ + attendee ✓ notified, non-party 0**
+  (no leak), delete → cancellation to the party, cleanup swept everything.
+  Source-health sweep live: healthy doc → checked 1 / verified 1 / **notified 0**
+  (quiet when healthy). Post-run residue 0 (escalations, MEETING rows, docs,
+  calendar). NB: a transient 502 in the deploy window on first run was handled by
+  a client-side retry (the delete is idempotent) — not a code fault.
+
+---
+
 ## ✅ MERIDIAN-DEMO-REHEARSAL · Full investor/customer demo rehearsed live · GREEN (2026-07-07, Opus 4.8)
 
 **HEADs:** FND `971d827` · CT `9c95101` (+ this demo commit). Meridian only;

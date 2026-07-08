@@ -21,15 +21,13 @@ Non-blocking polish surfaced while walking the UI for the investor/customer demo
 rehearsal (FND `971d827` · CT `9c95101`). Full demo artifacts:
 `demo/MERIDIAN_INVESTOR_DEMO_SCRIPT.md` + `demo/MERIDIAN_TECHNICAL_PROOF_APPENDIX.md`.
 
-1. **Notification dropdown layering (verify-then-portal).** The employee
-   notification dropdown (`src/components/otzar/NotificationBell.tsx:423`) is an
-   un-portaled `z-50` rendered inside a `backdrop-blur` header
-   (`EmployeeLayout.tsx:51`), which caps its subtree at a `z-40` stacking
-   context relative to root; the ambient orb (`z-[60]`) / ambient nav can
-   overlap it. Durable fix = render the dropdown via `createPortal` with
-   computed positioning, above `z-60`. Deferred (needs on-screen verification;
-   a prior overlay fix `f99a859` already handled the ambient-cards case — avoid
-   regressing it with a blind z bump). **Not a customer-journey slice — polish.**
+1. **Notification dropdown layering — FIXED (ORG-AUTONOMY, CT `6cf58dc`).** The
+   dropdown is now `createPortal`'d to `document.body` as `fixed z-[70]` (above
+   the ambient orb `z-[60]`), position computed from the bell rect + clamped to
+   the viewport, recomputed on resize/scroll; outside-click/Escape/refresh-on-open
+   preserved; `overlay-layering.test.ts` updated to pin the portal contract.
+   **Remaining:** one on-screen confirmation in the live employee shell (jsdom
+   can't exercise real positioning) — structurally proven, visually unverified.
 2. **Prod-build discipline for demo.** Login (`src/pages/Login.tsx:184`) renders
    dev-only seeded-account quick-fill buttons under `import.meta.env.DEV`. The
    live app.otzar.ai is a production build (buttons absent) — always demo the
@@ -38,6 +36,47 @@ rehearsal (FND `971d827` · CT `9c95101`). Full demo artifacts:
 **Fixed in the rehearsal pass:** `Capsule bundle`/`Capsule reference` →
 `Knowledge bundle`/`Knowledge reference` (`ReviewCenter.tsx:69,71`) — a
 customer-facing vocabulary-discipline leak.
+
+---
+
+## Org-autonomy loop (2026-07-07, Opus 4.8 — FND PR #594, CT `6cf58dc`)
+
+**Closed:** calendar create/delete now fans out permission-scoped notifications
+(`CALENDAR_EVENT_CREATED`/`CANCELLED`) to a closed/derived recipient set + writes
+a terminal `MEETING`/`EXECUTED` WorkLedger row; a bounded admin source-health
+sweep (`POST /drive/docs/health-sweep`) notifies on demoted sources; notification
+dropdown portal-fixed. All migration-free, reusing existing primitives.
+
+**Remaining honest gaps (next hardening layer, NOT demo blockers):**
+1. **Action Center calendar lifecycle (large product decision — deferred).**
+   Action Center reads the ADR-0057 `Action` model, not WorkLedger/notifications.
+   A scheduled meeting surfaces in the **bell + "What changed"** (correct
+   "no action needed" behavior), but calendar events are not yet first-class
+   Action rows with scheduled/awaiting-approval/conflict/rescheduled/cancelled
+   states. Making them so is a real product-model decision, not a wiring change —
+   documented here rather than built, per the STOP rule.
+2. **Calendar-change autonomy / Google webhooks (future).** Otzar detects
+   create/delete it performs, but does NOT observe upstream calendar changes
+   (attendee decline, external reschedule, time change). Google Calendar
+   watch-channels/webhooks require dashboard/domain setup (a STOP condition) —
+   deferred. A bounded manual recheck rail is feasible later without schema.
+3. **Meet transcript autonomy (honest-unavailable).** Meet REST transcripts stay
+   `SCOPE_REAUTH_REQUIRED`/`NO_TRANSCRIPT` for this account — never fabricated. A
+   manual transcript paste lands as a `MANUAL_UPLOAD`-labeled capture (existing
+   rail); the honest "not available yet / no transcript imported" copy is the
+   surface. If Meet opens, import selected transcript(s) only, preserve lineage,
+   notify participants by decision-rights — future.
+4. **Scope/tenant honesty (already enforced).** Calendar write is live only where
+   the tenant granted `calendar.events`; a scope-less tenant gets
+   `EVENT_WRITE_SCOPE_MISSING` and **no** notification (the fanout fires only on a
+   real SUCCESS create), so no tenant can be misled into thinking Otzar scheduled
+   something it didn't. UI scheduling copy stays proposal-only until write scope
+   exists.
+5. **"Needs you" vs unread FYI (minor).** A `CALENDAR_EVENT_CREATED` FYI is an
+   unread notification, which the ambient "Needs you" banner keys off
+   (`unread_notifications_count`). The copy says "no action needed," but the
+   count-based banner does not yet distinguish action-required from FYI. A
+   class-aware ambient counter is a small follow-up.
 
 ---
 

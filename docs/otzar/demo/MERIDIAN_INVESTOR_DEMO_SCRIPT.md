@@ -127,12 +127,19 @@ Log in as an **employee** (or show the employee surfaces):
 3. **Twin boundary.** The Twin cannot read restricted context or act beyond the
    human's permissions — non-party retrieval returns a safe 404 with no title
    leak.
-4. **Real scheduling, fully gated.** Schedule the sync: Otzar reads **real**
-   Google free/busy, picks a clear slot, and creates a **real Google Calendar
-   event only after every gate** (participants → confirmation → approval →
-   caller-confirm → connected → write-scope). Then it's deleted as cleanup —
-   idempotently, zero residue. *Talk:* "No fake calendar holds. A real event,
-   only after real approval — and we clean up after ourselves."
+4. **Real scheduling, fully gated — then the org feels led.** Schedule the sync:
+   Otzar reads **real** Google free/busy, picks a clear slot, and creates a
+   **real Google Calendar event only after every gate** (participants →
+   confirmation → approval → caller-confirm → connected → write-scope). The
+   moment it's created, Otzar **notifies exactly the right humans** — the creator
+   and the resolved attendees, **nobody else** — with a calm "Scheduled after
+   approval and calendar availability were confirmed — no action needed." It does
+   **not** ask anyone to re-confirm what was already agreed. Delete re-notifies
+   the same parties that it was cancelled. Then cleanup — idempotent, zero
+   residue. *Talk:* "This is the autonomous feel: Otzar held the context, checked
+   real availability, respected who had authority, scheduled it, and told the
+   right people — without creating a single new task for anyone. And a non-party
+   never sees it."
 5. **Meet honesty.** If asked for a meeting transcript, Otzar returns an honest
    "not available / reconnect required" — it never fabricates a transcript.
 

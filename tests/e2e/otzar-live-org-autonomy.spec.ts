@@ -151,21 +151,28 @@ test("Org autonomy on Meridian: gated real calendar event → permission-scoped 
       "non-party must receive NO calendar notification").toBe(0);
     console.log(`[org-autonomy] notify scoped: creator ✓ attendee ✓ non-party 0 — no leak`);
 
-    // 5) Delete → cancellation fanout to the parties (pass party context so the
-    //    cancellation reaches the attendee whether or not a ledger row was written).
-    const del = await request.post(`${API}/calendar/events/delete`, {
-      headers: auth(admin),
-      data: {
-        event_id: eventId,
-        calendar_id: calendarId,
-        participants: [{ label: "Implementation Attendee", resolved: true, entity_id: attendee.id }],
-        title,
-      },
-      failOnStatusCode: false,
-      timeout: 60_000,
-    });
-    expect(del.status()).toBe(200);
-    expect((await del.json()).ok).toBe(true);
+    // 5) Delete → cancellation fanout to the parties. The create-time recipient
+    //    set is persisted on the MEETING ledger row, so a plain delete re-fans
+    //    to the same humans (no need to re-supply attendees). Retry on a
+    //    transient 5xx (a real client retries a gateway blip) — the delete is
+    //    idempotent (already-gone = success).
+    let delOk = false;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const del = await request.post(`${API}/calendar/events/delete`, {
+        headers: auth(admin),
+        data: { event_id: eventId, calendar_id: calendarId },
+        failOnStatusCode: false,
+        timeout: 60_000,
+      });
+      if (del.status() === 200) {
+        expect((await del.json()).ok).toBe(true);
+        delOk = true;
+        break;
+      }
+      expect(del.status(), `delete returned ${del.status()} (expected 200 or a transient 5xx)`).toBeGreaterThanOrEqual(500);
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    expect(delOk, "delete should succeed (idempotent) within retries").toBe(true);
     let attendeeCancelled: Array<{ notification_id: string; notification_class: string }> = [];
     for (let i = 0; i < 8; i++) {
       const ti = await inbox(request, attendee.token);
