@@ -49,7 +49,8 @@
     "test:e2e:live:source-integrity": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-source-integrity.spec.ts",
     "test:e2e:live:org-autonomy": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-org-autonomy.spec.ts",
     "test:e2e:live:notification-layering": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-notification-layering.spec.ts",
-    "test:e2e:live:participant-coordination": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-participant-coordination.spec.ts"
+    "test:e2e:live:participant-coordination": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-participant-coordination.spec.ts",
+    "test:e2e:live:demo-dryrun": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-demo-dryrun.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

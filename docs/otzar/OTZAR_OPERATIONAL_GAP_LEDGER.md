@@ -37,6 +37,47 @@ rehearsal (FND `971d827` · CT `9c95101`). Full demo artifacts:
 `Knowledge bundle`/`Knowledge reference` (`ReviewCenter.tsx:69,71`) — a
 customer-facing vocabulary-discipline leak.
 
+### Visual dry-run watch-items (2026-07-08 — FND `016d7ca` · CT `1ea2a8b`)
+
+A live screenshot walk of the deployed app (`test:e2e:live:demo-dryrun`, 11
+surfaces, admin + employee shells) found **NO presentation blockers** — login is
+clean (no dev buttons), the employee ambient home shows "You're all caught up"
+with a bell badge "1" (class-aware FYI fix live), the notification dropdown paints
+above the orb with calm FYI copy, the Scheduled lane copy is calm ("Nothing to do
+here — just so you know"), and Data & Knowledge / Security & Audit read honest and
+premium. The following are **product/ops/verification decisions** (documented, not
+changed in a visual dry-run):
+
+1. **Vocabulary: "My Twin" vs "AI Teammate" (product decision).** The employee
+   shell brands the AI teammate "My Twin" / "Teach your Twin" (`nav-employee.ts`,
+   the `/app/my-twin` page title + route, `MyMemory.tsx`, `Preferences.tsx`) and
+   the FND My-Day suggestion `python-ranking.service.ts:259` says "Teach your Twin
+   your preferences…" — while the admin shell + doctrine use "AI Teammate." The
+   `/app/my-twin` page even reads "Your aligned **AI teammate**" under the "My
+   Twin" title. Aligning them is a coordinated rebrand (route + nav + pages + a
+   backend string + tests + redeploy) = a product decision, not a one-line fix.
+2. **Footer health pill (ops decision).** `ConnectionStatusIndicator.tsx:36`
+   renders "Foundation {version} · DB {status}" in the admin footer — an
+   intentional ops health indicator that reads dev-ish in a customer demo.
+   Consider hiding/softening it for customer/demo builds.
+3. **Data & Knowledge — Google Workspace shows "Needs app review"** while the
+   connection is live/VERIFIED (real Docs/Calendar work). Likely reflects the real
+   Google OAuth-app verification status (unverified app), but sits confusingly next
+   to a working connection — verify + consider a "Connected" affordance for the
+   live connection.
+4. **Security & Audit forensic labels** show "Target entity id (UUID)" / "Target
+   capsule id (UUID)" + raw-id detail rows. The codebase permits raw data-model
+   terms here for "compliance/forensic display," so this may be intentional —
+   confirm whether to soften to customer vocab or keep forensic precision.
+5. **Scheduled-lane loading (verify timing, not a confirmed bug).** The
+   screenshot caught the lane at "Loading your calendar…" (the meetings fetch
+   hadn't resolved in the 2.8s capture window). The API returns the caller's
+   MEETING rows (proven by `participant-coordination`), so it should load promptly;
+   confirm on-screen it isn't a stuck state.
+6. **Auth not persisted across hard reload (minor UX).** A full page reload / deep
+   link to a protected route redirects to `/login` (in-memory auth). Clicking
+   through the app works; a presenter should not hard-refresh mid-demo.
+
 ---
 
 ## Org-autonomy loop (2026-07-07, Opus 4.8 — FND PR #594, CT `6cf58dc`)
