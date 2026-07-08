@@ -15,7 +15,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { ActionCenter } from "@/pages/app/ActionCenter";
 import { useAuthStore } from "@/lib/stores/auth";
-import type { SafeActionView } from "@/lib/types/foundation";
+import type { SafeActionView, WorkLedgerEntryView } from "@/lib/types/foundation";
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -529,6 +529,145 @@ describe("ActionCenter — roster-aware (not David-only)", () => {
     expect(card.getAttribute("data-action-id")).toBe("a-annie-1");
     // No David leak from a regression fixture in the test code.
     expect(document.body.outerHTML).not.toMatch(/\bDavid\b/);
+  });
+});
+
+// ── [SCHEDULED-LANE] read-only calendar meeting lane ────────────────────────
+function meetingRow(overrides: Partial<WorkLedgerEntryView> = {}): WorkLedgerEntryView {
+  return {
+    ledger_entry_id: "led-mtg-1",
+    ledger_type: "MEETING",
+    source_type: "VOICE_COMMAND",
+    source_command: null,
+    work_plan_id: null,
+    requester_entity_id: null,
+    owner_entity_id: null,
+    target_entity_id: null,
+    title: "Q3 roadmap sync",
+    status: "EXECUTED",
+    priority: "ROUTINE",
+    extraction_source: "TYPESCRIPT_DETERMINISTIC",
+    next_action: null,
+    due_at: null,
+    created_at: new Date(Date.now() - 60_000).toISOString(),
+    ...overrides,
+  };
+}
+
+function mockMeetings(rows: WorkLedgerEntryView[]): void {
+  server.use(
+    http.get(`${API_BASE}/work-os/ledger`, () =>
+      HttpResponse.json({ ok: true, items: rows }),
+    ),
+  );
+}
+
+describe("ActionCenter — Scheduled lane (read-only calendar meetings)", () => {
+  it("renders an EXECUTED meeting as calm + never as a Needs-you task", async () => {
+    mockList([]); // no actions
+    mockMeetings([
+      meetingRow({
+        title: "Q3 roadmap sync",
+        status: "EXECUTED",
+        scheduled_meeting: {
+          provider: "google_calendar_event",
+          participants: [
+            { label: "Elena", role: "required_attendee", required: true },
+            { label: "Aisha", role: "optional_attendee", required: false },
+          ],
+        },
+      }),
+    ]);
+    renderPage();
+    const card = await screen.findByTestId("scheduled-meeting-card");
+    expect(card).toHaveTextContent("Q3 roadmap sync");
+    expect(card).toHaveTextContent("Scheduled — no action needed");
+    expect(card).toHaveTextContent("Attendees were notified.");
+    // Honest provenance — NOT "invited".
+    expect(card).toHaveTextContent("On Google Calendar.");
+    expect(card.textContent ?? "").not.toMatch(/invited/i);
+    // It is NOT an Action card, and does NOT inflate the Needs-decision count.
+    expect(screen.queryByTestId("action-center-card")).toBeNull();
+    expect(
+      screen.getByTestId("action-tab-pending").getAttribute("data-count"),
+    ).toBe("0");
+  });
+
+  it("maps attendee roles to friendly labels — never raw enums", async () => {
+    mockList([]);
+    mockMeetings([
+      meetingRow({
+        scheduled_meeting: {
+          provider: "google_calendar_event",
+          participants: [
+            { label: "Elena", role: "required_attendee", required: true },
+            { label: "Aisha", role: "optional_attendee", required: false },
+            { label: "Ravi", role: "informed_party", required: false },
+          ],
+        },
+      }),
+    ]);
+    renderPage();
+    const roster = await screen.findByTestId("scheduled-meeting-roster");
+    expect(roster).toHaveTextContent("Required: Elena");
+    expect(roster).toHaveTextContent("Optional: Aisha");
+    expect(roster).toHaveTextContent("Informed: Ravi");
+    // No raw role enums anywhere on the card.
+    const card = screen.getByTestId("scheduled-meeting-card");
+    for (const banned of ["required_attendee", "optional_attendee", "informed_party"]) {
+      expect(card.textContent ?? "").not.toContain(banned);
+    }
+  });
+
+  it("never leaks a raw event_id / calendar_id / entity UUID into the lane", async () => {
+    mockList([]);
+    mockMeetings([
+      meetingRow({
+        // The safe projection structurally cannot carry ids (Foundation strips
+        // event_id/calendar_id/recipient_entity_ids/entity_id in
+        // scheduledMeetingFromDetails); the lane must render labels only.
+        scheduled_meeting: {
+          provider: "google_calendar_event",
+          participants: [{ label: "Elena", role: "required_attendee", required: true }],
+        },
+      }),
+    ]);
+    renderPage();
+    const lane = await screen.findByTestId("scheduled-lane");
+    // Raw id VALUES must not appear anywhere in the lane (not even attributes).
+    const html = lane.outerHTML;
+    expect(html).not.toContain("evt-9f2c1a44-uuid");
+    expect(html).not.toContain("cal-abc-uuid");
+    expect(html).not.toContain("ent-elena-uuid");
+    // Raw enums / technical key names must not appear in VISIBLE copy. (A
+    // non-visible data-* attribute may carry the status enum, mirroring the
+    // existing data-action-status precedent — never normal-facing copy.)
+    const visible = lane.textContent ?? "";
+    expect(visible).not.toMatch(/event_id|calendar_id|entity_id|EXECUTED|MEETING/);
+  });
+
+  it("shows a calm empty state when there are no meetings", async () => {
+    mockList([]);
+    mockMeetings([]);
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId("scheduled-lane-empty")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("scheduled-lane-empty")).toHaveTextContent(
+      "No meetings scheduled yet.",
+    );
+  });
+
+  it("renders a CANCELLED meeting calmly as 'Cancelled'", async () => {
+    mockList([]);
+    mockMeetings([
+      meetingRow({ ledger_entry_id: "led-mtg-cx", title: "Old kickoff", status: "CANCELLED" }),
+    ]);
+    renderPage();
+    const card = await screen.findByTestId("scheduled-meeting-card");
+    expect(card).toHaveTextContent("Old kickoff");
+    expect(card).toHaveTextContent("Cancelled");
+    expect(card.textContent ?? "").not.toContain("CANCELLED");
   });
 });
 

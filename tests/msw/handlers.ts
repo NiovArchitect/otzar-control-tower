@@ -3112,6 +3112,15 @@ const workLedgerCreateHandler = http.post(
   },
 );
 
+// [SCHEDULED-LANE] Default GET /work-os/ledger list so the Action Center's
+// read-only Scheduled lane (which loads MEETING rows on mount) has a handler
+// under onUnhandledRequest:"error". Empty by default — the lane renders its
+// calm empty state; tests needing meetings override via server.use().
+const workLedgerListHandler = http.get(
+  `${API_BASE}/work-os/ledger`,
+  () => HttpResponse.json({ ok: true, items: [] }),
+);
+
 // [PROD-UX-BUGB] Default pending-follow-ups feed so the Comms page (which loads
 // durable follow-ups on mount) has a handler under onUnhandledRequest:"error".
 // Empty by default; tests needing cards override via server.use().
@@ -3157,6 +3166,7 @@ export const handlers = [
   workOsAuthorityHandler,
   runtimeCapabilitiesHandler,
   workLedgerCreateHandler,
+  workLedgerListHandler,
   commsPendingFollowUpsHandler,
   workLedgerPatchHandler,
   // Section 2 Action read surface (ADR-0057 §9 + §10)

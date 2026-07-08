@@ -100,6 +100,73 @@ dropdown portal-fixed. All migration-free, reusing existing primitives.
 
 ---
 
+## Participant coordination + ORGX meeting flow (2026-07-08, Opus 4.8)
+
+**ORGX = Organization Experience** (the org feels coordinated + led) balanced with
+**UX** (each human feels calm, not nagged), harmonized by **AIX** (Otzar holds the
+context so humans don't have to). Grep-first inspection established what is safe to
+build vs a product decision — NO item required a schema migration or a new Google
+scope.
+
+**Shipped (safe, additive, no migration/scope):**
+1. **Participant roles + optional-doesn't-block.** `ProposedParticipant` gained
+   additive `role`/`required`; the gate ladder now blocks only on a **required**
+   participant being unresolved — an **optional** attendee missing never stops
+   scheduling (role-less participants stay required = backward-compatible). The
+   MEETING WorkLedger row persists `details.participants` (label/role/required/
+   resolved/entity_id — no emails/secrets).
+2. **Action Center read-only "Scheduled" lane** sourced from the **caller-scoped**
+   `MEETING`/`EXECUTED` WorkLedger rows (NOT the execution-queue Action model).
+   `listLedgerEntries` scopes non-managers to `owner/target/requester`, so an
+   employee sees only meetings they organized and a **non-party sees nothing**.
+   Calm ("Scheduled — no action needed" / "Cancelled"), never under "Needs you".
+
+**Product-model / doctrine decisions — documented, NOT built:**
+1. **Invite vs notification (semantics).** Today "add X to the meeting" adds an
+   **internal Otzar notification**; it does **not** put X on the Google invite —
+   `events.insert` sends no `attendees` array. Copy must say "attendees were
+   **notified**," never "invited," to avoid fake certainty. A real Google-invite
+   path is a doctrine step (see #2).
+2. **External invites — doctrine boundary (STOP).** The calendar service is
+   deliberately internal-inbox-only (RULE 0); fanout hard-denies cross-org
+   recipients. Inviting external/customer guests would cross that stated safety
+   boundary — a product/doctrine decision, not a wiring change. "Customer asked to
+   include their lead" → **approval-gated**, never auto-invited. **A customer
+   request is not internal scope approval.**
+3. **Per-attendee availability — GAP.** Free/busy uses the single org token, one
+   calendar at a time, with no entity→email/calendar resolver. So "required
+   attendee unavailable → propose alternative" is not live-checkable yet; it needs
+   an entity→calendar resolver first. The raw free/busy read is available.
+4. **Natural-language event execution — product-UX decision (STOP), scope IS
+   available.** Correction to an earlier stale in-code comment: calendar **write
+   scope is live** (`calendar.events`, proven by real events created/deleted). A
+   deterministic NL intent parser already exists (`command-planner.ts`, classifies
+   `SCHEDULE_MEETING`); voice is transcription-to-text into the same handler
+   (text/voice parity). The real blockers to free-text → live event creation are
+   (a) relative-time normalization ("tomorrow"/"after lunch" → concrete datetime,
+   unbuilt) and (b) a **confirm-the-resolved-time slot UX** — a natural-language
+   interface to an irreversible external mutation should not auto-create from free
+   text. Forward path: extend the parser to **classify** reschedule/cancel/
+   add-attendee into an **honest structured card** (no auto-execute), add a
+   deterministic time-normalizer, and a slot-confirm step — then the existing
+   real-create endpoint does the rest. Not wired this block by design.
+5. **Reschedule via `events.patch` — scope-free, deferred.** `calendar.events`
+   already covers `events.patch`; a reschedule (change time) rail is migration- and
+   scope-free but was deferred to keep this block coherent. It needs the same
+   delete-cleanup rigor as the create/delete live proofs.
+6. **Attendee-visibility in the Scheduled lane — safe future.** The lane shows the
+   **organizer** their meetings (owner-scoped). Showing an **attendee** their own
+   meetings needs a `details.recipient_entity_ids CONTAINS caller` match — a small,
+   safe extension. Attendees already see the meeting via the bell/What-changed.
+
+**No redundant asks:** agreement is not one boolean — time / participants / scope /
+decision-authority / internal-approval / external-invite / calendar-write are
+distinct. Otzar moves forward when only an optional attendee is missing, stops when
+required **authority** is missing, and routes the one missing question to the right
+owner — it never re-asks what context already proves.
+
+---
+
 ## The rule this ledger enforces
 
 **The customer experience drives the code.** Every user story must translate

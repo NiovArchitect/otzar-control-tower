@@ -1635,6 +1635,16 @@ export class ApiClient {
     blindSpots: (): Promise<ApiResult<WorkLedgerListResponse>> =>
       this.request<WorkLedgerListResponse>("/work-os/blind-spots"),
 
+    /** GET /api/v1/work-os/ledger?ledger_type=MEETING — [SCHEDULED-LANE] the
+     *  caller's terminal calendar meeting rows. This endpoint is ALREADY
+     *  caller-scoped for non-managers (an employee sees only rows where they
+     *  are owner/target/requester; a non-party sees nothing), so this CT-only
+     *  read is safe. READ-ONLY: a MEETING/EXECUTED row is done — there is no
+     *  execute/approve/cancel here (cancel happens via the calendar rail). This
+     *  is the durable Work Ledger, NOT the Action execution queue. */
+    meetings: (): Promise<ApiResult<WorkLedgerListResponse>> =>
+      this.request<WorkLedgerListResponse>("/work-os/ledger?ledger_type=MEETING"),
+
     /** GET /api/v1/work-os/blind-spots/feed — typed risk feed (overdue / stale
      *  waiting-on / unresolved blocker / no-next-action) with severity. */
     blindSpotsFeed: (): Promise<ApiResult<BlindSpotFeedResponse>> =>

@@ -152,6 +152,28 @@ update → audit → no redundant ask:
   escalations 0 · active MEETING rows 0 · active imported docs 0 · calendar busy
   intervals 0.
 
+## Participant coordination / ORGX proof (FND `016d7ca`)
+
+- **Optional attendees don't block.** Additive participant `role`/`required`; the
+  gate ladder blocks only on a **required** participant being unresolved (role-less
+  stays required = backward-compatible). Live: an optional-unresolved attendee did
+  NOT block a real create; a required-unresolved one blocked
+  (`PARTICIPANT_UNRESOLVED`).
+- **Scheduled lane (read-only, caller-scoped).** Action Center surfaces `MEETING`/
+  `EXECUTED` rows from the **caller-scoped** ledger (`listLedgerEntries` scopes
+  non-managers to owner/target/requester) — proven live: a **non-party employee
+  saw 0 meetings**. Never the execution-queue Action model; never under "Needs you".
+- **Safe roster projection.** A dedicated `scheduled_meeting` view exposes only
+  provider + participant label/role/required — proven live to carry **no**
+  event_id/calendar_id/recipient_ids. Copy says "Attendees were **notified**"
+  (internal), never "invited".
+- **Honest boundaries (documented, not built):** natural-language live event
+  execution (relative-time + slot-confirm UX; scope IS available), external invites
+  (doctrine — `events.insert` sends no attendees), per-attendee availability
+  (org-token gap), reschedule via `events.patch` (scope-free, deferred). See the
+  gap ledger.
+- Live: `test:e2e:live:participant-coordination` **1 passed (1.3m)**, zero residue.
+
 ## Remaining honest gaps
 
 1. A 200 export with a silently-truncated-but-plausible body is caught only at

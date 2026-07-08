@@ -4980,6 +4980,15 @@ export interface WorkLedgerEntryView {
   // PROD-UX-P0R — the anchoring audit event link (persisted column), surfaced
   // so routing/audit affordances can deep-link. Additive + optional.
   audit_event_id?: string;
+  // [SCHEDULED-LANE] Foundation's SAFE curated roster projection for a terminal
+  // calendar MEETING/EXECUTED row: provider + participant label/role/required
+  // ONLY. Never carries event_id / calendar_id / recipient_entity_ids /
+  // entity_ids (those stay in `details`, off the wire). Present only for
+  // calendar_event rows. Additive + optional.
+  scheduled_meeting?: {
+    provider: string | null;
+    participants: Array<{ label: string; role: string | null; required: boolean }>;
+  };
 }
 
 // PROD-UX-P0R — mirror of Foundation's RoutingDecisionView

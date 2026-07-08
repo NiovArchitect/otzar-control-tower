@@ -118,6 +118,59 @@ that determines, per required production section:
 
 ---
 
+## ✅ ORGX · Participant coordination + Scheduled lane + NL-event decision · LIVE + PROVEN on Meridian (2026-07-08, Opus 4.8)
+
+**HEADs:** FND `016d7ca` (PR #595 merged + **deployed live**, deploy
+`dep-d9759uu8bjmc73b6u8hg`) · CT (this commit; Scheduled lane + safe
+`scheduled_meeting` read). NO schema migration, NO new Google scope.
+
+ORGX = Organization Experience (the org feels coordinated) balanced with UX (each
+human calm, not nagged), harmonized by AIX. Grep-first established what's safe to
+build vs a product decision.
+
+**Shipped (safe, additive):**
+- **Participant coordination — optional attendees don't block.** `ProposedParticipant`
+  gained additive `role`/`required`; the gate ladder now blocks only on a
+  **required** participant being unresolved. An optional attendee missing no longer
+  stops scheduling (role-less stays required = backward-compatible). The
+  MEETING/EXECUTED WorkLedger row persists `details.participants`
+  (label/role/required/resolved/entity_id — no emails/secrets).
+- **Action Center read-only "Scheduled" lane** sourced from the **caller-scoped**
+  `MEETING` rows (`listLedgerEntries` scopes non-managers to owner/target/requester
+  → an employee sees only meetings they organized; **non-party sees nothing**). Not
+  the execution-queue Action model. Calm ("Scheduled — no action needed"), never
+  under "Needs you". Roster shows friendly roles (Required/Optional/Informed) via a
+  new **safe `scheduled_meeting` projection** (provider + label/role/required ONLY —
+  never event_id/calendar_id/recipient_ids). Honest copy: "Attendees were
+  **notified**" (never "invited").
+- Fixed a stale in-code comment that had claimed the calendar service is
+  read-only/terminal (it creates real approval-gated events).
+
+**Product decisions — DOCUMENTED, not built (gap ledger):**
+- **Natural-language event execution** — scope IS available (correcting a stale
+  comment the inspection misread); the real blockers are relative-time
+  normalization + a confirm-the-resolved-time slot UX. A deterministic parser
+  (`command-planner.ts`) already classifies SCHEDULE_MEETING; voice is
+  transcription→same handler (parity). Not wired to live-create from free text by
+  design (irreversible external mutation).
+- **External invites** = doctrine boundary (`events.insert` sends no `attendees`;
+  fanout is internal-only). "Add X" = internal notification, not a Google invite —
+  copy says so. Customer request ≠ internal scope approval.
+- **Per-attendee availability** = gap (org-token free/busy, no entity→email).
+- **Reschedule via `events.patch`** = scope-free, deferred.
+- **Attendee-visibility-in-lane** = safe future (recipient-match extension).
+
+- **Verification:** FND typecheck 0 · integration 10 (calendar) · work-ledger unit
+  23 (incl. safe-projection no-leak) · no-leak 2. CT typecheck 0 · action-center 32.
+- **Live proof (`test:e2e:live:participant-coordination`, Meridian) — GREEN
+  (1.3m):** optional-unresolved did NOT block (event created); required-unresolved
+  correctly blocked (`PARTICIPANT_UNRESOLVED`); the MEETING row's safe
+  `scheduled_meeting` roster showed "Rhea:true · Optional Finance:false" with **no
+  ids**; a **non-party employee saw 0 meetings** (caller-scoped); cleanup swept
+  everything. FND `016d7ca` live.
+
+---
+
 ## ✅ ACTION-CENTER-LIFECYCLE · Dropdown verified live + calendar-lifecycle STOP + class-aware "Needs you" · (2026-07-08, Opus 4.8)
 
 **HEADs:** CT (this commit; class-aware ambient split) · FND `23ff045` unchanged

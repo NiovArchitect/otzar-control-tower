@@ -32,7 +32,7 @@
 //     translated to friendly labels.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +48,7 @@ import {
 import { api } from "@/lib/api";
 import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
-import type { SafeActionView } from "@/lib/types/foundation";
+import type { SafeActionView, WorkLedgerEntryView } from "@/lib/types/foundation";
 import { isActionablePending, actionClassLabel } from "@/lib/work-os/action-classify";
 import { useWorkStateChanged, emitWorkStateChanged } from "@/lib/events/work-state";
 
@@ -640,7 +640,195 @@ export function ActionCenter(): JSX.Element {
           })}
         </ul>
       )}
+
+      {/* [SCHEDULED-LANE] A distinct, calm, READ-ONLY lane for the caller's
+          terminal calendar meetings. It reads the caller-scoped MEETING ledger
+          (NOT the Action queue), lives outside the tab ternary, and never feeds
+          the "Needs decision" count — a scheduled meeting is done, not a task. */}
+      <ScheduledLane />
     </div>
+  );
+}
+
+// ── [SCHEDULED-LANE] read-only calendar meeting lane ────────────────────────
+// A MEETING/EXECUTED Work Ledger row is terminal: no execute/approve/cancel
+// here. `details` carries raw scalars/enums (event_id, calendar_id, role enums)
+// that MUST be mapped to customer copy — this lane reads it defensively and
+// projects ONLY safe, friendly fields (never a UUID / event_id / raw enum).
+
+interface MeetingParticipant {
+  /** Display label (a person's name) — the only participant field we surface. */
+  label: string;
+  /** Raw role string from Foundation (e.g. "optional_attendee"); mapped, never shown. */
+  role: string;
+  /** Raw required flag; the fallback when the role enum is unrecognized. */
+  required: boolean;
+}
+
+// WHAT: map a raw attendee role to customer copy (Required / Optional / Informed).
+// WHY: NEVER leak a raw enum like `optional_attendee`. The input is a free
+//      string (the enum lives in a parallel Foundation change), so this is a
+//      total defensive function, not a Record — unknown roles fall back to the
+//      `required` boolean and still resolve to friendly copy.
+function friendlyRole(role: string, required: boolean): string {
+  const r = role.toLowerCase();
+  if (r.includes("inform")) return "Informed";
+  if (r.includes("optional")) return "Optional";
+  if (r.includes("required") || r.includes("organizer") || r.includes("owner")) {
+    return "Required";
+  }
+  return required ? "Required" : "Optional";
+}
+
+// WHAT: read the safe `scheduled_meeting.participants` projection into
+//       {label, role, required}. Foundation already stripped ids; we defend
+//       anyway and drop any entry without a display label.
+function parseParticipants(
+  meeting: { participants?: unknown } | undefined,
+): MeetingParticipant[] {
+  if (meeting === undefined) return [];
+  const raw = meeting.participants;
+  if (!Array.isArray(raw)) return [];
+  const out: MeetingParticipant[] = [];
+  for (const p of raw) {
+    if (typeof p !== "object" || p === null) continue;
+    const o = p as Record<string, unknown>;
+    const label = typeof o.label === "string" ? o.label.trim() : "";
+    if (label.length === 0) continue; // no name → skip (never fall back to an id)
+    const role = typeof o.role === "string" ? o.role : "";
+    const required = typeof o.required === "boolean" ? o.required : false;
+    out.push({ label, role, required });
+  }
+  return out;
+}
+
+// WHAT: "Required: Elena · Optional: Aisha" from the safe participants.
+// WHY: a brief, calm roster using friendly role labels only.
+function rosterSummary(parts: MeetingParticipant[]): string | null {
+  if (parts.length === 0) return null;
+  const groups = new Map<string, string[]>();
+  for (const p of parts) {
+    const key = friendlyRole(p.role, p.required);
+    const names = groups.get(key) ?? [];
+    names.push(p.label);
+    groups.set(key, names);
+  }
+  const segs: string[] = [];
+  for (const key of ["Required", "Optional", "Informed"]) {
+    const names = groups.get(key);
+    if (names !== undefined && names.length > 0) {
+      segs.push(`${key}: ${names.join(", ")}`);
+    }
+  }
+  return segs.length > 0 ? segs.join(" · ") : null;
+}
+
+// WHAT: the calm status line for a terminal MEETING row.
+// WHY: EXECUTED reads as "Scheduled — no action needed"; a historical
+//      CANCELLED row reads as "Cancelled". No raw status enum ever shown.
+function meetingStatusLine(status: string): string {
+  return status === "CANCELLED" ? "Cancelled" : "Scheduled — no action needed";
+}
+
+function ScheduledLane(): JSX.Element | null {
+  const [meetings, setMeetings] = useState<WorkLedgerEntryView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+
+  const load = useCallback(() => {
+    return api.workOs
+      .meetings()
+      .then((result) => {
+        if (result.ok) {
+          const rows = result.data.items ?? result.data.entries ?? [];
+          // Self-enforcing lane contract: MEETING rows only (never trust the
+          // query param alone on a general ledger endpoint), and terminal
+          // states only — EXECUTED (scheduled) + CANCELLED (historical).
+          setMeetings(
+            rows.filter(
+              (r) =>
+                r.ledger_type === "MEETING" &&
+                (r.status === "EXECUTED" || r.status === "CANCELLED"),
+            ),
+          );
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setFailed(true);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // A newly created meeting lands as a ledger row; refresh quietly so the lane
+  // is never stale. Calm — no toast, no count, no nag.
+  useWorkStateChanged(["LEDGER_UPDATED", "TASK_COMPLETED"], () => void load());
+
+  // On failure, render nothing noisy — the lane simply stays quiet.
+  if (failed) return null;
+
+  return (
+    <section className="space-y-2 border-t border-border pt-4" data-testid="scheduled-lane">
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <CalendarClock className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <span>Scheduled</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Meetings on your calendar. Nothing to do here — just so you know.
+      </p>
+      {loading ? (
+        <p className="text-sm text-muted-foreground" data-testid="scheduled-lane-loading">
+          Loading your calendar…
+        </p>
+      ) : meetings.length === 0 ? (
+        <Card data-testid="scheduled-lane-empty">
+          <CardContent className="py-6 text-sm text-muted-foreground">
+            No meetings scheduled yet.
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-2" data-testid="scheduled-lane-list">
+          {meetings.map((m) => {
+            const participants = parseParticipants(m.scheduled_meeting);
+            const roster = rosterSummary(participants);
+            const onGoogle = m.scheduled_meeting?.provider === "google_calendar_event";
+            return (
+              <li key={m.ledger_entry_id}>
+                <Card
+                  data-testid="scheduled-meeting-card"
+                  data-meeting-status={m.status}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                      <span className="flex-1">{m.title}</span>
+                      <Badge variant="outline" className="text-muted-foreground">
+                        {meetingStatusLine(m.status)}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1 pt-0 text-xs text-muted-foreground">
+                    {roster !== null ? (
+                      <div data-testid="scheduled-meeting-roster">{roster}</div>
+                    ) : null}
+                    {onGoogle ? <div>On Google Calendar.</div> : null}
+                    {participants.length > 0 ? (
+                      <div>Attendees were notified.</div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
