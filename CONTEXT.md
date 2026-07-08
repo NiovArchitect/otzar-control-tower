@@ -118,6 +118,30 @@ that determines, per required production section:
 
 ---
 
+## ✅ DEMO-POLISH · Hid Foundation footer pill + aligned "My Twin"→"AI Teammate" · LIVE-VERIFIED (2026-07-08, Opus 4.8)
+
+**HEADs:** FND `71c3fa7` (PR #596 — My-Day suggestion string) · CT `07fdc3b`
+(footer pill gate + ~70 copy strings). Both deployed + live-verified via a
+re-captured dry-run. No route/type/schema change.
+
+- **Foundation footer pill:** hidden in production builds
+  (`ConnectionStatusIndicator` — `import.meta.env.DEV` gate on the healthy +
+  loading states); the "Foundation unreachable" error state still always shows
+  (operator observability); health check unchanged. **Live: pill gone from the
+  admin footer.**
+- **"My Twin" → "AI Teammate":** ~70 VISIBLE employee-shell strings + the FND
+  My-Day suggestion aligned to "AI Teammate" — COPY ONLY (route `/app/my-twin`,
+  data-testids, `/^twin of/i` regex, enum/reason codes, component/type
+  identifiers all UNCHANGED; internal model stays "Twin"). 11 unit assertions +
+  the live twin-authority spec updated. **Live: page title "My AI Teammate";
+  What-Changed card "Teach your AI Teammate…".**
+- Verification: CT typecheck 0 · lint · 2251 unit · build ok. FND typecheck 0 ·
+  python-ranking 16 · 5/5 CI. Meridian zero residue; demo org untouched.
+- Residual (deliberately out of scope): admin nav "AI Twins" + onboarding/
+  marketing "Twin" copy — noted in the gap ledger for a future non-employee sweep.
+
+---
+
 ## ✅ DEMO-CONSOLIDATION · Full 5-spec Meridian rehearsal green + demo story includes ORGX · (2026-07-08, Opus 4.8)
 
 **HEADs:** FND `016d7ca` · CT `1ea2a8b` (this commit adds the ORGX demo beats).

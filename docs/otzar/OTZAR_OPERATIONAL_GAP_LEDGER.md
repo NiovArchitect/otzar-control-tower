@@ -48,18 +48,23 @@ here — just so you know"), and Data & Knowledge / Security & Audit read honest
 premium. The following are **product/ops/verification decisions** (documented, not
 changed in a visual dry-run):
 
-1. **Vocabulary: "My Twin" vs "AI Teammate" (product decision).** The employee
-   shell brands the AI teammate "My Twin" / "Teach your Twin" (`nav-employee.ts`,
-   the `/app/my-twin` page title + route, `MyMemory.tsx`, `Preferences.tsx`) and
-   the FND My-Day suggestion `python-ranking.service.ts:259` says "Teach your Twin
-   your preferences…" — while the admin shell + doctrine use "AI Teammate." The
-   `/app/my-twin` page even reads "Your aligned **AI teammate**" under the "My
-   Twin" title. Aligning them is a coordinated rebrand (route + nav + pages + a
-   backend string + tests + redeploy) = a product decision, not a one-line fix.
-2. **Footer health pill (ops decision).** `ConnectionStatusIndicator.tsx:36`
-   renders "Foundation {version} · DB {status}" in the admin footer — an
-   intentional ops health indicator that reads dev-ish in a customer demo.
-   Consider hiding/softening it for customer/demo builds.
+1. **Vocabulary: "My Twin" → "AI Teammate" — FIXED (CT `07fdc3b` / FND `71c3fa7`).**
+   ~70 VISIBLE "Twin" strings across the employee shell (My Twin page/nav/MyMemory/
+   Preferences/employee panels/voice labels/audit label) + the FND My-Day
+   suggestion now read "AI Teammate". COPY ONLY — the `/app/my-twin` route, all
+   data-testids, the `/^twin of /i` provenance regex, enum/reason codes, and
+   component/type identifiers are UNCHANGED (internal domain model stays "Twin").
+   Live-verified: the page title is now "My AI Teammate"; the What-Changed card
+   says "Teach your AI Teammate…". **Residual (out of scope, deliberately left):**
+   ADMIN nav descriptions ("AI Twins", `nav.ts:146/160/280`) and marketing/
+   onboarding pages (Onboarding, VoiceTwin) still say "Twin" — a follow-up if a
+   full non-employee sweep is wanted.
+2. **Footer health pill — FIXED (CT `07fdc3b`).** `ConnectionStatusIndicator.tsx`
+   now hides the "Foundation {version} · DB {status}" (healthy + loading) pill in
+   PRODUCTION builds (`import.meta.env.DEV` gate) while keeping the ERROR state
+   ("Foundation unreachable") always visible for operator observability and the
+   health check itself unchanged. Live-verified: the admin footer no longer shows
+   the pill.
 3. **Data & Knowledge — Google Workspace shows "Needs app review"** while the
    connection is live/VERIFIED (real Docs/Calendar work). Likely reflects the real
    Google OAuth-app verification status (unverified app), but sits confusingly next
