@@ -6,8 +6,9 @@
 //              audit-aware toasts, Security & Audit screen (12D).
 //
 // VOCABULARY DISCIPLINE:
-// Foundation's AuditEventType union has 30 literals (Section 11D
-// added the last 2). Customer-facing labels translate the
+// This map is exhaustive over Foundation's AuditEventType union
+// (kept in lockstep; SOURCE-INTEGRITY added the source-lifecycle
+// events). Customer-facing labels translate the
 // SCREAMING_SNAKE_CASE into enterprise-friendly capitalization
 // while preserving the technical literal so audit-aware UI can
 // surface the original on demand for compliance / forensic display.
@@ -62,6 +63,12 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   PASSWORD_RESET_EMAIL_FAILED: "Password Reset Email Failed",
   WORK_PROFILE_UPDATED: "Work Profile Updated",
   DECISION_RIGHTS_UPDATED: "Decision Rights Updated",
+  SOURCE_VERIFIED: "Source Verified",
+  SOURCE_CHANGED_UPSTREAM: "Source Changed Upstream",
+  SOURCE_ACCESS_REVOKED: "Source Access Revoked",
+  SOURCE_DELETED: "Source Deleted",
+  IMPORT_QUARANTINED: "Import Quarantined",
+  IMPORT_FAILED: "Import Failed",
 } as const;
 
 // WHAT: Look up the customer-facing label for an AuditEventType.

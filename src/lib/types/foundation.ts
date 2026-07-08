@@ -190,7 +190,16 @@ export type AuditEventType =
   | "WORK_PROFILE_UPDATED"
   // [BLOCK-3A] admin set a member's domain decision rights (ids +
   // domain lists only; rights grant no tools/permissions/authority).
-  | "DECISION_RIGHTS_UPDATED";
+  | "DECISION_RIGHTS_UPDATED"
+  // [SOURCE-INTEGRITY] imported-source lifecycle. Revalidation confirms a
+  // snapshot still matches upstream, or demotes it (changed / access-revoked
+  // / deleted); a rejected import is quarantined before any trusted row.
+  | "SOURCE_VERIFIED"
+  | "SOURCE_CHANGED_UPSTREAM"
+  | "SOURCE_ACCESS_REVOKED"
+  | "SOURCE_DELETED"
+  | "IMPORT_QUARANTINED"
+  | "IMPORT_FAILED";
 
 // [BLOCK-3A] Mirror of Foundation's DecisionDomain vocabulary
 // (decision-rights.ts). "unknown" is a classifier bucket and is never
