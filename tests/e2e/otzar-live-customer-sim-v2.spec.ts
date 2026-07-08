@@ -253,32 +253,56 @@ test("Customer Org Simulation v2 on Meridian: 16-person cast, REAL Google import
     const proposeBody = JSON.stringify(await propose.json());
     expectNoFakeGoogle(proposeBody);
 
-    // Fully human-gated create → the capability gate is the only thing
-    // left; with no consented write scope it is EVENT_WRITE_SCOPE_MISSING.
+    // Fully human-gated create. Adaptive by real capability:
+    //  - write scope granted → creates a REAL google_calendar_event, then
+    //    DELETE (cleanup) + delete-again (idempotent) — zero residue;
+    //  - write scope absent → honest EVENT_WRITE_SCOPE_MISSING, no fake.
+    const gStatus = await request.get(`${API}/connectors/oauth/status`, { headers: auth(admin) });
+    const gProv = ((await gStatus.json()) as { providers?: Array<{ provider: string; scopes?: string[] }> }).providers?.find((p) => p.provider === "GOOGLE_WORKSPACE");
+    const hasWriteScope = (gProv?.scopes ?? []).includes("https://www.googleapis.com/auth/calendar.events");
+
+    const createBody = {
+      title: `${proj0} go-live sync [${RUN}]`,
+      selected_time: { start: rfc3339(slotStart), end: rfc3339(slotEnd) },
+      participants: [{ label: "Engineering Lead", resolved: true }],
+      participant_confirmations_satisfied: true,
+      requires_approval: true,
+      approved: true,
+      caller_confirmed: true,
+    };
     const calCreate = await request.post(`${API}/calendar/events/create`, {
-      headers: auth(admin),
-      data: {
-        title: `${proj0} go-live sync [${RUN}]`,
-        selected_time: { start: rfc3339(slotStart), end: rfc3339(slotEnd) },
-        participants: [{ label: "Engineering Lead", resolved: true }],
-        participant_confirmations_satisfied: true,
-        requires_approval: true,
-        approved: true,
-        caller_confirmed: true,
-      },
-      failOnStatusCode: false,
+      headers: auth(admin), data: createBody, failOnStatusCode: false, timeout: 60_000,
     });
     const calBody = await calCreate.json();
     const calRaw = JSON.stringify(calBody);
-    expect(calCreate.status()).not.toBe(200);
-    expect(calBody.ok).not.toBe(true);
-    // Honest capability gate (write scope not yet consented) OR a human
-    // gate — never a fabricated create.
-    expect(["EVENT_WRITE_SCOPE_MISSING", "GOOGLE_RECONNECT_REQUIRED", "NEEDS_APPROVAL", "NEEDS_CALLER_CONFIRMATION", "CALENDAR_PROVIDER_UNAVAILABLE"]).toContain(calBody.code);
     expectNoFakeGoogle(calRaw);
-    expect(calRaw).not.toContain('"created":true');
-    expect(calRaw).not.toContain("event_id");
-    console.log(`[sim-v2] calendar scheduling: proposed a slot clear of real free/busy; create honestly blocked (${calBody.code}) — no fake event`);
+
+    if (hasWriteScope) {
+      expect(calCreate.status()).toBe(200);
+      expect(calBody.ok).toBe(true);
+      expect(calBody.source_kind).toBe("google_calendar_event");
+      expect(typeof calBody.event_id).toBe("string");
+      expect((calBody.event_id as string).length).toBeGreaterThan(0);
+      expect(calBody.calendar_id).toBe("primary");
+      expect(calRaw).not.toMatch(/access_token|refresh_token/i);
+      const del = await request.post(`${API}/calendar/events/delete`, {
+        headers: auth(admin), data: { event_id: calBody.event_id, calendar_id: calBody.calendar_id }, failOnStatusCode: false, timeout: 60_000,
+      });
+      expect(del.status()).toBe(200);
+      expect((await del.json()).ok).toBe(true);
+      const del2 = await request.post(`${API}/calendar/events/delete`, {
+        headers: auth(admin), data: { event_id: calBody.event_id, calendar_id: calBody.calendar_id }, failOnStatusCode: false, timeout: 60_000,
+      });
+      expect(del2.status()).toBe(200); // idempotent already-gone
+      console.log(`[sim-v2] REAL calendar event created (${(calBody.event_id as string).slice(0, 10)}…) → deleted → delete-again idempotent — zero residue`);
+    } else {
+      expect(calCreate.status()).not.toBe(200);
+      expect(calBody.ok).not.toBe(true);
+      expect(["EVENT_WRITE_SCOPE_MISSING", "GOOGLE_RECONNECT_REQUIRED", "NEEDS_APPROVAL", "NEEDS_CALLER_CONFIRMATION", "CALENDAR_PROVIDER_UNAVAILABLE"]).toContain(calBody.code);
+      expect(calRaw).not.toContain('"created":true');
+      expect(calRaw).not.toContain("event_id");
+      console.log(`[sim-v2] calendar create honestly blocked (${calBody.code}) — write scope not consented; no fake event`);
+    }
 
     // Meet — the honest branch (records or NO_TRANSCRIPT / SCOPE_REAUTH).
     const meet = await request.get(`${API}/meet/conference-records?page_size=5`, { headers: auth(admin) });

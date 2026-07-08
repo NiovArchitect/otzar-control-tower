@@ -118,6 +118,33 @@ that determines, per required production section:
 
 ---
 
+## ✅ CUSTOMER-SIM-V2-FINAL · v2 gate proves REAL calendar create→delete inline · LIVE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `c017c20` (calendar-write runtime already live) ·
+CT `main` = this commit. The v2 durable gate now proves the real-write
+path end-to-end instead of asserting the honestly-blocked branch.
+
+- **Adaptive calendar branch:** the spec reads `/connectors/oauth/status`,
+  detects `calendar.events` on the Meridian connection, and takes the
+  REAL-WRITE branch (falls back to the honest-blocked assertions only if
+  the scope is absent — the gate stays valid on a scope-less tenant).
+- **What v2 now proves live (1 passed · 14.9m):** selected slot clear of
+  real free/busy (0 busy intervals) → create requires all gates
+  (participants + confirmation + approval + caller-confirm) → create
+  returns a real `event_id` + `source_kind:"google_calendar_event"` +
+  `calendar_id:"primary"` with **no token leak** → delete succeeds →
+  delete-again is idempotent (already-gone) → **zero calendar residue.**
+- Same run still proves: honest Meet branch (409 SCOPE_REAUTH_REQUIRED, no
+  fabricated transcript), real Drive list (25 docs) + real Doc import
+  lineage, 6 seeded reference docs (supersession pair), truth engine
+  (supersession-lead + sales-overreach-flag + zero-invention), and
+  employee/Twin boundaries (starter twins, admin 403s, non-party 404
+  no-leak). Cleanup sweeps every non-cancelled DOCUMENT_CONTEXT row clean.
+- `expectNoFakeGoogle` guards the whole calendar payload — no fabricated
+  Google surface can pass.
+
+---
+
 ## ✅ CALENDAR-WRITE-LIVE · Real Google event create→delete proven end-to-end · LIVE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `c017c20` (runtime already live) · CT `main` =

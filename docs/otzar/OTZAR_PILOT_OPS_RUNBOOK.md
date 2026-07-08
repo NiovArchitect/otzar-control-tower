@@ -223,7 +223,7 @@ milestone. One command each (`npm run …` from CT):
 | Smoke-org mutating battery (SMOKE ORG ONLY) | `test:e2e:live:mutating` (onboard + learn-loop + assign pair + redwood probe, `--workers=1`) | YES — smoke org only, every spec tenancy-guarded + cleanup rails built in |
 | Demo read-only battery | `test:e2e:live:demo-readonly` (externals + ambient clarity + twin authority + wallet boundary + org setup) | No — the demo org accepts read-only smokes only (BINDING 2026-07-07) |
 | Customer Org Simulation v1 (MERIDIAN SIM ORG ONLY, ~9 min) | `test:e2e:live:customer-sim` (`otzar-live-customer-sim.spec.ts`; needs `OTZAR_CUSTSIM_ADMIN_PASSWORD`) | YES — Meridian sim org only (tenancy-guarded to org `69c07a00…`): 8-identity cast via rails, hierarchy + 3A rights + org timezone, dated docs w/ supersession pair, honest missing-Google state, truth-conflict arcs, employee boundaries, calendar proposal-only honesty; cleanup cancels rows + suspends identities (tenant persists clean). GREEN first-pass 2026-07-07 |
-| Customer Org Simulation v2 (MERIDIAN SIM ORG ONLY, ~15 min) | `test:e2e:live:customer-sim:v2` (`otzar-live-customer-sim-v2.spec.ts`; needs `OTZAR_CUSTSIM_ADMIN_PASSWORD`) | YES — Meridian sim org only (tenancy-guarded): 16-identity cast + hierarchy + role titles + 3A rights + timezones; REAL Google (Drive doc import w/ external_source lineage + dedupe, Calendar free/busy read driving a scheduling proposal, honest Meet SCOPE_REAUTH_REQUIRED); calendar create blocker-honest (EVENT_WRITE_SCOPE_MISSING until re-consent — no fake event); deep truth engine (supersession-lead + sales-overreach-flag + memory/question/request-not-work + zero-invention); employee/Twin boundaries + non-party 404; cleanup cancels rows + suspends identities (tenant + Google connection persist clean). GREEN 2026-07-07 |
+| Customer Org Simulation v2 (MERIDIAN SIM ORG ONLY, ~15 min) | `test:e2e:live:customer-sim:v2` (`otzar-live-customer-sim-v2.spec.ts`; needs `OTZAR_CUSTSIM_ADMIN_PASSWORD`) | YES — Meridian sim org only (tenancy-guarded): 16-identity cast + hierarchy + role titles + 3A rights + timezones; REAL Google (Drive doc import w/ external_source lineage + dedupe, Calendar free/busy read driving a scheduling proposal, honest Meet SCOPE_REAUTH_REQUIRED); REAL calendar create→delete inline (slot clear of free/busy → gated events.insert returns real event_id + google_calendar_event lineage, no token leak → delete → delete-again idempotent → zero residue; adaptive branch falls back to EVENT_WRITE_SCOPE_MISSING only on a scope-less tenant); deep truth engine (supersession-lead + sales-overreach-flag + memory/question/request-not-work + zero-invention); employee/Twin boundaries + non-party 404; cleanup cancels rows + suspends identities (tenant + Google connection persist clean). GREEN 2026-07-07 |
 | Wallet/data boundary | `otzar-live-wallet-boundary.spec.ts` | No |
 | Pilot gate (all of the above) | `test:e2e:live:pilot-gate` | Mixed — per-spec rails |
 | Redwood truth-weight probe (SMOKE ORG ONLY) | `test:e2e:live:redwood` (`otzar-live-redwood-probe.spec.ts`) | YES — smoke-org only: dynamic personas via invite/activate, conflict-pair ingest, supersession + calm correction + overreach + boundary-404 asserted; cleanup cancels its ledger rows (settled history per FND `b564da8`) + suspends personas; repeat-safe (proven back-to-back). Needs `OTZAR_SMOKE_ADMIN_PASSWORD`; skips without it — can never target the demo org |
@@ -565,9 +565,14 @@ fabricated (a create is claimed only when Google returns an event id).
    - `GET /meet/conference-records` → if a post-meeting transcript
      exists, ONE `POST /meet/transcripts/ingest`; if none,
      `NO_TRANSCRIPT` is reported honestly — never fabricated.
-5. Calendar remains PROPOSAL-ONLY regardless: zero write scopes are
-   requested; `POST /calendar/events/create` keeps answering with
-   honest blockers until a founder-gated write slice ever ships.
+5. Calendar WRITE is LIVE and approval-gated (the founder consented the
+   `calendar.events` scope on Meridian). `POST /calendar/events/create`
+   requires the full gate ladder (selected time → participants →
+   confirmation → approval → caller-confirm → connected → write-scope);
+   only then does it run a real Google `events.insert` and return a real
+   `event_id` + `google_calendar_event` lineage, with `events.delete`
+   idempotent. On any tenant WITHOUT the write scope it still answers
+   `EVENT_WRITE_SCOPE_MISSING` honestly — no fabricated event, ever.
 
 ## 7. Secrets & key rotation
 
