@@ -118,6 +118,28 @@ that determines, per required production section:
 
 ---
 
+## ✅ CALENDAR-WRITE-LIVE · Real Google event create→delete proven end-to-end · LIVE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `c017c20` (runtime already live) · CT `main` =
+this commit (docs). **Founder added `calendar.events` to the consent
+screen + re-consented as sadeil@niovlabs.com.**
+
+- **Real calendar WRITE is now a live capability.** The connection
+  carries 10 scopes (VERIFIED; `calendar.events` granted). Proven by
+  use on the Meridian sim org: free/busy read → slot clear of real
+  busy → `POST /calendar/events/create` (approval + caller-confirm
+  gates satisfied) → **200 with a REAL google_calendar_event**
+  (event_id, calendar `primary`, start/end, html_link, leak-clean) →
+  `POST /calendar/events/delete` → 200 → delete-again → 200 (idempotent
+  already-gone). **Zero calendar residue.**
+- Doctrine held throughout: a create is claimed ONLY when Google
+  returns an event id; the approval gate is mandatory; the delete rail
+  is the cleanup + cancel-meeting path. Never silent, never fabricated.
+- This closes the last "honestly blocked" branch from CUSTOMER-SIM-V2:
+  calendar is now real read (free/busy) AND real write (create/delete),
+  both governed. Only Meet transcripts remain the honest unavailable
+  branch (Meet REST path not available for the account).
+
 ## ✅ CUSTOMER-SIM-V2 · Deep real-Google customer reality run GREEN + calendar-write runtime shipped · LIVE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `c017c20` (PR #592 — dedupe fix + calendar-write

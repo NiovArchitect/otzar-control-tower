@@ -533,6 +533,18 @@ gotcha:** the signed OAuth `state` has a 10-minute TTL — a slow round-trip
 expires it and the callback stores nothing (status stays
 READY_FOR_CONSENT); just re-mint and complete promptly.
 
+**✅ CALENDAR WRITE VERIFIED LIVE 2026-07-07:** after the founder added
+`calendar.events` to the Google consent screen and re-consented, the
+connection carries 10 scopes (VERIFIED). Real event lifecycle proven by
+use on the Meridian sim org: free/busy read → pick a slot clear of real
+busy → `POST /calendar/events/create` (all human gates: approval +
+caller-confirm) returned **200 with a real google_calendar_event**
+(event id + calendar `primary` + start/end + html_link, leak-clean) →
+`POST /calendar/events/delete` removed it (200) → delete-again 200
+(idempotent already-gone). ZERO calendar residue. Calendar write is now
+a real, approval-gated, cleanup-capable capability — never silent, never
+fabricated (a create is claimed only when Google returns an event id).
+
 **Post-env verification (Claude runs all of it; say "GO google verify"):**
 1. `GET /connectors/adapters` → GOOGLE_WORKSPACE flips
    `BLOCKED_BY_CREDENTIAL` → `BLOCKED_BY_APP_REVIEW` (the registry's
