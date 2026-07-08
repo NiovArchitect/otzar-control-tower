@@ -55,21 +55,33 @@ changed in a visual dry-run):
    data-testids, the `/^twin of /i` provenance regex, enum/reason codes, and
    component/type identifiers are UNCHANGED (internal domain model stays "Twin").
    Live-verified: the page title is now "My AI Teammate"; the What-Changed card
-   says "Teach your AI Teammate…". **Residual (out of scope, deliberately left):**
-   ADMIN nav descriptions ("AI Twins", `nav.ts:146/160/280`) and marketing/
-   onboarding pages (Onboarding, VoiceTwin) still say "Twin" — a follow-up if a
-   full non-employee sweep is wanted.
+   says "Teach your AI Teammate…". **Admin nav + onboarding/marketing residual —
+   ALSO swept (CT `b2c159b`):** 18 more visible strings (admin nav descriptions,
+   Onboarding/marketing, OOTB catalog prompts, VoiceTwin title+doctrine line [ADR
+   quote preserved in a comment], voice actor label, Users/InviteWizard) now read
+   "AI Teammate". **Still deliberately NOT changed (product/data decisions, not
+   copy):** (a) `CreateTwinDialog` `role_title` default "Digital Twin" — a
+   PERSISTED data value (changing it is a behavior/data change); (b) the
+   `entitlement-catalog` billing SKU taxonomy ("Executive Twin", "Digital Twin
+   Seats", rendered in BillingPreview) — a product-naming/pricing decision.
+   Non-visible "Twin" remains only in code comments/identifiers/regex/testids.
 2. **Footer health pill — FIXED (CT `07fdc3b`).** `ConnectionStatusIndicator.tsx`
    now hides the "Foundation {version} · DB {status}" (healthy + loading) pill in
    PRODUCTION builds (`import.meta.env.DEV` gate) while keeping the ERROR state
    ("Foundation unreachable") always visible for operator observability and the
    health check itself unchanged. Live-verified: the admin footer no longer shows
    the pill.
-3. **Data & Knowledge — Google Workspace shows "Needs app review"** while the
-   connection is live/VERIFIED (real Docs/Calendar work). Likely reflects the real
-   Google OAuth-app verification status (unverified app), but sits confusingly next
-   to a working connection — verify + consider a "Connected" affordance for the
-   live connection.
+3. **Data & Knowledge — Google Workspace connector status.** Wording SOFTENED
+   (CT `b2c159b`): the `BLOCKED_BY_APP_REVIEW` label now reads "**App review
+   pending**" (was "Needs app review") everywhere — a pending provider-verification
+   STATE, not a customer to-do — live-verified on the Google Workspace tile. The
+   status is real (the Otzar Google OAuth app awaits Google's verification for GA)
+   yet the founder's connection works. **Deeper item still open (status-logic, not
+   copy):** the tile shows the adapter's platform readiness gate, not the tenant's
+   live connection — for a tenant with a VERIFIED live connection, consider showing
+   "Connected" (with the app-review note secondary). That's a small CT
+   status-selection enhancement (read the live oauth/verified state and prioritize
+   it), deferred as beyond this copy-only pass.
 4. **Security & Audit forensic labels** show "Target entity id (UUID)" / "Target
    capsule id (UUID)" + raw-id detail rows. The codebase permits raw data-model
    terms here for "compliance/forensic display," so this may be intentional —

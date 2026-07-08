@@ -118,6 +118,30 @@ that determines, per required production section:
 
 ---
 
+## ✅ DEMO-POLISH-2 · Admin/onboarding "Twin"→"AI Teammate" + connector "App review pending" · LIVE-VERIFIED (2026-07-08, Opus 4.8)
+
+**HEADs:** CT `b2c159b` (deployed + live-verified). FND unchanged (`71c3fa7`).
+Copy-only; no route/type/schema/behavior change.
+
+- **Finished the non-employee "Twin"→"AI Teammate" sweep:** 18 visible strings
+  (admin nav descriptions, Onboarding/marketing, OOTB catalog prompts, VoiceTwin
+  title + doctrine line [ADR-0085 quote preserved in a source comment], voice
+  actor label "Admin AI Teammate", PersonCockpit, Users/InviteWizard). CamelCase
+  artifact names + all code identifiers/route/testids unchanged.
+- **Connector status wording (your Google check):** `BLOCKED_BY_APP_REVIEW` label
+  "Needs app review" → "**App review pending**" (humanize/OnboardingReadiness/
+  ConnectorHealth/AmbientOtzarBar) — reads as a pending provider-verification
+  state, not a customer to-do. **Live-verified: the Google Workspace tile now
+  shows "App review pending".** Enum key + `app_review_required` field unchanged.
+- **Deferred (documented, NOT changed — product/data decisions):** `CreateTwinDialog`
+  `role_title` default "Digital Twin" (persisted data), the `entitlement-catalog`
+  billing SKU taxonomy ("Executive Twin"/"Digital Twin Seats"), and the deeper
+  Google status-logic fix (show "Connected" for a live-verified tenant).
+- Verification: typecheck 0 · lint · 2251 unit · build ok · 3 test assertions
+  updated. Meridian zero residue; demo org untouched; footer pill no regression.
+
+---
+
 ## ✅ DEMO-POLISH · Hid Foundation footer pill + aligned "My Twin"→"AI Teammate" · LIVE-VERIFIED (2026-07-08, Opus 4.8)
 
 **HEADs:** FND `71c3fa7` (PR #596 — My-Day suggestion string) · CT `07fdc3b`
