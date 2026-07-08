@@ -653,7 +653,7 @@ function humanDecisionReason(code: string): string {
     case "policy-forbidden":
       return "Blocked by organization policy.";
     case "observe-only-twin":
-      return "Twin is set to observe mode; cannot execute.";
+      return "Your AI Teammate is in observe mode and can't execute this yet.";
     case "org-require-human-approval":
       return "Your organization requires a human to approve this action.";
     default:

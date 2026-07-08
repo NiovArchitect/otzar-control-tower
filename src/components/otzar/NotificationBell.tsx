@@ -33,6 +33,7 @@
 //     data-* attributes for telemetry.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Bell, Check, Reply, Send, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -103,6 +104,13 @@ export function NotificationBell({
   const mountedRef = useRef(true);
   // Phase 1285-L — which notification's structured View/Why is expanded.
   const [whyId, setWhyId] = useState<string | null>(null);
+  // [OVERLAY-LAYERING] The panel is portaled to document.body (see below) to
+  // escape the frosted header's backdrop-blur stacking context, so it must be
+  // positioned with fixed coordinates computed from the bell's rect rather than
+  // an `absolute` offset inside the header.
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
 
   const fetchOnce = useCallback(async (): Promise<void> => {
     if (!authed) return;
@@ -346,8 +354,12 @@ export function NotificationBell({
 
   function toggle(): void {
     setState((s) => ({ ...s, open: !s.open }));
-    // Refresh on open so the operator sees the freshest state.
-    if (!state.open) void fetchOnce();
+    // Refresh on open so the operator sees the freshest state, and compute the
+    // portal position synchronously so the panel paints in place (no flash).
+    if (!state.open) {
+      computePosition();
+      void fetchOnce();
+    }
   }
 
   // Phase 1266 — clicking a notification routes to a REAL Work-OS
@@ -371,10 +383,35 @@ export function NotificationBell({
   // never lose their place.
   const rootRef = useRef<HTMLDivElement | null>(null);
   const bellButtonRef = useRef<HTMLButtonElement | null>(null);
+  // [OVERLAY-LAYERING] The portaled panel lives OUTSIDE rootRef, so outside-click
+  // detection must treat a click inside EITHER the trigger (rootRef) OR the
+  // panel (dropdownRef) as "inside" — otherwise clicking the panel would close it.
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Compute the fixed panel position from the bell's rect: below the bell (mt-2
+  // ≈ 8px gap) and right-aligned to it, then clamped so a wide panel never
+  // overflows either viewport edge (mobile: max-w-[92vw] caps the width).
+  const computePosition = useCallback((): void => {
+    const btn = bellButtonRef.current;
+    if (btn === null) return;
+    const rect = btn.getBoundingClientRect();
+    const margin = 8;
+    const gap = 8;
+    const panelWidth = Math.min(384, window.innerWidth * 0.92); // w-96 / max-w-[92vw]
+    let left = rect.right - panelWidth; // right-align the panel under the bell
+    const maxLeft = window.innerWidth - panelWidth - margin;
+    if (left > maxLeft) left = maxLeft;
+    if (left < margin) left = margin;
+    setPanelPos({ top: rect.bottom + gap, left });
+  }, []);
+
   useEffect(() => {
     if (!state.open) return;
     function onPointerDown(e: MouseEvent): void {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inTrigger = rootRef.current?.contains(target) ?? false;
+      const inDropdown = dropdownRef.current?.contains(target) ?? false;
+      if (!inTrigger && !inDropdown) {
         setState((s) => ({ ...s, open: false }));
       }
     }
@@ -384,13 +421,22 @@ export function NotificationBell({
         bellButtonRef.current?.focus();
       }
     }
+    // Keep the fixed panel pinned to the bell as the layout shifts while open.
+    function onReflow(): void {
+      computePosition();
+    }
+    computePosition();
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onReflow);
+    window.addEventListener("scroll", onReflow, true);
     return () => {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onReflow);
+      window.removeEventListener("scroll", onReflow, true);
     };
-  }, [state.open]);
+  }, [state.open, computePosition]);
 
   return (
     <div className="relative" data-testid="notification-bell-root" ref={rootRef}>
@@ -418,9 +464,12 @@ export function NotificationBell({
         ) : null}
       </button>
 
-      {state.open ? (
+      {state.open && panelPos !== null ? (
+        createPortal(
         <div
-          className="absolute right-0 z-50 mt-2 w-96 max-w-[92vw] rounded-md border bg-popover p-2 shadow-lg"
+          ref={dropdownRef}
+          className="fixed z-[70] w-96 max-w-[92vw] rounded-md border bg-popover p-2 shadow-lg"
+          style={{ top: panelPos.top, left: panelPos.left }}
           data-testid="notification-bell-dropdown"
           role="dialog"
           aria-label="Notifications"
@@ -689,7 +738,9 @@ export function NotificationBell({
               );
             })()
           )}
-        </div>
+        </div>,
+        document.body,
+        )
       ) : null}
     </div>
   );

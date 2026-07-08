@@ -5,13 +5,16 @@
 //          "Context", …). Cause: the frosted header's backdrop-blur
 //          creates a stacking context that CAPS the dropdown's z-50
 //          inside it, while the frosted cards in <main> (later in DOM
-//          order, own blur contexts) painted over it. The contract this
-//          file locks:
+//          order, own blur contexts) painted over it. The durable fix
+//          portals the dropdown to document.body (escaping the header's
+//          blur context) at a fixed z-[70] ABOVE the whole ambient ladder.
+//          The contract this file locks:
 //            content plane (z-auto)
-//              < header chrome (relative z-40 — owns the bell dropdown)
+//              < header chrome (relative z-40)
 //              < ambient edge glow (z-[55], pointer-events-none)
 //              < ambient notification stack (z-[58])
 //              < ambient Otzar bar (z-[60])
+//              < notification dropdown (portaled, fixed z-[70])
 //          A regression on any rung re-buries an overlay behind content.
 // CONNECTS TO: src/components/employee/EmployeeLayout.tsx (the header),
 //          src/components/otzar/NotificationBell.tsx (the dropdown),
@@ -38,15 +41,23 @@ describe("[OVERLAY-LAYERING] employee shell stacking contract", () => {
     expect(classes).toContain("z-40");
   });
 
-  it("the notification dropdown layers above content within the header context", () => {
+  it("the notification dropdown is portaled to document.body and layers above the ambient ladder (fixed z-[70])", () => {
     const bell = read("src/components/otzar/NotificationBell.tsx");
     expect(bell).toContain('data-testid="notification-bell-dropdown"');
-    const dropdown = bell.match(
-      /className="([^"]*)"\s*\n\s*data-testid="notification-bell-dropdown"/,
-    );
-    expect(dropdown, "dropdown class block must be findable").not.toBeNull();
-    expect(dropdown![1]).toContain("z-50");
-    expect(dropdown![1]).toContain("absolute");
+    // Durable fix: the panel escapes the frosted header's backdrop-blur
+    // stacking context by portaling to document.body — an `absolute` offset
+    // inside the header can never paint above the root-level ambient ladder.
+    expect(bell).toContain("createPortal");
+    expect(bell).toMatch(/createPortal\([\s\S]*?document\.body/);
+    // Locate the portaled panel's class block via its unique ref anchor.
+    const dropdown = bell.match(/ref=\{dropdownRef\}\s*\n\s*className="([^"]*)"/);
+    expect(dropdown, "portaled dropdown class block must be findable").not.toBeNull();
+    const cls = dropdown![1] ?? "";
+    // Fixed-positioned (computed from the bell rect), no longer header-local absolute.
+    expect(cls).toContain("fixed");
+    expect(cls).not.toContain("absolute");
+    // Above the whole ambient ladder, including the Otzar orb at z-[60].
+    expect(cls).toContain("z-[70]");
   });
 
   it("in-card popovers elevate their positioned ancestor while open (z-30 under the header chrome)", () => {

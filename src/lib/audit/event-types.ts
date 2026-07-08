@@ -69,6 +69,8 @@ export const AUDIT_EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   SOURCE_DELETED: "Source Deleted",
   IMPORT_QUARANTINED: "Import Quarantined",
   IMPORT_FAILED: "Import Failed",
+  CALENDAR_EVENT_CREATE: "Calendar Event Created",
+  CALENDAR_EVENT_DELETE: "Calendar Event Cancelled",
 } as const;
 
 // WHAT: Look up the customer-facing label for an AuditEventType.

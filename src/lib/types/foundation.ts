@@ -199,7 +199,11 @@ export type AuditEventType =
   | "SOURCE_ACCESS_REVOKED"
   | "SOURCE_DELETED"
   | "IMPORT_QUARANTINED"
-  | "IMPORT_FAILED";
+  | "IMPORT_FAILED"
+  // [ORG-AUTONOMY] real Google Calendar event lifecycle — a create/delete is
+  // audited whether it succeeded (real event id) or was gate-blocked.
+  | "CALENDAR_EVENT_CREATE"
+  | "CALENDAR_EVENT_DELETE";
 
 // [BLOCK-3A] Mirror of Foundation's DecisionDomain vocabulary
 // (decision-rights.ts). "unknown" is a classifier bucket and is never
