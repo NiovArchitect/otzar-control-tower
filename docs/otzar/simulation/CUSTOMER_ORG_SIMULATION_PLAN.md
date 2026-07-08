@@ -14,7 +14,20 @@
 > invented owners); employee reality (starter twins, role-boundary 403s,
 > enumeration-safe 404); calendar proposal-only honesty; full cleanup
 > (rows cancelled, identities suspended — the tenant persists clean).
-> v2 scope (needs its own GO): full 16-identity cast, ~20-transcript
+> **v2 EXECUTED 2026-07-07** (`test:e2e:live:customer-sim:v2`, GREEN ~15 min):
+> full 16-identity cast + hierarchy + role titles + 3A rights + timezones;
+> REAL Google (Drive doc import with external_source lineage + dedupe;
+> Calendar free/busy driving a scheduling proposal; honest Meet
+> SCOPE_REAUTH_REQUIRED branch); the calendar-WRITE runtime shipped
+> (approval-gated Google events.insert/delete, calendar.events scope) and
+> stays honestly EVENT_WRITE_SCOPE_MISSING live until a founder re-consent
+> grants the scope; deep truth engine (calm supersession lead,
+> sales-overreach flag, memory/question/request mint no work,
+> zero-invention); employee/Twin boundaries; full cleanup (zero residue,
+> Google connection persists VERIFIED). v3 candidates: real Meet transcript
+> once the Meet API path opens for the account, real calendar event
+> create→delete once the write scope is consented, UI walk-throughs.
+> v2-original scope (now done): full 16-identity cast, ~20-transcript
 > lived-in layer, Google Docs/Meet imports once OAuth credentials exist,
 > admin/employee UI walk-throughs. The sections below remain the
 > blueprint. The

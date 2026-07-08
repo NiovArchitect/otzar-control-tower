@@ -118,6 +118,59 @@ that determines, per required production section:
 
 ---
 
+## ✅ CUSTOMER-SIM-V2 · Deep real-Google customer reality run GREEN + calendar-write runtime shipped · LIVE (2026-07-07, Fable 5)
+
+**HEADs:** FND `main` = `c017c20` (PR #592 — dedupe fix + calendar-write
+runtime, 5/5 CI, deployed) · CT `main` = this commit. **Founder GO; the
+addendum's real-calendaring + full-org-flow requirements.**
+
+- **Customer Org Simulation v2 GREEN end-to-end** (14.9 min,
+  `test:e2e:live:customer-sim:v2`, Meridian tenant `69c07a00…`,
+  tenancy-guarded): 16-identity cast + hierarchy + role titles +
+  departments + 3A rights (12 real DecisionDomains, none invented) +
+  per-person timezones; posture read-back on two roles.
+- **REAL Google, proven by use:** Drive doc import → DOCUMENT_CONTEXT
+  with external_source lineage (system/file_id/modified/view/sha256),
+  dedupe `ALREADY_IMPORTED`, cancelled clean; Calendar free/busy read
+  driving a scheduling proposal on a slot clear of real busy intervals;
+  Meet honest `SCOPE_REAUTH_REQUIRED` (no transcript fabricated).
+- **CALENDAR-WRITE runtime SHIPPED (PR #592):** the
+  `CALENDAR_PROVIDER_UNAVAILABLE` stub is replaced by a REAL Google
+  `events.insert` reached only after every gate (selected time →
+  participants → confirmation → APPROVAL → caller-confirm → connected →
+  event-write scope); returns google_calendar_event lineage; a create
+  is never claimed without a returned event id; new
+  `POST /calendar/events/delete` cleanup rail (idempotent). Only new
+  scope = `calendar.events` (narrow; no broad calendar/Gmail-send/Drive-
+  write). `can_write` flips true. It stays honestly
+  `EVENT_WRITE_SCOPE_MISSING` live until a founder re-consent grants the
+  scope — v2 asserts exactly that blocked-no-fake branch. Unit 15/15.
+  (Re-consent attempted; failed because `calendar.events` isn't yet on
+  the Google consent screen — the existing 9-scope connection stayed
+  VERIFIED and intact; documented as a dashboard prerequisite.)
+- **Deep truth engine (deterministic):** calm supersession correction
+  LEADS ("You may be looking at an older plan… superseded"); sales
+  recommend-only finality flagged "beyond the speaker's decision
+  rights"; a memory line + open question + request mint NO extra work;
+  noise mints ZERO owned rows (no invented owners); every human answer
+  passes no-UUID/no-enum/no-mechanics + no-fake-Google sweeps.
+- **Employee/Twin boundaries:** starter twins exist; employees 403 on
+  admin surfaces; non-party probe = enumeration-safe 404, zero title
+  leak.
+- **Bugs found + fixed this arc:** (1) doc-import dedupe blocked
+  re-import of a CANCELLED doc forever → now excludes CANCELLED
+  (settled history); (2) v2 harness — real Google export exceeds the
+  15s default (→ 90s import timeout), a timed-out import orphaned an
+  active doc row (→ cleanup sweeps all DOCUMENT_CONTEXT), and the
+  supersession-lead needs the background-intent question (reverted).
+- **Residue after all runs:** 89 pilot-sim identities, 0 ACTIVE; 0
+  non-cancelled rows of any type; escalations 0; Google connection
+  persists VERIFIED. Demo org untouched throughout.
+- **Remaining:** founder dashboard — add `calendar.events` to the
+  Google consent screen + re-consent to light up real event
+  create→delete; Meet transcript needs the Meet REST path available for
+  the account.
+
 ## ✅ GOOGLE-CONNECTED · Real Google Workspace VERIFIED live by use on Meridian · LIVE (2026-07-07, Fable 5)
 
 **HEADs:** FND `main` = `ff801cf` (bridges live) · CT `main` = this

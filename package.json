@@ -44,7 +44,8 @@
     "test:e2e:live:redwood:corpus": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-redwood-corpus.spec.ts",
     "test:e2e:live:mutating": "OTZAR_ASSIGN_SMOKE_MUTATE=1 OTZAR_LEARN_SMOKE_MUTATE=1 OTZAR_REJECT_SMOKE_MUTATE=1 playwright test --config=playwright.live.config.ts --workers=1 tests/e2e/otzar-live-onboard-activation.spec.ts tests/e2e/otzar-live-learn-loop.spec.ts tests/e2e/otzar-live-assign-active-target.spec.ts tests/e2e/otzar-live-assign-workspace.spec.ts tests/e2e/otzar-live-redwood-probe.spec.ts tests/e2e/otzar-live-reject-reason.spec.ts tests/e2e/otzar-live-bugc-recipient-review.spec.ts tests/e2e/otzar-live-clarification-roundtrip.spec.ts tests/e2e/otzar-live-bugb-followup-durable.spec.ts tests/e2e/otzar-live-arc-coherence.spec.ts tests/e2e/otzar-live-approval-loop.spec.ts tests/e2e/otzar-live-bugd-connectedness.spec.ts",
     "test:e2e:live:demo-readonly": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-external-context.spec.ts tests/e2e/otzar-live-external-chooser.spec.ts tests/e2e/otzar-live-team-external.spec.ts tests/e2e/otzar-live-ambient-clarity.spec.ts tests/e2e/otzar-live-twin-authority.spec.ts tests/e2e/otzar-live-wallet-boundary.spec.ts tests/e2e/otzar-live-org-setup.spec.ts",
-    "test:e2e:live:customer-sim": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-customer-sim.spec.ts"
+    "test:e2e:live:customer-sim": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-customer-sim.spec.ts",
+    "test:e2e:live:customer-sim:v2": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-customer-sim-v2.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
