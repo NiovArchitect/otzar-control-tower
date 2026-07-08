@@ -74,9 +74,12 @@ export function humanizeStatus(status: string): string {
 //
 // - oauthStatus VERIFIED            → "Connected" (+ note if the app is still
 //                                      pending provider review for GA)
+// - oauthStatus CONNECTED_UNVERIFIED → "Connecting…" (Otzar is verifying — an
+//                                      in-progress state, calm, NOT an error and
+//                                      NOT the app-review gate)
 // - oauthStatus reconnect/revoked   → "Reconnect required"
-// - otherwise (no live connection / unverified / credentials missing) → the
-//   platform adapter status wording (App review pending / Needs credentials / …)
+// - otherwise (no live connection / credentials missing) → the platform adapter
+//   status wording (App review pending / Needs credentials / …)
 export function connectorTileStatus(
   adapterStatus: string,
   oauthStatus: string | undefined,
@@ -89,10 +92,16 @@ export function connectorTileStatus(
       ? { label: "Connected", note: "App review pending for broader rollout" }
       : { label: "Connected" };
   }
+  if (oauthStatus === "CONNECTED_UNVERIFIED") {
+    // The tenant connected, but Otzar hasn't completed its server-side verify
+    // probe yet. Calm + in-progress — never "Connected" (not verified), never a
+    // scary/broken state, and never the app-review gate (no customer action).
+    return { label: "Connecting…", note: "Otzar is verifying this connection." };
+  }
   if (oauthStatus === "ERROR_NEEDS_RECONNECT" || oauthStatus === "REVOKED") {
     return { label: "Reconnect required" };
   }
-  // No live connection yet, or connected-but-not-server-verified, or credentials
-  // missing → the platform adapter status is the honest primary state.
+  // No live connection yet, or credentials missing → the platform adapter status
+  // is the honest primary state.
   return { label: humanizeStatus(adapterStatus) };
 }

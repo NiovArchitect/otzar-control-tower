@@ -77,8 +77,10 @@ changed in a visual dry-run):
    `GET /connectors/oauth/status` — no backend change). A VERIFIED live connection
    shows "**Connected**" with "App review pending for broader rollout" as a
    SECONDARY note (never hidden, never faked — "Connected" appears ONLY on a
-   VERIFIED live status); reconnect/revoked → "Reconnect required"; no live
-   connection → the honest platform wording ("App review pending" / "Needs
+   VERIFIED live status); **CONNECTED_UNVERIFIED → "Connecting…" + "Otzar is
+   verifying this connection."** (calm in-progress — not "Connected", not an error,
+   not the app-review gate; follow-up); reconnect/revoked → "Reconnect required";
+   no live connection → the honest platform wording ("App review pending" / "Needs
    credentials"). **Live-verified on Meridian:** the Google Workspace tile shows
    "Connected" + the app-review note (real data: adapter `BLOCKED_BY_APP_REVIEW`,
    live OAuth `VERIFIED`). +7 unit tests. Docs/Calendar/Meet unaffected.

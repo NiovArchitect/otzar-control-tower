@@ -31,14 +31,23 @@ describe("[CONNECTOR-STATUS] connectorTileStatus — live connection wins", () =
     expect(connectorTileStatus("CONFIGURED", "REVOKED", false).label).toBe("Reconnect required");
   });
 
-  it("connected-but-unverified / credentials-missing → falls back to the honest adapter status (no premature 'Connected')", () => {
-    expect(connectorTileStatus("BLOCKED_BY_APP_REVIEW", "CONNECTED_UNVERIFIED", true).label).toBe("App review pending");
+  it("CONNECTED_UNVERIFIED → 'Connecting…' + verifying note, regardless of adapter gate (calm, not an error, not app-review)", () => {
+    const withGate = connectorTileStatus("BLOCKED_BY_APP_REVIEW", "CONNECTED_UNVERIFIED", true);
+    expect(withGate.label).toBe("Connecting…");
+    expect(withGate.note).toBe("Otzar is verifying this connection.");
+    const configured = connectorTileStatus("CONFIGURED", "CONNECTED_UNVERIFIED", false);
+    expect(configured.label).toBe("Connecting…");
+    expect(configured.note).toBe("Otzar is verifying this connection.");
+  });
+
+  it("no live oauth / credentials missing → falls back to the honest adapter status", () => {
     expect(connectorTileStatus("BLOCKED_BY_CREDENTIAL", "READY_FOR_CONSENT", false).label).toBe("Needs credentials");
     expect(connectorTileStatus("BLOCKED_BY_CREDENTIAL", undefined, undefined).label).toBe("Needs credentials");
+    expect(connectorTileStatus("BLOCKED_BY_APP_REVIEW", "APP_CREDENTIALS_MISSING", true).label).toBe("App review pending");
   });
 
   it("does not fake app verification: only a VERIFIED live status yields 'Connected'", () => {
-    for (const s of ["CONNECTED_UNVERIFIED", "READY_FOR_CONSENT", "APP_CREDENTIALS_MISSING", undefined]) {
+    for (const s of ["CONNECTED_UNVERIFIED", "READY_FOR_CONSENT", "APP_CREDENTIALS_MISSING", "ERROR_NEEDS_RECONNECT", undefined]) {
       expect(connectorTileStatus("BLOCKED_BY_APP_REVIEW", s, true).label).not.toBe("Connected");
     }
   });

@@ -118,6 +118,26 @@ that determines, per required production section:
 
 ---
 
+## ✅ CONNECTOR-STATUS-2 · CONNECTED_UNVERIFIED → "Connecting…" (calm in-progress) · (2026-07-08, Opus 4.8)
+
+**HEADs:** CT (this commit) · FND unchanged (`71c3fa7`). CT-only, no backend.
+Follow-up to CONNECTOR-STATUS below.
+
+- `connectorTileStatus` now maps `CONNECTED_UNVERIFIED` → label "**Connecting…**"
+  + note "**Otzar is verifying this connection.**" — a calm in-progress state:
+  NOT "Connected" (not yet server-verified), NOT an error/broken, NOT the
+  app-review gate (no customer action implied). VERIFIED still → "Connected"
+  (+ secondary app-review note); reconnect/revoked → "Reconnect required"; no
+  live OAuth → platform adapter fallback. "Connected" still appears ONLY on a
+  VERIFIED live status.
+- Verification: typecheck 0 · lint · connector-tile-status 8 tests (added the
+  Connecting… cases) · full unit suite/build. CONNECTED_UNVERIFIED proven by unit
+  tests (no safe way to force a live unverified OAuth state without mutating a real
+  connection). Meridian VERIFIED Google tile regression: still "Connected" +
+  app-review note.
+
+---
+
 ## ✅ CONNECTOR-STATUS · Live VERIFIED connection now shows "Connected" over the app-review gate · LIVE-VERIFIED (2026-07-08, Opus 4.8)
 
 **HEADs:** CT `94fa30f` (deployed + live-verified). FND unchanged (`71c3fa7`).
