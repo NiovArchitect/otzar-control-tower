@@ -5,13 +5,12 @@
 **Scope:** how Otzar defends against corrupted / missing / revoked / stale /
 malicious / poisoned external and internal documents.
 
-> **Deploy/live state at time of writing:** the FND runtime is **merged to
-> `main` but not yet deployed** (FND autoDeploy is OFF; the production deploy
-> of `api.otzar.ai` requires an explicit operator go). The same-hash=current
-> **live proof on Meridian is therefore pending that deploy** — the durable
-> spec (`test:e2e:live:source-integrity`) is written, typechecked and linted,
-> and runs the moment the merged SHA is live. Every mutation branch is already
-> proven in FND integration (see Q15).
+> **Deploy/live state:** FND `971d827` is **deployed live** to `api.otzar.ai`
+> (operator-authorized deploy `dep-d96sq658nd3s73bkp5lg`) and the same-hash=
+> current **live proof on Meridian is GREEN** (`test:e2e:live:source-integrity`,
+> 2026-07-07, 40.6s: import real doc → revalidate → AVAILABLE, changed:false,
+> no token leak → zero residue). Every mutation branch is proven in FND
+> integration via an injected fetch seam (see Q15).
 
 ---
 

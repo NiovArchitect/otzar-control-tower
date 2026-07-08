@@ -118,11 +118,11 @@ that determines, per required production section:
 
 ---
 
-## 🟡 SOURCE-INTEGRITY · Imported-source lifecycle hardened + revalidation · MERGED, live-proof pending deploy (2026-07-07, Opus 4.8)
+## ✅ SOURCE-INTEGRITY · Imported-source lifecycle hardened + revalidation · LIVE + PROVEN on Meridian (2026-07-07, Opus 4.8)
 
-**HEADs:** FND `971d827` (PR #593 squash-merged to `main`, **not yet
-deployed** — autoDeploy OFF; production deploy of api.otzar.ai awaits an
-explicit operator go) · CT source-integrity commits (audit vocab + live spec).
+**HEADs:** FND `971d827` (PR #593 squash-merged + **deployed live** to
+api.otzar.ai, deploy `dep-d96sq658nd3s73bkp5lg`) · CT `d7a0193` (pushed →
+app.otzar.ai). Operator authorized the production deploy.
 
 Closes the post-import trust gaps for imported Google Docs with **no schema
 migration** (status/event_type are validated Strings; source lifecycle is
@@ -148,11 +148,14 @@ additive `details.source_integrity` JSON). Full write-up:
   SOURCE_ACCESS_REVOKED, SOURCE_DELETED, IMPORT_QUARANTINED, IMPORT_FAILED.
 - **Verification:** FND typecheck 0 · unit 14 · integration 17 · no-leak 2 ·
   5/5 CI green. CT typecheck 0 · lint clean · 2244 unit pass.
-- **Live proof (`test:e2e:live:source-integrity`, Meridian):** durable spec
-  written + typechecked; proves same-hash=current live. Mutation branches
+- **Live proof (`test:e2e:live:source-integrity`, Meridian) — GREEN
+  (2026-07-07, 40.6s):** imported a real Google Doc → `source_integrity`
+  AVAILABLE; revalidated unchanged upstream → state AVAILABLE, `changed:false`,
+  **no token leak**; cleanup swept 1 DOCUMENT_CONTEXT row → zero residue. The
+  real Google text-export hash was stable across the two exports, so
+  same-hash=current held without loosening any assertion. Mutation branches
   (changed/deleted/revoked/corrupt) proven in FND integration via injected
   fetch seam — never live (no corrupting/deleting real founder docs).
-  **Runs the moment 971d827 is deployed.**
 
 ---
 
