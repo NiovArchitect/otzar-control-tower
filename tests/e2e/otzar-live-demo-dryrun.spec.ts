@@ -45,7 +45,9 @@ async function shot(page: Page, name: string): Promise<void> {
 }
 // Navigate CLIENT-SIDE (click an in-app link) so the SPA's in-memory auth
 // survives — a full page.goto reload logs the session out (watch-item).
-async function nav(page: Page, path: string, name: string): Promise<void> {
+// waitFor: an optional testid to await (so a slow data fetch has resolved
+// before the screenshot, instead of catching an empty/loading frame).
+async function nav(page: Page, path: string, name: string, waitFor?: string): Promise<void> {
   const link = page.locator(`a[href="${path}"], a[href^="${path}"]`).first();
   try {
     if (await link.count() > 0) {
@@ -53,6 +55,9 @@ async function nav(page: Page, path: string, name: string): Promise<void> {
     } else {
       // Fallback: SPA client-side navigation via the History API + popstate.
       await page.evaluate((p) => { window.history.pushState({}, "", p); window.dispatchEvent(new PopStateEvent("popstate")); }, path);
+    }
+    if (waitFor !== undefined) {
+      await page.getByTestId(waitFor).first().waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
     }
     await page.waitForTimeout(2800);
   } catch {
@@ -122,7 +127,7 @@ test("Demo dry-run: walk admin + employee shells and capture each surface", asyn
     await shot(page, "02-admin-home");
     await nav(page, "/setup/company-profile", "03-company-profile-decision-rights");
     await nav(page, "/users", "04-people-hierarchy");
-    await nav(page, "/data-knowledge", "05-data-knowledge-source-trust");
+    await nav(page, "/data-knowledge", "05-data-knowledge-source-trust", "data-source-row");
     await nav(page, "/security-audit", "06-security-audit");
 
     // ── EMPLOYEE SHELL ── (fresh session)

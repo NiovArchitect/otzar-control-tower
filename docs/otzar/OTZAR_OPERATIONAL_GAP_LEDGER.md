@@ -71,17 +71,17 @@ changed in a visual dry-run):
    ("Foundation unreachable") always visible for operator observability and the
    health check itself unchanged. Live-verified: the admin footer no longer shows
    the pill.
-3. **Data & Knowledge — Google Workspace connector status.** Wording SOFTENED
-   (CT `b2c159b`): the `BLOCKED_BY_APP_REVIEW` label now reads "**App review
-   pending**" (was "Needs app review") everywhere — a pending provider-verification
-   STATE, not a customer to-do — live-verified on the Google Workspace tile. The
-   status is real (the Otzar Google OAuth app awaits Google's verification for GA)
-   yet the founder's connection works. **Deeper item still open (status-logic, not
-   copy):** the tile shows the adapter's platform readiness gate, not the tenant's
-   live connection — for a tenant with a VERIFIED live connection, consider showing
-   "Connected" (with the app-review note secondary). That's a small CT
-   status-selection enhancement (read the live oauth/verified state and prioritize
-   it), deferred as beyond this copy-only pass.
+3. **Data & Knowledge — Google Workspace connector status — FIXED (CT `94fa30f`).**
+   The tile now prioritizes the tenant's LIVE OAuth status over the platform
+   adapter gate via a new `connectorTileStatus` helper (CT-only; reuses
+   `GET /connectors/oauth/status` — no backend change). A VERIFIED live connection
+   shows "**Connected**" with "App review pending for broader rollout" as a
+   SECONDARY note (never hidden, never faked — "Connected" appears ONLY on a
+   VERIFIED live status); reconnect/revoked → "Reconnect required"; no live
+   connection → the honest platform wording ("App review pending" / "Needs
+   credentials"). **Live-verified on Meridian:** the Google Workspace tile shows
+   "Connected" + the app-review note (real data: adapter `BLOCKED_BY_APP_REVIEW`,
+   live OAuth `VERIFIED`). +7 unit tests. Docs/Calendar/Meet unaffected.
 4. **Security & Audit forensic labels** show "Target entity id (UUID)" / "Target
    capsule id (UUID)" + raw-id detail rows. The codebase permits raw data-model
    terms here for "compliance/forensic display," so this may be intentional —

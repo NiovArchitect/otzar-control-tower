@@ -118,6 +118,33 @@ that determines, per required production section:
 
 ---
 
+## ✅ CONNECTOR-STATUS · Live VERIFIED connection now shows "Connected" over the app-review gate · LIVE-VERIFIED (2026-07-08, Opus 4.8)
+
+**HEADs:** CT `94fa30f` (deployed + live-verified). FND unchanged (`71c3fa7`).
+CT-only — no backend change (reuses `GET /connectors/oauth/status`).
+
+- **Problem:** the Data & Knowledge tile showed the platform adapter's rollout
+  gate ("App review pending") even when the tenant's Google connection is live +
+  VERIFIED — confusing next to a working connection.
+- **Fix:** new `connectorTileStatus(adapterStatus, oauthStatus, appReviewRequired)`
+  helper prioritizes the tenant's LIVE OAuth status. `Data.tsx` now fetches
+  `oauthStatus()` alongside `connectorAdapters()`, matches by provider/display
+  name, and renders a primary label + optional secondary note:
+  - oauth VERIFIED → "**Connected**" (+ "App review pending for broader rollout"
+    note ONLY if the app-review gate is still set — never hidden, never faked)
+  - oauth ERROR_NEEDS_RECONNECT / REVOKED → "Reconnect required"
+  - otherwise → honest platform wording (App review pending / Needs credentials).
+- **Honest:** "Connected" appears ONLY on a VERIFIED live status; the app-review
+  state is demoted to a note, never removed.
+- **Live-verified on Meridian:** Google Workspace tile shows "Connected" +
+  "App review pending for broader rollout" (real data: adapter
+  `BLOCKED_BY_APP_REVIEW` + live OAuth `VERIFIED`). Docs/Calendar/Meet unaffected.
+- Verification: typecheck 0 · lint · 2258 unit (+7 helper tests) · build ok.
+  Meridian zero residue; demo org untouched. (Also hardened the dry-run capture
+  to wait for the connector tiles before screenshotting.)
+
+---
+
 ## ✅ DEMO-POLISH-2 · Admin/onboarding "Twin"→"AI Teammate" + connector "App review pending" · LIVE-VERIFIED (2026-07-08, Opus 4.8)
 
 **HEADs:** CT `b2c159b` (deployed + live-verified). FND unchanged (`71c3fa7`).
