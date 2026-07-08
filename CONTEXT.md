@@ -118,6 +118,25 @@ that determines, per required production section:
 
 ---
 
+## ✅ SECURITY-AUDIT-LABELS · Forensic label vocab polish (values kept forensic) · (2026-07-08, Opus 4.8)
+
+**HEADs:** CT (this commit) · FND unchanged (`71c3fa7`). CT copy-only.
+
+The Security & Audit page leaked data-model primitives in its LABELS. Softened
+to approved vocabulary while KEEPING the forensic UUID values (compliance-display
+precision):
+- Filter labels: "Target entity id (UUID)" → "Target ID (UUID)"; "Target capsule
+  id (UUID)" → "Knowledge item ID (UUID)".
+- Detail-drawer rows: "Target entity" → "Target"; "Target capsule" → "Knowledge
+  item".
+- UNCHANGED: input `id`/`htmlFor`/`data-testid` (`audit-filter-target-entity/
+  -capsule`), the raw `event_type` literal + `audit_event_id` UUID (kept for
+  forensic reference), and all values. No test change (security.test.tsx asserts
+  via testid, not label text).
+- Verification: typecheck 0 · lint · security.test.tsx 36 · full unit suite/build.
+
+---
+
 ## ✅ CONNECTOR-STATUS-2 · CONNECTED_UNVERIFIED → "Connecting…" (calm in-progress) · (2026-07-08, Opus 4.8)
 
 **HEADs:** CT (this commit) · FND unchanged (`71c3fa7`). CT-only, no backend.

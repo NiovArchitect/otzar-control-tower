@@ -412,8 +412,8 @@ function EventDetailPanel({
             />
           )}
           <DetailRow label="Actor" value={event.actor_entity_id} />
-          <DetailRow label="Target entity" value={event.target_entity_id} />
-          <DetailRow label="Target capsule" value={event.target_capsule_id} />
+          <DetailRow label="Target" value={event.target_entity_id} />
+          <DetailRow label="Knowledge item" value={event.target_capsule_id} />
           <DetailRow label="Session" value={event.session_id} />
           <DetailRow label="Jurisdiction" value={event.jurisdiction} />
         </div>
@@ -1088,7 +1088,7 @@ export function SecurityPage() {
                   htmlFor="audit-filter-target-entity"
                   className="text-xs"
                 >
-                  Target entity id (UUID)
+                  Target ID (UUID)
                 </Label>
                 <input
                   id="audit-filter-target-entity"
@@ -1118,7 +1118,7 @@ export function SecurityPage() {
                   htmlFor="audit-filter-target-capsule"
                   className="text-xs"
                 >
-                  Target capsule id (UUID)
+                  Knowledge item ID (UUID)
                 </Label>
                 <input
                   id="audit-filter-target-capsule"

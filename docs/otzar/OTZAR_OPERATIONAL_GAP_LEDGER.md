@@ -84,10 +84,15 @@ changed in a visual dry-run):
    credentials"). **Live-verified on Meridian:** the Google Workspace tile shows
    "Connected" + the app-review note (real data: adapter `BLOCKED_BY_APP_REVIEW`,
    live OAuth `VERIFIED`). +7 unit tests. Docs/Calendar/Meet unaffected.
-4. **Security & Audit forensic labels** show "Target entity id (UUID)" / "Target
-   capsule id (UUID)" + raw-id detail rows. The codebase permits raw data-model
-   terms here for "compliance/forensic display," so this may be intentional —
-   confirm whether to soften to customer vocab or keep forensic precision.
+4. **Security & Audit forensic labels — FIXED (copy-only).** The customer-facing
+   LABELS softened to approved vocabulary while the forensic UUID VALUES are kept
+   (compliance-display precision intact): filter "Target entity id (UUID)" →
+   "Target ID (UUID)", "Target capsule id (UUID)" → "Knowledge item ID (UUID)";
+   detail rows "Target entity"/"Target capsule" → "Target"/"Knowledge item". The
+   input `id`/`htmlFor`/`data-testid`s (`audit-filter-target-entity/-capsule`) and
+   the raw event_type literal + audit_event_id UUID (kept for forensic reference)
+   are unchanged. security.test.tsx (36) green (asserts via testid, not label
+   text).
 5. **Scheduled-lane loading (verify timing, not a confirmed bug).** The
    screenshot caught the lane at "Loading your calendar…" (the meetings fetch
    hadn't resolved in the 2.8s capture window). The API returns the caller's
