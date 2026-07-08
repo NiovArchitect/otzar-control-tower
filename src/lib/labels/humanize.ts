@@ -63,3 +63,36 @@ export function humanizeStatus(status: string): string {
   };
   return map[status] ?? humanizeAuditEventType(status);
 }
+
+// [CONNECTOR-STATUS] Pick the PRIMARY customer-facing status for a connector
+// tile, prioritizing the tenant's LIVE OAuth connection over the platform
+// adapter's rollout gate. A tenant whose Google connection is VERIFIED sees
+// "Connected" (with the app-review gate demoted to a secondary note), never
+// "App review pending" beside a working connection. Honest: we never claim
+// "Connected" unless the live OAuth status is VERIFIED, and we never hide the
+// app-review state — it stays as the note.
+//
+// - oauthStatus VERIFIED            → "Connected" (+ note if the app is still
+//                                      pending provider review for GA)
+// - oauthStatus reconnect/revoked   → "Reconnect required"
+// - otherwise (no live connection / unverified / credentials missing) → the
+//   platform adapter status wording (App review pending / Needs credentials / …)
+export function connectorTileStatus(
+  adapterStatus: string,
+  oauthStatus: string | undefined,
+  appReviewRequired: boolean | undefined,
+): { label: string; note?: string } {
+  if (oauthStatus === "VERIFIED") {
+    const appReviewPending =
+      adapterStatus === "BLOCKED_BY_APP_REVIEW" || appReviewRequired === true;
+    return appReviewPending
+      ? { label: "Connected", note: "App review pending for broader rollout" }
+      : { label: "Connected" };
+  }
+  if (oauthStatus === "ERROR_NEEDS_RECONNECT" || oauthStatus === "REVOKED") {
+    return { label: "Reconnect required" };
+  }
+  // No live connection yet, or connected-but-not-server-verified, or credentials
+  // missing → the platform adapter status is the honest primary state.
+  return { label: humanizeStatus(adapterStatus) };
+}

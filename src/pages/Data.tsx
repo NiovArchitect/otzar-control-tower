@@ -25,12 +25,17 @@ import { WalletProvenanceBadge } from "@/components/sovereignty/WalletProvenance
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { humanizeStatus } from "@/lib/labels/humanize";
+import { humanizeStatus, connectorTileStatus } from "@/lib/labels/humanize";
 import type { HandoffReadinessResponse } from "@/lib/types/foundation";
 
 interface SourceRow {
   name: string;
-  status: string;
+  /** Primary customer-facing status (live connection prioritized over the
+   *  platform adapter gate — see connectorTileStatus). */
+  label: string;
+  /** Secondary provider/rollout context, e.g. "App review pending for broader
+   *  rollout" shown under "Connected". */
+  note?: string;
 }
 
 const DESTINATIONS: Array<{ label: string; note: string; to: string }> = [
@@ -73,21 +78,44 @@ export function DataKnowledgePage(): JSX.Element {
 
   useEffect(() => {
     let cancelled = false;
-    api.otzar
-      .connectorAdapters()
-      .then((r) => {
+    // Combine the platform adapter catalog with the tenant's LIVE OAuth status
+    // so a verified connection shows "Connected" (not the platform app-review
+    // gate). oauthStatus failing is non-fatal — we fall back to adapter status.
+    Promise.all([api.otzar.connectorAdapters(), api.otzar.oauthStatus()])
+      .then(([adaptersRes, oauthRes]) => {
         if (cancelled) return;
-        if (r.ok) {
-          setSources(
-            r.data.adapters.map((a) => ({
-              name: a.display_name,
-              status: a.status,
-            })),
-          );
-        } else
+        if (!adaptersRes.ok) {
           setLoadNote(
             "Couldn't load sources right now — refresh to try again.",
           );
+          return;
+        }
+        // Look up a provider's live connection status by either its enum
+        // provider name or its human display name.
+        const oauthByKey = new Map<string, string>();
+        if (oauthRes.ok) {
+          for (const p of oauthRes.data.providers) {
+            oauthByKey.set(p.provider.toUpperCase(), p.status);
+            oauthByKey.set(p.display_name.toLowerCase(), p.status);
+          }
+        }
+        setSources(
+          adaptersRes.data.adapters.map((a) => {
+            const oauth =
+              oauthByKey.get(a.provider_name.toUpperCase()) ??
+              oauthByKey.get(a.display_name.toLowerCase());
+            const { label, note } = connectorTileStatus(
+              a.status,
+              oauth,
+              a.app_review_required,
+            );
+            return {
+              name: a.display_name,
+              label,
+              ...(note !== undefined ? { note } : {}),
+            };
+          }),
+        );
       })
       .catch(() => {
         if (!cancelled)
@@ -150,9 +178,19 @@ export function DataKnowledgePage(): JSX.Element {
                 data-testid="data-source-row"
               >
                 <span className="text-foreground">{s.name}</span>
-                <Badge variant="outline" className="text-[9px]">
-                  {humanizeStatus(s.status)}
-                </Badge>
+                <div className="flex flex-col items-end gap-0.5">
+                  <Badge variant="outline" className="text-[9px]">
+                    {s.label}
+                  </Badge>
+                  {s.note !== undefined ? (
+                    <span
+                      className="text-[9px] leading-tight text-muted-foreground"
+                      data-testid="data-source-note"
+                    >
+                      {s.note}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
