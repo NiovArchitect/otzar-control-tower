@@ -66,9 +66,9 @@ function humanizeAccessMode(m: string): string {
     SAFE_PROJECTION: "Safe projection",
     AGGREGATED_SIGNAL: "Aggregated signal",
     DEPERSONALIZED_SIGNAL: "Depersonalized signal",
-    MEMORY_CAPSULE_BUNDLE: "Capsule bundle",
+    MEMORY_CAPSULE_BUNDLE: "Knowledge bundle",
     RETRIEVAL_QUERY: "Retrieval query",
-    CAPSULE_REFERENCE: "Capsule reference",
+    CAPSULE_REFERENCE: "Knowledge reference",
     LLM_CONTEXT_ACCESS: "Context access",
     APP_WORLD_PERSONALIZATION: "App personalization",
   };

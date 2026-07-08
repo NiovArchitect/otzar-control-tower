@@ -118,6 +118,38 @@ that determines, per required production section:
 
 ---
 
+## ✅ MERIDIAN-DEMO-REHEARSAL · Full investor/customer demo rehearsed live · GREEN (2026-07-07, Opus 4.8)
+
+**HEADs:** FND `971d827` · CT `9c95101` (+ this demo commit). Meridian only;
+demo org untouched. Artifacts: `docs/otzar/demo/MERIDIAN_INVESTOR_DEMO_SCRIPT.md`
+(story + talk track + flow + UI route reference) and
+`docs/otzar/demo/MERIDIAN_TECHNICAL_PROOF_APPENDIX.md` (every claim → proof).
+
+- **Positioning:** Otzar as an organizational **harmonization** layer, not a
+  chatbot — the "five refusals" (won't blindly trust newest doc / loudest exec /
+  sales promise / raw transcript / stale plan), each proven live.
+- **Phase 0 pre-flight 10/10** (login, tenancy=Meridian, Google VERIFIED 10
+  scopes, free/busy, calendar create→delete→idempotent, Drive list, revalidate
+  route live, SOURCE_VERIFIED audit, escalations 0, zero active doc residue).
+- **Dress rehearsal (fresh, this session):** `customer-sim:v2` **1 passed
+  (14.0m)** — real Google Docs lineage, truth engine (supersession-lead +
+  sales-overreach-flag + memory/question/request-not-work + zero-invention),
+  employee/Twin boundaries + non-party 404, **real calendar event
+  create→delete→idempotent zero residue**, honest Meet 409. `source-integrity`
+  **1 passed (34.6s)** — import→revalidate AVAILABLE/changed:false/no leak.
+- **Post-rehearsal residue: 0** (escalations 0, active DOCUMENT_CONTEXT 0/36,
+  SOURCE_VERIFIED audit 2).
+- **UI:** all demo surfaces walked (routes mapped in the script); Security &
+  Audit renders the new source-integrity labels. Small fix shipped: ReviewCenter
+  `Capsule`→`Knowledge` vocabulary leak. Watch-item (not blocking): notification
+  dropdown layering — see gap ledger.
+- **Verdict:** ready for investor/customer demo on the Meridian story, with the
+  honest boundaries stated (Meet transcript unavailable; calendar write is
+  approval-gated; revalidation manual; source mutation branches proven via
+  backend mocks, not live).
+
+---
+
 ## ✅ SOURCE-INTEGRITY · Imported-source lifecycle hardened + revalidation · LIVE + PROVEN on Meridian (2026-07-07, Opus 4.8)
 
 **HEADs:** FND `971d827` (PR #593 squash-merged + **deployed live** to

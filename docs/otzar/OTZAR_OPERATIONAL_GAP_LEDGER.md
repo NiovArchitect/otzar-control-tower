@@ -15,6 +15,32 @@ when a screen exists.
 
 ---
 
+## Demo-readiness watch-items (2026-07-07, Opus 4.8 — Meridian demo rehearsal)
+
+Non-blocking polish surfaced while walking the UI for the investor/customer demo
+rehearsal (FND `971d827` · CT `9c95101`). Full demo artifacts:
+`demo/MERIDIAN_INVESTOR_DEMO_SCRIPT.md` + `demo/MERIDIAN_TECHNICAL_PROOF_APPENDIX.md`.
+
+1. **Notification dropdown layering (verify-then-portal).** The employee
+   notification dropdown (`src/components/otzar/NotificationBell.tsx:423`) is an
+   un-portaled `z-50` rendered inside a `backdrop-blur` header
+   (`EmployeeLayout.tsx:51`), which caps its subtree at a `z-40` stacking
+   context relative to root; the ambient orb (`z-[60]`) / ambient nav can
+   overlap it. Durable fix = render the dropdown via `createPortal` with
+   computed positioning, above `z-60`. Deferred (needs on-screen verification;
+   a prior overlay fix `f99a859` already handled the ambient-cards case — avoid
+   regressing it with a blind z bump). **Not a customer-journey slice — polish.**
+2. **Prod-build discipline for demo.** Login (`src/pages/Login.tsx:184`) renders
+   dev-only seeded-account quick-fill buttons under `import.meta.env.DEV`. The
+   live app.otzar.ai is a production build (buttons absent) — always demo the
+   deployed build, never a local `vite dev`.
+
+**Fixed in the rehearsal pass:** `Capsule bundle`/`Capsule reference` →
+`Knowledge bundle`/`Knowledge reference` (`ReviewCenter.tsx:69,71`) — a
+customer-facing vocabulary-discipline leak.
+
+---
+
 ## The rule this ledger enforces
 
 **The customer experience drives the code.** Every user story must translate
