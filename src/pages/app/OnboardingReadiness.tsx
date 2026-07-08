@@ -351,7 +351,7 @@ const CLASS_LABEL: Record<string, string> = {
   PROD_READY_PENDING_SCHEMA_PUSH: "Ready after platform update",
   PROD_READY_PENDING_CREDENTIALS: "Needs credentials",
   BLOCKED_BY_CREDENTIALS: "Needs credentials",
-  BLOCKED_BY_APP_REVIEW: "Needs app review",
+  BLOCKED_BY_APP_REVIEW: "App review pending",
   DEMO_ONLY: "Demo only",
   PARTIAL: "Partially ready",
   NOT_STARTED: "Not started",

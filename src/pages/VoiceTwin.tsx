@@ -74,7 +74,7 @@ import type {
 
 const DOCTRINE_LINES = [
   "Otzar is voice-first because work should move through natural communication, not endless clicking.",
-  "Users should be able to talk to their AI Twin the way they would talk to a trusted teammate.",
+  "Users should be able to talk to their AI Teammate the way they would talk to a trusted teammate.",
   "Voice reduces friction, increases adoption, and makes governed intelligence feel alive.",
   "Voice is an interface layer over Foundation governance, not a bypass around it.",
 ];
@@ -261,7 +261,7 @@ export function VoiceTwinPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Voice — talk to your Twin"
+        title="Voice — talk to your AI Teammate"
         description="Text-only voice surface per ADR-0085. Voice flows through Foundation governance, not around it."
       />
 

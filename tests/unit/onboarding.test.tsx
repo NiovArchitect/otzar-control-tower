@@ -123,7 +123,7 @@ describe("ADR-0080 Wave 3 Dandelion Preview -- shell + doctrine", () => {
     renderPage();
     expect(
       screen.getByText(
-        "This preview does not activate tools, users, permissions, workflows, or Digital Twin profiles.",
+        "This preview does not activate tools, users, permissions, workflows, or AI Teammate profiles.",
       ),
     ).toBeInTheDocument();
   });

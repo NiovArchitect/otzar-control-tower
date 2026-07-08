@@ -40,7 +40,7 @@ export function InviteWizardStep3Confirm({
   const targetDescription = `${newDisplayName} (${newEmail}) as ${isAdmin ? "an admin" : "a team member"}`;
   const confirmationDescription = `This will invite ${newDisplayName} (${newEmail}) as ${
     isAdmin ? "an admin" : "a team member"
-  }. A Digital Twin is minted and a one-time activation link is issued for you to share securely — no email is sent.`;
+  }. An AI Teammate is minted and a one-time activation link is issued for you to share securely — no email is sent.`;
 
   if (activation !== null) {
     return (

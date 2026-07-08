@@ -51,7 +51,7 @@ export function humanizeStatus(status: string): string {
     BLOCKED_BY_CREDENTIAL: "Needs credentials",
     NEEDS_PROVIDER_INSTALL: "Needs install",
     BLOCKED_BY_KEY: "Needs credentials",
-    BLOCKED_BY_APP_REVIEW: "Needs app review",
+    BLOCKED_BY_APP_REVIEW: "App review pending",
     NOT_AUTHORIZED: "Needs explicit authorization",
     DEMO_ONLY: "Demo only",
     DEV_ONLY: "Development only",

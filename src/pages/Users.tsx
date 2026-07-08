@@ -404,7 +404,7 @@ export function UsersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Members"
-        description="People in your organization -- their roles, status, and access summary. Each member has a Digital Twin once their invite is accepted."
+        description="People in your organization -- their roles, status, and access summary. Each member has an AI Teammate once their invite is accepted."
         actions={
           <Button onClick={() => setInviteOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" aria-hidden />

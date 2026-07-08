@@ -169,7 +169,7 @@ export function InviteWizard({ open, onOpenChange }: InviteWizardProps) {
             <DialogTitle>{cancelTitle}</DialogTitle>
             <DialogDescription>
               {cancelDisplayName} will remain in your Users list as a member,
-              but they won't have a Digital Twin until you complete onboarding.
+              but they won't have an AI Teammate until you complete onboarding.
               You can finish their invite from their member detail page anytime.
             </DialogDescription>
           </DialogHeader>

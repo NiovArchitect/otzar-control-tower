@@ -89,7 +89,7 @@ describe("VoiceTwin — page shell", () => {
     renderVoice();
     expect(
       screen.getByRole("heading", {
-        name: /Voice — talk to your Twin/i,
+        name: /Voice — talk to your AI Teammate/i,
         level: 1,
       }),
     ).toBeInTheDocument();
@@ -105,7 +105,7 @@ describe("VoiceTwin — page shell", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Users should be able to talk to their AI Twin the way they would talk to a trusted teammate\./,
+        /Users should be able to talk to their AI Teammate the way they would talk to a trusted teammate\./,
       ),
     ).toBeInTheDocument();
     expect(

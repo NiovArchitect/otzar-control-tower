@@ -34,7 +34,7 @@ export const VOICE_SOURCE_SURFACE_LABELS: Readonly<
       "Walk through your governed company setup, role templates, and starter envelope.",
   },
   ADMIN_TWIN: {
-    display: "Admin Twin",
+    display: "Admin AI Teammate",
     description:
       "Pending approvals, audit chain summaries, and policy posture briefings.",
   },

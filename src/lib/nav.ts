@@ -143,7 +143,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     label: "AI Teammates",
     to: "/ai-teammates",
     icon: Bot,
-    description: "The AI Twins working alongside your team — what each is allowed to do and where it belongs.",
+    description: "The AI Teammates working alongside your team — what each is allowed to do and where it belongs.",
     group: "People & Roles",
   },
   {
@@ -157,7 +157,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     label: "Onboarding",
     to: "/onboarding",
     icon: Compass,
-    description: "Setup preview — the out-of-the-box catalog of roles, AI Twins, tools, and workflows to get this organization ready to run.",
+    description: "Setup preview — the out-of-the-box catalog of roles, AI Teammates, tools, and workflows to get this organization ready to run.",
     group: "People & Roles",
   },
 
@@ -277,7 +277,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     label: "Workflows",
     to: "/workflows",
     icon: Workflow,
-    description: "Multi-step orchestrations spanning people and AI Twins.",
+    description: "Multi-step orchestrations spanning people and AI Teammates.",
     group: "Workflows & Automation",
     comingSoon: true,
   },

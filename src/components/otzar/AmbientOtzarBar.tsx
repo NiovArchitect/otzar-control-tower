@@ -1087,7 +1087,7 @@ export function AmbientOtzarBar(): JSX.Element {
               : a.status === "BLOCKED_BY_CREDENTIAL"
                 ? "needs credentials"
                 : a.status === "BLOCKED_BY_APP_REVIEW"
-                  ? "needs app review"
+                  ? "app review pending"
                   : a.status.toLowerCase().replace(/_/g, " ");
           return `${a.display_name}: ${label}`;
         });

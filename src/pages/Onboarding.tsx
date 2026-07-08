@@ -151,7 +151,7 @@ function DoctrineCard() {
           <li>Connector presets are not live connectors.</li>
           <li>
             This preview does not activate tools, users, permissions,
-            workflows, or Digital Twin profiles.
+            workflows, or AI Teammate profiles.
           </li>
           <li>
             Dandelion will eventually assemble governed starter packages
@@ -179,7 +179,7 @@ function AmbientWorkOsDoctrine() {
     {
       id: "route",
       title: "Route governed work",
-      body: "Otzar spreads awareness to the right people and AI Twins — the right work to the right person at the right time, never everyone, never outside your authority.",
+      body: "Otzar spreads awareness to the right people and AI Teammates — the right work to the right person at the right time, never everyone, never outside your authority.",
     },
     {
       id: "learn",
@@ -251,7 +251,7 @@ function AmbientWorkOsDoctrine() {
 function AdminSetupOrientation() {
   const concepts: Array<{ id: string; label: string; body: string }> = [
     { id: "topology", label: "Topology", body: "The shape of your org — departments, teams, and how work flows between them." },
-    { id: "people", label: "People", body: "The members and the AI Twins that work alongside them." },
+    { id: "people", label: "People", body: "The members and the AI Teammates that work alongside them." },
     { id: "roles", label: "Roles", body: "What each role is responsible for and allowed to do." },
     { id: "authority", label: "Authority", body: "Who can approve, escalate, and act — the governance boundaries." },
     { id: "tools", label: "Tools", body: "The connectors and sources Otzar may use, once you authorize them." },

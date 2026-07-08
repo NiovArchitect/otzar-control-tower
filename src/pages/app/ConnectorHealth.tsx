@@ -396,7 +396,7 @@ export function ConnectorHealth(): JSX.Element {
                       {a.status === "CONFIGURED"
                         ? "Connected"
                         : a.status === "BLOCKED_BY_APP_REVIEW"
-                          ? "Needs app review"
+                          ? "App review pending"
                           : a.status === "BLOCKED_BY_CREDENTIAL"
                             ? "Needs setup"
                             : "Not active"}
