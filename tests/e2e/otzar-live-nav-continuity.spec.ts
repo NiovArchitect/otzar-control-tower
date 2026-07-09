@@ -110,6 +110,22 @@ test("Back affordance + unsaved-work guard behave safely on the live app", async
   await expect(sample).toHaveValue(typed);
   await shot(page, "05-stay-kept-work");
 
+  // (NO UNSAFE STORAGE) While a form is dirty AND authenticated, assert the
+  // client stores neither the typed value nor an auth token anywhere.
+  const storage = await page.evaluate(() => ({
+    local: Object.entries(localStorage),
+    session: Object.entries(sessionStorage),
+  }));
+  const blob = JSON.stringify(storage);
+  expect(blob).not.toContain(typed); // form value is never persisted
+  for (const [k, v] of [...storage.local, ...storage.session]) {
+    expect(/token|jwt|auth|bearer|password|credential/i.test(k)).toBe(false);
+    expect(/^ey[A-Za-z0-9_-]+\.ey[A-Za-z0-9_-]+\./.test(v)).toBe(false); // no JWT
+  }
+  console.log(
+    `[nav-continuity] storage sweep clean: ${storage.local.length} local, ${storage.session.length} session keys, no token/form-value`,
+  );
+
   // (4) DIRTY → Back again → Leave proceeds; the form page is gone.
   await backBtn.click();
   await expect(page.getByTestId("unsaved-changes-dialog")).toBeVisible();
@@ -121,5 +137,33 @@ test("Back affordance + unsaved-work guard behave safely on the live app", async
   expect(/\/login$/.test(leftPath)).toBe(false);
   await shot(page, "06-leave-proceeded");
 
-  console.log("[nav-continuity] all navigation-continuity behaviors verified live");
+  console.log("[nav-continuity] all employee-shell behaviors verified live");
+});
+
+test("Back affordance renders and returns safely in the ADMIN shell", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await uiLogin(page, ADMIN_EMAIL, ADMIN_PW!);
+
+  // Admin command-center home (fallback for this shell) — no dead Back button.
+  await reach(page, "/");
+  await expect(page.getByTestId("app-back-button")).toHaveCount(0);
+  await shot(page, "07-admin-home-no-back");
+
+  // An admin sub-page shows the Back affordance; it returns to a safe in-app
+  // location and never bounces to /login.
+  await reach(page, "/security-audit");
+  const back = page.getByTestId("app-back-button");
+  await expect(back).toBeVisible();
+  await expect(back).toHaveAttribute("aria-label", "Go back");
+  await shot(page, "08-admin-subpage-back-visible");
+  await back.click();
+  await page.waitForTimeout(1200);
+  const p = new URL(page.url()).pathname;
+  expect(/\/login$/.test(p)).toBe(false);
+  expect(p === "/" || p.startsWith("/")).toBe(true);
+  await shot(page, "09-admin-back-safe");
+
+  console.log("[nav-continuity] admin-shell Back affordance verified live");
 });

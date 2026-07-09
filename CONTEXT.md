@@ -118,9 +118,19 @@ that determines, per required production section:
 
 ---
 
-## ✅ APP-NAV-CONTINUITY · Safe Back button + unsaved-work guard + 🛑 session-continuity STOP · (2026-07-08, Opus 4.8)
+## ✅ APP-NAV-CONTINUITY · Safe Back button + unsaved-work guard + 🛑 session-continuity STOP · LIVE-VERIFIED (2026-07-09, Opus 4.8)
 
-**HEADs:** CT (this commit) · FND unchanged (`71c3fa7`). CT-only; no schema.
+**HEADs:** CT `fdb30d37` deployed live (deploy `dep-d97brkjtqb8s73fob460`, bundle
+`index-BerU04_x.js` grep-confirmed to carry the new testids) · FND unchanged
+(`71c3fa7`). CT-only; no schema. Live spec `otzar-live-nav-continuity.spec.ts`
+**2 passed · 0 failed · 0 skipped** on Meridian: both shells' Back affordance +
+clean-passthrough + dirty-blocks + Stay-keeps + Leave-proceeds + a live storage
+sweep showing **0 localStorage / 0 sessionStorage keys** (no token, no form value).
+Zero Meridian residue (spec does no writes — login + client-side nav/typing only;
+the sample never leaves the page). Demo org untouched. (Credential note: the live
+meridian-admin password is the value under the "meridian-admin@niovlabs.com
+password" label in the bootstrap secrets — a mis-copied token had caused a false
+"incorrect password".)
 
 Two coupled directives handled together:
 
