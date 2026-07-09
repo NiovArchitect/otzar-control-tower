@@ -115,13 +115,14 @@ not JS-readable; invariant (cookie → `/auth/me` only, `requireAuth` Bearer-onl
 proven live. Live E2E `otzar-live-session-continuity.spec.ts` GREEN: hard-reload +
 deep-link restore, storage sweep 0/0, logout→bounce. Plan+evidence:
 [`OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`](./OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md).
-Residual (documented, narrow): **admin** suspend (PATCH /org/entities/:id) + AI-
-teammate deactivate cut the user off IMMEDIATELY via B1 (`invalidateEntitySessions`
-→ sessions INVALIDATED → `validateSession` 401 next request, Bearer included). The
-ONLY path where an existing Bearer survives is the 5-failed-attempt auto-lockout
-(`auth.service.ts:250`), which sets SUSPENDED without invalidating sessions
-(restore still blocked there by the `/auth/me` ACTIVE check). One-line optional
-hardening deferred. Historical preflight/STOP notes preserved below.
+Residual gap **CLOSED** (FND `95cf937`, PR #598, 2026-07-09): the 5-failed-attempt
+auto-lockout now also calls `invalidateEntitySessions`, so ALL THREE suspension
+paths — admin suspend (PATCH /org/entities/:id), AI-teammate deactivate, and
+auto-lockout — invalidate live sessions immediately (an existing Bearer on another
+device fails on the next request, not just restore). Integration test + auth
+regression + 5 CI checks green; not live-probed by design (would lock a real
+account). No further known auth/session gaps. Historical preflight/STOP notes
+preserved below.
 
 ### (historical) PLAN READY / STOP notes
 

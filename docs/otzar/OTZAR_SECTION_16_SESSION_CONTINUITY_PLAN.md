@@ -5,6 +5,12 @@ half is **LIVE** on api.otzar.ai (merged PR #597, `54db932`), live-probed green.
 CT half implemented + deploying. The preflight verdict below (SAFE TO IMPLEMENT,
 no STOP condition) held end-to-end. Original plan preserved for the record.
 
+**Auto-lockout hardening (FND `95cf937`, PR #598, 2026-07-09):** the residual gap
+is CLOSED — the 5-failed-attempt auto-lockout now also calls
+`invalidateEntitySessions`, so ALL THREE suspension paths (admin suspend,
+AI-teammate deactivate, auto-lockout) invalidate live sessions immediately (an
+existing Bearer on another device fails on the next request, not just restore).
+
 **Live-probe of deployed FND (2026-07-09):** login sets `otzar_session` (`HttpOnly;
 Secure; SameSite=Lax; Path=/`, host-only, expires with session); `/auth/me`
 cookie-only → 200 + `no-store` + fresh caps; no cookie → 401; **Bearer route

@@ -144,15 +144,24 @@ section16 units), build ok, render splash→form (no hang). **Live E2E**
 restore, deep-link restore, storage sweep (0 token, HttpOnly cookie invisible to
 `document.cookie`), logout→reload bounces. Zero Meridian mutation; demo org
 untouched. Docs: `OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md` (plan+evidence),
-gap ledger CLOSED. Residual gap (documented, narrow): **admin-suspended** users (PATCH
-/org/entities/:id + AI-teammate deactivate) are cut off IMMEDIATELY — B1
-invalidates their sessions, so `validateSession` returns 401 on the next request,
-Bearer included. The only path where an existing Bearer survives is the
-**5-failed-attempt auto-lockout** (`auth.service.ts:250`), which flips SUSPENDED
-without invalidating sessions — a session live on another device works until
-expiry/TAR change (restore still blocked there by the `/auth/me` ACTIVE check).
-One-line optional hardening: `invalidateEntitySessions` at that lockout site
-(defense-in-depth on the Bearer path, not a restore hole — deferred).
+gap ledger CLOSED. Residual gap: **CLOSED** by the auto-lockout hardening (FND `95cf937`, PR #598) —
+see the closeout entry above. All three suspension paths now invalidate live
+sessions immediately.
+
+## ✅ SECTION-16 · Auto-lockout session invalidation — CLOSED (FND `95cf937`, 2026-07-09)
+
+The 5-failed-attempt auto-lockout (`auth.service.ts`) now calls
+`invalidateEntitySessions(entity_id, "auto_lockout_failed_attempts")` right after
+flipping SUSPENDED. So **every** suspension path — admin suspend (PATCH
+/org/entities/:id), AI-teammate deactivate, AND auto-lockout — invalidates live
+sessions immediately: an already-authenticated Bearer on another device now fails
+on the next request (`validateSession` → INVALIDATED → 401), not just restore.
+FND-only, no schema, no CT change; enumeration safety unchanged (the lockout
+attempt still returns generic invalid-credentials). Integration test (5 fails →
+SUSPENDED → old Bearer 401 → /auth/me 401 → correct-pw 403 → leak-clean); auth
+integration (8) + unit (34) regression green; all 5 CI checks green. Not
+live-probed by design (live proof would lock a real account — relied on the
+integration test + deploy health per the directive).
 
 ---
 
