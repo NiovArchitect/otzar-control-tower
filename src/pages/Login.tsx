@@ -14,7 +14,7 @@
 //              niov-foundation/scripts/demo-seed.ts.
 
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -69,31 +69,61 @@ const DEMO_ACCOUNTS: ReadonlyArray<{
   },
 ];
 
+// [SECTION-16] Post-login destination: prefer the guard-captured returnTo
+// (protected deep-link continuity), else persona routing. The input is the value
+// from useSearchParams().get("returnTo"), which React Router has ALREADY decoded
+// once (the guards encodeURIComponent it into the URL) — so we do NOT decode
+// again here (a second decode would corrupt a path containing a literal '%').
+// Accepted ONLY as a same-origin app path: it must start with a single "/" and
+// never be protocol-relative ("//host") or an absolute URL (open-redirect
+// safety), and never bounce back to /login. Pure + module-level for testability.
+export function resolveDestination(
+  returnTo: string | null,
+  caps: Parameters<typeof landingPathFor>[0],
+): string {
+  if (
+    returnTo !== null &&
+    returnTo.startsWith("/") &&
+    !returnTo.startsWith("//") &&
+    !returnTo.startsWith("/login")
+  ) {
+    return returnTo;
+  }
+  return landingPathFor(caps);
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, isLoading, loginError, isAuthenticated, capabilities } =
     useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   // Org admins land in the Control Tower ("/"); product-only employees
-  // land in the Otzar shell ("/app"). landingPathFor encapsulates the
-  // persona routing and never sends a non-admin into the admin area.
+  // land in the Otzar shell ("/app") — unless a returnTo carries them back to
+  // the protected page they were originally headed for.
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(landingPathFor(capabilities), { replace: true });
+      navigate(resolveDestination(searchParams.get("returnTo"), capabilities), {
+        replace: true,
+      });
     }
-  }, [isAuthenticated, capabilities, navigate]);
+  }, [isAuthenticated, capabilities, navigate, searchParams]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = await login(email, password);
     if (result.ok) {
       // Login is audited server-side; no user-facing success popup — users
-      // know they signed in. Go straight to the app.
-      navigate(landingPathFor(useAuthStore.getState().capabilities), {
-        replace: true,
-      });
+      // know they signed in. Go to returnTo if present, else the persona home.
+      navigate(
+        resolveDestination(
+          searchParams.get("returnTo"),
+          useAuthStore.getState().capabilities,
+        ),
+        { replace: true },
+      );
     }
   }
 

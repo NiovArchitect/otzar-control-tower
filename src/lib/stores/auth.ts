@@ -4,14 +4,17 @@
 //          attachment + 401 logout), AuthGuard (route protection),
 //          and Layout's user pill.
 //
-// POSTURE — JWT IN MEMORY ONLY (XSS-protected MVP):
-// - The token lives in this store's in-memory state only.
-// - NO localStorage. NO sessionStorage. NO cookies.
-// - Page refresh wipes the store -> the user re-logs in.
-// - The known UX cost (refresh = re-login) is accepted for MVP.
-// - Refresh-token-via-httpOnly-cookie work lands in Section 16.
-// - Adding localStorage as a "small helpful improvement" is a
-//   security regression -- do NOT.
+// POSTURE — ACCESS TOKEN IN MEMORY ONLY (XSS-protected):
+// - The access token lives in this store's in-memory state only.
+// - NO localStorage. NO sessionStorage. NO JS-readable cookie for the token.
+// - Adding localStorage/sessionStorage auth as a "small helpful improvement"
+//   is a security regression -- do NOT.
+// - [SECTION-16 · DONE] A page refresh is restored by restoreSession() below,
+//   which calls GET /auth/me. The restore credential is a server-set HttpOnly
+//   Secure SameSite=Lax cookie that JS CANNOT read (so it is NOT client-side
+//   token custody); on boot the store is rehydrated in memory exactly as after
+//   a login. If restore fails, the guards route to /login as before. The cookie
+//   authenticates /auth/me ONLY; all API calls still use the in-memory Bearer.
 //
 // CAPABILITIES — derived from Foundation's allowed_operations:
 // Foundation's POST /auth/login response includes
@@ -172,3 +175,30 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
     },
   }),
 );
+
+// [SECTION-16] Boot-time session restore. Calls GET /auth/me, which sends the
+// HttpOnly session cookie; on a still-valid server-side session it rehydrates
+// this in-memory store — token + identity + capabilities freshly gated by the
+// live Foundation TAR (a TAR change would have invalidated the session, so the
+// capabilities are never stale). On ANY failure (no cookie, revoked, suspended,
+// network error, timeout) it leaves the store logged out so the guards route to
+// /login. It writes NOTHING to localStorage/sessionStorage/cookies — the token
+// lives in memory exactly as it does after a login. Returns whether a session
+// was restored. Called once, before the router renders (see SessionBootstrap).
+export async function restoreSession(): Promise<boolean> {
+  const result = await api.auth.me();
+  if (!result.ok) return false;
+  const body = result.data;
+  useAuthStore.setState({
+    token: body.token,
+    entity: { email: body.entity.email },
+    capabilities: deriveCapabilities(body.allowed_operations),
+    isAuthenticated: true,
+    isLoading: false,
+    loginError: null,
+  });
+  // Rebind the SAME per-session scope (personal chat transcript) the login bound,
+  // so a reload continues the session instead of appearing to start fresh.
+  bindConversationScope(body.session_id ?? body.entity.email);
+  return true;
+}

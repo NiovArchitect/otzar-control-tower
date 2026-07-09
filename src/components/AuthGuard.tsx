@@ -11,7 +11,7 @@
 // - isAuthenticated && !capabilities?.can_admin_org → AccessDenied
 // - Otherwise → children
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
 
 interface AuthGuardProps {
@@ -20,6 +20,7 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const { isAuthenticated, isLoading, capabilities, logout } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -34,7 +35,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // [SECTION-16] Preserve where the user was headed so login returns them
+    // there (protected deep-link continuity). Path only — no secrets in the URL.
+    const returnTo = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
   }
 
   if (capabilities === null || !capabilities.can_admin_org) {

@@ -32,6 +32,7 @@ import type {
   TeamClarityHealthView,
   LoginResponse,
   LoginFailure,
+  MeResponse,
   PlatformHealth,
   OrgAnalytics,
   FoundationError,
@@ -373,6 +374,14 @@ export class ApiClient {
       method,
       headers,
       body: hasBody ? JSON.stringify(opts.body) : null,
+      // [SECTION-16] Send/receive the HttpOnly session cookie. Required so login
+      // can RECEIVE Set-Cookie and GET /auth/me can SEND the restore cookie. On
+      // every other request the cookie rides along but the server authorizes on
+      // the Bearer header only (the cookie authenticates /auth/me exclusively),
+      // so this never changes how mutations are authorized. Cross-origin cookie
+      // exchange is already permitted: FND CORS sends allow-credentials:true with
+      // an exact origin (never '*'), which credentials:'include' requires.
+      credentials: "include",
     };
 
     // GET-only network-failure retry. 4xx/5xx are NOT retried --
@@ -468,6 +477,14 @@ export class ApiClient {
 
     logout: (): Promise<ApiResult<{ ok: true }>> =>
       this.request<{ ok: true }>("/auth/logout", { method: "POST", authRoute: true }),
+
+    /** [SECTION-16] GET /auth/me — boot-time session restore from the HttpOnly
+     *  cookie (credentials are always included). authRoute:true so a 401 (no
+     *  restorable session) is a silent "not logged in" — it must NOT fire
+     *  onUnauthorized()/flatten to SESSION_INVALID, since at boot the store is
+     *  already logged out and this is the expected cold-start path. */
+    me: (): Promise<ApiResult<MeResponse>> =>
+      this.request<MeResponse>("/auth/me", { method: "GET", authRoute: true }),
 
     /** [PASSWORD-LIFECYCLE] POST /auth/forgot-password — PUBLIC and
      *  enumeration-safe: the response is identical whether or not the

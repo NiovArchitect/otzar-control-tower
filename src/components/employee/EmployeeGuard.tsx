@@ -12,7 +12,7 @@
 //   - authenticated && !isEmployee -> "No Otzar access" screen
 //   - otherwise                    -> children
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isEmployee } from "@/lib/auth/capabilities";
 
@@ -22,6 +22,7 @@ interface EmployeeGuardProps {
 
 export function EmployeeGuard({ children }: EmployeeGuardProps) {
   const { isAuthenticated, isLoading, capabilities, logout } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -36,7 +37,9 @@ export function EmployeeGuard({ children }: EmployeeGuardProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // [SECTION-16] Preserve the attempted location for post-login return.
+    const returnTo = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
   }
 
   if (!isEmployee(capabilities)) {

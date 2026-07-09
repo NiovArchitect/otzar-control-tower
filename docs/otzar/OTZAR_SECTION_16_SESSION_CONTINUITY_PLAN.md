@@ -1,4 +1,20 @@
-# Section 16 — Enterprise session continuity (HttpOnly cookie + `/auth/me`) — PLAN (awaiting GO)
+# Section 16 — Enterprise session continuity (HttpOnly cookie + `/auth/me`)
+
+**Status:** ✅ **GO'd (A1 + B1) and IMPLEMENTED, 2026-07-09 (Opus 4.8).** Foundation
+half is **LIVE** on api.otzar.ai (merged PR #597, `54db932`), live-probed green.
+CT half implemented + deploying. The preflight verdict below (SAFE TO IMPLEMENT,
+no STOP condition) held end-to-end. Original plan preserved for the record.
+
+**Live-probe of deployed FND (2026-07-09):** login sets `otzar_session` (`HttpOnly;
+Secure; SameSite=Lax; Path=/`, host-only, expires with session); `/auth/me`
+cookie-only → 200 + `no-store` + fresh caps; no cookie → 401; **Bearer route
+`/auth/validate` cookie-only → 401** (invariant holds in prod), with Bearer → 200;
+logout → 200 then `/auth/me` old cookie → 401. Decisions shipped: **A1** (reuse the
+8h session JWT in the cookie) + **B1** (`invalidateEntitySessions` on suspend).
+
+---
+
+## (original) PLAN — awaiting GO
 
 **Status:** Phase-0 preflight COMPLETE, 2026-07-09 (Opus 4.8). Grep-first across
 both repos (FND `71c3fa7`, CT `fdb30d37`). **Verdict: SAFE TO IMPLEMENT — no STOP

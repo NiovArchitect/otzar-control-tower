@@ -30,6 +30,19 @@ export interface LoginFailure {
   message: string;
 }
 
+// WHAT: [SECTION-16] GET /auth/me success shape — the boot-time session restore.
+// Returns the still-valid access token (for CT's in-memory store), the session
+// scope, the safe identity shell, and capabilities freshly gated by the live TAR
+// (a TAR change would have invalidated the session, so this is never stale).
+export interface MeResponse {
+  ok: true;
+  token: string;
+  session_id: string;
+  entity: { email: string };
+  allowed_operations: string[];
+  clearance_ceiling: number;
+}
+
 // WHAT: GET /platform/health response shape.
 export interface PlatformHealth {
   ok: true;

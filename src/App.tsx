@@ -7,6 +7,7 @@
 // CONNECTS TO: every page in src/pages/, src/lib/query.ts, AuthGuard,
 //              Layout. Routes are kept aligned with src/lib/nav.ts.
 
+import { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   createBrowserRouter,
@@ -15,6 +16,7 @@ import {
   Route,
   RouterProvider,
 } from "react-router-dom";
+import { restoreSession } from "@/lib/stores/auth";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ActivatePage } from "@/pages/Activate";
 import { OrgSetupPage } from "@/pages/OrgSetup";
@@ -249,11 +251,56 @@ const router = createBrowserRouter(
   ),
 );
 
+// [SECTION-16] Gate the first render on a one-shot session restore so a
+// hard-reload / protected deep link rehydrates the in-memory auth store from the
+// HttpOnly cookie (GET /auth/me) BEFORE the guards evaluate — instead of
+// flashing /login and losing the user's place. Resilient by construction: a
+// bounded timeout guarantees the app renders even if /auth/me stalls or errors
+// (then the guards route to /login as normal). It never hangs on the splash, and
+// stores nothing client-side — the token lands in memory exactly as after login.
+function SessionBootstrap({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let settled = false;
+    const finish = () => {
+      if (!settled) {
+        settled = true;
+        setReady(true);
+      }
+    };
+    // Never block the app on a hung/slow /auth/me — render after 8s regardless.
+    const timer = window.setTimeout(finish, 8000);
+    void restoreSession().finally(() => {
+      window.clearTimeout(timer);
+      finish();
+    });
+    return () => {
+      settled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  if (!ready) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex h-screen items-center justify-center text-muted-foreground"
+      >
+        Restoring your session…
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <RouterProvider router={router} />
+        <SessionBootstrap>
+          <RouterProvider router={router} />
+        </SessionBootstrap>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
