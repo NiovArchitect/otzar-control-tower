@@ -144,10 +144,15 @@ section16 units), build ok, render splash→form (no hang). **Live E2E**
 restore, deep-link restore, storage sweep (0 token, HttpOnly cookie invisible to
 `document.cookie`), logout→reload bounces. Zero Meridian mutation; demo org
 untouched. Docs: `OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md` (plan+evidence),
-gap ledger CLOSED. Residual gap (documented): a plain per-request suspension check
-is still not in the hot path — B1 + the `/auth/me` ACTIVE check fully block
-restore, but a suspended user's existing Bearer token lives until expiry/TAR
-change (out of Section 16 scope).
+gap ledger CLOSED. Residual gap (documented, narrow): **admin-suspended** users (PATCH
+/org/entities/:id + AI-teammate deactivate) are cut off IMMEDIATELY — B1
+invalidates their sessions, so `validateSession` returns 401 on the next request,
+Bearer included. The only path where an existing Bearer survives is the
+**5-failed-attempt auto-lockout** (`auth.service.ts:250`), which flips SUSPENDED
+without invalidating sessions — a session live on another device works until
+expiry/TAR change (restore still blocked there by the `/auth/me` ACTIVE check).
+One-line optional hardening: `invalidateEntitySessions` at that lockout site
+(defense-in-depth on the Bearer path, not a restore hole — deferred).
 
 ---
 

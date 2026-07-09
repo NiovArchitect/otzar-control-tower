@@ -115,9 +115,13 @@ not JS-readable; invariant (cookie → `/auth/me` only, `requireAuth` Bearer-onl
 proven live. Live E2E `otzar-live-session-continuity.spec.ts` GREEN: hard-reload +
 deep-link restore, storage sweep 0/0, logout→bounce. Plan+evidence:
 [`OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`](./OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md).
-Residual (documented, out of scope): no per-request `entity.status` check on the
-hot Bearer path — a suspended user's existing token lives until expiry/TAR change;
-restore is fully blocked. Historical preflight/STOP notes preserved below.
+Residual (documented, narrow): **admin** suspend (PATCH /org/entities/:id) + AI-
+teammate deactivate cut the user off IMMEDIATELY via B1 (`invalidateEntitySessions`
+→ sessions INVALIDATED → `validateSession` 401 next request, Bearer included). The
+ONLY path where an existing Bearer survives is the 5-failed-attempt auto-lockout
+(`auth.service.ts:250`), which sets SUSPENDED without invalidating sessions
+(restore still blocked there by the `/auth/me` ACTIVE check). One-line optional
+hardening deferred. Historical preflight/STOP notes preserved below.
 
 ### (historical) PLAN READY / STOP notes
 
