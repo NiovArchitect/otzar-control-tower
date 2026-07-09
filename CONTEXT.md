@@ -118,6 +118,42 @@ that determines, per required production section:
 
 ---
 
+## 🟢 INBOUND AMBIENT INGESTION RAIL · Preflight complete → DESIGN READY, awaiting GO · (2026-07-09, Opus 4.8)
+
+**HEADs:** FND runtime `95cf937` · CT `95ca323` (docs-only; no code). Grep-first
+across BOTH repos (4 parallel read-only inventories). Full plan:
+`docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`.
+
+**Verdict: STOP at design — implementation needs a separate GO.** Key insight: the
+OUTCOME side is production-ready and schema-free — `revalidateImportedDocForCaller`
++ `sourceHealthSweepForCaller` (Drive) and the `closedRecipientSet` + MEETING-ledger
++ `fanOutInternalNotifications` calendar loop already exist, and audit `event_type`
+/ `notification_class` are OPEN validated Strings (no migration). Google OAuth
+tokens are org-scoped + auto-refreshing; `verifyInboundHmac` (timing-safe, ±5-min
+window) + Redis NonceStore + gateway rate-limit + node-cron all exist. The entire
+INBOUND half is greenfield: no webhook route, no raw-body parser, no watch/channel,
+no channel→org resolver, non-atomic dedupe (no `@@unique`), no single-use replay,
+no governed non-human caller.
+
+**Provider feasibility:** Google Drive push + Calendar watch = 🛑 STOP (Cloud-console
+domain-verified callback + Pub/Sub + `WatchChannel` schema + renewal); scopes are
+already granted (no re-consent). Meet transcript events = 🛑 BLOCKED (post-meeting
+pull only; honest NO_TRANSCRIPT).
+
+**Recommended FIRST slice (on a separate GO): Slice 1 — cron-driven bounded per-org
+source recheck.** Reuses the existing sweep/revalidate sink on a node-cron tick,
+per-org, ≤50, quiet on no-op → ships the source-change detection the CT lacks today
+(source integrity is audit-only). **Zero new attack surface, no webhook secret, no
+raw-body parser, schema-free.** Slice 2 (internal HMAC-signed rail) proves the
+webhook processing model but ships no real behavior until Slice 3 (real Google
+webhooks — dashboard + schema) is GO'd. Crux design decisions gating GO: the
+governed per-org system actor + audit attribution, atomic Redis-SETNX dedupe/replay,
+per-resource debounce + per-org quota bounding, and whether to add a durable
+`InboundEvent` forensic table (vs reuse audit+ledger). No demo-org touch; nothing
+built or deployed.
+
+---
+
 ## ✅ SECTION-16 SESSION CONTINUITY · SHIPPED + LIVE-VERIFIED end-to-end · (2026-07-09, Opus 4.8)
 
 **HEADs:** FND `54db932` (merged PR #597, LIVE on api.otzar.ai) · CT `fbfd3ef`
