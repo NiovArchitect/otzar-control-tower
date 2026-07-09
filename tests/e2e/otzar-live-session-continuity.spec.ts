@@ -89,18 +89,21 @@ test("hard reload + deep link restore the session; logout bounces to login", asy
   expect(await pathname(page)).toBe("/app/action-center");
   await shot(page, "03-deep-link-restored");
 
-  // (3) LOGOUT clears server+client+cookie; a subsequent reload bounces to login.
-  // Log out via the employee shell header control.
-  await page.getByRole("button", { name: /log out/i }).first().click().catch(async () => {
-    // admin shell fallback: the "Log out" text button
-    await page.getByText(/log out/i).first().click();
+  // (3) LOGOUT clears server session + Redis nonce + cookie, and CT memory.
+  // handleLogout awaits api.auth.logout() BEFORE store.logout(), and only the
+  // store clear triggers the guard's client-side redirect to /login — so waiting
+  // for /login guarantees the server session is already terminated and the
+  // cookie cleared. (Reloading before that would abort the in-flight logout.)
+  await page.getByRole("button", { name: /log out/i }).first().click();
+  await page.waitForFunction(() => /\/login/.test(window.location.pathname), null, {
+    timeout: 20_000,
   });
-  await page.waitForTimeout(1500);
+  // A fresh cold load of a protected deep link must now NOT restore.
   await page.goto(`${APP}/app/action-center`);
   await page.waitForFunction(() => !/Restoring your session/.test(document.body.innerText), null, {
     timeout: 20_000,
   });
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1200);
   expect(await pathname(page)).toMatch(/\/login$/);
   await shot(page, "04-logout-then-reload-bounces");
 

@@ -103,7 +103,23 @@ changed in a visual dry-run):
    through the app works; a presenter should not hard-refresh mid-demo.
    → See the STOP analysis directly below.
 
-## Enterprise session continuity — hard-reload / deep-link auth restore — 🟢 PLAN READY, awaiting GO (updated 2026-07-09, Opus 4.8)
+## Enterprise session continuity — hard-reload / deep-link auth restore — 🟢 CLOSED / SHIPPED + LIVE (2026-07-09, Opus 4.8)
+
+**CLOSED 2026-07-09 — Section 16 SHIPPED and LIVE-VERIFIED end-to-end.** FND
+`54db932` (PR #597) + CT `fbfd3ef` live. Login sets an HttpOnly·Secure·SameSite=Lax
+host-only cookie (existing 8h session JWT); cookie-scoped `GET /auth/me` restores
+via the existing revocation chain + rejects non-ACTIVE entities; suspend calls
+`invalidateEntitySessions` (B1). CT `<SessionBootstrap>` restores on boot (bounded,
+never hangs); guards capture `/login?returnTo=`. Access token memory-only; cookie
+not JS-readable; invariant (cookie → `/auth/me` only, `requireAuth` Bearer-only)
+proven live. Live E2E `otzar-live-session-continuity.spec.ts` GREEN: hard-reload +
+deep-link restore, storage sweep 0/0, logout→bounce. Plan+evidence:
+[`OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`](./OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md).
+Residual (documented, out of scope): no per-request `entity.status` check on the
+hot Bearer path — a suspended user's existing token lives until expiry/TAR change;
+restore is fully blocked. Historical preflight/STOP notes preserved below.
+
+### (historical) PLAN READY / STOP notes
 
 **UPDATE 2026-07-09 — the STOP below is SUPERSEDED by evidence.** A full grep-first
 preflight of BOTH repos (Section 16) found the earlier STOP was over-conservative:

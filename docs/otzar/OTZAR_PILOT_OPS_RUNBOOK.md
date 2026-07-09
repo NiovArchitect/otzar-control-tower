@@ -8,13 +8,13 @@ fix the divergence, never ignore it.
 FND `docs/operations/rollback-runbook.md`, FND ADR-0025 (schema-push
 discipline).
 
-**Planned (not yet built, no rail change):** Section 16 session continuity
-(`OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`) is preflighted and SAFE-TO-BUILD,
-awaiting GO. When it lands it follows the existing Foundation-first deploy rail
-(§1) with **no schema migration** and **no new Render env/dashboard action**; its
-only ops delta is a new FND dependency (`@fastify/cookie`) → the standard
-`npm install` clean-check applies. No secrets added (cookie carries the already-
-signed session JWT). Until then, hard-reload = re-login remains expected behavior.
+**Section 16 session continuity — SHIPPED + LIVE (2026-07-09):** FND `54db932`
+(PR #597) + CT `fbfd3ef`. Hard-reload / protected deep-link now restore the
+session (HttpOnly cookie + `GET /auth/me`); **no schema migration, no new Render
+env/dashboard action**; the only ops delta was the FND dependency
+`@fastify/cookie` (standard `npm install` clean-check). No secrets added (cookie
+carries the already-signed session JWT). Logout clears the server session + Redis
+nonce + cookie. Plan+evidence: `OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`.
 
 ---
 

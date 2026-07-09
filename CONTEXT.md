@@ -118,10 +118,40 @@ that determines, per required production section:
 
 ---
 
-## 🟢 SECTION-16 SESSION CONTINUITY · Preflight complete → PLAN READY, awaiting GO · (2026-07-09, Opus 4.8)
+## ✅ SECTION-16 SESSION CONTINUITY · SHIPPED + LIVE-VERIFIED end-to-end · (2026-07-09, Opus 4.8)
 
-**HEADs:** FND `71c3fa7` · CT `fdb30d37` (docs-only this entry; no code, no
-redeploy). Phase-0 grep-first across BOTH repos (3 parallel inspections).
+**HEADs:** FND `54db932` (merged PR #597, LIVE on api.otzar.ai) · CT `fbfd3ef`
+(LIVE bundle `index-Du-OPqJg.js`). GO'd A1 + B1. Foundation-first.
+
+**What shipped.** Login also sets an `HttpOnly·Secure·SameSite=Lax` host-only
+cookie carrying the existing 8h session JWT (A1). New cookie-scoped `GET /auth/me`
+runs the SAME per-request revocation chain (`validateSession`: DB status + Redis
+nonce + live TAR-hash) + rejects non-ACTIVE entities, returns a fresh cap snapshot
++ token + session_id with `Cache-Control:no-store`; reuses the session (no new
+row). Logout clears the cookie. Suspend calls `invalidateEntitySessions` (B1).
+CT: `credentials:'include'` + `api.auth.me()`; `<SessionBootstrap>` gates first
+render on a one-shot restore (bounded 8s timeout — never hangs); guards capture
+`/login?returnTo=<path>`, `Login` honors it with open-redirect safety. Access
+token stays memory-only; the cookie is HttpOnly (not JS-readable). **INVARIANT
+held in prod:** cookie authenticates `/auth/me` ONLY; `requireAuth` Bearer-only.
+
+**Verified.** FND: typecheck 0, integration `session-restore-cookie.test.ts` 11/11
+(+ auth/cors regression 15), all 5 CI checks green. Live-probe on deployed FND:
+login→cookie flags; `/auth/me` cookie-only→200+no-store; no cookie→401; **Bearer
+route cookie-only→401**; logout→401. CT: typecheck 0, lint 0, test 2280 (+9
+section16 units), build ok, render splash→form (no hang). **Live E2E**
+`otzar-live-session-continuity.spec.ts` GREEN on Meridian (1/1): hard-reload
+restore, deep-link restore, storage sweep (0 token, HttpOnly cookie invisible to
+`document.cookie`), logout→reload bounces. Zero Meridian mutation; demo org
+untouched. Docs: `OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md` (plan+evidence),
+gap ledger CLOSED. Residual gap (documented): a plain per-request suspension check
+is still not in the hot path — B1 + the `/auth/me` ACTIVE check fully block
+restore, but a suspended user's existing Bearer token lives until expiry/TAR
+change (out of Section 16 scope).
+
+---
+
+## (superseded) 🟢 SECTION-16 · Preflight → PLAN READY, awaiting GO · (2026-07-09)
 
 **Verdict: SAFE TO IMPLEMENT — no STOP condition fires — awaiting founder GO
 before code.** The earlier 2026-07-08 STOP ("needs a backend redesign") was
