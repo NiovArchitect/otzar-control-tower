@@ -118,6 +118,47 @@ that determines, per required production section:
 
 ---
 
+## 🟢 SECTION-16 SESSION CONTINUITY · Preflight complete → PLAN READY, awaiting GO · (2026-07-09, Opus 4.8)
+
+**HEADs:** FND `71c3fa7` · CT `fdb30d37` (docs-only this entry; no code, no
+redeploy). Phase-0 grep-first across BOTH repos (3 parallel inspections).
+
+**Verdict: SAFE TO IMPLEMENT — no STOP condition fires — awaiting founder GO
+before code.** The earlier 2026-07-08 STOP ("needs a backend redesign") was
+over-conservative: FND is **not** stateless. It already has a `sessions` table
+(`schema.prisma:283-307`), per-request revocation (DB status + Redis nonce + live
+TAR-hash re-check in `validateSession`), real logout (terminates row + nonce),
+password-change session invalidation, and a TAR rehydrate (`getTARByEntityId` +
+`narrowOperations`). CORS is already `credentials:true` + exact-origin app.otzar.ai
+(`server.ts:734-750`, `render.yaml:42-43`). **No schema migration, no CORS change,
+no Render dashboard/env action.**
+
+**Design (transport addition, not redesign):** login also sets an
+`HttpOnly·Secure·SameSite=Lax` host-only cookie carrying the existing session JWT;
+CT boot calls `GET /auth/me` with credentials → FND re-validates + rehydrates caps
+from live TAR → CT restores the memory-only token; Bearer API auth + per-request
+revocation unchanged. **INVARIANT: the cookie authenticates `/auth/me` ONLY;
+`requireAuth` stays Bearer-only** (app↔api are same-site ⇒ Lax gives no CSRF cover,
+so mutations must never be cookie-authable). Access token stays memory-only; cookie
+is not JS-readable; permissions always from Foundation; logout clears server+client;
+`secure:true` explicit (no trustProxy); `/auth/me` reuses the session (no new row) +
+`Cache-Control:no-store`; register `@fastify/cookie` unsigned ⇒ **no COOKIE_SECRET/
+env needed**. Idle-timeout can still legitimately bounce (documented).
+
+**Two GO-gate decisions** (recommend **A1+B1**): (A) token model — A1 reuse the
+existing 8h session JWT in the cookie [recommended, per-request revocation already
+bounds a leaked token] vs A2 true short-lived-access + refresh split (more work; the
+"short-lived" premise in the directive doesn't match reality — token is 8h). (B)
+suspension fix — B1 call existing `invalidateEntitySessions` on the suspend path
+[recommended, closes it for every request] vs B2 only an `entity.status` check in
+`/auth/me` (restore-blocked but per-request suspension gap stays open).
+
+Full plan + file:line evidence + FND/CT change list + test plan + deploy order:
+`docs/otzar/OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`. Gap-ledger entry flipped
+🛑→🟢 (original STOP preserved). No demo-org touch; nothing deployed.
+
+---
+
 ## ✅ APP-NAV-CONTINUITY · Safe Back button + unsaved-work guard + 🛑 session-continuity STOP · LIVE-VERIFIED (2026-07-09, Opus 4.8)
 
 **HEADs:** CT `fdb30d37` deployed live (deploy `dep-d97brkjtqb8s73fob460`, bundle

@@ -70,6 +70,13 @@ regardless of router work, so deep-link return stays deferred with Section 16.
 **The Back button does not depend on it and ships independently** — exactly as the
 directive instructed.
 
+**UPDATE 2026-07-09:** the Section 16 preflight is complete and the earlier
+"backend redesign" read was over-conservative — the stateful session machinery
+already exists, so session continuity is a *transport addition* (HttpOnly cookie +
+`GET /auth/me`), SAFE TO IMPLEMENT, awaiting founder GO. Once it lands, deep-link
+return works via `/login?returnTo=<path>` on restore failure. Full plan:
+[`OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`](./OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md).
+
 ## Verification
 
 - `npm run typecheck` — 0 errors. `npm run lint` — 0 warnings. `npm run build` —

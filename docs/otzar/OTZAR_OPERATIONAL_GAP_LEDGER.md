@@ -103,7 +103,26 @@ changed in a visual dry-run):
    through the app works; a presenter should not hard-refresh mid-demo.
    → See the STOP analysis directly below.
 
-## Enterprise session continuity — hard-reload / deep-link auth restore — 🛑 STOP-and-DOCUMENT (2026-07-08, Opus 4.8)
+## Enterprise session continuity — hard-reload / deep-link auth restore — 🟢 PLAN READY, awaiting GO (updated 2026-07-09, Opus 4.8)
+
+**UPDATE 2026-07-09 — the STOP below is SUPERSEDED by evidence.** A full grep-first
+preflight of BOTH repos (Section 16) found the earlier STOP was over-conservative:
+FND is **not** stateless — it already has a server-side `sessions` table, per-request
+revocation (DB status + Redis nonce + live TAR-hash check), real logout, password-
+change session invalidation, and a TAR-rehydration function; CORS is already
+`credentials:true` + exact-origin app.otzar.ai. **No schema migration, no CORS
+change, no dashboard action** is required — Section 16 is a *transport addition*
+(add `@fastify/cookie`, set an HttpOnly·Secure·SameSite=Lax cookie at login, add a
+cookie-scoped `GET /auth/me`, gate CT boot on it), not a redesign. Full plan +
+evidence + two GO-gate decisions (token model; suspension-fix scope) in
+[`OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`](./OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md).
+Verdict: **SAFE TO IMPLEMENT — no STOP condition fires — awaiting founder GO before
+code.** Key invariant: the cookie authenticates `/auth/me` ONLY; `requireAuth`
+stays Bearer-only (same-site ⇒ SameSite=Lax gives no CSRF cover, so mutations must
+never be cookie-authable). The original STOP analysis is preserved verbatim below
+for the record.
+
+### (superseded) STOP-and-DOCUMENT (2026-07-08, Opus 4.8)
 
 **Directive:** safest enterprise-grade session continuity so a logged-in user can
 hard-reload or open a protected deep link without being bounced to `/login` —
