@@ -219,7 +219,14 @@ before this external signal can affect project truth."
 
 ## 10. Implementation options / recommended first slice
 
-**Slice 1 — Cron-driven bounded per-org source recheck 🟢 RECOMMENDED FIRST.**
+**Slice 1 — Cron-driven bounded per-org source recheck ✅ SHIPPED + LIVE (FND
+`1d63b66`, 2026-07-09).** Implemented exactly as designed: fail-closed
+`SOURCE_RECHECK_TARGETS` allowlist, governed ACTIVE actor + actor→org guard,
+bounded, transition-gated audit + notification (no SOURCE_VERIFIED spam), reusing
+`sourceHealthSweepForCaller`/`revalidateImportedDocForCaller`; node-cron daily;
+ops `POST /drive/docs/recheck-run` (admin, own-org). Tests `source-recheck.test.ts`
+(9) + regression (6), 5 CI checks green (PR #601); live recheck-run 200 + quiet +
+zero residue on Meridian. (Original recommendation below.)
 Real ambient value *now* (source-change detection is the confirmed CT gap). Reuses
 `sourceHealthSweepForCaller`/`revalidateImportedDocForCaller` on a `node-cron` tick,
 per-org, bounded ≤50, quiet on no-op. **Zero new attack surface, no webhook secret,

@@ -8,6 +8,19 @@ fix the divergence, never ignore it.
 FND `docs/operations/rollback-runbook.md`, FND ADR-0025 (schema-push
 discipline).
 
+**Inbound-recheck Slice 1 (source recheck cron) — SHIPPED + LIVE (2026-07-09,
+FND `1d63b66`):** a daily bounded per-org re-verification of already-imported
+Google-Doc sources. **FAIL-CLOSED and OFF by default** — it does nothing until
+`SOURCE_RECHECK_TARGETS` names explicit `org:actor` pairs. Ops env (FND Render
+service, non-secret; a value change needs a same-SHA redeploy to be re-read):
+`SOURCE_RECHECK_TARGETS` = `<orgId>:<adminActorId>[,...]` (the actor must be an
+ACTIVE org-admin whose org resolves to the listed org; the demo org must NEVER be
+listed), `SOURCE_RECHECK_CRON` (default `0 0 3 * * *` daily), `SOURCE_RECHECK_MAX_
+ORGS_PER_RUN` (default 10). No schema, no secret. Manual "run now" (own-org only):
+`POST /api/v1/drive/docs/recheck-run` (admin Bearer). Single-instance assumption
+(no distributed lock — like the action scheduler; `plan: starter`). Plan+evidence:
+`OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`.
+
 **Section 16 session continuity — SHIPPED + LIVE (2026-07-09):** FND `54db932`
 (PR #597) + CT `fbfd3ef`. Hard-reload / protected deep-link now restore the
 session (HttpOnly cookie + `GET /auth/me`); **no schema migration, no new Render

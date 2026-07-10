@@ -541,6 +541,20 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ### I. Multi-source ingestion readiness — 🟡 AUDITED 2026-07-03 (full 17-source readiness map: [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md)). Verdicts: manual Comms transcript is the reference implementation; Zoom is live but routed as generic TRANSCRIPT (provenance/idempotency loss); Slack read is one wire away (adapter + provider + OAuth rail all exist, no route calls them); Docs/Gmail content reads don't exist; **Notion is catalog-visible with zero substrate (R10 placeholder flag)**; two parallel durable stores violate the single-ledger contract (Observe/OCR tables, conduct MemoryCapsules); **no inbound event route exists anywhere — every connector is outbound-only, so nothing can arrive ambiently (the structural gap)**. Canonical adapter contract now written (18 fields; an adapter is ~50 lines that builds a WorkSourceEvent and calls ingestSourceEvent). Build order: (1) Zoom→CONNECTOR provenance ✅ SHIPPED 2026-07-03 (FND `51d8700`: sourceSystem ZOOM via the spine, org-scoped dedupe ZOOM:<meeting_id>, idempotent 409 on re-ingest, row lineage, no tokenized URLs; live honesty probes 401/403/NOT_CONFIGURED green), (2) Slack read→canonical ingest ✅ SHIPPED 2026-07-03 `[SLACK-INGEST-1]` (FND PR #539: admin-triggered public-channel message ingest via org sealed OAuth envelope → canonical adapter → spine; doctrine dedupe `org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>`; DMs/private parked by policy; Events-API webhook honestly deferred — gap N still open), (3) NEXT: D&K per-row lineage, voice ingest hop, observe/OCR convergence, Notion catalog honesty.
 
+**INBOUND-RECHECK SLICE 1 — 🟢 SHIPPED + LIVE (FND `1d63b66`, 2026-07-09):** the
+first safe inbound/ambient capability — a daily, bounded, per-org re-verification
+of already-imported trusted Google-Doc sources (cron → existing
+`sourceHealthSweepForCaller`/`revalidateImportedDocForCaller` sink). NOT broad
+sync/crawl/webhook/ingestion; no schema. FAIL-CLOSED allowlist
+(`SOURCE_RECHECK_TARGETS`; empty ⇒ no-op; demo-org safety structural), governed
+ACTIVE actor + actor→org guard, bounded (≤50 docs/org, ≤maxOrgsPerRun orgs/run,
+single-instance guard), QUIET (auditMode+notifyMode on_transition — no
+SOURCE_VERIFIED spam, no re-notify of a persistently-demoted source). Ops run-now:
+`POST /drive/docs/recheck-run` (admin, own-org). Tests: `source-recheck.test.ts`
+(9) + regression (6); 5 CI checks green (PR #601). Live: recheck-run 200 + quiet +
+zero residue on Meridian. Remaining: real Google webhooks (WatchChannel schema +
+Pub/Sub + Cloud-console) + Meet transcript events + durable InboundEvent decision.
+
 **INBOUND AMBIENT RAIL PREFLIGHT — 🟢 DESIGN READY, awaiting GO (2026-07-09, Opus 4.8):** full grep-first design in [`OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`](./OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md). Confirms the "no inbound event route" structural gap and finds the OUTCOME side is schema-free + reusable (revalidateImportedDocForCaller/sourceHealthSweepForCaller for Drive; closedRecipientSet+MEETING-ledger+fanOut for Calendar; audit `event_type`/`notification_class` are open Strings — no migration). Greenfield: no webhook route, no raw-body parser, no watch/channel, no channel→org resolver, non-atomic dedupe (no `@@unique`), no single-use replay, no governed non-human caller. Google Drive push + Calendar watch = 🛑 STOP (Cloud-console callback + Pub/Sub + WatchChannel schema + renewal; scopes already granted). Meet transcript events 🛑 BLOCKED (post-meeting pull only). **Recommended first slice on GO: cron-driven bounded per-org source recheck** (reuses the sweep sink, schema-free, zero attack surface — ships the source-change detection the CT lacks today). STOP-at-design; separate GO required (governed non-human actor + atomic Redis-SETNX dedupe + amplification bounding + durable-InboundEvent-table decision).
 
 ### J. Per-row source lineage — 🟡 SLICE 1 SHIPPED 2026-07-03 `[GAP-J]`

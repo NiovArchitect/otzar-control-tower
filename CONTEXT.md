@@ -118,6 +118,53 @@ that determines, per required production section:
 
 ---
 
+## ✅ INBOUND-RECHECK Slice 1 · Cron bounded per-org source recheck · SHIPPED + LIVE (FND `1d63b66`, 2026-07-09, Opus 4.8)
+
+**HEADs:** FND `1d63b66` deployed live (api.otzar.ai) · CT `95ca323` unchanged
+(no UI change — outcomes flow into the existing NotificationBell + Security audit).
+The first safe inbound/ambient capability.
+
+**What shipped.** A daily, bounded, per-org re-verification of already-imported
+trusted Google-Doc sources — surfacing a snapshot that rots upstream (changed /
+access-revoked / deleted / corrupt) proactively instead of only on manual pull.
+NOT broad sync, NOT a Drive crawl, NOT a webhook, NOT ingestion. **No schema.**
+Reuses the existing `sourceHealthSweepForCaller` → `revalidateImportedDocForCaller`
+sink on a `node-cron` tick.
+
+**Safety — demo-org safety is STRUCTURAL.** FAIL-CLOSED allowlist
+(`SOURCE_RECHECK_TARGETS` = explicit `org:actor` pairs; empty ⇒ no-op; an unlisted
+org CANNOT be touched — the demo org is simply never listed). Governed ACTIVE
+org-admin actor per target + ACTOR→ORG guard (`getOrgEntityId(actor)` must equal
+the configured org; a typo can't touch/notify the wrong org); suspended actor ⇒
+skipped. Bounded: ≤50 docs/org + ≤maxOrgsPerRun orgs/run; single in-process guard
+(single-instance assumption — render.yaml `plan: starter`, like the action
+scheduler). QUIET: `auditMode`+`notifyMode` "on_transition" — unchanged rechecks
+emit NO SOURCE_VERIFIED audit and NO notification; a persistently-demoted source
+is not re-notified/re-audited every run; escalation (CHANGED→DELETED) does notify;
+transient never demotes a good snapshot.
+
+**Config (env, optional/fail-closed):** `SOURCE_RECHECK_TARGETS` (empty ⇒ no-op),
+`SOURCE_RECHECK_CRON` (default daily 03:00), `SOURCE_RECHECK_MAX_ORGS_PER_RUN` (10).
+Ops "run now": `POST /drive/docs/recheck-run` (admin, OWN-org scoped).
+
+**Verified.** typecheck 0; `source-recheck.test.ts` (9) — fail-closed no-op,
+quiet-unchanged (no SOURCE_VERIFIED audit), changed→notify+audit, still-changed→no
+re-notify/re-audit, escalation, transient-quiet, actor→org-mismatch skip,
+suspended-actor skip, per-run cap; `source-health-sweep`+`source-integrity` (6)
+regression green; all 5 CI checks green (PR #601). **Live on Meridian:** `POST
+/drive/docs/recheck-run` → 200, `orgs_processed:1`, quiet (`notified:0`), **zero
+residue** (Meridian has no imported sources right now ⇒ `checked:0`, nothing
+written); deploy health `/health` 200. The verified/changed/deleted/revoked +
+transition-gating paths are proven deterministically by the integration test; the
+revalidation-on-real-Google sink was live-proven earlier this session. Demo org
+untouched. Docs: `docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`.
+
+**Remaining inbound gaps (unchanged):** real Google Drive/Calendar webhooks
+(Cloud-console callback + Pub/Sub + WatchChannel schema + renewal); Meet transcript
+events; durable InboundEvent table decision.
+
+---
+
 ## 🟢 INBOUND AMBIENT INGESTION RAIL · Preflight complete → DESIGN READY, awaiting GO · (2026-07-09, Opus 4.8)
 
 **HEADs:** FND runtime `95cf937` · CT `95ca323` (docs-only; no code). Grep-first
