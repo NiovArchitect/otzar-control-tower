@@ -33,9 +33,41 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   NOT confirm (C1); past-time (6am) → truthful clarification (C2); "make it 11:30pm"
   → REVISED → "yes" (P4). Expect honest PROVIDER_BLOCKED (smoke Google not connected).
 
-All continuity logic lives in
+- **P5A durable transcript — SUBSTRATE in FND PR #617** (branch
+  `otzar-p5a-durable-transcript`). Schema-first, NOT yet runtime-wired (inert in
+  prod). Adds `otzar_conversation_turns` + 5 additive `otzar_conversations` columns;
+  data layer `packages/database/src/queries/otzar-conversation-turns.ts`
+  (`appendConversationTurn` idempotent + advisory-lock monotonic sequence,
+  `listConversationTurns`, `latestConversationTurn`); prod activation script
+  `scripts/activate-otzar-conversation-turns-prod-schema.ts`. Integration 6 green.
+
+### EXACT next steps (in order) — active build
+
+1. **#617 CI green → squash-merge.** (Uses `npm run db:push` in CI, so the new table
+   is created from schema.prisma — no migration file needed.)
+2. **Apply the prod schema BEFORE any wiring deploys** (schema-first, ADR-0025):
+   ```sh
+   cd "$HOME/dev/NIOV Labs/github/niov-foundation"
+   node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-prod-schema.ts --dry-run   # verify
+   NIOV_APPROVE_OTZAR_CONTINUITY_PROD_SCHEMA='APPROVE OTZAR CONTINUITY PROD SCHEMA ACTIVATION — additive only' \
+     node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-prod-schema.ts
+   ```
+   (.env DATABASE_URL points at prod Supabase; the script is additive-only + idempotent.)
+3. **P5A wiring** (next FND PR): in `conductSession`, persist the USER turn BEFORE the
+   model call and the ASSISTANT turn BEFORE the response is durable, via
+   `appendConversationTurn` (thread = the resolved continuity/LLM conversation id;
+   pass `request_id` for idempotency; `action_ref` = pending WorkLedgerEntry id when a
+   proposal was made). Handle duplicate/retry/disconnect/out-of-order/two-tabs/
+   two-devices (the advisory-lock + request_id dedupe already make append safe).
+   Then deploy + a live re-check.
+4. **P5B → P5M, P6** per the sections below (each schema-first where it needs schema).
+
+All calendar continuity logic lives in
 `apps/api/src/services/otzar/calendar-continuity.service.ts`, wired pre-LLM in
-`otzar.service.ts:conductSession` (dynamic import; short-circuits on non-null).
+`otzar.service.ts:conductSession` (dynamic import; short-circuits on non-null). The
+main LLM path resolves its conversation row at `otzar.service.ts` ~L1261
+(existence-checked as of #616) — the P5A turn persistence hooks in around there and
+in `buildContinuitySuccess`.
 
 ## Hard constraints (unchanged — verbatim)
 
