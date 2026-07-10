@@ -226,7 +226,10 @@ bounded, transition-gated audit + notification (no SOURCE_VERIFIED spam), reusin
 `sourceHealthSweepForCaller`/`revalidateImportedDocForCaller`; node-cron daily;
 ops `POST /drive/docs/recheck-run` (admin, own-org). Tests `source-recheck.test.ts`
 (9) + regression (6), 5 CI checks green (PR #601); live recheck-run 200 + quiet +
-zero residue on Meridian. (Original recommendation below.)
+zero residue on Meridian. **ENABLED for Meridian only (2026-07-09, ops config):**
+`SOURCE_RECHECK_TARGETS` = Meridian sim org : ACTIVE admin actor on the FND Render
+env (single target, demo org NOT listed), re-read via same-SHA redeploy `c550d30`;
+CRON/MAX at defaults (daily 03:00, ≤10). (Original recommendation below.)
 Real ambient value *now* (source-change detection is the confirmed CT gap). Reuses
 `sourceHealthSweepForCaller`/`revalidateImportedDocForCaller` on a `node-cron` tick,
 per-org, bounded ≤50, quiet on no-op. **Zero new attack surface, no webhook secret,

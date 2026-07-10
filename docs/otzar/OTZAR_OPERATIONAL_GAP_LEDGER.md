@@ -552,7 +552,10 @@ single-instance guard), QUIET (auditMode+notifyMode on_transition — no
 SOURCE_VERIFIED spam, no re-notify of a persistently-demoted source). Ops run-now:
 `POST /drive/docs/recheck-run` (admin, own-org). Tests: `source-recheck.test.ts`
 (9) + regression (6); 5 CI checks green (PR #601). Live: recheck-run 200 + quiet +
-zero residue on Meridian. Remaining: real Google webhooks (WatchChannel schema +
+zero residue on Meridian. **ENABLED for Meridian only (2026-07-09):**
+`SOURCE_RECHECK_TARGETS` on the FND Render env = Meridian sim org : ACTIVE admin
+actor (single target; demo org NOT listed ⇒ fail-closed untouched); re-read via
+same-SHA redeploy `c550d30`. Remaining: real Google webhooks (WatchChannel schema +
 Pub/Sub + Cloud-console) + Meet transcript events + durable InboundEvent decision.
 
 **INBOUND AMBIENT RAIL PREFLIGHT — 🟢 DESIGN READY, awaiting GO (2026-07-09, Opus 4.8):** full grep-first design in [`OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`](./OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md). Confirms the "no inbound event route" structural gap and finds the OUTCOME side is schema-free + reusable (revalidateImportedDocForCaller/sourceHealthSweepForCaller for Drive; closedRecipientSet+MEETING-ledger+fanOut for Calendar; audit `event_type`/`notification_class` are open Strings — no migration). Greenfield: no webhook route, no raw-body parser, no watch/channel, no channel→org resolver, non-atomic dedupe (no `@@unique`), no single-use replay, no governed non-human caller. Google Drive push + Calendar watch = 🛑 STOP (Cloud-console callback + Pub/Sub + WatchChannel schema + renewal; scopes already granted). Meet transcript events 🛑 BLOCKED (post-meeting pull only). **Recommended first slice on GO: cron-driven bounded per-org source recheck** (reuses the sweep sink, schema-free, zero attack surface — ships the source-change detection the CT lacks today). STOP-at-design; separate GO required (governed non-human actor + atomic Redis-SETNX dedupe + amplification bounding + durable-InboundEvent-table decision).
