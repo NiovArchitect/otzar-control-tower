@@ -541,7 +541,22 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ### I. Multi-source ingestion readiness — 🟡 AUDITED 2026-07-03 (full 17-source readiness map: [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md)). Verdicts: manual Comms transcript is the reference implementation; Zoom is live but routed as generic TRANSCRIPT (provenance/idempotency loss); Slack read is one wire away (adapter + provider + OAuth rail all exist, no route calls them); Docs/Gmail content reads don't exist; **Notion is catalog-visible with zero substrate (R10 placeholder flag)**; two parallel durable stores violate the single-ledger contract (Observe/OCR tables, conduct MemoryCapsules); **no inbound event route exists anywhere — every connector is outbound-only, so nothing can arrive ambiently (the structural gap)**. Canonical adapter contract now written (18 fields; an adapter is ~50 lines that builds a WorkSourceEvent and calls ingestSourceEvent). Build order: (1) Zoom→CONNECTOR provenance ✅ SHIPPED 2026-07-03 (FND `51d8700`: sourceSystem ZOOM via the spine, org-scoped dedupe ZOOM:<meeting_id>, idempotent 409 on re-ingest, row lineage, no tokenized URLs; live honesty probes 401/403/NOT_CONFIGURED green), (2) Slack read→canonical ingest ✅ SHIPPED 2026-07-03 `[SLACK-INGEST-1]` (FND PR #539: admin-triggered public-channel message ingest via org sealed OAuth envelope → canonical adapter → spine; doctrine dedupe `org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>`; DMs/private parked by policy; Events-API webhook honestly deferred — gap N still open), (3) NEXT: D&K per-row lineage, voice ingest hop, observe/OCR convergence, Notion catalog honesty.
 
-**SLICE-3 PREREQ · PROD SCHEMA APPLY + FND DEPLOY — 🟥 ATTEMPTED → STOPPED, PRODUCTION
+**SLICE-3 PREREQ · PROD SCHEMA RECONCILE + GUARDED DEPLOY — ✅ INCIDENT RESOLVED, LIVE
+`12eb568` (2026-07-10):** an operator deployed the identity code → `371542f` went live
+(before the boot guard existed) and was actively failing `memoryCapsule.create()`
+(`column memory_capsules.voice_note_id does not exist`; prod `memory_capsules` rowCount=0);
+the later guard-bearing deploys correctly failed the guard + never went live. Root cause:
+`voice_note_id` (FND `615b6b1`, 2026-06-22) shipped in the client for weeks, schema never
+applied to prod; rollback not viable. Founder-approved coordinated **additive** ADR-0025
+apply (6 `integration_credentials` identity cols + `memory_capsules.voice_note_id` + its
+index; cosmetic rename excluded; idempotent, transaction+timeouts, no backfill, row counts
+unchanged) → then redeployed guard-bearing `12eb568` → live (same SHA that failed the guard
+pre-apply passed post-apply). Verified: /health 200, 0 column/capsule errors, connector
+status read 200, diff now only the cosmetic rename. `GOOGLE_OIDC_IDENTITY` OFF; Meridian +
+demo untouched. Follow-up: generalized startup schema manifest (FND PR #611). Script:
+`scripts/activate-prod-schema-reconcile-371542f.ts`.
+
+**[SUPERSEDED] SLICE-3 PREREQ · PROD SCHEMA APPLY + FND DEPLOY — 🟥 ATTEMPTED → STOPPED, PRODUCTION
 UNCHANGED (2026-07-09):** attempted the identity prerequisite's prod schema-apply +
 guarded deploy; **nothing applied, nothing deployed** (read-only dry-run + `migrate
 diff` only). Merged a guard correction: compatibility query now `current_schema()`-

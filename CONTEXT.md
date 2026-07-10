@@ -118,7 +118,36 @@ that determines, per required production section:
 
 ---
 
-## 🟥 SLICE-3 PREREQ · PROD SCHEMA APPLY + FND DEPLOY · ATTEMPTED → STOPPED, HANDED TO OPERATOR · PRODUCTION UNCHANGED (2026-07-09, Opus 4.8)
+## ✅ SLICE-3 PREREQ · PROD SCHEMA RECONCILE + GUARDED DEPLOY · INCIDENT RESOLVED · LIVE `12eb568` (2026-07-10, Opus 4.8)
+
+An operator deployed the identity code → **`371542f` went live** (deployed 05:11, before
+the boot guard existed). It was **actively failing** `memoryCapsule.create()` (`column
+memory_capsules.voice_note_id does not exist`; prod `memory_capsules` rowCount=0 — every
+create failed) + latently failing connector reads (6 identity cols). The later guard-bearing
+deploys (`2c2faaa`, `12eb568`) **correctly failed the boot guard** and never went live (guard
+working as designed). Root cause: `voice_note_id` (FND `615b6b1`, 2026-06-22) shipped in the
+client for weeks but its schema was never applied to prod. **Rollback not viable** (every
+recent SHA needs it).
+
+**Fix (founder-approved GO, ADR-0025 raw-DDL rail):** coordinated **additive** apply —
+6 nullable `integration_credentials` identity cols + nullable `memory_capsules.voice_note_id`
++ its index (cosmetic external-collaborator index rename excluded). Idempotent, transaction +
+`lock_timeout=5s`/`statement_timeout=30s`, before/after `information_schema` verification, no
+backfill, **row counts unchanged**. Script: `scripts/activate-prod-schema-reconcile-371542f.ts`
+(FND). Then **redeployed guard-bearing `12eb568` by commit id → LIVE** (the same SHA that
+failed the guard at 13:51 pre-apply **passed** at 14:23 post-apply — recovery proof).
+**Verified:** `/health` 200; live logs 0 column/capsule errors; smoke-org connector OAuth
+status read HTTP 200 (`integration_credentials` read healthy); prod↔main diff now only the
+cosmetic index rename; `GOOGLE_OIDC_IDENTITY` OFF; no pin, no re-consent; **Meridian + demo
+untouched** (only the dedicated smoke org, read-only, for the regression). Follow-up: boot
+guard covers only the 6 identity cols → generalized startup schema manifest recommended (FND
+PR #611). **Remaining gates unchanged:** OIDC activation (flip `GOOGLE_OIDC_IDENTITY=on` +
+controlled Meridian same-account pinning) and WatchSubscription/WatchChannel are the next
+separate arcs.
+
+---
+
+## 🟥 [SUPERSEDED] SLICE-3 PREREQ · PROD SCHEMA APPLY + FND DEPLOY · ATTEMPTED → STOPPED, HANDED TO OPERATOR · PRODUCTION UNCHANGED (2026-07-09, Opus 4.8)
 
 Attempted the production schema-application + guarded FND deploy of the identity
 prerequisite. **Nothing was applied and nothing was deployed — production is
