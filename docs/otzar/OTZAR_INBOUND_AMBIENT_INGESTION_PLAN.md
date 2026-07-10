@@ -88,10 +88,10 @@ Google webhooks; caller-less org/actor mapping; event-storage product decision).
 | 5 | Signature-verification infra? | **`verifyInboundHmac` exists** (unused) + OAuth signed-state. Replay = window, not single-use. |
 | 6 | Creds scoped to org/user? | **Org-scoped**, auto-refresh (`getProviderAccessTokenForOrg`). |
 | 7 | Map provider event → org safely? | Token layer **yes**; reverse index (channel/resource→org) **not built**; must come from verified `ConnectorBinding`, never the payload. |
-| 8 | Drive push needs channel/watch? | **Yes** — `files.watch` + Pub/Sub + domain-verified HTTPS callback (Cloud console) + ≤7-day renewal. Scope OK. |
+| 8 | Drive push needs channel/watch? | **Yes** — `changes.watch`/`files.watch` `web_hook` channel → **domain-verified HTTPS callback directly** (⚠️ **no Pub/Sub** — corrected 2026-07-09 vs Google docs; Pub/Sub is Gmail-only) + ≤7-day renewal + `changes.list` page token. Scope OK. |
 | 9 | Calendar watch needs channel/watch? | **Yes** — `events.watch` + `syncToken` follow-up pull + renewal. Scope OK. |
 | 10 | Meet transcript events? | **No** — post-meeting pull only; honest `SCOPE_REAUTH_REQUIRED`/`NO_TRANSCRIPT`. |
-| 11 | Dashboard/domain setup required? | **Yes for real Google webhooks** (Cloud-console callback + Pub/Sub topic). |
+| 11 | Dashboard/domain setup required? | **Yes for real Google webhooks** (domain-verified HTTPS callback in Search Console / Cloud Console; ⚠️ **no Pub/Sub topic** — corrected 2026-07-09). |
 | 12 | Inbound without schema? | **Yes** for the cron-recheck + internal-signed slices (reuse sink + Redis + open-string vocab). |
 | 13 | Minimal schema if required? | Additive: `@@unique(org, provider_meeting_id)` for atomic dedupe, and/or a `WatchChannel(channel_id, resource_id, org_entity_id, expires_at)` table for real webhooks. No destructive ops. |
 | 14 | How events → context? | Drive → `revalidateImportedDocForCaller` → existing SOURCE_* audit + demote + quiet notify. Calendar → `closedRecipientSet` + MEETING ledger + fan-out. **Schema-free.** |
@@ -121,9 +121,11 @@ existing token**, never trusts the payload as truth.
 ## 5. Provider feasibility
 
 - **Google Drive (real push): 🛑 STOP.** Scope (`drive.readonly`) is already granted
-  — no re-consent — but needs a `files.watch` channel + Pub/Sub topic + a
-  **domain-verified HTTPS callback registered in the Cloud console** + a channel
-  renewal loop (≤7 days) + a `channel→org` table. Dashboard + schema = STOP.
+  — no re-consent — but needs a `changes.watch`/`files.watch` **`web_hook` channel
+  posting directly to a domain-verified HTTPS callback** (⚠️ **no Pub/Sub** —
+  corrected 2026-07-09 vs Google docs; Pub/Sub is Gmail-only) + a channel renewal
+  loop (≤7 days) + a `channel→org` table + a `changes.list` page-token cursor.
+  Dashboard (domain verify) + schema = STOP.
   Interim: **cron bounded recheck** (Slice 1) delivers the same detection safely.
 - **Google Calendar (real watch): 🛑 STOP.** `calendar.readonly` granted; needs
   `events.watch` + `syncToken` machinery (absent) + renewal + `channel→org`. Same
@@ -257,59 +259,80 @@ webhooks, is Slice 3 / STOP).
 ### Slice 3 preflight — Real Google Drive/Calendar webhooks — 🛑 STOP (dashboard + schema)
 
 **Verdict: BLOCKED — do not implement.** The stop conditions "Cloud-console /
-Pub/Sub / domain callback setup required" and "schema migration required" both
-fire. The processing model is already proven (Slices 1–2); what remains is
-external-provider + schema work that only a human/founder can do. Exact checklist:
+domain callback setup required" and "schema migration required" both fire. The
+processing model is already proven (Slices 1–2); what remains is external-provider +
+schema work that only a human/founder can do. Exact checklist:
+
+> **Note (corrected 2026-07-09 vs. Google's live docs):** Drive push does **NOT**
+> use Cloud Pub/Sub. Drive `changes.watch`/`files.watch` **and** Calendar
+> `events.watch` both use the same **`web_hook` push channel** — you register a
+> channel with `type:"web_hook"` + `address:<your HTTPS callback>` and Google POSTs
+> notifications directly to that verified URL. (Cloud Pub/Sub is a **Gmail-API**
+> requirement — `users.watch` → topic — not Drive/Calendar.) So there is **no
+> Pub/Sub topic, subscription, or `pubsub.publisher` grant to create** for this
+> slice.
 
 1. **Google Cloud Console setup (founder/human action):** in the project owning the
-   OAuth client (`GOOGLE_OAUTH_CLIENT_ID`), enable the **Drive API push** path (a
-   Cloud **Pub/Sub** topic + subscription) and, for Calendar, the **events.watch**
-   channel. Drive `files.watch` / `changes.watch` delivers to a **Pub/Sub topic**;
-   Calendar `events.watch` delivers to an **HTTPS callback URL** directly. Decide
-   the delivery mode per provider.
+   OAuth client (`GOOGLE_OAUTH_CLIENT_ID`), no API-enable step beyond the
+   already-enabled Drive + Calendar APIs is needed — the work is registering
+   `web_hook` **watch channels** (below) pointing at a verified HTTPS callback. Both
+   providers deliver directly to that callback; no Pub/Sub.
 2. **Domain / callback verification:** the webhook callback host (e.g.
    `https://api.otzar.ai/api/v1/otzar/inbound/google/...`) must be a **verified
    domain** in Google Search Console / Cloud Console (Google refuses to register a
-   watch to an unverified callback). This is a one-time DNS/site-verification
-   action.
-3. **Pub/Sub requirement (Drive):** create a topic + push subscription pointing at
-   the callback; grant Drive's service account `pubsub.publisher`. (Calendar can
-   skip Pub/Sub and push straight to the HTTPS callback.)
-4. **Required callback URL:** a new bearer-less route (reuse the Slice-2 pattern:
-   verify Google's message — for Pub/Sub, the JWT on the push request; for Calendar
-   `events.watch`, the `X-Goog-Channel-Token` you set at watch-creation). It must
-   be registered/allowed in the Cloud Console + reachable over verified HTTPS.
+   `web_hook` channel to an unverified callback) with a valid (non-self-signed) SSL
+   cert. This is a one-time DNS/site-verification action.
+3. **Watch-channel registration (replaces the old "Pub/Sub" step):** call
+   `drive.changes.watch` (or `files.watch`) and `calendar.events.watch` with a
+   Channel `{ id, type:"web_hook", address:<callback URL>, token:<per-channel
+   secret> }`. Persist the returned `id`/`resourceId`/`expiration` in `WatchChannel`
+   (below). This is a code action taken **after** the domain is verified; it is not
+   a console-only step.
+4. **Required callback URL:** a new bearer-less route (reuse the Slice-2 pattern).
+   Authenticate the notification via the **`X-Goog-Channel-Token`** you set at
+   watch-creation (same mechanism for BOTH Drive and Calendar — no Pub/Sub JWT
+   involved) plus the `X-Goog-*` headers. It must be reachable over verified HTTPS.
 5. **Required schema (additive migration — a STOP):** a `WatchChannel` table:
    `channel_id` (PK), `resource_id`, `provider` (GOOGLE_DRIVE|GOOGLE_CALENDAR),
-   `org_entity_id`, `actor_entity_id` (or `binding_id`), `expiration` (ms),
-   `renewal_status`, and — for Calendar — `sync_token`. This is the **channel→org
-   resolver** (Slice 2 uses the allowlist; real webhooks carry only a channel id/
-   resource id, so the org MUST be resolved from this row written at watch-creation).
-6. **Channel renewal design:** Google channels expire ≤7 days. A `node-cron` job
-   (reuse the Slice-1 scheduler pattern) renews channels approaching expiry and
-   re-persists the new `channel_id`/`expiration`; a failed renewal marks
-   `renewal_status=STALE` and falls back to the Slice-1 cron recheck.
+   `org_entity_id`, `actor_entity_id` (or `binding_id`), `channel_token`,
+   `expiration` (ms), `renewal_status`, and a **provider-specific incremental
+   cursor**: Drive uses a **page token** (`startPageToken`/`pageToken` via
+   `changes.list`) and Calendar uses a **`sync_token`** (`events.list` syncToken) —
+   store both columns (`drive_page_token`, `calendar_sync_token`) or one nullable
+   `cursor` + a `cursor_kind`. This is the **channel→org resolver** (Slice 2 uses
+   the allowlist; real webhooks carry only a channel id / resource id + token, so the
+   org MUST be resolved from this row written at watch-creation).
+6. **Channel renewal design:** `web_hook` channels expire (Drive/Calendar typically
+   ≤7 days; Google returns `expiration`). A `node-cron` job (reuse the Slice-1
+   scheduler pattern) re-`watch`es channels approaching expiry and re-persists the
+   new `channel_id`/`expiration`; a failed renewal marks `renewal_status=STALE` and
+   falls back to the Slice-1 cron recheck.
 7. **Header→binding→org mapping:** on a notification, read `X-Goog-Channel-Id` /
-   `X-Goog-Resource-Id` / `X-Goog-Resource-State` (Drive) or the channel token
-   (Calendar) → look up `WatchChannel` → resolve org/actor → then reuse the Slice-2
-   processing (verify → dedupe → revalidate). Never trust the notification body.
+   `X-Goog-Resource-Id` / `X-Goog-Resource-State` / `X-Goog-Channel-Token` (same
+   headers for Drive and Calendar) → verify the token → look up `WatchChannel` →
+   resolve org/actor → then reuse the Slice-2 processing (verify → dedupe →
+   revalidate). Never trust the notification body.
 8. **Expired/revoked channels:** `X-Goog-Resource-State: sync` (handshake) is a
    no-op; a 404/`SOURCE_DELETED` on re-fetch demotes the source; a channel whose
    `WatchChannel` row is gone → quarantine + a renewal attempt.
-9. **Avoid broad sync:** a Drive change notification says only "something in the
-   watched scope changed" — resolve to the specific `resource_id` and revalidate
-   ONLY the matching imported doc (Calendar `events.watch` + `syncToken` returns
-   only the changed events). Never list/crawl Drive.
+9. **Avoid broad sync:** a Drive change notification says only "something changed" —
+   call `changes.list` with the stored **page token** to get exactly the changed
+   file ids, resolve to the specific imported doc(s), and revalidate ONLY those
+   (Calendar `events.list` with the stored **syncToken** returns only changed
+   events). Never list/crawl all of Drive.
 10. **Testing without the demo org:** watch-registration is per-resource + the
-    `WatchChannel` row is org-scoped; integration-test the header→org mapping +
-    renewal with injected fixtures (no real Google), and live-verify on Meridian
-    only after the founder completes steps 1–4. The demo org is never watched.
+    `WatchChannel` row is org-scoped; integration-test the header→token→org mapping +
+    cursor advance + renewal with injected fixtures (no real Google), and live-verify
+    on Meridian only after the founder completes steps 1–2. The demo org is never
+    watched.
 
 **Exact next human action to unblock Slice 3:** (a) verify `api.otzar.ai` as a
-domain in Google Cloud Console; (b) create the Drive Pub/Sub topic + push
-subscription (and/or decide Calendar HTTPS callback); (c) approve the additive
-`WatchChannel` schema migration. Until (a)–(c) are done, Slice 3 stays STOPّd and
-the Slice-1 cron + Slice-2 signed rail cover ambient detection.
+domain in Google Search Console / Cloud Console (with a valid SSL cert); (b) approve
+the additive `WatchChannel` schema migration; (c) then the engineering work is to
+register `web_hook` watch channels + build the bearer-less callback route. **No
+Pub/Sub topic/subscription is required** (that was a Gmail-only assumption, now
+corrected). Until (a)–(b) are done, Slice 3 stays STOP'd and the Slice-1 cron +
+Slice-2 signed rail cover ambient detection.
 
 ## 11. Deployment sequence
 

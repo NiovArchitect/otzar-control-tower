@@ -153,13 +153,23 @@ non-existent→202 quarantine(`no_matching_imported_source`), valid-sig UNLISTED
 org→403 quarantine(`org_actor_not_allowlisted`). **No demo touch, no token leak,
 zero residue.**
 
-**Next.** Slice 3 real Google webhooks — 🛑 **STOP-blocked** (Cloud-console domain
-verify + Pub/Sub + additive `WatchChannel` schema migration are hard stop
-conditions). Exact 10-point unblock checklist in
-`docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md` § "Slice 3 preflight". Human
-action to unblock: verify `api.otzar.ai` domain → create Drive Pub/Sub topic/sub
-(and/or Calendar HTTPS callback) → approve the `WatchChannel` migration. Until then
-Slice 1 cron + Slice 2 signed rail cover ambient detection.
+**Next.** Slice 3 real Google webhooks — 🛑 **STOP-blocked** (domain-verified HTTPS
+callback + additive `WatchChannel` schema migration are hard stop conditions).
+⚠️ **Corrected 2026-07-09 (vs Google docs): NO Pub/Sub** — Drive `changes.watch` and
+Calendar `events.watch` both use `web_hook` channels posting directly to the HTTPS
+callback; Pub/Sub is a Gmail-only requirement. Exact (corrected) 10-point unblock
+checklist in `docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md` § "Slice 3
+preflight". Human action to unblock: verify `api.otzar.ai` as a Google domain →
+approve the `WatchChannel` migration (then engineering registers the `web_hook`
+watch channels + builds the callback route). Until then Slice 1 cron + Slice 2
+signed rail cover ambient detection.
+
+**⚠️ Policy note (CONTEXT.md tracking):** this file's own header + `CLAUDE.md` §
+State-files call CONTEXT.md "untracked by repo policy," yet git already tracks it on
+origin and prior closeouts were committed. This arc's closeout was committed too
+(continuing the existing pattern — no new exposure). **If the founder wants
+CONTEXT.md local-only, `git rm --cached CONTEXT.md` + add to `.gitignore`;** flagged
+so the silent commit isn't taken as the decision.
 
 ---
 

@@ -570,9 +570,11 @@ residue. **This is a synthetic internal rail — no real external events flow ye
 SIGNAL_*` audit rows auto-render (sentence-cased) in Security & Audit; adding them
 to the CT event-type label map for filterability is a trivial future polish
 (deliberately skipped — no CT change needed, per "only change CT if needed").
-Remaining: **Slice 3 real Google webhooks — 🛑 STOP-blocked** (Cloud-console domain
-verify + Pub/Sub + additive `WatchChannel` schema migration; full 10-point checklist
-in [`OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`](./OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md)
+Remaining: **Slice 3 real Google webhooks — 🛑 STOP-blocked** (domain-verified HTTPS
+callback + additive `WatchChannel` schema migration; ⚠️ **no Pub/Sub** — corrected
+2026-07-09: Drive `changes.watch` + Calendar `events.watch` both use `web_hook`
+channels posting directly to the callback, Pub/Sub is Gmail-only; full corrected
+10-point checklist in [`OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`](./OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md)
 § "Slice 3 preflight").
 
 **INBOUND-RECHECK SLICE 1 — 🟢 SHIPPED + LIVE (FND `1d63b66`, 2026-07-09):** the
