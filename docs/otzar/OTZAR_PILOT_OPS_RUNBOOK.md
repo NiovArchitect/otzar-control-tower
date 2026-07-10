@@ -8,6 +8,68 @@ fix the divergence, never ignore it.
 FND `docs/operations/rollback-runbook.md`, FND ADR-0025 (schema-push
 discipline).
 
+> 🟥 **PROD SCHEMA APPLY + FND DEPLOY — ATTEMPTED, STOPPED, HANDED TO OPERATOR
+> (2026-07-09). Production is UNCHANGED (read-only dry-run + `migrate diff` only —
+> nothing applied, nothing deployed).** The apply/deploy hit directive hard stops:
+>
+> 1. **The prod↔schema diff is NOT exactly the six identity columns.** `prisma migrate
+>    diff --from-url $DIRECT_URL --to-schema-datamodel schema.prisma` against prod shows
+>    my 6 `integration_credentials` columns **plus unrelated un-applied drift**:
+>    `memory_capsules.voice_note_id` (+ `memory_capsules_voice_note_id_idx`) from FND
+>    `615b6b1 [OTZAR-RETURN-10-FOUNDATION]`, and an index rename on
+>    `external_collaborator_identifiers`. `voice_note_id` is an **ancestor** of the
+>    identity commits, so **any SHA carrying the identity code also carries the
+>    `voice_note_id` model field.** Prod lacks that column; `memory_capsules` is read
+>    via default all-scalar selects on live paths (`cosmp/capsule-management.service.ts`,
+>    `hive/hive.service.ts`, +41 sites), so **deploying `main` would break
+>    `memory_capsules` reads.** The identity guard covers ONLY `integration_credentials`
+>    — it does **not** make a `main` deploy safe.
+> 2. **The Render deploy rail is unavailable** — the `RENDER_API_KEY` in `.env` returns
+>    `Unauthorized`, so the current live SHA can't be read and a deploy can't be
+>    triggered via the sanctioned rail from here → "live deployment target ambiguous".
+>
+> Applying only my 6 columns now would flip the identity guard green while
+> `memory_capsules` stays unguarded — a **false-green** that would let a later operator
+> deploy `main` straight into broken reads. So nothing was applied (ADR-0025:
+> uncoordinated piecemeal prod schema application is exactly what the guard prevents).
+>
+> **OPERATOR PACKET — to complete the prod apply + guarded deploy (coordinated):**
+> - **(a) Confirm the current live FND SHA** on `otzar-api` (`srv-d8t17sm7r5hc73ed5h6g`)
+>   with a **valid** Render API key.
+> - **(b) Decide `memory_capsules.voice_note_id`** (separate owner's call, FND
+>   `615b6b1`): apply its additive schema too, or revert/guard it. It rides the SAME
+>   deploy SHA as the identity code, so `main` cannot deploy safely until this is
+>   resolved.
+> - **(c) Apply the six identity columns** (dry-run-verified: prod `integration_credentials`
+>   exists, all 6 absent, `rowCount=1`, no type conflicts) via the sanctioned ADR-0025
+>   raw-DDL additive rail (a governed `scripts/activate-*-prod-schema.ts`-style script or
+>   an operator SQL session on `DIRECT_URL` (5432 session pooler), inside a transaction
+>   with `SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='30s';`). Exact SQL —
+>   idempotent, additive, all nullable, no default/backfill/rewrite:
+>   ```sql
+>   ALTER TABLE "integration_credentials"
+>     ADD COLUMN IF NOT EXISTS "external_account_subject" TEXT,
+>     ADD COLUMN IF NOT EXISTS "external_account_email" TEXT,
+>     ADD COLUMN IF NOT EXISTS "external_account_email_verified" BOOLEAN,
+>     ADD COLUMN IF NOT EXISTS "external_account_issuer" TEXT,
+>     ADD COLUMN IF NOT EXISTS "external_account_pinned_at" TIMESTAMP(3),
+>     ADD COLUMN IF NOT EXISTS "external_account_last_verified_at" TIMESTAMP(3);
+>   ```
+>   Post-apply verify (read-only): all 6 present + `is_nullable='YES'` + types
+>   text/boolean/timestamp(3) via `information_schema.columns WHERE table_schema =
+>   current_schema()`, and `COUNT(*)` on `integration_credentials` unchanged (still 1).
+> - **(d) Then deploy** the merged FND `main` (identity code + boot guard + `current_schema()`
+>   qualification, ≥ `2c2faaa`) via the manual Render rail (deploy by commitId → poll to
+>   `live <sha>` → the startup guard must pass → `/health` 200). Keep `GOOGLE_OIDC_IDENTITY`
+>   OFF (that is a separate later arc).
+> - **Backup/recovery posture:** the change is trivially reversible (`ALTER TABLE … DROP
+>   COLUMN` per column, but NOT while the identity code is deployed — that would recreate
+>   the incompatibility) and touches no existing row (nullable, no rewrite). Confirm
+>   Supabase PITR/daily-backup coverage in the dashboard before applying.
+>
+> `GOOGLE_OIDC_IDENTITY` remains OFF, `SOURCE_RECHECK_TARGETS` unchanged, demo org
+> excluded, Meridian untouched. Nothing was pinned; no re-consent occurred.
+
 **Slice-3 prerequisite — Google account-identity pin — BUILT + tested, DEPLOY GATED
 (2026-07-09, FND PR #607 / `371542f`):** pins each org's Google connection to its
 immutable OIDC `sub` so a different-account reconnect fails closed (no silent token

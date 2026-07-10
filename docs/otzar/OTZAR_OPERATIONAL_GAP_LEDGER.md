@@ -541,6 +541,22 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ### I. Multi-source ingestion readiness — 🟡 AUDITED 2026-07-03 (full 17-source readiness map: [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md)). Verdicts: manual Comms transcript is the reference implementation; Zoom is live but routed as generic TRANSCRIPT (provenance/idempotency loss); Slack read is one wire away (adapter + provider + OAuth rail all exist, no route calls them); Docs/Gmail content reads don't exist; **Notion is catalog-visible with zero substrate (R10 placeholder flag)**; two parallel durable stores violate the single-ledger contract (Observe/OCR tables, conduct MemoryCapsules); **no inbound event route exists anywhere — every connector is outbound-only, so nothing can arrive ambiently (the structural gap)**. Canonical adapter contract now written (18 fields; an adapter is ~50 lines that builds a WorkSourceEvent and calls ingestSourceEvent). Build order: (1) Zoom→CONNECTOR provenance ✅ SHIPPED 2026-07-03 (FND `51d8700`: sourceSystem ZOOM via the spine, org-scoped dedupe ZOOM:<meeting_id>, idempotent 409 on re-ingest, row lineage, no tokenized URLs; live honesty probes 401/403/NOT_CONFIGURED green), (2) Slack read→canonical ingest ✅ SHIPPED 2026-07-03 `[SLACK-INGEST-1]` (FND PR #539: admin-triggered public-channel message ingest via org sealed OAuth envelope → canonical adapter → spine; doctrine dedupe `org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>`; DMs/private parked by policy; Events-API webhook honestly deferred — gap N still open), (3) NEXT: D&K per-row lineage, voice ingest hop, observe/OCR convergence, Notion catalog honesty.
 
+**SLICE-3 PREREQ · PROD SCHEMA APPLY + FND DEPLOY — 🟥 ATTEMPTED → STOPPED, PRODUCTION
+UNCHANGED (2026-07-09):** attempted the identity prerequisite's prod schema-apply +
+guarded deploy; **nothing applied, nothing deployed** (read-only dry-run + `migrate
+diff` only). Merged a guard correction: compatibility query now `current_schema()`-
+scoped (FND #609 / `2c2faaa`). **Two hard stops:** (1) the prod↔schema diff is NOT just
+my 6 columns — it carries unrelated un-applied `memory_capsules.voice_note_id` (+idx,
+FND `615b6b1`, an ancestor of the identity commits ⇒ same deploy SHA; prod lacks it;
+`memory_capsules` read via default selects on live paths ⇒ deploying `main` breaks
+them; my guard covers only `integration_credentials`); (2) `RENDER_API_KEY` in `.env`
+is Unauthorized ⇒ deploy rail unavailable + live SHA unknown. Applying only my columns
+= false-green (ADR-0025 anti-pattern) ⇒ declined. Dry-run verified the target is safe
+(prod table exists, 6 cols absent, rowCount=1, no conflicts). Full coordinated operator
+packet (steps a–d + exact SQL + timeouts + coupling) in
+[`OTZAR_PILOT_OPS_RUNBOOK.md`](./OTZAR_PILOT_OPS_RUNBOOK.md) top block.
+`GOOGLE_OIDC_IDENTITY` still OFF; no pin/re-consent; Meridian+demo untouched.
+
 **SLICE-3 PREREQUISITE · GOOGLE ACCOUNT-IDENTITY PIN — 🟢 BUILT + TESTED, merge-ready,
 DEPLOY GATED (FND PR #607 / `371542f`, 2026-07-09):** closes the Slice-3 WatchChannel
 contract's load-bearing blocker — a **silent Google-account swap was undetectable** (a

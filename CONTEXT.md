@@ -118,6 +118,42 @@ that determines, per required production section:
 
 ---
 
+## 🟥 SLICE-3 PREREQ · PROD SCHEMA APPLY + FND DEPLOY · ATTEMPTED → STOPPED, HANDED TO OPERATOR · PRODUCTION UNCHANGED (2026-07-09, Opus 4.8)
+
+Attempted the production schema-application + guarded FND deploy of the identity
+prerequisite. **Nothing was applied and nothing was deployed — production is
+unchanged** (read-only `--dry-run` + `prisma migrate diff` only). Also merged a small
+guard correction: the boot-time compatibility query is now scoped to
+`current_schema()` (FND #609 / `2c2faaa`) so a same-named table in another schema
+can't false-pass (unit + a decoy-schema integration test).
+
+**Two directive hard stops fired:**
+1. **The prod↔schema diff is NOT exactly the six identity columns.** `migrate diff
+   --from-url $DIRECT_URL` shows my 6 `integration_credentials` columns **plus
+   unrelated un-applied drift** — `memory_capsules.voice_note_id` (+idx, FND `615b6b1`,
+   an **ancestor** of the identity commits ⇒ it rides the same deploy SHA) + an index
+   rename. Prod lacks `voice_note_id`; `memory_capsules` is read via default all-scalar
+   selects on live paths (`cosmp/capsule-management`, `hive`, +41 sites), so **deploying
+   `main` would break those reads.** The identity guard covers ONLY
+   `integration_credentials` — it does not make a `main` deploy safe.
+2. **The Render deploy rail is unavailable** — `RENDER_API_KEY` in `.env` returns
+   `Unauthorized` ⇒ can't read the live SHA or trigger a deploy via the sanctioned rail.
+
+Applying only my 6 columns now would flip the identity guard green while
+`memory_capsules` stays unguarded — a false-green (ADR-0025: uncoordinated piecemeal
+prod schema application is the exact thing the guard prevents). So nothing was applied.
+Dry-run (read-only) DID verify the target is safe: prod `integration_credentials`
+exists, all 6 identity columns absent, `rowCount=1`, no type conflicts (Supabase
+`aws-1-us-east-2` pooler, db `postgres`, `public`; `DIRECT_URL` 5432 session pooler).
+
+**Full operator packet** (coordinated apply steps a–d: confirm live SHA + valid Render
+key · decide `memory_capsules.voice_note_id` · apply the 6 columns via the ADR-0025
+raw-DDL rail with exact SQL + lock/statement timeouts + pre/post checks · then deploy)
+is in the **CT `OTZAR_PILOT_OPS_RUNBOOK.md` top block**. `GOOGLE_OIDC_IDENTITY` remains
+OFF; no account pinned; no re-consent; Meridian + demo org untouched.
+
+---
+
 ## 🟢 SLICE-3 PREREQ · Google account-identity pin (OIDC `sub`) · BUILT + TESTED, merge-ready, DEPLOY GATED (FND PR #607 / `371542f`, 2026-07-09, Opus 4.8)
 
 **HEADs:** FND branch `slice3-prereq/google-account-identity-pin` (`371542f`, PR #607,
