@@ -163,6 +163,16 @@ untouched. Docs: `docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`.
 (Cloud-console callback + Pub/Sub + WatchChannel schema + renewal); Meet transcript
 events; durable InboundEvent table decision.
 
+**ENABLED for Meridian (2026-07-09, ops config only, no code).** `SOURCE_RECHECK_
+TARGETS` set on the FND Render env to the Meridian sim org (`69c07a00…`) : its
+ACTIVE admin actor (`8ae5c5c8…`), verified actor→org guard passes; CRON/MAX left at
+defaults (daily 03:00, ≤10 orgs). Same-SHA redeploy (`c550d30`, runtime `1d63b66`)
+so the env re-read; `/health` 200; `recheck-run` → `orgs_processed:1`,
+`orgs_skipped:0`, quiet (`notified:0`, `checked:0` — Meridian has no imported docs
+right now), no SOURCE_VERIFIED spam, zero residue. The daily cron will process
+Meridian's imported sources quietly. **Demo org NOT in the allowlist (structurally
+untouched).** Only Meridian is enabled. See [[project_inbound_recheck_slice1]].
+
 ---
 
 ## 🟢 INBOUND AMBIENT INGESTION RAIL · Preflight complete → DESIGN READY, awaiting GO · (2026-07-09, Opus 4.8)

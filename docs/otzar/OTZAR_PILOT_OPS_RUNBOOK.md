@@ -20,6 +20,13 @@ ORGS_PER_RUN` (default 10). No schema, no secret. Manual "run now" (own-org only
 `POST /api/v1/drive/docs/recheck-run` (admin Bearer). Single-instance assumption
 (no distributed lock — like the action scheduler; `plan: starter`). Plan+evidence:
 `OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`.
+**STATUS (2026-07-09): ENABLED for Meridian only.** `SOURCE_RECHECK_TARGETS` on the
+FND Render env = Meridian sim org (`69c07a00…`) : ACTIVE admin actor (`8ae5c5c8…`);
+CRON/MAX at defaults. Redeployed same-SHA (`c550d30`) to re-read; verified via
+`recheck-run` (200, quiet, zero residue). The **demo org is NOT listed** (fail-closed
+⇒ untouched). To onboard another pilot org: append `,<orgId>:<activeAdminActorId>`
+(the actor's org must resolve to that org), then same-SHA redeploy. NEVER list the
+demo org.
 
 **Section 16 session continuity — SHIPPED + LIVE (2026-07-09):** FND `54db932`
 (PR #597) + CT `fbfd3ef`. Hard-reload / protected deep-link now restore the
