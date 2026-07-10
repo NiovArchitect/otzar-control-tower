@@ -33,34 +33,51 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   NOT confirm (C1); past-time (6am) → truthful clarification (C2); "make it 11:30pm"
   → REVISED → "yes" (P4). Expect honest PROVIDER_BLOCKED (smoke Google not connected).
 
-- **P5A durable transcript — SUBSTRATE in FND PR #617** (branch
-  `otzar-p5a-durable-transcript`). Schema-first, NOT yet runtime-wired (inert in
-  prod). Adds `otzar_conversation_turns` + 5 additive `otzar_conversations` columns;
-  data layer `packages/database/src/queries/otzar-conversation-turns.ts`
-  (`appendConversationTurn` idempotent + advisory-lock monotonic sequence,
-  `listConversationTurns`, `latestConversationTurn`); prod activation script
-  `scripts/activate-otzar-conversation-turns-prod-schema.ts`. Integration 6 green.
+- **COMPLETE SCHEMA CONTRACT — LOCKED**:
+  `niov-foundation/docs/otzar/OTZAR_CONTINUITY_SCHEMA_CONTRACT.md`. This is the single
+  additive data model for all of P5/P6 (identity doctrine, thread lifecycle, corrected
+  turns, atomic sequence, summary, relationship memory, org-promotion lineage,
+  action-state, retention, coordinated activation staging, startup manifest). **Read
+  it first — it is the roadmap.**
+- **INCIDENT (recorded, recovered):** a v0 turn model (PR #617, `61c4271`) was merged
+  AND activated in prod BEFORE the contract was finalized. The table is empty/unused;
+  no data at risk. **P5 Stage 1 (PR #618) corrects it** (adds subject/author/twin,
+  content_hash, org NOT NULL; drops the ambiguous actor + visibility; adds thread
+  lifecycle + `turn_seq` atomic allocator). The v1 corrective prod script REFUSES
+  unless the turns table is empty.
+- **P5 Stage 1 — FND PR #618** (branch `otzar-p5-schema-contract`): corrected schema +
+  typed thread lifecycle service (`otzar-threads.ts`: create/assertThreadScope/touch/
+  archive/reopen/close/markThreadDeleted/allocateTurnSequence) + ownership-gated
+  idempotent turn append (`otzar-conversation-turns.ts`) + corrective activation
+  script. Integration 6 green; typecheck clean. Schema-first, NOT runtime-wired.
 
 ### EXACT next steps (in order) — active build
 
-1. **#617 CI green → squash-merge.** (Uses `npm run db:push` in CI, so the new table
-   is created from schema.prisma — no migration file needed.)
-2. **Apply the prod schema BEFORE any wiring deploys** (schema-first, ADR-0025):
+1. **#618 CI green → squash-merge.**
+2. **Apply the v1 corrective prod schema** (schema-first, ADR-0025; empty-draft-guarded):
    ```sh
    cd "$HOME/dev/NIOV Labs/github/niov-foundation"
-   node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-prod-schema.ts --dry-run   # verify
-   NIOV_APPROVE_OTZAR_CONTINUITY_PROD_SCHEMA='APPROVE OTZAR CONTINUITY PROD SCHEMA ACTIVATION — additive only' \
-     node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-prod-schema.ts
+   node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-v1-prod-schema.ts --dry-run
+   NIOV_APPROVE_OTZAR_CONTINUITY_V1_PROD_SCHEMA='APPROVE OTZAR CONTINUITY V1 PROD SCHEMA CORRECTION — empty-draft only' \
+     node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-v1-prod-schema.ts
    ```
-   (.env DATABASE_URL points at prod Supabase; the script is additive-only + idempotent.)
-3. **P5A wiring** (next FND PR): in `conductSession`, persist the USER turn BEFORE the
-   model call and the ASSISTANT turn BEFORE the response is durable, via
-   `appendConversationTurn` (thread = the resolved continuity/LLM conversation id;
-   pass `request_id` for idempotency; `action_ref` = pending WorkLedgerEntry id when a
-   proposal was made). Handle duplicate/retry/disconnect/out-of-order/two-tabs/
-   two-devices (the advisory-lock + request_id dedupe already make append safe).
-   Then deploy + a live re-check.
-4. **P5B → P5M, P6** per the sections below (each schema-first where it needs schema).
+   (Idempotent; refuses if any turn row exists. Brings prod from the v0 draft to v1.)
+3. **P6 startup manifest** (contract §12) covering Stage 1 turn table + the 6
+   IntegrationCredential identity cols + `memory_capsules.voice_note_id` — read-only,
+   fail-closed, before-listen. Ships BEFORE runtime wiring.
+4. **Stage 1 runtime wiring** (contract §Impl): `conductSession` persists USER turn
+   before the model + ASSISTANT turn before durable response via `appendConversationTurn`
+   (thread must exist → call `createThread`/scope on the resolved id; author = subject
+   for USER, twin for ASSISTANT; `action_ref` = pending WorkLedgerEntry; wire
+   `request_id` through the Otzar routes for idempotency). Deploy + live re-check.
+5. **Stage 2** — structured summary + relationship memory + org-promotion lineage
+   (contract §6–§8): new tables + services + tests, coordinated activation.
+6. **Stage 3** — action-state additive fields on WorkLedgerEntry (§9) + compensation.
+7. **P5F/P5J/P5K/P5L/P5M** — cross-device, retention/clear/delete services, model-
+   resilience envelope, temporal completion, full CT UX. Each schema-first where needed.
+
+Activation discipline: never wire runtime code to a table before its prod schema is
+applied AND the startup manifest covers it.
 
 All calendar continuity logic lives in
 `apps/api/src/services/otzar/calendar-continuity.service.ts`, wired pre-LLM in
