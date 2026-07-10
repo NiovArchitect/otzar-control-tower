@@ -564,8 +564,9 @@ typecheck 0; 5 CI checks green. Live synthetic proof on Meridian (deployed
 `2c8b8de` + secret set): valid signed calendar→202 quarantine(calendar_sink_not_
 wired), bad-sig→401(SIGNATURE_MISMATCH), replay→409(replay_rejected), source_changed
 non-existent→202 quarantine(no_matching_imported_source), valid-sig UNLISTED
-org→403 quarantine(org_actor_not_allowlisted) — no demo touch, no token leak, zero
-residue. **This is a synthetic internal rail — no real external events flow yet**
+org→403 quarantine(org_actor_not_allowlisted) — no demo touch, no token leak, no
+business-data or source mutation (only the expected audit evidence was written).
+**This is a synthetic internal rail — no real external events flow yet**
 (the only real source, Google webhooks, is Slice 3 / STOP). CT surface: `INBOUND_
 SIGNAL_*` audit rows auto-render (sentence-cased) in Security & Audit; adding them
 to the CT event-type label map for filterability is a trivial future polish

@@ -150,8 +150,8 @@ checks green. **Live synthetic proof on Meridian** (deployed `2c8b8de` + secret)
 valid signed calendar→202 quarantine(`calendar_sink_not_wired`),
 bad-sig→401(`SIGNATURE_MISMATCH`), replay→409(`replay_rejected`), source_changed
 non-existent→202 quarantine(`no_matching_imported_source`), valid-sig UNLISTED
-org→403 quarantine(`org_actor_not_allowlisted`). **No demo touch, no token leak,
-zero residue.**
+org→403 quarantine(`org_actor_not_allowlisted`). **No demo touch, no token leak, no
+business-data or source mutation; only the expected audit evidence was written.**
 
 **Next.** Slice 3 real Google webhooks — 🛑 **STOP-blocked** (domain-verified HTTPS
 callback + additive `WatchChannel` schema migration are hard stop conditions).

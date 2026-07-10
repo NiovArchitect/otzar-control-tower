@@ -252,7 +252,8 @@ signal); `calendar_*` → quarantine-deferred; unknown → quarantine. Additive 
 vocab (no migration); `INBOUND_SIGNAL_SECRET` optional (fail-closed at the route).
 Tests: `inbound-signal.test.ts` (18) + regression (38); PR #604. Live synthetic
 proof on Meridian: valid→202, bad-sig→401, replay→409, no-source→202-quarantine,
-unlisted-org→403 — no demo touch, no leak, zero residue. **This is a synthetic
+unlisted-org→403 — no demo touch, no leak, no business-data or source mutation (only
+the expected audit evidence was written). **This is a synthetic
 internal rail — no real external events flow yet** (its only real source, Google
 webhooks, is Slice 3 / STOP).
 
