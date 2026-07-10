@@ -118,6 +118,51 @@ that determines, per required production section:
 
 ---
 
+## ✅ INBOUND-SIGNAL Slice 2 · Internal HMAC-signed event rail (proves the webhook model) · SHIPPED + LIVE (FND `2c8b8de`, PR #604, 2026-07-09, Opus 4.8)
+
+**HEADs:** FND `2c8b8de` deployed live (api.otzar.ai, `INBOUND_SIGNAL_SECRET` set)
+· CT `95ca323` unchanged (no UI change — `INBOUND_SIGNAL_*` audit rows auto-render
+sentence-cased in Security & Audit; label-map filterability is a deferred trivial
+polish, per "only change CT if needed").
+
+**What shipped.** A bearer-less `POST /api/v1/otzar/inbound/signal` that proves the
+provider-webhook *processing* model with **zero real external events** — the safe
+internal substrate for Slice 3 (real Google webhooks, STOP'd). An HMAC over the raw
+body (`verifyInboundHmac`; `X-Otzar-Signature: sha256=<hex>` + `X-Otzar-Timestamp`;
+canonical `${timestamp}.${rawBody}`; ±5min; timing-safe) is the **sole auth** — no
+bearer, no cookie. Route-scoped raw body via a custom content-type
+`application/otzar-signal`, so the global JSON parser is untouched (415 on any other
+content-type). Defense-in-depth, all Redis-atomic: single-use nonce (`SET NX EX`)
+for replay; per-resource debounce/dedupe that persists **only on a definitive
+result** (a transient sink failure releases the marker so a retry re-processes);
+per-org per-minute quota (`INCR`+`EXPIRE`). Org/actor resolve from the fail-closed
+`SOURCE_RECHECK_TARGETS` allowlist + actor ACTIVE + `getOrgEntityId(actor)===org`
+— **the payload org is ignored**, so the demo/any-unlisted org is structurally
+untargetable even with a valid signature. `source_*` →
+`revalidateImportedDocForCaller` (re-fetch — never imports from the signal body);
+`calendar_*` → quarantine-deferred; unknown → quarantine. Audit via additive
+open-String vocab (no migration); responses minimal (`{ok,status,reason?}` — no
+token/secret/raw-payload leak). `INBOUND_SIGNAL_SECRET` optional at boot,
+fail-closed at the route (unset ⇒ all 401).
+
+**Verified.** `inbound-signal.test.ts` 18/18 + regression 38/38 + typecheck 0; 5 CI
+checks green. **Live synthetic proof on Meridian** (deployed `2c8b8de` + secret):
+valid signed calendar→202 quarantine(`calendar_sink_not_wired`),
+bad-sig→401(`SIGNATURE_MISMATCH`), replay→409(`replay_rejected`), source_changed
+non-existent→202 quarantine(`no_matching_imported_source`), valid-sig UNLISTED
+org→403 quarantine(`org_actor_not_allowlisted`). **No demo touch, no token leak,
+zero residue.**
+
+**Next.** Slice 3 real Google webhooks — 🛑 **STOP-blocked** (Cloud-console domain
+verify + Pub/Sub + additive `WatchChannel` schema migration are hard stop
+conditions). Exact 10-point unblock checklist in
+`docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md` § "Slice 3 preflight". Human
+action to unblock: verify `api.otzar.ai` domain → create Drive Pub/Sub topic/sub
+(and/or Calendar HTTPS callback) → approve the `WatchChannel` migration. Until then
+Slice 1 cron + Slice 2 signed rail cover ambient detection.
+
+---
+
 ## ✅ INBOUND-RECHECK Slice 1 · Cron bounded per-org source recheck · SHIPPED + LIVE (FND `1d63b66`, 2026-07-09, Opus 4.8)
 
 **HEADs:** FND `1d63b66` deployed live (api.otzar.ai) · CT `95ca323` unchanged

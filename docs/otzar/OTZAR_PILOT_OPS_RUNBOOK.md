@@ -8,6 +8,26 @@ fix the divergence, never ignore it.
 FND `docs/operations/rollback-runbook.md`, FND ADR-0025 (schema-push
 discipline).
 
+**Inbound-signal Slice 2 (internal HMAC-signed event rail) — SHIPPED + LIVE
+(2026-07-09, FND `2c8b8de`, PR #604):** proves the provider-webhook processing
+model with NO real Google webhook. Endpoint `POST /api/v1/otzar/inbound/signal`,
+**bearer-less** — an HMAC over the raw body (`X-Otzar-Signature: sha256=<hex>` +
+`X-Otzar-Timestamp`, canonical `${timestamp}.${rawBody}`, ±5min window) is the SOLE
+auth; content-type MUST be `application/otzar-signal` (else 415). Ops env (FND
+Render service): **`INBOUND_SIGNAL_SECRET`** (secret; the HMAC signing key). It is
+**optional at boot but fail-closed at the route** — if unset, every signal returns
+401, so the rail is inert until the secret is set. **Currently SET** on the FND
+service (rail live). Org/actor authority is the SAME fail-closed
+`SOURCE_RECHECK_TARGETS` allowlist as Slice 1 (payload org is ignored; the demo/
+any-unlisted org is structurally untargetable even with a valid signature). No
+schema, no migration. Redis-backed (nonce replay + debounce dedupe + per-org
+quota); single-instance assumption (like the scheduler). To rotate the secret:
+update `INBOUND_SIGNAL_SECRET` + same-SHA redeploy; any signer must use the new key.
+Nothing to enable per-org beyond the existing `SOURCE_RECHECK_TARGETS`. **This rail
+carries synthetic/internal signals only — no real external events flow until Slice 3
+(Google webhooks) is un-STOP'd.** Plan+evidence:
+`OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md` (Slice 2 + Slice 3 preflight checklist).
+
 **Inbound-recheck Slice 1 (source recheck cron) — SHIPPED + LIVE (2026-07-09,
 FND `1d63b66`):** a daily bounded per-org re-verification of already-imported
 Google-Doc sources. **FAIL-CLOSED and OFF by default** — it does nothing until

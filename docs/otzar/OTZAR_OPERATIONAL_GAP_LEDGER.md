@@ -541,6 +541,40 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ### I. Multi-source ingestion readiness — 🟡 AUDITED 2026-07-03 (full 17-source readiness map: [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md)). Verdicts: manual Comms transcript is the reference implementation; Zoom is live but routed as generic TRANSCRIPT (provenance/idempotency loss); Slack read is one wire away (adapter + provider + OAuth rail all exist, no route calls them); Docs/Gmail content reads don't exist; **Notion is catalog-visible with zero substrate (R10 placeholder flag)**; two parallel durable stores violate the single-ledger contract (Observe/OCR tables, conduct MemoryCapsules); **no inbound event route exists anywhere — every connector is outbound-only, so nothing can arrive ambiently (the structural gap)**. Canonical adapter contract now written (18 fields; an adapter is ~50 lines that builds a WorkSourceEvent and calls ingestSourceEvent). Build order: (1) Zoom→CONNECTOR provenance ✅ SHIPPED 2026-07-03 (FND `51d8700`: sourceSystem ZOOM via the spine, org-scoped dedupe ZOOM:<meeting_id>, idempotent 409 on re-ingest, row lineage, no tokenized URLs; live honesty probes 401/403/NOT_CONFIGURED green), (2) Slack read→canonical ingest ✅ SHIPPED 2026-07-03 `[SLACK-INGEST-1]` (FND PR #539: admin-triggered public-channel message ingest via org sealed OAuth envelope → canonical adapter → spine; doctrine dedupe `org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>`; DMs/private parked by policy; Events-API webhook honestly deferred — gap N still open), (3) NEXT: D&K per-row lineage, voice ingest hop, observe/OCR convergence, Notion catalog honesty.
 
+**INBOUND-SIGNAL SLICE 2 — 🟢 SHIPPED + LIVE (FND `2c8b8de`, PR #604, 2026-07-09):**
+the internal HMAC-signed event rail that proves the provider-webhook processing
+model WITHOUT any real Google webhook. `POST /api/v1/otzar/inbound/signal` —
+bearer-less; an HMAC (`verifyInboundHmac`, sha256 over `${timestamp}.${rawBody}`,
+±5min replay window, timing-safe) is the SOLE auth. Route-scoped raw body via a
+custom content-type `application/otzar-signal` (global JSON parser untouched).
+Single-use Redis nonce (`SET NX EX`, anti-replay) + per-resource debounce/dedupe
+(the dedupe marker persists only on a *definitive* result; a transient sink failure
+releases it so a retry re-processes) + per-org per-minute quota (INCR+EXPIRE).
+Org/actor resolve from the fail-closed `SOURCE_RECHECK_TARGETS` allowlist (NOT the
+payload) + actor ACTIVE + `getOrgEntityId(actor)===claimed org` ⇒ demo/unlisted org
+structurally untargetable even with a valid signature. `source_*` →
+`revalidateImportedDocForCaller` (re-fetch — NEVER imports from the signal body);
+`calendar_*` → quarantine-deferred (sink not wired); unknown → quarantine. Audit via
+additive open-String vocab (`INBOUND_SIGNAL_PROCESSED|REPLAY_REJECTED|DEDUPED|
+QUARANTINED|FAILED`, `SOURCE_REVALIDATION_TRIGGERED` — no migration); responses
+minimal (`{ok,status,reason?}` — no token/secret/raw-payload leak). `INBOUND_SIGNAL_
+SECRET` optional at boot, fail-closed at the route (no secret ⇒ all signals 401).
+Tests: `inbound-signal.test.ts` (18: service + route level) + regression (38);
+typecheck 0; 5 CI checks green. Live synthetic proof on Meridian (deployed
+`2c8b8de` + secret set): valid signed calendar→202 quarantine(calendar_sink_not_
+wired), bad-sig→401(SIGNATURE_MISMATCH), replay→409(replay_rejected), source_changed
+non-existent→202 quarantine(no_matching_imported_source), valid-sig UNLISTED
+org→403 quarantine(org_actor_not_allowlisted) — no demo touch, no token leak, zero
+residue. **This is a synthetic internal rail — no real external events flow yet**
+(the only real source, Google webhooks, is Slice 3 / STOP). CT surface: `INBOUND_
+SIGNAL_*` audit rows auto-render (sentence-cased) in Security & Audit; adding them
+to the CT event-type label map for filterability is a trivial future polish
+(deliberately skipped — no CT change needed, per "only change CT if needed").
+Remaining: **Slice 3 real Google webhooks — 🛑 STOP-blocked** (Cloud-console domain
+verify + Pub/Sub + additive `WatchChannel` schema migration; full 10-point checklist
+in [`OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md`](./OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md)
+§ "Slice 3 preflight").
+
 **INBOUND-RECHECK SLICE 1 — 🟢 SHIPPED + LIVE (FND `1d63b66`, 2026-07-09):** the
 first safe inbound/ambient capability — a daily, bounded, per-org re-verification
 of already-imported trusted Google-Doc sources (cron → existing

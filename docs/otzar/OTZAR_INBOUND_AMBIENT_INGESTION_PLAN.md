@@ -237,18 +237,79 @@ no raw-body parser, schema-free.** Only real design decisions: the governed
 per-org system actor + the tick cadence/bounding + the optional CT source-changed
 surface. Ships the detection+notification the UI lacks today.
 
-**Slice 2 — Internal HMAC-signed inbound event rail (prove the webhook model).**
-A bearer-less `POST /otzar/inbound/signal` wired to `verifyInboundHmac` + raw-body
-parser + Redis single-use nonce + org-from-signed-payload/binding, mapping to the
-existing sink. Ships **no real external behavior** (its only real source — Google
-webhooks — is STOP'd), so it processes synthetic/internal test events. Worth doing
-**only when** someone will do the Slice-3 Cloud-console + schema work for real
-webhooks. New inbound attack surface + a webhook secret + boot-validation entry ⇒
-needs explicit GO.
+**Slice 2 — Internal HMAC-signed inbound event rail ✅ SHIPPED + LIVE (FND
+`2c8b8de`, 2026-07-09).** `POST /api/v1/otzar/inbound/signal` — bearer-less, HMAC
+over the raw body is the SOLE auth (route-scoped raw parser via a custom
+content-type `application/otzar-signal`, so global JSON is untouched). Single-use
+Redis nonce (anti-replay) + per-resource debounce/dedupe (dedupe persists only on a
+definitive result — a transient sink releases it) + per-org quota. Org/actor from
+the fail-closed `SOURCE_RECHECK_TARGETS` allowlist (NOT the payload) + actor
+ACTIVE + `getOrgEntityId(actor)===org`; demo org structurally untargetable.
+`source_*` → `revalidateImportedDocForCaller` (re-fetch, never imports from a
+signal); `calendar_*` → quarantine-deferred; unknown → quarantine. Additive audit
+vocab (no migration); `INBOUND_SIGNAL_SECRET` optional (fail-closed at the route).
+Tests: `inbound-signal.test.ts` (18) + regression (38); PR #604. Live synthetic
+proof on Meridian: valid→202, bad-sig→401, replay→409, no-source→202-quarantine,
+unlisted-org→403 — no demo touch, no leak, zero residue. **This is a synthetic
+internal rail — no real external events flow yet** (its only real source, Google
+webhooks, is Slice 3 / STOP).
 
-**Slice 3 — Real Google Drive/Calendar webhooks 🛑 STOP (dashboard + schema).**
-Cloud-console domain-verified callback + Pub/Sub + `WatchChannel` schema + channel
-renewal + `syncToken`. Requires a founder dashboard action and a migration.
+### Slice 3 preflight — Real Google Drive/Calendar webhooks — 🛑 STOP (dashboard + schema)
+
+**Verdict: BLOCKED — do not implement.** The stop conditions "Cloud-console /
+Pub/Sub / domain callback setup required" and "schema migration required" both
+fire. The processing model is already proven (Slices 1–2); what remains is
+external-provider + schema work that only a human/founder can do. Exact checklist:
+
+1. **Google Cloud Console setup (founder/human action):** in the project owning the
+   OAuth client (`GOOGLE_OAUTH_CLIENT_ID`), enable the **Drive API push** path (a
+   Cloud **Pub/Sub** topic + subscription) and, for Calendar, the **events.watch**
+   channel. Drive `files.watch` / `changes.watch` delivers to a **Pub/Sub topic**;
+   Calendar `events.watch` delivers to an **HTTPS callback URL** directly. Decide
+   the delivery mode per provider.
+2. **Domain / callback verification:** the webhook callback host (e.g.
+   `https://api.otzar.ai/api/v1/otzar/inbound/google/...`) must be a **verified
+   domain** in Google Search Console / Cloud Console (Google refuses to register a
+   watch to an unverified callback). This is a one-time DNS/site-verification
+   action.
+3. **Pub/Sub requirement (Drive):** create a topic + push subscription pointing at
+   the callback; grant Drive's service account `pubsub.publisher`. (Calendar can
+   skip Pub/Sub and push straight to the HTTPS callback.)
+4. **Required callback URL:** a new bearer-less route (reuse the Slice-2 pattern:
+   verify Google's message — for Pub/Sub, the JWT on the push request; for Calendar
+   `events.watch`, the `X-Goog-Channel-Token` you set at watch-creation). It must
+   be registered/allowed in the Cloud Console + reachable over verified HTTPS.
+5. **Required schema (additive migration — a STOP):** a `WatchChannel` table:
+   `channel_id` (PK), `resource_id`, `provider` (GOOGLE_DRIVE|GOOGLE_CALENDAR),
+   `org_entity_id`, `actor_entity_id` (or `binding_id`), `expiration` (ms),
+   `renewal_status`, and — for Calendar — `sync_token`. This is the **channel→org
+   resolver** (Slice 2 uses the allowlist; real webhooks carry only a channel id/
+   resource id, so the org MUST be resolved from this row written at watch-creation).
+6. **Channel renewal design:** Google channels expire ≤7 days. A `node-cron` job
+   (reuse the Slice-1 scheduler pattern) renews channels approaching expiry and
+   re-persists the new `channel_id`/`expiration`; a failed renewal marks
+   `renewal_status=STALE` and falls back to the Slice-1 cron recheck.
+7. **Header→binding→org mapping:** on a notification, read `X-Goog-Channel-Id` /
+   `X-Goog-Resource-Id` / `X-Goog-Resource-State` (Drive) or the channel token
+   (Calendar) → look up `WatchChannel` → resolve org/actor → then reuse the Slice-2
+   processing (verify → dedupe → revalidate). Never trust the notification body.
+8. **Expired/revoked channels:** `X-Goog-Resource-State: sync` (handshake) is a
+   no-op; a 404/`SOURCE_DELETED` on re-fetch demotes the source; a channel whose
+   `WatchChannel` row is gone → quarantine + a renewal attempt.
+9. **Avoid broad sync:** a Drive change notification says only "something in the
+   watched scope changed" — resolve to the specific `resource_id` and revalidate
+   ONLY the matching imported doc (Calendar `events.watch` + `syncToken` returns
+   only the changed events). Never list/crawl Drive.
+10. **Testing without the demo org:** watch-registration is per-resource + the
+    `WatchChannel` row is org-scoped; integration-test the header→org mapping +
+    renewal with injected fixtures (no real Google), and live-verify on Meridian
+    only after the founder completes steps 1–4. The demo org is never watched.
+
+**Exact next human action to unblock Slice 3:** (a) verify `api.otzar.ai` as a
+domain in Google Cloud Console; (b) create the Drive Pub/Sub topic + push
+subscription (and/or decide Calendar HTTPS callback); (c) approve the additive
+`WatchChannel` schema migration. Until (a)–(c) are done, Slice 3 stays STOPّd and
+the Slice-1 cron + Slice-2 signed rail cover ambient detection.
 
 ## 11. Deployment sequence
 
