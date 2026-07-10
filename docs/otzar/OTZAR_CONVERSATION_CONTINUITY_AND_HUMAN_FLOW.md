@@ -1,8 +1,10 @@
 # Otzar Conversation Continuity & Human Flow
 
-**Status: P0 SHIPPED + LIVE-VERIFIED (2026-07-10). FND `05c1f32`.** The reported
-continuity failure is fixed end-to-end in production. Broader continuity subsystems
-(below) are **not yet built** — internally achievable, not blocked.
+**Status: P0 SHIPPED + LIVE-VERIFIED (2026-07-10, FND `05c1f32`). Corrections #1/#2
++ P4 human-loop closure — FND PR #615 (pending merge + Render deploy + live-smoke).**
+The reported continuity failure is fixed end-to-end in production; the corrections
+and P4 harden it. Remaining P5/P6 subsystems (below) are **not yet built** —
+internally achievable, not blocked.
 
 ## The failure this fixes
 
@@ -32,7 +34,13 @@ Two defects, both proven by read-only reconnaissance (file:line):
 - **Tool proposals are not completed actions.** Otzar never says "added" unless the
   provider returned an event id.
 - **Time is a server-grounded fact**, never a model guess. Per-user timezone is the
-  baseline; the live device timezone (sent per request) handles travel.
+  baseline; the live device timezone (sent per request) handles travel. A time that
+  has already passed today is **asked about, never silently rolled to tomorrow**
+  (Correction #2).
+- **A pending action is bound to the exact thread it was proposed in** (Correction
+  #1). A confirmation resolves only within that thread (or, when the client sends no
+  thread, within the caller's own actor+org recency, restoring the proposal's bound
+  thread). Another thread cannot silently approve it.
 - **Private relationship memory and shared organizational truth are separate
   permissioned layers.** (Layer built as substrate; promotion rules not yet wired —
   see "Not yet built".)
@@ -62,14 +70,38 @@ status=NEEDS_CALLER_CONFIRMATION)` — the state already exists.
 - **Honest provider states.** CREATED / PROVIDER_BLOCKED (kept-ready, connect Google) /
   CANCELLED — the approved intent is preserved, never a false "added".
 
+### Corrections + P4 (FND PR #615 — pending merge/deploy/live)
+
+- **Correction #1 — exact thread binding.** The proposal is bound to a
+  server-authoritative thread (the existing `WorkLedgerEntry.conversation_id` UUID
+  column — zero schema) resolved BEFORE persistence. A "yes" carrying a thread id
+  resolves only that thread's proposal; a "yes" with no thread (the live ambient
+  case) resolves by actor+org recency and **restores** the proposal's bound thread
+  to the client. **Precondition (honest):** the exact-thread guarantee is only
+  *active* once the client sends a **persistent** thread id across turns. The live
+  CT sends none today → recency path (safe). CT wiring (P5) must send a **stable**
+  id, not a fresh one per turn, or it re-exposes the original bug.
+- **Correction #2 — truthful past-time clarification.** A past-today time persists
+  nothing and asks tomorrow-or-another-time; never a silent tomorrow.
+- **P4 — human-loop closure.** Multi-pending disambiguation now *resolves* ("the
+  first one" / "number 2" / "cancel the second"; deterministic oldest→newest order).
+  Single-pending **supersession** ("make it 3pm", "no, 2pm") revises the proposal in
+  place on the same row (thread binding + idempotency preserved); a later "yes" books
+  the revised time; a past revised time re-clarifies.
+
 ## Verification
 
-- **Unit (35):** time parsing incl. "at one o'clock", DST (EST vs EDT), current-year
-  correctness, title extraction, confirmation classification, **+ pre-fix reproduction**
-  (the old extractor forms no calendar proposal — the proven loss point).
-- **Integration (7, real DB):** temporal correctness · propose→persist→bare-"yes"
+- **Unit (39):** time parsing incl. "at one o'clock", DST (EST vs EDT), current-year
+  correctness, past-time→clarify, title extraction, confirmation classification,
+  ordinal selection, time-revision parsing, **+ pre-fix reproduction** (the old
+  extractor forms no calendar proposal — the proven loss point).
+- **Integration (12, real DB):** temporal correctness · propose→persist→bare-"yes"
   resolves · CREATED via injected provider · idempotency (no duplicate) · cross-user
-  isolation · reject→cancel · no-false-interception.
+  isolation · reject→cancel · no-false-interception · **cross-thread negative +
+  ambient-still-resolves (Correction #1)** · **past-time clarify persists nothing
+  (Correction #2)** · **two-pending "yes"→DISAMBIGUATE (zero side-effect) then "the
+  first one" books the oldest** · **"make it 3pm"→REVISED in place→"yes" books
+  19:00Z (P4 supersession)**.
 - **Synthetic-live (smoke org, dedicated test tenant):** Turn 1 → `"Olivia's Event",
   Sat Jul 11 2026 1:00 PM EDT` (correct); Turn 2 "yes" → resolves + honest
   PROVIDER_BLOCKED (smoke Google not connected). Zero residue; 0 new live errors.
@@ -81,19 +113,25 @@ status=NEEDS_CALLER_CONFIRMATION)` — the state already exists.
 
 ## Not yet built this pass (internally achievable, NOT blocked)
 
-These build on the P0 substrate and did not block the reported flow:
+These build on the P0 + corrections substrate and did not block the reported flow.
+**P4 closed** in-thread supersession + multi-pending disambiguation resolution
+(above). Still open:
 - **Durable conversation-turn transcript** (server-side user+assistant turn
   persistence) for reference resolution ("what did we decide?", "the one David
-  mentioned"). P0 needs only the pending-proposal store, which is built.
-- **Broader references/corrections:** "make it 2 PM" (supersede), "the second one",
-  "move it", "cancel it", "continue". The confirmation resolver + supersession states
-  are the extension point.
+  mentioned", "send that", "move it"). P0 needs only the pending-proposal store,
+  which is built; free-form back-reference needs the turn log.
+- **Generalized pending-action machine** beyond calendar (the 14-state incl.
+  COMPENSATION_* / post-execution compensation "undo it after it was booked").
 - **User relationship memory** (prefs/habits with confidence/provenance/promotion
   rules) and the **private→organizational promotion boundary**.
-- **Cross-device summaries + full CT UX** (pending-action chip, thread restoration,
-  clear/archive/delete semantics) and **model-fallback context parity**.
-- **CT wiring** to send `conversation_id` + `client_timezone` and render the pending
-  state (the backend already accepts both; the ambient "yes" already routes through
-  the resolver, so the reported flow works without a CT change).
-- **Generalized startup schema manifest** (extends the boot-time
+- **P5 — cross-device summaries + full CT UX** (pending-action chip, thread
+  restoration, clear/archive/delete + retention semantics) and **model-fallback
+  context parity**. Includes the **CT wiring** to send a *persistent*
+  `conversation_id` + `client_timezone` and render the pending state — see the
+  Correction #1 precondition: the thread id must be **stable across turns**, or
+  exact-thread binding falls through to the (safe) recency path and, if a fresh id
+  is sent per turn, could re-expose the original bug.
+- **P6 — generalized startup schema manifest** (extends the boot-time
   IntegrationCredential guard to all runtime-required columns).
+
+See `docs/otzar/OTZAR_CONTINUITY_HANDOFF.md` for the exact next-session plan.
