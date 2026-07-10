@@ -23,13 +23,15 @@ swap → no spurious mass source demotion).
 > until the columns exist.
 >
 > **A boot-time guard now enforces this (FND `82293e6`).** On startup, `startApiServer`
-> runs a read-only `information_schema` check BEFORE `app.listen`; if the six columns
-> (or the table) are missing it **fails startup with a non-zero exit** and logs
-> `INTEGRATION_CREDENTIAL_SCHEMA_INCOMPATIBLE` naming the missing columns + "Apply the
-> approved additive IntegrationCredential identity schema before deploying this
-> Foundation SHA." So a code-before-schema deploy will **crash-loop on Render rather
-> than serve broken reads** — the service stays on the previous healthy instance and
-> `/health` never comes up on the bad one. **This guard is NOT a bypass and NOT a
+> runs a read-only, `current_schema()`-qualified `information_schema` check BEFORE
+> `app.listen`; if the six columns (or the table) are missing it **fails startup with a
+> non-zero exit** and logs `INTEGRATION_CREDENTIAL_SCHEMA_INCOMPATIBLE` naming the
+> missing columns + "Apply the approved additive IntegrationCredential identity schema
+> before deploying this Foundation SHA." So on a code-before-schema deploy **the
+> candidate process exits before listening and cannot become healthy** (it never serves
+> broken reads). **Availability of the previous deployment depends on the platform's
+> (Render's) deployment and rollback behavior** — do not assume the old instance stays
+> live; observe and record it at deploy time. **This guard is NOT a bypass and NOT a
 > migration:** it converts a partial runtime failure into an explicit startup failure;
 > it does not make the deploy safe or apply the schema. There is no flag to skip it.
 > The remedy is unchanged: apply the additive schema (below) first.
