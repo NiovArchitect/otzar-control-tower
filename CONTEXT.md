@@ -118,6 +118,33 @@ that determines, per required production section:
 
 ---
 
+## ✅ OTZAR CONVERSATION CONTINUITY · P0 (calendar yes→execute + temporal) · SHIPPED + LIVE-VERIFIED · FND `05c1f32` (2026-07-10, Opus 4.8)
+
+Fixed the reported live failure: "put Olivia's event on my calendar at one o'clock"
+→ propose → "yes" → *"I don't see a previous question."* Root causes (proven by 3
+recon agents): the chat path (`conductSession`) persisted **no proposal** + had **no
+server-side confirmation resolver** (only client React state); and the LLM **invented
+the date (Jan 2025)** because the prompt carried no current date/tz. **Fix (zero
+schema):** `apps/api/src/services/otzar/calendar-continuity.service.ts` runs BEFORE the
+LLM — resolves the real date/tz server-side (client tz → per-user
+`EntityProfile.timezone` → org fallback; DST-correct), persists a pending proposal as
+`WorkLedgerEntry(MEETING, NEEDS_CALLER_CONFIRMATION)`, and deterministically resolves a
+bare "yes"/"no" against the caller's **single unexpired** proposal (actor+org scoped;
+invariant: never side-effects on ambiguity), executing through the gated
+`createCalendarEvent` behind an **atomic CAS claim** (no duplicate on double-yes).
+Honest states (AWAITING/CREATED/PROVIDER_BLOCKED/CANCELLED) — never false "added".
+PRs #612/#613/#614. Tests: 35 unit + 7 integration. **Live-verified on the smoke org:**
+Turn 1 → "Olivia's Event", Sat Jul 11 2026 1:00 PM EDT (correct — not Jan 2025); Turn 2
+"yes" → resolves + honest "connect Google" (smoke Google not connected). Real-provider
+write BLOCKED-EXTERNAL (Google not connected; connecting is out of scope). Zero residue;
+0 new live errors; `GOOGLE_OIDC_IDENTITY` OFF; demo + Meridian untouched. Doctrine +
+"not yet built" list: `docs/otzar/OTZAR_CONVERSATION_CONTINUITY_AND_HUMAN_FLOW.md`.
+Broader continuity (turn transcript, relationship/org memory, corrections/supersession,
+cross-device, full UX, model-fallback parity, generalized manifest) = next slices on
+this substrate.
+
+---
+
 ## ✅ SLICE-3 PREREQ · PROD SCHEMA RECONCILE + GUARDED DEPLOY · INCIDENT RESOLVED · LIVE `12eb568` (2026-07-10, Opus 4.8)
 
 An operator deployed the identity code → **`371542f` went live** (deployed 05:11, before
