@@ -10,12 +10,29 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   calendar proposal + deterministic pre-LLM yes/no + temporal grounding + idempotent
   gated write + actor/org isolation. Live-smoke: Turn 1 → `"Olivia's Event", Sat Jul
   11 2026 1:00 PM EDT`; Turn 2 "yes" → resolves + honest PROVIDER_BLOCKED.
-- **Corrections #1/#2 + P4 — FND PR #615** (branch `otzar-continuity-corrections`,
-  commits `15f324c` C2, `662359b` C1, `1bf11b7` P4). Unit 39 + integration 12 green,
-  typecheck clean. **State when this handoff was written: PR open, CI running.**
-  → **First next step: confirm #615 CI green → squash-merge → Render deploy by
-  commitId (srv `srv-d8t17sm7r5hc73ed5h6g`, key via bootstrap secrets, NOT .env) →
-  live-smoke on the dedicated smoke org → flip the doctrine doc status to LIVE.**
+- **Corrections #1/#2 + P4 — MERGED to `main` as FND `e6fab89`** (PR #615, all 5 CI
+  tiers green: unit 40, integration 12, typecheck, elixir, python). Squash of commits
+  `15f324c` C2, `662359b` C1, `1bf11b7` P4, `a3e3462` revision-cue hardening.
+  → **First next step: PRODUCTION DEPLOY (auto-mode gated — user must authorize) +
+  live-smoke, then flip the doctrine doc status to LIVE.** The deploy + smoke commands
+  are below; run them (or authorize the deploy) to complete this increment.
+
+  ```sh
+  # 1. Deploy the merged commit to the live FND service (autoDeploy is OFF).
+  cd "$HOME/dev/NIOV Labs/github/niov-foundation" && git checkout main && git pull
+  FULL=$(git rev-parse HEAD)
+  KEY=$(awk '/^RENDER_API_KEY/{getline;print;exit}' "$HOME/dev/NIOV Labs/secure/bootstrap/.niov-bootstrap-secrets" | tr -d ' \t\r')
+  curl -s -X POST "https://api.render.com/v1/services/srv-d8t17sm7r5hc73ed5h6g/deploys" \
+    -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+    -d "{\"commitId\":\"$FULL\"}" | jq '{id,status,commit:.commit.id}'
+  # 2. Wait for the deploy to go live (poll the deploy id or Render dashboard), then smoke:
+  SP=$(awk '/smoke-admin@niovlabs.com password/{getline;print;exit}' "$HOME/dev/NIOV Labs/secure/bootstrap/.niov-bootstrap-secrets" | tr -d ' \t\r') \
+    node "$HOME/dev/NIOV Labs/github/otzar-control-tower/docs/otzar/smoke-continuity.mjs"
+  ```
+  Smoke asserts: future-time propose returns a bound `conversation_id`; in-thread
+  "yes" resolves (not "I don't see a previous question"); foreign-thread "yes" does
+  NOT confirm (C1); past-time (6am) → truthful clarification (C2); "make it 11:30pm"
+  → REVISED → "yes" (P4). Expect honest PROVIDER_BLOCKED (smoke Google not connected).
 
 All continuity logic lives in
 `apps/api/src/services/otzar/calendar-continuity.service.ts`, wired pre-LLM in
