@@ -259,11 +259,14 @@ webhooks, is Slice 3 / STOP).
 
 ### Slice 3 preflight — Real Google Drive/Calendar webhooks — 🛑 STOP (dashboard + schema)
 
-> **Canonical spec: [`OTZAR_SLICE3_WATCHCHANNEL_CONTRACT.md`](./OTZAR_SLICE3_WATCHCHANNEL_CONTRACT.md)**
-> — the full implementation-ready, review-ready contract (exact `WatchChannel` schema +
-> proposed migration + route/state-machine/threat-model/test-matrix/approval-packet). The
-> summary below is the preflight verdict; the contract supersedes it on any detail (notably:
-> Drive v1 uses **`changes.watch`**, verified reliable for Doc content edits, not `files.watch`).
+> **Canonical spec: [`OTZAR_SLICE3_WATCHCHANNEL_CONTRACT.md`](./OTZAR_SLICE3_WATCHCHANNEL_CONTRACT.md)
+> (V2)** — the full implementation-ready, review-ready contract (two-table
+> `WatchSubscription`+`WatchChannel` schema + proposed migration + zero-byte header-driven
+> callback + cursor/lease/state-machine + threat model + test matrix + approval packet). The
+> summary below is the preflight verdict; the contract supersedes it on any detail. Notably:
+> Drive v1 uses **`changes.watch`** (verified reliable for Doc content edits, not `files.watch`);
+> and the V2 verdict is **NOT a clean GO — READY ONLY AFTER a Google account-identity
+> prerequisite** (a silent account-swap is undetectable today and would mass-demote sources).
 
 **Verdict: BLOCKED — do not implement.** The stop conditions "Cloud-console /
 domain callback setup required" and "schema migration required" both fire. The
