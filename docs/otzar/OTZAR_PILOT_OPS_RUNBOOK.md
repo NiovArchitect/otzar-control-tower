@@ -11,18 +11,27 @@ discipline).
 **Slice-3 prerequisite — Google account-identity pin — BUILT + tested, DEPLOY GATED
 (2026-07-09, FND PR #607 / `371542f`):** pins each org's Google connection to its
 immutable OIDC `sub` so a different-account reconnect fails closed (no silent token
-swap → no spurious mass source demotion). **Two founder gates before it activates —
-both are ops actions, in order:**
+swap → no spurious mass source demotion).
+
+> 🔴 **DEPLOY-ORDERING LANDMINE — READ BEFORE THE NEXT FND DEPLOY OF ANY CHANGE.** FND
+> `main` (`371542f`+) now contains code whose default Prisma reads SELECT the six new
+> `integration_credentials` columns. **If any FND deploy ships this code before the
+> additive schema is applied to prod, EVERY `IntegrationCredential` read breaks —
+> taking down existing OAuth/connector flows, not just this feature.** So the additive
+> migration below is a prerequisite for the **next FND deploy of anything**, not only
+> the identity feature. `autoDeploy` is OFF (mitigates), but do not deploy `main`
+> until the columns exist. Recommended immediate follow-up: a boot-time guard that
+> fails fast if the columns are missing.
+
+**Two founder gates before it activates — both are ops actions, in order:**
 1. **Apply the additive schema to production FIRST** (ADR-0025: prod schema goes
    through the deploy pipeline, NOT `npm run db:push` — the guard is fail-closed to
-   localhost). Exact additive SQL (6 nullable columns, no data loss; run it before
-   deploying the code, because Prisma code-before-columns breaks at runtime):
+   localhost). Exact additive SQL (6 nullable columns, no data loss):
    `ALTER TABLE "integration_credentials" ADD COLUMN "external_account_subject" TEXT,
    ADD COLUMN "external_account_email" TEXT, ADD COLUMN
    "external_account_email_verified" BOOLEAN, ADD COLUMN "external_account_issuer"
    TEXT, ADD COLUMN "external_account_pinned_at" TIMESTAMP(3), ADD COLUMN
-   "external_account_last_verified_at" TIMESTAMP(3);` Then deploy the merged code
-   (manual Render rail).
+   "external_account_last_verified_at" TIMESTAMP(3);` Then deploy the merged code.
 2. **Flip `GOOGLE_OIDC_IDENTITY=on`** on the FND Render env (value-only edit ⇒
    same-SHA redeploy to re-read). This adds `openid email` to the Google authorize
    request so an id_token is returned and identities pin. **This changes the Google
@@ -30,13 +39,22 @@ both are ops actions, in order:**
    old grant has no `openid`) — until they do, their credential stays unpinned
    (identity null) and a future real Google watch stays blocked for them (fail-safe).
    Capture+verify+pin is always-on in code, so no code change is needed to enable —
-   only this flag. To DISABLE, unset the flag (existing pins persist; new connects
-   won't capture identity).
-Effect ordering matters: (1) before code deploy; (2) any time after deploy. Rollback:
-unset the flag; the additive columns are inert if unused. A `GOOGLE_ACCOUNT_MISMATCH`
-error on reconnect is EXPECTED + correct — it means someone tried to connect a
-different Google account to a pinned org; the governed account-replacement workflow
-is a deferred future slice. NEVER pin/flip for the demo org's connection.
+   only this flag.
+
+> ⚠️ **The flag is effectively ONE-WAY once ANY org is pinned.** Turning
+> `GOOGLE_OIDC_IDENTITY` OFF does NOT cleanly reverse: a pinned org that then reconnects
+> with the flag off has no id_token, so the pin cannot be re-proven and the reconnect is
+> refused (`GOOGLE_IDENTITY_REQUIRED`) — **even for the same account**. That is correct
+> fail-closed behavior, but it means flipping the flag off is a **latent outage** for
+> every pinned org the next time its `refresh_token` expires/revokes and it must
+> reconnect. **Once pinning is in use, keep the flag ON.** A genuine rollback also
+> requires clearing `external_account_subject` (+ the other identity columns) for the
+> affected orgs — not just unsetting the flag.
+
+A `GOOGLE_ACCOUNT_MISMATCH` error on reconnect is EXPECTED + correct — it means someone
+tried to connect a DIFFERENT Google account to a pinned org; the governed
+account-replacement workflow is a deferred future slice. NEVER pin/flip for the demo
+org's connection.
 
 **Inbound-signal Slice 2 (internal HMAC-signed event rail) — SHIPPED + LIVE
 (2026-07-09, FND `2c8b8de`, PR #604):** proves the provider-webhook processing
