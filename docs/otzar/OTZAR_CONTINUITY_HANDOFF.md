@@ -53,16 +53,12 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
 
 ### EXACT next steps (in order) — active build
 
-1. **#618 CI green → squash-merge.**
-2. **Apply the v1 corrective prod schema** (schema-first, ADR-0025; empty-draft-guarded):
-   ```sh
-   cd "$HOME/dev/NIOV Labs/github/niov-foundation"
-   node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-v1-prod-schema.ts --dry-run
-   NIOV_APPROVE_OTZAR_CONTINUITY_V1_PROD_SCHEMA='APPROVE OTZAR CONTINUITY V1 PROD SCHEMA CORRECTION — empty-draft only' \
-     node --require dotenv/config --import tsx scripts/activate-otzar-conversation-turns-v1-prod-schema.ts
-   ```
-   (Idempotent; refuses if any turn row exists. Brings prod from the v0 draft to v1.)
-3. **P6 startup manifest** (contract §12) covering Stage 1 turn table + the 6
+1. ✅ **DONE — #618 merged** to FND `main` as `1858de4`.
+2. ✅ **DONE — v1 corrective prod schema applied + verified** (empty-draft guard passed;
+   `org/subject/author/content_hash` NOT NULL, `twin` nullable, `actor_entity_id`+
+   `visibility` dropped, both unique indexes + `turn_seq` present, table empty). Prod
+   now exactly matches the contract's Stage 1 model. Re-runnable idempotently.
+3. **← START HERE. P6 startup manifest** (contract §12) covering Stage 1 turn table + the 6
    IntegrationCredential identity cols + `memory_capsules.voice_note_id` — read-only,
    fail-closed, before-listen. Ships BEFORE runtime wiring.
 4. **Stage 1 runtime wiring** (contract §Impl): `conductSession` persists USER turn
