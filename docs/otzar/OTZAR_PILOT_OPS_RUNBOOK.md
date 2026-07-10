@@ -8,6 +8,36 @@ fix the divergence, never ignore it.
 FND `docs/operations/rollback-runbook.md`, FND ADR-0025 (schema-push
 discipline).
 
+**Slice-3 prerequisite — Google account-identity pin — BUILT + tested, DEPLOY GATED
+(2026-07-09, FND PR #607 / `371542f`):** pins each org's Google connection to its
+immutable OIDC `sub` so a different-account reconnect fails closed (no silent token
+swap → no spurious mass source demotion). **Two founder gates before it activates —
+both are ops actions, in order:**
+1. **Apply the additive schema to production FIRST** (ADR-0025: prod schema goes
+   through the deploy pipeline, NOT `npm run db:push` — the guard is fail-closed to
+   localhost). Exact additive SQL (6 nullable columns, no data loss; run it before
+   deploying the code, because Prisma code-before-columns breaks at runtime):
+   `ALTER TABLE "integration_credentials" ADD COLUMN "external_account_subject" TEXT,
+   ADD COLUMN "external_account_email" TEXT, ADD COLUMN
+   "external_account_email_verified" BOOLEAN, ADD COLUMN "external_account_issuer"
+   TEXT, ADD COLUMN "external_account_pinned_at" TIMESTAMP(3), ADD COLUMN
+   "external_account_last_verified_at" TIMESTAMP(3);` Then deploy the merged code
+   (manual Render rail).
+2. **Flip `GOOGLE_OIDC_IDENTITY=on`** on the FND Render env (value-only edit ⇒
+   same-SHA redeploy to re-read). This adds `openid email` to the Google authorize
+   request so an id_token is returned and identities pin. **This changes the Google
+   consent screen; every existing Google-connected org must RECONNECT once** (their
+   old grant has no `openid`) — until they do, their credential stays unpinned
+   (identity null) and a future real Google watch stays blocked for them (fail-safe).
+   Capture+verify+pin is always-on in code, so no code change is needed to enable —
+   only this flag. To DISABLE, unset the flag (existing pins persist; new connects
+   won't capture identity).
+Effect ordering matters: (1) before code deploy; (2) any time after deploy. Rollback:
+unset the flag; the additive columns are inert if unused. A `GOOGLE_ACCOUNT_MISMATCH`
+error on reconnect is EXPECTED + correct — it means someone tried to connect a
+different Google account to a pinned org; the governed account-replacement workflow
+is a deferred future slice. NEVER pin/flip for the demo org's connection.
+
 **Inbound-signal Slice 2 (internal HMAC-signed event rail) — SHIPPED + LIVE
 (2026-07-09, FND `2c8b8de`, PR #604):** proves the provider-webhook processing
 model with NO real Google webhook. Endpoint `POST /api/v1/otzar/inbound/signal`,

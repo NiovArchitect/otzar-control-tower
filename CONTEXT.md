@@ -118,6 +118,55 @@ that determines, per required production section:
 
 ---
 
+## 🟢 SLICE-3 PREREQ · Google account-identity pin (OIDC `sub`) · BUILT + TESTED, merge-ready, DEPLOY GATED (FND PR #607 / `371542f`, 2026-07-09, Opus 4.8)
+
+**HEADs:** FND branch `slice3-prereq/google-account-identity-pin` (`371542f`, PR #607,
+CI running) · CT unchanged (backend-only prerequisite). **NOT deployed** (two founder
+gates below).
+
+**Why.** The Slice-3 WatchChannel contract's load-bearing blocker: a **silent
+Google-account swap is undetectable today** — reconnecting a *different* Google account
+upserts the same `IntegrationCredential` row (stable `credential_id`, token silently
+swapped), and nothing pins the account, so a Drive changes-feed could be pulled with the
+wrong account's token → **spurious mass `SOURCE_DELETED`**. Founder decision (v1): exactly
+ONE pinned Google account per org; immutable OIDC `sub` = authority; email = display/audit
+only; different-account reconnect fails closed (no silent replacement); multi-account +
+Shared-Drive deferred; Calendar still STOP.
+
+**What shipped (all additive).** (1) 6 nullable identity columns on `IntegrationCredential`
+(`external_account_subject`=`sub` + email/email_verified/issuer/pinned_at/last_verified_at)
+— proven `ADD COLUMN … NULL` ×6, no data loss. (2) `google-identity.ts` verifies id_tokens
+cryptographically (RS256 vs Google **v3 JWKS** via Node `createPublicKey`; issuer + audience
+= `GOOGLE_OAUTH_CLIENT_ID` + expiry + non-empty `sub`; `alg:none`/HS256/wrong-key rejected —
+never decode-trust; injectable cert seam). (3) `handleOAuthCallback` verify+pin via an
+**atomic compare-and-set**: the sealed token is overwritten for a pinned row ONLY by a
+reconnect whose verified `sub` matches; a pinned row without a matching verified `sub` is
+refused **without touching the token** (independent of the scope flag); concurrent
+first-connections for different accounts → one pins, other `GOOGLE_ACCOUNT_MISMATCH` (no
+last-write-wins). (4) `getProviderAccessTokenForCredential` resolves the EXACT credential by
+id (asserts org+provider+not-revoked, never falls back) + `isGoogleCredentialIdentityPinned`
+(future WatchSubscription gate). (5) new Google imports stamp
+`external_source.integration_credential_id` + `sub` (additive; old rows readable). Audit:
+`CONNECTOR_GOOGLE_ACCOUNT_PINNED` / `_MISMATCH_BLOCKED` (leak-safe). Scope flag
+`GOOGLE_OIDC_IDENTITY` (default OFF) gates ONLY the `openid email` authorize scope;
+capture+verify+pin is always-on.
+
+**Verified.** `google-identity.test.ts` (13) + `google-account-identity-pin.test.ts` (10,
+real-DB incl. concurrency + byte-for-byte swap guard). Unit tier **3051 green**; typecheck
+**0**; no-console + no-leak pass. (One integration flake — `calendar-context`, time-of-day —
+is pre-existing, confirmed via stash, unrelated.)
+
+**🛑 Two founder gates before end-to-end activation:** (a) **OIDC scope/consent** — flip
+`GOOGLE_OIDC_IDENTITY=on` (adds `openid email`; changes the consent screen + existing users
+re-consent → founder decision, not silent). (b) **Production schema apply** — ADR-0025
+routes prod schema through the deploy pipeline + the `db push` guard is fail-closed to
+localhost, so the additive migration + code deploy are founder-gated (exact SQL in PR #607).
+Until both clear, the rail is **inert** (no id_token ⇒ identity null ⇒ WatchSubscription
+stays blocked). Recommended small follow-up: thread `tx` through
+`revalidateImportedDocForCaller` (closes the Slice-3 audit-completeness residual).
+
+---
+
 ## ✅ INBOUND-SIGNAL Slice 2 · Internal HMAC-signed event rail (proves the webhook model) · SHIPPED + LIVE (FND `2c8b8de`, PR #604, 2026-07-09, Opus 4.8)
 
 **HEADs:** FND `2c8b8de` deployed live (api.otzar.ai, `INBOUND_SIGNAL_SECRET` set)

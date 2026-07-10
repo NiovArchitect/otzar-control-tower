@@ -541,6 +541,32 @@ Statuses: 🔴 open · 🟡 partially closed · 🟢 closed (kept for the record
 
 ### I. Multi-source ingestion readiness — 🟡 AUDITED 2026-07-03 (full 17-source readiness map: [`OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md`](./OTZAR_MULTI_SOURCE_INGESTION_AUDIT.md)). Verdicts: manual Comms transcript is the reference implementation; Zoom is live but routed as generic TRANSCRIPT (provenance/idempotency loss); Slack read is one wire away (adapter + provider + OAuth rail all exist, no route calls them); Docs/Gmail content reads don't exist; **Notion is catalog-visible with zero substrate (R10 placeholder flag)**; two parallel durable stores violate the single-ledger contract (Observe/OCR tables, conduct MemoryCapsules); **no inbound event route exists anywhere — every connector is outbound-only, so nothing can arrive ambiently (the structural gap)**. Canonical adapter contract now written (18 fields; an adapter is ~50 lines that builds a WorkSourceEvent and calls ingestSourceEvent). Build order: (1) Zoom→CONNECTOR provenance ✅ SHIPPED 2026-07-03 (FND `51d8700`: sourceSystem ZOOM via the spine, org-scoped dedupe ZOOM:<meeting_id>, idempotent 409 on re-ingest, row lineage, no tokenized URLs; live honesty probes 401/403/NOT_CONFIGURED green), (2) Slack read→canonical ingest ✅ SHIPPED 2026-07-03 `[SLACK-INGEST-1]` (FND PR #539: admin-triggered public-channel message ingest via org sealed OAuth envelope → canonical adapter → spine; doctrine dedupe `org + SLACK:<team>:<channel>:[<thread_ts>:]<ts>`; DMs/private parked by policy; Events-API webhook honestly deferred — gap N still open), (3) NEXT: D&K per-row lineage, voice ingest hop, observe/OCR convergence, Notion catalog honesty.
 
+**SLICE-3 PREREQUISITE · GOOGLE ACCOUNT-IDENTITY PIN — 🟢 BUILT + TESTED, merge-ready,
+DEPLOY GATED (FND PR #607 / `371542f`, 2026-07-09):** closes the Slice-3 WatchChannel
+contract's load-bearing blocker — a **silent Google-account swap was undetectable** (a
+reconnect of a different account upserted the same `IntegrationCredential` row, stable
+`credential_id`, token silently swapped; no account identity captured), which could pull a
+Drive changes-feed with the wrong account's token → spurious mass `SOURCE_DELETED`. Founder
+v1 policy: exactly ONE pinned Google account per org; immutable OIDC `sub` = authority;
+email = display/audit only; different-account reconnect fails closed (no silent replacement);
+multi-account + Shared-Drive deferred; Calendar STOP. Built additively: 6 nullable identity
+columns on `IntegrationCredential`; `google-identity.ts` (RS256 vs Google v3 JWKS via Node
+`createPublicKey`, iss+aud+exp+non-empty-sub, alg:none/HS256/wrong-key rejected);
+`handleOAuthCallback` verify+pin via **atomic compare-and-set** (pinned-row token overwritten
+only on matching verified `sub`; concurrent-first race → one pins other refused; no
+last-write-wins); `getProviderAccessTokenForCredential` (exact-by-id, never falls back) +
+`isGoogleCredentialIdentityPinned`; import lineage stamp (`external_source.integration_
+credential_id`+`sub`, additive); leak-safe audit `CONNECTOR_GOOGLE_ACCOUNT_PINNED`/
+`_MISMATCH_BLOCKED`. Scope flag `GOOGLE_OIDC_IDENTITY` (default OFF) gates only the
+`openid email` authorize scope; capture+verify+pin always-on. Tests: 13 verifier + 10 real-DB
+(concurrency + byte-unchanged swap guard); unit tier 3051 green; typecheck 0. **Two founder
+gates before end-to-end (both documented, not done):** (a) flip `GOOGLE_OIDC_IDENTITY=on`
+(OIDC consent-screen change → existing orgs reconnect once); (b) apply the additive prod
+schema (ADR-0025 pipeline; `db push` guard localhost-only). Until both clear the rail is
+inert (identity null ⇒ WatchSubscription registration stays blocked). Recommended small
+follow-up: thread `tx` through `revalidateImportedDocForCaller` (audit atomicity). Full
+design + verdict update: [`OTZAR_SLICE3_WATCHCHANNEL_CONTRACT.md`](./OTZAR_SLICE3_WATCHCHANNEL_CONTRACT.md) § 11.
+
 **INBOUND-SIGNAL SLICE 2 — 🟢 SHIPPED + LIVE (FND `2c8b8de`, PR #604, 2026-07-09):**
 the internal HMAC-signed event rail that proves the provider-webhook processing
 model WITHOUT any real Google webhook. `POST /api/v1/otzar/inbound/signal` —

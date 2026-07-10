@@ -510,7 +510,22 @@ completes the external actions.
 
 ## 11. Approval verdict + packet
 
-### Verdict — **READY ONLY AFTER A PREREQUISITE (account-identity pin); NOT a clean GO.**
+> **UPDATE 2026-07-09 — the account-identity prerequisite is now BUILT + tested (FND PR
+> #607, commit `371542f`, merge-ready).** The §8b blocker below is closed at the code level:
+> exactly one pinned Google account per org, OIDC `sub` as authority, cryptographic id_token
+> verification, an atomic compare-and-set swap guard (different-account reconnect fails
+> closed, token byte-unchanged; concurrent-first race → one pins, other refused), an
+> exact-credential-by-id resolver, and additive import lineage. Tests: 13 verifier + 10
+> real-DB (incl. concurrency + byte-unchanged). **Two founder gates remain before Slice-3
+> Drive can be built on top:** (a) flip `GOOGLE_OIDC_IDENTITY=on` (OIDC scope/consent —
+> capture+verify+pin is always-on, only the env flip is needed); (b) apply the additive
+> `IntegrationCredential` identity migration to prod (ADR-0025 pipeline; the `db push` guard
+> is fail-closed to localhost). Once both clear + a Google account is pinned, the WatchSubscription
+> rail (still unbuilt) can require `isGoogleCredentialIdentityPinned` and bind pulls to the
+> exact credential. Recommended small follow-up: thread a `tx` through
+> `revalidateImportedDocForCaller` (closes the audit-completeness residual, §6 step 16).
+
+### Verdict (original, pre-prerequisite) — **READY ONLY AFTER A PREREQUISITE (account-identity pin); NOT a clean GO.**
 
 The mechanical design (two-table subscription/channel model, header-driven callback, correct
 cursor semantics, lease + idempotent replay, DB-enforced uniqueness, bounded chunked
