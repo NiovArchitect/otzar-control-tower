@@ -10,12 +10,11 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   calendar proposal + deterministic pre-LLM yes/no + temporal grounding + idempotent
   gated write + actor/org isolation. Live-smoke: Turn 1 → `"Olivia's Event", Sat Jul
   11 2026 1:00 PM EDT`; Turn 2 "yes" → resolves + honest PROVIDER_BLOCKED.
-- **Corrections #1/#2 + P4 — MERGED to `main` as FND `e6fab89`** (PR #615, all 5 CI
-  tiers green: unit 40, integration 12, typecheck, elixir, python). Squash of commits
-  `15f324c` C2, `662359b` C1, `1bf11b7` P4, `a3e3462` revision-cue hardening.
-  → **First next step: PRODUCTION DEPLOY (auto-mode gated — user must authorize) +
-  live-smoke, then flip the doctrine doc status to LIVE.** The deploy + smoke commands
-  are below; run them (or authorize the deploy) to complete this increment.
+- **Corrections #1/#2 + P4 — SHIPPED + LIVE-VERIFIED** (FND `e6fab89`, PR #615;
+  deploy `dep-d98mk9beo5us73fclhbg`, live SHA `e6fab89b`, health 200; live A–G smoke
+  18/18, zero residue). Follow-up log-hygiene fix (conversation-row upsert) = FND
+  PR #616. **This baseline is DONE; the active build is P5A onward (below).** The
+  deploy + smoke commands are retained below for re-runs.
 
   ```sh
   # 1. Deploy the merged commit to the live FND service (autoDeploy is OFF).

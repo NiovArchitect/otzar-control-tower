@@ -1,12 +1,12 @@
 # Otzar Conversation Continuity & Human Flow
 
-**Status: P0 SHIPPED + LIVE-VERIFIED (2026-07-10, FND `05c1f32`). Corrections #1/#2
-+ P4 human-loop closure — MERGED to `main` as FND `e6fab89` (PR #615, all 5 CI tiers
-green). Production Render deploy + live-smoke PENDING user authorization** (auto-mode
-gates the live `api.otzar.ai` deploy). The reported continuity failure is fixed
-end-to-end in production; the corrections and P4 harden it, code-complete + CI-green.
-Remaining P5/P6 subsystems (below) are **not yet built** — internally achievable, not
-blocked.
+**Status: P0 + Corrections #1/#2 + P4 human-loop closure — SHIPPED + LIVE-VERIFIED
+(2026-07-10). FND `e6fab89` (PR #615) deployed to `otzar-api` / `api.otzar.ai`
+(deploy `dep-d98mk9beo5us73fclhbg`, live SHA `e6fab89b`, health 200). Live A–G smoke
+on the dedicated smoke org: 18/18 PASS, zero residue, honest PROVIDER_BLOCKED. A
+follow-up log-hygiene fix (continuity conversation-row upsert; kills a
+`prisma:error` + a latent 500) is FND PR #616.** Remaining P5/P6 subsystems (below)
+are the active build — internally achievable, not blocked.
 
 ## The failure this fixes
 
@@ -107,6 +107,15 @@ status=NEEDS_CALLER_CONFIRMATION)` — the state already exists.
 - **Synthetic-live (smoke org, dedicated test tenant):** Turn 1 → `"Olivia's Event",
   Sat Jul 11 2026 1:00 PM EDT` (correct); Turn 2 "yes" → resolves + honest
   PROVIDER_BLOCKED (smoke Google not connected). Zero residue; 0 new live errors.
+- **Live A–G smoke (deployed `e6fab89`, smoke org, 18/18):** A thread-bound propose
+  returns a stable `conversation_id` + in-thread "yes" resolves + echoes the thread ·
+  B a foreign-thread "yes" does not act, original stays resolvable · C ambient "yes"
+  resolves + restores the bound thread · D past-time (6am) → truthful clarification,
+  stray "yes" inert · E two-pending "yes" → disambiguation, "the first one" resolves
+  the oldest, "cancel the second one" cancels only the second, the first survives ·
+  F "make it 11:30pm" revises then "yes" resolves the revised time · G honest
+  PROVIDER_BLOCKED, no false "created". Every phase self-cancelled → zero residue
+  (post-run ambient "yes" correctly inert). Harness: `docs/otzar/smoke-continuity.mjs`.
 - **Live ceiling:** real-provider calendar write is **BLOCKED — EXTERNAL** (the smoke
   org's Google is `READY_FOR_CONSENT`; connecting Google / OIDC is out of scope this
   arc). The CREATED path is **integration-proven** with an injected provider.
