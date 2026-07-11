@@ -83,9 +83,56 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
    org NOT NULL), zero residue** (smoke-admin swept via the cleanup script — dedicated
    smoke user only; never demo/Meridian).
 
-5. **← START HERE. Deterministic turn-based references** (contract §P5D): "what were we
-   talking about", "what did we decide", "continue", "send that", "tell him/her",
-   "this/that/it", "the one David mentioned" — resolved BEFORE the LLM, in the §P5D
+### Stage 1 CORRECTNESS CLOSURE (founder directive — required invariants, in progress)
+
+- ✅ **§7 explicit foreign-thread errors + §8 accurate source_channel — FND PR #622**
+  (merge + deploy + live-verify). Foreign/deleted supplied thread → typed
+  `OTZAR_THREAD_FORBIDDEN`(403)/`OTZAR_THREAD_CLOSED`(409) (no silent mint, no existence
+  leak); `CHAT|VOICE|AMBIENT` carried into every durable turn.
+- **§1 phase-split continuity (user turn BEFORE mutation)** — refactor
+  `handleCalendarContinuity` into (A) `resolveCalendarContinuityContext` = READ-ONLY
+  (classify act, find eligible pending, resolve thread + return candidate action ids +
+  resolution type; NO mutation / provider / claim / status change), (B) persist the
+  ambient USER turn to the resolved thread, (C) `commitCalendarContinuity` = mutate.
+  Preserve ambient disambiguation by returning the FULL candidate set from (A) and
+  committing on the same set (do NOT narrow by pre-selecting one recent active thread —
+  the #620 regression). Test: zero WorkLedger mutation before the USER turn exists.
+- **§2 durability-gated assistant turn** — `persistAssistantTurn` returns a result, not
+  best-effort: fail before any external action → `OTZAR_ASSISTANT_TURN_PERSIST_FAILED`
+  (keep user turn); fail AFTER provider success → controlled failure but retain the
+  action/provider result; retry reconstructs, never re-executes. Add the code to the
+  failure union + route map.
+- **§3 durable request-processing state (NEW SCHEMA)** — `OtzarConversationRequest`
+  (1:1 with the USER turn) or bounded fields on it: state
+  `RECEIVED|PROCESSING|COMPLETED|FAILED_RETRYABLE|FAILED_FINAL`, processing
+  lease/version, `assistant_turn_id`, `action_ref`, `response_class`, attempt
+  timestamps. Atomic CAS claim; only the owner invokes model/tool/provider; concurrent
+  identical → `OTZAR_REQUEST_IN_PROGRESS` or bounded wait; stale lease can't double-
+  execute. Contract §→ manifest → ADR-0025 activate → deploy (schema-first).
+- **§4 retry recovery inspects action state** — resolve in order: request-processing
+  state → linked action → provider attempt/result → assistant turn → then decide if
+  regeneration is safe (only via the durable lease). Exact response-lost-after-provider-
+  success test.
+- **§5 one canonical result per request** — DB-enforced: `response_to_turn_id` unique on
+  assistant turns (or `request.assistant_turn_id` unique). Distinguish canonical result
+  from follow-up/correction/compensation turns. Concurrency tests: one model call, ≤1
+  provider call, one canonical assistant result. (NEW constraint → manifest.)
+- **§6 CT client request contract** — find the real CT text/voice/ambient submit
+  clients; one `request_id` per logical submission (retained across retry/reconnect/
+  timeout), store + send the server `conversation_id` every turn, send IANA tz, restore
+  the active thread from the server on refresh/login, localStorage never authoritative.
+  CT tests + deploy CT + verify live bundle.
+- **§9** smoke turn/thread deletion is OPERATOR-ONLY test teardown (dedicated smoke
+  actor) — NOT product Clear/Delete/Retention proof; that is built in P5J lifecycle.
+- **§10/§12** full 28-item matrix + live completion gate (CT text submit sends
+  request_id+thread_id, retry replays, one USER + one canonical ASSISTANT, no second
+  model/provider call, ambient user turn precedes mutation, source_channel correct,
+  A–G 18/18, no errors, residue cleaned) before Stage 1 is marked fully closed.
+
+5. **After correctness closure: Deterministic turn-based references** (contract §P5D):
+   "what were we talking about", "what did we decide", "continue", "send that",
+   "tell him/her", "this/that/it", "the one David mentioned" — resolved BEFORE the LLM,
+   in the §P5D
    order (actor/org/Twin → thread → obligation → active action → recent turns → summary
    → memory → org truth → LLM last), never executing under ambiguity. Turns are now
    durable (query `listConversationTurns`), so the recent-turns candidate source exists.
