@@ -106,8 +106,11 @@ flip 404→401 after. Classification: merged ✓ / deployed ✗ / live ✗.
   thread; ambient keeps org-wide obligation scope), CHUNK 4 (quiet ambient status surface).
   CT suite green (2294). Fixed a pre-existing load-induced flake in ambient-otzar-bar tests
   (unrelated background POST landing late in a GET-only assertion) — my continuity code is
-  GET-only. **CT DEPLOY IN FLIGHT** (bundle was `D-roLuru`; watch for flip; nudge Render
-  otzar-app if stuck per RENDER_DEPLOY_NOTES.md).
+  GET-only. **CT DEPLOYED + BUNDLE-VERIFIED LIVE** — bundle `index-BlBqz7X7.js` (flipped from
+  `D-roLuru`, last-modified 18:39:50 UTC) contains all markers: `threads/restore`, `by-client`,
+  `otzar.continuity.pending`, `Restoring your conversation`, `client_timezone`. The nudge
+  commit (fresh push to CT main) un-stuck the otzar-app auto-deploy. Restore endpoint live +
+  auth-gated (401 unauth). Authenticated-live proof (real restore/two-tab) still needs `SP`.
 - **C5-snapshot = NO PROVEN GAP (verified per override #2, not refactored).** Phase C
   (`handleCalendarContinuity`) does NOT consume a stale Phase-A snapshot — it re-reads pending
   proposals FRESH at mutation time (calendar-continuity.service.ts:851/892), then
