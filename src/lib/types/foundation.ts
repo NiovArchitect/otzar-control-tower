@@ -1103,6 +1103,13 @@ export interface ConversationMessageRequest {
   conversation_id?: string;
   conversation_history?: string[];
   token_budget?: number;
+  // [OTZAR-CONTINUITY P5 Stage 1 §11] Stable per-submission idempotency key. Retained
+  // ACROSS retries of the same submission so a response-lost retry replays the durable
+  // server result (one USER turn, one canonical assistant turn) instead of duplicating.
+  request_id?: string;
+  // [OTZAR-CONTINUITY P1/§11] The caller's live IANA timezone (travel-correct temporal
+  // grounding). Always sent by the CT request builder.
+  client_timezone?: string;
 }
 
 // WHAT: Success response from POST /api/v1/otzar/conversation/message.

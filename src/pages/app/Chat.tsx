@@ -13,7 +13,7 @@
 //     that Otzar acted in an external tool.
 //   - No audit link (these endpoints return no audit_event_id).
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { TransparencyPanel } from "@/components/employee/TransparencyPanel";
+import { buildConductRequest, newRequestId } from "@/lib/otzar/conduct-request";
 import type {
   ChatTransparency,
   ContextProvenanceItem,
-  ConversationMessageRequest,
   CorrectionRequest,
 } from "@/lib/types/foundation";
 
@@ -85,29 +85,32 @@ export function Chat() {
   const [correctionError, setCorrectionError] = useState<string | null>(null);
   const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
 
-  async function send(): Promise<void> {
-    const message = input.trim();
-    if (message.length === 0 || sending) return;
+  // [OTZAR-CONTINUITY §11] The pending submission's stable idempotency key + payload,
+  // retained so a RETRY reuses the SAME request_id — a response-lost retry replays the
+  // durable server result instead of creating a second turn. Cleared on success.
+  const pendingRef = useRef<{ message: string; requestId: string; history: string[] } | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+
+  // Core: send one turn with a fixed request_id. Never appends the user turn (the caller
+  // does the optimistic append once); a retry reuses the same id and re-posts only.
+  async function postTurn(message: string, requestId: string, history: string[]): Promise<void> {
     setError(null);
+    setCanRetry(false);
     setCloseSummary(null);
     setShowTransparencyDetails(false);
     setSending(true);
-    const history = turns.map((t) => t.text);
-    setTurns((prev) => [...prev, { role: "you", text: message }]);
-    setInput("");
-
-    const body: ConversationMessageRequest = {
-      message,
-      conversation_history: history,
-      ...(conversationId !== null ? { conversation_id: conversationId } : {}),
-    };
+    const body = buildConductRequest({ message, requestId, conversationId, conversationHistory: history });
     const result = await api.otzar.conversation.message(body);
     setSending(false);
 
     if (!result.ok) {
+      // Retain the pending submission so the user can retry with the SAME request_id.
+      pendingRef.current = { message, requestId, history };
+      setCanRetry(true);
       setError(errorCopy(result.code, result.status, result.message));
       return;
     }
+    pendingRef.current = null;
     setConversationId(result.data.conversation_id);
     setMeta({
       context_used: result.data.context_used,
@@ -116,6 +119,23 @@ export function Chat() {
     setTransparency(result.data.transparency ?? null);
     setProvenance(result.data.context_provenance ?? []);
     setTurns((prev) => [...prev, { role: "teammate", text: result.data.response }]);
+  }
+
+  async function send(): Promise<void> {
+    const message = input.trim();
+    if (message.length === 0 || sending) return;
+    const history = turns.map((t) => t.text);
+    setTurns((prev) => [...prev, { role: "you", text: message }]);
+    setInput("");
+    await postTurn(message, newRequestId(), history);
+  }
+
+  // Retry the last failed submission with its ORIGINAL request_id (idempotent — the
+  // server replays the durable result if the first attempt actually landed).
+  async function retry(): Promise<void> {
+    const p = pendingRef.current;
+    if (p === null || sending) return;
+    await postTurn(p.message, p.requestId, p.history);
   }
 
   async function close(): Promise<void> {
@@ -376,9 +396,20 @@ export function Chat() {
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
+        <div role="alert" className="flex items-center gap-3 text-sm text-destructive">
+          <span>{error}</span>
+          {canRetry && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={sending}
+              onClick={() => void retry()}
+            >
+              Retry
+            </Button>
+          )}
+        </div>
       )}
 
       <form
