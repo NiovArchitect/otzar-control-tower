@@ -51,7 +51,19 @@ moved to an in-tx hook `__otzarCompletionTestHooks` (base-client spy can't reach
 client). 84 otzar integration tests green. **After #630 merges, deploy that SHA** = #626 +
 C1 + C2 + C5 + **C3** + cleanup in ONE deploy.
 
-### ⭐ CORRECTED COMBINED DEPLOY TARGET = FND main `0c8ca14` (C6 backend #631 merged)
+### ⚠️ DEPLOY DID NOT TAKE — `0c8ca14` is NOT live (verified 2026-07-11 ~16:33 UTC)
+Founder deployed `0c8ca14` via Render dashboard, but a behavioral probe proves it did NOT
+land: the C6 routes (`GET /api/v1/otzar/threads/restore`, `/requests/:id/status`) return
+**404** in prod (3 retries), while existing routes (`/otzar/conversations`,
+`/otzar/conversation/message`) return 401 correctly. So the live API is on a PRE-C6 SHA —
+the same stale-GitHub-connection failure mode `RENDER_DEPLOY_NOTES.md` documents for
+`otzar-app`, now on `otzar-api`. **Remediation (founder):** Render → `otzar-api` → Settings
+→ Build & Deploy → **disconnect & reconnect the GitHub repo** (refreshes the stale
+connection), then Manual Deploy → **Deploy a specific commit** → the exact target SHA
+(NOT "deploy latest commit", which re-resolves to the stale commit). Verify the C6 routes
+flip 404→401 after. Classification: merged ✓ / deployed ✗ / live ✗.
+
+### ⭐ CORRECTED COMBINED DEPLOY TARGET (was `0c8ca14`; now the C3-hardening #632 merge SHA)
 Deploy `0c8ca14` to `otzar-api` (srv-d8t17sm7r5hc73ed5h6g) via dashboard/API — brings live in
 ONE deploy: #626 spine + C1 gating + C2 strict durability + C5 action recovery + C3 atomic
 completion + C6 backend restoration read APIs + #629 cleanup. Prod still on `bf868ea`. Render
