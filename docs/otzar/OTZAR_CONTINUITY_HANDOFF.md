@@ -104,11 +104,29 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   the index maps across all pending (no #620 pile-up). Voice route `statusForCode` now
   matches text. Tests: read-only + `user.created_at <= proposal.created_at`; 126
   regression green. **A–G re-verified live after deploy (hot-path change).**
+- ✅ **§1 fail-closed ambient mutating path — SHIPPED + LIVE** (FND PR #624, `abc5c6a`).
+  createThread errors no longer suppressed; a non-durable USER turn → OTZAR_TURN_PERSIST_
+  FAILED with ZERO mutation. Live-verified (ambient propose→yes, turns USER-first). §13
+  smoke past-time now uses a dynamically-computed guaranteed-past time.
+- ✅ **§2–§4 durable request-processing SCHEMA + atomic-claim query layer — FND PR #625**
+  (schema-first, inert; merge + prod-activate + deploy in flight). New
+  `OtzarConversationRequest` (state machine + lease + canonical link) +
+  `otzar_conversation_turns.response_to_turn_id` unique. `createOrGetRequest` /
+  `claimRequestProcessing` (atomic CAS → EXACTLY ONE of 12 concurrent winners, proven) /
+  `completeRequest` / `failRequest`. Manifest guards it; approval-gated activation script
+  `activate-otzar-conversation-requests-prod-schema.ts`. Integration 6 + manifest 12 green.
 - **§1 remaining (deeper split)** — Phase C still calls monolithic
   `handleCalendarContinuity`. A fuller split returns the FULL candidate action-id set
   from Phase A and passes exact candidate identity/version into a
-  `commitCalendarContinuity` that atomically revalidates (state can't change between
-  resolve and mutate undetected). Layer with the §3 request lease.
+  `commitCalendarContinuity` that atomically revalidates using the §3 request lease.
+- **§5-§10 RUNTIME WIRING (the big remaining piece)** — wire the request record into
+  conductSession: after the USER turn, `createOrGetRequest` → `claimRequestProcessing`
+  (only the lease owner runs Phase C / model / provider; a concurrent duplicate →
+  `OTZAR_REQUEST_IN_PROGRESS` or bounded wait/replay) → atomic Phase-C commit with
+  candidate revalidation → `completeRequest` linking the ONE canonical assistant turn →
+  durability-gated assistant (§9) → action-aware recovery (§10). Concurrency + response-
+  lost live proof (§13). Query layer + schema are DONE; this is the conductSession
+  integration.
 - **§2 durability-gated assistant turn** — `persistAssistantTurn` returns a result, not
   best-effort: fail before any external action → `OTZAR_ASSISTANT_TURN_PERSIST_FAILED`
   (keep user turn); fail AFTER provider success → controlled failure but retain the
