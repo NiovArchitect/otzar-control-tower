@@ -15,7 +15,15 @@ before the next. Each lands as its own PR (CI-green) — prod stays safe until d
 - **FND: LIVE + HEALTHY.** `api.otzar.ai/api/v1/health` → 200, `database: connected`; boot schema-manifest is fail-closed so 200 proves `otzar_conversation_requests` present/correct on prod. **Exact SHA NOT readable read-only** (no `/version` route — all 404; no build-SHA header; Render API 401 in-session). Deployed code IS `bf868ea` per the founder's dashboard action; behavioral SHA confirmation needs an authed conductSession probe (see §14-blocked below).
 - **§14 LIVE PROOF — EXTERNALLY BLOCKED.** Needs the smoke-admin password `SP` (harness `docs/otzar/smoke-continuity.mjs` logs in `smoke-admin@niovlabs.com` via `process.env.SP`) AND a prod DB/admin read channel for the request/turn/lease invariants — **neither is in this session's env** (`SP`, `DATABASE_URL` all absent; Render key 401). Unblock: founder runs `SP=… node <harness>` via `!`, or exports `SP` (+ a prod read DB URL) into the agent session. The §14 INVARIANTS ARE INTEGRATION-PROVEN (§9 real-barrier + §10 failure-injection, CI-green on the same `bf868ea` code + real Postgres). A NEW §14 live harness (concurrency barrier, replay, response-loss, retryable-fail, ambient ordering, dynamic past-time, source channels) still needs writing — the existing smoke is the A–G/Corrections harness, not the request-spine proof.
 
-### C2+C5 — SHIPPED (FND PR #628, CI running) — 2026-07-11
+### C4 — VERIFIED SATISFIED (no code change) — 2026-07-11
+`createOrGetRequest` mints a server `request_record_id` (UUID PK) keyed 1:1 on
+`user_turn_id`, with `client_request_id` nullable. So EVERY accepted org turn already
+receives a durable, queryable server logical request identity even when an older client
+omits `request_id`. The only ceiling (already documented): cross-network retry DEDUP
+requires the client-supplied stable `request_id` (without it a retry mints a new USER turn
+→ new request). Nothing unqueryable. C4 done.
+
+### C2+C5 — SHIPPED (FND PR #628; CI re-running after cross-file test-leak fix) — 2026-07-11
 Strict assistant durability + durable action-aware recovery, shipped together (binding
 coupling). `linkRequestAction` CAS links the exact action to the request BEFORE the
 assistant turn; `reconstructFromAction` rebuilds the response from durable ledger state
