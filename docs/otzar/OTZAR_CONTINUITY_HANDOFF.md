@@ -99,7 +99,20 @@ connection), then Manual Deploy → **Deploy a specific commit** → the exact t
 (NOT "deploy latest commit", which re-resolves to the stale commit). Verify the C6 routes
 flip 404→401 after. Classification: merged ✓ / deployed ✗ / live ✗.
 
-### ⭐ CURRENT DEPLOY TARGET = FND main `48f7559` (C6 E+F #633 merged)
+### ⭐ STATUS 2026-07-11 (late) — backend correctness DONE + live-verified; C6-CT in CI
+- **`48f7559` LIVE-VERIFIED** (founder deployed via reconnected repo): C6 routes return 401
+  (were 404) — behavioral proof. health 200. That deploy is genuinely live.
+- **`aa58c6d` = FND main HEAD** (B/C/D backend audit merged: request↔user-turn ownership
+  [invalid_turn], canonical-text projection validation, ONE shared Twin resolver). **NOT yet
+  deployed** — merged AFTER the founder's `48f7559` deploy; B/C/D adds NO routes so it's not
+  HTTP-distinguishable. **ACTION: redeploy latest main `aa58c6d`** (same reconnected-repo
+  dashboard path) to bring the correctness fixes live. Then the whole backend arc is live.
+- **C6-CT + C7 (CT PR #132)** built + full CT suite green (2294) + fixed a real test-hostility
+  (recovery-poll timer leak); CI re-running → merge → CT auto-deploys `app.otzar.ai`.
+- Two-tab LIVE proof + §14: externally blocked (need live deploy of latest + `SP`). The
+  convergence/recovery LOGIC is unit-proven; NOT claimed as live two-tab proof.
+
+### deploy-target history — was FND `48f7559` (C6 E+F #633 merged)
 Supersedes `0c8ca14`/`b113f69`. Contains the FULL backend correctness arc: #626 + C1 +
 C2+C5 + C3 + C3-hardening (recovery hole closed + winner validation) + C6 backend + C6 E+F
 (client-reconciliation + Twin-scope) + cleanup. Deploy via the REMEDIATED dashboard path:
