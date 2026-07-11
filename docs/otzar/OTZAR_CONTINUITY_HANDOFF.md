@@ -64,63 +64,34 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
    (fail-closed; subsumes identity guard) + `scripts/probe-schema-manifest.ts`
    (uncommitted local convenience tool — recreate/commit with the wiring PR). Prod
    probe = compatible. Unit 9 + integration 3 green. **Live runtime is now bc87c44.**
-4. **← START HERE. Stage 1 runtime wiring** — DESIGN LOCKED below. `conductSession`
-   (`apps/api/src/services/otzar/otzar.service.ts`). NOTE: `tests/unit/otzar.test.ts`
-   runs against the REAL test DB (no prisma mocks) and the turn schema is present
-   there, so wiring turn writes will not break mocks — add assertions instead.
+4. ✅ **DONE + LIVE — Stage 1 runtime wiring** (FND #620 `24eaa58` + ambient-defer fix
+   #621 `084540e`, DEPLOYED, live SHA `084540e`, health 200). `conductSession` resolves
+   ONE authoritative thread + persists durable USER/ASSISTANT turns + `request_id`
+   idempotency + retry-replay. **Key design lesson (do not undo):** for a SUPPLIED
+   thread id (the normal CT contract) the thread is resolved up front + user turn
+   persisted before the model + retry-replay + strict idempotency. For an AMBIENT
+   (no-id) turn it **DEFERS** — continuity receives `undefined` and keeps its shipped
+   recency behaviour (multi-pending disambiguation / obligation restore); turns persist
+   to continuity's own resolved thread afterward. Passing a resolved thread into
+   continuity for the no-id case REGRESSES (pulls unrelated proposals into one thread —
+   the #620→#621 bug). Modules: `thread-resolution.service.ts`, `otzar.service.ts`
+   (`beginTurnPersistence`/`persistDeferredUserTurn`/`persistAssistantTurn`/
+   `reconstructFromAssistantTurn`), routes carry `request_id`. Tests: resolver 7 +
+   wiring 4 + full regression (128). **Live: A–G smoke green + turn-proof (durable
+   turns, human/Twin identity, R1 idempotent, contiguous sequence).** smoke-admin
+   residue cleaned via `docs/otzar/…` cleanup (dedicated smoke user only).
 
-   **a. Request contract** — add optional `request_id?: string` to `ConductSessionInput`
-   and to the Otzar text + voice/ambient routes (`otzar.routes.ts`,
-   `otzar-voice-ready.routes.ts`); validate bounded length + safe charset; pass through
-   unchanged. It identifies the USER submission.
-
-   **b. Resolve the authoritative thread FIRST** (before `handleCalendarContinuity`,
-   the deterministic resolver, and the LLM call). New private
-   `resolveAuthoritativeThread(input.conversation_id, owner, org, twinId, tz)`:
-   - `org === null` → return null (orgless: keep legacy behavior, skip turns).
-   - id present → `getThread`; if it exists → `assertThreadScope` (on throw = foreign →
-     mint a fresh own thread, never leak); else `createThread({conversation_id:id,...})`.
-   - no id → `createThread` (mint). Returns `{ conversationId }`.
-   Then thread `conversationId` into `handleCalendarContinuity` (as `conversation_id`)
-   AND the main LLM path — REPLACING the late `resolveContinuityConversationId` /
-   the ~L1261 `otzarConversation` resolution, so one authoritative id is used
-   everywhere and actor+org recency stops being the normal path.
-
-   **c. Retry replay** — if `request_id` present, look up the USER turn by
-   `(conversation_id, request_id)`; if found AND it has a linked ASSISTANT turn
-   (`reply_to_turn_id = userTurn.turn_id`) → reconstruct a `ConductSessionSuccess`
-   from the stored assistant turn (content, conversation_id, next_step from
-   `action_ref`) and RETURN — no model/tool re-invocation.
-
-   **d. Persist USER turn** before continuity/resolver/model:
-   `appendConversationTurn({conversation_id, org, subject:owner, author:owner,
-   role:"USER", content:input.message, request_id, source_channel})`. **Fail-closed:**
-   if it throws (a non-dedup error, e.g. ThreadScopeError) → return a stable internal
-   failure; do NOT invoke the model. If it dedups (retry, same content) → proceed to (c).
-   `IdempotencyConflictError` (same request_id, different content) → stable conflict error.
-
-   **e. Persist ASSISTANT turn** before returning a success (both the continuity
-   short-circuit AND the LLM success path): `appendConversationTurn({..., role:
-   "ASSISTANT", author:twinId, twin_entity_id:twinId, content:response,
-   reply_to_turn_id:userTurn.turn_id, action_ref: continuity.ledger_entry_id ?? null,
-   model_provider: safe label})`. The assistant turn carries NO request_id (the unique
-   is (conversation_id, request_id); the user turn owns it). If assistant persist fails
-   AFTER generation → do not claim durability; on retry (c) finds the user turn but no
-   assistant → regenerate (idempotent).
-
-   **f. Reference resolution (deterministic, turn-based)** — once turns persist, add the
-   first back-references ("what were we talking about", "what did we decide", "continue",
-   "send that", "tell him/her", "this/that/it", "the one David mentioned") resolved in
-   the order in contract §P5D, BEFORE the LLM, never executing under ambiguity.
-
-   Tests (real DB): user-before-model persisted; assistant-before-response; retry
-   replay (no re-invoke); request conflict; ordering; cross-org/user/twin + deleted
-   denial; two-device race. Then deploy + live re-check (propose via smoke, query the
-   prod turn rows back, confirm subject/author/sequence/idempotency).
-5. **Stage 2** — structured summary + relationship memory + org-promotion lineage
-   (contract §6–§8): new tables + services + tests, coordinated activation.
-6. **Stage 3** — action-state additive fields on WorkLedgerEntry (§9) + compensation.
-7. **P5F/P5J/P5K/P5L/P5M** — cross-device, retention/clear/delete services, model-
+5. **← START HERE. Deterministic turn-based references** (contract §P5D): "what were we
+   talking about", "what did we decide", "continue", "send that", "tell him/her",
+   "this/that/it", "the one David mentioned" — resolved BEFORE the LLM, in the §P5D
+   order (actor/org/Twin → thread → obligation → active action → recent turns → summary
+   → memory → org truth → LLM last), never executing under ambiguity. Turns are now
+   durable (query `listConversationTurns`), so the recent-turns candidate source exists.
+6. **Stage 2** — structured summary + relationship memory + org-promotion lineage
+   (contract §6–§8): new tables + services + tests, coordinated activation (manifest
+   updated first).
+7. **Stage 3** — action-state additive fields on WorkLedgerEntry (§9) + compensation.
+8. **P5F/P5J/P5K/P5L/P5M** — cross-device, retention/clear/delete services, model-
    resilience envelope, temporal completion, full CT UX. Each schema-first where needed.
 
 Activation discipline: never wire runtime code to a table before its prod schema is

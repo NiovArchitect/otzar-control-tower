@@ -4,7 +4,7 @@
 // actor returns to zero-pending between phases and after the run (residue removal).
 //
 // Times are relative to the real server clock: 6am = already-past today;
-// 9/10/11/11:30pm = future today. Run during the working day (before ~8pm local).
+// tomorrow times = always future (time-of-day robust).
 const SP = process.env.SP, API = "https://api.otzar.ai/api/v1";
 if (!SP) { console.log("missing SP (smoke-admin password)"); process.exit(2); }
 const H = (t) => ({ "Content-Type": "application/json", Authorization: `Bearer ${t}` });
@@ -16,7 +16,18 @@ const lj = await (await fetch(`${API}/auth/login`, { method: "POST", headers: { 
 const token = lj.token; if (!token) { console.log("login failed:", JSON.stringify(lj).slice(0, 160)); process.exit(1); }
 console.log("login ok\n");
 
-const post = (body) => fetch(`${API}/otzar/conversation/message`, { method: "POST", headers: H(token), body: JSON.stringify(body) }).then(r => r.json());
+// Resilient POST: tolerate a transient non-JSON gateway blip (retry once), never crash.
+async function post(body, tries = 2) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(`${API}/otzar/conversation/message`, { method: "POST", headers: H(token), body: JSON.stringify(body) });
+      const text = await r.text();
+      try { return JSON.parse(text); } catch { if (i === tries - 1) return { response: "", _nonjson: true, _status: r.status }; }
+    } catch { if (i === tries - 1) return { response: "", _error: true }; }
+    await new Promise((res) => setTimeout(res, 800));
+  }
+  return { response: "" };
+}
 let pass = 0, fail = 0;
 const check = (name, cond, extra = "") => { console.log(`  ${cond ? "PASS" : "FAIL"}  ${name}${extra ? "  — " + extra : ""}`); cond ? pass++ : fail++; };
 const RESOLVED = (r) => { const t = r.response || ""; return !/don'?t see|no (previous|prior) (question|context)/i.test(t) && /Olivia|calendar|connect|added|kept|pending|Budget|Strategy|Board|Dentist|Review|Ops|Design|Finance|Prep/i.test(t); };
@@ -26,7 +37,7 @@ const cancel = (thread) => post({ message: "no", conversation_id: thread }).catc
 // ── A + C: thread-bound proposal, in-thread confirm, ambient restoration ──
 console.log("A/C — thread binding + ambient restoration");
 {
-  const p = await post({ message: "Put on my calendar that at 11pm tonight I'll be at Olivia's event." });
+  const p = await post({ message: "Put on my calendar that tomorrow at 2pm I'll be at Olivia's event." });
   const conv = p.conversation_id;
   check("A: future propose returns a stable conversation_id", typeof conv === "string" && conv.length > 0, conv);
   check("A: propose is action_proposed (not clarify)", p.action_proposed === true);
@@ -35,7 +46,7 @@ console.log("A/C — thread binding + ambient restoration");
   check("A: 'yes' echoes the same bound thread", y.conversation_id === conv, `${y.conversation_id}`);
   await cancel(conv);
 
-  const p2 = await post({ message: "put a dentist appointment on my calendar at 11pm tonight" });
+  const p2 = await post({ message: "put a dentist appointment on my calendar tomorrow at 2pm" });
   const conv2 = p2.conversation_id;
   const amb = await post({ message: "yes" }); // NO thread id — ambient restoration
   check("C: ambient 'yes' resolves the unambiguous pending", RESOLVED(amb));
@@ -46,7 +57,7 @@ console.log("A/C — thread binding + ambient restoration");
 // ── B: cross-thread negative ──
 console.log("B — cross-thread negative");
 {
-  const p = await post({ message: "put a budget review on my calendar at 10pm tonight" });
+  const p = await post({ message: "put a budget review on my calendar tomorrow at 3pm" });
   const conv = p.conversation_id;
   const foreign = await post({ message: "yes", conversation_id: "00000000-0000-4000-8000-000000000000" });
   check("B: 'yes' from a foreign thread does NOT act", !ACTED(foreign));
@@ -68,16 +79,16 @@ console.log("D — past-time clarification");
 // ── E: multiple pending — disambiguation, ordinal resolve, ordinal cancel ──
 console.log("E — multiple pending");
 {
-  const a = await post({ message: "put a strategy sync on my calendar at 9pm tonight" });
-  const b = await post({ message: "put a board prep on my calendar at 10pm tonight" });
+  const a = await post({ message: "put a strategy sync on my calendar tomorrow at 4pm" });
+  const b = await post({ message: "put a board prep on my calendar tomorrow at 3pm" });
   const amb = await post({ message: "yes" });
   check("E-i: two pending + 'yes' → disambiguation (no action)", (amb.clarification_needed === true || /which one|waiting for your confirmation/i.test(amb.response || "")) && !ACTED(amb));
   const first = await post({ message: "the first one" });
   check("E-i: 'the first one' resolves the oldest (strategy sync)", RESOLVED(first) && /strategy/i.test(first.response || ""));
   await cancel(a.conversation_id); await cancel(b.conversation_id);
 
-  const c1 = await post({ message: "put a design review on my calendar at 9pm tonight" });
-  const c2 = await post({ message: "put a finance review on my calendar at 10pm tonight" });
+  const c1 = await post({ message: "put a design review on my calendar tomorrow at 4pm" });
+  const c2 = await post({ message: "put a finance review on my calendar tomorrow at 3pm" });
   const cancelSecond = await post({ message: "cancel the second one" });
   check("E-ii: 'cancel the second one' cancels only the second (finance)", /cancel|won'?t add/i.test(cancelSecond.response || "") && /finance/i.test(cancelSecond.response || ""));
   const firstStill = await post({ message: "yes", conversation_id: c1.conversation_id });
@@ -88,10 +99,10 @@ console.log("E — multiple pending");
 // ── F: revision / supersession ──
 console.log("F — revision (supersession)");
 {
-  const p = await post({ message: "put a strategy sync on my calendar at 9pm tonight" });
+  const p = await post({ message: "put a strategy sync on my calendar tomorrow at 4pm" });
   const conv = p.conversation_id;
-  const rev = await post({ message: "make it 11:30pm", conversation_id: conv });
-  check("F: 'make it 11:30pm' revises the pending action", /11:30/.test(rev.response || ""));
+  const rev = await post({ message: "make it 5pm", conversation_id: conv });
+  check("F: 'make it 5pm' revises the pending action", /5:00\s*PM/i.test(rev.response || ""));
   const y = await post({ message: "yes", conversation_id: conv });
   check("F: later 'yes' resolves the revised time (honest state)", RESOLVED(y));
   await cancel(conv);
@@ -100,7 +111,7 @@ console.log("F — revision (supersession)");
 // ── G: safety — provider honestly blocked, no false 'created' ──
 console.log("G — safety");
 {
-  const p = await post({ message: "put an ops review on my calendar at 11pm tonight" });
+  const p = await post({ message: "put an ops review on my calendar tomorrow at 2pm" });
   const y = await post({ message: "yes", conversation_id: p.conversation_id });
   const falseCreated = /\badded\b|\bcreated\b|on your calendar\b/i.test(y.response || "");
   const honestBlocked = /connect|kept .* ready|pending|needs to be connected/i.test(y.response || "");
