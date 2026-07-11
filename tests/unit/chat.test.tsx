@@ -305,6 +305,50 @@ describe("Chat (employee Otzar)", () => {
     expect(screen.getAllByText(ANSWER)).toHaveLength(1);
   });
 
+  it("first-turn response-loss (same tab): a reload with a persisted pending submission recovers the exact canonical answer via the server — no resubmit, exactly one canonical turn", async () => {
+    // The FIRST turn of a brand-new, CLIENT-MINTED conversation whose response was lost before
+    // it rendered (reload). The pending logical-submission identity was persisted to
+    // sessionStorage; on reload the recovery effect reconciles it with the SERVER by
+    // (conversation_id, client_request_id) and renders the durable canonical — it must NEVER
+    // re-POST (that would risk a second execution) and must render the canonical exactly once.
+    const CONV = "33333333-3333-4333-8333-333333333333";
+    const REQ = "cli-reload-0001";
+    const ANSWER = "Yes — I booked the room for 3pm.";
+    const messagePosts: unknown[] = [];
+
+    // Persist the pending submission the first (lost) turn recorded, then "reload" by rendering.
+    sessionStorage.setItem(
+      "otzar.continuity.pending",
+      JSON.stringify({ conversation_id: CONV, client_request_id: REQ, message: "book the room for 3pm" }),
+    );
+
+    server.use(
+      // No active thread from restore — isolates the same-tab reload recovery path.
+      http.get(`${API_BASE}/otzar/threads/restore`, () =>
+        HttpResponse.json({ ok: true, active: null, recent: [] }, { status: 200 }),
+      ),
+      http.get(`${API_BASE}/otzar/threads/:conversationId/requests/by-client/:clientRequestId`, () =>
+        HttpResponse.json({ ok: true, status: completedRecord(CONV, ANSWER, "ANSWERED", false) }, { status: 200 }),
+      ),
+      http.get(`${API_BASE}/otzar/threads/:conversationId`, () =>
+        HttpResponse.json({ ok: true, thread: threadSummary(CONV), turns: [assistantTurn(ANSWER)] }, { status: 200 }),
+      ),
+      http.post(`${API_BASE}/otzar/conversation/message`, async ({ request }) => {
+        messagePosts.push(await request.json());
+        return HttpResponse.json({ ok: true, response: "dup", context_used: 0, tokens_consumed: 1, conversation_id: CONV }, { status: 200 });
+      }),
+    );
+
+    render(<Chat />);
+
+    // The durable canonical is recovered from server authority…
+    expect(await screen.findByText(ANSWER)).toBeInTheDocument();
+    // …with NO resubmission and exactly one canonical turn, and the pending identity cleared.
+    expect(messagePosts).toHaveLength(0);
+    expect(screen.getAllByText(ANSWER)).toHaveLength(1);
+    await waitFor(() => expect(sessionStorage.getItem("otzar.continuity.pending")).toBeNull());
+  });
+
   it("remains backward-compatible when transparency fields are missing", async () => {
     server.use(
       http.post(
