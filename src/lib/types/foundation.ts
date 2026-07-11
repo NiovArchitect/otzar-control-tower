@@ -1098,6 +1098,64 @@ export interface OrgAnalytics {
 //      omitted on the first turn (the backend mints one) and echoed back
 //      on subsequent turns. conversation_history is client-held for
 //      Phase 1 -- no durable conversation-list route exists yet.
+// [OTZAR-CONTINUITY C6] Server thread-restoration read shapes. The SERVER is authoritative
+// for active conversation, pending request, and canonical result — CT restores from these.
+export interface OtzarThreadSummary {
+  conversation_id: string;
+  twin_entity_id: string;
+  status: string;
+  timezone: string | null;
+  source_type: string;
+  started_at: string;
+  last_active_at: string | null;
+  message_count: number;
+  archived: boolean;
+  unresolved_count: number;
+}
+
+export interface OtzarSafeTurn {
+  turn_id: string;
+  role: string;
+  content: string;
+  sequence: number;
+  source_channel: string;
+  created_at: string;
+}
+
+export interface OtzarSafeRequestStatus {
+  request_record_id: string;
+  conversation_id: string;
+  client_request_id: string | null;
+  state: string;
+  response_class: string | null;
+  has_canonical_result: boolean;
+  has_action: boolean;
+  in_progress: boolean;
+  retryable: boolean;
+  failure_code: string | null;
+  canonical_assistant_turn_id: string | null;
+  canonical_text: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface OtzarRestoreThreadsResponse {
+  ok: true;
+  active: OtzarThreadSummary | null;
+  recent: OtzarThreadSummary[];
+}
+
+export interface OtzarThreadDetailResponse {
+  ok: true;
+  thread: OtzarThreadSummary;
+  turns: OtzarSafeTurn[];
+}
+
+export interface OtzarRequestStatusResponse {
+  ok: true;
+  status: OtzarSafeRequestStatus;
+}
+
 export interface ConversationMessageRequest {
   message: string;
   conversation_id?: string;

@@ -14,6 +14,7 @@
 
 import { useCallback, useState } from "react";
 import { api } from "@/lib/api";
+import { clientTimezone, newRequestId } from "@/lib/otzar/conduct-request";
 import type { VoiceIntentResponse } from "@/lib/types/foundation";
 
 export interface OtzarVoiceIntentHook {
@@ -23,10 +24,13 @@ export interface OtzarVoiceIntentHook {
   processing: boolean;
   /** Closed-vocab error code from the last failure, or null. */
   error: string | null;
-  /** Send a transcript / typed message to Foundation. */
+  /** Send a transcript / typed message to Foundation. `request_id` is the stable logical-
+   *  submission id: mint ONE per logical submission and REUSE it on a conduct retry (a
+   *  transcription retry BEFORE submission may mint a fresh one). `conversation_id` is the
+   *  server-restored active thread — pass it so voice does NOT create a shadow thread. */
   send: (
     text: string,
-    options?: { conversation_id?: string },
+    options?: { conversation_id?: string; request_id?: string },
   ) => Promise<VoiceIntentResponse | null>;
   /** Wipe the held response + error. */
   reset: () => void;
@@ -40,17 +44,23 @@ export function useOtzarVoiceIntent(): OtzarVoiceIntentHook {
   const send = useCallback(
     async (
       text: string,
-      options: { conversation_id?: string } = {},
+      options: { conversation_id?: string; request_id?: string } = {},
     ): Promise<VoiceIntentResponse | null> => {
       const trimmed = text.trim();
       if (trimmed.length === 0) return null;
       setProcessing(true);
       setError(null);
+      // [OTZAR-CONTINUITY C7] Parity with the text path: a stable per-submission request_id
+      // (server-validated idempotency) + the live IANA timezone. The FND voice route stamps
+      // source_channel=VOICE. Passing conversation_id keeps voice on the SAME server thread.
+      const tz = clientTimezone();
       const body = {
         transcript_text: trimmed,
+        request_id: options.request_id ?? newRequestId(),
         ...(options.conversation_id !== undefined
           ? { conversation_id: options.conversation_id }
           : {}),
+        ...(tz !== undefined ? { client_timezone: tz } : {}),
       };
       try {
         const result = await api.otzar.voiceIntents.create(body);
