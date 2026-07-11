@@ -15,7 +15,23 @@ before the next. Each lands as its own PR (CI-green) — prod stays safe until d
 - **FND: LIVE + HEALTHY.** `api.otzar.ai/api/v1/health` → 200, `database: connected`; boot schema-manifest is fail-closed so 200 proves `otzar_conversation_requests` present/correct on prod. **Exact SHA NOT readable read-only** (no `/version` route — all 404; no build-SHA header; Render API 401 in-session). Deployed code IS `bf868ea` per the founder's dashboard action; behavioral SHA confirmation needs an authed conductSession probe (see §14-blocked below).
 - **§14 LIVE PROOF — EXTERNALLY BLOCKED.** Needs the smoke-admin password `SP` (harness `docs/otzar/smoke-continuity.mjs` logs in `smoke-admin@niovlabs.com` via `process.env.SP`) AND a prod DB/admin read channel for the request/turn/lease invariants — **neither is in this session's env** (`SP`, `DATABASE_URL` all absent; Render key 401). Unblock: founder runs `SP=… node <harness>` via `!`, or exports `SP` (+ a prod read DB URL) into the agent session. The §14 INVARIANTS ARE INTEGRATION-PROVEN (§9 real-barrier + §10 failure-injection, CI-green on the same `bf868ea` code + real Postgres). A NEW §14 live harness (concurrency barrier, replay, response-loss, retryable-fail, ambient ordering, dynamic past-time, source channels) still needs writing — the existing smoke is the A–G/Corrections harness, not the request-spine proof.
 
-### C1 — SHIPPED (FND PR #627, CI running) — 2026-07-11
+### C2+C5 — SHIPPED (FND PR #628, CI running) — 2026-07-11
+Strict assistant durability + durable action-aware recovery, shipped together (binding
+coupling). `linkRequestAction` CAS links the exact action to the request BEFORE the
+assistant turn; `reconstructFromAction` rebuilds the response from durable ledger state
+(status + details.proposal + event_id) — never prose/model; `openRequestGate` action-aware
+recovery reconstructs on reclaim (no reprocess, no provider replay). Strict persistence:
+non-durable canonical → FAILED_RETRYABLE (+ OTZAR_ASSISTANT_TURN_PERSIST_FAILED /
+OTZAR_CONTINUITY_STATE_CHANGED), retry reconstructs (continuity) or regenerates (pure LLM).
+completeRequest is now a strict CAS (state IN PROCESSING/FAILED_RETRYABLE, canonical
+NULL-or-same, COALESCE action_ref). Failure-injection tests green (flag-gated turn-insert
+spy — NOT per-test spy/restore, which corrupts the mock). Follow-on **C5-snapshot**: full
+typed Phase-A snapshot + separate lease-bound commitCalendarContinuity CAS (proposal-level
+claimProposalForExecution already prevents double execution; snapshot adds stale-detection).
+**DEPLOY:** after #628 merges, the combined SHA brings #626 spine + C1 + C2+C5 live in ONE
+deploy — deploy that merge commit (dashboard/API), do NOT deploy cc146f0 separately.
+
+### C1 — SHIPPED (FND PR #627, merged cc146f0) — 2026-07-11
 Every accepted org-scoped DEFERRED (ambient) turn is now request-gated: non-mutating acts
 (disambiguate / clarify_past / generic-LLM) mint a per-turn thread + persist the USER turn
 + claim the request BEFORE handleCalendarContinuity/the model. USER-turn thread kept
