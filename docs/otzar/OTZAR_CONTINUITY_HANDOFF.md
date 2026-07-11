@@ -85,10 +85,14 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
 
 ### Stage 1 CORRECTNESS CLOSURE (founder directive — required invariants, in progress)
 
-- ✅ **§7 explicit foreign-thread errors + §8 accurate source_channel — FND PR #622**
-  (merge + deploy + live-verify). Foreign/deleted supplied thread → typed
-  `OTZAR_THREAD_FORBIDDEN`(403)/`OTZAR_THREAD_CLOSED`(409) (no silent mint, no existence
-  leak); `CHAT|VOICE|AMBIENT` carried into every durable turn.
+- ✅ **§7 explicit foreign-thread errors + §8 accurate source_channel — SHIPPED + LIVE**
+  (FND PR #622, merged `383b14d`, deployed, health 200). Foreign/deleted supplied thread
+  → typed `OTZAR_THREAD_FORBIDDEN`(403)/`OTZAR_THREAD_CLOSED`(409) (no silent mint, no
+  existence leak, integration-proven); `CHAT|VOICE|AMBIENT` carried into every durable
+  turn (live DB proof: text route → CHAT lineage). Propose→yes regression spot-check
+  green (continuity unaffected). **Live runtime is now `383b14d`.**
+  NOTE: `otzar-voice-ready.routes.ts` has its own `statusForCode` that does not yet map
+  the new codes (they fall to 400 there) — align it in the next correctness PR.
 - **§1 phase-split continuity (user turn BEFORE mutation)** — refactor
   `handleCalendarContinuity` into (A) `resolveCalendarContinuityContext` = READ-ONLY
   (classify act, find eligible pending, resolve thread + return candidate action ids +
