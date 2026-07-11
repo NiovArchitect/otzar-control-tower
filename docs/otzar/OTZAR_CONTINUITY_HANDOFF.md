@@ -23,7 +23,20 @@ omits `request_id`. The only ceiling (already documented): cross-network retry D
 requires the client-supplied stable `request_id` (without it a retry mints a new USER turn
 → new request). Nothing unqueryable. C4 done.
 
-### COMBINED DEPLOY TARGET — FND main after #629 merges (was ca0263a for #628)
+### C3 — SHIPPED (FND PR #630, CI running) — 2026-07-11
+Atomic canonical completion. `completeRequestWithCanonicalResponse` (one `prisma.$transaction`):
+verifies scope/lease/version/state + USER turn → allocates sequence + inserts canonical
+ASSISTANT turn (response_to_turn_id @unique = one canonical, racing insert P2002 → rollback
+→ replay winner) → sets canonical link + class + COALESCE(action_ref) + COMPLETED + clears
+lease, all-or-nothing. Typed outcomes (completed/already_completed/lease_lost/state_conflict/
+scope_mismatch/invalid_turn/consistency_error). Service uses one `completeCanonical` helper
+across continuity/LLM/recovery; non-durable outcome → FAILED_RETRYABLE (never success).
+REMOVED finalizeRequest + all `.catch(()=>undefined)` on canonical linkage. Test-injection
+moved to an in-tx hook `__otzarCompletionTestHooks` (base-client spy can't reach the tx
+client). 84 otzar integration tests green. **After #630 merges, deploy that SHA** = #626 +
+C1 + C2 + C5 + **C3** + cleanup in ONE deploy.
+
+### COMBINED DEPLOY TARGET — FND main after C3 (#630) merges
 Prod is still on `bf868ea` (#626 spine only). FND main now carries #626 + C1 (cc146f0) +
 C2+C5 (ca0263a) + cleanup #629. ONE deploy of the latest main SHA brings all of it live.
 Deploy via dashboard/API (Render key was 401 in-session). Do NOT deploy intermediate SHAs
