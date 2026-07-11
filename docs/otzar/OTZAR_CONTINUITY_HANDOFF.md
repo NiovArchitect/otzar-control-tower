@@ -77,9 +77,11 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
    the #620→#621 bug). Modules: `thread-resolution.service.ts`, `otzar.service.ts`
    (`beginTurnPersistence`/`persistDeferredUserTurn`/`persistAssistantTurn`/
    `reconstructFromAssistantTurn`), routes carry `request_id`. Tests: resolver 7 +
-   wiring 4 + full regression (128). **Live: A–G smoke green + turn-proof (durable
-   turns, human/Twin identity, R1 idempotent, contiguous sequence).** smoke-admin
-   residue cleaned via `docs/otzar/…` cleanup (dedicated smoke user only).
+   wiring 4 + full regression (128). **LIVE-VERIFIED on `084540e`: A–G smoke 18/18,
+   turn-proof 9/9 (durable turns `1:USER 2:ASSISTANT…`, human=subject=author / Twin
+   author, R1 retry → exactly one user turn + replayed response, contiguous sequence,
+   org NOT NULL), zero residue** (smoke-admin swept via the cleanup script — dedicated
+   smoke user only; never demo/Meridian).
 
 5. **← START HERE. Deterministic turn-based references** (contract §P5D): "what were we
    talking about", "what did we decide", "continue", "send that", "tell him/her",
