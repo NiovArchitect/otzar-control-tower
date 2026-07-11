@@ -4,6 +4,53 @@
 sanctioned continuation-anchor: done-vs-pending is explicit; P5/P6 get real work,
 not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthfully.
 
+## RESUME ANCHOR — 2026-07-11 (request-spine wired into the hot path)
+
+**SHIPPED + CI-green + merged (FND main `bf868ea`, PR #626):** the request-processing
+spine is wired into `conductSession` for the **supplied-id** (CHAT/VOICE) and
+**ambient-mutating** paths. Every such accepted org turn now: durable USER turn →
+`createOrGetRequest` (1:1) → atomic `claimRequestProcessing` BEFORE any continuity
+mutation/LLM/tool/provider → on response, link the ONE canonical assistant turn
+(`response_to_turn_id` + `canonical_assistant_turn_id`) + `completeRequest` with a typed
+`response_class`. Post-claim early returns transition explicitly:
+`INVALID_HISTORY`/`TOKEN_BUDGET_EXCEEDED` → `FAILED_FINAL`; `LLM_UNAVAILABLE` →
+`FAILED_RETRYABLE`. `failRequest(final=false)` now RELEASES the lease immediately so a
+retry reclaims at once (previously reclaim needed the full 60s TTL). Tests: **§9 real
+barrier** (gated provider parks the winner → concurrent duplicate provably sees
+PROCESSING → one provider call / one USER turn / one canonical ASSISTANT / one COMPLETED
+request; loser replays or is refused) + **§10 failure injection** (provider fails after
+claim → FAILED_RETRYABLE → same-`request_id` retry reclaims + succeeds). Turn-wiring 10 +
+requests 6 green; unit tier green (only a pre-existing local-env `connector-oauth` case
+fails on this box because Slack creds are present; green in clean CI); root typecheck 0.
+
+**COMMITTED LOCALLY, NOT PUSHED (CT `1713cc2`):** §11-§12 CT builder
+`src/lib/otzar/conduct-request.ts` (the ONE governed-turn builder — stable `request_id`
++ live IANA `client_timezone`) + `Chat.tsx` mints one `request_id` per submission and
+RETAINS it across an explicit Retry (idempotent replay). typecheck + build + lint green.
+
+**DEPLOY-PENDING (needs founder approval — auto-mode classifier gates the specific prod
+target):**
+- FND Render deploy of `bf868ea`: `POST api.render.com/v1/services/srv-d8t17sm7r5hc73ed5h6g/deploys`
+  body `{"commitId":"bf868ea","clearCache":"do_not_clear"}` (Bearer `$RENDER_API_KEY` —
+  never printed/committed). autoDeploy is OFF, so prod stays on the prior SHA until run.
+- CT push of `1713cc2` to `main` → Render auto-deploys `app.otzar.ai`.
+- **§14 live proof is deploy-gated** (must run against the new FND SHA).
+
+**INTERNAL BACKLOG — honestly tracked, NOT claimed complete (do next):**
+1. Request-gate the **ambient-non-mutating** (disambiguate/clarify), **ambient-generic**
+   (LLM-fallback), and **orgless** paths — currently reach persist/model with
+   `requestLease===null` (no request record). Ambient is where webhook-retry duplicates
+   happen, so this matters. Gate requires persisting the ambient USER turn + claiming
+   BEFORE the LLM, which tensions with the deliberate #620/#621 recency behavior — design
+   carefully.
+2. §6 strict `OTZAR_ASSISTANT_TURN_PERSIST_FAILED` — assistant-turn persist is currently
+   best-effort (null → finalize no-ops → lease decays → retry replays/reprocesses). Make
+   a pre-provider persist failure an explicit `FAILED_RETRYABLE` + code.
+3. §11 remainder: server thread-restoration READ API (restore active thread on
+   refresh/login from the server, not localStorage) + two-tab reconcile.
+4. §4-§5 verify: confirm `commitCalendarContinuity` candidate-level CAS backstops
+   duplicate execution if a turn exceeds the 60s lease mid-provider (advisor's open item).
+
 ## Schema provenance note (request table) — HONEST, unresolved
 
 The prod `otzar_conversation_requests` objects **pre-existed** the governed activation
