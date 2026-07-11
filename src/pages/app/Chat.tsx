@@ -344,6 +344,32 @@ export function Chat() {
         </Card>
       )}
 
+      {/* [OTZAR-CONTINUITY C6-CT] Quiet, non-blocking continuity status. Distinguishes
+          restoring / reconnect-needed without an old-world modal. Screen-reader announced;
+          the subtle pulse respects reduced-motion. Silent once restored (stays out of the way). */}
+      {(hydration === "restoring" || hydration === "unavailable") && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="continuity-status"
+          className="flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <span
+            aria-hidden
+            className={
+              hydration === "restoring"
+                ? "h-1.5 w-1.5 rounded-full bg-primary/60 animate-pulse motion-reduce:animate-none"
+                : "h-1.5 w-1.5 rounded-full bg-amber-500/70"
+            }
+          />
+          <span>
+            {hydration === "restoring"
+              ? "Restoring your conversation…"
+              : "Couldn't restore your last conversation — you can keep chatting."}
+          </span>
+        </div>
+      )}
+
       <div className="space-y-3" data-testid="chat-transcript">
         {turns.length === 0 && closeSummary === null && (
           <p className="text-sm text-muted-foreground">
