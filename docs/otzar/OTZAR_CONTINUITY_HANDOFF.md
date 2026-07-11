@@ -99,7 +99,30 @@ connection), then Manual Deploy → **Deploy a specific commit** → the exact t
 (NOT "deploy latest commit", which re-resolves to the stale commit). Verify the C6 routes
 flip 404→401 after. Classification: merged ✓ / deployed ✗ / live ✗.
 
-### ⭐ STATUS 2026-07-11 (latest) — C6-CT/C7 MERGED; C5-snapshot = NO PROVEN GAP
+### ⭐ SAFETY-CONTINUITY IMMEDIATE ARC COMPLETE 2026-07-11 (steps 3–6)
+- **Step 3 cross-tab discovery** — FND `72c19f5` (listUnresolvedRequests + GET /otzar/requests/
+  unresolved, scope-gated, safe projection) + CT wiring (api.threads.unresolved, store
+  discoverUnresolved, Chat cross-tab convergence effect). A second tab/device discovers the
+  first's obligations from SERVER authority. MERGED.
+- **Step 4 first-turn recovery** — CT `55657ca`: Chat mints the conversation id client-side
+  (newConversationId) so it's known BEFORE the first response → first-turn loss recoverable by
+  (conversation_id, client_request_id); markPending every turn; ambient unaffected. MERGED.
+- **Step 5 C7 parity** — carried in the C7 merge (voice request_id + IANA tz + no shadow thread).
+- **Step 6 test-isolation ROOT fix** — continuity-store singleton reset per Chat test +
+  global sessionStorage clear + default MSW restoration handlers (not an ignored assertion).
+- CT suite 2299 green; FND integration green. CT deploy auto-publishes 55657ca.
+- **Completion gate (XXII):** durable-turn-before-reasoning ✓, request identity survives
+  retry+response-loss incl FIRST turn ✓, cross-tab/device discovery from server ✓, one
+  owner ✓, one canonical ✓, no dup execution ✓, exact org/subject/twin/thread ✓, obligations
+  restore ✓, corrections preserve history ✓, stale fails closed ✓, text/voice/ambient lineage
+  ✓, tests don't hide mutations ✓, CT SHA/bundle verified ✓. **STILL OPEN:** authenticated §14
+  (EXTERNALLY BLOCKED on SP), FND redeploy of latest main `72c19f5` (founder Render), and the
+  Stage-2 SAFETY MODEL (source/authority fact classes, typed handoff + obligation state,
+  provenance) — a schema-first, ADR-0025-disciplined, MULTI-PR incremental phase per directive
+  item 15 (NOT one patch). First increment: typed obligation state (extends the request/action
+  spine) → then handoff state → then safety-fact source-of-truth model.
+
+### STATUS 2026-07-11 (earlier) — C6-CT/C7 MERGED; C5-snapshot = NO PROVEN GAP
 - **C6-CT + C7 MERGED** (CT `8ed41ae`, PR #132). CHUNK 1 (restoration store + bootstrap +
   hydration), CHUNK 2 (response-loss/multi-tab recovery via bounded backoff poll +
   by-client reconcile), CHUNK 3 (C7 voice parity: stable request_id + IANA tz + no shadow
