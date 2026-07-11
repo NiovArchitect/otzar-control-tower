@@ -4,6 +4,37 @@
 sanctioned continuation-anchor: done-vs-pending is explicit; P5/P6 get real work,
 not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthfully.
 
+## Schema provenance note (request table) — HONEST, unresolved
+
+The prod `otzar_conversation_requests` objects **pre-existed** the governed activation
+run (it reported `Before: true`). Investigated and **could not definitively prove** the
+mechanism: the Render deploy does NOT auto-push schema (start = `tsx src/server.ts`; the
+boot manifest guard is read-only, never `db push`); no earlier activation run appears in
+this session's history; the test-DB DDL used `.env.test` (localhost, confirmed, not
+prod). The governed script ran WITH the approval phrase and confirmed additive-only +
+catalog-correct (22 cols, 4 unique indexes, 0 rows). **Operational note:** add explicit
+schema-change AUDIT capture (who/when/how) to every future `activate-*-prod-schema.ts`
+run so provenance is always provable. Current prod catalog is verified correct and safe.
+
+### Runtime-wiring plan (§5–§10) — precise, primitives proven + live
+`conductSession` integration of the request spine. `userTurnId` is available at three
+points that must all route through the request record: `beginTurnPersistence` (supplied
+id), Phase B `ambientUserTurnId` (ambient mutating), and the deferred persist in the
+continuity/LLM path (ambient non-mutating). UNIFY idempotency onto the request record
+(§2 — do not keep the turn `(conversation_id, request_id)` dedup AND the request
+`(conversation_id, client_request_id)` dedup as two decisions that can disagree; the
+request record is canonical, the turn unique is a backstop). Flow: after the USER turn →
+`createOrGetRequest` → `claimRequestProcessing` (loser → replay if COMPLETED via
+`canonical_assistant_turn_id`, else `OTZAR_REQUEST_IN_PROGRESS`) → process → on the ONE
+canonical assistant turn, set `response_to_turn_id` + `completeRequest(canonical_assistant_turn_id,
+response_class)` in one transaction (§6) → durability-gate + action-aware recovery
+(§7/§9/§10). Add `OTZAR_REQUEST_IN_PROGRESS` + `OTZAR_ASSISTANT_TURN_PERSIST_FAILED` +
+`OTZAR_CONTINUITY_STATE_CHANGED` to the failure union + both route maps. Real barrier
+concurrency tests (§9) + failure injection (§10) + CT client contract (§11/§12) + live
+race/response-loss proof (§14). Proven primitives (LIVE): `createOrGetRequest`,
+`claimRequestProcessing` (atomic CAS, exactly-one-winner), `completeRequest`,
+`failRequest`, `getRequestByUserTurn` in `@niov/database`.
+
 ## Baseline (verified done)
 
 - **P0–P3 — SHIPPED + LIVE** (FND `05c1f32`, PRs #612/#613/#614). Server-side
