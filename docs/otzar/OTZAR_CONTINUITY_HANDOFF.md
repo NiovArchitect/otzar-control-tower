@@ -58,10 +58,12 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
    `org/subject/author/content_hash` NOT NULL, `twin` nullable, `actor_entity_id`+
    `visibility` dropped, both unique indexes + `turn_seq` present, table empty). Prod
    now exactly matches the contract's Stage 1 model. Re-runnable idempotently.
-3. ✅ **DONE — P6 startup manifest** (FND PR #619, merged `bc87c44`).
-   `apps/api/src/startup/schema-manifest.ts` (fail-closed, before listen; subsumes the
-   identity guard) + `scripts/probe-schema-manifest.ts`. Prod probe = compatible;
-   deployed (see below). Unit 9 + integration 3 green.
+3. ✅ **DONE + LIVE — P6 startup manifest** (FND PR #619, merged `bc87c44`, DEPLOYED
+   `dep-d98qk06cjfls73f4mv00`, live SHA `bc87c44`, health 200, clean boot
+   "NIOV API listening" = manifest passed before listen). `schema-manifest.ts`
+   (fail-closed; subsumes identity guard) + `scripts/probe-schema-manifest.ts`
+   (uncommitted local convenience tool — recreate/commit with the wiring PR). Prod
+   probe = compatible. Unit 9 + integration 3 green. **Live runtime is now bc87c44.**
 4. **← START HERE. Stage 1 runtime wiring** — DESIGN LOCKED below. `conductSession`
    (`apps/api/src/services/otzar/otzar.service.ts`). NOTE: `tests/unit/otzar.test.ts`
    runs against the REAL test DB (no prisma mocks) and the turn schema is present
