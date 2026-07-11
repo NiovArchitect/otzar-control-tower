@@ -58,14 +58,63 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
    `org/subject/author/content_hash` NOT NULL, `twin` nullable, `actor_entity_id`+
    `visibility` dropped, both unique indexes + `turn_seq` present, table empty). Prod
    now exactly matches the contract's Stage 1 model. Re-runnable idempotently.
-3. **← START HERE. P6 startup manifest** (contract §12) covering Stage 1 turn table + the 6
-   IntegrationCredential identity cols + `memory_capsules.voice_note_id` — read-only,
-   fail-closed, before-listen. Ships BEFORE runtime wiring.
-4. **Stage 1 runtime wiring** (contract §Impl): `conductSession` persists USER turn
-   before the model + ASSISTANT turn before durable response via `appendConversationTurn`
-   (thread must exist → call `createThread`/scope on the resolved id; author = subject
-   for USER, twin for ASSISTANT; `action_ref` = pending WorkLedgerEntry; wire
-   `request_id` through the Otzar routes for idempotency). Deploy + live re-check.
+3. ✅ **DONE — P6 startup manifest** (FND PR #619, merged `bc87c44`).
+   `apps/api/src/startup/schema-manifest.ts` (fail-closed, before listen; subsumes the
+   identity guard) + `scripts/probe-schema-manifest.ts`. Prod probe = compatible;
+   deployed (see below). Unit 9 + integration 3 green.
+4. **← START HERE. Stage 1 runtime wiring** — DESIGN LOCKED below. `conductSession`
+   (`apps/api/src/services/otzar/otzar.service.ts`). NOTE: `tests/unit/otzar.test.ts`
+   runs against the REAL test DB (no prisma mocks) and the turn schema is present
+   there, so wiring turn writes will not break mocks — add assertions instead.
+
+   **a. Request contract** — add optional `request_id?: string` to `ConductSessionInput`
+   and to the Otzar text + voice/ambient routes (`otzar.routes.ts`,
+   `otzar-voice-ready.routes.ts`); validate bounded length + safe charset; pass through
+   unchanged. It identifies the USER submission.
+
+   **b. Resolve the authoritative thread FIRST** (before `handleCalendarContinuity`,
+   the deterministic resolver, and the LLM call). New private
+   `resolveAuthoritativeThread(input.conversation_id, owner, org, twinId, tz)`:
+   - `org === null` → return null (orgless: keep legacy behavior, skip turns).
+   - id present → `getThread`; if it exists → `assertThreadScope` (on throw = foreign →
+     mint a fresh own thread, never leak); else `createThread({conversation_id:id,...})`.
+   - no id → `createThread` (mint). Returns `{ conversationId }`.
+   Then thread `conversationId` into `handleCalendarContinuity` (as `conversation_id`)
+   AND the main LLM path — REPLACING the late `resolveContinuityConversationId` /
+   the ~L1261 `otzarConversation` resolution, so one authoritative id is used
+   everywhere and actor+org recency stops being the normal path.
+
+   **c. Retry replay** — if `request_id` present, look up the USER turn by
+   `(conversation_id, request_id)`; if found AND it has a linked ASSISTANT turn
+   (`reply_to_turn_id = userTurn.turn_id`) → reconstruct a `ConductSessionSuccess`
+   from the stored assistant turn (content, conversation_id, next_step from
+   `action_ref`) and RETURN — no model/tool re-invocation.
+
+   **d. Persist USER turn** before continuity/resolver/model:
+   `appendConversationTurn({conversation_id, org, subject:owner, author:owner,
+   role:"USER", content:input.message, request_id, source_channel})`. **Fail-closed:**
+   if it throws (a non-dedup error, e.g. ThreadScopeError) → return a stable internal
+   failure; do NOT invoke the model. If it dedups (retry, same content) → proceed to (c).
+   `IdempotencyConflictError` (same request_id, different content) → stable conflict error.
+
+   **e. Persist ASSISTANT turn** before returning a success (both the continuity
+   short-circuit AND the LLM success path): `appendConversationTurn({..., role:
+   "ASSISTANT", author:twinId, twin_entity_id:twinId, content:response,
+   reply_to_turn_id:userTurn.turn_id, action_ref: continuity.ledger_entry_id ?? null,
+   model_provider: safe label})`. The assistant turn carries NO request_id (the unique
+   is (conversation_id, request_id); the user turn owns it). If assistant persist fails
+   AFTER generation → do not claim durability; on retry (c) finds the user turn but no
+   assistant → regenerate (idempotent).
+
+   **f. Reference resolution (deterministic, turn-based)** — once turns persist, add the
+   first back-references ("what were we talking about", "what did we decide", "continue",
+   "send that", "tell him/her", "this/that/it", "the one David mentioned") resolved in
+   the order in contract §P5D, BEFORE the LLM, never executing under ambiguity.
+
+   Tests (real DB): user-before-model persisted; assistant-before-response; retry
+   replay (no re-invoke); request conflict; ordering; cross-org/user/twin + deleted
+   denial; two-device race. Then deploy + live re-check (propose via smoke, query the
+   prod turn rows back, confirm subject/author/sequence/idempotency).
 5. **Stage 2** — structured summary + relationship memory + org-promotion lineage
    (contract §6–§8): new tables + services + tests, coordinated activation.
 6. **Stage 3** — action-state additive fields on WorkLedgerEntry (§9) + compensation.
