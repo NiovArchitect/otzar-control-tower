@@ -4,6 +4,68 @@
 sanctioned continuation-anchor: done-vs-pending is explicit; P5/P6 get real work,
 not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthfully.
 
+## EXECUTABLE PLAN — remaining Stage 1 corrections (do these next, in order)
+
+Grep-first, then plan-review per CLAUDE.md, then build. All touch `conductSession` in
+`apps/api/src/services/otzar/otzar.service.ts` — sequence them so each compiles + tests
+before the next. Each lands as its own PR (CI-green) — prod stays safe until deploy.
+
+**C1 — Request-gate EVERY org-scoped accepted path (highest priority).**
+Today `requestLease` is set only on supplied-id + ambient-mutating. Ungated: ambient
+non-mutating continuity (disambiguate/clarify), ambient-generic (LLM fallback), and any
+org path reaching persist/model with `requestLease===null`. Design: for the deferred
+(ambient) branch, resolve a thread + persist the USER turn + `openRequestGate` BEFORE
+`handleCalendarContinuity` and BEFORE the LLM — NOT after. The #620/#621 recency
+behavior is about which THREAD continuity resolves, which is separable from making the
+USER turn durable + claiming the request. Concretely: after the Phase-B block, if
+`turnCtx.deferred && orgEntityId!==null && requestLease===null`, resolve the ambient
+target thread (reuse `resolveContinuityThread`'s recency resolution WITHOUT forcing a
+new proposal thread), persist the USER turn there, then `openRequestGate`. Then remove
+the late per-path `persistDeferredUserTurn` calls in the continuity + LLM branches (they
+become the already-persisted `ambientUserTurnId`). Add wiring tests: two concurrent
+ambient duplicates (same request_id) → one USER turn / one request / one winner; ambient
+generic LLM path claimed before the model call.
+
+**C2 — Strict assistant durability (§6).** Replace best-effort assistant persistence:
+if `persistAssistantTurn` fails BEFORE the provider result is durable, return a real
+failure `OTZAR_ASSISTANT_TURN_PERSIST_FAILED` + `abortRequest(lease, false, ...)`
+(FAILED_RETRYABLE). For a POST-provider persist failure on a pure-LLM answer (no durable
+action to reconstruct from), the honest ceiling is: retry re-invokes the provider — but
+for an ACTION turn, reconstruct from `action_ref`/ledger status without provider replay
+(already implemented in `reconstructFromAssistantTurn`; extend `openRequestGate`'s
+replay to also reconstruct from action state when the canonical assistant turn is
+missing but the request is COMPLETED-with-action). Add the failure code to the
+OtzarFailure union + both route maps.
+
+**C3 — Atomic canonical completion (§6, one transaction).** Wrap the
+`response_to_turn_id` set + `completeRequest` in a single `prisma.$transaction`. Do NOT
+`.catch(() => undefined)` a uniqueness/finalization failure — a `response_to_turn_id`
+@unique clash means a second assistant turn raced; surface it (distinct log + leave the
+request non-COMPLETED so a retry reconciles). Add a test injecting a finalization
+failure → request not COMPLETED → retry reconciles.
+
+**C4 — Null/absent client `request_id` (§ older-client).** A request record already
+exists 1:1 with the USER turn (via `createOrGetRequest` on `user_turn_id`) even without
+a client key — but STRONG concurrency dedup needs the client `request_id` (the USER-turn
+dedup is keyed on it). Document this ceiling honestly in code; CT already sends one (§11)
+so real clients are covered. Optionally: for null client keys, derive a per-turn logical
+id so the request is still queryable by a stable handle.
+
+**C5 — Exact continuity snapshot (§4-§5).** Replace broad Phase-A output with a typed
+read-only snapshot (candidate action IDs + versions, normalized proposal args, lease
+identity). Lease-bound atomic `commitCalendarContinuity` verifying request state/version
++ candidate status/version via CAS; stale → `OTZAR_CONTINUITY_STATE_CHANGED`, no
+mutation. NOTE: the proposal-level CAS (`claimProposalForExecution`) already backstops
+duplicate EXECUTION (verified) — C5 adds explicit version/state verification + the
+typed snapshot, not a new execution guard.
+
+**C6 — Server thread restoration (§11 remainder).** Add a read API: active/recent thread
++ authorized recent turns + unresolved request/action state; CT restores the active
+thread on refresh/login FROM THE SERVER (not localStorage) + two-tab reconcile. Only
+claim active-thread restoration once this exists and is proven.
+
+**C7 — Full CT text/voice/ambient parity** using the single `buildConductRequest` helper.
+
 ## RESUME ANCHOR — 2026-07-11 (request-spine wired into the hot path)
 
 **SHIPPED + CI-green + merged (FND main `bf868ea`, PR #626):** the request-processing
