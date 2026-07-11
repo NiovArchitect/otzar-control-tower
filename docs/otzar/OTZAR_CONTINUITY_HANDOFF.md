@@ -99,7 +99,28 @@ connection), then Manual Deploy → **Deploy a specific commit** → the exact t
 (NOT "deploy latest commit", which re-resolves to the stale commit). Verify the C6 routes
 flip 404→401 after. Classification: merged ✓ / deployed ✗ / live ✗.
 
-### ⭐ STATUS 2026-07-11 (late) — backend correctness DONE + live-verified; C6-CT in CI
+### ⭐ STATUS 2026-07-11 (latest) — C6-CT/C7 MERGED; C5-snapshot = NO PROVEN GAP
+- **C6-CT + C7 MERGED** (CT `8ed41ae`, PR #132). CHUNK 1 (restoration store + bootstrap +
+  hydration), CHUNK 2 (response-loss/multi-tab recovery via bounded backoff poll +
+  by-client reconcile), CHUNK 3 (C7 voice parity: stable request_id + IANA tz + no shadow
+  thread; ambient keeps org-wide obligation scope), CHUNK 4 (quiet ambient status surface).
+  CT suite green (2294). Fixed a pre-existing load-induced flake in ambient-otzar-bar tests
+  (unrelated background POST landing late in a GET-only assertion) — my continuity code is
+  GET-only. **CT DEPLOY IN FLIGHT** (bundle was `D-roLuru`; watch for flip; nudge Render
+  otzar-app if stuck per RENDER_DEPLOY_NOTES.md).
+- **C5-snapshot = NO PROVEN GAP (verified per override #2, not refactored).** Phase C
+  (`handleCalendarContinuity`) does NOT consume a stale Phase-A snapshot — it re-reads pending
+  proposals FRESH at mutation time (calendar-continuity.service.ts:851/892), then
+  `claimProposalForExecution` CAS-guards status (line 476/563, `status='EXECUTING' WHERE
+  status='NEEDS_CALLER_CONFIRMATION'`). Double-execution + stale-candidate mutation are thus
+  already enforced AND tested (idempotency test: propose→yes-executes→second-yes-no-duplicate,
+  otzar-calendar-continuity.test.ts:158). The typed-snapshot refactor would re-architect an
+  already-safe flow; per override #2 (reopen only on a PROVEN gap) it is NOT needed. Stale
+  returns an honest "already done/working" response (better UX than a bare error).
+- **Externally blocked:** FND `aa58c6d` (B/C/D correctness) redeploy [founder dashboard];
+  §14 + live two-tab proof [need `SP` + live deploy]. Stage 2 is gated on C6-CT deploy-verified.
+
+### STATUS 2026-07-11 (earlier) — backend correctness DONE + live-verified; C6-CT in CI
 - **`48f7559` LIVE-VERIFIED** (founder deployed via reconnected repo): C6 routes return 401
   (were 404) — behavioral proof. health 200. That deploy is genuinely live.
 - **`aa58c6d` = FND main HEAD** (B/C/D backend audit merged: request↔user-turn ownership
