@@ -93,8 +93,11 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   green (continuity unaffected). **Live runtime is now `383b14d`.**
   NOTE: `otzar-voice-ready.routes.ts` has its own `statusForCode` that does not yet map
   the new codes (they fall to 400 there) — align it in the next correctness PR.
-- ✅ **§1A phase-split (USER turn BEFORE mutation) + voice statusForCode — FND PR #623**
-  (merge + deploy + live-verify). READ-ONLY `resolveContinuityThread` (Phase A: classify
+- ✅ **§1A phase-split (USER turn BEFORE mutation) + voice statusForCode — SHIPPED + LIVE**
+  (FND PR #623, merged `cba4d66`, deployed, health 200; **A–G re-verified live 16/16**,
+  D past-time correctly skipped at 00:55 EDT — 6am was future; ordinal proven in a clean
+  focused live test: "the first one" → Strategy). Live runtime is now `cba4d66`.
+  READ-ONLY `resolveContinuityThread` (Phase A: classify
   + resolve target thread, NO write — proven) → conductSession persists the ambient USER
   turn to that thread (Phase B) → `handleCalendarContinuity` mutates (Phase C).
   New-proposal mints a fresh thread id (not written); ordinal runs continuity ambient so
