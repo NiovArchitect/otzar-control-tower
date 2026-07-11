@@ -67,20 +67,30 @@ console.log("B — cross-thread negative");
 }
 
 // ── D: past-time clarification, stray 'yes' inert ──
-// "6am" is only PAST when the server clock is after 6am (America/New_York). On an
-// early-morning run it is future, so the past-time path is not exercised — detect
-// that and self-clean so it can never pollute later phases (Correction #2 is also
-// deterministically proven by the integration suite).
+// §13: choose a clock time GUARANTEED to be in the past — the current server-tz
+// (America/New_York) wall clock minus 90 minutes, same-day. Only the ~90-min window
+// right after local midnight has no same-day past clock time; there we self-clean +
+// note it (Correction #2 is also deterministically proven by the integration suite).
 console.log("D — past-time clarification");
 {
-  const c = await post({ message: "schedule a project review at 6am" });
-  const clarified = /already passed|another time today|did you mean tomorrow/i.test(c.response || "");
-  if (clarified) {
-    check("D: past-time asks a truthful clarification", true);
+  const nyParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date());
+  const H = Number(nyParts.find((p) => p.type === "hour").value);
+  const M = Number(nyParts.find((p) => p.type === "minute").value);
+  const total = H * 60 + M - 90; // 90 minutes ago
+  let pastTime = null;
+  if (total >= 5) {
+    const ph = Math.floor(total / 60), pm = total % 60;
+    const ampm = ph >= 12 ? "pm" : "am";
+    const h12 = ((ph + 11) % 12) + 1;
+    pastTime = `${h12}:${String(pm).padStart(2, "0")}${ampm}`;
+  }
+  if (pastTime !== null) {
+    const c = await post({ message: `schedule a project review at ${pastTime}` });
+    check(`D: past-time (${pastTime}) asks a truthful clarification`, /already passed|another time today|did you mean tomorrow/i.test(c.response || ""));
     check("D: past-time did NOT propose an action", c.action_proposed !== true);
+    if (c.conversation_id && c.action_proposed) await cancel(c.conversation_id); // safety net
   } else {
-    console.log("  SKIP D: 6am is in the future at this server hour — past-time path not exercised; cleaning up");
-    if (c.conversation_id) await cancel(c.conversation_id);
+    console.log("  SKIP D: within ~90 min of local midnight — no same-day past clock time exists");
   }
   const stray = await post({ message: "yes" }); // nothing pending → must be inert
   check("D: stray 'yes' after clarification executes nothing", !ACTED(stray));
