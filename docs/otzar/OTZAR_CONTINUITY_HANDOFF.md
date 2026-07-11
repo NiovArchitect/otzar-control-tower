@@ -23,7 +23,22 @@ omits `request_id`. The only ceiling (already documented): cross-network retry D
 requires the client-supplied stable `request_id` (without it a retry mints a new USER turn
 → new request). Nothing unqueryable. C4 done.
 
-### C3 — SHIPPED (FND PR #630, CI running) — 2026-07-11
+### C6 backend — SHIPPED (FND PR #631, CI running) — 2026-07-11
+Scope-gated server thread-restoration read layer: `queries/otzar-thread-restoration.ts`
+(restoreActiveThread / listRecentThreads / getThreadForRestore / getRequestStatusForUser —
+every query requires (org, subject) scope, safe projections only, foreign/deleted →
+not-found). Service restoreThreads / getThreadDetail / getRequestStatus. Routes GET
+/otzar/threads/restore, /otzar/threads/:id, /otzar/requests/:id/status. 4 C6 tests
+(isolation, restore determinism, safe projection asserts NO lease/provider token, archived
+filtering) + regression green. **REMAINING C6-CT + C7 (CT UI work — next):** on login/refresh
+call GET /otzar/threads/restore → set active conversation_id (server authority, not
+localStorage) → GET /otzar/threads/:id for recent turns → reconcile a locally-pending
+request via GET /otzar/requests/:id/status (show completed canonical if another tab
+finished; never silently resubmit on reload). Two-tab reconcile via bounded polling of
+/requests/:id/status. C7: route CT voice/ambient through the shared buildConductRequest;
+voice must not create a shadow conversation; ambient stays org-wide-obligation compatible.
+
+### C3 — MERGED (FND 7c53c0d, PR #630) — 2026-07-11
 Atomic canonical completion. `completeRequestWithCanonicalResponse` (one `prisma.$transaction`):
 verifies scope/lease/version/state + USER turn → allocates sequence + inserts canonical
 ASSISTANT turn (response_to_turn_id @unique = one canonical, racing insert P2002 → rollback
