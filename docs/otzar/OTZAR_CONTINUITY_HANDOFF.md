@@ -63,7 +63,13 @@ connection), then Manual Deploy → **Deploy a specific commit** → the exact t
 (NOT "deploy latest commit", which re-resolves to the stale commit). Verify the C6 routes
 flip 404→401 after. Classification: merged ✓ / deployed ✗ / live ✗.
 
-### ⭐ CORRECTED COMBINED DEPLOY TARGET (was `0c8ca14`; now the C3-hardening #632 merge SHA)
+### ⭐ CURRENT DEPLOY TARGET = FND main `b113f69` (C3-hardening #632 merged)
+Supersedes `0c8ca14`. Contains #626 + C1 + C2+C5 + C3 + C3-hardening (recovery hole closed,
+winner validation) + C6 backend + cleanup. Deploy via the REMEDIATED dashboard path (repo
+disconnect/reconnect → deploy specific commit `b113f69`). Prod still on pre-C6 SHA. Verify
+C6 routes flip 404→401 after.
+
+### deploy-target history (superseded)
 Deploy `0c8ca14` to `otzar-api` (srv-d8t17sm7r5hc73ed5h6g) via dashboard/API — brings live in
 ONE deploy: #626 spine + C1 gating + C2 strict durability + C5 action recovery + C3 atomic
 completion + C6 backend restoration read APIs + #629 cleanup. Prod still on `bf868ea`. Render
