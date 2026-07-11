@@ -144,10 +144,26 @@ mutation. NOTE: the proposal-level CAS (`claimProposalForExecution`) already bac
 duplicate EXECUTION (verified) — C5 adds explicit version/state verification + the
 typed snapshot, not a new execution guard.
 
-**C6 — Server thread restoration (§11 remainder).** Add a read API: active/recent thread
-+ authorized recent turns + unresolved request/action state; CT restores the active
-thread on refresh/login FROM THE SERVER (not localStorage) + two-tab reconcile. Only
-claim active-thread restoration once this exists and is proven.
+**C6 — Server thread restoration (§11 remainder).** VERIFIED DESIGN: distinct from the
+EXISTING `GET /otzar/conversations` + `/:id` (otzar.routes.ts ~522/558 →
+`otzarService.listConversations`), which read the OLD `OtzarConversation` rows (metadata +
+close summary, NO turns). C6 reads the NEW durable model (otzar_conversation_turns +
+otzar_conversation_requests + WorkLedgerEntry). Add a CANONICAL scope-gated thread query
+layer in the DB package — NEVER query by conversation_id alone; always require org + subject
+[+ twin]; no duplicated restoration logic across routes. Four capabilities: (1) list
+active/recent threads (scoped; safe label + unresolved count + last safe turn preview;
+paginated, ACTIVE default, optional ARCHIVED, never DELETED); (2) get thread (verify
+org/subject/twin/lifecycle → metadata + bounded recent turns via listConversationTurns +
+cursor + structured pending request/action summary); (3) restore active thread
+(most-recent eligible ACTIVE; never reopen ARCHIVED/CLOSED/DELETED; none → "no active
+thread", not invented); (4) get request status (state/response_class/safe action state/
+canonical result; NEVER lease_token/provider token/sealed payload/raw stack). Tests:
+cross-org/user/twin denied, archived/closed filtered, deleted inaccessible, pagination +
+bounded turn count, no unresolved-action leak. Then CT: on login/refresh restore
+authoritative conversation_id + recent turns + unresolved state FROM SERVER (localStorage =
+display prefs only); reconcile local pending vs server; show completed canonical if another
+tab finished; never silently resubmit on reload. Two-tab reconcile via bounded polling/event
+refresh (no uncontrolled high-frequency polling). Only claim restoration once proven.
 
 **C7 — Full CT text/voice/ambient parity** using the single `buildConductRequest` helper.
 
