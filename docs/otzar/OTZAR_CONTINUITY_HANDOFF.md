@@ -108,8 +108,11 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   createThread errors no longer suppressed; a non-durable USER turn → OTZAR_TURN_PERSIST_
   FAILED with ZERO mutation. Live-verified (ambient propose→yes, turns USER-first). §13
   smoke past-time now uses a dynamically-computed guaranteed-past time.
-- ✅ **§2–§4 durable request-processing SCHEMA + atomic-claim query layer — FND PR #625**
-  (schema-first, inert; merge + prod-activate + deploy in flight). New
+- ✅ **§2–§4 durable request-processing SCHEMA + atomic-claim query layer — SHIPPED + LIVE**
+  (FND PR #625, merged `12fce13`, prod schema activated + catalog-verified [22 cols, 4
+  unique idx, 0 rows], deployed, clean boot = manifest passed with the request table now
+  gating startup). Live runtime is now `12fce13`. Schema-first, still inert (no runtime
+  wiring). New
   `OtzarConversationRequest` (state machine + lease + canonical link) +
   `otzar_conversation_turns.response_to_turn_id` unique. `createOrGetRequest` /
   `claimRequestProcessing` (atomic CAS → EXACTLY ONE of 12 concurrent winners, proven) /
