@@ -93,14 +93,19 @@ not a cosmetic pass. No-fake-completion overrides "no deferral" — build truthf
   green (continuity unaffected). **Live runtime is now `383b14d`.**
   NOTE: `otzar-voice-ready.routes.ts` has its own `statusForCode` that does not yet map
   the new codes (they fall to 400 there) — align it in the next correctness PR.
-- **§1 phase-split continuity (user turn BEFORE mutation)** — refactor
-  `handleCalendarContinuity` into (A) `resolveCalendarContinuityContext` = READ-ONLY
-  (classify act, find eligible pending, resolve thread + return candidate action ids +
-  resolution type; NO mutation / provider / claim / status change), (B) persist the
-  ambient USER turn to the resolved thread, (C) `commitCalendarContinuity` = mutate.
-  Preserve ambient disambiguation by returning the FULL candidate set from (A) and
-  committing on the same set (do NOT narrow by pre-selecting one recent active thread —
-  the #620 regression). Test: zero WorkLedger mutation before the USER turn exists.
+- ✅ **§1A phase-split (USER turn BEFORE mutation) + voice statusForCode — FND PR #623**
+  (merge + deploy + live-verify). READ-ONLY `resolveContinuityThread` (Phase A: classify
+  + resolve target thread, NO write — proven) → conductSession persists the ambient USER
+  turn to that thread (Phase B) → `handleCalendarContinuity` mutates (Phase C).
+  New-proposal mints a fresh thread id (not written); ordinal runs continuity ambient so
+  the index maps across all pending (no #620 pile-up). Voice route `statusForCode` now
+  matches text. Tests: read-only + `user.created_at <= proposal.created_at`; 126
+  regression green. **A–G re-verified live after deploy (hot-path change).**
+- **§1 remaining (deeper split)** — Phase C still calls monolithic
+  `handleCalendarContinuity`. A fuller split returns the FULL candidate action-id set
+  from Phase A and passes exact candidate identity/version into a
+  `commitCalendarContinuity` that atomically revalidates (state can't change between
+  resolve and mutate undetected). Layer with the §3 request lease.
 - **§2 durability-gated assistant turn** — `persistAssistantTurn` returns a result, not
   best-effort: fail before any external action → `OTZAR_ASSISTANT_TURN_PERSIST_FAILED`
   (keep user turn); fail AFTER provider success → controlled failure but retain the
