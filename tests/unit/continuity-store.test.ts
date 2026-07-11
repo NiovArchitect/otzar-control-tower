@@ -9,6 +9,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 const restore = vi.fn();
 const detail = vi.fn();
 const requestByClient = vi.fn();
+const unresolved = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: {
     otzar: {
@@ -16,6 +17,7 @@ vi.mock("@/lib/api", () => ({
         restore: (): unknown => restore(),
         detail: (id: string): unknown => detail(id),
         requestByClient: (c: string, r: string): unknown => requestByClient(c, r),
+        unresolved: (c?: string): unknown => unresolved(c),
       },
     },
   },
@@ -134,6 +136,15 @@ describe("continuity store — pending persistence + reconcile", () => {
     useContinuityStore.getState().clearPending();
     expect(useContinuityStore.getState().pending).toBeNull();
     expect(useContinuityStore.getState().loadPending()).toBeNull();
+  });
+
+  it("discoverUnresolved returns the SERVER's unresolved list (cross-tab discovery); [] when none", async () => {
+    unresolved.mockResolvedValueOnce({ ok: true, data: { unresolved: [status({ state: "PROCESSING", in_progress: true })] } });
+    const list = await useContinuityStore.getState().discoverUnresolved("c1");
+    expect(list).toHaveLength(1);
+    expect(list[0]!.in_progress).toBe(true);
+    unresolved.mockResolvedValueOnce({ ok: false, code: "SESSION_INVALID", message: "x", status: 401 });
+    expect(await useContinuityStore.getState().discoverUnresolved("c1")).toEqual([]);
   });
 
   it("reconcileByClient returns the server status, or null when foreign", async () => {

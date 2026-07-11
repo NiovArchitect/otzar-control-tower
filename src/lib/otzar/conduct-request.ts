@@ -42,6 +42,21 @@ export function newRequestId(): string {
   return `ct-${Date.now().toString(36)}-${rand}`;
 }
 
+/** [OTZAR-CONTINUITY first-turn recovery] Mint a client-side conversation id so a CHAT
+ *  thread's id is known BEFORE the first server response. If that first response is lost,
+ *  the client can still reconcile by (conversation_id, client_request_id) — otherwise a
+ *  first-turn loss is unrecoverable (the client never learned the server's id). The server
+ *  treats a supplied-but-unknown id as create-if-missing under the caller's scope. */
+export function newConversationId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  } catch {
+    /* fall through */
+  }
+  const rand = Math.abs((Date.now() ^ (Math.random() * 1e9)) | 0).toString(16).padStart(8, "0");
+  return `00000000-0000-4000-8000-${Date.now().toString(16).slice(-4)}${rand}`.slice(0, 36);
+}
+
 export interface BuildConductRequestArgs {
   message: string;
   /** The server-authoritative thread id, when continuing an existing conversation. */

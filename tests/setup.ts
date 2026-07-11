@@ -68,5 +68,14 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  // [OTZAR-CONTINUITY test isolation] Clear the sessionStorage-backed pending submission so
+  // no test leaks a pending into a later Chat render. The continuity store singleton is reset
+  // in the specific test files that render <Chat/> (a global store import here would eagerly
+  // load @/lib/api and defeat those files' vi.mock of it).
+  try {
+    sessionStorage.clear();
+  } catch {
+    /* jsdom without sessionStorage */
+  }
 });
 afterAll(() => server.close());

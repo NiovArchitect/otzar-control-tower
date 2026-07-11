@@ -960,6 +960,45 @@ const otzarConversationCloseHandler = http.post(
   },
 );
 
+// [OTZAR-CONTINUITY C6-CT] Default server-restoration handlers. Safe defaults so any Chat
+// render (which bootstraps restore + cross-tab discovery on mount) is clean: no active
+// thread, no unresolved, no pending. Tests that need specific state override with server.use.
+const otzarThreadsRestoreHandler = http.get(
+  `${API_BASE}/otzar/threads/restore`,
+  () => HttpResponse.json({ ok: true, active: null, recent: [] }, { status: 200 }),
+);
+const otzarRequestsUnresolvedHandler = http.get(
+  `${API_BASE}/otzar/requests/unresolved`,
+  () => HttpResponse.json({ ok: true, unresolved: [] }, { status: 200 }),
+);
+const otzarThreadDetailHandler = http.get(
+  `${API_BASE}/otzar/threads/:conversationId`,
+  ({ params }) =>
+    HttpResponse.json(
+      {
+        ok: true,
+        thread: {
+          conversation_id: String(params.conversationId),
+          twin_entity_id: "twin-msw-0001",
+          status: "ACTIVE",
+          timezone: null,
+          source_type: "CHAT",
+          started_at: "2026-07-11T00:00:00.000Z",
+          last_active_at: "2026-07-11T00:00:00.000Z",
+          message_count: 0,
+          archived: false,
+          unresolved_count: 0,
+        },
+        turns: [],
+      },
+      { status: 200 },
+    ),
+);
+const otzarRequestByClientHandler = http.get(
+  `${API_BASE}/otzar/threads/:conversationId/requests/by-client/:clientRequestId`,
+  () => HttpResponse.json({ ok: false, code: "OTZAR_THREAD_FORBIDDEN", message: "not found" }, { status: 403 }),
+);
+
 // Phase 1244 — default connector adapters (setup guidance).
 const otzarConnectorAdaptersHandler = http.get(
   `${API_BASE}/connectors/adapters`,
@@ -3216,6 +3255,11 @@ export const handlers = [
   // Employee Otzar MVP
   otzarConversationMessageHandler,
   otzarConversationCloseHandler,
+  // C6-CT restoration (specific paths BEFORE the :conversationId param route).
+  otzarThreadsRestoreHandler,
+  otzarRequestsUnresolvedHandler,
+  otzarRequestByClientHandler,
+  otzarThreadDetailHandler,
   otzarConnectorAdaptersHandler,
   otzarProductionReadinessHandler,
   otzarDandelionGrowthHandler,

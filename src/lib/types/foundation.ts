@@ -1156,6 +1156,11 @@ export interface OtzarRequestStatusResponse {
   status: OtzarSafeRequestStatus;
 }
 
+export interface OtzarUnresolvedResponse {
+  ok: true;
+  unresolved: OtzarSafeRequestStatus[];
+}
+
 export interface ConversationMessageRequest {
   message: string;
   conversation_id?: string;
