@@ -47,6 +47,24 @@ become the already-persisted `ambientUserTurnId`). Add wiring tests: two concurr
 ambient duplicates (same request_id) → one USER turn / one request / one winner; ambient
 generic LLM path claimed before the model call.
 
+**⚠️ C2↔C5 COUPLING — CONFIRMED (do NOT ship a naive C2 alone).** Evidence: `openRequestGate`
+(otzar.service.ts ~2049) replays ONLY when `request.state==='COMPLETED'` AND
+`canonical_assistant_turn_id!==null`. If a continuity ACTION already executed (proposal
+created/executed via the `claimProposalForExecution` CAS) and only the assistant-turn
+persist fails, a naive C2 (abort→FAILED_RETRYABLE→return failure) makes the retry reclaim
++ re-enter `handleCalendarContinuity`, which now finds NO pending proposal (it's executed)
+→ falls through to the generic LLM → WRONG response. So C2 for the continuity path REQUIRES
+action-aware reconstruction (C5/#4): (a) persist `action_ref` onto the request record at
+mutation time (partial update, before the assistant turn), (b) add a `reconstructFromAction`
+path (rebuild the response from the durable ledger status via `action_ref`, like
+`reconstructFromAssistantTurn` already does), (c) extend `openRequestGate` replay to
+reconstruct from `action_ref` when the request has one even if NOT COMPLETED. THEN C2 is
+safe: continuity path → abort FAILED_RETRYABLE + store action_ref → retry reconstructs from
+the action WITHOUT re-executing; LLM path (no action) → abort FAILED_RETRYABLE → retry
+regenerates (exclusive ownership prevents dup USER turns/actions). Ship C2+C5 as ONE PR.
+Route maps to add `OTZAR_ASSISTANT_TURN_PERSIST_FAILED`: otzar.routes.ts ~78 +
+otzar-voice-ready.routes.ts ~90 (alongside OTZAR_TURN_PERSIST_FAILED → retryable/503).
+
 **C2 — Strict assistant durability (§6).** Replace best-effort assistant persistence:
 if `persistAssistantTurn` fails BEFORE the provider result is durable, return a real
 failure `OTZAR_ASSISTANT_TURN_PERSIST_FAILED` + `abortRequest(lease, false, ...)`
