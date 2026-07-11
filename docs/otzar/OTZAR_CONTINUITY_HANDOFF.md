@@ -23,7 +23,43 @@ omits `request_id`. The only ceiling (already documented): cross-network retry D
 requires the client-supplied stable `request_id` (without it a retry mints a new USER turn
 → new request). Nothing unqueryable. C4 done.
 
-### C6 backend — SHIPPED (FND PR #631, CI running) — 2026-07-11
+### C6 E+F — SHIPPED (FND PR #633, CI running) — 2026-07-11
+E: `getRequestByClient` + service `getRequestStatusByClient` + route GET
+`/otzar/threads/:conversation_id/requests/by-client/:client_request_id` — reconcile a
+lost response by the CLIENT-known id (conversation + client_request_id), scoped by
+(org/subject/twin/conversation/client_request_id), returns safe canonical TEXT when
+COMPLETED + failure_code. F: RestoreScope now requires twin_entity_id (service resolves
+the deterministic primary Twin); all restoration reads twin-filtered; no cross-Twin blend.
+
+### ⭐ C6-CT WIRING PLAN (server contract is DONE + tested; this is pure client work) — do next
+Backend endpoints (Bearer + read), all (org/subject/twin)-scoped:
+- `GET /otzar/threads/restore` → { active: ThreadSummary|null, recent: ThreadSummary[] }
+- `GET /otzar/threads/:id` → { thread, turns: SafeTurn[] } (or 403 OTZAR_THREAD_FORBIDDEN)
+- `GET /otzar/threads/:conversation_id/requests/by-client/:client_request_id` → { status }
+  (SafeRequestStatus: state, response_class, has_canonical_result, canonical_text,
+  failure_code, in_progress, retryable, conversation_id, client_request_id)
+- `GET /otzar/requests/:id/status` (server record id variant)
+CT steps (grep-first: src/lib/api.ts client conventions, src/lib/otzar/conduct-request.ts
+builder, src/pages/app/Chat.tsx, Voice.tsx/VoiceReady.tsx, AmbientOtzarBar.tsx, auth store):
+(1) add api.otzar.threads.{restore,detail,requestByClient} client methods + response types
+in src/lib/types/foundation.ts. (2) On authenticated bootstrap/login/refresh: call restore
+→ if one unambiguous ACTIVE thread, set the authoritative conversation_id (server authority,
+NOT localStorage) + load recent turns via threads/:id; if none, keep no active thread (don't
+invent). (3) Chat.tsx: on a pending submission whose response was lost (reload), reconcile via
+requests/by-client using the retained stable request_id → COMPLETED: render canonical_text;
+PROCESSING/RECEIVED: show processing + bounded-backoff poll; FAILED_RETRYABLE: Retry
+affordance preserving the SAME request_id; missing: do NOT auto-resubmit. (4) Two-tab: bounded
+poll of by-client until COMPLETED/FAILED_FINAL/cancel/timeout; Tab B converges to the same
+canonical result; a superseded proposal cannot be approved (server state replaces stale local).
+localStorage = display prefs only. C7: route CT voice/ambient through buildConductRequest
+(stable request_id + IANA tz + source_channel CHAT/VOICE/AMBIENT); voice must not create a
+shadow thread; ambient stays org-wide-obligation compatible (don't narrow pending lookup to
+the new transcript thread — the FND ambient path already passes undefined continuity convId).
+CT verification: request-builder tests, restoration store/hook tests, two-tab reconcile test,
+stale-proposal test, voice/ambient parity tests, typecheck, lint, build, deploy CT (bundle
+flip), live smoke. §14 auth proof stays blocked on SP.
+
+### C6 backend — MERGED (FND 0c8ca14, PR #631) — 2026-07-11
 Scope-gated server thread-restoration read layer: `queries/otzar-thread-restoration.ts`
 (restoreActiveThread / listRecentThreads / getThreadForRestore / getRequestStatusForUser —
 every query requires (org, subject) scope, safe projections only, foreign/deleted →
