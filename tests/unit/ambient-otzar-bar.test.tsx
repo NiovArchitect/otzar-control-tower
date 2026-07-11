@@ -2907,6 +2907,7 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
     renderBar();
     await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     await user.type(screen.getByLabelText(/Message to Otzar/i), "Where did this come from?");
+    mutations.length = 0; // scope the GET-only assertion to the clarity ACTION (robust to unrelated background async landing late under full-suite load)
     await user.click(screen.getByRole("button", { name: /^send$/i }));
     await waitFor(() => {
       expect(
@@ -2956,6 +2957,7 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
     renderBar();
     await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     await user.type(screen.getByLabelText(/Message to Otzar/i), "What do we know about this?");
+    mutations.length = 0; // scope the GET-only assertion to the clarity ACTION (see note above)
     await user.click(screen.getByRole("button", { name: /^send$/i }));
     await waitFor(() => {
       expect(
@@ -3006,6 +3008,7 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
       screen.getByLabelText(/Message to Otzar/i),
       "What do we know about Project Phoenix?",
     );
+    mutations.length = 0; // scope the GET-only assertion to the clarity ACTION (see note above)
     await user.click(screen.getByRole("button", { name: /^send$/i }));
     await waitFor(() => {
       expect(
