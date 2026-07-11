@@ -70,6 +70,9 @@ import type {
   ConversationMessageResponse,
   ConversationCloseRequest,
   ConversationCloseResponse,
+  OtzarRestoreThreadsResponse,
+  OtzarThreadDetailResponse,
+  OtzarRequestStatusResponse,
   ObserveRequest,
   ObserveResponse,
   VoiceNoteRevokePlanResponse,
@@ -1011,6 +1014,32 @@ export class ApiClient {
         this.request<ConversationCloseResponse>(
           "/otzar/conversation/close",
           { method: "POST", body: input },
+        ),
+    },
+
+    // [OTZAR-CONTINUITY C6] Server-authoritative thread restoration (read-only).
+    threads: {
+      /** GET /otzar/threads/restore -- the caller's most-recent ACTIVE thread (or null) +
+       *  a bounded recent list, for the current authorized Twin. */
+      restore: (): Promise<ApiResult<OtzarRestoreThreadsResponse>> =>
+        this.request<OtzarRestoreThreadsResponse>("/otzar/threads/restore", { method: "GET" }),
+
+      /** GET /otzar/threads/:id -- a thread + bounded recent turns (scope-gated). */
+      detail: (conversationId: string): Promise<ApiResult<OtzarThreadDetailResponse>> =>
+        this.request<OtzarThreadDetailResponse>(
+          `/otzar/threads/${encodeURIComponent(conversationId)}`,
+          { method: "GET" },
+        ),
+
+      /** GET /otzar/threads/:conversation_id/requests/by-client/:client_request_id --
+       *  reconcile a locally-pending submission by the CLIENT-known id. */
+      requestByClient: (
+        conversationId: string,
+        clientRequestId: string,
+      ): Promise<ApiResult<OtzarRequestStatusResponse>> =>
+        this.request<OtzarRequestStatusResponse>(
+          `/otzar/threads/${encodeURIComponent(conversationId)}/requests/by-client/${encodeURIComponent(clientRequestId)}`,
+          { method: "GET" },
         ),
     },
 

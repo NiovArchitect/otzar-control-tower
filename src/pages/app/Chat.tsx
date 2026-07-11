@@ -13,7 +13,7 @@
 //     that Otzar acted in an external tool.
 //   - No audit link (these endpoints return no audit_event_id).
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { TransparencyPanel } from "@/components/employee/TransparencyPanel";
 import { buildConductRequest, newRequestId } from "@/lib/otzar/conduct-request";
+import { useContinuityStore, nextRecoveryAction } from "@/lib/stores/continuity";
 import type {
   ChatTransparency,
   ContextProvenanceItem,
@@ -91,6 +92,94 @@ export function Chat() {
   const pendingRef = useRef<{ message: string; requestId: string; history: string[] } | null>(null);
   const [canRetry, setCanRetry] = useState(false);
 
+  // [OTZAR-CONTINUITY C6-CT] Server-authoritative restoration. The SERVER decides the active
+  // thread + its turns; localStorage is never the authority. On mount, restore from the
+  // server; when a durable active thread + its turns arrive AND this view is still fresh
+  // (no local optimistic turns yet), hydrate from the server. Never invent a thread.
+  const bootstrapRestore = useContinuityStore((s) => s.bootstrapRestore);
+  const adoptActiveConversation = useContinuityStore((s) => s.adoptActiveConversation);
+  const activeConversationId = useContinuityStore((s) => s.activeConversationId);
+  const restoredTurns = useContinuityStore((s) => s.restoredTurns);
+  const hydration = useContinuityStore((s) => s.hydration);
+  const markPending = useContinuityStore((s) => s.markPending);
+  const clearPending = useContinuityStore((s) => s.clearPending);
+  const loadPending = useContinuityStore((s) => s.loadPending);
+  const reconcileByClient = useContinuityStore((s) => s.reconcileByClient);
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    void bootstrapRestore();
+  }, [bootstrapRestore]);
+
+  // [OTZAR-CONTINUITY C6-CT CHUNK 2] Response-loss + multi-tab recovery. If a prior
+  // submission was left pending (persisted across reload), reconcile it with the SERVER
+  // by (conversation_id, client_request_id) using bounded backoff. On completion, re-hydrate
+  // the thread from the server (authoritative — converges two tabs, no duplicate). Never
+  // auto-resubmit; a retryable failure surfaces a Retry that reuses the SAME request_id.
+  useEffect(() => {
+    const pending = loadPending();
+    if (pending === null) return;
+    let cancelled = false;
+    let attempt = 0;
+    let timer: number | undefined;
+    const poll = async (): Promise<void> => {
+      if (cancelled) return;
+      const status = await reconcileByClient(pending.conversation_id, pending.client_request_id);
+      if (cancelled) return;
+      const action = nextRecoveryAction(status);
+      if (action === "render_canonical") {
+        const detail = await api.otzar.threads.detail(pending.conversation_id);
+        if (cancelled) return;
+        if (detail.ok) {
+          hydratedRef.current = true;
+          setConversationId(pending.conversation_id);
+          setTurns(detail.data.turns.map((t) => ({ role: t.role === "ASSISTANT" ? ("teammate" as const) : ("you" as const), text: t.content })));
+        }
+        clearPending();
+        return;
+      }
+      if (action === "offer_retry") {
+        pendingRef.current = { message: pending.message, requestId: pending.client_request_id, history: [] };
+        setConversationId(pending.conversation_id);
+        setCanRetry(true);
+        setError("Your last message didn't finish. Retry?");
+        clearPending();
+        return;
+      }
+      if (action === "final_failure" || action === "gone") {
+        clearPending();
+        return;
+      }
+      // keep_polling — bounded backoff + jitter; stop after a bounded number of attempts.
+      attempt += 1;
+      if (attempt > 8) return; // bounded; leave pending for a later deliberate reload
+      const delay = Math.min(500 * 2 ** attempt, 8000) + Math.floor(Math.random() * 250);
+      timer = window.setTimeout(() => void poll(), delay);
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer); // no leaked timer across unmount/tests
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Hydrate exactly once, only when the server returned an active thread and the user
+    // hasn't started a local exchange (no optimistic turns) — server wins over stale local.
+    if (hydratedRef.current) return;
+    if (hydration !== "restored" || activeConversationId === null) return;
+    if (turns.length > 0 || conversationId !== null) return;
+    hydratedRef.current = true;
+    setConversationId(activeConversationId);
+    setTurns(
+      restoredTurns.map((t) => ({
+        role: t.role === "ASSISTANT" ? ("teammate" as const) : ("you" as const),
+        text: t.content,
+      })),
+    );
+  }, [hydration, activeConversationId, restoredTurns, turns.length, conversationId]);
+
   // Core: send one turn with a fixed request_id. Never appends the user turn (the caller
   // does the optimistic append once); a retry reuses the same id and re-posts only.
   async function postTurn(message: string, requestId: string, history: string[]): Promise<void> {
@@ -100,18 +189,30 @@ export function Chat() {
     setShowTransparencyDetails(false);
     setSending(true);
     const body = buildConductRequest({ message, requestId, conversationId, conversationHistory: history });
+    // [C6-CT CHUNK 2] On an ESTABLISHED thread, persist the pending logical-submission
+    // identity BEFORE the call so a lost response (reload / other tab) can be reconciled
+    // with the server by (conversation_id, client_request_id). A brand-new thread has no
+    // server conversation_id yet → the in-memory retry (pendingRef) covers its first turn.
+    if (conversationId !== null) {
+      markPending({ conversation_id: conversationId, client_request_id: requestId, message });
+    }
     const result = await api.otzar.conversation.message(body);
     setSending(false);
 
     if (!result.ok) {
-      // Retain the pending submission so the user can retry with the SAME request_id.
+      // Retain the pending submission so the user can retry with the SAME request_id. The
+      // persisted pending identity (above) also lets a reload reconcile with the server.
       pendingRef.current = { message, requestId, history };
       setCanRetry(true);
       setError(errorCopy(result.code, result.status, result.message));
       return;
     }
     pendingRef.current = null;
+    clearPending(); // durable result received → nothing to reconcile
     setConversationId(result.data.conversation_id);
+    // Keep the server-authoritative store in sync with the thread this turn resolved to.
+    adoptActiveConversation(result.data.conversation_id);
+    hydratedRef.current = true; // a live exchange exists; don't re-hydrate over it
     setMeta({
       context_used: result.data.context_used,
       tokens_consumed: result.data.tokens_consumed,
@@ -243,6 +344,32 @@ export function Chat() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* [OTZAR-CONTINUITY C6-CT] Quiet, non-blocking continuity status. Distinguishes
+          restoring / reconnect-needed without an old-world modal. Screen-reader announced;
+          the subtle pulse respects reduced-motion. Silent once restored (stays out of the way). */}
+      {(hydration === "restoring" || hydration === "unavailable") && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="continuity-status"
+          className="flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <span
+            aria-hidden
+            className={
+              hydration === "restoring"
+                ? "h-1.5 w-1.5 rounded-full bg-primary/60 animate-pulse motion-reduce:animate-none"
+                : "h-1.5 w-1.5 rounded-full bg-amber-500/70"
+            }
+          />
+          <span>
+            {hydration === "restoring"
+              ? "Restoring your conversation…"
+              : "Couldn't restore your last conversation — you can keep chatting."}
+          </span>
+        </div>
       )}
 
       <div className="space-y-3" data-testid="chat-transcript">
