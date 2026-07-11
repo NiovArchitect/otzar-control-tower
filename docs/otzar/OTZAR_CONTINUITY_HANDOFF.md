@@ -48,8 +48,11 @@ target):**
    a pre-provider persist failure an explicit `FAILED_RETRYABLE` + code.
 3. §11 remainder: server thread-restoration READ API (restore active thread on
    refresh/login from the server, not localStorage) + two-tab reconcile.
-4. §4-§5 verify: confirm `commitCalendarContinuity` candidate-level CAS backstops
-   duplicate execution if a turn exceeds the 60s lease mid-provider (advisor's open item).
+4. §4-§5 — **VERIFIED SAFE (no work needed):** `claimProposalForExecution` is an atomic
+   CAS (`status='EXECUTING' WHERE status='NEEDS_CALLER_CONFIRMATION'`, exactly one
+   winner). So if a turn exceeds the 60s request lease mid-provider and a retry reclaims
+   the request + re-enters continuity, the proposal-level CAS still admits only ONE
+   execution — no double-booking. The request-lease self-heal is backstopped.
 
 ## Schema provenance note (request table) — HONEST, unresolved
 
