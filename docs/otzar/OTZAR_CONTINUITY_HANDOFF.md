@@ -23,7 +23,16 @@ omits `request_id`. The only ceiling (already documented): cross-network retry D
 requires the client-supplied stable `request_id` (without it a retry mints a new USER turn
 → new request). Nothing unqueryable. C4 done.
 
-### C2+C5 — SHIPPED (FND PR #628; CI re-running after cross-file test-leak fix) — 2026-07-11
+### COMBINED DEPLOY TARGET — FND main after #629 merges (was ca0263a for #628)
+Prod is still on `bf868ea` (#626 spine only). FND main now carries #626 + C1 (cc146f0) +
+C2+C5 (ca0263a) + cleanup #629. ONE deploy of the latest main SHA brings all of it live.
+Deploy via dashboard/API (Render key was 401 in-session). Do NOT deploy intermediate SHAs
+separately. NOTE: #628's merge accidentally committed two untracked scratch files
+(docs/live5-latest-sanitized-result.tmp.md, scripts/repair-live-demo-twins.ts) via a
+`git add -A`; verified NO secrets; removed + gitignored in cleanup PR #629 (deploy the
+post-#629 SHA).
+
+### C2+C5 — MERGED (FND ca0263a, PR #628) — 2026-07-11
 Strict assistant durability + durable action-aware recovery, shipped together (binding
 coupling). `linkRequestAction` CAS links the exact action to the request BEFORE the
 assistant turn; `reconstructFromAction` rebuilds the response from durable ledger state
