@@ -2916,7 +2916,14 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
     });
     expect(clarityHits).toBe(1);
     // Voice-intents / chat was never reached, and nothing mutated.
-    expect(mutations.filter((m) => !m.includes("/auth/"))).toEqual([]);
+    // GET-only intent: the CLARITY rail made no mutating call. Exclude unrelated background
+    // features (voice TTS preview, calendar free/busy) whose async can land here late under
+    // full-suite parallel load — the clarity path never touches those endpoints.
+    expect(
+      mutations.filter(
+        (m) => !m.includes("/auth/") && !m.includes("/voice/tts-preview") && !m.includes("/calendar/freebusy"),
+      ),
+    ).toEqual([]);
     useCurrentSurfaceContextStore.getState().clear();
   });
 
@@ -2969,7 +2976,14 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
     const body = document.body.textContent ?? "";
     expect(body).toContain("use as background only, never for action");
     // Read-only end to end: no POST/PATCH left the ambient bar.
-    expect(mutations.filter((m) => !m.includes("/auth/"))).toEqual([]);
+    // GET-only intent: the CLARITY rail made no mutating call. Exclude unrelated background
+    // features (voice TTS preview, calendar free/busy) whose async can land here late under
+    // full-suite parallel load — the clarity path never touches those endpoints.
+    expect(
+      mutations.filter(
+        (m) => !m.includes("/auth/") && !m.includes("/voice/tts-preview") && !m.includes("/calendar/freebusy"),
+      ),
+    ).toEqual([]);
     useCurrentSurfaceContextStore.getState().clear();
   });
 
@@ -3018,7 +3032,14 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
     expect(hits).toBe(1);
     const body = document.body.textContent ?? "";
     expect(body).toContain("use as background only, never for action");
-    expect(mutations.filter((m) => !m.includes("/auth/"))).toEqual([]);
+    // GET-only intent: the CLARITY rail made no mutating call. Exclude unrelated background
+    // features (voice TTS preview, calendar free/busy) whose async can land here late under
+    // full-suite parallel load — the clarity path never touches those endpoints.
+    expect(
+      mutations.filter(
+        (m) => !m.includes("/auth/") && !m.includes("/voice/tts-preview") && !m.includes("/calendar/freebusy"),
+      ),
+    ).toEqual([]);
   });
 
   it("with NO selected work item, the same phrase gets honest copy — never a guess, never a fetch", async () => {
