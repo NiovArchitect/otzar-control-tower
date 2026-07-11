@@ -99,10 +99,12 @@ interface ContinuityState {
   /** Read the server's durable status for a submission by its CLIENT-known id. Returns null
    *  when the request is foreign/absent (the server never discloses foreign existence). */
   reconcileByClient: (conversationId: string, clientRequestId: string) => Promise<OtzarSafeRequestStatus | null>;
-  /** [cross-tab] Discover the caller's unresolved requests from SERVER authority (in-flight
-   *  or awaiting confirmation), so a SECOND tab/device finds the first's obligations even
-   *  with no local pending. Optionally scoped to one conversation. */
-  discoverUnresolved: (conversationId?: string) => Promise<OtzarSafeRequestStatus[]>;
+  /** [cross-tab] Discover the caller's unresolved requests from SERVER authority (in-flight,
+   *  FAILED_RETRYABLE, or awaiting confirmation), so a SECOND tab/device finds the first's
+   *  obligations even with no local pending. Optionally scoped to one conversation. With
+   *  recentCompletedMs (bounded recovery window) it ALSO surfaces ordinary COMPLETED requests
+   *  finished inside the window, so a tab opened AFTER completion recovers the lost response. */
+  discoverUnresolved: (conversationId?: string, recentCompletedMs?: number) => Promise<OtzarSafeRequestStatus[]>;
 }
 
 const INITIAL = {
@@ -181,8 +183,8 @@ export const useContinuityStore: UseBoundStore<StoreApi<ContinuityState>> = crea
       return res.ok ? res.data.status : null;
     },
 
-    discoverUnresolved: async (conversationId?: string): Promise<OtzarSafeRequestStatus[]> => {
-      const res = await api.otzar.threads.unresolved(conversationId);
+    discoverUnresolved: async (conversationId?: string, recentCompletedMs?: number): Promise<OtzarSafeRequestStatus[]> => {
+      const res = await api.otzar.threads.unresolved(conversationId, recentCompletedMs);
       return res.ok ? res.data.unresolved : [];
     },
   }),

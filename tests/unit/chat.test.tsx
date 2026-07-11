@@ -156,6 +156,155 @@ describe("Chat (employee Otzar)", () => {
     );
   });
 
+  // [OTZAR-CONTINUITY cross-tab restoration] A fresh tab (no sessionStorage) must discover and
+  // restore the caller's SERVER-side obligations on the active thread — not only requests that
+  // are still in-flight. These tests are constructed so DISCOVERY is the ONLY route to the
+  // canonical: the bootstrap `detail()` deliberately returns the thread WITHOUT the just-
+  // completed turn (a fresh tab that raced ahead of completion), so if the discovery code did
+  // nothing, the canonical would never render and the test would fail.
+  function threadSummary(conv: string): Record<string, unknown> {
+    return {
+      conversation_id: conv,
+      twin_entity_id: "twin-msw-0001",
+      status: "ACTIVE",
+      timezone: null,
+      source_type: "CHAT",
+      started_at: "2026-07-11T00:00:00.000Z",
+      last_active_at: "2026-07-11T00:00:00.000Z",
+      message_count: 0,
+      archived: false,
+      unresolved_count: 1,
+    };
+  }
+  function assistantTurn(text: string): Record<string, unknown> {
+    return {
+      turn_id: "turn-canon-0001",
+      role: "ASSISTANT",
+      content: text,
+      sequence: 2,
+      source_channel: "CHAT",
+      created_at: "2026-07-11T00:00:05.000Z",
+    };
+  }
+  // A server request record that has COMPLETED (so it is NOT in_progress) but carries a durable
+  // canonical result — the exact shape the FND integration tests proved /requests/unresolved
+  // returns for AWAITING_CONFIRMATION and for recently-completed ordinary answers.
+  function completedRecord(
+    conv: string,
+    canonicalText: string,
+    responseClass: string,
+    hasAction: boolean,
+  ): Record<string, unknown> {
+    return {
+      request_record_id: "req-msw-0001",
+      conversation_id: conv,
+      client_request_id: "cli-msw-0001",
+      state: "COMPLETED",
+      response_class: responseClass,
+      has_canonical_result: true,
+      has_action: hasAction,
+      in_progress: false, // <-- the founder's gap: in_progress is FALSE here; must still restore
+      retryable: false,
+      failure_code: null,
+      canonical_assistant_turn_id: "turn-canon-0001",
+      canonical_text: canonicalText,
+      created_at: "2026-07-11T00:00:00.000Z",
+      completed_at: "2026-07-11T00:00:05.000Z",
+    };
+  }
+
+  it("cross-tab: a COMPLETED + AWAITING_CONFIRMATION proposal is discovered and restored in a fresh tab, rendering the exact canonical proposal with no second proposal, and is confirmable through the same governed thread path", async () => {
+    const CONV = "11111111-1111-4111-8111-111111111111";
+    const PROPOSAL = 'I\'ve got "Sync with Olivia" ready. Want me to add it?';
+    let detailCalls = 0;
+    let sawRecentWindow = false;
+    const messagePosts: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.get(`${API_BASE}/otzar/threads/restore`, () =>
+        HttpResponse.json({ ok: true, active: threadSummary(CONV), recent: [] }, { status: 200 }),
+      ),
+      http.get(`${API_BASE}/otzar/threads/:conversationId`, () => {
+        detailCalls += 1;
+        // Bootstrap read (1st) has no proposal yet; only re-hydration after discovery surfaces it.
+        const turns = detailCalls === 1 ? [] : [assistantTurn(PROPOSAL)];
+        return HttpResponse.json({ ok: true, thread: threadSummary(CONV), turns }, { status: 200 });
+      }),
+      http.get(`${API_BASE}/otzar/requests/unresolved`, ({ request }) => {
+        if (new URL(request.url).searchParams.get("recent_completed_ms") !== null) sawRecentWindow = true;
+        return HttpResponse.json(
+          { ok: true, unresolved: [completedRecord(CONV, PROPOSAL, "AWAITING_CONFIRMATION", true)] },
+          { status: 200 },
+        );
+      }),
+      http.post(`${API_BASE}/otzar/conversation/message`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        messagePosts.push(body);
+        return HttpResponse.json(
+          { ok: true, response: "Echo: yes", context_used: 0, tokens_consumed: 1, conversation_id: String(body.conversation_id ?? CONV) },
+          { status: 200 },
+        );
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(<Chat />);
+
+    // The exact canonical proposal is restored — via SERVER discovery, not bootstrap hydration.
+    expect(await screen.findByText(PROPOSAL)).toBeInTheDocument();
+    // Discovery used the bounded recovery window, and restoration NEVER re-submitted (no 2nd proposal).
+    expect(sawRecentWindow).toBe(true);
+    expect(messagePosts).toHaveLength(0);
+
+    // Confirm through the SAME governed thread path: the next message is bound to the SAME
+    // conversation, so the server resolves it against the pending proposal (thread-scoped).
+    await user.type(screen.getByLabelText("Message"), "yes");
+    await user.click(screen.getByRole("button", { name: /send/i }));
+    await waitFor(() => expect(messagePosts).toHaveLength(1));
+    expect(messagePosts[0]!.conversation_id).toBe(CONV);
+  });
+
+  it("cross-tab: an ordinary request that COMPLETED before this tab opened is discovered via the bounded recent-completed window and its exact canonical answer restored — no second POST, no duplicate turn", async () => {
+    const CONV = "22222222-2222-4222-8222-222222222222";
+    const ANSWER = "The Q4 pricing decision was finalized on Tuesday.";
+    let detailCalls = 0;
+    let recentWindow: string | null = "MISSING";
+    const messagePosts: unknown[] = [];
+
+    server.use(
+      http.get(`${API_BASE}/otzar/threads/restore`, () =>
+        HttpResponse.json({ ok: true, active: threadSummary(CONV), recent: [] }, { status: 200 }),
+      ),
+      http.get(`${API_BASE}/otzar/threads/:conversationId`, () => {
+        detailCalls += 1;
+        const turns = detailCalls === 1 ? [] : [assistantTurn(ANSWER)];
+        return HttpResponse.json({ ok: true, thread: threadSummary(CONV), turns }, { status: 200 });
+      }),
+      http.get(`${API_BASE}/otzar/requests/unresolved`, ({ request }) => {
+        recentWindow = new URL(request.url).searchParams.get("recent_completed_ms");
+        return HttpResponse.json(
+          { ok: true, unresolved: [completedRecord(CONV, ANSWER, "ANSWERED", false)] },
+          { status: 200 },
+        );
+      }),
+      http.post(`${API_BASE}/otzar/conversation/message`, async ({ request }) => {
+        messagePosts.push(await request.json());
+        return HttpResponse.json({ ok: true, response: "dup", context_used: 0, tokens_consumed: 1, conversation_id: CONV }, { status: 200 });
+      }),
+    );
+
+    render(<Chat />);
+
+    // The lost ordinary answer is recovered — only reachable through the recent-completed window.
+    expect(await screen.findByText(ANSWER)).toBeInTheDocument();
+    expect(recentWindow).not.toBe("MISSING");
+    expect(Number(recentWindow)).toBeGreaterThan(0);
+    expect(Number(recentWindow)).toBeLessThanOrEqual(600_000); // server clamp
+    // No resubmission and no duplicate turn (rendered exactly once).
+    expect(messagePosts).toHaveLength(0);
+    expect(screen.getAllByText(ANSWER)).toHaveLength(1);
+  });
+
   it("remains backward-compatible when transparency fields are missing", async () => {
     server.use(
       http.post(

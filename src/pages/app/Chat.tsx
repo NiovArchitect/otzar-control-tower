@@ -36,6 +36,11 @@ interface ChatTurn {
   text: string;
 }
 
+// [OTZAR-CONTINUITY] Bounded recent-completed recovery window for cross-tab discovery. A tab
+// that opens shortly after an ordinary request completed elsewhere can still recover the lost
+// canonical answer; the server clamps this to <=10min. This is recovery, not a history dump.
+const RECENT_COMPLETED_WINDOW_MS = 120_000;
+
 interface CloseSummary {
   topics: string[];
 }
@@ -183,10 +188,22 @@ export function Chat() {
   }, [hydration, activeConversationId, restoredTurns, turns.length, conversationId]);
 
   // [OTZAR-CONTINUITY cross-tab discovery] When the active thread restores, ask the SERVER
-  // for the caller's unresolved requests on it (not tab-local storage). If ANOTHER tab/device
-  // has one in-flight, converge: poll it by its client id with bounded backoff and, on
-  // completion, re-hydrate the thread from the server (same canonical result in both tabs;
-  // no second submission). Runs once per active thread.
+  // for the caller's unresolved obligations on it (not tab-local storage), including a bounded
+  // recent-completed window so a tab opened AFTER a request completed still discovers the lost
+  // result — NOT only still-in-flight requests. Each server record is CLASSIFIED by its own
+  // durable state; `in_progress` is never the sole selector:
+  //   • COMPLETED + a valid canonical (AWAITING_CONFIRMATION proposal OR a recently-completed
+  //     ordinary answer) → re-hydrate the whole thread from server authority. A full replace
+  //     (not append) renders the exact canonical turn(s) and cannot duplicate; setting the
+  //     active conversation id means the user's next "yes"/"no" resolves the pending proposal
+  //     through the SAME governed thread path (server-side, thread-bound). No second POST.
+  //   • RECEIVED/PROCESSING (in-flight elsewhere) → poll by its client id with bounded backoff,
+  //     then render on completion.
+  //   • FAILED_RETRYABLE → surface it (the caller's request on this thread failed and can be
+  //     retried) without auto-resubmitting.
+  //   • FAILED_FINAL is terminal and NOT returned by /requests/unresolved, so it is
+  //     deliberately not handled here (a deliberate omission, not a missed case).
+  // Runs once per active thread.
   useEffect(() => {
     if (crossTabRef.current) return;
     if (hydration !== "restored" || activeConversationId === null) return;
@@ -196,23 +213,40 @@ export function Chat() {
     let cancelled = false;
     let attempt = 0;
     let timer: number | undefined;
+    const renderThreadFromServer = async (): Promise<void> => {
+      const detail = await api.otzar.threads.detail(convId);
+      if (cancelled || !detail.ok) return;
+      hydratedRef.current = true;
+      setConversationId(convId);
+      setTurns(detail.data.turns.map((t) => ({ role: t.role === "ASSISTANT" ? ("teammate" as const) : ("you" as const), text: t.content })));
+    };
     const converge = async (): Promise<void> => {
       if (cancelled) return;
-      const unresolved = await discoverUnresolved(convId);
+      const unresolved = await discoverUnresolved(convId, RECENT_COMPLETED_WINDOW_MS);
       if (cancelled) return;
+      // Completed-with-canonical first (regardless of in_progress): an AWAITING_CONFIRMATION
+      // proposal or a recently-completed ordinary answer the second tab hasn't rendered.
+      const completed = unresolved.find(
+        (u) => u.state === "COMPLETED" && u.has_canonical_result && u.canonical_text !== null,
+      );
+      if (completed !== undefined) {
+        await renderThreadFromServer();
+        return;
+      }
+      // A retryable failure on this thread → surface it (no auto-resubmit).
+      const failed = unresolved.find((u) => u.state === "FAILED_RETRYABLE");
+      if (failed !== undefined) {
+        setError("Your last message didn't finish. Reload to retry.");
+        return;
+      }
+      // Otherwise: something still in-flight elsewhere → poll it by its client id.
       const inflight = unresolved.find((u) => u.in_progress && u.client_request_id !== null);
-      if (inflight === undefined) return; // nothing in-flight elsewhere → done
+      if (inflight === undefined) return; // nothing unresolved elsewhere → done
       const status = await reconcileByClient(convId, inflight.client_request_id!);
       if (cancelled) return;
       const action = nextRecoveryAction(status);
       if (action === "render_canonical") {
-        const detail = await api.otzar.threads.detail(convId);
-        if (cancelled) return;
-        if (detail.ok) {
-          hydratedRef.current = true;
-          setConversationId(convId);
-          setTurns(detail.data.turns.map((t) => ({ role: t.role === "ASSISTANT" ? ("teammate" as const) : ("you" as const), text: t.content })));
-        }
+        await renderThreadFromServer();
         return;
       }
       if (action !== "keep_polling") return; // terminal/gone → stop

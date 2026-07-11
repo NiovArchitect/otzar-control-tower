@@ -1043,14 +1043,26 @@ export class ApiClient {
           { method: "GET" },
         ),
 
-      /** GET /otzar/requests/unresolved -- the caller's unresolved requests (in-flight /
-       *  awaiting confirmation) from SERVER authority, so a second tab/device discovers
-       *  the first's obligations. Optionally scoped to one conversation. */
-      unresolved: (conversationId?: string): Promise<ApiResult<OtzarUnresolvedResponse>> =>
-        this.request<OtzarUnresolvedResponse>(
-          `/otzar/requests/unresolved${conversationId !== undefined ? `?conversation_id=${encodeURIComponent(conversationId)}` : ""}`,
+      /** GET /otzar/requests/unresolved -- the caller's unresolved requests from SERVER
+       *  authority, so a second tab/device discovers the first's obligations: in-flight
+       *  (RECEIVED/PROCESSING), FAILED_RETRYABLE, and AWAITING_CONFIRMATION. Optionally
+       *  scoped to one conversation. With recentCompletedMs (only meaningful WITH a
+       *  conversation, server-clamped to <=10min) it ALSO includes ordinary COMPLETED
+       *  requests finished inside that window — so a second tab opened AFTER an ordinary
+       *  request completed can still recover the lost canonical response. */
+      unresolved: (
+        conversationId?: string,
+        recentCompletedMs?: number,
+      ): Promise<ApiResult<OtzarUnresolvedResponse>> => {
+        const params = new URLSearchParams();
+        if (conversationId !== undefined) params.set("conversation_id", conversationId);
+        if (recentCompletedMs !== undefined) params.set("recent_completed_ms", String(recentCompletedMs));
+        const qs = params.toString();
+        return this.request<OtzarUnresolvedResponse>(
+          `/otzar/requests/unresolved${qs.length > 0 ? `?${qs}` : ""}`,
           { method: "GET" },
-        ),
+        );
+      },
     },
 
     /** POST /api/v1/otzar/observe -- submit text context for COE extraction. */
