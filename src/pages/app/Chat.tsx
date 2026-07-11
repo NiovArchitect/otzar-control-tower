@@ -121,6 +121,7 @@ export function Chat() {
     if (pending === null) return;
     let cancelled = false;
     let attempt = 0;
+    let timer: number | undefined;
     const poll = async (): Promise<void> => {
       if (cancelled) return;
       const status = await reconcileByClient(pending.conversation_id, pending.client_request_id);
@@ -153,11 +154,12 @@ export function Chat() {
       attempt += 1;
       if (attempt > 8) return; // bounded; leave pending for a later deliberate reload
       const delay = Math.min(500 * 2 ** attempt, 8000) + Math.floor(Math.random() * 250);
-      window.setTimeout(() => void poll(), delay);
+      timer = window.setTimeout(() => void poll(), delay);
     };
     void poll();
     return () => {
       cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer); // no leaked timer across unmount/tests
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -4,7 +4,7 @@
 //          active conversation (never invented); a restore failure surfaces "unavailable"
 //          without inventing a thread.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const restore = vi.fn();
 const detail = vi.fn();
@@ -23,6 +23,13 @@ vi.mock("@/lib/api", () => ({
 
 import { useContinuityStore, nextRecoveryAction } from "@/lib/stores/continuity";
 import type { OtzarSafeRequestStatus } from "@/lib/types/foundation";
+
+// Hermetic: never leave a persisted pending submission behind — a leftover would make a
+// later test that renders <Chat/> start a real recovery poll and leak requests/timers.
+afterAll(() => {
+  useContinuityStore.getState().reset();
+  try { sessionStorage.clear(); } catch { /* jsdom */ }
+});
 
 function thread(over: Partial<Record<string, unknown>> = {}) {
   return {
