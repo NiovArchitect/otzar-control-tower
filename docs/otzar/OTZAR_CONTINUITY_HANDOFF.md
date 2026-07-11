@@ -51,11 +51,12 @@ moved to an in-tx hook `__otzarCompletionTestHooks` (base-client spy can't reach
 client). 84 otzar integration tests green. **After #630 merges, deploy that SHA** = #626 +
 C1 + C2 + C5 + **C3** + cleanup in ONE deploy.
 
-### ⭐ CORRECTED COMBINED DEPLOY TARGET = FND main `7c53c0d` (C3 #630 merged)
-Deploy `7c53c0d` to `otzar-api` (srv-d8t17sm7r5hc73ed5h6g) via dashboard/API — brings live in
+### ⭐ CORRECTED COMBINED DEPLOY TARGET = FND main `0c8ca14` (C6 backend #631 merged)
+Deploy `0c8ca14` to `otzar-api` (srv-d8t17sm7r5hc73ed5h6g) via dashboard/API — brings live in
 ONE deploy: #626 spine + C1 gating + C2 strict durability + C5 action recovery + C3 atomic
-completion + #629 cleanup. Prod still on `bf868ea`. Render key was 401 in-session (founder
-dashboard deploy). autoDeploy OFF. Do NOT deploy intermediate SHAs.
+completion + C6 backend restoration read APIs + #629 cleanup. Prod still on `bf868ea`. Render
+key was 401 in-session (founder dashboard deploy). autoDeploy OFF. Do NOT deploy intermediate
+SHAs. (C6 read routes are additive + read-only; safe to deploy with the rest.)
 
 ### COMBINED DEPLOY TARGET — history
 Prod is still on `bf868ea` (#626 spine only). FND main now carries #626 + C1 (cc146f0) +
