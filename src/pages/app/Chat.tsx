@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { TransparencyPanel } from "@/components/employee/TransparencyPanel";
-import { buildConductRequest, newRequestId } from "@/lib/otzar/conduct-request";
+import { buildConductRequest, newRequestId, newConversationId } from "@/lib/otzar/conduct-request";
 import { useContinuityStore, nextRecoveryAction } from "@/lib/stores/continuity";
 import type {
   ChatTransparency,
@@ -89,7 +89,7 @@ export function Chat() {
   // [OTZAR-CONTINUITY §11] The pending submission's stable idempotency key + payload,
   // retained so a RETRY reuses the SAME request_id — a response-lost retry replays the
   // durable server result instead of creating a second turn. Cleared on success.
-  const pendingRef = useRef<{ message: string; requestId: string; history: string[] } | null>(null);
+  const pendingRef = useRef<{ message: string; requestId: string; history: string[]; convId: string } | null>(null);
   const [canRetry, setCanRetry] = useState(false);
 
   // [OTZAR-CONTINUITY C6-CT] Server-authoritative restoration. The SERVER decides the active
@@ -105,7 +105,9 @@ export function Chat() {
   const clearPending = useContinuityStore((s) => s.clearPending);
   const loadPending = useContinuityStore((s) => s.loadPending);
   const reconcileByClient = useContinuityStore((s) => s.reconcileByClient);
+  const discoverUnresolved = useContinuityStore((s) => s.discoverUnresolved);
   const hydratedRef = useRef(false);
+  const crossTabRef = useRef(false);
 
   useEffect(() => {
     void bootstrapRestore();
@@ -139,7 +141,7 @@ export function Chat() {
         return;
       }
       if (action === "offer_retry") {
-        pendingRef.current = { message: pending.message, requestId: pending.client_request_id, history: [] };
+        pendingRef.current = { message: pending.message, requestId: pending.client_request_id, history: [], convId: pending.conversation_id };
         setConversationId(pending.conversation_id);
         setCanRetry(true);
         setError("Your last message didn't finish. Retry?");
@@ -180,29 +182,74 @@ export function Chat() {
     );
   }, [hydration, activeConversationId, restoredTurns, turns.length, conversationId]);
 
-  // Core: send one turn with a fixed request_id. Never appends the user turn (the caller
-  // does the optimistic append once); a retry reuses the same id and re-posts only.
-  async function postTurn(message: string, requestId: string, history: string[]): Promise<void> {
+  // [OTZAR-CONTINUITY cross-tab discovery] When the active thread restores, ask the SERVER
+  // for the caller's unresolved requests on it (not tab-local storage). If ANOTHER tab/device
+  // has one in-flight, converge: poll it by its client id with bounded backoff and, on
+  // completion, re-hydrate the thread from the server (same canonical result in both tabs;
+  // no second submission). Runs once per active thread.
+  useEffect(() => {
+    if (crossTabRef.current) return;
+    if (hydration !== "restored" || activeConversationId === null) return;
+    if (loadPending() !== null) return; // this tab's own pending is handled by the recovery effect
+    crossTabRef.current = true;
+    const convId = activeConversationId;
+    let cancelled = false;
+    let attempt = 0;
+    let timer: number | undefined;
+    const converge = async (): Promise<void> => {
+      if (cancelled) return;
+      const unresolved = await discoverUnresolved(convId);
+      if (cancelled) return;
+      const inflight = unresolved.find((u) => u.in_progress && u.client_request_id !== null);
+      if (inflight === undefined) return; // nothing in-flight elsewhere → done
+      const status = await reconcileByClient(convId, inflight.client_request_id!);
+      if (cancelled) return;
+      const action = nextRecoveryAction(status);
+      if (action === "render_canonical") {
+        const detail = await api.otzar.threads.detail(convId);
+        if (cancelled) return;
+        if (detail.ok) {
+          hydratedRef.current = true;
+          setConversationId(convId);
+          setTurns(detail.data.turns.map((t) => ({ role: t.role === "ASSISTANT" ? ("teammate" as const) : ("you" as const), text: t.content })));
+        }
+        return;
+      }
+      if (action !== "keep_polling") return; // terminal/gone → stop
+      attempt += 1;
+      if (attempt > 8) return;
+      const delay = Math.min(500 * 2 ** attempt, 8000) + Math.floor(Math.random() * 250);
+      timer = window.setTimeout(() => void converge(), delay);
+    };
+    void converge();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydration, activeConversationId]);
+
+  // Core: send one turn with a fixed request_id + a KNOWN conversation id. Never appends the
+  // user turn (the caller does the optimistic append once); a retry reuses the same ids.
+  async function postTurn(message: string, requestId: string, history: string[], convId: string): Promise<void> {
     setError(null);
     setCanRetry(false);
     setCloseSummary(null);
     setShowTransparencyDetails(false);
     setSending(true);
-    const body = buildConductRequest({ message, requestId, conversationId, conversationHistory: history });
-    // [C6-CT CHUNK 2] On an ESTABLISHED thread, persist the pending logical-submission
-    // identity BEFORE the call so a lost response (reload / other tab) can be reconciled
-    // with the server by (conversation_id, client_request_id). A brand-new thread has no
-    // server conversation_id yet → the in-memory retry (pendingRef) covers its first turn.
-    if (conversationId !== null) {
-      markPending({ conversation_id: conversationId, client_request_id: requestId, message });
-    }
+    const body = buildConductRequest({ message, requestId, conversationId: convId, conversationHistory: history });
+    // [OTZAR-CONTINUITY first-turn recovery] The conversation id is ALWAYS known before the
+    // call now (minted client-side for a new thread), so persist the pending logical-
+    // submission identity for EVERY turn — including the first. A lost response (reload /
+    // other tab) is then reconcilable with the server by (conversation_id, client_request_id).
+    markPending({ conversation_id: convId, client_request_id: requestId, message });
     const result = await api.otzar.conversation.message(body);
     setSending(false);
 
     if (!result.ok) {
-      // Retain the pending submission so the user can retry with the SAME request_id. The
-      // persisted pending identity (above) also lets a reload reconcile with the server.
-      pendingRef.current = { message, requestId, history };
+      // Retain the pending submission so the user can retry with the SAME ids. The persisted
+      // pending identity (above) also lets a reload/other tab reconcile with the server.
+      pendingRef.current = { message, requestId, history, convId };
       setCanRetry(true);
       setError(errorCopy(result.code, result.status, result.message));
       return;
@@ -228,7 +275,13 @@ export function Chat() {
     const history = turns.map((t) => t.text);
     setTurns((prev) => [...prev, { role: "you", text: message }]);
     setInput("");
-    await postTurn(message, newRequestId(), history);
+    // [OTZAR-CONTINUITY first-turn recovery] Mint the conversation id client-side for a NEW
+    // thread so it is known BEFORE the first server response — making a first-turn response
+    // loss recoverable. The server treats a supplied-but-unknown id as create-if-missing
+    // (scope-validated). Ambient (AmbientOtzarBar) is unaffected — it keeps no id (org-wide).
+    const convId = conversationId ?? newConversationId();
+    if (conversationId === null) setConversationId(convId);
+    await postTurn(message, newRequestId(), history, convId);
   }
 
   // Retry the last failed submission with its ORIGINAL request_id (idempotent — the
@@ -236,7 +289,7 @@ export function Chat() {
   async function retry(): Promise<void> {
     const p = pendingRef.current;
     if (p === null || sending) return;
-    await postTurn(p.message, p.requestId, p.history);
+    await postTurn(p.message, p.requestId, p.history, p.convId);
   }
 
   async function close(): Promise<void> {

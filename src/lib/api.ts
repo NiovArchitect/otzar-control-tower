@@ -73,6 +73,7 @@ import type {
   OtzarRestoreThreadsResponse,
   OtzarThreadDetailResponse,
   OtzarRequestStatusResponse,
+  OtzarUnresolvedResponse,
   ObserveRequest,
   ObserveResponse,
   VoiceNoteRevokePlanResponse,
@@ -1039,6 +1040,15 @@ export class ApiClient {
       ): Promise<ApiResult<OtzarRequestStatusResponse>> =>
         this.request<OtzarRequestStatusResponse>(
           `/otzar/threads/${encodeURIComponent(conversationId)}/requests/by-client/${encodeURIComponent(clientRequestId)}`,
+          { method: "GET" },
+        ),
+
+      /** GET /otzar/requests/unresolved -- the caller's unresolved requests (in-flight /
+       *  awaiting confirmation) from SERVER authority, so a second tab/device discovers
+       *  the first's obligations. Optionally scoped to one conversation. */
+      unresolved: (conversationId?: string): Promise<ApiResult<OtzarUnresolvedResponse>> =>
+        this.request<OtzarUnresolvedResponse>(
+          `/otzar/requests/unresolved${conversationId !== undefined ? `?conversation_id=${encodeURIComponent(conversationId)}` : ""}`,
           { method: "GET" },
         ),
     },

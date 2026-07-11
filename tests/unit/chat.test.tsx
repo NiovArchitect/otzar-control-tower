@@ -10,6 +10,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { Chat } from "@/pages/app/Chat";
+import { useContinuityStore } from "@/lib/stores/continuity";
 import {
   getRecordedCorrectionCalls,
   resetRecordedCorrectionCalls,
@@ -19,6 +20,9 @@ const API_BASE = "http://localhost:3000/api/v1";
 
 beforeEach(() => {
   resetRecordedCorrectionCalls();
+  // Reset the continuity store singleton so a prior test's active conversation / pending
+  // never leaks into this Chat render (server-authoritative restoration is per-test).
+  useContinuityStore.getState().reset();
 });
 afterEach(() => {
   resetRecordedCorrectionCalls();
@@ -99,8 +103,9 @@ describe("Chat (employee Otzar)", () => {
     const user = userEvent.setup();
     render(<Chat />);
 
-    // 1. Send a message so conversationId becomes "conv-msw-0001"
-    //    (the MSW message handler echoes back this id).
+    // 1. Send a message so an active conversation is established. The client now MINTS the
+    //    conversation id (first-turn recovery); the MSW handler echoes it back, so it becomes
+    //    the active id. Capture it to assert the correction carries the SAME conversation.
     await user.type(screen.getByLabelText("Message"), "hello");
     await user.click(screen.getByRole("button", { name: /send/i }));
     await screen.findByText(/Echo: hello/);
@@ -136,11 +141,15 @@ describe("Chat (employee Otzar)", () => {
     await waitFor(() => {
       expect(getRecordedCorrectionCalls().count).toBe(1);
     });
-    expect(getRecordedCorrectionCalls().lastBody).toMatchObject({
+    const correctionBody = getRecordedCorrectionCalls().lastBody as Record<string, unknown>;
+    expect(correctionBody).toMatchObject({
       incorrect_description: "Said pricing is fixed",
       correct_behavior: "Pricing varies by tier",
-      conversation_id: "conv-msw-0001",
     });
+    // The correction carries the ACTIVE conversation id — now the client-minted UUID the
+    // server echoed back (first-turn recovery contract), not the mock's no-client default.
+    expect(typeof correctionBody.conversation_id).toBe("string");
+    expect(correctionBody.conversation_id as string).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     // No raw target_capsule_id surfaced from the Chat affordance.
     expect(getRecordedCorrectionCalls().lastBody).not.toHaveProperty(
       "target_capsule_id",
