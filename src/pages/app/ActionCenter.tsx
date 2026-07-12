@@ -32,8 +32,14 @@
 //     translated to friendly labels.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DecisionEvidenceDrawer } from "@/components/otzar/DecisionEvidenceDrawer";
+import {
+  getBasisStatusHeadline,
+  getBasisStatusSeverity,
+} from "@/lib/labels/basis-status";
+import type { ObligationWithBasis } from "@/lib/types/foundation";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -646,6 +652,12 @@ export function ActionCenter(): JSX.Element {
           (NOT the Action queue), lives outside the tab ternary, and never feeds
           the "Needs decision" count — a scheduled meeting is done, not a task. */}
       <ScheduledLane />
+
+      {/* [DECISION-EVIDENCE-LANE] A calm, mostly-quiet lane that surfaces any
+          completed decision whose recorded evidence has since changed —
+          proactive review, never an accusation. Read-only except an explicit
+          recheck inside the drawer. Lives outside the tab ternary. */}
+      <DecisionEvidenceLane />
     </div>
   );
 }
@@ -828,6 +840,140 @@ function ScheduledLane(): JSX.Element | null {
           })}
         </ul>
       )}
+    </section>
+  );
+}
+
+// ── [DECISION-EVIDENCE-LANE] proactive stale-basis surfacing ────────────────
+// A completed decision's captured evidence can go stale after the fact
+// (source changed / superseded / retracted / removed). This lane surfaces the
+// stale ones prominently and keeps the current ones quiet — it NEVER says the
+// decision was wrong. Read-only here; the evidence drawer holds the one
+// explicit recheck action. Reuses the with_basis obligation list.
+function DecisionEvidenceLane(): JSX.Element | null {
+  const [decisions, setDecisions] = useState<ObligationWithBasis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [selected, setSelected] = useState<ObligationWithBasis | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const load = useCallback(() => {
+    return api.otzar.obligations
+      .list({ with_basis: true })
+      .then((result) => {
+        if (result.ok) {
+          setDecisions(result.data.obligations);
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setFailed(true);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // A recheck or new remediation changes obligation state — refresh quietly.
+  useWorkStateChanged(["TASK_COMPLETED", "LEDGER_UPDATED"], () => void load());
+
+  // On failure, stay quiet — this is an ambient safety lane, never noisy.
+  if (failed) return null;
+
+  const stale = decisions.filter((d) => d.basis_status === "stale");
+  const currentCount = decisions.filter((d) => d.basis_status === "current").length;
+
+  // Nothing recorded + nothing to review → render nothing (no empty-state noise).
+  if (!loading && stale.length === 0 && currentCount === 0) return null;
+
+  const openDrawer = (d: ObligationWithBasis): void => {
+    setSelected(d);
+    setDrawerOpen(true);
+  };
+
+  return (
+    <section
+      className="space-y-2 border-t border-border pt-4"
+      data-testid="decision-evidence-lane"
+      aria-label="Decision evidence"
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <ShieldAlert className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <span>Decision evidence</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Completed decisions whose supporting evidence has since changed. Reviewing
+        keeps your record accurate — a change here doesn't mean the decision was
+        wrong.
+      </p>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground" data-testid="decision-evidence-lane-loading">
+          Checking your decisions…
+        </p>
+      ) : stale.length === 0 ? (
+        <Card data-testid="decision-evidence-lane-allclear">
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            Decision basis remains current
+            {currentCount > 0 ? ` for ${currentCount} completed ${currentCount === 1 ? "decision" : "decisions"}` : ""}.
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-2" data-testid="decision-evidence-lane-list">
+          {stale.map((d) => {
+            const severity = getBasisStatusSeverity(d.basis_status ?? "none");
+            return (
+              <li key={d.obligation_id}>
+                <Card
+                  data-testid="decision-evidence-lane-card"
+                  data-basis-status={d.basis_status}
+                  className={severity === "red" ? "border-destructive/40" : "border-amber-500/40"}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                      <span className="flex-1">{d.title}</span>
+                      <Badge
+                        variant="outline"
+                        className="text-amber-600 dark:text-amber-400"
+                        data-testid="decision-evidence-lane-badge"
+                      >
+                        Review required
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-between gap-3 pt-0 text-xs text-muted-foreground">
+                    <span data-testid="decision-evidence-lane-headline">
+                      {getBasisStatusHeadline(d.basis_status ?? "none")}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openDrawer(d)}
+                      data-testid="decision-evidence-lane-review"
+                      aria-label={`Review the evidence for ${d.title}`}
+                    >
+                      Review evidence
+                    </Button>
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <DecisionEvidenceDrawer
+        decision={selected}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onRechecked={() => void load()}
+      />
     </section>
   );
 }

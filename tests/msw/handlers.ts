@@ -3199,9 +3199,35 @@ const contextCandidatesHandler = http.get(
   () => HttpResponse.json({ ok: true, candidates: [] }),
 );
 
+// [OTZAR STAGE-2 TRUTH-EVIDENCE] Default governed-decision evidence reads so the
+// Action Center's Decision Evidence lane loads under onUnhandledRequest:"error".
+// Empty by default; tests override per-case via server.use().
+const obligationsListHandler = http.get(`${API_BASE}/otzar/obligations`, () =>
+  HttpResponse.json({ ok: true, obligations: [] }),
+);
+const obligationEvidenceHandler = http.get(
+  `${API_BASE}/otzar/obligations/:id/evidence`,
+  () => HttpResponse.json({ ok: true, evidence: [] }),
+);
+const obligationRecheckHandler = http.post(
+  `${API_BASE}/otzar/obligations/:id/evidence/recheck`,
+  () =>
+    HttpResponse.json({
+      ok: true,
+      status: "current",
+      stale: [],
+      remediation_obligation_id: null,
+      remediation_created: false,
+    }),
+);
+
 export const handlers = [
   actionsListHandler,
   contextCandidatesHandler,
+  // [OTZAR STAGE-2 TRUTH-EVIDENCE] decision-evidence lane defaults
+  obligationsListHandler,
+  obligationEvidenceHandler,
+  obligationRecheckHandler,
   workOsAuthorityHandler,
   runtimeCapabilitiesHandler,
   workLedgerCreateHandler,

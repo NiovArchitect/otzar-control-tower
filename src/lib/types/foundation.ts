@@ -3137,6 +3137,128 @@ export interface ActionListResponse {
 }
 
 // ════════════════════════════════════════════════════════════════
+// OTZAR STAGE-2 TRUTH-EVIDENCE — the governed-decision evidence surface.
+// Mirrors the LIVE Foundation routes:
+//   GET  /api/v1/otzar/obligations?with_basis=true
+//   GET  /api/v1/otzar/obligations/:id/evidence
+//   POST /api/v1/otzar/obligations/:id/evidence/recheck
+// SAFE views only: ids + closed-vocab classifications + timestamps + hashes.
+// The captured evidence basis is IMMUTABLE — `current_source_status` is a
+// SEPARATE live projection and must never be conflated with the captured
+// snapshot in the UI. Forbidden (NEVER add): raw source text, message
+// bodies, tokens, permission internals, policy envelopes.
+// ════════════════════════════════════════════════════════════════
+
+// WHAT: Live basis status of a completed decision's captured evidence.
+//       current = every final-decision basis still holds; stale = at least
+//       one basis changed/superseded/retracted/gone; none = no durable basis
+//       captured yet. Absent when the list was fetched without with_basis.
+export type BasisStatus = "current" | "stale" | "none";
+
+// WHAT: How the current source compares to the captured basis (per snapshot).
+//       unchanged is safe; the rest are stale to varying severity; unknown =
+//       no version to compare (never treated as stale).
+export type CurrentSourceStatus =
+  | "unchanged"
+  | "changed"
+  | "superseded"
+  | "retracted"
+  | "unavailable"
+  | "unknown";
+
+// WHAT: SAFE obligation (governed decision/commitment) projection.
+// WHY: Surfaced-by-allowlist at Foundation; this mirror preserves the contract
+//      so the UI cannot reach into forbidden fields. `details` is an opaque
+//      safe object (ids + safe classifications only) — never render it raw.
+export interface Obligation {
+  obligation_id: string;
+  obligation_type: string;
+  title: string;
+  details: Record<string, unknown>;
+  state: string;
+  priority: string;
+  required_response_class: string | null;
+  source_channel: string;
+  provenance_class: string;
+  conversation_id: string | null;
+  source_turn_id: string | null;
+  responsible_entity_id: string;
+  has_action: boolean;
+  has_completion_evidence: boolean;
+  is_escalated: boolean;
+  is_terminal: boolean;
+  version: number;
+  created_at: string;
+  due_at: string | null;
+  acknowledged_at: string | null;
+  completed_at: string | null;
+}
+
+// WHAT: An obligation as returned WITH the optional live basis pass.
+export interface ObligationWithBasis extends Obligation {
+  basis_status?: BasisStatus;
+}
+
+// WHAT: GET /api/v1/otzar/obligations[?with_basis=true] response.
+export interface ObligationListResponse {
+  ok: true;
+  obligations: ObligationWithBasis[];
+}
+
+// WHAT: One immutable point-in-time evidence snapshot + its SEPARATE live
+//       source status. `current_source_status` is the only live-projected
+//       field; every other field is the frozen captured basis.
+export interface EvidenceSnapshotView {
+  snapshot_id: string;
+  decision_point: string;
+  source_record_type: string;
+  source_record_id: string;
+  source_version: number | null;
+  source_hash: string | null;
+  source_timestamp: string | null;
+  source_system: string | null;
+  source_integrity_state: string | null;
+  communication_act: string | null;
+  truth_class: string | null;
+  truth_weight_rank: number | null;
+  authority_class: string | null;
+  currentness: string | null;
+  conflict_indicator: boolean;
+  superseded_at_capture: boolean;
+  captured_at: string;
+  resolver_version: string;
+  evidence_fingerprint: string;
+  obligation_id: string | null;
+  handoff_id: string | null;
+  /** LIVE projection (captured basis vs. now) — NOT part of the frozen basis. */
+  current_source_status: CurrentSourceStatus;
+}
+
+// WHAT: GET /api/v1/otzar/obligations/:id/evidence response.
+export interface ObligationEvidenceResponse {
+  ok: true;
+  evidence: EvidenceSnapshotView[];
+}
+
+// WHAT: A stale-basis reference returned by an explicit recheck.
+export interface StaleBasisRef {
+  snapshot_id: string;
+  decision_point: string;
+  current_source_status: CurrentSourceStatus;
+}
+
+// WHAT: POST /api/v1/otzar/obligations/:id/evidence/recheck response.
+//       remediation_open ⇒ a governed review item was raised (or already
+//       existed) for the stale basis; current ⇒ the basis still holds.
+export interface ObligationRecheckResponse {
+  ok: true;
+  status: "current" | "remediation_open";
+  stale: StaleBasisRef[];
+  remediation_obligation_id: string | null;
+  remediation_created: boolean;
+}
+
+// ════════════════════════════════════════════════════════════════
 // Phase EDX-4 — TwinAuthorityGrant types (PR Foundation #269/#270)
 // ════════════════════════════════════════════════════════════════
 

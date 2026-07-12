@@ -226,6 +226,9 @@ import type {
   // Section 2 Action Runtime read surface (ADR-0057 §9 + §10)
   ActionDetailResponse,
   ActionListResponse,
+  ObligationListResponse,
+  ObligationEvidenceResponse,
+  ObligationRecheckResponse,
   SafeActionView,
   // Section 7 Full Audit Viewer (Foundation Wave 1+ per ADR-0071)
   ListAuditEventsInput,
@@ -998,6 +1001,43 @@ export class ApiClient {
   // exposed here -- it is can_admin_org/admin-only.
   // ──────────────────────────────────────────────────────────────
   otzar = {
+    // [OTZAR STAGE-2 TRUTH-EVIDENCE] The governed-decision evidence surface.
+    // READ-ONLY except the explicit recheck (which raises a governed review
+    // item, never executes anything). The captured basis is immutable; a
+    // recheck only re-projects the live source status.
+    obligations: {
+      /** GET /otzar/obligations[?with_basis=true] — the caller's governed
+       *  decisions. with_basis adds a live `basis_status` per decision. */
+      list: (
+        params: { with_basis?: boolean; open_only?: boolean; limit?: number } = {},
+      ): Promise<ApiResult<ObligationListResponse>> => {
+        const query: Record<string, string | number | undefined> = {};
+        if (params.with_basis === true) query.with_basis = "true";
+        if (params.open_only === true) query.open_only = "true";
+        if (params.limit !== undefined) query.limit = params.limit;
+        return this.request<ObligationListResponse>(`/otzar/obligations${qs(query)}`);
+      },
+
+      /** GET /otzar/obligations/:id/evidence — the immutable captured evidence
+       *  snapshots + their SEPARATE live current_source_status. */
+      evidence: (
+        obligationId: string,
+      ): Promise<ApiResult<ObligationEvidenceResponse>> =>
+        this.request<ObligationEvidenceResponse>(
+          `/otzar/obligations/${encodeURIComponent(obligationId)}/evidence`,
+        ),
+
+      /** POST /otzar/obligations/:id/evidence/recheck — explicit recheck; a
+       *  stale basis raises an idempotent governed review item. No execution. */
+      recheck: (
+        obligationId: string,
+      ): Promise<ApiResult<ObligationRecheckResponse>> =>
+        this.request<ObligationRecheckResponse>(
+          `/otzar/obligations/${encodeURIComponent(obligationId)}/evidence/recheck`,
+          { method: "POST" },
+        ),
+    },
+
     conversation: {
       /** POST /api/v1/otzar/conversation/message -- one chat turn with the caller's AI teammate. */
       message: (
