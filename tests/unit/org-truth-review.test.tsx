@@ -9,7 +9,7 @@
 //              src/components/otzar/OrgTruthReviewDrawer.tsx.
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse, delay } from "msw";
@@ -21,6 +21,7 @@ import type {
   ConflictCandidate,
   ConflictSet,
   ConflictSetWithCount,
+  OrgTruthRecord,
 } from "@/lib/types/foundation";
 
 const API_BASE = "http://localhost:3000/api/v1";
@@ -83,8 +84,8 @@ function candidate(overrides: Partial<ConflictCandidate> = {}): ConflictCandidat
 function serveConflictList(conflicts: ConflictSetWithCount[]): void {
   server.use(http.get(`${API_BASE}/otzar/org-truth/conflicts`, () => HttpResponse.json({ ok: true, conflicts })));
 }
-function serveConflictDetail(set: ConflictSet, candidates: ConflictCandidate[]): void {
-  server.use(http.get(`${API_BASE}/otzar/org-truth/conflicts/:id`, () => HttpResponse.json({ ok: true, conflict: { set, candidates } })));
+function serveConflictDetail(set: ConflictSet, candidates: ConflictCandidate[], current: OrgTruthRecord | null = null): void {
+  server.use(http.get(`${API_BASE}/otzar/org-truth/conflicts/:id`, () => HttpResponse.json({ ok: true, conflict: { set, candidates, current_promoted_truth: current } })));
 }
 
 function renderCenter(): void {
@@ -151,6 +152,30 @@ describe("Organizational Truth Review — drawer", () => {
     expect(cands.every((c) => c.getAttribute("data-selected") === "false")).toBe(true);
     // Current shown separately as "no current answer".
     expect(screen.getByTestId("org-truth-drawer-current-none")).toBeInTheDocument();
+  });
+
+  it("an open conflict WITH a current promoted truth shows it distinctly + what the selection would replace", async () => {
+    const set = conflictSet();
+    const current: OrgTruthRecord = {
+      truth_record_id: "cur-1", state: "PROMOTED", value: {}, decision_domain: "deadline", org_entity_id: "o",
+      subject_ref: null, subject_ref_class: null, truth_key: set.truth_key, version: 3,
+      winning_source_record_type: "WORK_LEDGER", winning_source_record_id: "X", winning_source_version: 2,
+      promotion_evidence_snapshot_id: null, truth_class: "authorized_decision", truth_weight_rank: 2, authority_ref: null,
+      promoter_entity_id: null, promoted_at: null, supersedes_truth_record_id: null, superseded_by_truth_record_id: null,
+      retraction_reason: null, conflict_set_ref: null, title: "Ship on Oct 1", value_type: "date",
+      visibility_scope: "SUBJECT", created_at: "", updated_at: "",
+    };
+    serveConflictDetail(set, [candidate({ source_record_id: "A" }), candidate({ source_record_id: "B" })], current);
+    renderDrawer(withCount(set, 2));
+    // Current promoted answer rendered (NOT the "no current answer" placeholder).
+    const cur = await screen.findByTestId("org-truth-drawer-current");
+    expect(cur).toHaveTextContent("Ship on Oct 1");
+    expect(cur).toHaveTextContent("v3");
+    expect(screen.queryByTestId("org-truth-drawer-current-none")).toBeNull();
+    // Selecting a candidate surfaces what it would replace.
+    expect(screen.queryByTestId("org-truth-drawer-would-replace")).toBeNull();
+    fireEvent.click((await screen.findAllByTestId("org-truth-candidate"))[0]!);
+    expect(await screen.findByTestId("org-truth-drawer-would-replace")).toBeInTheDocument();
   });
 
   it("resolve: select a candidate + reason → POST fires with expected_conflict_version → resolved; duplicate submit prevented", async () => {

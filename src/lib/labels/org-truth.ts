@@ -30,6 +30,7 @@ export const ORG_TRUTH_COPY = {
   currentLabel: "Current promoted organizational truth",
   competingLabel: "Competing candidate",
   historicalLabel: "Historical superseded truth",
+  wouldReplace: "Promoting your selected candidate would replace this current answer.",
 } as const;
 
 // ── Conflict-set state ──────────────────────────────────────────────────────

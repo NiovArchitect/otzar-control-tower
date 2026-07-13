@@ -3355,7 +3355,10 @@ export interface OrgTruthConflictListResponse {
 
 export interface OrgTruthConflictDetailResponse {
   ok: true;
-  conflict: { set: ConflictSet; candidates: ConflictCandidate[] };
+  // `current_promoted_truth` is resolved server-side from the conflict's stored truth_key (the
+  // client never reconstructs the topic); null ⇒ no current organizational answer. It is the answer
+  // the reviewer's selected candidate would replace.
+  conflict: { set: ConflictSet; candidates: ConflictCandidate[]; current_promoted_truth: OrgTruthRecord | null };
 }
 
 export interface OrgTruthCurrentResponse {

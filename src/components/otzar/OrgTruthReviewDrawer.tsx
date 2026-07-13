@@ -91,19 +91,16 @@ export function OrgTruthReviewDrawer({
     setLoading(true);
     return api.otzar.orgTruth
       .getConflict(conflictId)
-      .then(async (r) => {
+      .then((r) => {
         if (r.ok) {
           setSet(r.data.conflict.set);
           setCandidates(r.data.conflict.candidates);
           setLoadFailed(false);
-          // The current promoted answer, when the set already resolved to one.
-          const resulting = r.data.conflict.set.resulting_truth_record_id;
-          if (resulting !== null) {
-            const rec = await api.otzar.orgTruth.getRecord(resulting);
-            setCurrent(rec.ok ? rec.data.record : null);
-          } else {
-            setCurrent(null);
-          }
+          // The current promoted answer the reviewer would replace — resolved SERVER-SIDE from the
+          // conflict's own truth_key (the client never reconstructs the topic). null ⇒ no current
+          // answer. Reflects the pre-existing answer for an open conflict AND the freshly-promoted
+          // answer after a resolve (this drawer re-loads on success), so no second lookup is needed.
+          setCurrent(r.data.conflict.current_promoted_truth);
         } else {
           setLoadFailed(true);
         }
@@ -196,9 +193,17 @@ export function OrgTruthReviewDrawer({
             <section aria-label="Current promoted organizational truth" className="rounded-md border border-border p-3">
               <p className="text-xs font-medium text-foreground">{ORG_TRUTH_COPY.currentLabel}</p>
               {current !== null ? (
-                <div className="mt-1 text-xs text-muted-foreground" data-testid="org-truth-drawer-current">
-                  <span className="text-foreground">{current.title ?? humanizeOrgTruthClass(current.value_type)}</span>
-                  {" · "}{humanizeOrgTruthClass(current.state)}
+                <div className="mt-1 space-y-0.5 text-xs text-muted-foreground" data-testid="org-truth-drawer-current">
+                  <div><span className="text-foreground">{current.title ?? humanizeOrgTruthClass(current.value_type)}</span>{" · "}{humanizeOrgTruthClass(current.state)}{current.state === "DISPUTED" ? " · disputed" : ""}</div>
+                  <div>
+                    v{current.version}
+                    {current.truth_class !== null ? ` · ${humanizeOrgTruthClass(current.truth_class)}` : ""}
+                    {current.truth_weight_rank !== null ? ` · weight ${current.truth_weight_rank}` : ""}
+                    {current.winning_source_record_type !== null ? ` · source: ${humanizeOrgTruthClass(current.winning_source_record_type)}` : ""}
+                  </div>
+                  {selected !== null ? (
+                    <div className="pt-0.5 text-amber-600 dark:text-amber-500" data-testid="org-truth-drawer-would-replace">{ORG_TRUTH_COPY.wouldReplace}</div>
+                  ) : null}
                 </div>
               ) : (
                 <p className="mt-1 text-xs text-muted-foreground" data-testid="org-truth-drawer-current-none">
