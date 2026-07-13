@@ -32,9 +32,17 @@
 //     translated to friendly labels.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DecisionEvidenceDrawer } from "@/components/otzar/DecisionEvidenceDrawer";
+import { OrgTruthReviewDrawer } from "@/components/otzar/OrgTruthReviewDrawer";
+import type { ConflictSetWithCount } from "@/lib/types/foundation";
+import {
+  ORG_TRUTH_COPY,
+  getConflictStateLabel,
+  getConflictStateSeverity,
+  humanizeOrgTruthClass,
+} from "@/lib/labels/org-truth";
 import {
   getBasisStatusHeadline,
   getBasisStatusSeverity,
@@ -658,6 +666,7 @@ export function ActionCenter(): JSX.Element {
           proactive review, never an accusation. Read-only except an explicit
           recheck inside the drawer. Lives outside the tab ternary. */}
       <DecisionEvidenceLane />
+      <OrgTruthReviewLane />
     </div>
   );
 }
@@ -973,6 +982,118 @@ function DecisionEvidenceLane(): JSX.Element | null {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         onRechecked={() => void load()}
+      />
+    </section>
+  );
+}
+
+// [SECTION-10 ORG-TRUTH REVIEW] The authorized reviewer's lane: open
+// organizational-truth conflicts the server returns for THIS caller (server is
+// authoritative — the lane is silent when none/unauthorized, never revealing
+// existence). A governed review record, never merged into the action cards.
+function OrgTruthReviewLane(): JSX.Element | null {
+  const [conflicts, setConflicts] = useState<ConflictSetWithCount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [selected, setSelected] = useState<ConflictSetWithCount | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const load = useCallback(() => {
+    return api.otzar.orgTruth
+      .listConflicts()
+      .then((r) => {
+        if (r.ok) {
+          setConflicts(r.data.conflicts);
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setFailed(true);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+  useWorkStateChanged(["TASK_COMPLETED", "LEDGER_UPDATED"], () => void load());
+
+  // Silent on failure/unauthorized — an ambient governance lane, never noisy.
+  if (failed) return null;
+  const open = conflicts.filter((c) => c.state === "OPEN" || c.state === "UNDER_REVIEW");
+  if (!loading && open.length === 0) return null;
+
+  const openDrawer = (c: ConflictSetWithCount): void => {
+    setSelected(c);
+    setDrawerOpen(true);
+  };
+
+  return (
+    <section
+      className="space-y-2 border-t border-border pt-4"
+      data-testid="org-truth-review-lane"
+      aria-label="Organizational truth review"
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <Scale className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <span>Organizational truth review</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Conflicting sources need an authorized decision on the organizational
+        answer. {ORG_TRUTH_COPY.reviewerSelects}
+      </p>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground" data-testid="org-truth-review-lane-loading">
+          {ORG_TRUTH_COPY.loading}
+        </p>
+      ) : (
+        <ul className="space-y-2" data-testid="org-truth-review-lane-list">
+          {open.map((c) => (
+            <li key={c.conflict_set_id}>
+              <Card
+                data-testid="org-truth-review-lane-card"
+                data-conflict-state={c.state}
+                className={`border-amber-500/40 ${getConflictStateSeverity(c.state) === "red" ? "border-destructive/40" : ""}`}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex-1">{humanizeOrgTruthClass(c.decision_domain)}</span>
+                    <Badge variant="outline" className="text-amber-600 dark:text-amber-400" data-testid="org-truth-review-lane-badge">
+                      {getConflictStateLabel(c.state)}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between gap-3 pt-0 text-xs text-muted-foreground">
+                  <span>
+                    {c.candidate_count} competing {c.candidate_count === 1 ? "source" : "sources"}
+                    {c.review_obligation_id !== null ? " · review assigned" : ""}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openDrawer(c)}
+                    data-testid="org-truth-review-lane-review"
+                    aria-label={`Review the organizational truth conflict for ${c.decision_domain}`}
+                  >
+                    Review conflict
+                  </Button>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <OrgTruthReviewDrawer
+        conflict={selected}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onResolved={() => void load()}
       />
     </section>
   );

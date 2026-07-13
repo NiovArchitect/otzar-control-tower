@@ -3221,6 +3221,19 @@ const obligationRecheckHandler = http.post(
     }),
 );
 
+// [SECTION-10 ORG-TRUTH REVIEW] defaults — quiet (no conflicts) so the lane is
+// silent unless a test provides conflicts via server.use(...).
+const orgTruthConflictsHandler = http.get(`${API_BASE}/otzar/org-truth/conflicts`, () =>
+  HttpResponse.json({ ok: true, conflicts: [] }),
+);
+const orgTruthConflictDetailHandler = http.get(
+  `${API_BASE}/otzar/org-truth/conflicts/:id`,
+  () => HttpResponse.json({ ok: true, conflict: { set: null, candidates: [] } }),
+);
+const orgTruthCurrentHandler = http.get(`${API_BASE}/otzar/org-truth/current`, () =>
+  HttpResponse.json({ ok: true, record: null }),
+);
+
 export const handlers = [
   actionsListHandler,
   contextCandidatesHandler,
@@ -3228,6 +3241,10 @@ export const handlers = [
   obligationsListHandler,
   obligationEvidenceHandler,
   obligationRecheckHandler,
+  // [SECTION-10 ORG-TRUTH REVIEW] lane defaults
+  orgTruthConflictsHandler,
+  orgTruthConflictDetailHandler,
+  orgTruthCurrentHandler,
   workOsAuthorityHandler,
   runtimeCapabilitiesHandler,
   workLedgerCreateHandler,

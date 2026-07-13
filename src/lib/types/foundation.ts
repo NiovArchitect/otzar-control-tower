@@ -3259,6 +3259,133 @@ export interface ObligationRecheckResponse {
 }
 
 // ════════════════════════════════════════════════════════════════
+// [SECTION-10 ORG-TRUTH REVIEW] Governed organizational-truth review surface.
+// SAFE-view allowlist discipline — these mirror the Foundation safe projections
+// (classifications + ids only; NEVER raw source content / hashes / metadata).
+// ════════════════════════════════════════════════════════════════
+
+export type ConflictSetState =
+  | "OPEN"
+  | "UNDER_REVIEW"
+  | "RESOLVED"
+  | "SUPERSEDED"
+  | "CANCELLED";
+
+export type OrgTruthState =
+  | "CANDIDATE"
+  | "PROMOTED"
+  | "DISPUTED"
+  | "SUPERSEDED"
+  | "RETRACTED";
+
+// WHAT: A materialized conflict set (competing sources for one truth key).
+export interface ConflictSet {
+  conflict_set_id: string;
+  org_entity_id: string;
+  truth_key: string;
+  decision_domain: string;
+  subject_ref: string | null;
+  state: ConflictSetState;
+  version: number;
+  review_obligation_id: string | null;
+  candidate_set_fingerprint: string | null;
+  resulting_truth_record_id: string | null;
+  resolution_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// WHAT: A conflict set as returned by the list, WITH a candidate count.
+export interface ConflictSetWithCount extends ConflictSet {
+  candidate_count: number;
+}
+
+// WHAT: A preserved competing candidate — SAFE classifications only.
+export interface ConflictCandidate {
+  source_record_type: string;
+  source_record_id: string;
+  source_version: number | null;
+  communication_act: string | null;
+  truth_class: string | null;
+  truth_weight_rank: number | null;
+  authority_status: string | null;
+  currentness: string | null;
+  source_integrity_state: string | null;
+  permission_eligible: boolean;
+  superseded: boolean;
+  retracted: boolean;
+  is_winner: boolean;
+}
+
+// WHAT: A promoted organizational-truth record — SAFE projection.
+export interface OrgTruthRecord {
+  truth_record_id: string;
+  org_entity_id: string;
+  decision_domain: string;
+  subject_ref: string | null;
+  subject_ref_class: string | null;
+  truth_key: string;
+  state: OrgTruthState;
+  version: number;
+  winning_source_record_type: string | null;
+  winning_source_record_id: string | null;
+  winning_source_version: number | null;
+  promotion_evidence_snapshot_id: string | null;
+  truth_class: string | null;
+  truth_weight_rank: number | null;
+  authority_ref: string | null;
+  promoter_entity_id: string | null;
+  promoted_at: string | null;
+  supersedes_truth_record_id: string | null;
+  superseded_by_truth_record_id: string | null;
+  retraction_reason: string | null;
+  conflict_set_ref: string | null;
+  title: string | null;
+  value: Record<string, unknown>;
+  value_type: string | null;
+  visibility_scope: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrgTruthConflictListResponse {
+  ok: true;
+  conflicts: ConflictSetWithCount[];
+}
+
+export interface OrgTruthConflictDetailResponse {
+  ok: true;
+  conflict: { set: ConflictSet; candidates: ConflictCandidate[] };
+}
+
+export interface OrgTruthCurrentResponse {
+  ok: true;
+  record: OrgTruthRecord | null;
+}
+
+export interface OrgTruthRecordResponse {
+  ok: true;
+  record: OrgTruthRecord;
+}
+
+// WHAT: The winner passed to a governed resolution (built from a selected
+//       ConflictCandidate — identity + version only; the server re-resolves).
+export interface OrgTruthSourceWinner {
+  source_record_type: string;
+  source_record_id: string;
+  source_version?: number | null;
+}
+
+export interface OrgTruthResolveResponse {
+  ok: true;
+  result: { kind: "promoted"; record: OrgTruthRecord; created: boolean };
+}
+
+export interface OrgTruthRetractResponse {
+  ok: true;
+}
+
+// ════════════════════════════════════════════════════════════════
 // Phase EDX-4 — TwinAuthorityGrant types (PR Foundation #269/#270)
 // ════════════════════════════════════════════════════════════════
 

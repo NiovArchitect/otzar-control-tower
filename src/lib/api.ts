@@ -229,6 +229,13 @@ import type {
   ObligationListResponse,
   ObligationEvidenceResponse,
   ObligationRecheckResponse,
+  OrgTruthConflictListResponse,
+  OrgTruthConflictDetailResponse,
+  OrgTruthCurrentResponse,
+  OrgTruthRecordResponse,
+  OrgTruthResolveResponse,
+  OrgTruthRetractResponse,
+  OrgTruthSourceWinner,
   SafeActionView,
   // Section 7 Full Audit Viewer (Foundation Wave 1+ per ADR-0071)
   ListAuditEventsInput,
@@ -1035,6 +1042,90 @@ export class ApiClient {
         this.request<ObligationRecheckResponse>(
           `/otzar/obligations/${encodeURIComponent(obligationId)}/evidence/recheck`,
           { method: "POST" },
+        ),
+    },
+
+    // [SECTION-10 ORG-TRUTH REVIEW] Governed organizational-truth review surface.
+    // Reads are authorized server-side (domain owner / approver / reviewer); the
+    // one mutation (resolveConflict) promotes a reviewer-selected answer through
+    // the governed backend — never client-side, never optimistic.
+    orgTruth: {
+      /** GET /otzar/org-truth/conflicts — the caller's authorized open conflicts. */
+      listConflicts: (): Promise<ApiResult<OrgTruthConflictListResponse>> =>
+        this.request<OrgTruthConflictListResponse>("/otzar/org-truth/conflicts"),
+
+      /** GET /otzar/org-truth/conflicts/:id — the set + its preserved candidates. */
+      getConflict: (
+        conflictId: string,
+      ): Promise<ApiResult<OrgTruthConflictDetailResponse>> =>
+        this.request<OrgTruthConflictDetailResponse>(
+          `/otzar/org-truth/conflicts/${encodeURIComponent(conflictId)}`,
+        ),
+
+      /** GET /otzar/org-truth/current — the current promoted answer for a key (or null). */
+      getCurrent: (params: {
+        decision_domain: string;
+        topic: string;
+        subject_ref?: string | null;
+        subject_ref_class?: string | null;
+        workspace_id?: string | null;
+      }): Promise<ApiResult<OrgTruthCurrentResponse>> => {
+        const query: Record<string, string | undefined> = {
+          decision_domain: params.decision_domain,
+          topic: params.topic,
+        };
+        if (params.subject_ref != null) query.subject_ref = params.subject_ref;
+        if (params.subject_ref_class != null) query.subject_ref_class = params.subject_ref_class;
+        if (params.workspace_id != null) query.workspace_id = params.workspace_id;
+        return this.request<OrgTruthCurrentResponse>(`/otzar/org-truth/current${qs(query)}`);
+      },
+
+      /** GET /otzar/org-truth/:id — one promoted-truth record. */
+      getRecord: (
+        truthRecordId: string,
+      ): Promise<ApiResult<OrgTruthRecordResponse>> =>
+        this.request<OrgTruthRecordResponse>(
+          `/otzar/org-truth/${encodeURIComponent(truthRecordId)}`,
+        ),
+
+      /** POST /otzar/org-truth/conflicts/:id/resolve — the reviewer's authorized
+       *  resolution: promote the selected winner with a recorded reason. The
+       *  server derives scope from the conflict; expected_conflict_version guards
+       *  against a stale review. */
+      resolveConflict: (
+        conflictId: string,
+        input: {
+          decision_domain: string;
+          winner: OrgTruthSourceWinner;
+          reason: string;
+          expected_conflict_version: number;
+          value?: Record<string, unknown>;
+          value_type?: string;
+        },
+      ): Promise<ApiResult<OrgTruthResolveResponse>> =>
+        this.request<OrgTruthResolveResponse>(
+          `/otzar/org-truth/conflicts/${encodeURIComponent(conflictId)}/resolve`,
+          {
+            method: "POST",
+            body: {
+              scope: { decision_domain: input.decision_domain, topic: "" },
+              winner: input.winner,
+              reason: input.reason,
+              expected_conflict_version: input.expected_conflict_version,
+              ...(input.value !== undefined ? { value: input.value } : {}),
+              ...(input.value_type !== undefined ? { value_type: input.value_type } : {}),
+            },
+          },
+        ),
+
+      /** POST /otzar/org-truth/:id/retract — authorized retraction (preserves history). */
+      retract: (
+        truthRecordId: string,
+        input: { reason: string; expected_version: number },
+      ): Promise<ApiResult<OrgTruthRetractResponse>> =>
+        this.request<OrgTruthRetractResponse>(
+          `/otzar/org-truth/${encodeURIComponent(truthRecordId)}/retract`,
+          { method: "POST", body: input },
         ),
     },
 
