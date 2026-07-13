@@ -178,6 +178,15 @@ describe("Organizational Truth Review — drawer", () => {
     expect(await screen.findByTestId("org-truth-drawer-would-replace")).toBeInTheDocument();
   });
 
+  it("forward-compatible: a Foundation response WITHOUT current_promoted_truth renders 'no current answer', never crashes", async () => {
+    const set = conflictSet();
+    // Old-Foundation shape (no current_promoted_truth field).
+    server.use(http.get(`${API_BASE}/otzar/org-truth/conflicts/:id`, () => HttpResponse.json({ ok: true, conflict: { set, candidates: [candidate({ source_record_id: "A" })] } })));
+    renderDrawer(withCount(set, 1));
+    expect(await screen.findByTestId("org-truth-drawer-current-none")).toBeInTheDocument();
+    expect(screen.queryByTestId("org-truth-drawer-current")).toBeNull();
+  });
+
   it("resolve: select a candidate + reason → POST fires with expected_conflict_version → resolved; duplicate submit prevented", async () => {
     const set = conflictSet({ version: 7 });
     serveConflictDetail(set, [candidate({ source_record_id: "A" }), candidate({ source_record_id: "B" })]);

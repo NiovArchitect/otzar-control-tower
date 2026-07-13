@@ -100,7 +100,10 @@ export function OrgTruthReviewDrawer({
           // conflict's own truth_key (the client never reconstructs the topic). null ⇒ no current
           // answer. Reflects the pre-existing answer for an open conflict AND the freshly-promoted
           // answer after a resolve (this drawer re-loads on success), so no second lookup is needed.
-          setCurrent(r.data.conflict.current_promoted_truth);
+          // `?? null` keeps this forward-compatible: on a Foundation that predates the
+          // current_promoted_truth projection the field is absent (undefined) → render "no current
+          // answer" rather than crashing on undefined.
+          setCurrent(r.data.conflict.current_promoted_truth ?? null);
         } else {
           setLoadFailed(true);
         }
