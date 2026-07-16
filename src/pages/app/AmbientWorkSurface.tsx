@@ -197,6 +197,30 @@ export function AmbientWorkSurface(): JSX.Element {
               never from chat alone.
             </p>
 
+            {/* Next-best-step — server-derived action, not a dashboard tile. */}
+            {dgi?.next_best_step &&
+            dgi.next_best_step.kind !== "IDLE_HEALTHY" ? (
+              <Link
+                to={dgi.next_best_step.route_hint || "/app/action-center"}
+                className="flex items-center justify-between gap-3 rounded-xl border border-violet-400/20 bg-violet-500/[0.06] px-3 py-2.5 transition-colors hover:bg-violet-500/[0.1]"
+                data-testid="dgi-next-best-step"
+                data-kind={dgi.next_best_step.kind}
+                data-autonomy={dgi.next_best_step.autonomy_ceiling}
+              >
+                <span className="min-w-0">
+                  <span className="block font-medium text-slate-900">
+                    {dgi.next_best_step.safe_title}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    {dgi.next_best_step.reason}
+                  </span>
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/15 px-2.5 py-1 text-[11px] font-semibold text-violet-900">
+                  Next <ArrowRight className="h-3 w-3" aria-hidden />
+                </span>
+              </Link>
+            ) : null}
+
             {/* Pairing posture — fail-closed multi-Twin / unpaired recovery. */}
             {dgi?.coherence_status === "BLOCKED" ? (
               <div

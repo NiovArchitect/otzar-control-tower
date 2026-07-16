@@ -44,7 +44,6 @@ import { Chat } from "@/pages/app/Chat";
 import { Observe } from "@/pages/app/Observe";
 import { Welcome } from "@/pages/app/Welcome";
 import { Corrections } from "@/pages/app/Corrections";
-import { Approvals } from "@/pages/app/Approvals";
 import { ActionCenter } from "@/pages/app/ActionCenter";
 import { Comms } from "@/pages/app/Comms";
 import { ConnectorHealth } from "@/pages/app/ConnectorHealth";
@@ -63,12 +62,8 @@ import { MeetingCaptures } from "@/pages/app/MeetingCaptures";
 import { OnboardingReadiness } from "@/pages/app/OnboardingReadiness";
 import { VoiceCaptures } from "@/pages/app/VoiceCaptures";
 import { WorkProjects } from "@/pages/app/WorkProjects";
-import { MyWork } from "@/pages/app/MyWork";
 import { InboxThread } from "@/pages/app/InboxThread";
-import { TeamWork } from "@/pages/app/TeamWork";
-import { BlindSpots } from "@/pages/app/BlindSpots";
 import { OperationalHealth } from "@/pages/app/OperationalHealth";
-import { VoiceReady } from "@/pages/app/VoiceReady";
 import { Voice } from "@/pages/app/Voice";
 
 import { LoginPage } from "@/pages/Login";
@@ -143,7 +138,11 @@ const router = createBrowserRouter(
               <Route path="observe" element={<Observe />} />
               <Route path="welcome" element={<Welcome />} />
               <Route path="corrections" element={<Corrections />} />
-              <Route path="approvals" element={<Approvals />} />
+              {/* Approvals consolidate into Action Center (one decision surface). */}
+              <Route
+                path="approvals"
+                element={<Navigate to="/app/action-center" replace />}
+              />
               <Route path="action-center" element={<ActionCenter />} />
               <Route path="comms" element={<Comms />} />
               <Route path="my-organization" element={<MyOrganization />} />
@@ -169,12 +168,18 @@ const router = createBrowserRouter(
               <Route path="onboarding-readiness" element={<OnboardingReadiness />} />
               <Route path="voice-captures" element={<VoiceCaptures />} />
               <Route path="work-projects" element={<WorkProjects />} />
-              <Route path="my-work" element={<MyWork />} />
+              {/* Work surfaces: my-work + team-work → My Day workbench (IA consolidation). */}
+              <Route path="my-work" element={<Navigate to="/app/my-day" replace />} />
+              <Route path="team-work" element={<Navigate to="/app/my-day" replace />} />
               <Route path="inbox/:id" element={<InboxThread />} />
-              <Route path="team-work" element={<TeamWork />} />
-              <Route path="blind-spots" element={<BlindSpots />} />
+              {/* Blind spots → Action Center (one decision surface). */}
+              <Route
+                path="blind-spots"
+                element={<Navigate to="/app/action-center" replace />}
+              />
               <Route path="operational-health" element={<OperationalHealth />} />
-              <Route path="voice-ready" element={<VoiceReady />} />
+              {/* Voice readiness folds into voice surface. */}
+              <Route path="voice-ready" element={<Navigate to="/app/voice" replace />} />
               <Route path="voice" element={<Voice />} />
               <Route path="conversations" element={<Conversations />} />
               {/* Unknown /app/* paths fall back to the employee home. */}
