@@ -667,7 +667,7 @@ export function AmbientWorkSurface(): JSX.Element {
             ) : null}
             {urgentBlindSpots > 0 ? (
               <Link
-                to="/app/blind-spots"
+                to="/app/action-center"
                 className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-slate-800 transition-colors hover:bg-white/50"
                 data-testid="needs-blind-spots"
               >
@@ -811,6 +811,31 @@ export function AmbientWorkSurface(): JSX.Element {
           </ul>
         </GlassPanel>
       ) : null}
+
+      {/* Communication — Relay is the channel; Otzar is presence. */}
+      <GlassPanel intensity="working" label="Messages" testId="relay-presence-panel">
+        <div className="space-y-2 text-sm text-slate-700">
+          <p className="text-xs leading-relaxed text-slate-500">
+            Real-time conversation lives in Otzar Relay — not another
+            dashboard tab. Otzar stays with you; messages feed governed work.
+          </p>
+          <a
+            href={
+              (import.meta as ImportMeta & { env?: { VITE_RELAY_URL?: string } })
+                .env?.VITE_RELAY_URL ?? "https://github.com/NiovArchitect/otzar-relay"
+            }
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between gap-3 rounded-xl border border-violet-400/20 bg-violet-500/[0.06] px-3 py-2.5 transition-colors hover:bg-violet-500/[0.1]"
+            data-testid="open-relay"
+          >
+            <span className="font-medium text-slate-900">Open Otzar Relay</span>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/15 px-2.5 py-1 text-[11px] font-semibold text-violet-900">
+              Messages <ArrowRight className="h-3 w-3" aria-hidden />
+            </span>
+          </a>
+        </div>
+      </GlassPanel>
 
       {/* CONTEXT — what Otzar is using. */}
       <GlassPanel intensity="ambient" label="Context" testId="context-panel">
