@@ -3,11 +3,21 @@
 //          intelligence surface that answers in 5 seconds (ADHD test): what
 //          needs me, what changed, what context Otzar holds, one next action.
 //          Built ONLY from real rails. Design Law + PRD-01 + quality rubric.
-// CONNECTS TO: EmployeeLayout, GlassPanel, presence, myDayIntelligence.
+//          [DGI-COHERENCE WAVE-2] Always-visible organizational intelligence
+//          strip from GET /otzar/dgi-coherence (single server authority).
+// CONNECTS TO: EmployeeLayout, GlassPanel, presence, myDayIntelligence,
+//              api.otzar.dgiCoherence.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Mic, MoonStar, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Mic,
+  MoonStar,
+  ShieldAlert,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
@@ -17,7 +27,10 @@ import { OtzarMark } from "@/components/ambient/OtzarMark";
 import { buildWorkNodes } from "@/lib/work-os/work-nodes";
 import { GLASS_CTA, intensityDot } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
-import type { MyDaySuggestion } from "@/lib/types/foundation";
+import type {
+  DgiCoherenceSnapshot,
+  MyDaySuggestion,
+} from "@/lib/types/foundation";
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
 
 function greetingFor(hour: number, name: string | null): string {
@@ -30,6 +43,23 @@ function openOrb(): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("otzar:open"));
   }
+}
+
+function dgiPanelIntensity(
+  c: DgiCoherenceSnapshot | null,
+): "ambient" | "working" | "attention" {
+  if (c === null) return "ambient";
+  if (
+    c.coherence_status === "BLOCKED" ||
+    c.coherence_status === "UNPAIRED" ||
+    c.open_org_truth_conflicts_count > 0
+  ) {
+    return "attention";
+  }
+  if (c.coherence_status === "NEEDS_ATTENTION" || c.attention_count > 0) {
+    return "working";
+  }
+  return "ambient";
 }
 
 export function AmbientWorkSurface(): JSX.Element {
@@ -66,10 +96,11 @@ export function AmbientWorkSurface(): JSX.Element {
     : null;
 
   const [urgentBlindSpots, setUrgentBlindSpots] = useState(0);
-  // [DGI-COHERENCE] Governed intelligence strip — open obligations + org-truth
-  // conflicts from server authority (not local reconstruction).
-  const [openObligations, setOpenObligations] = useState(0);
-  const [orgTruthConflicts, setOrgTruthConflicts] = useState(0);
+  // [DGI-COHERENCE WAVE-2] Single server authority for collaborative
+  // organizational intelligence (pairing + work + truth + handoffs).
+  const [dgi, setDgi] = useState<DgiCoherenceSnapshot | null>(null);
+  const [dgiLoaded, setDgiLoaded] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     api.workOs
@@ -84,30 +115,21 @@ export function AmbientWorkSurface(): JSX.Element {
       cancelled = true;
     };
   }, []);
+
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      api.otzar.obligations.list({ open_only: true, limit: 20 }),
-      api.otzar.orgTruth.listConflicts(),
-    ])
-      .then(([obl, conflicts]) => {
+    api.otzar
+      .dgiCoherence()
+      .then((r) => {
         if (cancelled) return;
-        if (obl.ok) {
-          const list =
-            (obl.data as { obligations?: unknown[] }).obligations ??
-            (obl.data as { items?: unknown[] }).items ??
-            [];
-          setOpenObligations(Array.isArray(list) ? list.length : 0);
+        if (r.ok) {
+          setDgi(r.data.coherence);
         }
-        if (conflicts.ok) {
-          const list =
-            (conflicts.data as { conflicts?: unknown[] }).conflicts ??
-            (conflicts.data as { items?: unknown[] }).items ??
-            [];
-          setOrgTruthConflicts(Array.isArray(list) ? list.length : 0);
-        }
+        setDgiLoaded(true);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setDgiLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -123,8 +145,10 @@ export function AmbientWorkSurface(): JSX.Element {
     contextTitle: ctxLabel,
     approvalsCount,
     unreadCount,
-    correctionsActive: 0,
+    correctionsActive: dgi?.active_personal_corrections_count ?? 0,
   });
+
+  const dgiIntensity = dgiPanelIntensity(dgi);
 
   return (
     <div
@@ -159,47 +183,172 @@ export function AmbientWorkSurface(): JSX.Element {
         </div>
       </section>
 
-      {/* DGI COHERENCE — private work vs organizational truth, server-sourced. */}
-      {openObligations > 0 || orgTruthConflicts > 0 ? (
+      {/* DGI COHERENCE — always-visible trust surface (server authority). */}
+      {dgiLoaded ? (
         <GlassPanel
-          intensity={orgTruthConflicts > 0 ? "attention" : "working"}
+          intensity={dgiIntensity}
           label="Organizational intelligence"
           testId="dgi-coherence-panel"
         >
-          <div className="space-y-2 text-sm text-slate-700">
+          <div className="space-y-2.5 text-sm text-slate-700">
             <p className="text-xs leading-relaxed text-slate-500">
-              Your AI Teammate keeps private context private. Shared organizational
-              answers only appear after governed promotion — never from chat alone.
+              Your AI Teammate keeps private context private. Shared
+              organizational answers only appear after governed promotion —
+              never from chat alone.
             </p>
-            {openObligations > 0 ? (
+
+            {/* Pairing posture — fail-closed multi-Twin / unpaired recovery. */}
+            {dgi?.coherence_status === "BLOCKED" ? (
+              <div
+                className="flex items-start gap-2.5 rounded-xl bg-amber-400/15 px-3 py-2.5"
+                data-testid="dgi-twin-blocked"
+              >
+                <ShieldAlert
+                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-800"
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-slate-900">
+                    {dgi.eligible_twin_count} AI Teammates are linked — Otzar
+                    will not blend them
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    Resolve to a single active Twin before collaborative
+                    intelligence continues.
+                  </p>
+                  <Link
+                    to="/app/my-twin"
+                    className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-900 underline-offset-2 hover:underline"
+                    data-testid="dgi-resolve-twin"
+                  >
+                    Open My Twin <ArrowRight className="h-3 w-3" aria-hidden />
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
+            {dgi?.coherence_status === "UNPAIRED" ? (
+              <div
+                className="flex items-start gap-2.5 rounded-xl bg-slate-900/5 px-3 py-2.5"
+                data-testid="dgi-twin-unpaired"
+              >
+                <Users
+                  className="mt-0.5 h-4 w-4 shrink-0 text-slate-500"
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-slate-900">
+                    No AI Teammate is paired yet
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    Pair a Twin to unlock governed organizational intelligence.
+                  </p>
+                  <Link
+                    to="/app/my-twin"
+                    className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
+                    data-testid="dgi-pair-twin"
+                  >
+                    Set up My Twin <ArrowRight className="h-3 w-3" aria-hidden />
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
+            {dgi?.coherence_status === "HEALTHY" ? (
+              <p
+                className="flex items-center gap-2 text-xs text-slate-500"
+                data-testid="dgi-healthy"
+              >
+                <span
+                  aria-hidden
+                  className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400"
+                />
+                Coherence is healthy — no open organizational pressure.
+              </p>
+            ) : null}
+
+            {dgi !== null && dgi.open_obligations_count > 0 ? (
               <Link
                 to="/app/action-center"
                 className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
                 data-testid="dgi-open-obligations"
               >
                 <span>
-                  {openObligations === 1
+                  {dgi.open_obligations_count === 1
                     ? "1 open obligation in your work"
-                    : `${openObligations} open obligations in your work`}
+                    : `${dgi.open_obligations_count} open obligations in your work`}
+                  {dgi.open_obligation_titles[0] ? (
+                    <span className="mt-0.5 block truncate text-xs text-slate-500">
+                      e.g. {dgi.open_obligation_titles[0]}
+                    </span>
+                  ) : null}
                 </span>
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                <ArrowRight
+                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                  aria-hidden
+                />
               </Link>
             ) : null}
-            {orgTruthConflicts > 0 ? (
+
+            {dgi !== null && dgi.open_incoming_handoffs_count > 0 ? (
+              <Link
+                to="/app/action-center"
+                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
+                data-testid="dgi-incoming-handoffs"
+              >
+                <span>
+                  {dgi.open_incoming_handoffs_count === 1
+                    ? "1 incoming handoff needs acknowledgment"
+                    : `${dgi.open_incoming_handoffs_count} incoming handoffs need acknowledgment`}
+                </span>
+                <ArrowRight
+                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                  aria-hidden
+                />
+              </Link>
+            ) : null}
+
+            {dgi !== null && dgi.open_org_truth_conflicts_count > 0 ? (
               <Link
                 to="/app/action-center"
                 className="flex items-center justify-between gap-3 rounded-xl bg-amber-400/10 px-3 py-2.5 transition-colors hover:bg-amber-400/15"
                 data-testid="dgi-org-truth-conflicts"
               >
                 <span className="font-medium text-slate-900">
-                  {orgTruthConflicts === 1
+                  {dgi.open_org_truth_conflicts_count === 1
                     ? "1 organizational truth conflict needs review"
-                    : `${orgTruthConflicts} organizational truth conflicts need review`}
+                    : `${dgi.open_org_truth_conflicts_count} organizational truth conflicts need review`}
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/25 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
                   Review <ArrowRight className="h-3 w-3" aria-hidden />
                 </span>
               </Link>
+            ) : null}
+
+            {/* Quiet capacity strip — corrections + authority (not pressure). */}
+            {dgi !== null &&
+            (dgi.active_personal_corrections_count > 0 ||
+              dgi.active_twin_authority_grants_count > 0) &&
+            dgi.coherence_status !== "BLOCKED" &&
+            dgi.coherence_status !== "UNPAIRED" ? (
+              <div
+                className="flex flex-wrap gap-2 border-t border-white/50 pt-2 text-[11px] text-slate-500"
+                data-testid="dgi-capacity-strip"
+              >
+                {dgi.active_personal_corrections_count > 0 ? (
+                  <span data-testid="dgi-corrections-count">
+                    {dgi.active_personal_corrections_count} personal correction
+                    {dgi.active_personal_corrections_count === 1 ? "" : "s"}
+                  </span>
+                ) : null}
+                {dgi.active_twin_authority_grants_count > 0 ? (
+                  <span data-testid="dgi-authority-count">
+                    {dgi.active_twin_authority_grants_count} Twin authorit
+                    {dgi.active_twin_authority_grants_count === 1 ? "y" : "ies"}{" "}
+                    granted
+                  </span>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </GlassPanel>
@@ -274,7 +423,10 @@ export function AmbientWorkSurface(): JSX.Element {
           label="What changed"
           testId="changed-panel"
         >
-          <p className="text-sm leading-relaxed text-slate-600" data-testid="changed-headline">
+          <p
+            className="text-sm leading-relaxed text-slate-600"
+            data-testid="changed-headline"
+          >
             {headline}
           </p>
           {suggestions.length > 0 ? (
@@ -317,7 +469,8 @@ export function AmbientWorkSurface(): JSX.Element {
           </div>
         ) : (
           <p className="text-sm leading-relaxed text-slate-500">
-            No context yet. Tell Otzar what you&apos;re working on and it remembers.
+            No context yet. Tell Otzar what you&apos;re working on and it
+            remembers.
           </p>
         )}
       </GlassPanel>
@@ -358,7 +511,10 @@ export function AmbientWorkSurface(): JSX.Element {
       ) : null}
 
       {/* ALL CAUGHT UP — calm, not blank. */}
-      {nothingInFlight ? (
+      {nothingInFlight &&
+      (dgi === null || dgi.attention_count === 0) &&
+      dgi?.coherence_status !== "BLOCKED" &&
+      dgi?.coherence_status !== "UNPAIRED" ? (
         <div
           className="flex items-start gap-2.5 px-1"
           data-testid="ambient-caught-up"

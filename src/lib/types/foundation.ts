@@ -4670,6 +4670,39 @@ export interface MyDayIntelligenceResponse {
   intelligence: MyDayIntelligenceView;
 }
 
+// ─── [DGI-COHERENCE WAVE-2] Collaborative organizational intelligence ──
+// Product projection of the same leak-safe strip the Twin receives.
+// Pairing failures are fields (BLOCKED/UNPAIRED), not fetch failures.
+
+export type DgiTwinPairingStatus = "OK" | "TWIN_NOT_FOUND" | "TWIN_AMBIGUOUS";
+
+export type DgiCoherenceStatus =
+  | "HEALTHY"
+  | "NEEDS_ATTENTION"
+  | "BLOCKED"
+  | "UNPAIRED";
+
+export interface DgiCoherenceSnapshot {
+  open_obligations_count: number;
+  open_obligation_titles: string[];
+  open_org_truth_conflicts_count: number;
+  active_personal_corrections_count: number;
+  active_twin_authority_grants_count: number;
+  open_incoming_handoffs_count: number;
+  open_incoming_handoff_titles: string[];
+  twin_pairing_status: DgiTwinPairingStatus;
+  twin_entity_id: string | null;
+  eligible_twin_count: number;
+  coherence_status: DgiCoherenceStatus;
+  attention_count: number;
+  system_block: string;
+}
+
+export interface DgiCoherenceResponse {
+  ok: true;
+  coherence: DgiCoherenceSnapshot;
+}
+
 // ─── Phase 1227 — OCR / Observe (governed document observation) ──
 // "Let Otzar read this": capture → provider text extraction →
 // structured extraction (the Phase 1213 comms pipeline) → optional
