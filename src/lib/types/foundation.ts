@@ -4740,9 +4740,46 @@ export interface DgiCoherenceSnapshot {
   system_block: string;
 }
 
+export interface DgiCollaborationRecommendation {
+  kind: string;
+  selected_actor_id: string | null;
+  goal_id: string | null;
+  obligation_id: string | null;
+  risk_class: string;
+  autonomy_ceiling: string;
+  safe_summary: string;
+  reason: string;
+}
+
+export interface DgiCollaborationPlanView {
+  recommendation_count: number;
+  recommendations: DgiCollaborationRecommendation[];
+  metrics: {
+    actor_count: number;
+    twin_count: number;
+    open_obligation_count: number;
+    open_handoff_count: number;
+    at_risk_goal_count: number;
+    fail_closed_count: number;
+    cross_org_rejected: number;
+  };
+}
+
+export interface DgiTwinAuthorityPosture {
+  has_active_grants: boolean;
+  sample_action_checks: Array<{
+    action_type: string;
+    allowed: boolean;
+    reason: string | null;
+  }>;
+}
+
 export interface DgiCoherenceResponse {
   ok: true;
   coherence: DgiCoherenceSnapshot;
+  /** WAVE-4 — optional on older API builds. */
+  collaboration_plan?: DgiCollaborationPlanView;
+  twin_authority_posture?: DgiTwinAuthorityPosture;
 }
 
 // ─── Phase 1227 — OCR / Observe (governed document observation) ──

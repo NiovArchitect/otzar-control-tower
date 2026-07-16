@@ -29,6 +29,8 @@ import { GLASS_CTA, intensityDot } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import type {
   DgiCoherenceSnapshot,
+  DgiCollaborationPlanView,
+  DgiTwinAuthorityPosture,
   MyDaySuggestion,
 } from "@/lib/types/foundation";
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
@@ -96,9 +98,14 @@ export function AmbientWorkSurface(): JSX.Element {
     : null;
 
   const [urgentBlindSpots, setUrgentBlindSpots] = useState(0);
-  // [DGI-COHERENCE WAVE-2] Single server authority for collaborative
-  // organizational intelligence (pairing + work + truth + handoffs).
+  // [DGI WAVE-2/4] Single server authority for collaborative organizational
+  // intelligence (pairing + work + truth + handoffs + collab plan + authority).
   const [dgi, setDgi] = useState<DgiCoherenceSnapshot | null>(null);
+  const [collabPlan, setCollabPlan] = useState<DgiCollaborationPlanView | null>(
+    null,
+  );
+  const [authorityPosture, setAuthorityPosture] =
+    useState<DgiTwinAuthorityPosture | null>(null);
   const [dgiLoaded, setDgiLoaded] = useState(false);
 
   useEffect(() => {
@@ -124,6 +131,8 @@ export function AmbientWorkSurface(): JSX.Element {
         if (cancelled) return;
         if (r.ok) {
           setDgi(r.data.coherence);
+          setCollabPlan(r.data.collaboration_plan ?? null);
+          setAuthorityPosture(r.data.twin_authority_posture ?? null);
         }
         setDgiLoaded(true);
       })
@@ -349,10 +358,35 @@ export function AmbientWorkSurface(): JSX.Element {
               </Link>
             ) : null}
 
+            {/* Collaboration plan — top deterministic recommendation (WAVE-4). */}
+            {collabPlan !== null &&
+            collabPlan.recommendation_count > 0 &&
+            collabPlan.recommendations[0] ? (
+              <div
+                className="rounded-xl border border-white/50 bg-white/40 px-3 py-2 text-xs text-slate-600"
+                data-testid="dgi-collab-plan"
+                data-kind={collabPlan.recommendations[0].kind}
+              >
+                <p className="font-medium text-slate-800">
+                  Collaboration plan · {collabPlan.recommendations[0].kind}
+                </p>
+                <p className="mt-0.5 leading-relaxed">
+                  {collabPlan.recommendations[0].safe_summary}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Ceiling: {collabPlan.recommendations[0].autonomy_ceiling}
+                  {collabPlan.metrics.fail_closed_count > 0
+                    ? ` · ${collabPlan.metrics.fail_closed_count} fail-closed`
+                    : ""}
+                </p>
+              </div>
+            ) : null}
+
             {/* Quiet capacity strip — corrections + authority (not pressure). */}
             {dgi !== null &&
             (dgi.active_personal_corrections_count > 0 ||
-              dgi.active_twin_authority_grants_count > 0) &&
+              dgi.active_twin_authority_grants_count > 0 ||
+              authorityPosture !== null) &&
             dgi.coherence_status !== "BLOCKED" &&
             dgi.coherence_status !== "UNPAIRED" ? (
               <div
@@ -371,6 +405,16 @@ export function AmbientWorkSurface(): JSX.Element {
                     {dgi.active_twin_authority_grants_count === 1 ? "y" : "ies"}{" "}
                     granted
                   </span>
+                ) : null}
+                {authorityPosture !== null &&
+                !authorityPosture.has_active_grants ? (
+                  <Link
+                    to="/app/authority-grants"
+                    className="underline-offset-2 hover:underline"
+                    data-testid="dgi-authority-missing"
+                  >
+                    No Twin authority grants — material actions need approval
+                  </Link>
                 ) : null}
               </div>
             ) : null}
