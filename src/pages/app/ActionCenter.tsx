@@ -665,6 +665,7 @@ export function ActionCenter(): JSX.Element {
           completed decision whose recorded evidence has since changed —
           proactive review, never an accusation. Read-only except an explicit
           recheck inside the drawer. Lives outside the tab ternary. */}
+      <OpenObligationsLane />
       <DecisionEvidenceLane />
       <OrgTruthReviewLane />
     </div>
@@ -843,6 +844,114 @@ function ScheduledLane(): JSX.Element | null {
                       <div>Attendees were notified.</div>
                     ) : null}
                   </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// ── [COHERENCE-RECOVERY] Open obligations — deep-link from Today next-best-step
+// (?obligation=<id>). Surfaces real open work so Home counts match a place to act.
+function OpenObligationsLane(): JSX.Element | null {
+  const [items, setItems] = useState<
+    Array<{ obligation_id: string; title: string; state: string; priority?: string }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const focusRef = useRef<HTMLLIElement | null>(null);
+
+  const focusObligationId = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return new URLSearchParams(window.location.search).get("obligation") ?? "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.otzar.obligations
+      .list({ open_only: true, limit: 20 })
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) {
+          const list =
+            (r.data as { obligations?: typeof items }).obligations ?? [];
+          setItems(list);
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFailed(true);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (focusObligationId.length === 0 || loading) return;
+    focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusObligationId, loading, items]);
+
+  if (failed) return null;
+  if (!loading && items.length === 0) return null;
+
+  return (
+    <section
+      className="space-y-2 border-t border-border pt-4"
+      data-testid="open-obligations-lane"
+      aria-label="Open obligations"
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <ListChecks className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <span>Open work</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Obligations that still need progress — same objects Today counts.
+      </p>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading open work…</p>
+      ) : (
+        <ul className="space-y-2" data-testid="open-obligations-list">
+          {items.map((o) => {
+            const focused = o.obligation_id === focusObligationId;
+            return (
+              <li
+                key={o.obligation_id}
+                ref={focused ? focusRef : undefined}
+                data-testid="open-obligation-card"
+                data-focused={focused ? "true" : "false"}
+              >
+                <Card
+                  className={
+                    focused
+                      ? "border-indigo-400/50 ring-2 ring-indigo-400/30"
+                      : undefined
+                  }
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                      <span className="flex-1">{o.title}</span>
+                      <Badge variant="outline">{o.state}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  {focused ? (
+                    <CardContent className="pt-0 text-xs text-muted-foreground">
+                      Opened from Today — this is the next-best step Otzar named.
+                    </CardContent>
+                  ) : null}
                 </Card>
               </li>
             );
