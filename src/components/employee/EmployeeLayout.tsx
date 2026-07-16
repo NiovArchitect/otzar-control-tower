@@ -19,7 +19,7 @@ import { NotificationBell } from "@/components/otzar/NotificationBell";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { api } from "@/lib/api";
-import { AMBIENT_FIELD, GLASS_CHROME } from "@/lib/ambient/glass";
+import { AMBIENT_FIELD } from "@/lib/ambient/glass";
 
 export function EmployeeLayout() {
   const { entity, capabilities, logout } = useAuthStore();
@@ -45,9 +45,9 @@ export function EmployeeLayout() {
         {/* Header stacks above content so notification dropdowns aren't
             painted over by frosted main panels (overlay ladder: header z-40
             < edge z-55 < stack z-58 < orb z-60). */}
-        <header
-          className={`relative z-40 flex h-14 items-center justify-between border-b px-4 ${GLASS_CHROME}`}
-        >
+        {/* Overlay-layering contract: relative z-40 + backdrop-blur on a
+            double-quoted className (locked by overlay-layering.test.ts). */}
+        <header className="relative z-40 flex h-14 items-center justify-between border-b border-white/60 bg-white/50 px-4 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/40">
           <div className="flex items-center gap-2.5">
             <AppBackButton fallback="/app" />
             <Link

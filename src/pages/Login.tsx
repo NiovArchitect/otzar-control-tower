@@ -158,7 +158,8 @@ export function LoginPage() {
             Sign in
           </CardTitle>
           <CardDescription className="text-slate-500">
-            Use your work account. Every action is recorded for your organization.
+            Use your work account. Every action is recorded in your
+            organization&apos;s audit trail.
           </CardDescription>
         </CardHeader>
         <CardContent>
