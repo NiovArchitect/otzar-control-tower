@@ -4731,6 +4731,10 @@ export interface DgiCoherenceSnapshot {
   active_twin_authority_grants_count: number;
   open_incoming_handoffs_count: number;
   open_incoming_handoff_titles: string[];
+  /** Optional deep-link ids from newer API builds. */
+  open_incoming_handoff_ids?: string[];
+  open_obligation_ids?: string[];
+  open_org_truth_conflict_ids?: string[];
   twin_pairing_status: DgiTwinPairingStatus;
   twin_entity_id: string | null;
   eligible_twin_count: number;
@@ -4741,6 +4745,42 @@ export interface DgiCoherenceSnapshot {
   /** Optional on older API builds — treat as null. */
   next_best_step?: DgiNextBestStep | null;
   system_block: string;
+}
+
+/** [STAGE-2 §L] Multi-party responsibility handoff (safe projection). */
+export interface SafeHandoffView {
+  handoff_id: string;
+  state: string;
+  title: string;
+  summary: string | null;
+  priority: string;
+  outgoing_responsible_entity_id: string;
+  incoming_responsible_entity_id: string | null;
+  workspace_id: string | null;
+  conversation_id: string | null;
+  is_escalated: boolean;
+  is_terminal: boolean;
+  caller_is_outgoing: boolean;
+  caller_is_incoming: boolean;
+  version: number;
+  created_at: string;
+  sent_at: string | null;
+  received_at: string | null;
+  acknowledged_at: string | null;
+  completed_at: string | null;
+  due_at: string | null;
+}
+
+export interface HandoffListResponse {
+  ok: true;
+  handoffs: SafeHandoffView[];
+}
+
+export interface HandoffAmbientAcknowledgeResponse {
+  ok: true;
+  handoff: SafeHandoffView;
+  acknowledged_turn_id: string;
+  conversation_id: string;
 }
 
 export interface DgiCollaborationRecommendation {

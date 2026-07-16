@@ -8,7 +8,7 @@
 // CONNECTS TO: EmployeeLayout, GlassPanel, presence, myDayIntelligence,
 //              api.otzar.dgiCoherence.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   Sparkles,
   Users,
+  Handshake,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -28,10 +29,12 @@ import { buildWorkNodes } from "@/lib/work-os/work-nodes";
 import { GLASS_CTA, intensityDot } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import type {
+  CollaborationRequestSafeView,
   DgiCoherenceSnapshot,
   DgiCollaborationPlanView,
   DgiTwinAuthorityPosture,
   MyDaySuggestion,
+  SafeHandoffView,
 } from "@/lib/types/foundation";
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
 
@@ -115,6 +118,15 @@ export function AmbientWorkSurface(): JSX.Element {
       sample_titles: string[];
     }>
   >([]);
+  const [incomingHandoffs, setIncomingHandoffs] = useState<SafeHandoffView[]>(
+    [],
+  );
+  const [inboundCollab, setInboundCollab] = useState<
+    CollaborationRequestSafeView[]
+  >([]);
+  const [ackBusyId, setAckBusyId] = useState<string | null>(null);
+  const [ackError, setAckError] = useState<string | null>(null);
+  const [collabBusyId, setCollabBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,12 +143,10 @@ export function AmbientWorkSurface(): JSX.Element {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    api.otzar
+  const refreshDgi = useCallback(() => {
+    return api.otzar
       .dgiCoherence()
       .then((r) => {
-        if (cancelled) return;
         if (r.ok) {
           setDgi(r.data.coherence);
           setCollabPlan(r.data.collaboration_plan ?? null);
@@ -145,12 +155,47 @@ export function AmbientWorkSurface(): JSX.Element {
         setDgiLoaded(true);
       })
       .catch(() => {
-        if (!cancelled) setDgiLoaded(true);
+        setDgiLoaded(true);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    void refreshDgi();
+  }, [refreshDgi]);
+
+  const refreshHandoffs = useCallback(() => {
+    return api.otzar.handoffs
+      .list({
+        role: "incoming",
+        state: "SENT,RECEIVED,CLARIFICATION_REQUIRED",
+        limit: 5,
+      })
+      .then((r) => {
+        if (r.ok) setIncomingHandoffs(r.data.handoffs ?? []);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const refreshInboundCollab = useCallback(() => {
+    return api.otzar.collaboration
+      .inbound({ take: 12 })
+      .then((r) => {
+        if (!r.ok) return;
+        const actionable = (r.data.collaborations ?? []).filter(
+          (c) =>
+            c.state === "REQUESTED" ||
+            c.state === "NEEDS_APPROVAL" ||
+            c.state === "IN_PROGRESS",
+        );
+        setInboundCollab(actionable.slice(0, 5));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    void refreshHandoffs();
+    void refreshInboundCollab();
+  }, [refreshHandoffs, refreshInboundCollab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +210,47 @@ export function AmbientWorkSurface(): JSX.Element {
       cancelled = true;
     };
   }, []);
+
+  const acknowledgeHandoff = async (h: SafeHandoffView) => {
+    setAckBusyId(h.handoff_id);
+    setAckError(null);
+    try {
+      const r = await api.otzar.handoffs.acknowledge(h.handoff_id, {
+        expected_version: h.version,
+      });
+      if (r.ok) {
+        setIncomingHandoffs((prev) =>
+          prev.filter((x) => x.handoff_id !== h.handoff_id),
+        );
+        void refreshDgi();
+      } else {
+        setAckError("code" in r ? String(r.code) : "ACK_FAILED");
+        void refreshHandoffs();
+      }
+    } catch {
+      setAckError("NETWORK_ERROR");
+    } finally {
+      setAckBusyId(null);
+    }
+  };
+
+  const acceptCollab = async (c: CollaborationRequestSafeView) => {
+    setCollabBusyId(c.collaboration_id);
+    try {
+      const r = await api.otzar.collaboration.accept(c.collaboration_id);
+      if (r.ok) {
+        setInboundCollab((prev) =>
+          prev.filter((x) => x.collaboration_id !== c.collaboration_id),
+        );
+      } else {
+        void refreshInboundCollab();
+      }
+    } catch {
+      void refreshInboundCollab();
+    } finally {
+      setCollabBusyId(null);
+    }
+  };
 
   const nothingInFlight =
     approvalsCount === 0 && actionUnreadCount === 0 && urgentBlindSpots === 0;
@@ -361,22 +447,107 @@ export function AmbientWorkSurface(): JSX.Element {
               </Link>
             ) : null}
 
-            {dgi !== null && dgi.open_incoming_handoffs_count > 0 ? (
-              <Link
-                to="/app/action-center"
-                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
+            {(dgi !== null && dgi.open_incoming_handoffs_count > 0) ||
+            incomingHandoffs.length > 0 ? (
+              <div
+                className="space-y-2 rounded-xl border border-violet-400/15 bg-violet-500/[0.04] px-3 py-2.5"
                 data-testid="dgi-incoming-handoffs"
               >
-                <span>
-                  {dgi.open_incoming_handoffs_count === 1
-                    ? "1 incoming handoff needs acknowledgment"
-                    : `${dgi.open_incoming_handoffs_count} incoming handoffs need acknowledgment`}
-                </span>
-                <ArrowRight
-                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                  aria-hidden
-                />
-              </Link>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-900">
+                    {(dgi?.open_incoming_handoffs_count ??
+                      incomingHandoffs.length) === 1
+                      ? "1 incoming handoff needs you"
+                      : `${dgi?.open_incoming_handoffs_count ?? incomingHandoffs.length} incoming handoffs need you`}
+                  </p>
+                  <Link
+                    to="/app/action-center?lane=handoffs"
+                    className="text-[11px] font-semibold text-violet-900 underline-offset-2 hover:underline"
+                  >
+                    Open all
+                  </Link>
+                </div>
+                {incomingHandoffs.slice(0, 2).map((h) => (
+                  <div
+                    key={h.handoff_id}
+                    className="flex items-start justify-between gap-2 rounded-lg bg-white/50 px-2.5 py-2"
+                    data-testid="ambient-handoff-row"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-medium text-slate-800">
+                        {h.title}
+                      </p>
+                      {h.summary ? (
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
+                          {h.summary}
+                        </p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      data-testid="ambient-handoff-ack"
+                      disabled={ackBusyId === h.handoff_id}
+                      onClick={() => void acknowledgeHandoff(h)}
+                      className="shrink-0 rounded-full bg-violet-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:opacity-60"
+                    >
+                      {ackBusyId === h.handoff_id ? "…" : "Acknowledge"}
+                    </button>
+                  </div>
+                ))}
+                {ackError !== null ? (
+                  <p
+                    className="text-[11px] text-rose-700"
+                    data-testid="ambient-handoff-ack-error"
+                  >
+                    Couldn&apos;t acknowledge ({ackError}). Try again or open
+                    Action Center.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {inboundCollab.length > 0 ? (
+              <div
+                className="space-y-2 rounded-xl border border-sky-400/15 bg-sky-500/[0.04] px-3 py-2.5"
+                data-testid="ambient-inbound-collab"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
+                    <Handshake className="h-3.5 w-3.5 text-sky-700" aria-hidden />
+                    {inboundCollab.length === 1
+                      ? "1 collaboration waiting on you"
+                      : `${inboundCollab.length} collaborations waiting on you`}
+                  </p>
+                  <Link
+                    to="/app/collaboration"
+                    className="text-[11px] font-semibold text-sky-900 underline-offset-2 hover:underline"
+                  >
+                    Inbox
+                  </Link>
+                </div>
+                {inboundCollab.slice(0, 2).map((c) => (
+                  <div
+                    key={c.collaboration_id}
+                    className="flex items-start justify-between gap-2 rounded-lg bg-white/50 px-2.5 py-2"
+                    data-testid="ambient-collab-row"
+                  >
+                    <p className="min-w-0 truncate text-xs text-slate-800">
+                      {c.safe_summary}
+                    </p>
+                    {c.state === "REQUESTED" || c.state === "NEEDS_APPROVAL" ? (
+                      <button
+                        type="button"
+                        data-testid="ambient-collab-accept"
+                        disabled={collabBusyId === c.collaboration_id}
+                        onClick={() => void acceptCollab(c)}
+                        className="shrink-0 rounded-full bg-sky-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-60"
+                      >
+                        {collabBusyId === c.collaboration_id ? "…" : "Accept"}
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             ) : null}
 
             {dgi !== null && dgi.open_org_truth_conflicts_count > 0 ? (
@@ -522,40 +693,81 @@ export function AmbientWorkSurface(): JSX.Element {
         </GlassPanel>
       ) : null}
 
-      {/* WHAT CHANGED — one calm headline + deep-linked suggestions. */}
-      {headline !== null ? (
-        <GlassPanel
-          intensity={suggestions.length > 0 ? "attention" : "ambient"}
-          label="What changed"
-          testId="changed-panel"
-        >
-          <p
-            className="text-sm leading-relaxed text-slate-600"
-            data-testid="changed-headline"
+      {/* WHAT CHANGED — prefer DGI next-best-step when org pressure is live,
+          otherwise My Day intelligence. One calm headline, no dual stories. */}
+      {(() => {
+        const dgiStep =
+          dgi?.next_best_step && dgi.next_best_step.kind !== "IDLE_HEALTHY"
+            ? dgi.next_best_step
+            : null;
+        const displayHeadline =
+          dgiStep !== null
+            ? dgiStep.reason
+            : headline;
+        const displaySuggestions =
+          dgiStep !== null
+            ? [
+                {
+                  rank: 1,
+                  reason: dgiStep.kind,
+                  safe_title: dgiStep.safe_title,
+                  route: dgiStep.route_hint || "/app/action-center",
+                },
+                ...suggestions.slice(0, 2).map((s) => ({
+                  rank: s.rank + 1,
+                  reason: s.reason,
+                  safe_title: s.safe_title,
+                  route: "/app/my-day",
+                })),
+              ]
+            : suggestions.slice(0, 3).map((s) => ({
+                rank: s.rank,
+                reason: s.reason,
+                safe_title: s.safe_title,
+                route: "/app/my-day",
+              }));
+        if (displayHeadline === null && displaySuggestions.length === 0) {
+          return null;
+        }
+        return (
+          <GlassPanel
+            intensity={
+              dgiStep !== null || suggestions.length > 0 ? "attention" : "ambient"
+            }
+            label="What needs attention"
+            testId="changed-panel"
           >
-            {headline}
-          </p>
-          {suggestions.length > 0 ? (
-            <ul className="mt-3 space-y-1.5" data-testid="changed-suggestions">
-              {suggestions.slice(0, 3).map((s) => (
-                <li key={`${s.rank}-${s.reason}`}>
-                  <Link
-                    to="/app/my-day"
-                    className="flex items-center justify-between gap-2 rounded-xl border border-white/60 bg-white/50 px-3 py-2.5 text-sm text-slate-800 transition-colors hover:border-indigo-200/80 hover:bg-white/80"
-                    data-testid="changed-suggestion"
-                  >
-                    <span className="truncate">{s.safe_title}</span>
-                    <ArrowRight
-                      className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                      aria-hidden
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </GlassPanel>
-      ) : null}
+            {displayHeadline !== null ? (
+              <p
+                className="text-sm leading-relaxed text-slate-600"
+                data-testid="changed-headline"
+                data-source={dgiStep !== null ? "dgi" : "my-day"}
+              >
+                {displayHeadline}
+              </p>
+            ) : null}
+            {displaySuggestions.length > 0 ? (
+              <ul className="mt-3 space-y-1.5" data-testid="changed-suggestions">
+                {displaySuggestions.map((s) => (
+                  <li key={`${s.rank}-${s.reason}`}>
+                    <Link
+                      to={s.route}
+                      className="flex items-center justify-between gap-2 rounded-xl border border-white/60 bg-white/50 px-3 py-2.5 text-sm text-slate-800 transition-colors hover:border-indigo-200/80 hover:bg-white/80"
+                      data-testid="changed-suggestion"
+                    >
+                      <span className="truncate">{s.safe_title}</span>
+                      <ArrowRight
+                        className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                        aria-hidden
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </GlassPanel>
+        );
+      })()}
 
       {/* TEAM — capacity-only "what is my team working on?" */}
       {teamPeople.length > 0 ? (
