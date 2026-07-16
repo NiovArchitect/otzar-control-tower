@@ -4682,6 +4682,44 @@ export type DgiCoherenceStatus =
   | "BLOCKED"
   | "UNPAIRED";
 
+export type DgiCoherenceSignal =
+  | "CONFLICTED"
+  | "HANDOFF_INCOMPLETE"
+  | "AUTHORITY_PRESENT"
+  | "AUTHORITY_MISSING"
+  | "CORRECTIONS_ACTIVE"
+  | "OBLIGATIONS_OPEN"
+  | "PAIRING_OK"
+  | "PAIRING_BLOCKED"
+  | "PAIRING_UNPAIRED";
+
+export type DgiAutonomyCeiling =
+  | "OBSERVE"
+  | "DRAFT"
+  | "EXECUTE_WITH_CONFIRMATION"
+  | "EXECUTE_WITHIN_POLICY"
+  | "DELEGATE_WITHIN_SCOPE"
+  | "ESCALATE"
+  | "FAIL_CLOSED";
+
+export type DgiNextBestStepKind =
+  | "RESOLVE_TWIN_PAIRING"
+  | "PAIR_TWIN"
+  | "REVIEW_ORG_TRUTH"
+  | "ACKNOWLEDGE_HANDOFF"
+  | "ADVANCE_OBLIGATION"
+  | "GRANT_AUTHORITY"
+  | "IDLE_HEALTHY";
+
+export interface DgiNextBestStep {
+  kind: DgiNextBestStepKind;
+  priority: number;
+  safe_title: string;
+  reason: string;
+  route_hint: string;
+  autonomy_ceiling: DgiAutonomyCeiling;
+}
+
 export interface DgiCoherenceSnapshot {
   open_obligations_count: number;
   open_obligation_titles: string[];
@@ -4695,6 +4733,10 @@ export interface DgiCoherenceSnapshot {
   eligible_twin_count: number;
   coherence_status: DgiCoherenceStatus;
   attention_count: number;
+  /** Optional on older API builds — treat as []. */
+  signals?: DgiCoherenceSignal[];
+  /** Optional on older API builds — treat as null. */
+  next_best_step?: DgiNextBestStep | null;
   system_block: string;
 }
 
