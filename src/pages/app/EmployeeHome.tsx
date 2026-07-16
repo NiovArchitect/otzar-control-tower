@@ -11,16 +11,18 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Bot,
+  Briefcase,
   ClipboardCheck,
   Eye,
   MessageSquare,
   MessagesSquare,
   PencilLine,
+  Sparkles,
+  Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
-import { FutureFeatureCard } from "@/components/employee/FutureFeatureCard";
 import { useAuthStore } from "@/lib/stores/auth";
 
 export function EmployeeHome() {
@@ -88,22 +90,25 @@ export function EmployeeHome() {
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold">Coming later</h2>
+        <h2 className="text-base font-semibold">Also live</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <FutureFeatureCard
-            title="Teams"
-            description="Collaborate with teammates in shared team spaces. Not yet active in the employee app."
-            status="Not yet active"
+          <LiveCard
+            to="/app/collaboration"
+            title="People"
+            icon={<Users className="h-4 w-4" aria-hidden />}
+            description="Collaborate with teammates through governed requests."
           />
-          <FutureFeatureCard
-            title="Context"
-            description="See the project context Otzar assembles for you. Not yet active."
-            status="Not yet active"
+          <LiveCard
+            to="/app/work-projects"
+            title="Projects"
+            icon={<Briefcase className="h-4 w-4" aria-hidden />}
+            description="Project context and membership for shared work."
           />
-          <FutureFeatureCard
-            title="Agent Playground"
-            description="Stage and rehearse multi-step Otzar runs. Not yet active."
-            status="Not yet active"
+          <LiveCard
+            to="/app"
+            title="Today"
+            icon={<Sparkles className="h-4 w-4" aria-hidden />}
+            description="Ambient home — what needs you and the next step."
           />
         </div>
       </section>

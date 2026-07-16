@@ -1,9 +1,8 @@
 // FILE: OtzarMark.tsx
-// PURPOSE: Brand presence mark — Otzar symbol energy (violet luminous core,
-//          restrained glow, dark-depth contrast on light ambient shell).
-//          Speaks Design Law §2 (edge presence) + enterprise logo character:
-//          confident, premium, non-gaming. Glow only when `active`.
-// CONNECTS TO: Login, EmployeeLayout header, AmbientWorkSurface hero.
+// PURPOSE: Canonical Otzar mark — the exact flat purple symbol (circle +
+//          three-blade wing). Keep the geometry faithful to brand art;
+//          "stand out" via restrained soft bloom + depth, not redesign.
+// CONNECTS TO: Login, EmployeeLayout, AmbientWorkSurface, ambient presence.
 
 export function OtzarMark({
   size = "md",
@@ -11,12 +10,12 @@ export function OtzarMark({
   className = "",
 }: {
   size?: "sm" | "md" | "lg";
-  /** When false, static idle mark (no motion) — still present. */
+  /** Soft luminous bloom when true (state-backed presence). */
   active?: boolean;
   className?: string;
 }): JSX.Element {
   const dim =
-    size === "lg" ? "h-10 w-10" : size === "sm" ? "h-5 w-5" : "h-7 w-7";
+    size === "lg" ? "h-11 w-11" : size === "sm" ? "h-5 w-5" : "h-7 w-7";
 
   return (
     <span
@@ -24,70 +23,58 @@ export function OtzarMark({
       data-testid="otzar-mark"
       className={`relative inline-flex shrink-0 items-center justify-center ${dim} ${className}`}
     >
-      {/* Soft violet bloom — logo energy, never neon flood. */}
+      {/* Restrained violet bloom — standout without neon flood. */}
       <span
-        className={`absolute inset-[-12%] rounded-full bg-[radial-gradient(circle_at_40%_35%,rgba(139,92,246,0.38),rgba(91,33,182,0.12)_52%,transparent_72%)] ${
+        className={`pointer-events-none absolute inset-[-18%] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.28)_0%,rgba(168,85,247,0.08)_45%,transparent_70%)] ${
           active
-            ? "motion-safe:animate-[otzar-breathe_4.5s_ease-in-out_infinite]"
+            ? "motion-safe:animate-[otzar-breathe_5s_ease-in-out_infinite]"
             : "opacity-70"
         }`}
       />
-      {/* Circular mark — dark depth core with luminous rim. */}
+      {/* Exact brand geometry (flat violet mark). */}
       <svg
-        viewBox="0 0 48 48"
-        className="relative h-full w-full drop-shadow-[0_4px_14px_-4px_rgba(91,33,182,0.45)]"
+        viewBox="0 0 100 100"
+        className="relative h-full w-full drop-shadow-[0_2px_10px_rgba(124,58,237,0.35)]"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="Otzar"
       >
-        <circle
-          cx="24"
-          cy="24"
-          r="22"
-          fill="url(#otzarMarkFill)"
-          stroke="url(#otzarMarkStroke)"
-          strokeWidth="1.5"
-        />
-        {/* Three-blade wing (logo-inspired, simplified). */}
+        {/* Open ring — thick circular stroke, open at upper-right. */}
         <path
-          d="M16.5 30.5c3.2-1.4 6.4-5.2 7.8-9.4 1.5 3.8 4.2 7.2 7.6 9.1-3.6 1.2-7.6 1.4-11.2.4-1.5-.4-2.9-1-4.2-1.9z"
-          fill="white"
-          fillOpacity="0.95"
+          d="M78 22
+             C90 34 94 52 88 68
+             C80 88 58 98 38 94
+             C18 90 4 70 8 48
+             C12 26 32 10 54 12
+             C62 13 70 16 76 20"
+          stroke="#A855F7"
+          strokeWidth="9"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* Three flowing blades (wing) — solid brand purple. */}
+        <path
+          d="M28 68
+             C38 58 48 42 52 28
+             C58 42 68 56 82 66
+             C68 72 48 74 28 68 Z"
+          fill="#A855F7"
         />
         <path
-          d="M17.2 24.8c2.8-2.2 5.6-5.8 6.6-9.6 1.2 3.5 3.5 6.6 6.5 8.6-3.2.8-6.8.7-10-.3-1.1-.4-2.1-.9-3.1-1.5z"
-          fill="white"
-          fillOpacity="0.88"
+          d="M30 58
+             C40 48 48 36 52 24
+             C56 36 66 48 78 56
+             C64 62 46 64 30 58 Z"
+          fill="#A855F7"
         />
         <path
-          d="M18.4 19.2c2.2-2.6 4.4-5.4 5.1-8.2.9 2.8 2.7 5.3 5.1 7.1-2.6.5-5.4.3-8-.4-.8-.2-1.5-.5-2.2-.8z"
-          fill="white"
-          fillOpacity="0.8"
+          d="M34 48
+             C42 40 48 30 52 20
+             C56 30 64 40 74 48
+             C60 52 46 52 34 48 Z"
+          fill="#A855F7"
         />
-        <defs>
-          <radialGradient
-            id="otzarMarkFill"
-            cx="0"
-            cy="0"
-            r="1"
-            gradientUnits="userSpaceOnUse"
-            gradientTransform="translate(18 16) rotate(55) scale(34)"
-          >
-            <stop stopColor="#A78BFA" />
-            <stop offset="0.45" stopColor="#7C3AED" />
-            <stop offset="1" stopColor="#4C1D95" />
-          </radialGradient>
-          <linearGradient
-            id="otzarMarkStroke"
-            x1="8"
-            y1="6"
-            x2="40"
-            y2="42"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#E9D5FF" stopOpacity="0.9" />
-            <stop offset="1" stopColor="#6D28D9" stopOpacity="0.5" />
-          </linearGradient>
-        </defs>
       </svg>
     </span>
   );

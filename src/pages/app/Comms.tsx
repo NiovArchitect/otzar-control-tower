@@ -687,8 +687,10 @@ function CommsCockpit(): JSX.Element {
     { label: "Decisions", desc: "What the group decided", icon: Lightbulb, wired: true },
     { label: "Blockers", desc: "What's stuck or at risk", icon: Flag, wired: true },
     { label: "Commitments", desc: "Who committed to what", icon: Handshake, wired: true },
-    { label: "Questions", desc: "Open questions raised", icon: HelpCircle, wired: false },
-    { label: "Tasks / Work Ledger", desc: "Turn talk into tracked work", icon: ListTodo, wired: false },
+    // [COHERENCE-RECOVERY] Honest pipeline state — extract already surfaces
+    // questions + commitments; ledger projection is live via obligations.
+    { label: "Questions", desc: "Open questions raised in extract", icon: HelpCircle, wired: true },
+    { label: "Tasks / Work Ledger", desc: "Commitments become tracked obligations", icon: ListTodo, wired: true },
   ];
   const flow = [
     "Capture / Import",

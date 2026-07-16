@@ -1265,6 +1265,26 @@ export class ApiClient {
     dgiCoherence: (): Promise<ApiResult<DgiCoherenceResponse>> =>
       this.request<DgiCoherenceResponse>("/otzar/dgi-coherence"),
 
+    /** [COHERENCE-RECOVERY] GET /otzar/team-work — capacity-only team open work. */
+    teamWork: (): Promise<
+      ApiResult<{
+        ok: true;
+        team_work: {
+          org_entity_id: string;
+          people: Array<{
+            entity_id: string;
+            display_name: string;
+            open_obligation_count: number;
+            open_incoming_handoff_count: number;
+            sample_titles: string[];
+          }>;
+          total_open_obligations: number;
+          total_open_handoffs: number;
+          generated_at: string;
+        };
+      }>
+    > => this.request("/otzar/team-work"),
+
     /** Phase 1234 — GET /api/v1/otzar/my-day/intelligence. The calm
      *  ambient daily ranking: Foundation gathers the caller's SAFE
      *  scoped signals and ranks them through the Python intelligence
