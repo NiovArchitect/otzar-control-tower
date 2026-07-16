@@ -120,6 +120,7 @@ import type {
   DandelionOnboardingResponse,
   DandelionOrgGrowthResponse,
   ContextHealthResponse,
+  DgiCoherenceResponse,
   MyDayIntelligenceResponse,
   ObserveAttachWorkspaceResponse,
   ObserveCaptureSourceType,
@@ -1255,6 +1256,14 @@ export class ApiClient {
      *  status. Phase 1205. */
     contextHealth: (): Promise<ApiResult<ContextHealthResponse>> =>
       this.request<ContextHealthResponse>("/otzar/my-twin/context-health"),
+
+    /** [DGI-COHERENCE WAVE-2] GET /api/v1/otzar/dgi-coherence —
+     *  single source of truth for collaborative organizational
+     *  intelligence on Today. Same leak-safe strip the Twin sees
+     *  (counts + safe titles + pairing + coherence_status). Always
+     *  200 when session is valid — multi-Twin/unpaired are fields. */
+    dgiCoherence: (): Promise<ApiResult<DgiCoherenceResponse>> =>
+      this.request<DgiCoherenceResponse>("/otzar/dgi-coherence"),
 
     /** Phase 1234 — GET /api/v1/otzar/my-day/intelligence. The calm
      *  ambient daily ranking: Foundation gathers the caller's SAFE
