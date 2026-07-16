@@ -230,6 +230,8 @@ import type {
   ObligationListResponse,
   ObligationEvidenceResponse,
   ObligationRecheckResponse,
+  HandoffListResponse,
+  HandoffAmbientAcknowledgeResponse,
   OrgTruthConflictListResponse,
   OrgTruthConflictDetailResponse,
   OrgTruthCurrentResponse,
@@ -1043,6 +1045,33 @@ export class ApiClient {
         this.request<ObligationRecheckResponse>(
           `/otzar/obligations/${encodeURIComponent(obligationId)}/evidence/recheck`,
           { method: "POST" },
+        ),
+    },
+
+    /** [STAGE-2 §L] Multi-party responsibility handoffs. */
+    handoffs: {
+      list: (
+        params: {
+          role?: "incoming" | "outgoing";
+          state?: string;
+          limit?: number;
+        } = {},
+      ): Promise<ApiResult<HandoffListResponse>> => {
+        const query: Record<string, string | number | undefined> = {};
+        if (params.role !== undefined) query.role = params.role;
+        if (params.state !== undefined) query.state = params.state;
+        if (params.limit !== undefined) query.limit = params.limit;
+        return this.request<HandoffListResponse>(`/otzar/handoffs${qs(query)}`);
+      },
+
+      /** One-tap ambient acknowledge — mints durable USER turn + ACKs. */
+      acknowledge: (
+        handoffId: string,
+        body: { expected_version?: number; note?: string } = {},
+      ): Promise<ApiResult<HandoffAmbientAcknowledgeResponse>> =>
+        this.request<HandoffAmbientAcknowledgeResponse>(
+          `/otzar/handoffs/${encodeURIComponent(handoffId)}/acknowledge`,
+          { method: "POST", body },
         ),
     },
 

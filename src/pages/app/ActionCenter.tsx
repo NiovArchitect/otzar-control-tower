@@ -32,7 +32,7 @@
 //     translated to friendly labels.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert, Scale } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert, Scale, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DecisionEvidenceDrawer } from "@/components/otzar/DecisionEvidenceDrawer";
 import { OrgTruthReviewDrawer } from "@/components/otzar/OrgTruthReviewDrawer";
@@ -666,6 +666,7 @@ export function ActionCenter(): JSX.Element {
           proactive review, never an accusation. Read-only except an explicit
           recheck inside the drawer. Lives outside the tab ternary. */}
       <OpenObligationsLane />
+      <IncomingHandoffsLane />
       <DecisionEvidenceLane />
       <OrgTruthReviewLane />
     </div>
@@ -842,6 +843,184 @@ function ScheduledLane(): JSX.Element | null {
                     {onGoogle ? <div>On Google Calendar.</div> : null}
                     {participants.length > 0 ? (
                       <div>Attendees were notified.</div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// ── [PHENOMENAL-FLOW] Incoming handoffs — one-tap ambient acknowledge.
+// Deep-link from Today next-best-step (?handoff=<id> or ?lane=handoffs).
+function IncomingHandoffsLane(): JSX.Element | null {
+  const [items, setItems] = useState<
+    Array<{
+      handoff_id: string;
+      title: string;
+      state: string;
+      summary: string | null;
+      version: number;
+      priority?: string;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [ackError, setAckError] = useState<string | null>(null);
+  const [ackDone, setAckDone] = useState<string | null>(null);
+  const focusRef = useRef<HTMLLIElement | null>(null);
+
+  const focusHandoffId = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return new URLSearchParams(window.location.search).get("handoff") ?? "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    return api.otzar.handoffs
+      .list({
+        role: "incoming",
+        state: "SENT,RECEIVED,CLARIFICATION_REQUIRED",
+        limit: 20,
+      })
+      .then((r) => {
+        if (r.ok) {
+          setItems(r.data.handoffs ?? []);
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setFailed(true);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (focusHandoffId.length === 0 || loading) return;
+    focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusHandoffId, loading, items]);
+
+  const acknowledge = async (h: (typeof items)[number]) => {
+    setBusyId(h.handoff_id);
+    setAckError(null);
+    try {
+      const r = await api.otzar.handoffs.acknowledge(h.handoff_id, {
+        expected_version: h.version,
+      });
+      if (r.ok) {
+        setAckDone(h.handoff_id);
+        setItems((prev) => prev.filter((x) => x.handoff_id !== h.handoff_id));
+      } else {
+        setAckError(
+          "code" in r && typeof r.code === "string"
+            ? r.code
+            : "ACK_FAILED",
+        );
+        void load();
+      }
+    } catch {
+      setAckError("NETWORK_ERROR");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (failed) return null;
+  if (!loading && items.length === 0 && ackDone === null) return null;
+
+  return (
+    <section
+      className="space-y-2 border-t border-border pt-4"
+      data-testid="incoming-handoffs-lane"
+      aria-label="Incoming handoffs"
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <ArrowRightLeft className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <span>Incoming handoffs</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Responsibility transfers waiting on you — one tap records a durable
+        acknowledgment.
+      </p>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading handoffs…</p>
+      ) : items.length === 0 ? (
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="incoming-handoffs-clear"
+        >
+          All caught up on handoffs.
+        </p>
+      ) : (
+        <ul className="space-y-2" data-testid="incoming-handoffs-list">
+          {items.map((h) => {
+            const focused = h.handoff_id === focusHandoffId;
+            return (
+              <li
+                key={h.handoff_id}
+                ref={focused ? focusRef : undefined}
+                data-testid="incoming-handoff-card"
+                data-focused={focused ? "true" : "false"}
+              >
+                <Card
+                  className={
+                    focused
+                      ? "border-violet-400/50 ring-2 ring-violet-400/30"
+                      : undefined
+                  }
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                      <span className="flex-1">{h.title}</span>
+                      <Badge variant="outline">{h.state}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 pt-0">
+                    {h.summary ? (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {h.summary}
+                      </p>
+                    ) : null}
+                    {focused ? (
+                      <p className="text-xs text-muted-foreground">
+                        Opened from Today — this is the handoff Otzar named next.
+                      </p>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8"
+                      data-testid="handoff-acknowledge-btn"
+                      disabled={busyId === h.handoff_id}
+                      onClick={() => void acknowledge(h)}
+                    >
+                      {busyId === h.handoff_id
+                        ? "Acknowledging…"
+                        : "Acknowledge ownership"}
+                    </Button>
+                    {ackError !== null && busyId === null ? (
+                      <p
+                        className="text-xs text-destructive"
+                        data-testid="handoff-acknowledge-error"
+                      >
+                        Couldn&apos;t acknowledge ({ackError}). Try again.
+                      </p>
                     ) : null}
                   </CardContent>
                 </Card>
