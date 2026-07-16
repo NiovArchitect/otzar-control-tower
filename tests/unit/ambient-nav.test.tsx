@@ -1,8 +1,7 @@
 // FILE: tests/unit/ambient-nav.test.tsx
-// PURPOSE: [OTZAR-LIVE-6] The employee nav is now FIVE calm entries, not a
-//          26-destination SaaS sidebar. Prove the default is minimal (Today /
-//          Needs me / People / Memory / More), that "More" holds everything else
-//          (nothing lost), and that the dense list is NOT shown by default.
+// PURPOSE: [OTZAR-LIVE-6 / WAVE-1] Employee ambient nav is a calm primary
+//          loop (Today / Talk / Needs me / People / Memory + More), not a
+//          SaaS sidebar. Secondary surfaces stay out of the default rail.
 // CONNECTS TO: src/components/ambient/AmbientNav.tsx.
 
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
@@ -37,10 +36,11 @@ function renderNav(): void {
 }
 
 describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
-  it("shows the minimal approved primary loop by default (incl. Comms)", () => {
+  it("shows the ambient primary loop by default", () => {
     renderNav();
     const rail = screen.getByTestId("ambient-nav");
-    // Approved minimal primary: Today · Needs me · Comms · People · Memory (+ More).
+    // Ambient rail: Today · Needs me · Comms · People · Memory (+ More).
+    // Talk lives in the desktop EmployeeNav primary, not this compact rail.
     for (const label of ["Today", "Needs me", "Comms", "People", "Memory"]) {
       expect(within(rail).getAllByText(label).length).toBeGreaterThan(0);
     }
@@ -49,11 +49,9 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
 
   it("does NOT expose the dense destination list by default", () => {
     renderNav();
-    // Secondary/risk/technical labels are NOT on the primary surface.
     expect(screen.queryByText("Blind Spots")).not.toBeInTheDocument();
     expect(screen.queryByText("Tool connections")).not.toBeInTheDocument();
     expect(screen.queryByText("Work health")).not.toBeInTheDocument();
-    // The "More" sheet is collapsed until asked.
     expect(screen.queryByTestId("ambient-nav-more-sheet")).not.toBeInTheDocument();
   });
 
@@ -62,16 +60,19 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
     renderNav();
     await user.click(screen.getAllByTestId("ambient-nav-more")[0]!);
     const sheet = screen.getByTestId("ambient-nav-more-sheet");
-    // Curated secondary surfaces live here, not on the primary surface.
     expect(within(sheet).getByText("Corrections")).toBeInTheDocument();
-    // PROD-MODEL-P3 §17 — Approvals is demoted (Action Center is THE needs-me
-    // surface); it must NOT appear in the sheet.
-    expect(within(sheet).queryByText("Approvals")).toBeNull();
-    expect(within(sheet).getByText("Blind Spots")).toBeInTheDocument();
     expect(within(sheet).getByText("Preferences")).toBeInTheDocument();
-    // Route-only (hidden) surfaces are NOT dumped into the sheet — they stay
-    // reachable by URL but never crowd it.
-    for (const hiddenLabel of ["Chat", "Getting started", "Observe", "Voice captures"]) {
+    // Captures routes to /app/comms which is already primary — not in More.
+    expect(within(sheet).queryByText("Captures")).toBeNull();
+    // Approvals / Blind Spots are route-only (Needs me owns the daily path).
+    expect(within(sheet).queryByText("Approvals")).toBeNull();
+    expect(within(sheet).queryByText("Blind Spots")).toBeNull();
+    for (const hiddenLabel of [
+      "Chat",
+      "Getting started",
+      "Observe",
+      "Voice captures",
+    ]) {
       expect(within(sheet).queryByText(hiddenLabel)).not.toBeInTheDocument();
     }
   });

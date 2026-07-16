@@ -1,9 +1,6 @@
 // FILE: tools-connections.test.tsx (unit)
-// PURPOSE: Smoke the merged "Tools & Connections" landing — the novel artifact
-//          that composes the two connector surfaces (ConnectorsAdminPage +
-//          ConnectorRailsAdmin) as tabs. tsc/build catch type/import errors;
-//          this catches a broken RENDER (the live click-through is credential-
-//          gated, so this is the only automated guard for it).
+// PURPOSE: Smoke the merged "Tools & Connections" landing — human IA:
+//          connect tools without MCP jargon as the primary path.
 // CONNECTS TO: src/pages/ToolsConnections.tsx.
 
 import { describe, expect, it, beforeEach } from "vitest";
@@ -46,22 +43,27 @@ beforeEach(() => {
 });
 
 describe("Tools & Connections — merged landing", () => {
-  it("renders the landing with both tabs without throwing", () => {
+  it("renders the human landing with both tabs without throwing", () => {
     renderPage();
     expect(screen.getByTestId("tools-connections-page")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Tools & Connections/i, level: 1 })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: /Connect the tools your company already uses/i,
+        level: 1,
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("tab-connected-tools")).toBeInTheDocument();
-    expect(screen.getByTestId("tab-integrations-mcp")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-integrations-advanced")).toBeInTheDocument();
+    expect(screen.getByTestId("connector-categories")).toBeInTheDocument();
   });
 
-  it("defaults to Connected Tools and switches to Integrations & MCP on click", async () => {
+  it("defaults to Your tools and switches to Advanced on click", async () => {
     const user = userEvent.setup();
     renderPage();
-    // Default tab panel is visible.
     expect(screen.getByTestId("panel-connected-tools")).toBeInTheDocument();
-    await user.click(screen.getByTestId("tab-integrations-mcp"));
+    await user.click(screen.getByTestId("tab-integrations-advanced"));
     await waitFor(() =>
-      expect(screen.getByTestId("panel-integrations-mcp")).toBeInTheDocument(),
+      expect(screen.getByTestId("panel-integrations-advanced")).toBeInTheDocument(),
     );
   });
 });

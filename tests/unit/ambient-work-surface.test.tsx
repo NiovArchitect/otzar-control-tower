@@ -242,7 +242,9 @@ describe("AmbientWorkSurface — urgent blind spots surface here (§21)", () => 
     renderSurface();
     const line = await screen.findByTestId("needs-blind-spots");
     expect(line).toHaveTextContent("2 items are stuck and need a decision");
-    expect(line).toHaveAttribute("href", "/app/blind-spots");
+    // WAVE-1: stuck work deep-links into Needs me (Action Center), not a
+    // separate Blind Spots destination.
+    expect(line).toHaveAttribute("href", "/app/action-center");
   });
 
   it("a backlog of NON-urgent items adds nothing to the home surface", async () => {

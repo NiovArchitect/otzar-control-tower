@@ -1,7 +1,7 @@
 // FILE: tests/unit/employee-nav.test.tsx
-// PURPOSE: Phase 1212 -- locks the EmployeeNav reorganization into
-//          PRIMARY / MORE groupings + the removal of the "Voice
-//          envelope" developer-debug surface from the nav.
+// PURPOSE: Locks EmployeeNav WAVE-1 IA:
+//          Primary: Today · Talk · Needs me · People · Memory (+ Team admin)
+//          More: curated secondary only — no SaaS tab farm.
 // CONNECTS TO:
 //   - src/lib/nav-employee.ts (source of truth)
 //   - src/components/employee/EmployeeNav.tsx (renderer)
@@ -48,37 +48,25 @@ async function openMore(): Promise<void> {
 }
 
 describe("nav-employee.ts — primary / more groupings", () => {
-  it("primary group is the minimal everyday loop (approved IA)", () => {
+  it("primary group is the WAVE-1 everyday loop", () => {
     const labels = PRIMARY_EMPLOYEE_NAV.map((i) => i.label);
     expect(labels).toEqual([
-      "My Day",
-      "Talk to Otzar",
-      "Action Center",
-      "My Work",
-      "Team Work",
-      "Comms",
-      "People & Collaboration",
-      "My Digital Work Wallet",
+      "Today",
+      "Talk",
+      "Needs me",
+      "People",
+      "Memory",
+      "Team",
     ]);
   });
 
   it("more group is curated secondary surfaces — no admin/diagnostic junk", () => {
     const labels = MORE_EMPLOYEE_NAV.map((i) => i.label);
-    // PROD-MODEL-P3 §17 — My Organization / Meeting captures / Approvals /
-    // Authority are demoted to route-only (redundant with Action Center,
-    // automatic ingestion, and admin-governed twin authority).
     expect(labels).toEqual([
       "My AI Teammate",
-      // [PASSWORD-LIFECYCLE] self-service credential control belongs to
-      // the employee, quietly in More — admins never see or set it.
+      "Captures",
       "Account & Security",
-      // [ORG-SUBSTRATE] personal operating context (time zone, hours).
-      "Work Schedule",
-      "Blind Spots",
-      "Work health",
-      "Workspaces",
-      "Projects",
-      "Tool connections",
+      "Schedule",
       "Preferences",
       "Corrections",
       "Launch readiness",
@@ -86,21 +74,39 @@ describe("nav-employee.ts — primary / more groupings", () => {
   });
 
   it("keeps redundant/niche surfaces route-only (hidden from nav, reachable by URL)", () => {
-    const hiddenRoutes = EMPLOYEE_NAV.filter((i) => i.hidden === true).map((i) => i.to);
+    const hiddenRoutes = EMPLOYEE_NAV.filter((i) => i.hidden === true).map(
+      (i) => i.to,
+    );
     expect(hiddenRoutes.sort()).toEqual(
       [
-        "/app/chat", "/app/welcome", "/app/observe", "/app/voice-captures", "/app/conversations",
-        // PROD-MODEL-P3 §17 demotions — reachable by URL, absent from nav.
-        "/app/my-organization", "/app/meeting-captures", "/app/approvals", "/app/authority-grants",
+        "/app/my-day",
+        "/app/my-work",
+        "/app/workspace",
+        "/app/blind-spots",
+        "/app/operational-health",
+        "/app/collaboration-workspaces",
+        "/app/my-organization",
+        "/app/work-projects",
+        "/app/meeting-captures",
+        "/app/connector-health",
+        "/app/approvals",
+        "/app/authority-grants",
+        "/app/chat",
+        "/app/welcome",
+        "/app/observe",
+        "/app/voice-captures",
+        "/app/conversations",
       ].sort(),
     );
-    // Hidden items never appear in the rendered nav selectors.
-    const navRoutes = [...PRIMARY_EMPLOYEE_NAV, ...MORE_EMPLOYEE_NAV].map((i) => i.to);
+    const navRoutes = [...PRIMARY_EMPLOYEE_NAV, ...MORE_EMPLOYEE_NAV].map(
+      (i) => i.to,
+    );
     for (const r of hiddenRoutes) expect(navRoutes).not.toContain(r);
   });
 
   it("employee copy uses human language — no Dandelion/implementation internals", () => {
-    const banned = /\b(Dandelion|propagation|connector rail|MCP|capability object|diagnostics|schema|TAR|RBAC|ABAC|envelope|payload)\b/i;
+    const banned =
+      /\b(Dandelion|propagation|connector rail|MCP|capability object|diagnostics|schema|TAR|RBAC|ABAC|envelope|payload)\b/i;
     for (const i of EMPLOYEE_NAV) {
       expect(banned.test(i.label), `label: ${i.label}`).toBe(false);
       expect(banned.test(i.description), `desc: ${i.label}`).toBe(false);
@@ -112,9 +118,9 @@ describe("nav-employee.ts — primary / more groupings", () => {
     expect(EMPLOYEE_NAV.find((i) => i.label === "Voice envelope")).toBeUndefined();
   });
 
-  it("My Day is the first primary entry and routes to /app", () => {
-    expect(PRIMARY_EMPLOYEE_NAV[0]?.to).toBe("/app/my-day");
-    expect(PRIMARY_EMPLOYEE_NAV[0]?.label).toBe("My Day");
+  it("Today is the first primary entry and routes to /app", () => {
+    expect(PRIMARY_EMPLOYEE_NAV[0]?.to).toBe("/app");
+    expect(PRIMARY_EMPLOYEE_NAV[0]?.label).toBe("Today");
   });
 
   it("every entry belongs to either primary or more", () => {
@@ -125,7 +131,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
 });
 
 describe("EmployeeNav renderer — visually separates the two groups", () => {
-  it("renders the primary list; More is COLLAPSED by default (Phase 1235 ambient shell)", () => {
+  it("renders the primary list; More is COLLAPSED by default", () => {
     renderNav();
     expect(screen.getByTestId("employee-nav-primary")).toBeInTheDocument();
     expect(screen.queryByTestId("employee-nav-more")).toBeNull();
@@ -156,8 +162,6 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
     const moreCount = links.filter(
       (l) => l.getAttribute("data-nav-group") === "more",
     ).length;
-    // Non-admin viewers do not see adminOnly entries in EITHER group
-    // (Team Work is an adminOnly primary entry).
     expect(primaryCount).toBe(
       PRIMARY_EMPLOYEE_NAV.filter((i) => i.adminOnly !== true).length,
     );
@@ -170,65 +174,47 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
     renderNav();
     await openMore();
     expect(screen.queryByText("Launch readiness")).toBeNull();
+    expect(screen.queryByText("Team")).toBeNull();
 
     cleanup();
     setAuth(true);
     renderNav();
     await openMore();
     expect(screen.getByText("Launch readiness")).toBeInTheDocument();
+    expect(screen.getByText("Team")).toBeInTheDocument();
   });
 
-  it("My Work is visible to every user; Team Work is visible only to managers/admins", async () => {
-    // Non-admin: My Work present, Team Work hidden.
+  it("Needs me is visible to every user; Team is visible only to managers/admins", async () => {
     renderNav();
-    expect(screen.getByText("My Work")).toBeInTheDocument();
-    expect(screen.queryByText("Team Work")).toBeNull();
+    expect(screen.getByText("Needs me")).toBeInTheDocument();
+    expect(screen.queryByText("Team")).toBeNull();
 
-    // Manager/admin (can_admin_org): both present + prominent (primary group).
     cleanup();
     setAuth(true);
     renderNav();
-    expect(screen.getByText("My Work")).toBeInTheDocument();
-    const teamWork = screen.getByText("Team Work");
-    expect(teamWork).toBeInTheDocument();
-    // Team Work is a PRIMARY entry (not buried in More).
-    const link = teamWork.closest('[data-testid="employee-nav-link"]');
+    expect(screen.getByText("Needs me")).toBeInTheDocument();
+    const team = screen.getByText("Team");
+    expect(team).toBeInTheDocument();
+    const link = team.closest('[data-testid="employee-nav-link"]');
     expect(link?.getAttribute("data-nav-group")).toBe("primary");
   });
 
-  it("Blind Spots is a curated More entry routing to /app/blind-spots", () => {
-    // Minimal-IA: Blind Spots moves out of the daily primary set into the
-    // curated More (still reachable, still risk-focused). Visible to EVERY
-    // user (employee sees own; manager sees team) — never adminOnly.
-    const blindSpots = MORE_EMPLOYEE_NAV.find((i) => i.label === "Blind Spots");
+  it("Blind Spots is route-only (hidden) — risk work lives in Needs me", () => {
+    const blindSpots = EMPLOYEE_NAV.find((i) => i.label === "Blind Spots");
     expect(blindSpots).toBeDefined();
     expect(blindSpots?.to).toBe("/app/blind-spots");
-    expect(blindSpots?.adminOnly).toBeUndefined();
+    expect(blindSpots?.hidden).toBe(true);
+    expect(MORE_EMPLOYEE_NAV.find((i) => i.label === "Blind Spots")).toBeUndefined();
     expect(PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Blind Spots")).toBeUndefined();
   });
 
-  it("Blind Spots renders under More for a normal employee AND a manager", async () => {
-    renderNav();
-    await openMore();
-    const empLink = screen.getByText("Blind Spots").closest('[data-testid="employee-nav-link"]');
-    expect(empLink).not.toBeNull();
-    expect(empLink?.getAttribute("href")).toBe("/app/blind-spots");
-    expect(empLink?.getAttribute("data-nav-group")).toBe("more");
-
-    cleanup();
-    setAuth(true);
-    renderNav();
-    await openMore();
-    expect(screen.getByText("Blind Spots")).toBeInTheDocument();
-  });
-
-  it("My Work + Team Work route to /app/my-work and /app/team-work", () => {
-    const myWork = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "My Work");
-    const teamWork = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Team Work");
-    expect(myWork?.to).toBe("/app/my-work");
-    expect(myWork?.adminOnly).toBeUndefined();
-    expect(teamWork?.to).toBe("/app/team-work");
-    expect(teamWork?.adminOnly).toBe(true);
+  it("Needs me + Team route to action-center and team-work", () => {
+    const needsMe = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Needs me");
+    const team = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Team");
+    expect(needsMe?.to).toBe("/app/action-center");
+    expect(needsMe?.adminOnly).toBeUndefined();
+    expect(team?.to).toBe("/app/team-work");
+    expect(team?.adminOnly).toBe(true);
   });
 
   it("never surfaces 'Voice envelope' in the rendered nav", () => {
