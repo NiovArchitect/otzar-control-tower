@@ -18,6 +18,7 @@ import {
   Sparkles,
   Users,
   Handshake,
+  FileText,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -118,6 +119,10 @@ export function AmbientWorkSurface(): JSX.Element {
       sample_titles: string[];
     }>
   >([]);
+  // [GOOGLE-DOCS-WRITE] One-tap create a real Google Doc from Today.
+  const [docBusy, setDocBusy] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
+  const [docLink, setDocLink] = useState<string | null>(null);
   const [incomingHandoffs, setIncomingHandoffs] = useState<SafeHandoffView[]>(
     [],
   );
@@ -249,6 +254,46 @@ export function AmbientWorkSurface(): JSX.Element {
       void refreshInboundCollab();
     } finally {
       setCollabBusyId(null);
+    }
+  };
+
+  // [GOOGLE-DOCS-WRITE] One-tap: create a real Google Doc after explicit confirm.
+  // Honest gates surface reconnect / missing scope — never a fake success.
+  const createWorkingDoc = async () => {
+    setDocBusy(true);
+    setDocError(null);
+    setDocLink(null);
+    const day = new Date().toISOString().slice(0, 10);
+    try {
+      const r = await api.connectorData.googleDocCreate({
+        title: `Working notes · ${day}`,
+        body_text:
+          "Started from Otzar Today. Capture owners, decisions, and next steps here.",
+        caller_confirmed: true,
+        source_command: "ambient_today_create_doc",
+      });
+      if (r.ok && r.data.web_view_link) {
+        setDocLink(r.data.web_view_link);
+      } else if (r.ok) {
+        setDocLink(
+          `https://docs.google.com/document/d/${r.data.document_id}/edit`,
+        );
+      } else {
+        const code = "code" in r ? String(r.code) : "CREATE_FAILED";
+        if (code === "GOOGLE_RECONNECT_REQUIRED" || code === "DOC_WRITE_SCOPE_MISSING") {
+          setDocError(
+            "Reconnect Google in Tools & Connections and allow document create.",
+          );
+        } else if (code === "SESSION_INVALID") {
+          setDocError("Sign in again to create a document.");
+        } else {
+          setDocError(code);
+        }
+      }
+    } catch {
+      setDocError("NETWORK_ERROR");
+    } finally {
+      setDocBusy(false);
     }
   };
 
@@ -834,6 +879,63 @@ export function AmbientWorkSurface(): JSX.Element {
               Messages <ArrowRight className="h-3 w-3" aria-hidden />
             </span>
           </a>
+        </div>
+      </GlassPanel>
+
+      {/* Working doc — one-tap real Google Doc (gated; never fabricated). */}
+      <GlassPanel intensity="working" label="Working document" testId="google-doc-panel">
+        <div className="space-y-2 text-sm text-slate-700">
+          <p className="text-xs leading-relaxed text-slate-500">
+            Land shared writing in Google Docs — not a maze of admin screens.
+            Otzar creates the doc only when you ask.
+          </p>
+          {docLink !== null ? (
+            <a
+              href={docLink}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between gap-3 rounded-xl border border-emerald-400/25 bg-emerald-500/[0.08] px-3 py-2.5 transition-colors hover:bg-emerald-500/[0.12]"
+              data-testid="google-doc-open"
+            >
+              <span className="flex min-w-0 items-center gap-2 font-medium text-slate-900">
+                <FileText className="h-3.5 w-3.5 shrink-0 text-emerald-700" aria-hidden />
+                <span className="truncate">Open your working doc</span>
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
+                Open <ArrowRight className="h-3 w-3" aria-hidden />
+              </span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              data-testid="google-doc-create"
+              disabled={docBusy}
+              onClick={() => void createWorkingDoc()}
+              className="flex w-full items-center justify-between gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/[0.06] px-3 py-2.5 text-left transition-colors hover:bg-emerald-500/[0.1] disabled:opacity-60"
+            >
+              <span className="flex items-center gap-2 font-medium text-slate-900">
+                <FileText className="h-3.5 w-3.5 text-emerald-700" aria-hidden />
+                {docBusy ? "Creating…" : "Create a Google Doc"}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
+                One tap
+              </span>
+            </button>
+          )}
+          {docError !== null ? (
+            <p
+              className="text-[11px] text-amber-800"
+              data-testid="google-doc-create-error"
+            >
+              {docError}{" "}
+              <Link
+                to="/app/tools-connections"
+                className="font-semibold underline-offset-2 hover:underline"
+              >
+                Tools & Connections
+              </Link>
+            </p>
+          ) : null}
         </div>
       </GlassPanel>
 
