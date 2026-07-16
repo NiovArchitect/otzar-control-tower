@@ -187,9 +187,9 @@ export function AmbientWorkSurface(): JSX.Element {
       data-testid="ambient-work-surface"
     >
       {/* Hero presence stage — glanceable identity + intent (Design Law §1). */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 px-5 py-7 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:px-8 sm:py-9">
+      <section className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/45 px-5 py-7 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:px-8 sm:py-9">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="otzar-aurora-layer opacity-70" />
+          <div className="otzar-aurora-layer opacity-80" />
         </div>
         <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
           <OtzarMark size="lg" active={!quiet} />
@@ -206,6 +206,22 @@ export function AmbientWorkSurface(): JSX.Element {
                   <MoonStar className="mr-1 inline h-3.5 w-3.5" aria-hidden />
                   Otzar is quiet while you focus.
                 </>
+              ) : dgi?.coherence_status === "NEEDS_ATTENTION" ? (
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400 motion-safe:animate-pulse"
+                  />
+                  Something needs attention — I&apos;ll keep the rest quiet.
+                </span>
+              ) : dgi?.coherence_status === "HEALTHY" ? (
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/90"
+                  />
+                  I&apos;m with you. Coherence is steady.
+                </span>
               ) : (
                 "I'm here. I'll stay out of your way unless something needs your attention."
               )}

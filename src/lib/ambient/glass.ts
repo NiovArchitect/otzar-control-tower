@@ -21,9 +21,9 @@ export const GLASS_CHIP =
  * Multi-stop radial: pearl cool top, soft indigo/teal atmosphere, never flat
  * dashboard gray. Readable for dark text; light-first (visual system honest bound).
  */
-/** Pearl field with a restrained violet upper bloom (logo energy, not purple UI). */
+/** Living ambient field — cool pearl with soft depth, not flat SaaS gray. */
 export const AMBIENT_FIELD =
-  "bg-[radial-gradient(120%_80%_at_50%_-15%,#f3f0ff_0%,#eef2ff_22%,#eef6fb_42%,#f5f7fb_62%,#e8eef8_100%)]";
+  "bg-[radial-gradient(120%_80%_at_50%_-12%,#eef2ff_0%,#eef6fb_26%,#f4f7fb_52%,#e8eef6_100%)]";
 
 /** Secondary atmospheric bloom for login / hero stages (pointer-safe layer). */
 export const AMBIENT_AURORA =
