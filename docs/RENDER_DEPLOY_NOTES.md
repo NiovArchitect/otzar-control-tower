@@ -42,10 +42,12 @@ SHA · the Render deploy branch · whether the expected SHA is on that branch ·
 whether Render deployed that SHA.
 
 ## How to deploy + verify (reliable procedure)
-1. Push to `main`. Confirm `git rev-parse --short origin/main`.
-2. In Render `otzar-app`, the **latest deploy's Commit** must equal `origin/main`.
-   If it doesn't appear, the GitHub connection is stale (see Hardening).
-3. Manual Deploy → "Deploy latest commit" (or "Clear build cache & deploy").
+1. Merge to `main` (CI green). Confirm `git rev-parse --short origin/main`.
+2. With **Auto-Deploy = Yes** on the service, Render should start a deploy for
+   that commit automatically. Confirm Events → Deploy shows the expected SHA.
+3. If no deploy appears within ~2 minutes, GitHub connection is stale (see
+   Hardening) — reconnect the repo, then Manual Deploy → **Deploy a specific
+   commit** → the exact SHA (not an ambiguous "latest").
 4. Verify from the shell (Render builds its OWN hash — do NOT wait for the local build's hash):
    ```sh
    curl -s "https://app.otzar.ai/?cb=$(date +%s)" | grep -oE 'index-[A-Za-z0-9_-]+\.js'   # must change
@@ -53,9 +55,26 @@ whether Render deployed that SHA.
    ```
    The origin `last-modified` header must advance to the new deploy time.
 
+## Auto-Deploy contract (2026-07-16)
+
+Both blueprints ship with `autoDeploy: true` on the `main` branch:
+
+| Service | Repo | Domain | Blueprint |
+| --- | --- | --- | --- |
+| `otzar-app` | otzar-control-tower | app.otzar.ai | `otzar-control-tower/render.yaml` |
+| `otzar-api` | niov-foundation | api.otzar.ai | `niov-foundation/render.yaml` |
+
+**Blueprint alone does not flip an existing service.** After merging the yaml
+change, either re-apply the Blueprint or set each live service:
+
+Settings → Build & Deploy → **Auto-Deploy = Yes** (On Commit) · Branch = `main`.
+
+CI still gates merges (branch protection / required checks). Auto-deploy ships
+only commits that already landed on `main`.
+
 ## Hardening (prevent recurrence)
-- **Enable Auto-Deploy** on `otzar-app` (Settings → Build & Deploy → Auto-Deploy = Yes) so `main`
-  pushes deploy without a manual nudge.
+- **Keep Auto-Deploy On** on `otzar-app` and `otzar-api` so `main` merges deploy
+  without a manual nudge.
 - If "latest commit" ever lags `origin/main`, **disconnect & reconnect the GitHub repo** on the
   static site (Settings → Build & Deploy), which refreshes the connection.
 - **Remove any stale/duplicate Static Site** bound to (or competing for) `app.otzar.ai`. As of
