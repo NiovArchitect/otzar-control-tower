@@ -66,6 +66,10 @@ export function AmbientWorkSurface(): JSX.Element {
     : null;
 
   const [urgentBlindSpots, setUrgentBlindSpots] = useState(0);
+  // [DGI-COHERENCE] Governed intelligence strip — open obligations + org-truth
+  // conflicts from server authority (not local reconstruction).
+  const [openObligations, setOpenObligations] = useState(0);
+  const [orgTruthConflicts, setOrgTruthConflicts] = useState(0);
   useEffect(() => {
     let cancelled = false;
     api.workOs
@@ -74,6 +78,34 @@ export function AmbientWorkSurface(): JSX.Element {
         if (cancelled || !r.ok) return;
         const items = r.data.items ?? r.data.entries ?? [];
         setUrgentBlindSpots(items.filter((e) => triagePriority(e) <= 2).length);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([
+      api.otzar.obligations.list({ open_only: true, limit: 20 }),
+      api.otzar.orgTruth.listConflicts(),
+    ])
+      .then(([obl, conflicts]) => {
+        if (cancelled) return;
+        if (obl.ok) {
+          const list =
+            (obl.data as { obligations?: unknown[] }).obligations ??
+            (obl.data as { items?: unknown[] }).items ??
+            [];
+          setOpenObligations(Array.isArray(list) ? list.length : 0);
+        }
+        if (conflicts.ok) {
+          const list =
+            (conflicts.data as { conflicts?: unknown[] }).conflicts ??
+            (conflicts.data as { items?: unknown[] }).items ??
+            [];
+          setOrgTruthConflicts(Array.isArray(list) ? list.length : 0);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -126,6 +158,52 @@ export function AmbientWorkSurface(): JSX.Element {
           </div>
         </div>
       </section>
+
+      {/* DGI COHERENCE — private work vs organizational truth, server-sourced. */}
+      {openObligations > 0 || orgTruthConflicts > 0 ? (
+        <GlassPanel
+          intensity={orgTruthConflicts > 0 ? "attention" : "working"}
+          label="Organizational intelligence"
+          testId="dgi-coherence-panel"
+        >
+          <div className="space-y-2 text-sm text-slate-700">
+            <p className="text-xs leading-relaxed text-slate-500">
+              Your AI Teammate keeps private context private. Shared organizational
+              answers only appear after governed promotion — never from chat alone.
+            </p>
+            {openObligations > 0 ? (
+              <Link
+                to="/app/action-center"
+                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
+                data-testid="dgi-open-obligations"
+              >
+                <span>
+                  {openObligations === 1
+                    ? "1 open obligation in your work"
+                    : `${openObligations} open obligations in your work`}
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+              </Link>
+            ) : null}
+            {orgTruthConflicts > 0 ? (
+              <Link
+                to="/app/action-center"
+                className="flex items-center justify-between gap-3 rounded-xl bg-amber-400/10 px-3 py-2.5 transition-colors hover:bg-amber-400/15"
+                data-testid="dgi-org-truth-conflicts"
+              >
+                <span className="font-medium text-slate-900">
+                  {orgTruthConflicts === 1
+                    ? "1 organizational truth conflict needs review"
+                    : `${orgTruthConflicts} organizational truth conflicts need review`}
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/25 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
+                  Review <ArrowRight className="h-3 w-3" aria-hidden />
+                </span>
+              </Link>
+            ) : null}
+          </div>
+        </GlassPanel>
+      ) : null}
 
       {/* NEEDS YOU — only when the human must act. Category-specific copy. */}
       {approvalsCount > 0 || actionUnreadCount > 0 || urgentBlindSpots > 0 ? (
