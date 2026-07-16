@@ -3315,6 +3315,9 @@ export interface ConflictCandidate {
   superseded: boolean;
   retracted: boolean;
   is_winner: boolean;
+  /** Human-readable identity — never anonymous UUID alone (WAVE recovery). */
+  display_label?: string;
+  claim_summary?: string | null;
 }
 
 // WHAT: A promoted organizational-truth record — SAFE projection.

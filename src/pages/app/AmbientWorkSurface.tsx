@@ -107,6 +107,14 @@ export function AmbientWorkSurface(): JSX.Element {
   const [authorityPosture, setAuthorityPosture] =
     useState<DgiTwinAuthorityPosture | null>(null);
   const [dgiLoaded, setDgiLoaded] = useState(false);
+  const [teamPeople, setTeamPeople] = useState<
+    Array<{
+      display_name: string;
+      open_obligation_count: number;
+      open_incoming_handoff_count: number;
+      sample_titles: string[];
+    }>
+  >([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +147,20 @@ export function AmbientWorkSurface(): JSX.Element {
       .catch(() => {
         if (!cancelled) setDgiLoaded(true);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.otzar
+      .teamWork()
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        setTeamPeople(r.data.team_work.people ?? []);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -516,6 +538,39 @@ export function AmbientWorkSurface(): JSX.Element {
               ))}
             </ul>
           ) : null}
+        </GlassPanel>
+      ) : null}
+
+      {/* TEAM — capacity-only "what is my team working on?" */}
+      {teamPeople.length > 0 ? (
+        <GlassPanel
+          intensity="working"
+          label="Your team"
+          testId="team-work-panel"
+        >
+          <ul className="space-y-2 text-sm text-slate-700">
+            {teamPeople.slice(0, 5).map((p) => (
+              <li
+                key={p.display_name}
+                className="rounded-xl px-3 py-2 hover:bg-white/40"
+                data-testid="team-work-person"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-slate-900">
+                    {p.display_name}
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    {p.open_obligation_count + p.open_incoming_handoff_count} open
+                  </span>
+                </div>
+                {p.sample_titles[0] ? (
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {p.sample_titles[0]}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </GlassPanel>
       ) : null}
 

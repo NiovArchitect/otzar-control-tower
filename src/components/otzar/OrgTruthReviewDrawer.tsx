@@ -240,13 +240,21 @@ export function OrgTruthReviewDrawer({
                         className={`w-full rounded-md border p-3 text-left transition-colors ${SEVERITY_TINT[integ]} ${isSel ? "ring-2 ring-primary" : ""} ${demoted ? "opacity-60" : "hover:border-primary/50"}`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-foreground">{ORG_TRUTH_COPY.competingLabel}</span>
+                          <span className="text-xs font-medium text-foreground" data-testid="org-truth-candidate-label">
+                            {c.display_label ??
+                              `${humanizeOrgTruthClass(c.source_record_type)} · ${humanizeOrgTruthClass(c.truth_class)}`}
+                          </span>
                           <span className="flex items-center gap-1">
                             {c.is_winner ? <Badge variant="outline" className="text-[10px]">Current source</Badge> : null}
                             {c.retracted ? <Badge variant="outline" className={`text-[10px] ${SEVERITY_TEXT.red}`}>Retracted</Badge> : null}
                             {c.superseded ? <Badge variant="outline" className="text-[10px]">Superseded</Badge> : null}
                           </span>
                         </div>
+                        {c.claim_summary ? (
+                          <p className="mt-1 text-[11px] leading-snug text-foreground/80" data-testid="org-truth-candidate-claim">
+                            {c.claim_summary}
+                          </p>
+                        ) : null}
                         <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                           <div><dt className="inline text-foreground/70">Authority: </dt><dd className="inline">{humanizeOrgTruthClass(c.authority_status)}</dd></div>
                           <div><dt className="inline text-foreground/70">Currentness: </dt><dd className="inline">{humanizeOrgTruthClass(c.currentness)}</dd></div>

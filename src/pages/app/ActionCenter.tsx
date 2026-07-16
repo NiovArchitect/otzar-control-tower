@@ -997,6 +997,15 @@ function OrgTruthReviewLane(): JSX.Element | null {
   const [failed, setFailed] = useState(false);
   const [selected, setSelected] = useState<ConflictSetWithCount | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // [COHERENCE-RECOVERY] Deep-link from Today next-best-step: ?conflict=<id>
+  const focusConflictId = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return new URLSearchParams(window.location.search).get("conflict") ?? "";
+    } catch {
+      return "";
+    }
+  }, []);
 
   const load = useCallback(() => {
     return api.otzar.orgTruth
@@ -1021,10 +1030,41 @@ function OrgTruthReviewLane(): JSX.Element | null {
   }, [load]);
   useWorkStateChanged(["TASK_COMPLETED", "LEDGER_UPDATED"], () => void load());
 
+  // Auto-open drawer when deep-linked to a specific conflict.
+  useEffect(() => {
+    if (focusConflictId.length === 0 || loading) return;
+    const hit = conflicts.find((c) => c.conflict_set_id === focusConflictId);
+    if (hit) {
+      setSelected(hit);
+      setDrawerOpen(true);
+      return;
+    }
+    // Conflict may be missing from list filter — still open by id shell.
+    if (focusConflictId.length > 0) {
+      setSelected({
+        conflict_set_id: focusConflictId,
+        org_entity_id: "",
+        truth_key: "",
+        decision_domain: "review",
+        subject_ref: null,
+        state: "OPEN",
+        version: 0,
+        review_obligation_id: null,
+        candidate_set_fingerprint: null,
+        resulting_truth_record_id: null,
+        resolution_reason: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        candidate_count: 0,
+      } as ConflictSetWithCount);
+      setDrawerOpen(true);
+    }
+  }, [focusConflictId, conflicts, loading]);
+
   // Silent on failure/unauthorized — an ambient governance lane, never noisy.
-  if (failed) return null;
+  if (failed && focusConflictId.length === 0) return null;
   const open = conflicts.filter((c) => c.state === "OPEN" || c.state === "UNDER_REVIEW");
-  if (!loading && open.length === 0) return null;
+  if (!loading && open.length === 0 && focusConflictId.length === 0) return null;
 
   const openDrawer = (c: ConflictSetWithCount): void => {
     setSelected(c);
