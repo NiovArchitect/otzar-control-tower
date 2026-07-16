@@ -44,6 +44,8 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type {
   ContextHealthResponse,
+  DgiCoherenceSnapshot,
+  DgiNextBestStep,
   MyDayIntelligenceView,
   MyDaySuggestionReason,
   SafeActionView,
@@ -55,6 +57,7 @@ interface State {
   pending: SafeActionView[];
   notifications: SafeNotificationView[];
   intelligence: MyDayIntelligenceView | null;
+  dgi: DgiCoherenceSnapshot | null;
   loading: boolean;
 }
 
@@ -156,6 +159,7 @@ export function MyDay(): JSX.Element {
     pending: [],
     notifications: [],
     intelligence: null,
+    dgi: null,
     loading: true,
   });
 
@@ -169,16 +173,23 @@ export function MyDay(): JSX.Element {
       // Phase 1234 — non-blocking: when this fails the card simply
       // does not render; the rest of My Day works unchanged.
       api.otzar.myDayIntelligence(),
-    ]).then(([healthResult, actionsResult, notifsResult, intelResult]) => {
-      if (cancelled) return;
-      setState({
-        identity: healthResult.ok ? healthResult.data : null,
-        pending: actionsResult.ok ? actionsResult.data.items : [],
-        notifications: notifsResult.ok ? notifsResult.data.notifications : [],
-        intelligence: intelResult.ok ? intelResult.data.intelligence : null,
-        loading: false,
-      });
-    });
+      // Same DGI authority Today uses — single next-step story.
+      api.otzar.dgiCoherence(),
+    ]).then(
+      ([healthResult, actionsResult, notifsResult, intelResult, dgiResult]) => {
+        if (cancelled) return;
+        setState({
+          identity: healthResult.ok ? healthResult.data : null,
+          pending: actionsResult.ok ? actionsResult.data.items : [],
+          notifications: notifsResult.ok
+            ? notifsResult.data.notifications
+            : [],
+          intelligence: intelResult.ok ? intelResult.data.intelligence : null,
+          dgi: dgiResult.ok ? dgiResult.data.coherence : null,
+          loading: false,
+        });
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -242,25 +253,72 @@ export function MyDay(): JSX.Element {
         </CardContent>
       </Card>
 
-      {/* Phase 1234 — What matters today (ranked daily intelligence) */}
-      {!state.loading && state.intelligence !== null ? (
+      {/* What needs attention — DGI next-best-step first (same authority as
+          Today ambient), then My Day intelligence suggestions. One story. */}
+      {!state.loading &&
+      (state.dgi !== null || state.intelligence !== null) ? (
         <Card
           data-testid="my-day-intelligence"
-          data-provider-status={state.intelligence.provider_status}
+          data-provider-status={
+            state.intelligence?.provider_status ?? "DGI_ONLY"
+          }
+          data-dgi-status={state.dgi?.coherence_status ?? "unknown"}
         >
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
-              <Sparkles className="h-4 w-4" aria-hidden /> What matters today
+              <Sparkles className="h-4 w-4" aria-hidden /> What needs attention
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-xs">
-            <p
-              className="text-muted-foreground"
-              data-testid="my-day-intelligence-headline"
-            >
-              {state.intelligence.headline}
-            </p>
-            {state.intelligence.suggestions.length > 0 ? (
+            {(() => {
+              const step: DgiNextBestStep | null | undefined =
+                state.dgi?.next_best_step &&
+                state.dgi.next_best_step.kind !== "IDLE_HEALTHY"
+                  ? state.dgi.next_best_step
+                  : null;
+              const headline =
+                step?.reason ??
+                state.intelligence?.headline ??
+                "Nothing urgent on your governed record.";
+              return (
+                <p
+                  className="text-muted-foreground"
+                  data-testid="my-day-intelligence-headline"
+                  data-source={step ? "dgi" : "my-day"}
+                >
+                  {headline}
+                </p>
+              );
+            })()}
+            {state.dgi?.next_best_step &&
+            state.dgi.next_best_step.kind !== "IDLE_HEALTHY" ? (
+              <div
+                className="flex items-center justify-between gap-2 rounded border border-violet-400/30 bg-violet-500/5 p-2"
+                data-testid="my-day-dgi-next-step"
+                data-kind={state.dgi.next_best_step.kind}
+              >
+                <div>
+                  <p className="font-medium text-foreground">
+                    {state.dgi.next_best_step.safe_title}
+                  </p>
+                  <p className="text-muted-foreground">
+                    From organizational intelligence — same next step as Today.
+                  </p>
+                </div>
+                <Button asChild variant="default" size="sm">
+                  <Link
+                    to={
+                      state.dgi.next_best_step.route_hint || "/app/action-center"
+                    }
+                  >
+                    Open{" "}
+                    <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
+            {state.intelligence !== null &&
+            state.intelligence.suggestions.length > 0 ? (
               <ul
                 className="space-y-1"
                 data-testid="my-day-intelligence-list"
@@ -294,7 +352,8 @@ export function MyDay(): JSX.Element {
                 ))}
               </ul>
             ) : null}
-            {state.intelligence.waiting_on_external.they_owe_us_count > 0 ? (
+            {state.intelligence !== null &&
+            state.intelligence.waiting_on_external.they_owe_us_count > 0 ? (
               <p
                 className="text-muted-foreground"
                 data-testid="my-day-intelligence-external"
@@ -314,9 +373,11 @@ export function MyDay(): JSX.Element {
               </p>
             ) : null}
             <p className="text-[10px] text-muted-foreground">
-              {state.intelligence.provider_status === "PYTHON_CONFIGURED"
-                ? "Ranked by Otzar's intelligence service."
-                : "Ranked by Otzar's built-in assistant."}
+              {state.dgi !== null
+                ? "Organizational next step from governed intelligence; suggestions ranked by Otzar."
+                : state.intelligence?.provider_status === "PYTHON_CONFIGURED"
+                  ? "Ranked by Otzar's intelligence service."
+                  : "Ranked by Otzar's built-in assistant."}
             </p>
           </CardContent>
         </Card>

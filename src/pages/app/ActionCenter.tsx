@@ -884,21 +884,34 @@ function IncomingHandoffsLane(): JSX.Element | null {
     }
   }, []);
 
+  const [acked, setAcked] = useState<
+    Array<{
+      handoff_id: string;
+      title: string;
+      state: string;
+      summary: string | null;
+      version: number;
+    }>
+  >([]);
+
   const load = useCallback(() => {
     setLoading(true);
-    return api.otzar.handoffs
-      .list({
+    return Promise.all([
+      api.otzar.handoffs.list({
         role: "incoming",
         state: "SENT,RECEIVED,CLARIFICATION_REQUIRED",
         limit: 20,
-      })
-      .then((r) => {
-        if (r.ok) {
-          setItems(r.data.handoffs ?? []);
-          setFailed(false);
-        } else {
-          setFailed(true);
-        }
+      }),
+      api.otzar.handoffs.list({
+        role: "incoming",
+        state: "ACKNOWLEDGED",
+        limit: 20,
+      }),
+    ])
+      .then(([openR, ackR]) => {
+        if (openR.ok) setItems(openR.data.handoffs ?? []);
+        else setFailed(true);
+        if (ackR.ok) setAcked(ackR.data.handoffs ?? []);
         setLoading(false);
       })
       .catch(() => {
@@ -914,7 +927,7 @@ function IncomingHandoffsLane(): JSX.Element | null {
   useEffect(() => {
     if (focusHandoffId.length === 0 || loading) return;
     focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [focusHandoffId, loading, items]);
+  }, [focusHandoffId, loading, items, acked]);
 
   const acknowledge = async (h: (typeof items)[number]) => {
     setBusyId(h.handoff_id);
@@ -926,23 +939,59 @@ function IncomingHandoffsLane(): JSX.Element | null {
       if (r.ok) {
         setAckDone(h.handoff_id);
         setItems((prev) => prev.filter((x) => x.handoff_id !== h.handoff_id));
+        setAcked((prev) => [
+          {
+            handoff_id: r.data.handoff.handoff_id,
+            title: r.data.handoff.title,
+            state: r.data.handoff.state,
+            summary: r.data.handoff.summary,
+            version: r.data.handoff.version,
+          },
+          ...prev.filter((x) => x.handoff_id !== r.data.handoff.handoff_id),
+        ]);
       } else {
-        setAckError(
-          "code" in r && typeof r.code === "string"
-            ? r.code
-            : "ACK_FAILED",
-        );
+        const code =
+          "code" in r && typeof r.code === "string" ? r.code : "ACK_FAILED";
+        const msg =
+          code === "OTZAR_HANDOFF_PRECONDITION"
+            ? "This handoff was rebound for you — try Acknowledge again. If it still fails, open Chat and acknowledge there."
+            : `Couldn't acknowledge (${code}). Try again.`;
+        setAckError(msg);
         void load();
       }
     } catch {
-      setAckError("NETWORK_ERROR");
+      setAckError("Network error — try again.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const complete = async (h: (typeof acked)[number]) => {
+    setBusyId(h.handoff_id);
+    setAckError(null);
+    try {
+      const r = await api.otzar.handoffs.completeAmbient(h.handoff_id, {
+        expected_version: h.version,
+      });
+      if (r.ok) {
+        setAcked((prev) => prev.filter((x) => x.handoff_id !== h.handoff_id));
+      } else {
+        const code =
+          "code" in r && typeof r.code === "string" ? r.code : "COMPLETE_FAILED";
+        setAckError(`Couldn't complete (${code}). Try again.`);
+        void load();
+      }
+    } catch {
+      setAckError("Network error — try again.");
     } finally {
       setBusyId(null);
     }
   };
 
   if (failed) return null;
-  if (!loading && items.length === 0 && ackDone === null) return null;
+  if (!loading && items.length === 0 && acked.length === 0 && ackDone === null) {
+    return null;
+  }
 
   return (
     <section
@@ -955,12 +1004,12 @@ function IncomingHandoffsLane(): JSX.Element | null {
         <span>Incoming handoffs</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Responsibility transfers waiting on you — one tap records a durable
-        acknowledgment.
+        Acknowledge ownership, then complete when linked work is accepted —
+        one path from receipt to done.
       </p>
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading handoffs…</p>
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && acked.length === 0 ? (
         <p
           className="text-sm text-muted-foreground"
           data-testid="incoming-handoffs-clear"
@@ -1014,21 +1063,50 @@ function IncomingHandoffsLane(): JSX.Element | null {
                         ? "Acknowledging…"
                         : "Acknowledge ownership"}
                     </Button>
-                    {ackError !== null && busyId === null ? (
-                      <p
-                        className="text-xs text-destructive"
-                        data-testid="handoff-acknowledge-error"
-                      >
-                        Couldn&apos;t acknowledge ({ackError}). Try again.
-                      </p>
-                    ) : null}
                   </CardContent>
                 </Card>
               </li>
             );
           })}
+          {acked.map((h) => (
+            <li key={h.handoff_id} data-testid="acked-handoff-card">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex-1">{h.title}</span>
+                    <Badge variant="secondary">ACKNOWLEDGED</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 pt-0">
+                  <p className="text-xs text-muted-foreground">
+                    Ownership accepted. Complete when you&apos;ve absorbed linked
+                    work (pending items are accepted for you).
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    data-testid="handoff-complete-btn"
+                    disabled={busyId === h.handoff_id}
+                    onClick={() => void complete(h)}
+                  >
+                    {busyId === h.handoff_id ? "Completing…" : "Complete handoff"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
         </ul>
       )}
+      {ackError !== null && busyId === null ? (
+        <p
+          className="text-xs text-destructive"
+          data-testid="handoff-acknowledge-error"
+        >
+          {ackError}
+        </p>
+      ) : null}
     </section>
   );
 }
