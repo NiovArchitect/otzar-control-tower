@@ -201,39 +201,41 @@ nonce + cookie. Plan+evidence: `OTZAR_SECTION_16_SESSION_CONTINUITY_PLAN.md`.
 
 ## 1. Deploy rail (BINDING)
 
-**One rail: manual verified deploys. autoDeploy is OFF on both Render
-services** (set via API in P0-OPS and mirrored in both `render.yaml`s) — a
-push to `main` deploys NOTHING by itself. This is deliberate: Render cannot
-gate on GitHub CI, so auto-deploy could ship a red build; the audit's P0-3.
+**Primary rail: Auto-Deploy on `main` (both services).** CI gates merges;
+Render deploys when `main` advances. Manual deploy remains available for
+rollbacks, stuck GitHub connections, and schema-sequenced API releases.
 
-**FND (`otzar-api`, srv-d8t17sm7r5hc73ed5h6g):**
+| Service | ID | Repo branch | Domain |
+| --- | --- | --- | --- |
+| `otzar-api` | `srv-d8t17sm7r5hc73ed5h6g` | Foundation `main` | api.otzar.ai |
+| `otzar-app` | `srv-d8t1qpj7uimc73db2il0` | CT `main` | app.otzar.ai |
+
+Blueprints: `niov-foundation/render.yaml` and `otzar-control-tower/render.yaml`
+both set `autoDeploy: true`. Live dashboard must match (Auto-Deploy = Yes).
+
+**FND (`otzar-api`):**
 1. Work lands on a branch → PR → **all 5 CI checks green** (typecheck, unit,
    integration, Elixir, Python). Main is protected; no direct pushes.
-2. Squash-merge → pull main → note the short SHA.
-3. If the change needs schema: the migration MUST already be applied and
-   verified on prod (Section 2) BEFORE this deploy.
-4. `POST /v1/services/<id>/deploys {"commitId":"<sha>"}` with the Render API
-   key.
-5. Poll `GET /deploys?limit=1` until `live <sha>`. `update_in_progress` and
-   `queued` are normal; `failed` = stop, diagnose, do not retry blindly.
-6. Behavioral probe: hit the touched endpoint(s) or run the relevant live
-   smoke (Section 4).
+2. Merge → `origin/main` advances → Render auto-deploys that SHA.
+3. If the change needs schema: apply and verify the migration on prod
+   (Section 2) **before** the merge that requires it, or pause Auto-Deploy
+   for that release and use Manual Deploy after schema.
+4. Poll Events / `GET /deploys?limit=1` until `live <sha>`. `failed` = stop,
+   diagnose, do not retry blindly.
+5. Behavioral probe: health + touched routes (Section 4).
+6. Fallback if auto-deploy stalls: reconnect GitHub, then Manual Deploy →
+   **specific commit** `commitId`.
 
-**CT (`otzar-app`, srv-d8t1qpj7uimc73db2il0):**
-1. CT CI (`verify`: typecheck → lint → test → build) must be green on the
-   commit. CT main allows direct pushes — the six local gates
-   (typecheck 0 / lint 0 / tests / build / dev / install) are the
-   pre-push bar; CI is the record.
-2. Same API deploy with commitId → poll `live <sha>`.
-3. Verify the LIVE BUNDLE HASH changed: `curl -s https://app.otzar.ai/ |
+**CT (`otzar-app`):**
+1. CT CI (`verify`) green → merge/push to `main` → auto-deploy.
+2. Verify the LIVE BUNDLE HASH changed: `curl -s https://app.otzar.ai/ |
    grep -o 'index-[A-Za-z0-9_-]*\.js'` — a deploy that doesn't change the
    hash when src changed means Render built the wrong commit.
-4. Run the relevant live smoke.
+3. Run the relevant live smoke.
 
-**Never claim CI-gated deploys.** Render deploys are gated by THIS rail
-(human runs the API call only after green), not by GitHub. The GitHub
-Actions "deploy-production/staging" workflows in FND are Azure/AWS echo
-stubs — they are NOT the deploy path; do not be confused by them.
+**CI relationship:** GitHub Actions gate *what can land on main*; Render
+auto-deploy ships *what already landed*. The FND "deploy-production/staging"
+workflows remain Azure/AWS echo stubs — not the Render path.
 
 **Stale watcher rule:** every CI/deploy watcher runs in the background with
 a hard timeout and is killed (`TaskStop`) the moment its question is
