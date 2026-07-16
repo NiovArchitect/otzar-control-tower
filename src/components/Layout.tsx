@@ -1,14 +1,14 @@
 // FILE: Layout.tsx
-// PURPOSE: Authenticated chrome -- AdminSidebar + top bar + footer +
-//          <Outlet /> for the active page. Mounted under AuthGuard so
-//          unauthenticated visitors never see this surface.
-// CONNECTS TO: AdminSidebar, ConnectionStatusIndicator,
-//              DataSovereigntyBadge, App.tsx routes.
+// PURPOSE: Authenticated admin chrome — frosted sidebar + header over the
+//          ambient field (same visual language as the employee shell).
+//          Design Law §5: admins get deeper tools, never terminal chrome.
+// CONNECTS TO: AdminSidebar, AdminCommandLayer, AmbientOtzarBar, App.tsx.
 
 import { Link, Outlet } from "react-router-dom";
 import { LogOut, Menu, Mic } from "lucide-react";
 import { AdminSidebar } from "@/components/AdminSidebar";
-import { AMBIENT_FIELD } from "@/lib/ambient/glass";
+import { AMBIENT_FIELD, GLASS_CHROME } from "@/lib/ambient/glass";
+import { OtzarMark } from "@/components/ambient/OtzarMark";
 import { AdminCommandLayer } from "@/components/AdminCommandLayer";
 import { AppBackButton } from "@/components/navigation/AppBackButton";
 import { NavigationGuard } from "@/components/navigation/NavigationGuard";
@@ -28,28 +28,30 @@ export function Layout() {
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Best-effort server-side session invalidation, then clear the
-  // in-memory store regardless of the result (fail-safe). Token stays
-  // memory-only -- no persistence added.
   async function handleLogout(): Promise<void> {
     await api.auth.logout();
     logout();
   }
 
   return (
-    // PROD-MODEL-P5 §19 — the admin shell carries the SAME ambient language
-    // as the employee shell: the luminous field behind everything, frosted
-    // sidebar + header floating over it. Calm, not neon; no flat dashboard
-    // gray. (AMBIENT_FIELD is the shared token from lib/ambient/glass.)
-    <div className={`flex h-screen w-full overflow-hidden ${AMBIENT_FIELD}`}>
+    <div
+      className={`relative flex h-screen w-full overflow-hidden ${AMBIENT_FIELD}`}
+      data-testid="admin-shell"
+    >
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="otzar-aurora-layer opacity-50" />
+      </div>
+
       {!isMobile && (
-        <aside className="w-60 shrink-0">
+        <aside className="relative z-10 w-60 shrink-0">
           <AdminSidebar />
         </aside>
       )}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b border-white/50 bg-white/45 px-4 backdrop-blur-xl backdrop-saturate-150">
+      <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
+        <header
+          className={`flex h-14 items-center justify-between border-b px-4 ${GLASS_CHROME}`}
+        >
           <div className="flex items-center gap-3">
             {isMobile && (
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -63,14 +65,22 @@ export function Layout() {
                 </SheetContent>
               </Sheet>
             )}
-            {/* [APP-NAV-CONTINUITY] upper-left Back / Return — falls back to the
-                command-center home (/) when there is no in-app history. */}
             <AppBackButton fallback="/" />
+            {isMobile ? (
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+                <OtzarMark size="sm" active={false} />
+                Control Tower
+              </span>
+            ) : null}
           </div>
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-2 text-sm sm:gap-3">
             <AdminCommandLayer />
             {isEmployee(capabilities) && (
-              <Button asChild variant="default" size="sm" className="gap-1">
+              <Button
+                asChild
+                size="sm"
+                className="hidden gap-1 rounded-full bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
+              >
                 <Link to="/app/voice-ready">
                   <Mic className="h-4 w-4" />
                   Talk to Otzar
@@ -78,12 +88,20 @@ export function Layout() {
               </Button>
             )}
             {isEmployee(capabilities) && (
-              <Button asChild variant="outline" size="sm">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="rounded-full border-white/70 bg-white/50 backdrop-blur-sm"
+              >
                 <Link to="/app">Open Otzar</Link>
               </Button>
             )}
             {entity && (
-              <span className="text-muted-foreground" aria-label="Logged in as">
+              <span
+                className="hidden max-w-[160px] truncate text-slate-500 md:inline"
+                aria-label="Logged in as"
+              >
                 {entity.email}
               </span>
             )}
@@ -93,9 +111,10 @@ export function Layout() {
               size="sm"
               onClick={() => void handleLogout()}
               aria-label="Log out"
+              className="rounded-full"
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              Log out
+              <LogOut className="mr-0 h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Log out</span>
             </Button>
           </div>
         </header>
@@ -104,20 +123,16 @@ export function Layout() {
           <Outlet />
         </main>
 
-        <footer className="flex flex-col items-center justify-between gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row">
+        <footer
+          className={`flex flex-col items-center justify-between gap-2 border-t px-4 py-3 sm:flex-row ${GLASS_CHROME}`}
+        >
           <DataSovereigntyBadge />
           <ConnectionStatusIndicator />
         </footer>
       </div>
 
-      {/* Persistent ambient Otzar dock. Org admins (and dual-persona
-          founders like Sadeil who land on / by default) can now Talk
-          to Otzar from the Control Tower without first navigating to
-          /app. Gated on isEmployee so true-pure-admin users (no
-          can_read_capsules) do not see the chat dock. */}
       {isEmployee(capabilities) ? <AmbientOtzarBar /> : null}
 
-      {/* [APP-NAV-CONTINUITY] unsaved-work guard — one per mounted shell. */}
       <NavigationGuard />
     </div>
   );

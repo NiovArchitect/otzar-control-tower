@@ -1,26 +1,21 @@
 // FILE: AmbientWorkSurface.tsx
-// PURPOSE: [OTZAR-LIVE-6] The new default employee experience at /app. NOT a
-//          dashboard — an ambient intelligence surface that answers, in 5
-//          seconds: what needs me, what Otzar is handling, what context it holds,
-//          and the one next action. Built ONLY from real rails (presence counts,
-//          my-day intelligence, current context). Collapsed summaries, short
-//          human language, calm hierarchy, mobile-first, non-blocking. Empty is
-//          calm ("all caught up"), never blank, never a card wall. The orb is the
-//          voice/text invocation; this surface invites it and reflects its state.
-// CONNECTS TO: App.tsx (/app index), EmployeeLayout, GlassPanel,
-//          src/lib/stores/presence.ts, useCurrentSurfaceContextStore,
-//          api.otzar.myDayIntelligence, tests/unit/ambient-work-surface.test.tsx.
+// PURPOSE: Default employee experience at /app. NOT a dashboard — an ambient
+//          intelligence surface that answers in 5 seconds (ADHD test): what
+//          needs me, what changed, what context Otzar holds, one next action.
+//          Built ONLY from real rails. Design Law + PRD-01 + quality rubric.
+// CONNECTS TO: EmployeeLayout, GlassPanel, presence, myDayIntelligence.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Mic, MoonStar } from "lucide-react";
+import { ArrowRight, Mic, MoonStar, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
 import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 import { GlassPanel } from "@/components/ambient/GlassPanel";
+import { OtzarMark } from "@/components/ambient/OtzarMark";
 import { buildWorkNodes } from "@/lib/work-os/work-nodes";
-import { intensityDot } from "@/lib/ambient/glass";
+import { GLASS_CTA, intensityDot } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import type { MyDaySuggestion } from "@/lib/types/foundation";
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
@@ -42,18 +37,12 @@ export function AmbientWorkSurface(): JSX.Element {
   const quiet = usePresenceStore((s) => s.quiet);
   const approvalsCount = usePresenceStore((s) => s.approvalsCount);
   const unreadCount = usePresenceStore((s) => s.unreadCount);
-  // [ORG-AUTONOMY] "Needs you" reads the action-required count (total unread
-  // minus calm FYIs like scheduled-meeting notices), so an FYI never nags.
   const actionUnreadCount = usePresenceStore((s) => s.actionUnreadCount);
   const surfaceContext = useCurrentSurfaceContextStore((s) => s.context);
   const clearContext = useCurrentSurfaceContextStore((s) => s.clear);
   const [headline, setHeadline] = useState<string | null>(null);
-  // Section-25 fix: the headline COUNTS intelligence.suggestions, so the
-  // SAME response's suggestions render right under it — the claim and the
-  // visible items can never disagree again (one object, one source).
   const [suggestions, setSuggestions] = useState<MyDaySuggestion[]>([]);
 
-  // One calm intelligence headline — "what changed". Silence on failure.
   useEffect(() => {
     let cancelled = false;
     api.otzar
@@ -70,18 +59,12 @@ export function AmbientWorkSurface(): JSX.Element {
     };
   }, []);
 
-  // The auth entity carries only an email today — humanize its local-part into
-  // a friendly first/full name ("samiksha.sharma@…" → "Samiksha Sharma") rather
-  // than greeting "samiksha.sharma". Never invents a name; null when unusable.
   const name = nameFromEmail(entity?.email ?? null);
   const ctxActive = surfaceContext !== null && surfaceContext.active;
   const ctxLabel = ctxActive
     ? surfaceContext.title ?? surfaceContext.summary ?? "Current context"
     : null;
-  // PROD-MODEL-P3 §21 — URGENT blind spots surface where the human already
-  // looks, not only under More. Urgency reuses the P0R lane triage (identity
-  // review / blocked / setup required = priority ≤ 2); zero urgent items adds
-  // NOTHING (no card spam). The Blind Spots page stays the detail view.
+
   const [urgentBlindSpots, setUrgentBlindSpots] = useState(0);
   useEffect(() => {
     let cancelled = false;
@@ -97,12 +80,10 @@ export function AmbientWorkSurface(): JSX.Element {
       cancelled = true;
     };
   }, []);
+
   const nothingInFlight =
     approvalsCount === 0 && actionUnreadCount === 0 && urgentBlindSpots === 0;
 
-  // [OTZAR-LIVE-6] Real work nodes — what Otzar is connected to RIGHT NOW, built
-  // only from current home state (context, approvals, replies). No node without
-  // its backing state; no demo names; no graph. Collapsed strip below.
   const workNodes = buildWorkNodes({
     recipients: [],
     awaitingRecipient: false,
@@ -115,40 +96,49 @@ export function AmbientWorkSurface(): JSX.Element {
 
   return (
     <div
-      className="mx-auto flex w-full max-w-xl flex-col gap-4 px-1 pb-28 pt-6 sm:pt-10"
+      className="mx-auto flex w-full max-w-lg flex-col gap-5 px-1 pb-32 pt-4 sm:max-w-xl sm:pt-8"
       data-testid="ambient-work-surface"
     >
-      {/* Greeting — calm presence, one line. */}
-      <div className="px-1">
-        <h1 className="text-2xl font-light tracking-tight text-slate-900">
-          {greetingFor(new Date().getHours(), name)}
-        </h1>
-        <p className="mt-1 text-sm text-slate-500" data-testid="ambient-presence-line">
-          {quiet ? (
-            <>
-              <MoonStar className="mr-1 inline h-3.5 w-3.5" aria-hidden />
-              Otzar is quiet while you focus.
-            </>
-          ) : (
-            "Otzar is here, handling what it can and surfacing only what needs you."
-          )}
-        </p>
-      </div>
+      {/* Hero presence stage — glanceable identity + intent (Design Law §1). */}
+      <section className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 px-5 py-7 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:px-8 sm:py-9">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="otzar-aurora-layer opacity-70" />
+        </div>
+        <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
+          <OtzarMark size="lg" active={!quiet} />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-light tracking-tight text-slate-900 sm:text-3xl">
+              {greetingFor(new Date().getHours(), name)}
+            </h1>
+            <p
+              className="mt-1.5 max-w-md text-sm leading-relaxed text-slate-500"
+              data-testid="ambient-presence-line"
+            >
+              {quiet ? (
+                <>
+                  <MoonStar className="mr-1 inline h-3.5 w-3.5" aria-hidden />
+                  Otzar is quiet while you focus.
+                </>
+              ) : (
+                "I'm here. I'll stay out of your way unless something needs your attention."
+              )}
+            </p>
+          </div>
+        </div>
+      </section>
 
-      {/* NEEDS YOU — only when the human must act: approvals to decide and
-          replies that arrived for them to read. Category-specific copy, never
-          "items"/"things"/vague counts. */}
-      {(approvalsCount > 0 || actionUnreadCount > 0 || urgentBlindSpots > 0) ? (
+      {/* NEEDS YOU — only when the human must act. Category-specific copy. */}
+      {approvalsCount > 0 || actionUnreadCount > 0 || urgentBlindSpots > 0 ? (
         <GlassPanel
           intensity="attention"
           label="Needs you"
           testId="needs-me-panel"
         >
-          <div className="space-y-1.5 text-sm">
+          <div className="space-y-2 text-sm">
             {approvalsCount > 0 ? (
               <Link
                 to="/app/action-center"
-                className="flex items-center justify-between gap-3"
+                className="flex items-center justify-between gap-3 rounded-xl bg-amber-400/10 px-3 py-2.5 transition-colors hover:bg-amber-400/15"
                 data-testid="needs-approvals"
               >
                 <span className="font-medium text-slate-900">
@@ -156,7 +146,7 @@ export function AmbientWorkSurface(): JSX.Element {
                     ? "1 approval is waiting"
                     : `${approvalsCount} approvals are waiting`}
                 </span>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-800">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/25 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
                   Review <ArrowRight className="h-3 w-3" aria-hidden />
                 </span>
               </Link>
@@ -164,7 +154,7 @@ export function AmbientWorkSurface(): JSX.Element {
             {urgentBlindSpots > 0 ? (
               <Link
                 to="/app/blind-spots"
-                className="flex items-center justify-between gap-3 text-slate-800 hover:text-slate-900"
+                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-slate-800 transition-colors hover:bg-white/50"
                 data-testid="needs-blind-spots"
               >
                 <span>
@@ -172,13 +162,16 @@ export function AmbientWorkSurface(): JSX.Element {
                     ? "1 item is stuck and needs a decision"
                     : `${urgentBlindSpots} items are stuck and need a decision`}
                 </span>
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                <ArrowRight
+                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                  aria-hidden
+                />
               </Link>
             ) : null}
             {actionUnreadCount > 0 ? (
               <Link
                 to="/app/comms"
-                className="flex items-center justify-between gap-3 text-slate-800 hover:text-slate-900"
+                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-slate-800 transition-colors hover:bg-white/50"
                 data-testid="needs-replies"
               >
                 <span>
@@ -186,41 +179,40 @@ export function AmbientWorkSurface(): JSX.Element {
                     ? "1 reply to review"
                     : `${actionUnreadCount} replies to review`}
                 </span>
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                <ArrowRight
+                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                  aria-hidden
+                />
               </Link>
             ) : null}
           </div>
         </GlassPanel>
       ) : null}
 
-      {/* WHAT CHANGED — Otzar's one calm "what changed" headline. NOT labeled
-          "Otzar is handling": arrived replies are the human's to read (above),
-          and the genuine Otzar-is-handling state (drafts / routing / tracking)
-          lives in the orb and is not bridged to this surface yet — so we never
-          overclaim it here. (Bridge deferred per the handling-panel decision.) */}
+      {/* WHAT CHANGED — one calm headline + deep-linked suggestions. */}
       {headline !== null ? (
         <GlassPanel
           intensity={suggestions.length > 0 ? "attention" : "ambient"}
           label="What changed"
           testId="changed-panel"
         >
-          <p className="text-sm text-slate-600" data-testid="changed-headline">
+          <p className="text-sm leading-relaxed text-slate-600" data-testid="changed-headline">
             {headline}
           </p>
-          {/* Section-25 fix — the exact items the headline is counting,
-              deep-linked to the workbench that resolves them. If Otzar says
-              "N things need your attention", those N things are RIGHT HERE. */}
           {suggestions.length > 0 ? (
-            <ul className="mt-2 space-y-1" data-testid="changed-suggestions">
+            <ul className="mt-3 space-y-1.5" data-testid="changed-suggestions">
               {suggestions.slice(0, 3).map((s) => (
                 <li key={`${s.rank}-${s.reason}`}>
                   <Link
                     to="/app/my-day"
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-background/60 px-3 py-2 text-sm text-slate-800 transition-colors hover:border-primary/40"
+                    className="flex items-center justify-between gap-2 rounded-xl border border-white/60 bg-white/50 px-3 py-2.5 text-sm text-slate-800 transition-colors hover:border-indigo-200/80 hover:bg-white/80"
                     data-testid="changed-suggestion"
                   >
                     <span className="truncate">{s.safe_title}</span>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                    <ArrowRight
+                      className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                      aria-hidden
+                    />
                   </Link>
                 </li>
               ))}
@@ -229,7 +221,7 @@ export function AmbientWorkSurface(): JSX.Element {
         </GlassPanel>
       ) : null}
 
-      {/* CURRENT CONTEXT — what Otzar is using, clearable. */}
+      {/* CONTEXT — what Otzar is using. */}
       <GlassPanel intensity="ambient" label="Context" testId="context-panel">
         {ctxActive ? (
           <div className="flex items-center justify-between gap-3 text-sm">
@@ -240,25 +232,26 @@ export function AmbientWorkSurface(): JSX.Element {
               type="button"
               onClick={() => clearContext()}
               data-testid="context-clear"
-              className="shrink-0 text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+              className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-800"
             >
               Clear
             </button>
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
-            No context yet. Tell Otzar what you're working on and it remembers.
+          <p className="text-sm leading-relaxed text-slate-500">
+            No context yet. Tell Otzar what you&apos;re working on and it remembers.
           </p>
         )}
       </GlassPanel>
 
-      {/* CONNECTED NOW — a small, collapsed real-node strip. Each chip is real
-          state (context / approval / reply); nothing renders when there is no
-          real node. Not a graph, not technical mechanics. */}
+      {/* CONNECTED NOW — collapsed real-node strip. */}
       {workNodes.length > 0 ? (
         <details className="group px-1" data-testid="surface-work-nodes">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-800">
-            <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
+            <span
+              aria-hidden
+              className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400"
+            />
             Connected now
             <span className="opacity-60">· {workNodes.length}</span>
           </summary>
@@ -275,7 +268,10 @@ export function AmbientWorkSurface(): JSX.Element {
                 title={n.detail}
                 className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/60 px-2.5 py-0.5 text-[11px] text-slate-700 backdrop-blur-xl"
               >
-                <span aria-hidden className={`inline-block h-1 w-1 rounded-full ${intensityDot(n.intensity)}`} />
+                <span
+                  aria-hidden
+                  className={`inline-block h-1 w-1 rounded-full ${intensityDot(n.intensity)}`}
+                />
                 {n.label}
               </span>
             ))}
@@ -283,30 +279,41 @@ export function AmbientWorkSurface(): JSX.Element {
         </details>
       ) : null}
 
-      {/* ALL CAUGHT UP — calm, not blank, when nothing needs the human. */}
+      {/* ALL CAUGHT UP — calm, not blank. */}
       {nothingInFlight ? (
-        <p
-          className="px-1 text-sm text-slate-400"
+        <div
+          className="flex items-start gap-2.5 px-1"
           data-testid="ambient-caught-up"
         >
-          You're all caught up. Otzar is listening.
-        </p>
+          <Sparkles
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300"
+            aria-hidden
+          />
+          <p className="text-sm leading-relaxed text-slate-400">
+            You&apos;re all caught up. Otzar is listening.
+          </p>
+        </div>
       ) : null}
 
-      {/* NEXT BEST ACTION — one primary invitation; the orb is the engine. */}
+      {/* Primary invitation — the orb is the engine. */}
       <button
         type="button"
         onClick={openOrb}
         data-testid="ambient-talk"
-        className="mt-1 flex items-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-4 py-3 text-left text-sm text-slate-500 shadow-sm backdrop-blur-xl ring-1 ring-black/[0.04] transition-colors hover:text-slate-800"
+        className={`${GLASS_CTA} mt-1 flex items-center gap-3 px-4 py-3.5 text-left text-sm text-slate-600 hover:text-slate-900`}
       >
-        <Mic className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
-        <span>Just talk — “what matters today?”, “did anyone reply?”, “send Sam an update”.</span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900/5">
+          <Mic className="h-4 w-4 text-slate-500" aria-hidden />
+        </span>
+        <span className="leading-snug">
+          Just talk — &ldquo;what matters today?&rdquo;, &ldquo;what needs my
+          approval?&rdquo;, &ldquo;open my workspace&rdquo;.
+        </span>
       </button>
 
       <Link
         to="/app/my-day"
-        className="px-1 text-xs font-medium text-slate-400 underline-offset-4 hover:text-slate-700 hover:underline"
+        className="px-1 text-xs font-medium text-slate-400 underline-offset-4 transition-colors hover:text-slate-700 hover:underline"
         data-testid="ambient-open-workbench"
       >
         Open the full workbench →
