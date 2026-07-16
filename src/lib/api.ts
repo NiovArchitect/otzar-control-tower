@@ -1073,6 +1073,23 @@ export class ApiClient {
           `/otzar/handoffs/${encodeURIComponent(handoffId)}/acknowledge`,
           { method: "POST", body },
         ),
+
+      /** One-tap complete after ACK — accept pending linked obligations → COMPLETED. */
+      completeAmbient: (
+        handoffId: string,
+        body: { expected_version?: number } = {},
+      ): Promise<
+        ApiResult<{
+          ok: true;
+          handoff: import("@/lib/types/foundation").SafeHandoffView;
+          disposed_obligation_ids: string[];
+          skipped_already_disposed: number;
+        }>
+      > =>
+        this.request(
+          `/otzar/handoffs/${encodeURIComponent(handoffId)}/complete-ambient`,
+          { method: "POST", body },
+        ),
     },
 
     // [SECTION-10 ORG-TRUTH REVIEW] Governed organizational-truth review surface.
