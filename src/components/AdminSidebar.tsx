@@ -11,6 +11,7 @@ import { useReviewableCount } from "@/hooks/use-reviewable-count";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { OtzarMark } from "@/components/ambient/OtzarMark";
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { data: pendingCount } = usePendingApprovals();
@@ -31,14 +32,14 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
       // the employee shell; no flat dashboard panel.
       className="flex h-full flex-col border-r border-white/60 bg-white/55 shadow-[8px_0_32px_-18px_rgba(15,23,42,0.18)] backdrop-blur-xl backdrop-saturate-150"
     >
-      <div className="flex items-center gap-2 px-4 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
-          O
-        </div>
+      <div className="flex items-center gap-2.5 px-4 py-5">
+        <OtzarMark size="md" active={false} />
         <div>
-          <div className="text-sm font-semibold leading-tight">Otzar</div>
-          <div className="text-xs leading-tight text-muted-foreground">
-            Admin
+          <div className="text-sm font-semibold leading-tight tracking-tight text-slate-900">
+            Otzar
+          </div>
+          <div className="text-[11px] leading-tight text-slate-500">
+            Control Tower
           </div>
         </div>
       </div>
@@ -66,10 +67,10 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all duration-200",
                       isActive
-                        ? "bg-accent text-accent-foreground font-medium"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                        ? "bg-white/80 font-medium text-slate-900 shadow-[0_4px_14px_-6px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/[0.04]"
+                        : "text-slate-500 hover:bg-white/50 hover:text-slate-800",
                     )
                   }
                 >

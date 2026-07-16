@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/stores/auth";
 import { landingPathFor } from "@/lib/auth/capabilities";
 import { AMBIENT_FIELD, GLASS_SURFACE } from "@/lib/ambient/glass";
+import { OtzarMark } from "@/components/ambient/OtzarMark";
 
 // WHAT: Local-dev-only demo accounts produced by
 //        niov-foundation/scripts/demo-seed.ts (PR #300 substrate).
@@ -129,25 +130,35 @@ export function LoginPage() {
 
   return (
     <main
-      className={`relative flex min-h-screen items-center justify-center px-4 ${AMBIENT_FIELD}`}
+      className={`relative flex min-h-screen flex-col items-center justify-center px-4 py-10 ${AMBIENT_FIELD}`}
+      data-testid="login-page"
     >
-      {/* A calm presence bloom behind the card — Otzar is here before you sign in. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_38%,rgba(56,189,248,0.10),transparent_70%)]"
-      />
-      <Card className={`relative w-full max-w-sm border-0 bg-transparent shadow-none ${GLASS_SURFACE}`}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900">
-            <span
-              aria-hidden
-              className="inline-block h-2 w-2 rounded-full bg-sky-400 motion-safe:animate-pulse"
-            />
-            Otzar
+      {/* Living atmosphere — Otzar is present before you sign in. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="otzar-aurora-layer" />
+        <div className="absolute inset-0 bg-[radial-gradient(55%_45%_at_50%_40%,rgba(255,255,255,0.55),transparent_72%)]" />
+      </div>
+
+      <div className="relative z-10 mb-8 flex max-w-md flex-col items-center text-center">
+        <OtzarMark size="lg" active />
+        <h1 className="mt-4 text-3xl font-light tracking-tight text-slate-900">
+          Otzar
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-slate-500">
+          Your ambient AI Work OS. Intelligent enough to help.
+          Calm enough to stay out of the way. Governed enough to trust.
+        </p>
+      </div>
+
+      <Card
+        className={`relative z-10 w-full max-w-sm border-0 bg-transparent shadow-none ${GLASS_SURFACE}`}
+      >
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Sign in
           </CardTitle>
           <CardDescription className="text-slate-500">
-            Your ambient AI Work OS. Every action is governed and kept in your
-            organization's audit trail.
+            Use your work account. Every action is recorded for your organization.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -162,15 +173,15 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
+                className="h-11 border-white/70 bg-white/60 backdrop-blur-sm"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                {/* [PASSWORD-LIFECYCLE] the logged-out recovery door. */}
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                  className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-800"
                   data-testid="login-forgot-password"
                 >
                   Forgot password?
@@ -184,12 +195,13 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
+                className="h-11 border-white/70 bg-white/60 backdrop-blur-sm"
               />
             </div>
             {loginError && (
               <div
                 role="alert"
-                className="text-sm text-destructive space-y-1"
+                className="space-y-1 text-sm text-destructive"
                 aria-live="polite"
               >
                 <p>{loginError}</p>
@@ -207,13 +219,17 @@ export function LoginPage() {
                 ) : null}
               </div>
             )}
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? "Signing in..." : "Sign in"}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="h-11 w-full rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800"
+            >
+              {isLoading ? "Signing in…" : "Continue"}
             </Button>
           </form>
           {import.meta.env.DEV ? (
-            <div className="mt-6 border-t pt-4 space-y-3">
-              <p className="text-xs text-muted-foreground">
+            <div className="mt-6 space-y-3 border-t border-white/50 pt-4">
+              <p className="text-xs text-slate-500">
                 Local dev only — seeded demo accounts from
                 <code className="ml-1">scripts/demo-seed.ts</code>:
               </p>
@@ -228,13 +244,11 @@ export function LoginPage() {
                         setPassword(account.password);
                       }
                     }}
-                    className="w-full text-left text-xs rounded border border-border bg-background px-3 py-2 hover:bg-muted/50"
+                    className="w-full rounded-xl border border-white/60 bg-white/40 px-3 py-2 text-left text-xs transition-colors hover:bg-white/70"
                   >
-                    <div className="font-medium">{account.role}</div>
-                    <div className="text-muted-foreground truncate">
-                      {account.email}
-                    </div>
-                    <div className="text-muted-foreground text-[10px]">
+                    <div className="font-medium text-slate-800">{account.role}</div>
+                    <div className="truncate text-slate-500">{account.email}</div>
+                    <div className="text-[10px] text-slate-400">
                       {account.description}
                     </div>
                   </button>
@@ -244,6 +258,11 @@ export function LoginPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <p className="relative z-10 mt-8 max-w-sm text-center text-[11px] leading-relaxed text-slate-400">
+        Otzar routes work, drafts with you, and only interrupts when something
+        truly needs a human decision.
+      </p>
     </main>
   );
 }
