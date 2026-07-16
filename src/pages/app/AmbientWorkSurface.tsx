@@ -290,15 +290,25 @@ export function AmbientWorkSurface(): JSX.Element {
               {quiet ? (
                 <>
                   <MoonStar className="mr-1 inline h-3.5 w-3.5" aria-hidden />
-                  Otzar is quiet while you focus.
+                  Quiet mode — I&apos;m present, not interrupting.
                 </>
               ) : dgi?.coherence_status === "NEEDS_ATTENTION" ? (
                 <span className="inline-flex items-center gap-2">
                   <span
                     aria-hidden
-                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400 motion-safe:animate-pulse"
+                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400 motion-safe:animate-pulse"
                   />
-                  Something needs attention — I&apos;ll keep the rest quiet.
+                  I&apos;m with you — one thing needs you; the rest stays quiet.
+                </span>
+              ) : dgi?.coherence_status === "BLOCKED" ||
+                dgi?.coherence_status === "UNPAIRED" ? (
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"
+                  />
+                  I&apos;m here, but collaborative intelligence is paused until
+                  pairing is clear.
                 </span>
               ) : dgi?.coherence_status === "HEALTHY" ? (
                 <span className="inline-flex items-center gap-2">
@@ -306,10 +316,10 @@ export function AmbientWorkSurface(): JSX.Element {
                     aria-hidden
                     className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/90"
                   />
-                  I&apos;m with you. Coherence is steady.
+                  Present. Working alongside you — not another dashboard.
                 </span>
               ) : (
-                "I'm here. I'll stay out of your way unless something needs your attention."
+                "I'm with you across your work. Speak, act, or leave me quiet."
               )}
             </p>
           </div>
