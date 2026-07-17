@@ -209,6 +209,92 @@ describe("AmbientWorkSurface — headline/items single source (Section 25)", () 
   });
 });
 
+// [C.3] AI Teammate claims from my-work twin_work — "Your Twin is on this".
+describe("AmbientWorkSurface — Twin working panel (C.3)", () => {
+  it("surfaces active twin_work claims from my-work", async () => {
+    server.use(
+      http.get(`${API_BASE}/work-os/my-work`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [
+            {
+              ledger_entry_id: "tw-1",
+              ledger_type: "TASK",
+              source_type: "TRANSCRIPT",
+              source_command: null,
+              work_plan_id: null,
+              requester_entity_id: null,
+              owner_entity_id: null,
+              target_entity_id: null,
+              title: "Insurance prior-auth form",
+              status: "EXECUTING",
+              priority: "PROJECT_CRITICAL",
+              extraction_source: "TRANSCRIPT",
+              next_action: "Twin executing with verification posture; human notified",
+              due_at: null,
+              created_at: "2026-07-16T12:00:00.000Z",
+              twin_work: {
+                state: "CLAIMED_WORKING",
+                work_kind: "DOCUMENT",
+                accuracy_class: "INSURANCE",
+                requires_verification: true,
+                claimed_at: "2026-07-16T12:00:00.000Z",
+                web_view_link: "https://docs.google.com/document/d/abc/edit",
+                clarity_question: null,
+              },
+            },
+          ],
+          has_more: false,
+        }),
+      ),
+    );
+    renderSurface();
+    const panel = await screen.findByTestId("twin-working-panel");
+    expect(panel).toHaveTextContent(/Insurance prior-auth form/i);
+    expect(panel).toHaveTextContent(/Insurance accuracy/i);
+    expect(screen.getByTestId("twin-working-open-doc")).toHaveAttribute(
+      "href",
+      "https://docs.google.com/document/d/abc/edit",
+    );
+    // Human is free; Twin is working — not "caught up" alone.
+    expect(screen.queryByTestId("ambient-caught-up")).toBeNull();
+  });
+
+  it("stays silent when my-work has no twin claims", async () => {
+    server.use(
+      http.get(`${API_BASE}/work-os/my-work`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [
+            {
+              ledger_entry_id: "plain-1",
+              ledger_type: "TASK",
+              source_type: "TRANSCRIPT",
+              source_command: null,
+              work_plan_id: null,
+              requester_entity_id: null,
+              owner_entity_id: null,
+              target_entity_id: null,
+              title: "Ordinary task",
+              status: "DETECTED",
+              priority: "ROUTINE",
+              extraction_source: "TRANSCRIPT",
+              next_action: null,
+              due_at: null,
+              created_at: "2026-07-16T12:00:00.000Z",
+            },
+          ],
+          has_more: false,
+        }),
+      ),
+    );
+    renderSurface();
+    await waitFor(() =>
+      expect(screen.queryByTestId("twin-working-panel")).toBeNull(),
+    );
+  });
+});
+
 // PROD-MODEL-P3 §21 — urgent blind spots surface on Today (deep link to the
 // detail page); non-urgent backlog adds NOTHING to the home surface.
 describe("AmbientWorkSurface — urgent blind spots surface here (§21)", () => {

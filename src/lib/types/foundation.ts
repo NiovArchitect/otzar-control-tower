@@ -5509,6 +5509,21 @@ export interface WorkLedgerEntryView {
     provider: string | null;
     participants: Array<{ label: string; role: string | null; required: boolean }>;
   };
+  // [PROJECT-COHERENCE C.3] Safe AI Teammate work-claim projection from FND
+  // projectLedger. Present only when claimWorkForTwin wrote details.twin_work.
+  // Never Twin entity UUIDs — state + accuracy + optional https doc link.
+  twin_work?: TwinWorkProjection;
+}
+
+/** Mirror of Foundation TwinWorkProjection (work-ledger.service). */
+export interface TwinWorkProjection {
+  state: string;
+  work_kind: string;
+  accuracy_class: string;
+  requires_verification: boolean;
+  claimed_at: string | null;
+  web_view_link: string | null;
+  clarity_question: string | null;
 }
 
 // PROD-UX-P0R — mirror of Foundation's RoutingDecisionView
