@@ -33,6 +33,7 @@ import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-cont
 import {
   isActiveTwinWork,
   twinAccuracyLabel,
+  twinWorkEditDetected,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 
@@ -321,6 +322,7 @@ export function WorkLedgerItem({
         : null;
 
   const twinActive = isActiveTwinWork(entry.twin_work);
+  const twinEdited = twinWorkEditDetected(entry.twin_work);
   const twinAcc =
     entry.twin_work !== undefined
       ? twinAccuracyLabel(entry.twin_work.accuracy_class)
@@ -430,6 +432,16 @@ export function WorkLedgerItem({
               }
             >
               AI Teammate
+            </Badge>
+          ) : null}
+          {twinEdited ? (
+            <Badge
+              variant="outline"
+              className="border-amber-500/60 text-[9px] text-amber-700"
+              data-testid="work-ledger-item-twin-edit"
+              title="Document updated since your AI Teammate claimed it"
+            >
+              Doc updated
             </Badge>
           ) : null}
           <Badge variant="outline" className="text-[9px]">

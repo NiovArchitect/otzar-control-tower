@@ -5524,6 +5524,10 @@ export interface TwinWorkProjection {
   claimed_at: string | null;
   web_view_link: string | null;
   clarity_question: string | null;
+  /** [C.3b] Drive modified after Twin claim. Sticky once true. */
+  edit_detected?: boolean;
+  edit_signal?: string | null;
+  last_drive_modified_at?: string | null;
 }
 
 // PROD-UX-P0R — mirror of Foundation's RoutingDecisionView

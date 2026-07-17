@@ -54,3 +54,25 @@ export function twinAccuracyLabel(accuracy: string): string | null {
       return null;
   }
 }
+
+/** [C.3b] Whether Drive (or projection) reports a post-claim edit. */
+export function twinWorkEditDetected(
+  twin: TwinWorkProjection | undefined | null,
+): boolean {
+  if (twin == null) return false;
+  return (
+    twin.edit_detected === true || twin.edit_signal === "MODIFIED_AFTER_CLAIM"
+  );
+}
+
+/** Ids with an open doc link — candidates for edit detection. */
+export function twinWorkDocClaimIds(items: WorkLedgerEntryView[]): string[] {
+  return items
+    .filter(
+      (e) =>
+        isActiveTwinWork(e.twin_work) &&
+        typeof e.twin_work?.web_view_link === "string" &&
+        e.twin_work.web_view_link.length > 0,
+    )
+    .map((e) => e.ledger_entry_id);
+}
