@@ -14,7 +14,7 @@ import type { WorkLedgerEntryView } from "@/lib/types/foundation";
 function entry(
   partial: Partial<WorkLedgerEntryView> & { title: string },
 ): WorkLedgerEntryView {
-  return {
+  const base: WorkLedgerEntryView = {
     ledger_entry_id: partial.ledger_entry_id ?? "le-1",
     ledger_type: "TASK",
     source_type: "TRANSCRIPT",
@@ -30,8 +30,11 @@ function entry(
     next_action: null,
     due_at: null,
     created_at: "2026-07-16T00:00:00.000Z",
-    twin_work: partial.twin_work,
   };
+  if (partial.twin_work !== undefined) {
+    base.twin_work = partial.twin_work;
+  }
+  return base;
 }
 
 describe("twin-work helpers", () => {
@@ -91,7 +94,7 @@ describe("twin-work helpers", () => {
     ];
     const active = activeTwinWorkItems(items);
     expect(active).toHaveLength(1);
-    expect(active[0].title).toBe("Pilot slides");
+    expect(active[0]?.title).toBe("Pilot slides");
   });
 
   it("labels accuracy only for regulated classes", () => {
