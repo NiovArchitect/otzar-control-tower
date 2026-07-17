@@ -7,6 +7,8 @@ import {
   activeTwinWorkItems,
   isActiveTwinWork,
   twinAccuracyLabel,
+  twinWorkDocClaimIds,
+  twinWorkEditDetected,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
@@ -101,5 +103,35 @@ describe("twin-work helpers", () => {
     expect(twinAccuracyLabel("INSURANCE")).toBe("Insurance accuracy");
     expect(twinAccuracyLabel("STANDARD")).toBeNull();
     expect(twinWorkStateLabel("CLAIMED_WORKING")).toMatch(/working/i);
+  });
+
+  it("detects edit signal and doc claim ids", () => {
+    expect(
+      twinWorkEditDetected({
+        state: "CLAIMED_WORKING",
+        work_kind: "DOCUMENT",
+        accuracy_class: "STANDARD",
+        requires_verification: false,
+        claimed_at: null,
+        web_view_link: null,
+        clarity_question: null,
+        edit_signal: "MODIFIED_AFTER_CLAIM",
+      }),
+    ).toBe(true);
+    const withDoc = entry({
+      title: "Form",
+      twin_work: {
+        state: "CLAIMED_WORKING",
+        work_kind: "DOCUMENT",
+        accuracy_class: "INSURANCE",
+        requires_verification: true,
+        claimed_at: null,
+        web_view_link: "https://docs.google.com/document/d/x/edit",
+        clarity_question: null,
+      },
+    });
+    expect(twinWorkDocClaimIds([withDoc, entry({ title: "No" })])).toEqual([
+      withDoc.ledger_entry_id,
+    ]);
   });
 });

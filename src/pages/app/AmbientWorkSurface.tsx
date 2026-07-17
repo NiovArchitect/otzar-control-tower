@@ -45,6 +45,8 @@ import { triagePriority } from "@/lib/work-os/blind-spot-triage";
 import {
   activeTwinWorkItems,
   twinAccuracyLabel,
+  twinWorkDocClaimIds,
+  twinWorkEditDetected,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 
@@ -163,10 +165,48 @@ export function AmbientWorkSurface(): JSX.Element {
     let cancelled = false;
     api.workOs
       .myWork({ take: 50 })
-      .then((r) => {
+      .then(async (r) => {
         if (cancelled || !r.ok) return;
         const items = r.data.items ?? r.data.entries ?? [];
-        setTwinWorking(activeTwinWorkItems(items).slice(0, 5));
+        const active = activeTwinWorkItems(items).slice(0, 5);
+        setTwinWorking(active);
+        // [C.3b] Best-effort edit check for claimed docs (honest NO_DOCUMENT skips).
+        const docIds = twinWorkDocClaimIds(active).slice(0, 5);
+        if (docIds.length === 0) return;
+        try {
+          const d = await api.otzar.twinWorkDetectEditsBatch(docIds);
+          if (cancelled || !d.ok) return;
+          const edited = new Set(
+            d.data.results
+              .filter(
+                (x): x is {
+                  ledger_entry_id: string;
+                  ok: true;
+                  edit_detected: boolean;
+                  edit_signal: string;
+                } => x.ok === true && x.edit_detected === true,
+              )
+              .map((x) => x.ledger_entry_id),
+          );
+          if (edited.size === 0) return;
+          setTwinWorking((prev) =>
+            prev.map((e) => {
+              if (!edited.has(e.ledger_entry_id) || e.twin_work === undefined) {
+                return e;
+              }
+              return {
+                ...e,
+                twin_work: {
+                  ...e.twin_work,
+                  edit_detected: true,
+                  edit_signal: "MODIFIED_AFTER_CLAIM",
+                },
+              };
+            }),
+          );
+        } catch {
+          // edit detect is best-effort; panel still shows claims
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -729,10 +769,12 @@ export function AmbientWorkSurface(): JSX.Element {
             </p>
             <ul className="space-y-1.5" data-testid="twin-working-list">
               {twinWorking.map((e) => {
-                const tw = e.twin_work!;
+                const tw = e.twin_work;
+                if (tw === undefined) return null;
                 const acc = twinAccuracyLabel(tw.accuracy_class);
                 const needsHuman =
                   tw.state === "NEEDS_CLARITY" || tw.state === "COLLAB_REQUESTED";
+                const edited = twinWorkEditDetected(tw);
                 return (
                   <li
                     key={e.ledger_entry_id}
@@ -740,6 +782,7 @@ export function AmbientWorkSurface(): JSX.Element {
                     data-testid="twin-working-row"
                     data-twin-state={tw.state}
                     data-accuracy={tw.accuracy_class}
+                    data-edit-detected={edited ? "true" : "false"}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -757,6 +800,15 @@ export function AmbientWorkSurface(): JSX.Element {
                             ? " · verification posture"
                             : ""}
                         </p>
+                        {edited ? (
+                          <p
+                            className="mt-1 text-xs font-medium text-amber-800"
+                            data-testid="twin-working-edit-detected"
+                          >
+                            Document updated since claim — review so you share
+                            one truth.
+                          </p>
+                        ) : null}
                         {tw.state === "NEEDS_CLARITY" &&
                         tw.clarity_question !== null ? (
                           <p className="mt-1 text-xs text-slate-600">
@@ -765,7 +817,8 @@ export function AmbientWorkSurface(): JSX.Element {
                         ) : null}
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
-                        {tw.web_view_link !== null ? (
+                        {tw.web_view_link !== null &&
+                        tw.web_view_link !== undefined ? (
                           <a
                             href={tw.web_view_link}
                             target="_blank"

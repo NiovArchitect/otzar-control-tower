@@ -1313,6 +1313,29 @@ export class ApiClient {
     dgiCoherence: (): Promise<ApiResult<DgiCoherenceResponse>> =>
       this.request<DgiCoherenceResponse>("/otzar/dgi-coherence"),
 
+    /** [C.3b] POST /otzar/twin-work/detect-edits-batch — Drive modifiedTime
+     *  after Twin claim (max 10 ledger ids). Honest codes when no document. */
+    twinWorkDetectEditsBatch: (
+      ledger_entry_ids: string[],
+    ): Promise<
+      ApiResult<{
+        ok: true;
+        results: Array<
+          | {
+              ledger_entry_id: string;
+              ok: true;
+              edit_detected: boolean;
+              edit_signal: string;
+            }
+          | { ledger_entry_id: string; ok: false; code: string }
+        >;
+      }>
+    > =>
+      this.request("/otzar/twin-work/detect-edits-batch", {
+        method: "POST",
+        body: { ledger_entry_ids },
+      }),
+
     /** [COHERENCE-RECOVERY] GET /otzar/team-work — capacity-only team open work. */
     teamWork: (): Promise<
       ApiResult<{
