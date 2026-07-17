@@ -5204,6 +5204,36 @@ export interface CalendarEventProposalBody {
   caller_confirmed?: boolean;
 }
 
+// [GOOGLE-DOCS-WRITE] Gated Google Doc create — caller_confirmed required;
+// Foundation never auto-creates. Success carries real document_id + link.
+export interface GoogleDocCreateBody {
+  title: string;
+  body_text?: string;
+  requires_approval?: boolean;
+  approved?: boolean;
+  caller_confirmed?: boolean;
+  policy_blocked?: boolean;
+  source_command?: string;
+}
+
+export type GoogleDocGateCode =
+  | "NEEDS_TITLE"
+  | "NEEDS_APPROVAL"
+  | "NEEDS_CALLER_CONFIRMATION"
+  | "POLICY_BLOCKED"
+  | "GOOGLE_RECONNECT_REQUIRED"
+  | "DOC_WRITE_SCOPE_MISSING"
+  | "PROVIDER_ERROR";
+
+export interface GoogleDocCreateSuccess {
+  ok: true;
+  status: "CREATED";
+  source_kind: "google_docs";
+  document_id: string;
+  title: string;
+  web_view_link: string | null;
+}
+
 // Phase 1279 — durable Work Ledger entry (safe projection).
 // [CE-1] Read-only clarity projection (FND clarity.service.ts): ranked
 // "who can clarify?" candidates with human reasons. Suggestions only —

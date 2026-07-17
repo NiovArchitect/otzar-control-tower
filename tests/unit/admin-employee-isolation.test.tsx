@@ -18,8 +18,11 @@ describe("admin / employee isolation", () => {
     for (const r of employeeRoutes) expect(adminRoutes.has(r)).toBe(false);
   });
 
-  it("every employee destination lives under the /app/ shell", () => {
-    for (const r of employeeRoutes) expect(r.startsWith("/app/")).toBe(true);
+  it("every employee destination lives under the /app shell", () => {
+    for (const r of employeeRoutes) {
+      // Today is exactly /app; all other destinations are /app/...
+      expect(r === "/app" || r.startsWith("/app/"), r).toBe(true);
+    }
   });
 
   it("no admin destination leaks into the /app/ shell", () => {

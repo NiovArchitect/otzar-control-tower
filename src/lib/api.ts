@@ -90,6 +90,8 @@ import type {
   ZoomRecordingsResponse,
   CalendarFreeBusyResponse,
   CalendarEventProposalBody,
+  GoogleDocCreateBody,
+  GoogleDocCreateSuccess,
   AuthorityContextResponse,
   ResolveTargetResponse,
   RuntimeCapabilitiesResponse,
@@ -1854,6 +1856,18 @@ export class ApiClient {
         "/calendar/events/create",
         { method: "POST", body },
       ),
+
+    /** POST /api/v1/google/docs/create — gated Google Doc create.
+     *  Never auto-creates: requires caller_confirmed + doc-write scope.
+     *  Returns real document_id + web_view_link on CREATED. */
+    googleDocCreate: (
+      body: GoogleDocCreateBody,
+    ): Promise<ApiResult<GoogleDocCreateSuccess>> =>
+      this.request<GoogleDocCreateSuccess>("/google/docs/create", {
+        method: "POST",
+        body,
+        retries: 0,
+      }),
   };
 
   // ──────────────────────────────────────────────────────────────
