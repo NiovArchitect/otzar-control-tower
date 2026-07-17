@@ -30,6 +30,11 @@ import { routingLaneChip, routingLaneEdge, routingWhyLine } from "@/lib/work-os/
 import { formatOwnedByLine } from "@/lib/identity/owner-display";
 import { sourceLineageLabel } from "@/lib/labels/source-lineage";
 import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
+import {
+  isActiveTwinWork,
+  twinAccuracyLabel,
+  twinWorkStateLabel,
+} from "@/lib/work-os/twin-work";
 
 // WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
 //        summarizeExecutionProof) so the badge + section agree.
@@ -315,6 +320,12 @@ export function WorkLedgerItem({
         ? { text: "Coordinated", cls: "border-emerald-500/50 text-emerald-600" }
         : null;
 
+  const twinActive = isActiveTwinWork(entry.twin_work);
+  const twinAcc =
+    entry.twin_work !== undefined
+      ? twinAccuracyLabel(entry.twin_work.accuracy_class)
+      : null;
+
   const activeWatchers = (entry.watchers ?? []).filter((w) => w.status === "ACTIVE");
 
   return (
@@ -404,6 +415,21 @@ export function WorkLedgerItem({
           {cardBadge !== null ? (
             <Badge variant="outline" className={`text-[9px] ${cardBadge.cls}`} data-testid="work-ledger-item-card-badge">
               {cardBadge.text}
+            </Badge>
+          ) : null}
+          {twinActive && entry.twin_work !== undefined ? (
+            <Badge
+              variant="outline"
+              className="border-violet-500/50 text-[9px] text-violet-700"
+              data-testid="work-ledger-item-twin-work"
+              data-twin-state={entry.twin_work.state}
+              title={
+                twinAcc !== null
+                  ? `${twinWorkStateLabel(entry.twin_work.state)} · ${twinAcc}`
+                  : twinWorkStateLabel(entry.twin_work.state)
+              }
+            >
+              AI Teammate
             </Badge>
           ) : null}
           <Badge variant="outline" className="text-[9px]">

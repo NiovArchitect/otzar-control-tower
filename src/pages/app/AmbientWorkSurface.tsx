@@ -5,8 +5,10 @@
 //          Built ONLY from real rails. Design Law + PRD-01 + quality rubric.
 //          [DGI-COHERENCE WAVE-2] Always-visible organizational intelligence
 //          strip from GET /otzar/dgi-coherence (single server authority).
+//          [C.3] Twin-claimed EXECUTING work from GET /work-os/my-work so
+//          humans see "Your AI Teammate is working on this" without dual effort.
 // CONNECTS TO: EmployeeLayout, GlassPanel, presence, myDayIntelligence,
-//              api.otzar.dgiCoherence.
+//              api.otzar.dgiCoherence, api.workOs.myWork + twin_work.
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -19,6 +21,7 @@ import {
   Users,
   Handshake,
   FileText,
+  Bot,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -36,8 +39,14 @@ import type {
   DgiTwinAuthorityPosture,
   MyDaySuggestion,
   SafeHandoffView,
+  WorkLedgerEntryView,
 } from "@/lib/types/foundation";
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
+import {
+  activeTwinWorkItems,
+  twinAccuracyLabel,
+  twinWorkStateLabel,
+} from "@/lib/work-os/twin-work";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -132,6 +141,8 @@ export function AmbientWorkSurface(): JSX.Element {
   const [ackBusyId, setAckBusyId] = useState<string | null>(null);
   const [ackError, setAckError] = useState<string | null>(null);
   const [collabBusyId, setCollabBusyId] = useState<string | null>(null);
+  // [C.3] AI Teammate claims currently in flight (my-work twin_work projection).
+  const [twinWorking, setTwinWorking] = useState<WorkLedgerEntryView[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +152,21 @@ export function AmbientWorkSurface(): JSX.Element {
         if (cancelled || !r.ok) return;
         const items = r.data.items ?? r.data.entries ?? [];
         setUrgentBlindSpots(items.filter((e) => triagePriority(e) <= 2).length);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.workOs
+      .myWork({ take: 50 })
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        const items = r.data.items ?? r.data.entries ?? [];
+        setTwinWorking(activeTwinWorkItems(items).slice(0, 5));
       })
       .catch(() => undefined);
     return () => {
@@ -298,7 +324,10 @@ export function AmbientWorkSurface(): JSX.Element {
   };
 
   const nothingInFlight =
-    approvalsCount === 0 && actionUnreadCount === 0 && urgentBlindSpots === 0;
+    approvalsCount === 0 &&
+    actionUnreadCount === 0 &&
+    urgentBlindSpots === 0 &&
+    twinWorking.length === 0;
 
   const workNodes = buildWorkNodes({
     recipients: [],
@@ -682,6 +711,93 @@ export function AmbientWorkSurface(): JSX.Element {
                 ) : null}
               </div>
             ) : null}
+          </div>
+        </GlassPanel>
+      ) : null}
+
+      {/* TWIN WORKING — AI Teammate claimed work so you don't duplicate it. */}
+      {twinWorking.length > 0 ? (
+        <GlassPanel
+          intensity="working"
+          label="Your AI Teammate"
+          testId="twin-working-panel"
+        >
+          <div className="space-y-2 text-sm text-slate-700">
+            <p className="text-xs leading-relaxed text-slate-500">
+              Your AI Teammate is handling this from communication — no need to
+              start it yourself unless you want to take over.
+            </p>
+            <ul className="space-y-1.5" data-testid="twin-working-list">
+              {twinWorking.map((e) => {
+                const tw = e.twin_work!;
+                const acc = twinAccuracyLabel(tw.accuracy_class);
+                const needsHuman =
+                  tw.state === "NEEDS_CLARITY" || tw.state === "COLLAB_REQUESTED";
+                return (
+                  <li
+                    key={e.ledger_entry_id}
+                    className="rounded-xl border border-violet-400/15 bg-violet-500/[0.04] px-3 py-2.5"
+                    data-testid="twin-working-row"
+                    data-twin-state={tw.state}
+                    data-accuracy={tw.accuracy_class}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 font-medium text-slate-900">
+                          <Bot
+                            className="h-3.5 w-3.5 shrink-0 text-violet-700"
+                            aria-hidden
+                          />
+                          <span className="truncate">{e.title}</span>
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-slate-500">
+                          {twinWorkStateLabel(tw.state)}
+                          {acc !== null ? ` · ${acc}` : ""}
+                          {tw.requires_verification
+                            ? " · verification posture"
+                            : ""}
+                        </p>
+                        {tw.state === "NEEDS_CLARITY" &&
+                        tw.clarity_question !== null ? (
+                          <p className="mt-1 text-xs text-slate-600">
+                            {tw.clarity_question}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {tw.web_view_link !== null ? (
+                          <a
+                            href={tw.web_view_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] font-semibold text-violet-900 underline-offset-2 hover:underline"
+                            data-testid="twin-working-open-doc"
+                          >
+                            Open doc
+                          </a>
+                        ) : null}
+                        {needsHuman ? (
+                          <Link
+                            to="/app/my-work"
+                            className="inline-flex items-center gap-1 rounded-full bg-amber-400/25 px-2 py-0.5 text-[11px] font-semibold text-amber-900"
+                            data-testid="twin-working-needs-you"
+                          >
+                            Needs you
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <Link
+              to="/app/my-work"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-900 underline-offset-2 hover:underline"
+              data-testid="twin-working-open-my-work"
+            >
+              All my work <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
           </div>
         </GlassPanel>
       ) : null}
