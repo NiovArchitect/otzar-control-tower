@@ -229,7 +229,7 @@ export function LoginPage() {
               disabled={isLoading}
               className="otzar-cta-fill h-11 w-full rounded-xl border-0 text-sm font-medium"
             >
-              {isLoading ? "Signing in…" : "Continue"}
+              {isLoading ? "Signing in…" : "Sign in"}
             </Button>
           </form>
           {import.meta.env.DEV ? (
