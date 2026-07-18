@@ -219,9 +219,9 @@ export function AITeammatesPage() {
         header: "Authority status",
         accessorFn: (row) => authorityStatusLabel(row.config ?? null),
       },
-      // [GAP-H OPS] Operational truth from the backend's honest projection:
-      // readiness never fakes "Ready" (per-role required tools are not
-      // modeled yet) and activity never presents owner work as twin work.
+      // [GAP-H OPS] Operational truth: readiness from role template
+      // required_tools vs OAuth/bindings; never fakes Ready. Activity never
+      // presents owner work as twin work.
       {
         id: "tools",
         header: "Tools",

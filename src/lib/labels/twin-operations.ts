@@ -17,9 +17,14 @@ export function toolReadinessLabel(
     case "ready":
       return "Ready for assigned tools";
     case "needs_setup": {
+      if (tr.missing_tools.length === 0) return "Needs tools";
       if (tr.missing_tools.length === 1) {
         const only = tr.missing_tools[0];
         return only !== undefined ? `Needs ${only.label}` : "Needs 1 tool";
+      }
+      // List short labels so admins see Slack/GitHub gaps at a glance.
+      if (tr.missing_tools.length <= 3) {
+        return `Needs ${tr.missing_tools.map((m) => m.label).join(", ")}`;
       }
       return `Needs ${tr.missing_tools.length} tools`;
     }
