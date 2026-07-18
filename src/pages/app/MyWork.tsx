@@ -7,6 +7,7 @@
 // CONNECTS TO: api.workOs.myWork, WorkLedgerItem, App.tsx route /app/my-work.
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
 import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
@@ -100,9 +101,43 @@ export function MyWork(): JSX.Element {
       ) : items === null ? (
         <p className="text-xs text-muted-foreground">Loading your work…</p>
       ) : items.length === 0 ? (
-        <div className="rounded-md border border-border p-3 text-xs text-muted-foreground" data-testid="my-work-empty">
-          No durable work yet. When you say things like “I told a teammate I'd
-          follow up” or “Ask a teammate to review this,” Otzar saves them here.
+        <div
+          className="space-y-3 rounded-md border border-border bg-muted/10 p-4 text-sm text-muted-foreground"
+          data-testid="my-work-empty"
+        >
+          <p>
+            No durable work items yet. Otzar tracks commitments from
+            communications and project kickoffs here — ambiently, without
+            forcing you to live in Otzar.
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-xs">
+            <li>
+              Open{" "}
+              <Link
+                to="/app/projects"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                Projects
+              </Link>{" "}
+              to see missions you are on.
+            </li>
+            <li>
+              <Link
+                to="/app/my-twin"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                Talk to your AI Teammate
+              </Link>{" "}
+              or paste a meeting in{" "}
+              <Link
+                to="/app/comms"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                Comms
+              </Link>{" "}
+              — Otzar extracts work and claims it for you.
+            </li>
+          </ul>
         </div>
       ) : (
         BUCKET_ORDER.map((bucket) => {
