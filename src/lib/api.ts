@@ -1767,6 +1767,15 @@ export class ApiClient {
       colleagues: (): Promise<
         ApiResult<{ ok: true; colleagues: ProjectColleagueView[] }>
       > => this.request("/otzar/work-projects/colleagues"),
+
+      /** Manager: direct reports without a project + projects you lead. */
+      managerStructureGaps: (): Promise<
+        ApiResult<{
+          ok: true;
+          reports: Array<{ person_entity_id: string; display_name: string }>;
+          my_led_projects: Array<{ project_id: string; name: string }>;
+        }>
+      > => this.request("/otzar/work-projects/manager-structure-gaps"),
     },
 
     // ────────────────────────────────────────────────────────────

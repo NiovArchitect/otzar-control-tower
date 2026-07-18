@@ -152,6 +152,8 @@ export function AmbientWorkSurface(): JSX.Element {
   const [verifyError, setVerifyError] = useState<string | null>(null);
   // A.2 — projects you are on (Work OS coherence anchor).
   const [myProjects, setMyProjects] = useState<WorkProjectSafeView[]>([]);
+  // A.3 ambient — manager-only soft signal (reports without a first project).
+  const [managerGapCount, setManagerGapCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,6 +177,13 @@ export function AmbientWorkSurface(): JSX.Element {
       .then((r) => {
         if (cancelled || !r.ok) return;
         setMyProjects(r.data.projects ?? []);
+      })
+      .catch(() => undefined);
+    api.otzar.workProjects
+      .managerStructureGaps()
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        setManagerGapCount(r.data.reports?.length ?? 0);
       })
       .catch(() => undefined);
     return () => {
@@ -798,18 +807,41 @@ export function AmbientWorkSurface(): JSX.Element {
         </GlassPanel>
       ) : null}
 
-      {/* YOUR PROJECTS — Work OS coherence; fills Dandelion structure gap. */}
+      {/* YOUR PROJECTS — ambient coherence, not a place to live. */}
       <GlassPanel
-        intensity={myProjects.length > 0 ? "working" : "ambient"}
+        intensity={
+          managerGapCount > 0
+            ? "working"
+            : myProjects.length > 0
+              ? "working"
+              : "ambient"
+        }
         label="Your projects"
         testId="my-projects-panel"
       >
         <div className="space-y-2 text-sm text-slate-700">
+          {managerGapCount > 0 ? (
+            <Link
+              to="/app/work-projects"
+              className="flex items-center justify-between gap-3 rounded-xl border border-amber-200/70 bg-amber-50/40 px-3 py-2.5 transition-colors hover:bg-amber-50/70"
+              data-testid="manager-placement-ambient-cta"
+            >
+              <span className="min-w-0 text-xs leading-relaxed text-slate-700">
+                <span className="font-medium text-slate-900">
+                  {managerGapCount} teammate
+                  {managerGapCount === 1 ? "" : "s"} without a first project.
+                </span>{" "}
+                Place them when it fits — Otzar will not nag.
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+            </Link>
+          ) : null}
           {myProjects.length === 0 ? (
             <>
               <p className="text-xs leading-relaxed text-slate-500">
                 You are not on a project yet. Projects group people and work so
-                Otzar and your AI Teammate know what belongs together.
+                Otzar and your AI Teammate know what belongs together. Your
+                manager can place you — you do not need to live in Otzar.
               </p>
               <Link
                 to="/app/work-projects"
@@ -818,7 +850,7 @@ export function AmbientWorkSurface(): JSX.Element {
               >
                 <span className="flex items-center gap-2 font-medium text-slate-900">
                   <FolderKanban className="h-3.5 w-3.5 text-slate-600" aria-hidden />
-                  Create or join a project
+                  Create or open projects
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 text-slate-400" aria-hidden />
               </Link>

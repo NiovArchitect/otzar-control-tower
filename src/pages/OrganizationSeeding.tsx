@@ -8,17 +8,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import type {
-  AssignmentTarget,
-  OrgSeed,
-  ZoomRecordingView,
-} from "@/lib/types/foundation";
+import type { OrgSeed, ZoomRecordingView } from "@/lib/types/foundation";
 import { groupSeeds, type SeedGroup } from "@/lib/work-os/seed-grouping";
 
 const SEED_TYPE_LABEL: Record<string, string> = {
@@ -83,9 +78,9 @@ export function OrganizationSeedingPage(): JSX.Element {
       setLastSyncNote(
         r.data.created === 0
           ? r.data.skipped_existing > 0
-            ? `Structure already reflected (${r.data.skipped_existing} open). Nothing new to seed.`
-            : "No structure gaps to seed right now."
-          : `Landed ${r.data.created} structure seed${r.data.created === 1 ? "" : "s"} for review.`,
+            ? `Signals already open (${r.data.skipped_existing}). Managers keep their ambient placement work.`
+            : "No structure gaps — Otzar has nothing quiet to route."
+          : `Routed ${r.data.created} structure signal${r.data.created === 1 ? "" : "s"} ambiently to managers. This page is oversight only.`,
       );
       setError(null);
     } else {
@@ -103,16 +98,6 @@ export function OrganizationSeedingPage(): JSX.Element {
         : verb === "reject"
           ? await api.otzar.dandelionSeeds.reject(id)
           : await api.otzar.dandelionSeeds.hold(id);
-    setBusy(null);
-    if (r.ok) await load();
-  }
-
-  // [A.3] Structure seed: assign person to chosen project + close seed.
-  async function assignToProject(id: string, projectId: string): Promise<void> {
-    setBusy(id);
-    const r = await api.otzar.dandelionSeeds.approve(id, {
-      project_id: projectId,
-    });
     setBusy(null);
     if (r.ok) await load();
   }
@@ -142,41 +127,17 @@ export function OrganizationSeedingPage(): JSX.Element {
       {/* Dandelion operational order: Listen → Discover → Seed → Govern → Grow */}
       <PageHeader
         title="Organization Seeding"
-        description="Dandelion order: Otzar listens to work and structure, seeds land for your review, you choose, growth stays governed. Nothing is applied automatically."
+        description="Oversight only — Otzar already routes structure and work into the right people’s ambient Work OS. You hold, dismiss, or handle exceptions. People do not live here."
       />
 
       <Card data-testid="dandelion-order-strip">
         <CardContent className="space-y-3 py-4 text-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            How Dandelion works here
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">Ambient path:</span>{" "}
+            Otzar listens → discovers gaps → lands quiet work on the manager or
+            lead → they act when it fits. This page is for policy signals (tools,
+            identity, hold/dismiss), not daily placement.
           </p>
-          <ol className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-5">
-            <li>
-              <span className="font-semibold text-foreground">1. Listen</span>
-              <br />
-              Workstream + org graph
-            </li>
-            <li>
-              <span className="font-semibold text-foreground">2. Discover</span>
-              <br />
-              Calm structure signals
-            </li>
-            <li>
-              <span className="font-semibold text-foreground">3. Seed</span>
-              <br />
-              Durable proposals below
-            </li>
-            <li>
-              <span className="font-semibold text-foreground">4. Govern</span>
-              <br />
-              Approve · hold · reject
-            </li>
-            <li>
-              <span className="font-semibold text-foreground">5. Grow</span>
-              <br />
-              Next step only — no auto-grant
-            </li>
-          </ol>
           <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
             <Button
               type="button"
@@ -186,11 +147,11 @@ export function OrganizationSeedingPage(): JSX.Element {
               disabled={syncBusy || error === "OPERATION_NOT_PERMITTED"}
               onClick={() => void syncFromGrowth()}
             >
-              {syncBusy ? "Discovering…" : "Discover from organization structure"}
+              {syncBusy ? "Scanning…" : "Refresh structure signals"}
             </Button>
             {structureGapCount !== null ? (
               <span className="text-xs text-muted-foreground" data-testid="dandelion-structure-gap-count">
-                {structureGapCount} member{structureGapCount === 1 ? "" : "s"} without a first project
+                {structureGapCount} without a first project · managers notified ambiently
               </span>
             ) : null}
           </div>
@@ -231,21 +192,21 @@ export function OrganizationSeedingPage(): JSX.Element {
       ) : seeds.length === 0 ? (
         <Card>
           <CardContent className="py-6 text-sm text-muted-foreground" data-testid="org-seeding-empty">
-            No seeds yet. Process a meeting above, or run{" "}
-            <span className="font-medium text-foreground">Discover from organization structure</span>{" "}
-            so structure gaps land here for review.
+            Nothing needs oversight right now. Structure and work route ambiently
+            to managers and leads. Use{" "}
+            <span className="font-medium text-foreground">Refresh structure signals</span>{" "}
+            only when you want Otzar to re-scan — people do not live on this page.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6" data-testid="org-seeding-queues">
           <p className="text-xs text-muted-foreground">
             {grouped.pending_groups}{" "}
-            {grouped.pending_groups === 1 ? "person/setup" : "people/setups"} to
-            review
+            {grouped.pending_groups === 1 ? "signal" : "signals"} in oversight
             {grouped.total_seeds !== grouped.total_groups
               ? ` · ${grouped.total_seeds} seeds in ${grouped.total_groups} groups`
               : ""}{" "}
-            · root-first order (people → structure → tools)
+            · policy exceptions first; placement already ambient to managers
           </p>
           {grouped.queues.map(({ def, groups }) => (
             <section key={def.id} className="space-y-2" data-testid={`org-seeding-queue-${def.id}`}>
@@ -262,7 +223,6 @@ export function OrganizationSeedingPage(): JSX.Element {
                   busy={busy}
                   onAct={(id, v) => void act(id, v)}
                   onDecide={(id, d, link) => void decide(id, d, link)}
-                  onAssignProject={(id, projectId) => void assignToProject(id, projectId)}
                 />
               ))}
             </section>
@@ -282,13 +242,11 @@ function SeedGroupCard({
   busy,
   onAct,
   onDecide,
-  onAssignProject,
 }: {
   group: SeedGroup;
   busy: string | null;
   onAct: (id: string, v: "approve" | "reject" | "hold") => void;
   onDecide: (id: string, d: "link_existing" | "track_new", linkId?: string) => void;
-  onAssignProject: (id: string, projectId: string) => void;
 }): JSX.Element {
   const title = group.subject_name ?? seedTypeLabel(group.seeds[0]!.seed_type);
   const multi = group.count > 1;
@@ -309,7 +267,6 @@ function SeedGroupCard({
           busy={busy === s.seed_id}
           onAct={(v) => onAct(s.seed_id, v)}
           onDecide={(d, link) => onDecide(s.seed_id, d, link)}
-          onAssignProject={(projectId) => onAssignProject(s.seed_id, projectId)}
           actionable={isPending(s)}
         />
       ))}
@@ -338,14 +295,12 @@ function SeedCard({
   busy,
   onAct,
   onDecide,
-  onAssignProject,
   actionable,
 }: {
   seed: OrgSeed;
   busy: boolean;
   onAct: (v: "approve" | "reject" | "hold") => void;
   onDecide: (d: "link_existing" | "track_new", linkId?: string) => void;
-  onAssignProject: (projectId: string) => void;
   actionable: boolean;
 }): JSX.Element {
   const isStructure =
@@ -424,16 +379,40 @@ function SeedCard({
             </Button>
           </div>
         ) : null}
-        {/* [A.3] Structure seed: pick project + assign (closes Dandelion loop). */}
+        {/* Structure: ambient — manager already notified; admin only oversights. */}
         {actionable && isStructure ? (
-          <StructureAssignPicker
-            personLabel={seed.subject_name ?? "this person"}
-            busy={busy}
-            onAssign={onAssignProject}
-            onHold={() => onAct("hold")}
-            onIgnore={() => onAct("reject")}
-            onTaskOnly={() => onAct("approve")}
-          />
+          <div
+            className="space-y-2 rounded-md border border-border/50 bg-muted/15 p-2"
+            data-testid="org-seed-structure-ambient"
+          >
+            <p className="text-[11px] text-muted-foreground">
+              Otzar routes this to their{" "}
+              <span className="font-medium text-foreground">manager or project lead</span>{" "}
+              as quiet work — not admin homework. Hold or ignore only if policy requires.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => onAct("hold")}
+                data-testid="org-seed-hold"
+              >
+                Hold oversight
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => onAct("reject")}
+                data-testid="org-seed-reject"
+              >
+                Dismiss signal
+              </Button>
+            </div>
+          </div>
         ) : null}
         {actionable && !isStructure ? (
           <div className="flex gap-2 pt-1">
@@ -450,100 +429,6 @@ function SeedCard({
         ) : null}
       </CardContent>
     </Card>
-  );
-}
-
-function StructureAssignPicker({
-  personLabel,
-  busy,
-  onAssign,
-  onHold,
-  onIgnore,
-  onTaskOnly,
-}: {
-  personLabel: string;
-  busy: boolean;
-  onAssign: (projectId: string) => void;
-  onHold: () => void;
-  onIgnore: () => void;
-  onTaskOnly: () => void;
-}): JSX.Element {
-  const [projectId, setProjectId] = useState("");
-  const targets = useQuery({
-    queryKey: ["org", "assignment-targets"],
-    queryFn: () => api.org.assignmentTargets(),
-  });
-  const rows: AssignmentTarget[] =
-    targets.data?.ok === true && targets.data.data.ok
-      ? (targets.data.data.targets ?? [])
-      : [];
-  const projects = rows.filter((t) => t.kind === "project");
-
-  return (
-    <div
-      className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-2"
-      data-testid="org-seed-structure-assign"
-    >
-      <p className="text-[11px] font-medium text-foreground">
-        Assign {personLabel} to a project
-      </p>
-      <p className="text-[10px] text-muted-foreground">
-        You choose the project. Otzar will not auto-assign. This closes the
-        structure seed and updates their work context.
-      </p>
-      {targets.isLoading ? (
-        <p className="text-[11px] text-muted-foreground">Loading projects…</p>
-      ) : projects.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground" data-testid="org-seed-no-projects">
-          No active projects yet.{" "}
-          <Link to="/app/work-projects" className="font-medium underline-offset-2 hover:underline">
-            Create a project
-          </Link>{" "}
-          first, or create an assignment task for later.
-        </p>
-      ) : (
-        <select
-          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
-          data-testid="org-seed-project-select"
-          value={projectId}
-          onChange={(e) => setProjectId(e.target.value)}
-        >
-          <option value="">Choose project…</option>
-          {projects.map((p) => (
-            <option key={p.target_id} value={p.target_id}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-      )}
-      <div className="flex flex-wrap gap-2 pt-0.5">
-        <Button
-          type="button"
-          size="sm"
-          disabled={busy || projectId.length === 0}
-          onClick={() => onAssign(projectId)}
-          data-testid="org-seed-assign-project"
-        >
-          {busy ? "Assigning…" : "Assign to project"}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={busy}
-          onClick={onTaskOnly}
-          data-testid="org-seed-approve"
-        >
-          Create task instead
-        </Button>
-        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onHold} data-testid="org-seed-hold">
-          Keep for later
-        </Button>
-        <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onIgnore} data-testid="org-seed-reject">
-          Ignore
-        </Button>
-      </div>
-    </div>
   );
 }
 
