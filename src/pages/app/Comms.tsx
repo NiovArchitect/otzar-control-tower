@@ -320,6 +320,7 @@ export function Comms(): JSX.Element {
   return (
     <div className="space-y-6" data-testid="comms-page">
       <PageHeader
+        eyebrow="Communication OS"
         title="Comms"
         description="Otzar pulls meetings and messages from your connected tools, then turns them into owned work. Manual paste is a fallback."
       />

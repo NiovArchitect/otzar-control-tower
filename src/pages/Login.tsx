@@ -130,23 +130,27 @@ export function LoginPage() {
 
   return (
     <main
-      className={`relative flex min-h-screen flex-col items-center justify-center px-4 py-10 ${AMBIENT_FIELD}`}
+      className={`relative flex min-h-screen flex-col items-center justify-center px-4 py-12 ${AMBIENT_FIELD}`}
       data-testid="login-page"
     >
-      {/* Living atmosphere — Otzar is present before you sign in. */}
+      {/* Cinematic atmosphere — Otzar is present before you sign in. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="otzar-aurora-layer" />
-        <div className="absolute inset-0 bg-[radial-gradient(55%_45%_at_50%_40%,rgba(255,255,255,0.55),transparent_72%)]" />
+        <div className="otzar-grain" />
+        <div className="absolute inset-0 bg-[radial-gradient(50%_40%_at_50%_35%,rgba(255,255,255,0.65),transparent_70%)]" />
       </div>
 
-      <div className="relative z-10 mb-8 flex max-w-md flex-col items-center text-center">
-        <OtzarMark size="lg" active />
-        <h1 className="mt-4 text-3xl font-light tracking-tight text-slate-900">
+      <div className="relative z-10 mb-10 flex max-w-lg flex-col items-center text-center">
+        <OtzarMark size="xl" active />
+        <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-500/80">
+          Ambient Work OS
+        </p>
+        <h1 className="otzar-text-luminous mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
           Otzar
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-500">
-          Your ambient AI Work OS. Intelligent enough to help.
-          Calm enough to stay out of the way. Governed enough to trust.
+        <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-500">
+          Communication is the OS. Your AI Teammate executes.
+          Governed enough to trust — calm enough to stay out of the way.
         </p>
       </div>
 
@@ -154,7 +158,7 @@ export function LoginPage() {
         className={`relative z-10 w-full max-w-sm border-0 bg-transparent shadow-none ${GLASS_SURFACE}`}
       >
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-slate-900">
+          <CardTitle className="text-base font-semibold tracking-tight text-slate-900">
             Sign in
           </CardTitle>
           <CardDescription className="text-slate-500">
@@ -174,7 +178,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="h-11 border-white/70 bg-white/60 backdrop-blur-sm"
+                className="h-11 rounded-xl border-white/70 bg-white/70 shadow-inner backdrop-blur-sm focus-visible:ring-indigo-400/40"
               />
             </div>
             <div className="space-y-2">
@@ -182,7 +186,7 @@ export function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-800"
+                  className="text-xs text-indigo-500/80 underline underline-offset-2 hover:text-indigo-700"
                   data-testid="login-forgot-password"
                 >
                   Forgot password?
@@ -196,7 +200,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="h-11 border-white/70 bg-white/60 backdrop-blur-sm"
+                className="h-11 rounded-xl border-white/70 bg-white/70 shadow-inner backdrop-blur-sm focus-visible:ring-indigo-400/40"
               />
             </div>
             {loginError && (
@@ -223,7 +227,7 @@ export function LoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="h-11 w-full rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800"
+              className="otzar-cta-fill h-11 w-full rounded-xl border-0 text-sm font-medium"
             >
               {isLoading ? "Signing in…" : "Continue"}
             </Button>

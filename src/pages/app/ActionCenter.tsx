@@ -324,6 +324,7 @@ export function ActionCenter(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Needs you"
         title="Action Center"
         description="Decisions Otzar is making on your behalf. Confirm what matters, see what's done, and learn what was blocked and why."
       />

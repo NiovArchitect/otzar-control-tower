@@ -50,6 +50,7 @@ export function MyTwin() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="AI Teammate"
         title="My AI Teammate"
         description="Your aligned AI teammate. Its identity, behavior mode, and the skills it can use on your behalf."
       />

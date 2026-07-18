@@ -39,18 +39,19 @@ export function Layout() {
       data-testid="admin-shell"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="otzar-aurora-layer opacity-50" />
+        <div className="otzar-aurora-layer opacity-70" />
+        <div className="otzar-grain" />
       </div>
 
       {!isMobile && (
-        <aside className="relative z-10 w-60 shrink-0">
+        <aside className="relative z-10 w-64 shrink-0">
           <AdminSidebar />
         </aside>
       )}
 
       <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         <header
-          className={`flex h-14 items-center justify-between border-b px-4 ${GLASS_CHROME}`}
+          className={`flex h-16 items-center justify-between border-b px-4 sm:px-6 ${GLASS_CHROME}`}
         >
           <div className="flex items-center gap-3">
             {isMobile && (
@@ -79,7 +80,7 @@ export function Layout() {
               <Button
                 asChild
                 size="sm"
-                className="hidden gap-1 rounded-full bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
+                className="otzar-cta-fill hidden gap-1 rounded-full border-0 sm:inline-flex"
               >
                 <Link to="/app/voice-ready">
                   <Mic className="h-4 w-4" />
@@ -92,7 +93,7 @@ export function Layout() {
                 asChild
                 variant="outline"
                 size="sm"
-                className="rounded-full border-white/70 bg-white/50 backdrop-blur-sm"
+                className="rounded-full border-white/70 bg-white/55 shadow-sm backdrop-blur-sm hover:bg-white/80"
               >
                 <Link to="/app">Open Otzar</Link>
               </Button>

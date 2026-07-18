@@ -435,22 +435,26 @@ export function AmbientWorkSurface(): JSX.Element {
 
   return (
     <div
-      className="mx-auto flex w-full max-w-lg flex-col gap-5 px-1 pb-32 pt-4 sm:max-w-xl sm:pt-8"
+      className="mx-auto flex w-full max-w-lg flex-col gap-5 px-1 pb-32 pt-2 sm:max-w-2xl sm:pt-6"
       data-testid="ambient-work-surface"
     >
-      {/* Hero presence stage — glanceable identity + intent (Design Law §1). */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/45 px-5 py-7 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:px-8 sm:py-9">
+      {/* Phase-F hero presence stage — cinematic identity + intent. */}
+      <section className="otzar-stage relative px-5 py-8 sm:px-8 sm:py-10">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="otzar-aurora-layer opacity-80" />
+          <div className="otzar-aurora-layer opacity-90" />
+          <div className="otzar-grain opacity-[0.04]" />
         </div>
-        <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
-          <OtzarMark size="lg" active={!quiet} />
+        <div className="relative flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
+          <OtzarMark size="xl" active={!quiet} />
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-light tracking-tight text-slate-900 sm:text-3xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-500/80">
+              Today
+            </p>
+            <h1 className="otzar-text-luminous mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
               {greetingFor(new Date().getHours(), name)}
             </h1>
             <p
-              className="mt-1.5 max-w-md text-sm leading-relaxed text-slate-500"
+              className="mt-2 max-w-md text-sm leading-relaxed text-slate-500"
               data-testid="ambient-presence-line"
             >
               {quiet ? (
@@ -1362,14 +1366,19 @@ export function AmbientWorkSurface(): JSX.Element {
         type="button"
         onClick={openOrb}
         data-testid="ambient-talk"
-        className={`${GLASS_CTA} mt-1 flex items-center gap-3 px-4 py-3.5 text-left text-sm text-slate-600 hover:text-slate-900`}
+        className={`${GLASS_CTA} mt-1 flex w-full items-center gap-3.5 px-4 py-4 text-left transition-transform active:scale-[0.99]`}
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900/5">
-          <Mic className="h-4 w-4 text-slate-500" aria-hidden />
+        <span className="otzar-cta-fill flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+          <Mic className="h-4 w-4 text-white" aria-hidden />
         </span>
-        <span className="leading-snug">
-          Just talk — &ldquo;what matters today?&rdquo;, &ldquo;what needs my
-          approval?&rdquo;, &ldquo;open my workspace&rdquo;.
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-slate-900">
+            Talk to Otzar
+          </span>
+          <span className="mt-0.5 block text-xs leading-snug text-slate-500">
+            &ldquo;What matters today?&rdquo; · &ldquo;What needs my
+            approval?&rdquo; · &ldquo;Open my workspace&rdquo;
+          </span>
         </span>
       </button>
 
