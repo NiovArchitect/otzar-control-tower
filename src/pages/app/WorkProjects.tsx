@@ -2,9 +2,12 @@
 // PURPOSE: Employee Work OS project surface — see which projects you are on,
 //          create one, manage members with human names (not entity UUIDs).
 //          Projects are the coherence anchor for Twin / Dandelion structure.
-// CONNECTS TO: api.otzar.workProjects.*, AmbientWorkSurface "Your projects".
+//          [ACCEPTANCE] Selecting a project opens a composed context: people,
+//          open work, meetings, and next steps in one place (not a tour of
+//          Documents / Calendar / Obligations pages).
+// CONNECTS TO: api.otzar.workProjects.*, api.workOs.myWork, AmbientWorkSurface.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,10 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import { api } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
   CreateWorkProjectRequest,
+  WorkLedgerEntryView,
   WorkProjectMemberRole,
   WorkProjectSafeView,
   WorkProjectMemberSafeView,
@@ -106,10 +111,17 @@ export function WorkProjects() {
       </Card>
 
       {selectedId && (
-        <ProjectMembersPanel
-          projectId={selectedId}
-          projectName={
-            projects.find((p) => p.project_id === selectedId)?.name ?? "Project"
+        <ProjectContextPanel
+          project={
+            projects.find((p) => p.project_id === selectedId) ?? {
+              project_id: selectedId,
+              name: "Project",
+              state: "ACTIVE",
+              created_at: new Date(0).toISOString(),
+              archivable: false,
+              my_role: null,
+              member_count: 0,
+            }
           }
           onClose={() => setSelectedId(null)}
         />
@@ -379,7 +391,7 @@ function ProjectRow({
           onClick={onSelect}
           data-testid={`project-toggle-${project.project_id}`}
         >
-          {selected ? "Hide people" : "People on this project"}
+          {selected ? "Hide project context" : "Open project context"}
         </Button>
         {project.archivable && project.my_role === "OWNER" && (
           <Button
@@ -397,15 +409,15 @@ function ProjectRow({
   );
 }
 
-function ProjectMembersPanel({
-  projectId,
-  projectName,
+/** Composed project context — people + open work + meetings in one panel. */
+function ProjectContextPanel({
+  project,
   onClose,
 }: {
-  projectId: string;
-  projectName: string;
+  project: WorkProjectSafeView;
   onClose: () => void;
 }) {
+  const projectId = project.project_id;
   const queryClient = useQueryClient();
   const members = useQuery({
     queryKey: ["otzar", "work-projects", projectId, "members"],
@@ -415,6 +427,15 @@ function ProjectMembersPanel({
     queryKey: ["otzar", "work-projects", "colleagues"],
     queryFn: () => api.otzar.workProjects.colleagues(),
   });
+  const myWork = useQuery({
+    queryKey: ["work-os", "my-work", "project-compose", projectId],
+    queryFn: () => api.workOs.myWork({ take: 50 }),
+  });
+  const dgi = useQuery({
+    queryKey: ["otzar", "dgi-coherence", "project-compose"],
+    queryFn: () => api.otzar.dgiCoherence(),
+  });
+
   const [entityId, setEntityId] = useState("");
   const [role, setRole] = useState<WorkProjectMemberRole>("MEMBER");
   const [error, setError] = useState<string | null>(null);
@@ -453,66 +474,250 @@ function ProjectMembersPanel({
   const colleagueOptions =
     colleagues.data?.ok === true ? colleagues.data.data.colleagues : [];
 
+  const memberRows: WorkProjectMemberSafeView[] =
+    members.data?.ok === true ? members.data.data.members : [];
+  const owner = memberRows.find((m) => m.role === "OWNER");
+
+  const stampedWork: WorkLedgerEntryView[] = useMemo(() => {
+    if (!myWork.data || !myWork.data.ok) return [];
+    const items = myWork.data.data.items ?? myWork.data.data.entries ?? [];
+    return items.filter((e) => e.project_id === projectId);
+  }, [myWork.data, projectId]);
+
+  const openWork = stampedWork.filter(
+    (e) =>
+      !(
+        e.ledger_type === "MEETING" &&
+        (e.status === "EXECUTED" || e.status === "CANCELLED")
+      ) &&
+      !["COMPLETED", "SUCCEEDED", "CLOSED", "DONE", "CANCELLED"].includes(
+        e.status,
+      ),
+  );
+  const meetings = stampedWork.filter((e) => e.ledger_type === "MEETING");
+  const twinish = openWork.filter(
+    (e) => e.twin_work !== undefined || e.status === "EXECUTING",
+  );
+
+  const nextStep =
+    dgi.data?.ok === true ? dgi.data.data.coherence?.next_best_step : null;
+  const nextLabel = nextStep
+    ? `${nextStep.safe_title}${nextStep.reason ? ` — ${nextStep.reason}` : ""}`
+    : "";
+
   return (
-    <Card data-testid="project-members-panel">
-      <CardHeader className="pb-2 flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-lg">People · {projectName}</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Add teammates by name. Access is not granted outside this project.
+    <Card data-testid="project-context-panel" data-project-id={projectId}>
+      <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-500/80">
+            Project context
+          </p>
+          <CardTitle className="text-lg" data-testid="project-context-name">
+            {project.name}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground" data-testid="project-context-summary">
+            {project.my_role ? `${labelRole(project.my_role)} · ` : ""}
+            {typeof project.member_count === "number"
+              ? `${project.member_count} people · `
+              : ""}
+            {owner?.display_name
+              ? `Owner ${owner.display_name}`
+              : "Owner not listed"}
+            {" · "}
+            work, meetings, and decisions that belong here — without touring
+            separate backend pages.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={onClose}>
           Close
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <form onSubmit={submit} className="space-y-3">
-          <select
-            data-testid="add-member-id"
-            value={entityId}
-            onChange={(e) => setEntityId(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            <option value="">Select a teammate…</option>
-            {colleagueOptions.map((c) => (
-              <option key={c.entity_id} value={c.entity_id}>
-                {c.display_name}
-              </option>
-            ))}
-          </select>
-          <select
-            data-testid="add-member-role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as WorkProjectMemberRole)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {labelRole(r)}
-              </option>
-            ))}
-          </select>
-          {error && (
-            <p className="text-sm text-destructive" data-testid="add-member-error">
-              {error}
-            </p>
+      <CardContent className="space-y-6">
+        {/* People */}
+        <section data-testid="project-context-people" className="space-y-3">
+          <h3 className="text-sm font-medium text-foreground">People</h3>
+          <p className="text-xs text-muted-foreground">
+            Project roles are not the same as org hierarchy or tool access.
+          </p>
+          <form onSubmit={submit} className="space-y-3">
+            <select
+              data-testid="add-member-id"
+              value={entityId}
+              onChange={(e) => setEntityId(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Select a teammate…</option>
+              {colleagueOptions.map((c) => (
+                <option key={c.entity_id} value={c.entity_id}>
+                  {c.display_name}
+                </option>
+              ))}
+            </select>
+            <select
+              data-testid="add-member-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as WorkProjectMemberRole)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {labelRole(r)}
+                </option>
+              ))}
+            </select>
+            {error && (
+              <p className="text-sm text-destructive" data-testid="add-member-error">
+                {error}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={add.isPending}
+              data-testid="add-member-submit"
+            >
+              {add.isPending ? "Adding…" : "Add to project"}
+            </Button>
+          </form>
+          {members.isLoading && <Skeleton className="h-16 w-full" />}
+          {members.data && members.data.ok && (
+            <div data-testid="project-members-panel">
+              <MembersList members={members.data.data.members} />
+            </div>
           )}
-          <Button
-            type="submit"
-            disabled={add.isPending}
-            data-testid="add-member-submit"
+          {members.data && !members.data.ok && (
+            <p className="text-sm text-destructive">{members.data.message}</p>
+          )}
+        </section>
+
+        {/* Open work stamped to this project */}
+        <section data-testid="project-context-work" className="space-y-2 border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-foreground">
+              Open work on this project
+            </h3>
+            <span
+              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
+              data-testid="project-work-count"
+            >
+              {myWork.isLoading ? "…" : openWork.length}
+            </span>
+          </div>
+          {myWork.isLoading ? (
+            <Skeleton className="h-20 w-full" />
+          ) : myWork.data && !myWork.data.ok ? (
+            <p className="text-sm text-muted-foreground">
+              Couldn&apos;t load project work right now.
+            </p>
+          ) : openWork.length === 0 ? (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="project-work-empty"
+            >
+              No open work is stamped to this project yet. Commitments from
+              communications land here when Otzar links them.
+            </p>
+          ) : (
+            <ul className="space-y-2" data-testid="project-work-list">
+              {openWork.map((entry) => (
+                <li key={entry.ledger_entry_id}>
+                  <WorkLedgerItem entry={entry} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Decisions waiting on you also appear under{" "}
+            <Link
+              to="/app/action-center"
+              className="underline underline-offset-2"
+            >
+              Needs me
+            </Link>
+            .
+          </p>
+        </section>
+
+        {/* Meetings */}
+        <section data-testid="project-context-meetings" className="space-y-2 border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-foreground">Meetings</h3>
+            <span
+              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
+              data-testid="project-meeting-count"
+            >
+              {myWork.isLoading ? "…" : meetings.length}
+            </span>
+          </div>
+          {meetings.length === 0 ? (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="project-meetings-empty"
+            >
+              No meetings linked to this project in your work yet.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm" data-testid="project-meetings-list">
+              {meetings.map((m) => (
+                <li
+                  key={m.ledger_entry_id}
+                  className="rounded-md border border-border px-3 py-2"
+                  data-testid="project-meeting-row"
+                >
+                  <span className="font-medium">{m.title || "Meeting"}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {m.status === "EXECUTED"
+                      ? "Scheduled"
+                      : m.status === "CANCELLED"
+                        ? "Cancelled"
+                        : m.status}
+                  </span>
+                  {m.scheduled_meeting?.provider === "google_calendar_event" ? (
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      On Google Calendar
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* AI Teammate activity on project work */}
+        <section data-testid="project-context-twin" className="space-y-2 border-t border-border pt-4">
+          <h3 className="text-sm font-medium text-foreground">AI Teammate activity</h3>
+          {twinish.length === 0 ? (
+            <p className="text-sm text-muted-foreground" data-testid="project-twin-empty">
+              No AI Teammate-owned work is active on this project right now.
+            </p>
+          ) : (
+            <ul className="space-y-1 text-sm" data-testid="project-twin-list">
+              {twinish.slice(0, 5).map((e) => (
+                <li key={e.ledger_entry_id}>
+                  <span className="font-medium">{e.title || "Work item"}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {e.status}
+                    {e.owner_display_name ? ` · ${e.owner_display_name}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Org next step (honest: may be broader than this project) */}
+        {nextLabel.length > 0 ? (
+          <section
+            data-testid="project-context-next"
+            className="space-y-1 border-t border-border pt-4"
           >
-            {add.isPending ? "Adding…" : "Add to project"}
-          </Button>
-        </form>
-        {members.isLoading && <Skeleton className="h-16 w-full" />}
-        {members.data && members.data.ok && (
-          <MembersList members={members.data.data.members} />
-        )}
-        {members.data && !members.data.ok && (
-          <p className="text-sm text-destructive">{members.data.message}</p>
-        )}
+            <h3 className="text-sm font-medium text-foreground">Next best step</h3>
+            <p className="text-sm text-muted-foreground">{nextLabel}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Suggested from your organization posture — confirm it applies to
+              this project before acting.
+            </p>
+          </section>
+        ) : null}
       </CardContent>
     </Card>
   );

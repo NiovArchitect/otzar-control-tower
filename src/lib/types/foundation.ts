@@ -5476,6 +5476,8 @@ export interface WorkLedgerEntryView {
   source_type: string;
   source_command: string | null;
   work_plan_id: string | null;
+  /** Project coherence stamp — present when work was linked to a WorkProject. */
+  project_id?: string | null;
   requester_entity_id: string | null;
   owner_entity_id: string | null;
   target_entity_id: string | null;

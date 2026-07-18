@@ -175,7 +175,7 @@ test("INVESTOR five-minute journey — founder on live app", async ({ page }) =>
   note("INVESTOR-08-projects", pCount > 0, `project rows=${pCount}`);
 
   if (pCount > 0) {
-    // Expand first project members if toggle exists
+    // Expand first project context (people + open work + meetings)
     const firstRow = projectRows.first();
     const tid = await firstRow.getAttribute("data-testid");
     const pid = tid?.replace("project-row-", "") ?? "";
@@ -183,24 +183,34 @@ test("INVESTOR five-minute journey — founder on live app", async ({ page }) =>
       const toggle = page.getByTestId(`project-toggle-${pid}`);
       if (await toggle.count()) await toggle.click().catch(() => undefined);
     }
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
+    const contextPanel = page.getByTestId("project-context-panel");
+    const contextOk = await contextPanel.isVisible().catch(() => false);
     const members = page.getByTestId("members-list");
     const membersOk = await members.isVisible().catch(() => false);
-    const projBody = (await page.locator("body").textContent()) ?? "";
-    const composed =
-      membersOk ||
-      /member|owner|role|AI Teammate|document|calendar|decision|blocker|obligation/i.test(
-        projBody,
+    const workSection = page.getByTestId("project-context-work");
+    const workOk = await workSection.isVisible().catch(() => false);
+    if (contextOk) {
+      note(
+        "INVESTOR-08b-project-compose",
+        membersOk || workOk,
+        `project-context-panel people=${membersOk} work=${workOk}`,
       );
-    note(
-      "INVESTOR-08b-project-compose",
-      composed,
-      membersOk
-        ? "members panel visible"
-        : composed
-          ? "project context language present (partial compose)"
+    } else {
+      const projBody = (await page.locator("body").textContent()) ?? "";
+      const composed =
+        membersOk ||
+        /member|owner|role|AI Teammate|document|calendar|decision|blocker|obligation/i.test(
+          projBody,
+        );
+      note(
+        "INVESTOR-08b-project-compose",
+        composed,
+        composed
+          ? "partial compose (context panel not live yet)"
           : "project list only — composition gap",
-    );
+      );
+    }
   }
 
   // ── 8. Comms / sources (provider path surface) ──────────────────
