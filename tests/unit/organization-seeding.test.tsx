@@ -87,7 +87,7 @@ describe("Organization Seeding — admin seed queue", () => {
     expect(card.textContent).not.toContain("led-seed-1");
   });
 
-  it("structure seeds are ambient oversight — no admin project picker", async () => {
+  it("structure seeds: ambient default + admin assign exception when needed", async () => {
     mockSeeds([
       seed({
         seed_id: "led-struct-1",
@@ -97,12 +97,41 @@ describe("Organization Seeding — admin seed queue", () => {
         source_evidence: "Alex has no active project membership",
       }),
     ]);
+    server.use(
+      http.get(`${API_BASE}/org/assignment-targets`, () =>
+        HttpResponse.json({
+          ok: true,
+          targets: [
+            { target_id: "proj-1", kind: "project", label: "Launch" },
+          ],
+        }),
+      ),
+    );
+    let approvedBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/org/dandelion/seeds/:id/approve`, async ({ request }) => {
+        approvedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          ok: true,
+          seed: seed({
+            seed_id: "led-struct-1",
+            seed_type: "add_project_membership",
+            status: "SEED_APPROVED",
+            resulting_action: "Placed on project",
+          }),
+        });
+      }),
+    );
+    const user = userEvent.setup();
     renderPage();
     const ambient = await screen.findByTestId("org-seed-structure-ambient");
     expect(ambient.textContent).toMatch(/manager or project lead/i);
-    expect(ambient.textContent).toMatch(/not admin homework/i);
-    expect(screen.queryByTestId("org-seed-structure-assign")).toBeNull();
-    expect(screen.queryByTestId("org-seed-project-select")).toBeNull();
+    expect(ambient.textContent).toMatch(/assign.*yourself when needed/i);
+    // Admin exception path is available — not the only path.
+    const select = await screen.findByTestId("org-seed-project-select");
+    await user.selectOptions(select, "proj-1");
+    await user.click(screen.getByTestId("org-seed-assign-project"));
+    await waitFor(() => expect(approvedBody).toEqual({ project_id: "proj-1" }));
     expect(screen.getByTestId("org-seed-hold")).toHaveTextContent(/Hold oversight/i);
     expect(screen.getByTestId("org-seed-reject")).toHaveTextContent(/Dismiss signal/i);
   });

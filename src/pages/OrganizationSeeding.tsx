@@ -13,7 +13,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import type { OrgSeed, ZoomRecordingView } from "@/lib/types/foundation";
+import type {
+  AssignmentTarget,
+  OrgSeed,
+  ZoomRecordingView,
+} from "@/lib/types/foundation";
 import { groupSeeds, type SeedGroup } from "@/lib/work-os/seed-grouping";
 
 const SEED_TYPE_LABEL: Record<string, string> = {
@@ -98,6 +102,17 @@ export function OrganizationSeedingPage(): JSX.Element {
         : verb === "reject"
           ? await api.otzar.dandelionSeeds.reject(id)
           : await api.otzar.dandelionSeeds.hold(id);
+    setBusy(null);
+    if (r.ok) await load();
+  }
+
+  // [A.3] Admin exception: place person on a project when managers cannot /
+  // should not (bootstrap, no manager, urgency). Default path stays ambient.
+  async function assignToProject(id: string, projectId: string): Promise<void> {
+    setBusy(id);
+    const r = await api.otzar.dandelionSeeds.approve(id, {
+      project_id: projectId,
+    });
     setBusy(null);
     if (r.ok) await load();
   }
@@ -223,6 +238,9 @@ export function OrganizationSeedingPage(): JSX.Element {
                   busy={busy}
                   onAct={(id, v) => void act(id, v)}
                   onDecide={(id, d, link) => void decide(id, d, link)}
+                  onAssignProject={(id, projectId) =>
+                    void assignToProject(id, projectId)
+                  }
                 />
               ))}
             </section>
@@ -242,11 +260,13 @@ function SeedGroupCard({
   busy,
   onAct,
   onDecide,
+  onAssignProject,
 }: {
   group: SeedGroup;
   busy: string | null;
   onAct: (id: string, v: "approve" | "reject" | "hold") => void;
   onDecide: (id: string, d: "link_existing" | "track_new", linkId?: string) => void;
+  onAssignProject: (id: string, projectId: string) => void;
 }): JSX.Element {
   const title = group.subject_name ?? seedTypeLabel(group.seeds[0]!.seed_type);
   const multi = group.count > 1;
@@ -267,6 +287,7 @@ function SeedGroupCard({
           busy={busy === s.seed_id}
           onAct={(v) => onAct(s.seed_id, v)}
           onDecide={(d, link) => onDecide(s.seed_id, d, link)}
+          onAssignProject={(projectId) => onAssignProject(s.seed_id, projectId)}
           actionable={isPending(s)}
         />
       ))}
@@ -295,16 +316,17 @@ function SeedCard({
   busy,
   onAct,
   onDecide,
+  onAssignProject,
   actionable,
 }: {
   seed: OrgSeed;
   busy: boolean;
   onAct: (v: "approve" | "reject" | "hold") => void;
   onDecide: (d: "link_existing" | "track_new", linkId?: string) => void;
+  onAssignProject: (projectId: string) => void;
   actionable: boolean;
 }): JSX.Element {
-  // Structure placement is ambient — managers place people. Seed type alone
-  // is enough; subject_entity_id is optional display metadata.
+  // Structure: ambient manager path by default; admin may assign when needed.
   const isStructure = seed.seed_type === "add_project_membership";
 
   return (
@@ -378,40 +400,15 @@ function SeedCard({
             </Button>
           </div>
         ) : null}
-        {/* Structure: ambient — manager already notified; admin only oversights. */}
+        {/* Structure: ambient default + admin exception assign when necessary. */}
         {actionable && isStructure ? (
-          <div
-            className="space-y-2 rounded-md border border-border/50 bg-muted/15 p-2"
-            data-testid="org-seed-structure-ambient"
-          >
-            <p className="text-[11px] text-muted-foreground">
-              Otzar routes this to their{" "}
-              <span className="font-medium text-foreground">manager or project lead</span>{" "}
-              as quiet work — not admin homework. Hold or ignore only if policy requires.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => onAct("hold")}
-                data-testid="org-seed-hold"
-              >
-                Hold oversight
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={busy}
-                onClick={() => onAct("reject")}
-                data-testid="org-seed-reject"
-              >
-                Dismiss signal
-              </Button>
-            </div>
-          </div>
+          <StructureAdminException
+            personLabel={seed.subject_name ?? "this person"}
+            busy={busy}
+            onAssign={onAssignProject}
+            onHold={() => onAct("hold")}
+            onDismiss={() => onAct("reject")}
+          />
         ) : null}
         {actionable && !isStructure ? (
           <div className="flex gap-2 pt-1">
@@ -428,6 +425,116 @@ function SeedCard({
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Structure seed controls: ambient path is default (manager already notified).
+ * Admin may still assign to a project when necessary — exception, not homework.
+ */
+function StructureAdminException({
+  personLabel,
+  busy,
+  onAssign,
+  onHold,
+  onDismiss,
+}: {
+  personLabel: string;
+  busy: boolean;
+  onAssign: (projectId: string) => void;
+  onHold: () => void;
+  onDismiss: () => void;
+}): JSX.Element {
+  const [projectId, setProjectId] = useState("");
+  const [projects, setProjects] = useState<AssignmentTarget[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api.org.assignmentTargets().then((r) => {
+      if (cancelled) return;
+      if (r.ok && r.data.ok) {
+        setProjects((r.data.targets ?? []).filter((t) => t.kind === "project"));
+      } else {
+        setProjects([]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div
+      className="space-y-2 rounded-md border border-border/50 bg-muted/15 p-2"
+      data-testid="org-seed-structure-ambient"
+    >
+      <p className="text-[11px] text-muted-foreground">
+        Otzar already sent quiet work to their{" "}
+        <span className="font-medium text-foreground">manager or project lead</span>
+        . You can leave that ambient path, or assign{" "}
+        <span className="font-medium text-foreground">{personLabel}</span> yourself when
+        needed (no manager, bootstrap, urgency).
+      </p>
+      {projects === null ? (
+        <p className="text-[11px] text-muted-foreground">Loading projects…</p>
+      ) : projects.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground" data-testid="org-seed-no-projects">
+          No active projects yet.{" "}
+          <Link
+            to="/app/work-projects"
+            className="font-medium underline-offset-2 hover:underline"
+          >
+            Create a project
+          </Link>{" "}
+          first, or leave it with their manager.
+        </p>
+      ) : (
+        <select
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+          data-testid="org-seed-project-select"
+          value={projectId}
+          onChange={(e) => setProjectId(e.target.value)}
+        >
+          <option value="">Choose project to assign…</option>
+          {projects.map((p) => (
+            <option key={p.target_id} value={p.target_id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={busy || projectId.length === 0}
+          onClick={() => onAssign(projectId)}
+          data-testid="org-seed-assign-project"
+        >
+          {busy ? "Assigning…" : "Assign to project"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={onHold}
+          data-testid="org-seed-hold"
+        >
+          Hold oversight
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={onDismiss}
+          data-testid="org-seed-reject"
+        >
+          Dismiss signal
+        </Button>
+      </div>
+    </div>
   );
 }
 
