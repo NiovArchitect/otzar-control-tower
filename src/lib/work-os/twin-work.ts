@@ -10,6 +10,7 @@ const ACTIVE_TWIN_STATES = new Set([
   "CLAIMED_WORKING",
   "NEEDS_CLARITY",
   "COLLAB_REQUESTED",
+  "AWAITING_VERIFICATION",
 ]);
 
 export function isActiveTwinWork(
@@ -33,11 +34,35 @@ export function twinWorkStateLabel(state: string): string {
       return "Needs a quick check from you";
     case "COLLAB_REQUESTED":
       return "Needs collaboration";
+    case "AWAITING_VERIFICATION":
+      return "Needs your verification";
     case "COMPLETED":
       return "Finished";
     default:
       return state.replace(/_/g, " ").toLowerCase();
   }
+}
+
+/** Accuracy-critical claim waiting on human dual-control verification. */
+export function twinWorkNeedsVerification(
+  twin: TwinWorkProjection | undefined | null,
+): boolean {
+  if (twin == null) return false;
+  if (twin.requires_verification !== true && twin.accuracy_class === "STANDARD") {
+    return false;
+  }
+  const regulated =
+    twin.requires_verification === true ||
+    (twin.accuracy_class !== "STANDARD" &&
+      twin.accuracy_class !== undefined &&
+      twin.accuracy_class.length > 0);
+  if (!regulated) return false;
+  return (
+    twin.verification_state === "PENDING" ||
+    twin.verification_state === "AWAITING_HUMAN" ||
+    twin.state === "AWAITING_VERIFICATION" ||
+    (twin.verification_state == null && twin.requires_verification === true)
+  );
 }
 
 export function twinAccuracyLabel(accuracy: string): string | null {

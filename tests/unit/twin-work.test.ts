@@ -9,6 +9,7 @@ import {
   twinAccuracyLabel,
   twinWorkDocClaimIds,
   twinWorkEditDetected,
+  twinWorkNeedsVerification,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 import type { WorkLedgerEntryView } from "@/lib/types/foundation";
@@ -103,6 +104,33 @@ describe("twin-work helpers", () => {
     expect(twinAccuracyLabel("INSURANCE")).toBe("Insurance accuracy");
     expect(twinAccuracyLabel("STANDARD")).toBeNull();
     expect(twinWorkStateLabel("CLAIMED_WORKING")).toMatch(/working/i);
+  });
+
+  it("flags accuracy-critical claims needing verification", () => {
+    expect(
+      twinWorkNeedsVerification({
+        state: "CLAIMED_WORKING",
+        work_kind: "DOCUMENT",
+        accuracy_class: "INSURANCE",
+        requires_verification: true,
+        claimed_at: null,
+        web_view_link: null,
+        clarity_question: null,
+        verification_state: "PENDING",
+      }),
+    ).toBe(true);
+    expect(
+      twinWorkNeedsVerification({
+        state: "CLAIMED_WORKING",
+        work_kind: "TASK",
+        accuracy_class: "STANDARD",
+        requires_verification: false,
+        claimed_at: null,
+        web_view_link: null,
+        clarity_question: null,
+        verification_state: "NOT_REQUIRED",
+      }),
+    ).toBe(false);
   });
 
   it("detects edit signal and doc claim ids", () => {

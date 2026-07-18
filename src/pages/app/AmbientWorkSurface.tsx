@@ -47,6 +47,7 @@ import {
   twinAccuracyLabel,
   twinWorkDocClaimIds,
   twinWorkEditDetected,
+  twinWorkNeedsVerification,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 
@@ -145,6 +146,8 @@ export function AmbientWorkSurface(): JSX.Element {
   const [collabBusyId, setCollabBusyId] = useState<string | null>(null);
   // [C.3] AI Teammate claims currently in flight (my-work twin_work projection).
   const [twinWorking, setTwinWorking] = useState<WorkLedgerEntryView[]>([]);
+  const [verifyBusyId, setVerifyBusyId] = useState<string | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -368,6 +371,28 @@ export function AmbientWorkSurface(): JSX.Element {
     actionUnreadCount === 0 &&
     urgentBlindSpots === 0 &&
     twinWorking.length === 0;
+
+  const verifyTwinWork = async (ledgerEntryId: string) => {
+    setVerifyBusyId(ledgerEntryId);
+    setVerifyError(null);
+    try {
+      const r = await api.otzar.twinWorkVerify(ledgerEntryId, {
+        note: "Verified from Today",
+        complete_after: true,
+      });
+      if (r.ok) {
+        setTwinWorking((prev) =>
+          prev.filter((e) => e.ledger_entry_id !== ledgerEntryId),
+        );
+      } else {
+        setVerifyError("code" in r ? String(r.code) : "VERIFY_FAILED");
+      }
+    } catch {
+      setVerifyError("NETWORK_ERROR");
+    } finally {
+      setVerifyBusyId(null);
+    }
+  };
 
   const workNodes = buildWorkNodes({
     recipients: [],
@@ -774,6 +799,7 @@ export function AmbientWorkSurface(): JSX.Element {
                 const acc = twinAccuracyLabel(tw.accuracy_class);
                 const needsHuman =
                   tw.state === "NEEDS_CLARITY" || tw.state === "COLLAB_REQUESTED";
+                const needsVerify = twinWorkNeedsVerification(tw);
                 const edited = twinWorkEditDetected(tw);
                 return (
                   <li
@@ -783,6 +809,7 @@ export function AmbientWorkSurface(): JSX.Element {
                     data-twin-state={tw.state}
                     data-accuracy={tw.accuracy_class}
                     data-edit-detected={edited ? "true" : "false"}
+                    data-needs-verify={needsVerify ? "true" : "false"}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -829,7 +856,20 @@ export function AmbientWorkSurface(): JSX.Element {
                             Open doc
                           </a>
                         ) : null}
-                        {needsHuman ? (
+                        {needsVerify ? (
+                          <button
+                            type="button"
+                            data-testid="twin-working-verify"
+                            disabled={verifyBusyId === e.ledger_entry_id}
+                            onClick={() => void verifyTwinWork(e.ledger_entry_id)}
+                            className="shrink-0 rounded-full bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:opacity-60"
+                          >
+                            {verifyBusyId === e.ledger_entry_id
+                              ? "…"
+                              : "Verify"}
+                          </button>
+                        ) : null}
+                        {needsHuman && !needsVerify ? (
                           <Link
                             to="/app/my-work"
                             className="inline-flex items-center gap-1 rounded-full bg-amber-400/25 px-2 py-0.5 text-[11px] font-semibold text-amber-900"
@@ -844,6 +884,14 @@ export function AmbientWorkSurface(): JSX.Element {
                 );
               })}
             </ul>
+            {verifyError !== null ? (
+              <p
+                className="text-[11px] text-rose-700"
+                data-testid="twin-working-verify-error"
+              >
+                Couldn&apos;t verify ({verifyError}). Try again from My Work.
+              </p>
+            ) : null}
             <Link
               to="/app/my-work"
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-900 underline-offset-2 hover:underline"

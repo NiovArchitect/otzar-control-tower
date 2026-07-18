@@ -5528,6 +5528,9 @@ export interface TwinWorkProjection {
   edit_detected?: boolean;
   edit_signal?: string | null;
   last_drive_modified_at?: string | null;
+  /** [C.3c] Dual-control verification for accuracy-critical work. */
+  verification_state?: string | null;
+  verified_at?: string | null;
 }
 
 // PROD-UX-P0R — mirror of Foundation's RoutingDecisionView

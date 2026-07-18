@@ -34,6 +34,7 @@ import {
   isActiveTwinWork,
   twinAccuracyLabel,
   twinWorkEditDetected,
+  twinWorkNeedsVerification,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 
@@ -323,6 +324,7 @@ export function WorkLedgerItem({
 
   const twinActive = isActiveTwinWork(entry.twin_work);
   const twinEdited = twinWorkEditDetected(entry.twin_work);
+  const twinNeedsVerify = twinWorkNeedsVerification(entry.twin_work);
   const twinAcc =
     entry.twin_work !== undefined
       ? twinAccuracyLabel(entry.twin_work.accuracy_class)
@@ -442,6 +444,16 @@ export function WorkLedgerItem({
               title="Document updated since your AI Teammate claimed it"
             >
               Doc updated
+            </Badge>
+          ) : null}
+          {twinNeedsVerify ? (
+            <Badge
+              variant="outline"
+              className="border-amber-600/70 text-[9px] text-amber-800"
+              data-testid="work-ledger-item-twin-verify"
+              title="Accuracy-critical — verify before complete"
+            >
+              Needs verify
             </Badge>
           ) : null}
           <Badge variant="outline" className="text-[9px]">

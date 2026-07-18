@@ -98,6 +98,7 @@ import type {
   WorkLedgerCreateResponse,
   WorkLedgerListResponse,
   WorkLedgerEntryView,
+  TwinWorkProjection,
   BlindSpotFeedResponse,
   WatcherFeedResponse,
   RecentCommsArtifactsResponse,
@@ -1335,6 +1336,25 @@ export class ApiClient {
         method: "POST",
         body: { ledger_entry_ids },
       }),
+
+    /** [C.3c] POST /otzar/twin-work/:id/verify — human dual-control for
+     *  accuracy-critical Twin claims. Optional complete_after. */
+    twinWorkVerify: (
+      ledgerEntryId: string,
+      body?: { note?: string; complete_after?: boolean },
+    ): Promise<
+      ApiResult<{
+        ok: true;
+        ledger_entry_id: string;
+        status: string;
+        twin_work: TwinWorkProjection | null;
+        notified: boolean;
+      }>
+    > =>
+      this.request(
+        `/otzar/twin-work/${encodeURIComponent(ledgerEntryId)}/verify`,
+        { method: "POST", body: body ?? {} },
+      ),
 
     /** [COHERENCE-RECOVERY] GET /otzar/team-work — capacity-only team open work. */
     teamWork: (): Promise<
