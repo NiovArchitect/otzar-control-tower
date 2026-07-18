@@ -3657,6 +3657,8 @@ export interface WorkProjectSafeView {
   state: WorkProjectState;
   created_at: string;
   archivable: boolean;
+  my_role?: WorkProjectMemberRole | null;
+  member_count?: number;
 }
 
 export interface WorkProjectMemberSafeView {
@@ -3665,6 +3667,12 @@ export interface WorkProjectMemberSafeView {
   entity_id: string;
   role: WorkProjectMemberRole;
   created_at: string;
+  display_name?: string;
+}
+
+export interface ProjectColleagueView {
+  entity_id: string;
+  display_name: string;
 }
 
 export interface CreateWorkProjectRequest {

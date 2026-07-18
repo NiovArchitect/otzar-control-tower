@@ -209,9 +209,12 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     label: "Projects",
     to: "/app/work-projects",
     icon: FolderKanban,
-    description: "Projects list.",
+    description:
+      "Projects you own or work on — so Otzar knows which work belongs together.",
     group: "more",
-    hidden: true,
+    // A.2 — Projects are Work OS core, not route-only. Still More (not primary)
+    // so the ambient rail stays five calm entries.
+    hidden: false,
   },
   {
     label: "Meeting captures",
