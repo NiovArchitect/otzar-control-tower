@@ -37,6 +37,7 @@ const NOTIFICATION_KIND_LABEL: Record<string, string> = {
   ACTION_REQUIRED: "Needs your decision",
   APPROVAL_REQUIRED: "Approval needed",
   WORK_ASSIGNED: "Work assigned",
+  STRUCTURE_PLACEMENT_NEEDED: "Team placement (when ready)",
   SYSTEM: "System notice",
 };
 export function notificationKindLabel(c: string): string {

@@ -64,6 +64,9 @@ export function notificationRoute(n: NotificationTarget): string {
   if (c.includes("connector") || c.includes("oauth") || c.includes("integration"))
     return "/app/connector-health";
   if (c.includes("collab")) return "/app/collaboration";
+  // Ambient structure placement — land on Projects where managers place people.
+  if (c.includes("structure_placement") || c.includes("placement_needed"))
+    return "/app/work-projects";
   if (c.includes("workflow")) return "/app/action-center";
   if (c.includes("meeting") || c.includes("calendar")) return "/app/my-day";
   if (c.includes("system") || c.includes("health")) return "/app/action-center";

@@ -51,6 +51,9 @@ export function WorkProjects() {
     void queryClient.invalidateQueries({
       queryKey: ["otzar", "work-projects"],
     });
+    void queryClient.invalidateQueries({
+      queryKey: ["otzar", "work-projects", "manager-structure-gaps"],
+    });
   }
 
   const projects =
@@ -60,8 +63,10 @@ export function WorkProjects() {
     <div className="space-y-6" data-testid="work-projects-page">
       <PageHeader
         title="Projects"
-        description="Projects group people and work so your AI Teammate knows what belongs together. You only see projects you own or joined — create one or ask an admin to add you."
+        description="Projects group people and work so Otzar and your AI Teammate know what belongs together. Placement is ambient — when someone needs a first project, their manager or project lead handles it when it fits. Nobody lives here."
       />
+
+      <ManagerAmbientPlacement onPlaced={invalidate} />
 
       <CreateProjectForm onCreated={invalidate} />
 
@@ -106,6 +111,121 @@ export function WorkProjects() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Ambient manager surface: only appears when Otzar already noticed reports
+ * without a project. Non-blocking — place when it fits, or ignore.
+ * Managers act here; Organization Seeding is oversight only.
+ */
+function ManagerAmbientPlacement({ onPlaced }: { onPlaced: () => void }) {
+  const gaps = useQuery({
+    queryKey: ["otzar", "work-projects", "manager-structure-gaps"],
+    queryFn: () => api.otzar.workProjects.managerStructureGaps(),
+    retry: false,
+  });
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [projectByPerson, setProjectByPerson] = useState<Record<string, string>>(
+    {},
+  );
+
+  if (!gaps.data || !gaps.data.ok) return null;
+  const { reports, my_led_projects: led } = gaps.data.data;
+  if (reports.length === 0) return null;
+
+  async function place(personId: string): Promise<void> {
+    const projectId = projectByPerson[personId] ?? led[0]?.project_id;
+    if (!projectId) {
+      setError("Create a project you lead first, then place them.");
+      return;
+    }
+    setBusyKey(personId);
+    setError(null);
+    const r = await api.otzar.workProjects.addMember(projectId, {
+      entity_id: personId,
+      role: "MEMBER",
+    });
+    setBusyKey(null);
+    if (r.ok) {
+      onPlaced();
+      void gaps.refetch();
+    } else {
+      setError(r.message ?? "Could not place them right now.");
+    }
+  }
+
+  return (
+    <Card
+      className="border-border/60 bg-muted/10"
+      data-testid="manager-ambient-placement"
+    >
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">People waiting for a first project</CardTitle>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Otzar noticed this — no rush. When it fits your day, put them on a
+          project you lead. Otzar will not nag and will not assign for you.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {led.length === 0 ? (
+          <p className="text-xs text-muted-foreground" data-testid="manager-placement-no-led">
+            You lead no active project yet. Create one below, then place them.
+          </p>
+        ) : null}
+        <ul className="space-y-2">
+          {reports.map((person) => (
+            <li
+              key={person.person_entity_id}
+              className="flex flex-wrap items-center gap-2 rounded-md border border-border/50 bg-background/60 px-3 py-2"
+              data-testid="manager-placement-row"
+              data-person-id={person.person_entity_id}
+            >
+              <span className="min-w-[8rem] flex-1 text-sm font-medium">
+                {person.display_name}
+              </span>
+              {led.length > 0 ? (
+                <select
+                  className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  data-testid="manager-placement-project"
+                  value={
+                    projectByPerson[person.person_entity_id] ?? led[0]!.project_id
+                  }
+                  onChange={(e) =>
+                    setProjectByPerson((prev) => ({
+                      ...prev,
+                      [person.person_entity_id]: e.target.value,
+                    }))
+                  }
+                >
+                  {led.map((p) => (
+                    <option key={p.project_id} value={p.project_id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={busyKey === person.person_entity_id || led.length === 0}
+                onClick={() => void place(person.person_entity_id)}
+                data-testid="manager-placement-place"
+              >
+                {busyKey === person.person_entity_id ? "Placing…" : "Place on project"}
+              </Button>
+            </li>
+          ))}
+        </ul>
+        {error ? (
+          <p className="text-xs text-destructive" data-testid="manager-placement-error">
+            {error}
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
