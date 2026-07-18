@@ -1959,6 +1959,8 @@ export interface MyTwinView {
   voice_readiness_state?: TwinVoiceReadinessState;
   /** Phase D.1 — industry accuracy packs + role-template posture. */
   accuracy_pack_posture?: AccuracyPackPosture;
+  /** Whole-system — memory wallet portability (personal vs org). */
+  wallet_portability?: WalletPortabilityPosture;
 }
 
 /** Phase D.1 — safe industry accuracy pack posture from Foundation. */
@@ -1984,6 +1986,23 @@ export interface AccuracyPackPosture {
   packs: AccuracyPackSuggestion[];
   posture_summary: string;
   never_invent_facts: true;
+}
+
+/** Memory wallet portability — personal travels; org stays. */
+export interface WalletPortabilityBucket {
+  class: string;
+  label: string;
+  description: string;
+  examples: string[];
+}
+
+export interface WalletPortabilityPosture {
+  portable_summary: string;
+  org_retained_summary: string;
+  never_export_summary: string;
+  buckets: WalletPortabilityBucket[];
+  leaves_org_without_harm: true;
+  takes_only_personal_layer: true;
 }
 
 // ────────────────────────────────────────────────────────────
