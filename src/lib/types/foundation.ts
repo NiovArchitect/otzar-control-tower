@@ -1957,6 +1957,33 @@ export interface MyTwinView {
   collaboration_inbox_summary?: TwinCollaborationInboxSummary;
   project_context_summary?: TwinProjectContextSummary;
   voice_readiness_state?: TwinVoiceReadinessState;
+  /** Phase D.1 — industry accuracy packs + role-template posture. */
+  accuracy_pack_posture?: AccuracyPackPosture;
+}
+
+/** Phase D.1 — safe industry accuracy pack posture from Foundation. */
+export interface AccuracyPackSuggestion {
+  pack_id: string;
+  label: string;
+  description: string;
+  accuracy_class: string;
+  artifact_kind: string;
+  dual_control_required: boolean;
+  suggested_sections: string[];
+  relevance: "primary" | "secondary" | "available";
+}
+
+export interface AccuracyPackPosture {
+  industry: string | null;
+  industry_key: string;
+  industry_label: string;
+  role_template: string | null;
+  role_template_label: string | null;
+  default_accuracy_class: string;
+  dual_control_default: boolean;
+  packs: AccuracyPackSuggestion[];
+  posture_summary: string;
+  never_invent_facts: true;
 }
 
 // ────────────────────────────────────────────────────────────

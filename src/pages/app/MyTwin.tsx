@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoleScopeProfilePanel } from "@/components/employee/RoleScopeProfilePanel";
+import { AccuracyPackPanel } from "@/components/employee/AccuracyPackPanel";
 import { TwinScopePanel } from "@/components/employee/TwinScopePanel";
 import { MyTwinSidecarsPanel } from "@/components/employee/MyTwinSidecarsPanel";
 import { MyTwinActivityPanel } from "@/components/employee/MyTwinActivityPanel";
@@ -215,6 +216,9 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       </p>
 
       <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
+
+      {/* Phase D.1 — industry accuracy packs for role-templated AI Teammate. */}
+      <AccuracyPackPanel posture={t.accuracy_pack_posture ?? null} />
 
       {/* [OTZAR-V1-LIVE-2B] The governed "what your Twin can — and cannot — do"
           scope view, sourced from Foundation's context-health. */}
