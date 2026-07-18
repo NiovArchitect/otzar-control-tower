@@ -1,16 +1,16 @@
 // FILE: ToolsConnections.tsx
-// PURPOSE: Admin Tools & Connections — click-and-play inventory + KPI
-//          (Phase E.1), org bindings (Your tools), advanced MCP/rails.
-//          Human language; MCP never primary.
-// CONNECTS TO: api.otzar.enterpriseTools.inventory, ConnectorsAdmin,
-//              ConnectorRailsAdmin.
+// PURPOSE: Admin Tools & Connections — inventory KPIs, per-person tool
+//          footprint, in-place approve/deny requests, force-revoke OAuth
+//          (Phase E.1 + E.2). MCP advanced-only.
+// CONNECTS TO: api.otzar.enterpriseTools.*, ConnectorsAdmin, ConnectorRailsAdmin.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
 import ConnectorRailsAdmin from "@/pages/ConnectorRailsAdmin";
 import { api } from "@/lib/api";
@@ -25,6 +25,8 @@ type Inventory = {
     oauth_ready_for_consent: number;
     org_bindings_enabled: number;
     pending_access_requests: number;
+    people_with_open_requests?: number;
+    active_employee_grants?: number;
   };
   tools: Array<{
     provider: string;
@@ -32,38 +34,123 @@ type Inventory = {
     category: string;
     adapter_status: string;
     oauth_status: string | null;
+    oauth_slug?: string | null;
     account_label: string | null;
     last_verified_at: string | null;
     can_write: boolean;
     employee_self_serve: boolean;
+    revocable?: boolean;
   }>;
   pending_requests: Array<{
     seed_id: string;
     subject_name: string | null;
+    subject_entity_id?: string | null;
+    capability_id?: string | null;
+    provider?: string | null;
     recommended_action: string;
     created_at: string;
+  }>;
+  people?: Array<{
+    person_entity_id: string;
+    display_name: string;
+    open_request_count: number;
+    active_grant_count: number;
+    sample_requests: string[];
+    grants: Array<{
+      grant_id: string;
+      connection_id: string;
+      scope_type: string;
+      allowed_operations: string[];
+    }>;
   }>;
 };
 
 function InventoryPanel(): JSX.Element {
   const [inv, setInv] = useState<Inventory | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const load = useCallback(async (): Promise<void> => {
+    const r = await api.otzar.enterpriseTools.inventory();
+    if (r.ok) {
+      setInv(r.data.inventory);
+      setError(null);
+    } else {
+      setError(r.code);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    void api.otzar.enterpriseTools.inventory().then((r) => {
-      if (cancelled) return;
-      if (r.ok) {
-        setInv(r.data.inventory);
-        setError(null);
-      } else {
-        setError(r.code);
-      }
+    void load();
+  }, [load]);
+
+  async function decide(
+    seedId: string,
+    decision: "approve" | "deny",
+  ): Promise<void> {
+    setBusy(`req:${seedId}:${decision}`);
+    setNotice(null);
+    const r = await api.otzar.enterpriseTools.decideRequest({
+      seed_id: seedId,
+      decision,
     });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    setBusy(null);
+    if (r.ok) {
+      setNotice(
+        decision === "approve"
+          ? "Request approved — connect still needs OAuth when credentials allow (never auto-granted)."
+          : "Request denied.",
+      );
+      void load();
+    } else {
+      setNotice("Couldn't update that request right now.");
+    }
+  }
+
+  async function revokeTool(slug: string, label: string): Promise<void> {
+    if (
+      !window.confirm(
+        `Revoke ${label} for the organization? Otzar will wipe stored secrets. This is recorded in the audit trail.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(`revoke:${slug}`);
+    setNotice(null);
+    const r = await api.otzar.enterpriseTools.oauthRevoke(slug);
+    setBusy(null);
+    if (r.ok) {
+      setNotice(`${label} revoked for the org.`);
+      void load();
+    } else {
+      setNotice(
+        r.code === "NOT_CONNECTED"
+          ? "Nothing to revoke for that tool."
+          : "Couldn't revoke right now.",
+      );
+    }
+  }
+
+  async function revokeGrant(grantId: string): Promise<void> {
+    if (
+      !window.confirm(
+        "Revoke this employee tool grant? They will lose that scope. Recorded in audit.",
+      )
+    ) {
+      return;
+    }
+    setBusy(`grant:${grantId}`);
+    setNotice(null);
+    const r = await api.otzar.enterpriseTools.revokeGrant(grantId);
+    setBusy(null);
+    if (r.ok) {
+      setNotice("Employee grant revoked.");
+      void load();
+    } else {
+      setNotice("Couldn't revoke that grant.");
+    }
+  }
 
   if (error !== null) {
     return (
@@ -86,15 +173,31 @@ function InventoryPanel(): JSX.Element {
     { label: "Ready to connect", value: k.capabilities_ready, testId: "kpi-ready" },
     { label: "OAuth verified", value: k.oauth_verified, testId: "kpi-oauth-verified" },
     { label: "Pending requests", value: k.pending_access_requests, testId: "kpi-pending" },
-    { label: "Org bindings on", value: k.org_bindings_enabled, testId: "kpi-bindings" },
+    {
+      label: "People with requests",
+      value: k.people_with_open_requests ?? 0,
+      testId: "kpi-people-requests",
+    },
+    {
+      label: "Employee grants",
+      value: k.active_employee_grants ?? 0,
+      testId: "kpi-grants",
+    },
   ];
+
+  const people = inv.people ?? [];
 
   return (
     <div className="space-y-4" data-testid="tools-inventory-panel">
       <p className="text-sm text-muted-foreground" data-testid="tools-inventory-headline">
         {inv.headline}
       </p>
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      {notice !== null ? (
+        <p className="text-xs text-foreground" data-testid="tools-inventory-notice">
+          {notice}
+        </p>
+      ) : null}
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {kpiItems.map((item) => (
           <Card key={item.label}>
             <CardContent className="py-3" data-testid={item.testId}>
@@ -112,26 +215,113 @@ function InventoryPanel(): JSX.Element {
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              Approve or dismiss on{" "}
-              <Link
-                to="/organization-seeding"
-                className="font-medium underline-offset-2 hover:underline"
-              >
-                Organization Seeding
-              </Link>
-              . Nothing is auto-granted.
+              Approve acknowledges the ask so you can enable credentials / connect.
+              Deny closes it. Nothing is auto-granted.
             </p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {inv.pending_requests.map((req) => (
                 <li
                   key={req.seed_id}
-                  className="rounded-md border border-border/50 px-2 py-1.5 text-xs"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/50 px-2 py-2 text-xs"
                   data-testid="tools-pending-row"
+                  data-seed-id={req.seed_id}
                 >
-                  <span className="font-medium text-foreground">
-                    {req.subject_name ?? "Someone"}
-                  </span>
-                  <span className="text-muted-foreground"> — {req.recommended_action}</span>
+                  <div className="min-w-0">
+                    <span className="font-medium text-foreground">
+                      {req.subject_name ?? "Someone"}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — {req.recommended_action}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={busy !== null}
+                      onClick={() => void decide(req.seed_id, "approve")}
+                      data-testid="tools-request-approve"
+                    >
+                      {busy === `req:${req.seed_id}:approve` ? "…" : "Approve"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy !== null}
+                      onClick={() => void decide(req.seed_id, "deny")}
+                      data-testid="tools-request-deny"
+                    >
+                      {busy === `req:${req.seed_id}:deny` ? "…" : "Deny"}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {people.length > 0 ? (
+        <Card data-testid="tools-people-panel">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">People &amp; tools</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {people.map((p) => (
+                <li
+                  key={p.person_entity_id}
+                  className="rounded-md border border-border/50 px-3 py-2 text-xs"
+                  data-testid="tools-people-row"
+                  data-person-id={p.person_entity_id}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-foreground">{p.display_name}</span>
+                    <span className="text-muted-foreground">
+                      {p.open_request_count > 0
+                        ? `${p.open_request_count} open request${p.open_request_count === 1 ? "" : "s"}`
+                        : ""}
+                      {p.open_request_count > 0 && p.active_grant_count > 0
+                        ? " · "
+                        : ""}
+                      {p.active_grant_count > 0
+                        ? `${p.active_grant_count} grant${p.active_grant_count === 1 ? "" : "s"}`
+                        : ""}
+                    </span>
+                  </div>
+                  {p.sample_requests.length > 0 ? (
+                    <p className="mt-1 text-muted-foreground">
+                      {p.sample_requests.join(" · ")}
+                    </p>
+                  ) : null}
+                  {p.grants.length > 0 ? (
+                    <ul className="mt-2 space-y-1">
+                      {p.grants.map((g) => (
+                        <li
+                          key={g.grant_id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded bg-muted/20 px-2 py-1"
+                          data-testid="tools-grant-row"
+                        >
+                          <span className="text-muted-foreground">
+                            Grant · {g.allowed_operations.join(", ") || "scoped"}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={busy !== null}
+                            onClick={() => void revokeGrant(g.grant_id)}
+                            data-testid="tools-grant-revoke"
+                          >
+                            {busy === `grant:${g.grant_id}` ? "…" : "Revoke grant"}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -160,7 +350,7 @@ function InventoryPanel(): JSX.Element {
                     {t.account_label ? ` · ${t.account_label}` : ""}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   <Badge variant="outline" className="text-[10px]">
                     {t.oauth_status ?? t.adapter_status}
                   </Badge>
@@ -168,6 +358,21 @@ function InventoryPanel(): JSX.Element {
                     <Badge variant="outline" className="text-[10px]">
                       writes gated
                     </Badge>
+                  ) : null}
+                  {t.revocable === true &&
+                  typeof t.oauth_slug === "string" &&
+                  t.oauth_slug.length > 0 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy !== null}
+                      onClick={() => void revokeTool(t.oauth_slug!, t.display_name)}
+                      data-testid="tools-oauth-revoke"
+                      data-slug={t.oauth_slug}
+                    >
+                      {busy === `revoke:${t.oauth_slug}` ? "…" : "Revoke"}
+                    </Button>
                   ) : null}
                 </div>
               </li>
@@ -178,7 +383,10 @@ function InventoryPanel(): JSX.Element {
 
       <p className="text-xs text-muted-foreground">
         Employees connect from{" "}
-        <Link to="/app/connector-health" className="font-medium underline-offset-2 hover:underline">
+        <Link
+          to="/app/connector-health"
+          className="font-medium underline-offset-2 hover:underline"
+        >
           Your tools
         </Link>{" "}
         in Work OS — not a place to live, just when work needs a tool.
@@ -192,7 +400,7 @@ export function ToolsConnectionsPage(): JSX.Element {
     <div className="space-y-6" data-testid="tools-connections-page">
       <PageHeader
         title="Connect the tools your company already uses"
-        description="Employees pick a capability and connect in a few clicks when you enable it. You keep inventory, health, and approve/deny. Otzar never posts without policy — and nobody needs MCP jargon for daily setup."
+        description="Employees pick a capability and connect in a few clicks when you enable it. You keep inventory, decide access requests, and can revoke. Otzar never posts without policy — and nobody needs MCP jargon for daily setup."
       />
 
       <Tabs defaultValue="inventory" className="space-y-4">

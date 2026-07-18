@@ -1625,6 +1625,8 @@ export class ApiClient {
               oauth_ready_for_consent: number;
               org_bindings_enabled: number;
               pending_access_requests: number;
+              people_with_open_requests?: number;
+              active_employee_grants?: number;
             };
             tools: Array<{
               provider: string;
@@ -1632,16 +1634,34 @@ export class ApiClient {
               category: string;
               adapter_status: string;
               oauth_status: string | null;
+              oauth_slug?: string | null;
               account_label: string | null;
               last_verified_at: string | null;
               can_write: boolean;
               employee_self_serve: boolean;
+              revocable?: boolean;
             }>;
             pending_requests: Array<{
               seed_id: string;
               subject_name: string | null;
+              subject_entity_id?: string | null;
+              capability_id?: string | null;
+              provider?: string | null;
               recommended_action: string;
               created_at: string;
+            }>;
+            people?: Array<{
+              person_entity_id: string;
+              display_name: string;
+              open_request_count: number;
+              active_grant_count: number;
+              sample_requests: string[];
+              grants: Array<{
+                grant_id: string;
+                connection_id: string;
+                scope_type: string;
+                allowed_operations: string[];
+              }>;
             }>;
             generated_at: string;
           };
@@ -1660,6 +1680,31 @@ export class ApiClient {
       ): Promise<ApiResult<{ ok: true; authorize_url: string }>> =>
         this.request(
           `/otzar/enterprise-tools/oauth/${encodeURIComponent(slug)}/start`,
+          { method: "POST", body: {} },
+        ),
+      /** Phase E.2 — approve or deny a tool access request in inventory. */
+      decideRequest: (body: {
+        seed_id: string;
+        decision: "approve" | "deny";
+      }): Promise<
+        ApiResult<{ ok: true; seed_id: string; decision: "approve" | "deny" }>
+      > =>
+        this.request("/otzar/enterprise-tools/requests/decide", {
+          method: "POST",
+          body,
+        }),
+      /** Phase E.2 — force-revoke org OAuth for a provider slug. */
+      oauthRevoke: (slug: string): Promise<ApiResult<{ ok: true }>> =>
+        this.request(
+          `/otzar/enterprise-tools/oauth/${encodeURIComponent(slug)}/revoke`,
+          { method: "POST", body: {} },
+        ),
+      /** Phase E.2 — soft-revoke an employee connector scope grant. */
+      revokeGrant: (
+        grantId: string,
+      ): Promise<ApiResult<{ ok: true; grant_id: string }>> =>
+        this.request(
+          `/otzar/enterprise-tools/grants/${encodeURIComponent(grantId)}/revoke`,
           { method: "POST", body: {} },
         ),
     },

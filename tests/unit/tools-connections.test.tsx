@@ -1,8 +1,8 @@
 // FILE: tools-connections.test.tsx (unit)
-// PURPOSE: Phase E.1 — Tools & Connections inventory tab + human IA.
+// PURPOSE: Phase E.1 + E.2 — inventory KPIs, approve/deny, people, revoke.
 // CONNECTS TO: src/pages/ToolsConnections.tsx.
 
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -29,46 +29,74 @@ function setAdmin(): void {
   } as never);
 }
 
+function inventoryBody() {
+  return {
+    ok: true,
+    inventory: {
+      headline: "1 tool request needs a decision.",
+      kpis: {
+        capabilities_connected: 2,
+        capabilities_ready: 1,
+        capabilities_blocked: 0,
+        oauth_verified: 1,
+        oauth_ready_for_consent: 1,
+        org_bindings_enabled: 3,
+        pending_access_requests: 1,
+        people_with_open_requests: 1,
+        active_employee_grants: 1,
+      },
+      tools: [
+        {
+          provider: "GOOGLE_WORKSPACE",
+          display_name: "Google Workspace",
+          category: "PRODUCTIVITY",
+          adapter_status: "CONFIGURED",
+          oauth_status: "VERIFIED",
+          oauth_slug: "google",
+          account_label: "org@example.com",
+          last_verified_at: null,
+          can_write: true,
+          employee_self_serve: true,
+          revocable: true,
+        },
+      ],
+      pending_requests: [
+        {
+          seed_id: "s1",
+          subject_name: "David",
+          subject_entity_id: "person-david",
+          capability_id: "chat",
+          provider: "SLACK",
+          recommended_action: "Enable Slack for David (Team chat)",
+          created_at: new Date().toISOString(),
+        },
+      ],
+      people: [
+        {
+          person_entity_id: "person-david",
+          display_name: "David",
+          open_request_count: 1,
+          active_grant_count: 1,
+          sample_requests: ["Enable Slack for David (Team chat)"],
+          grants: [
+            {
+              grant_id: "g1",
+              connection_id: "c1",
+              scope_type: "EMPLOYEE",
+              allowed_operations: ["READ"],
+            },
+          ],
+        },
+      ],
+      generated_at: new Date().toISOString(),
+    },
+  };
+}
+
 function mockInventory(): void {
   server.use(
     http.get(`${API_BASE}/otzar/enterprise-tools/inventory`, () =>
-      HttpResponse.json({
-        ok: true,
-        inventory: {
-          headline: "2 capability areas live — inventory below.",
-          kpis: {
-            capabilities_connected: 2,
-            capabilities_ready: 1,
-            capabilities_blocked: 0,
-            oauth_verified: 1,
-            oauth_ready_for_consent: 1,
-            org_bindings_enabled: 3,
-            pending_access_requests: 1,
-          },
-          tools: [
-            {
-              provider: "GOOGLE_WORKSPACE",
-              display_name: "Google Workspace",
-              category: "PRODUCTIVITY",
-              adapter_status: "CONFIGURED",
-              oauth_status: "VERIFIED",
-              account_label: "org@example.com",
-              last_verified_at: null,
-              can_write: true,
-              employee_self_serve: true,
-            },
-          ],
-          pending_requests: [
-            {
-              seed_id: "s1",
-              subject_name: "David",
-              recommended_action: "Enable Slack for David (Team chat)",
-              created_at: new Date().toISOString(),
-            },
-          ],
-          generated_at: new Date().toISOString(),
-        },
-      }),
+      HttpResponse.json(inventoryBody()),
     ),
   );
 }
@@ -88,30 +116,52 @@ beforeEach(() => {
   cleanup();
   setAdmin();
   mockInventory();
+  vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
-describe("Tools & Connections — Phase E.1 inventory", () => {
-  it("defaults to Inventory & KPIs with human copy (no MCP primary)", async () => {
+describe("Tools & Connections — Phase E.2 inventory actions", () => {
+  it("shows KPIs, people, and pending requests", async () => {
     renderPage();
-    expect(screen.getByTestId("tools-connections-page")).toBeInTheDocument();
-    expect(screen.getByTestId("tab-tools-inventory")).toBeInTheDocument();
     expect(await screen.findByTestId("tools-inventory-panel")).toBeInTheDocument();
-    expect(screen.getByTestId("kpi-connected")).toHaveTextContent("2");
+    expect(screen.getByTestId("kpi-pending")).toHaveTextContent("1");
     expect(screen.getByTestId("tools-pending-row")).toHaveTextContent(/David/);
-    expect(document.body.textContent).not.toMatch(/model context protocol/i);
+    expect(screen.getByTestId("tools-people-row")).toHaveTextContent(/David/);
+    expect(screen.getByTestId("tools-oauth-revoke")).toBeInTheDocument();
   });
 
-  it("switches to Your tools and Advanced", async () => {
+  it("approve posts decide decision", async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/otzar/enterprise-tools/requests/decide`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          ok: true,
+          seed_id: "s1",
+          decision: "approve",
+        });
+      }),
+    );
     const user = userEvent.setup();
     renderPage();
-    await screen.findByTestId("tools-inventory-panel");
-    await user.click(screen.getByTestId("tab-connected-tools"));
+    await screen.findByTestId("tools-request-approve");
+    await user.click(screen.getByTestId("tools-request-approve"));
     await waitFor(() =>
-      expect(screen.getByTestId("panel-connected-tools")).toBeInTheDocument(),
+      expect(body).toEqual({ seed_id: "s1", decision: "approve" }),
     );
-    await user.click(screen.getByTestId("tab-integrations-advanced"));
-    await waitFor(() =>
-      expect(screen.getByTestId("panel-integrations-advanced")).toBeInTheDocument(),
+  });
+
+  it("revoke posts oauth revoke", async () => {
+    let slug: string | null = null;
+    server.use(
+      http.post(`${API_BASE}/otzar/enterprise-tools/oauth/:slug/revoke`, ({ params }) => {
+        slug = params.slug as string;
+        return HttpResponse.json({ ok: true });
+      }),
     );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("tools-oauth-revoke");
+    await user.click(screen.getByTestId("tools-oauth-revoke"));
+    await waitFor(() => expect(slug).toBe("google"));
   });
 });
