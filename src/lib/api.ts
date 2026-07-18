@@ -1663,6 +1663,19 @@ export class ApiClient {
                 allowed_operations: string[];
               }>;
             }>;
+            /** Phase E.3 — Twin accuracy / dual-control KPIs. */
+            accuracy?: {
+              twin_claims: number;
+              twin_active: number;
+              twin_completed: number;
+              regulated_claims: number;
+              awaiting_human_verify: number;
+              human_verified: number;
+              human_verified_and_completed: number;
+              human_edit_after_claim: number;
+              completion_gate_blocks: number;
+              regulated_classes: string[];
+            };
             generated_at: string;
           };
         }>
