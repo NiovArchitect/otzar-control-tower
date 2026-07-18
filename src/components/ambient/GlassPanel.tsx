@@ -1,8 +1,6 @@
 // FILE: GlassPanel.tsx
-// PURPOSE: Frosted-glass panel — building block of ambient surfaces.
-//          Carries presence intensity (priority accent), short label,
-//          glanceable content. Never a dense dashboard card.
-// CONNECTS TO: src/lib/ambient/glass.ts, AmbientWorkSurface, Action Center.
+// PURPOSE: Phase-F frosted panel — glanceable ambient building block.
+// CONNECTS TO: glass.ts, AmbientWorkSurface, Action Center, Comms.
 
 import type { ReactNode } from "react";
 import type { PresenceIntensity } from "@/lib/stores/presence";
@@ -26,10 +24,10 @@ export function GlassPanel({
     <section
       data-testid={testId}
       data-intensity={intensity}
-      className={`${GLASS_SURFACE} ${panelAccent(intensity)} px-4 py-4 sm:px-5 ${className}`}
+      className={`${GLASS_SURFACE} ${panelAccent(intensity)} px-4 py-4 transition-shadow duration-300 hover:shadow-[0_20px_56px_-24px_rgba(15,23,42,0.28)] sm:px-5 sm:py-5 ${className}`}
     >
       {label !== undefined ? (
-        <div className="mb-2 flex items-center gap-1.5">
+        <div className="mb-2.5 flex items-center gap-2">
           <span
             aria-hidden
             className={`inline-block h-1.5 w-1.5 rounded-full ${intensityDot(intensity)} ${
@@ -38,7 +36,7 @@ export function GlassPanel({
                 : ""
             }`}
           />
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500/90">
             {label}
           </h2>
         </div>

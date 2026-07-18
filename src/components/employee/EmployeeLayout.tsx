@@ -1,12 +1,10 @@
 // FILE: EmployeeLayout.tsx
-// PURPOSE: Authenticated chrome for the EMPLOYEE Otzar shell —
-//          AmbientNav + presence header + <Outlet />. Visually distinct
-//          from org-admin Control Tower. Design Law: Otzar lives around
-//          the work (edge, glow, orb), not as a SaaS dashboard in it.
-// CONNECTS TO: AmbientNav, AmbientOtzarBar, presence store, App.tsx /app.
+// PURPOSE: Phase-F employee Otzar shell — ambient field, luminous nav,
+//          presence header, outlet. Work stays foreground; Otzar surrounds.
+// CONNECTS TO: AmbientNav, AmbientOtzarBar, presence, App.tsx /app.
 
 import { Link, Outlet } from "react-router-dom";
-import { LogOut, PanelsTopLeft } from "lucide-react";
+import { LogOut, PanelsTopLeft, Sparkles } from "lucide-react";
 import { AmbientNav } from "@/components/ambient/AmbientNav";
 import { OtzarMark } from "@/components/ambient/OtzarMark";
 import { AppBackButton } from "@/components/navigation/AppBackButton";
@@ -34,34 +32,50 @@ export function EmployeeLayout() {
       className={`relative flex h-screen w-full overflow-hidden ${AMBIENT_FIELD}`}
       data-testid="employee-shell"
     >
-      {/* Atmospheric depth — never flat white; pointer-safe. */}
+      {/* Atmospheric depth + grain */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="otzar-aurora-layer opacity-80" />
+        <div className="otzar-aurora-layer opacity-90" />
+        <div className="otzar-grain" />
       </div>
 
       <AmbientNav />
 
       <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
-        {/* Header stacks above content so notification dropdowns aren't
-            painted over by frosted main panels (overlay ladder: header z-40
-            < edge z-55 < stack z-58 < orb z-60). */}
         {/* Overlay-layering contract: relative z-40 + backdrop-blur on a
             double-quoted className (locked by overlay-layering.test.ts). */}
-        <header className="relative z-40 flex h-14 items-center justify-between border-b border-white/60 bg-white/50 px-4 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/40">
+        <header className="relative z-40 flex h-16 items-center justify-between border-b border-white/50 bg-white/45 px-4 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/35 sm:px-6">
           <div className="flex items-center gap-2.5">
             <AppBackButton fallback="/app" />
             <Link
               to="/app"
-              className="group flex items-center gap-2 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
+              className="group flex items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
               aria-label="Otzar home"
             >
               <OtzarMark size="sm" active />
-              <span className="text-sm font-semibold tracking-tight text-slate-900">
-                Otzar
-              </span>
+              <div className="leading-tight">
+                <span className="block text-sm font-semibold tracking-tight text-slate-900">
+                  Otzar
+                </span>
+                <span className="hidden text-[10px] font-medium uppercase tracking-[0.12em] text-indigo-500/70 sm:block">
+                  Work OS
+                </span>
+              </div>
             </Link>
           </div>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("otzar:open"));
+                }
+              }}
+              className="otzar-cta-fill hidden items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium sm:inline-flex"
+              data-testid="header-talk-otzar"
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              Talk
+            </button>
             <NotificationBell />
             {isOrgAdmin(capabilities) ? (
               <Link
@@ -90,8 +104,6 @@ export function EmployeeLayout() {
         </main>
       </div>
 
-      {/* Ambient layer: state border, calm cards, voice/text orb.
-          Work stays foreground; these never block primary CTAs. */}
       <AmbientEdgeGlow />
       <FlowTraceOverlay />
       <AmbientNotificationStack />

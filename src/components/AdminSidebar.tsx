@@ -28,17 +28,16 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav
       aria-label="Otzar Admin navigation"
-      // PROD-MODEL-P5 §19 — frosted glass over the ambient field, matching
-      // the employee shell; no flat dashboard panel.
-      className="flex h-full flex-col border-r border-white/60 bg-white/55 shadow-[8px_0_32px_-18px_rgba(15,23,42,0.18)] backdrop-blur-xl backdrop-saturate-150"
+      // Phase-F — luminous glass rail over ambient field; never flat SaaS panel.
+      className="flex h-full flex-col border-r border-white/55 bg-gradient-to-b from-white/70 to-white/45 shadow-[12px_0_40px_-20px_rgba(67,56,202,0.22)] backdrop-blur-2xl backdrop-saturate-150"
     >
-      <div className="flex items-center gap-2.5 px-4 py-5">
-        <OtzarMark size="md" active={false} />
+      <div className="flex items-center gap-3 border-b border-white/40 px-4 py-5">
+        <OtzarMark size="md" active />
         <div>
           <div className="text-sm font-semibold leading-tight tracking-tight text-slate-900">
             Otzar
           </div>
-          <div className="text-[11px] leading-tight text-slate-500">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-500/75">
             Control Tower
           </div>
         </div>
@@ -53,7 +52,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           if (itemsInGroup.length === 0) return null;
           return (
           <div key={group} data-testid="admin-nav-group" data-group={group}>
-            <p className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-400/80">
               {group}
             </p>
             <ul className="space-y-1">
@@ -67,10 +66,10 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all duration-200",
+                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
                       isActive
-                        ? "bg-white/80 font-medium text-slate-900 shadow-[0_4px_14px_-6px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/[0.04]"
-                        : "text-slate-500 hover:bg-white/50 hover:text-slate-800",
+                        ? "bg-gradient-to-r from-white/95 to-indigo-50/90 font-medium text-indigo-950 shadow-[0_6px_18px_-6px_rgba(79,70,229,0.28)] ring-1 ring-indigo-500/10"
+                        : "text-slate-500 hover:bg-white/55 hover:text-slate-800",
                     )
                   }
                 >

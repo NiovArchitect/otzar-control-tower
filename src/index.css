@@ -2,65 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Otzar ambient design tokens ───────────────────────────────────────────
-   Doctrine: Design Law, PRD-01, OTZAR_AMBIENT_UI_VISUAL_SYSTEM.
-   Premium calm depth; never flat SaaS gray; motion only as atmosphere. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   OTZAR PHASE-F VISUAL SYSTEM
+   Ambient enterprise Work OS — luminous depth, not flat SaaS gray.
+   Doctrine: presence without noise · glass over field · glanceable hierarchy.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* Cool pearl system — ambient Work OS, not generic shadcn white */
-    --background: 220 33% 98%;
-    --foreground: 222 47% 11%;
+    /* Deep-space pearl: cool void under translucent surfaces */
+    --background: 230 40% 97%;
+    --foreground: 228 48% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 228 48% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 226 55% 42%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 220 30% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 24% 96%;
-    --muted-foreground: 215 16% 42%;
-    --accent: 220 40% 96%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 220 20% 90%;
-    --input: 220 20% 90%;
-    --ring: 226 55% 42%;
-    --radius: 0.85rem;
+    --popover-foreground: 228 48% 10%;
+    --primary: 238 72% 48%;
+    --primary-foreground: 210 40% 99%;
+    --secondary: 230 36% 95%;
+    --secondary-foreground: 228 48% 12%;
+    --muted: 230 28% 94%;
+    --muted-foreground: 225 14% 40%;
+    --accent: 230 48% 95%;
+    --accent-foreground: 228 48% 12%;
+    --destructive: 0 78% 52%;
+    --destructive-foreground: 210 40% 99%;
+    --border: 228 24% 88%;
+    --input: 228 24% 88%;
+    --ring: 238 72% 48%;
+    --radius: 1rem;
 
-    /* Otzar presence atmosphere (CSS-only; Tailwind uses these where needed) */
-    --otzar-sky: 199 89% 48%;
-    --otzar-indigo: 239 84% 67%;
-    --otzar-teal: 173 80% 40%;
-    --otzar-amber: 38 92% 50%;
-    --otzar-rose: 350 89% 60%;
-    --otzar-field-top: 226 100% 97%;
-    --otzar-field-mid: 210 40% 98%;
-    --otzar-field-edge: 220 40% 94%;
+    /* Signature Otzar spectrum */
+    --otzar-void: 232 52% 8%;
+    --otzar-indigo: 243 75% 59%;
+    --otzar-violet: 263 70% 58%;
+    --otzar-sky: 199 92% 48%;
+    --otzar-teal: 172 76% 38%;
+    --otzar-amber: 38 96% 52%;
+    --otzar-rose: 346 84% 56%;
+    --otzar-emerald: 160 72% 40%;
+    --otzar-glow: 238 100% 72%;
   }
 
   .dark {
-    --background: 224 40% 7%;
+    --background: 232 48% 6%;
     --foreground: 210 40% 98%;
-    --card: 224 36% 9%;
+    --card: 232 40% 9%;
     --card-foreground: 210 40% 98%;
-    --popover: 224 36% 9%;
+    --popover: 232 40% 9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 213 94% 78%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 28% 16%;
+    --primary: 226 100% 78%;
+    --primary-foreground: 232 48% 8%;
+    --secondary: 232 28% 14%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 28% 16%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 28% 16%;
+    --muted: 232 28% 14%;
+    --muted-foreground: 220 16% 68%;
+    --accent: 232 28% 14%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 40%;
+    --destructive: 0 62% 42%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 28% 16%;
-    --input: 217 28% 16%;
-    --ring: 213 94% 78%;
+    --border: 232 24% 16%;
+    --input: 232 24% 16%;
+    --ring: 226 100% 78%;
   }
 }
 
@@ -77,9 +80,10 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
-    /* Prefer system UI stack that reads premium on macOS/iOS + enterprise Windows */
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "cv11" 1;
     font-family:
+      "SF Pro Display",
+      "SF Pro Text",
       ui-sans-serif,
       system-ui,
       -apple-system,
@@ -87,62 +91,149 @@
       Roboto,
       "Helvetica Neue",
       Arial,
-      "Noto Sans",
       sans-serif;
   }
 
-  /* ADHD / glanceability: calm headings, not dense UI chrome */
-  h1 {
-    letter-spacing: -0.025em;
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.03em;
+    font-weight: 550;
+  }
+
+  ::selection {
+    background: hsl(238 90% 88% / 0.9);
+    color: hsl(228 48% 10%);
   }
 }
 
 @layer utilities {
-  /* Presence breathe — only on state-backed marks (prefers-reduced-motion safe) */
   @keyframes otzar-breathe {
     0%,
     100% {
-      opacity: 0.72;
+      opacity: 0.65;
       transform: scale(1);
     }
     50% {
       opacity: 1;
-      transform: scale(1.06);
+      transform: scale(1.08);
     }
   }
 
   @keyframes otzar-aurora-drift {
     0%,
     100% {
-      transform: translate3d(0, 0, 0) scale(1);
+      transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
       opacity: 0.55;
     }
-    50% {
-      transform: translate3d(2%, -1.5%, 0) scale(1.04);
+    33% {
+      transform: translate3d(3%, -2%, 0) scale(1.05) rotate(1deg);
       opacity: 0.85;
+    }
+    66% {
+      transform: translate3d(-2%, 1.5%, 0) scale(1.03) rotate(-0.5deg);
+      opacity: 0.7;
     }
   }
 
+  @keyframes otzar-orb-pulse {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 0 rgba(129, 140, 248, 0.35),
+        0 0 24px 4px rgba(56, 189, 248, 0.2);
+    }
+    50% {
+      box-shadow:
+        0 0 0 8px rgba(129, 140, 248, 0),
+        0 0 36px 8px rgba(167, 139, 250, 0.35);
+    }
+  }
+
+  @keyframes otzar-shimmer {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Multi-layer living atmosphere — signature Otzar field */
   .otzar-aurora-layer {
     position: absolute;
-    inset: -20%;
+    inset: -25%;
     background:
-      radial-gradient(42% 38% at 28% 18%, rgba(165, 180, 252, 0.22), transparent 70%),
-      radial-gradient(36% 40% at 74% 28%, rgba(56, 189, 248, 0.16), transparent 70%),
-      radial-gradient(38% 36% at 55% 72%, rgba(167, 139, 250, 0.12), transparent 72%),
-      radial-gradient(48% 42% at 48% 88%, rgba(45, 212, 191, 0.08), transparent 70%);
-    filter: blur(32px);
+      radial-gradient(38% 36% at 18% 12%, rgba(139, 92, 246, 0.28), transparent 68%),
+      radial-gradient(42% 40% at 82% 18%, rgba(56, 189, 248, 0.22), transparent 70%),
+      radial-gradient(36% 42% at 48% 78%, rgba(45, 212, 191, 0.14), transparent 72%),
+      radial-gradient(50% 48% at 60% 40%, rgba(99, 102, 241, 0.12), transparent 68%),
+      radial-gradient(28% 30% at 8% 70%, rgba(244, 114, 182, 0.1), transparent 70%);
+    filter: blur(40px);
+    will-change: transform, opacity;
   }
 
   @media (prefers-reduced-motion: no-preference) {
     .otzar-aurora-layer {
-      animation: otzar-aurora-drift 16s ease-in-out infinite;
+      animation: otzar-aurora-drift 22s ease-in-out infinite;
     }
   }
 
-  /* Selection feels intentional, not browser-default harsh blue */
-  ::selection {
-    background: hsl(226 80% 90% / 0.85);
-    color: hsl(222 47% 11%);
+  /* Subtle noise grain for cinematic depth (CSS-only, low cost) */
+  .otzar-grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.035;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+  }
+
+  /* Hero title gradient */
+  .otzar-text-luminous {
+    background: linear-gradient(
+      120deg,
+      hsl(228 48% 12%) 0%,
+      hsl(238 50% 28%) 40%,
+      hsl(243 60% 42%) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Premium CTA gradient fill */
+  .otzar-cta-fill {
+    background: linear-gradient(
+      135deg,
+      hsl(238 72% 48%) 0%,
+      hsl(263 70% 52%) 55%,
+      hsl(243 75% 55%) 100%
+    );
+    color: white;
+    box-shadow:
+      0 12px 32px -12px rgba(79, 70, 229, 0.55),
+      0 1px 0 0 rgba(255, 255, 255, 0.25) inset;
+  }
+
+  .otzar-cta-fill:hover {
+    filter: brightness(1.05);
+  }
+
+  /* Soft glass ring for elevated stages */
+  .otzar-stage {
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    background: linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.42) 100%
+    );
+    box-shadow:
+      0 24px 64px -28px rgba(15, 23, 42, 0.32),
+      0 1px 0 0 rgba(255, 255, 255, 0.75) inset,
+      0 0 0 1px rgba(15, 23, 42, 0.03);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
   }
 }

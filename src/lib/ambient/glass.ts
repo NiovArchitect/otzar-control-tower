@@ -1,73 +1,70 @@
 // FILE: glass.ts
-// PURPOSE: [OTZAR-LIVE-6 → UI-OVERHAUL] The ONE ambient glass material language
-//          shared by shell, work surface, panels, and login. Doctrine sources:
-//          Design Law §1–4, PRD-01 ambient presence, OTZAR_AMBIENT_UI_VISUAL_SYSTEM,
-//          quality rubric axes 1/12/13 (presence, responsive, hierarchy).
-//          Rule zero: no glow without a backing state. Calm depth > SaaS chrome.
-// CONNECTS TO: presence.ts, ambient components, tests that lock surface tokens.
+// PURPOSE: Phase-F ambient glass material language — the ONE shared surface
+//          system for shell, work surfaces, panels, login, Control Tower.
+//          Premium luminous depth; never flat SaaS gray. Glow only with state.
+// CONNECTS TO: EmployeeLayout, AmbientNav, GlassPanel, Login, Layout.
 
 import type { PresenceIntensity } from "@/lib/stores/presence";
 
-/** Primary frosted surface — translucent pearl, soft lift, premium depth. */
+/** Primary frosted surface — translucent pearl with dimensional lift. */
 export const GLASS_SURFACE =
-  "rounded-2xl border border-white/70 bg-white/75 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 ring-1 ring-slate-900/[0.04] shadow-[0_12px_48px_-20px_rgba(15,23,42,0.28),0_1px_0_0_rgba(255,255,255,0.65)_inset]";
+  "rounded-2xl border border-white/70 bg-gradient-to-br from-white/80 to-white/50 supports-[backdrop-filter]:from-white/65 supports-[backdrop-filter]:to-white/40 backdrop-blur-2xl backdrop-saturate-150 ring-1 ring-slate-900/[0.04] shadow-[0_16px_56px_-22px_rgba(15,23,42,0.32),0_1px_0_0_rgba(255,255,255,0.72)_inset]";
 
 /** Quieter chip for inline state (lane / status / count). */
 export const GLASS_CHIP =
-  "rounded-full border border-white/70 bg-white/65 supports-[backdrop-filter]:bg-white/50 backdrop-blur-xl ring-1 ring-slate-900/[0.03] shadow-[0_1px_0_0_rgba(255,255,255,0.5)_inset]";
+  "rounded-full border border-white/75 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-xl ring-1 ring-slate-900/[0.03] shadow-[0_1px_0_0_rgba(255,255,255,0.55)_inset]";
 
 /**
- * Luminous ambient field behind employee + admin shells.
- * Multi-stop radial: pearl cool top, soft indigo/teal atmosphere, never flat
- * dashboard gray. Readable for dark text; light-first (visual system honest bound).
+ * Living ambient field — cool multi-stop atmosphere behind every shell.
+ * Light-first for enterprise readability; depth without darkness.
  */
-/** Living ambient field — cool pearl with soft depth, not flat SaaS gray. */
 export const AMBIENT_FIELD =
-  "bg-[radial-gradient(120%_80%_at_50%_-12%,#eef2ff_0%,#eef6fb_26%,#f4f7fb_52%,#e8eef6_100%)]";
+  "bg-[radial-gradient(140%_90%_at_50%_-18%,#ede9fe_0%,#e0f2fe_22%,#f0f4ff_48%,#e8eef8_72%,#f8fafc_100%)]";
 
-/** Secondary atmospheric bloom for login / hero stages (pointer-safe layer). */
-export const AMBIENT_AURORA =
-  "pointer-events-none absolute inset-0 overflow-hidden";
+/** Secondary atmospheric bloom wrapper. */
+export const AMBIENT_AURORA = "pointer-events-none absolute inset-0 overflow-hidden";
 
-/** Hero primary CTA — same glass language, slightly denser for one action. */
+/** Hero primary CTA. */
 export const GLASS_CTA =
-  "rounded-2xl border border-white/70 bg-white/80 supports-[backdrop-filter]:bg-white/60 backdrop-blur-2xl ring-1 ring-slate-900/[0.05] shadow-[0_14px_40px_-18px_rgba(15,23,42,0.3),0_1px_0_0_rgba(255,255,255,0.7)_inset] transition-[box-shadow,transform,color] duration-200 hover:shadow-[0_18px_48px_-16px_rgba(15,23,42,0.34)] active:scale-[0.99]";
+  "rounded-2xl border border-white/70 bg-white/85 supports-[backdrop-filter]:bg-white/65 backdrop-blur-2xl ring-1 ring-slate-900/[0.05] shadow-[0_16px_44px_-16px_rgba(15,23,42,0.32),0_1px_0_0_rgba(255,255,255,0.75)_inset] transition-[box-shadow,transform,filter] duration-200 hover:shadow-[0_20px_52px_-14px_rgba(79,70,229,0.28)] active:scale-[0.99]";
 
-/** Slim chrome (header / nav rail) floating over the field. */
+/** Slim chrome (header / nav rail). */
 export const GLASS_CHROME =
-  "border-white/60 bg-white/50 supports-[backdrop-filter]:bg-white/40 backdrop-blur-2xl backdrop-saturate-150";
+  "border-white/55 bg-white/45 supports-[backdrop-filter]:bg-white/35 backdrop-blur-2xl backdrop-saturate-160";
 
-/** Active nav pill — attention without neon. */
+/** Active nav pill — indigo presence, not harsh solid. */
 export const GLASS_NAV_ACTIVE =
-  "bg-white/80 text-slate-900 shadow-[0_4px_16px_-6px_rgba(15,23,42,0.18)] ring-1 ring-slate-900/[0.05]";
+  "bg-gradient-to-b from-white/95 to-indigo-50/90 text-indigo-950 shadow-[0_6px_20px_-6px_rgba(79,70,229,0.35)] ring-1 ring-indigo-500/15";
+
+/** Hero stage (Today, Login) — elevated presence plane. */
+export const GLASS_STAGE =
+  "otzar-stage relative overflow-hidden";
 
 // Per-intensity left accent for a glass panel (priority visible, not flat).
-// Attention/critical come forward; working is a soft hint; ambient recedes.
 export function panelAccent(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":
-      return "border-l-2 border-l-amber-400/75";
+      return "border-l-[3px] border-l-amber-400/80";
     case "critical":
-      return "border-l-2 border-l-rose-400/75";
+      return "border-l-[3px] border-l-rose-400/85";
     case "working":
-      return "border-l-2 border-l-sky-400/60";
+      return "border-l-[3px] border-l-sky-400/70";
     case "ambient":
     default:
       return "";
   }
 }
 
-// Small state dot color per intensity.
 export function intensityDot(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":
-      return "bg-amber-400";
+      return "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.55)]";
     case "critical":
-      return "bg-rose-400";
+      return "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.55)]";
     case "working":
-      return "bg-sky-400";
+      return "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.45)]";
     case "ambient":
     default:
-      return "bg-slate-300";
+      return "bg-indigo-300/80";
   }
 }
