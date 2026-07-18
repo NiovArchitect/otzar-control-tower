@@ -63,6 +63,18 @@ type Inventory = {
       allowed_operations: string[];
     }>;
   }>;
+  accuracy?: {
+    twin_claims: number;
+    twin_active: number;
+    twin_completed: number;
+    regulated_claims: number;
+    awaiting_human_verify: number;
+    human_verified: number;
+    human_verified_and_completed: number;
+    human_edit_after_claim: number;
+    completion_gate_blocks: number;
+    regulated_classes: string[];
+  };
 };
 
 function InventoryPanel(): JSX.Element {
@@ -186,6 +198,52 @@ function InventoryPanel(): JSX.Element {
   ];
 
   const people = inv.people ?? [];
+  const acc = inv.accuracy;
+  const accuracyItems: Array<{ label: string; value: number; testId: string }> =
+    acc !== undefined
+      ? [
+          {
+            label: "Twin claims",
+            value: acc.twin_claims,
+            testId: "acc-twin-claims",
+          },
+          {
+            label: "Twin active",
+            value: acc.twin_active,
+            testId: "acc-twin-active",
+          },
+          {
+            label: "Regulated",
+            value: acc.regulated_claims,
+            testId: "acc-regulated",
+          },
+          {
+            label: "Awaiting verify",
+            value: acc.awaiting_human_verify,
+            testId: "acc-awaiting-verify",
+          },
+          {
+            label: "Human verified",
+            value: acc.human_verified,
+            testId: "acc-human-verified",
+          },
+          {
+            label: "Human edits after claim",
+            value: acc.human_edit_after_claim,
+            testId: "acc-human-edits",
+          },
+          {
+            label: "Gate blocks",
+            value: acc.completion_gate_blocks,
+            testId: "acc-gate-blocks",
+          },
+          {
+            label: "Verified + complete",
+            value: acc.human_verified_and_completed,
+            testId: "acc-verified-complete",
+          },
+        ]
+      : [];
 
   return (
     <div className="space-y-4" data-testid="tools-inventory-panel">
@@ -207,6 +265,49 @@ function InventoryPanel(): JSX.Element {
           </Card>
         ))}
       </div>
+
+      {accuracyItems.length > 0 ? (
+        <Card data-testid="tools-accuracy-panel">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Twin accuracy &amp; dual-control</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              From recent AI Teammate work claims. Regulated work cannot complete
+              without human verification. Edits after claim mean a human overrode
+              the Twin draft.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-4">
+              {accuracyItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-md border border-border/50 px-2 py-2"
+                  data-testid={item.testId}
+                >
+                  <p className="text-xl font-semibold tabular-nums">{item.value}</p>
+                  <p className="text-[11px] text-muted-foreground">{item.label}</p>
+                </div>
+              ))}
+            </div>
+            {acc !== undefined && acc.regulated_classes.length > 0 ? (
+              <p className="text-[11px] text-muted-foreground" data-testid="acc-classes">
+                Classes seen:{" "}
+                {acc.regulated_classes
+                  .map((c) =>
+                    c === "REGULATED_HEALTH"
+                      ? "Clinical"
+                      : c === "REGULATED_FINANCE"
+                        ? "Financial"
+                        : c === "INSURANCE"
+                          ? "Insurance"
+                          : c,
+                  )
+                  .join(" · ")}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {inv.pending_requests.length > 0 ? (
         <Card data-testid="tools-pending-requests">

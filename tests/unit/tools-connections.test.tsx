@@ -88,6 +88,18 @@ function inventoryBody() {
           ],
         },
       ],
+      accuracy: {
+        twin_claims: 5,
+        twin_active: 2,
+        twin_completed: 3,
+        regulated_claims: 2,
+        awaiting_human_verify: 1,
+        human_verified: 1,
+        human_verified_and_completed: 1,
+        human_edit_after_claim: 1,
+        completion_gate_blocks: 1,
+        regulated_classes: ["REGULATED_HEALTH", "REGULATED_FINANCE"],
+      },
       generated_at: new Date().toISOString(),
     },
   };
@@ -120,13 +132,16 @@ beforeEach(() => {
 });
 
 describe("Tools & Connections — Phase E.2 inventory actions", () => {
-  it("shows KPIs, people, and pending requests", async () => {
+  it("shows KPIs, people, pending requests, and accuracy strip", async () => {
     renderPage();
     expect(await screen.findByTestId("tools-inventory-panel")).toBeInTheDocument();
     expect(screen.getByTestId("kpi-pending")).toHaveTextContent("1");
     expect(screen.getByTestId("tools-pending-row")).toHaveTextContent(/David/);
     expect(screen.getByTestId("tools-people-row")).toHaveTextContent(/David/);
     expect(screen.getByTestId("tools-oauth-revoke")).toBeInTheDocument();
+    expect(screen.getByTestId("tools-accuracy-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("acc-awaiting-verify")).toHaveTextContent("1");
+    expect(screen.getByTestId("acc-human-edits")).toHaveTextContent("1");
   });
 
   it("approve posts decide decision", async () => {
