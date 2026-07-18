@@ -60,10 +60,14 @@ export function WorkProjects() {
     list.data?.ok === true ? list.data.data.projects : ([] as WorkProjectSafeView[]);
 
   return (
-    <div className="space-y-6" data-testid="work-projects-page">
+    <div
+      className="mx-auto w-full max-w-3xl space-y-6 pb-24"
+      data-testid="work-projects-page"
+    >
       <PageHeader
+        eyebrow="Missions"
         title="Projects"
-        description="Projects group people and work so Otzar and your AI Teammate know what belongs together. Placement is ambient — when someone needs a first project, their manager or project lead handles it when it fits. Nobody lives here."
+        description="Projects group people and work so Otzar and your AI Teammate know what belongs together. Placement is ambient — nobody lives here."
       />
 
       <ManagerAmbientPlacement onPlaced={invalidate} />

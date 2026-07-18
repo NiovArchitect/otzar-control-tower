@@ -108,25 +108,30 @@ export function CollaborationWorkspaces(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6" data-testid="collaboration-workspaces-page">
+    <div
+      className="mx-auto w-full max-w-3xl space-y-6 pb-24"
+      data-testid="collaboration-workspaces-page"
+    >
       <PageHeader
+        eyebrow="Third parties & teams"
         title="Collaboration Workspaces"
-        description="A workspace gathers the people, decisions, commitments, and follow-ups for a piece of work. Otzar keeps it governed end-to-end."
+        description="A workspace gathers people, decisions, commitments, and follow-ups — including clients and partners — without leaking private org memory."
+        actions={
+          <Button
+            size="sm"
+            className="otzar-cta-fill rounded-full border-0"
+            onClick={() => setCreateOpen((v) => !v)}
+            data-testid="collaboration-workspace-create-toggle"
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" aria-hidden /> New workspace
+          </Button>
+        }
       />
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Otzar keeps your private memory private. A workspace only shows
-          context you explicitly share.
-        </p>
-        <Button
-          size="sm"
-          onClick={() => setCreateOpen((v) => !v)}
-          data-testid="collaboration-workspace-create-toggle"
-        >
-          <Plus className="mr-1 h-3 w-3" aria-hidden /> New workspace
-        </Button>
-      </div>
+      <p className="text-xs leading-relaxed text-slate-500">
+        Otzar keeps your private memory private. A workspace only shows
+        context you explicitly share.
+      </p>
 
       {createOpen ? (
         <Card data-testid="collaboration-workspace-create-form">

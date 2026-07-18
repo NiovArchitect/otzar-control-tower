@@ -82,6 +82,7 @@ export function MyMemory(): JSX.Element {
     return (
       <div className="space-y-6" data-testid="my-memory-loading">
         <PageHeader
+          eyebrow="Portability"
           title="My Digital Work Wallet"
           description="How you work, what your AI Teammate has learned, and what moves with you — your portable work identity."
         />
@@ -98,6 +99,7 @@ export function MyMemory(): JSX.Element {
     return (
       <div className="space-y-6" data-testid="my-memory-error">
         <PageHeader
+          eyebrow="Portability"
           title="My Digital Work Wallet"
           description="How you work, what your AI Teammate has learned, and what moves with you — your portable work identity."
         />
@@ -113,8 +115,12 @@ export function MyMemory(): JSX.Element {
   const i = data.identity;
 
   return (
-    <div className="space-y-6" data-testid="my-memory-page">
+    <div
+      className="mx-auto w-full max-w-3xl space-y-6 pb-24"
+      data-testid="my-memory-page"
+    >
       <PageHeader
+        eyebrow="Portability"
         title="My Digital Work Wallet"
         description="How you work, what your AI Teammate has learned, and what moves with you. Your methods, skills, and preferences are YOURS — your organization's records stay with the organization."
       />
