@@ -8,12 +8,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import type { OrgSeed, ZoomRecordingView } from "@/lib/types/foundation";
+import type {
+  AssignmentTarget,
+  OrgSeed,
+  ZoomRecordingView,
+} from "@/lib/types/foundation";
 import { groupSeeds, type SeedGroup } from "@/lib/work-os/seed-grouping";
 
 const SEED_TYPE_LABEL: Record<string, string> = {
@@ -98,6 +103,16 @@ export function OrganizationSeedingPage(): JSX.Element {
         : verb === "reject"
           ? await api.otzar.dandelionSeeds.reject(id)
           : await api.otzar.dandelionSeeds.hold(id);
+    setBusy(null);
+    if (r.ok) await load();
+  }
+
+  // [A.3] Structure seed: assign person to chosen project + close seed.
+  async function assignToProject(id: string, projectId: string): Promise<void> {
+    setBusy(id);
+    const r = await api.otzar.dandelionSeeds.approve(id, {
+      project_id: projectId,
+    });
     setBusy(null);
     if (r.ok) await load();
   }
@@ -241,7 +256,14 @@ export function OrganizationSeedingPage(): JSX.Element {
                 <p className="text-xs text-muted-foreground">{def.description}</p>
               </div>
               {groups.map((g) => (
-                <SeedGroupCard key={g.key} group={g} busy={busy} onAct={(id, v) => void act(id, v)} onDecide={(id, d, link) => void decide(id, d, link)} />
+                <SeedGroupCard
+                  key={g.key}
+                  group={g}
+                  busy={busy}
+                  onAct={(id, v) => void act(id, v)}
+                  onDecide={(id, d, link) => void decide(id, d, link)}
+                  onAssignProject={(id, projectId) => void assignToProject(id, projectId)}
+                />
               ))}
             </section>
           ))}
@@ -260,11 +282,13 @@ function SeedGroupCard({
   busy,
   onAct,
   onDecide,
+  onAssignProject,
 }: {
   group: SeedGroup;
   busy: string | null;
   onAct: (id: string, v: "approve" | "reject" | "hold") => void;
   onDecide: (id: string, d: "link_existing" | "track_new", linkId?: string) => void;
+  onAssignProject: (id: string, projectId: string) => void;
 }): JSX.Element {
   const title = group.subject_name ?? seedTypeLabel(group.seeds[0]!.seed_type);
   const multi = group.count > 1;
@@ -279,10 +303,34 @@ function SeedGroupCard({
         </div>
       ) : null}
       {group.seeds.map((s) => (
-        <SeedCard key={s.seed_id} seed={s} busy={busy === s.seed_id} onAct={(v) => onAct(s.seed_id, v)} onDecide={(d, link) => onDecide(s.seed_id, d, link)} actionable={isPending(s)} />
+        <SeedCard
+          key={s.seed_id}
+          seed={s}
+          busy={busy === s.seed_id}
+          onAct={(v) => onAct(s.seed_id, v)}
+          onDecide={(d, link) => onDecide(s.seed_id, d, link)}
+          onAssignProject={(projectId) => onAssignProject(s.seed_id, projectId)}
+          actionable={isPending(s)}
+        />
       ))}
     </div>
   );
+}
+
+function approveLabel(seedType: string): string {
+  switch (seedType) {
+    case "add_project_membership":
+      return "Create assignment task";
+    case "grant_tool_access":
+    case "connector_setup":
+      return "Approve setup";
+    case "review_external_party":
+      return "Track external party";
+    case "confirm_or_activate_person":
+      return "Activate person";
+    default:
+      return "Approve next step";
+  }
 }
 
 function SeedCard({
@@ -290,16 +338,23 @@ function SeedCard({
   busy,
   onAct,
   onDecide,
+  onAssignProject,
   actionable,
 }: {
   seed: OrgSeed;
   busy: boolean;
   onAct: (v: "approve" | "reject" | "hold") => void;
   onDecide: (d: "link_existing" | "track_new", linkId?: string) => void;
+  onAssignProject: (projectId: string) => void;
   actionable: boolean;
 }): JSX.Element {
+  const isStructure =
+    seed.seed_type === "add_project_membership" &&
+    typeof seed.subject_entity_id === "string" &&
+    seed.subject_entity_id.length > 0;
+
   return (
-    <Card data-testid="org-seed-card" data-seed-status={seed.status}>
+    <Card data-testid="org-seed-card" data-seed-status={seed.status} data-seed-type={seed.seed_type}>
       <CardContent className="space-y-2 py-3 text-sm">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -369,10 +424,21 @@ function SeedCard({
             </Button>
           </div>
         ) : null}
-        {actionable ? (
+        {/* [A.3] Structure seed: pick project + assign (closes Dandelion loop). */}
+        {actionable && isStructure ? (
+          <StructureAssignPicker
+            personLabel={seed.subject_name ?? "this person"}
+            busy={busy}
+            onAssign={onAssignProject}
+            onHold={() => onAct("hold")}
+            onIgnore={() => onAct("reject")}
+            onTaskOnly={() => onAct("approve")}
+          />
+        ) : null}
+        {actionable && !isStructure ? (
           <div className="flex gap-2 pt-1">
             <Button type="button" size="sm" disabled={busy} onClick={() => onAct("approve")} data-testid="org-seed-approve">
-              Add to organization
+              {approveLabel(seed.seed_type)}
             </Button>
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => onAct("hold")} data-testid="org-seed-hold">
               Keep for later
@@ -384,6 +450,100 @@ function SeedCard({
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+function StructureAssignPicker({
+  personLabel,
+  busy,
+  onAssign,
+  onHold,
+  onIgnore,
+  onTaskOnly,
+}: {
+  personLabel: string;
+  busy: boolean;
+  onAssign: (projectId: string) => void;
+  onHold: () => void;
+  onIgnore: () => void;
+  onTaskOnly: () => void;
+}): JSX.Element {
+  const [projectId, setProjectId] = useState("");
+  const targets = useQuery({
+    queryKey: ["org", "assignment-targets"],
+    queryFn: () => api.org.assignmentTargets(),
+  });
+  const rows: AssignmentTarget[] =
+    targets.data?.ok === true && targets.data.data.ok
+      ? (targets.data.data.targets ?? [])
+      : [];
+  const projects = rows.filter((t) => t.kind === "project");
+
+  return (
+    <div
+      className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-2"
+      data-testid="org-seed-structure-assign"
+    >
+      <p className="text-[11px] font-medium text-foreground">
+        Assign {personLabel} to a project
+      </p>
+      <p className="text-[10px] text-muted-foreground">
+        You choose the project. Otzar will not auto-assign. This closes the
+        structure seed and updates their work context.
+      </p>
+      {targets.isLoading ? (
+        <p className="text-[11px] text-muted-foreground">Loading projects…</p>
+      ) : projects.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground" data-testid="org-seed-no-projects">
+          No active projects yet.{" "}
+          <Link to="/app/work-projects" className="font-medium underline-offset-2 hover:underline">
+            Create a project
+          </Link>{" "}
+          first, or create an assignment task for later.
+        </p>
+      ) : (
+        <select
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+          data-testid="org-seed-project-select"
+          value={projectId}
+          onChange={(e) => setProjectId(e.target.value)}
+        >
+          <option value="">Choose project…</option>
+          {projects.map((p) => (
+            <option key={p.target_id} value={p.target_id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      )}
+      <div className="flex flex-wrap gap-2 pt-0.5">
+        <Button
+          type="button"
+          size="sm"
+          disabled={busy || projectId.length === 0}
+          onClick={() => onAssign(projectId)}
+          data-testid="org-seed-assign-project"
+        >
+          {busy ? "Assigning…" : "Assign to project"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={onTaskOnly}
+          data-testid="org-seed-approve"
+        >
+          Create task instead
+        </Button>
+        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onHold} data-testid="org-seed-hold">
+          Keep for later
+        </Button>
+        <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onIgnore} data-testid="org-seed-reject">
+          Ignore
+        </Button>
+      </div>
+    </div>
   );
 }
 

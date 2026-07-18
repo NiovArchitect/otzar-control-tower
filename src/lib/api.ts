@@ -1565,9 +1565,12 @@ export class ApiClient {
         }),
       approve: (
         id: string,
-        // [T-3C] admin decision for external review seeds — absent = the
-        // safe default (evidence match or create).
-        body?: { decision?: "link_existing" | "track_new"; link_external_collaborator_id?: string },
+        // [T-3C] external review decision; [A.3] project_id for structure assign.
+        body?: {
+          decision?: "link_existing" | "track_new";
+          link_external_collaborator_id?: string;
+          project_id?: string;
+        },
       ): Promise<ApiResult<OrgSeedActionResponse>> =>
         this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/approve`, { method: "POST", body: body ?? {} }),
       reject: (id: string, reason?: string): Promise<ApiResult<OrgSeedActionResponse>> =>
