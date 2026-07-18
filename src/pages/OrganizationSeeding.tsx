@@ -303,10 +303,9 @@ function SeedCard({
   onDecide: (d: "link_existing" | "track_new", linkId?: string) => void;
   actionable: boolean;
 }): JSX.Element {
-  const isStructure =
-    seed.seed_type === "add_project_membership" &&
-    typeof seed.subject_entity_id === "string" &&
-    seed.subject_entity_id.length > 0;
+  // Structure placement is ambient — managers place people. Seed type alone
+  // is enough; subject_entity_id is optional display metadata.
+  const isStructure = seed.seed_type === "add_project_membership";
 
   return (
     <Card data-testid="org-seed-card" data-seed-status={seed.status} data-seed-type={seed.seed_type}>

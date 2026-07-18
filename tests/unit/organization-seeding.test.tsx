@@ -1,9 +1,9 @@
 // FILE: organization-seeding.test.tsx
-// PURPOSE: The Admin "Organization Seeding" queue renders governed Dandelion seeds
-//          (human-readable, no raw IDs), shows source evidence + approval state, and
-//          offers Add to organization / Keep for later / Ignore (Dandelion discovery language). Non-admins are told it's admin-only.
-//          "Approve setup" calls the endpoint (never auto-grants — that's enforced
-//          server-side).
+// PURPOSE: Admin Organization Seeding is oversight only (ambient DGI law:
+//          users do not live in Otzar). Renders governed seeds (human-readable,
+//          no raw IDs). Tool/identity seeds: Approve setup / Hold / Dismiss.
+//          Structure seeds: ambient copy + Hold/Dismiss only (managers place).
+//          Never auto-grants (server-enforced).
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -79,12 +79,32 @@ describe("Organization Seeding — admin seed queue", () => {
     expect(card.textContent).toMatch(/David/);
     expect(card.textContent).toMatch(/GitHub is needed/);
     expect(screen.getByTestId("org-seed-evidence").textContent).toMatch(/repo access work/);
-    // Approve/Hold/Reject controls render.
-    expect(screen.getByTestId("org-seed-approve")).toHaveTextContent(/Add to organization/i);
+    // Tool seeds: Approve setup / Hold / Dismiss (not admin placement theater).
+    expect(screen.getByTestId("org-seed-approve")).toHaveTextContent(/Approve setup/i);
     expect(screen.getByTestId("org-seed-hold")).toBeInTheDocument();
     expect(screen.getByTestId("org-seed-reject")).toBeInTheDocument();
     // No raw ledger id leaks as visible text.
     expect(card.textContent).not.toContain("led-seed-1");
+  });
+
+  it("structure seeds are ambient oversight — no admin project picker", async () => {
+    mockSeeds([
+      seed({
+        seed_id: "led-struct-1",
+        seed_type: "add_project_membership",
+        subject_name: "Alex",
+        recommended_action: "Place Alex on a first project",
+        source_evidence: "Alex has no active project membership",
+      }),
+    ]);
+    renderPage();
+    const ambient = await screen.findByTestId("org-seed-structure-ambient");
+    expect(ambient.textContent).toMatch(/manager or project lead/i);
+    expect(ambient.textContent).toMatch(/not admin homework/i);
+    expect(screen.queryByTestId("org-seed-structure-assign")).toBeNull();
+    expect(screen.queryByTestId("org-seed-project-select")).toBeNull();
+    expect(screen.getByTestId("org-seed-hold")).toHaveTextContent(/Hold oversight/i);
+    expect(screen.getByTestId("org-seed-reject")).toHaveTextContent(/Dismiss signal/i);
   });
 
   it("Approve setup calls the governed endpoint (server enforces no auto-grant)", async () => {
@@ -112,8 +132,19 @@ describe("Organization Seeding — admin seed queue", () => {
   it("shows a calm empty state when there are no suggestions", async () => {
     mockSeeds([]);
     renderPage();
-    expect(await screen.findByTestId("org-seeding-empty")).toHaveTextContent(
-      /No seeds yet/i,
+    const empty = await screen.findByTestId("org-seeding-empty");
+    expect(empty).toHaveTextContent(/Nothing needs oversight right now/i);
+    expect(empty).toHaveTextContent(/people do not live on this page/i);
+  });
+
+  it("oversight strip states ambient path — not a daily placement home", async () => {
+    mockSeeds([]);
+    renderPage();
+    const strip = await screen.findByTestId("dandelion-order-strip");
+    expect(strip.textContent).toMatch(/Ambient path/i);
+    expect(strip.textContent).toMatch(/manager or lead/i);
+    expect(screen.getByTestId("dandelion-sync-growth")).toHaveTextContent(
+      /Refresh structure signals/i,
     );
   });
 });
