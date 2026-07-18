@@ -1519,6 +1519,51 @@ export class ApiClient {
         body: input,
       }),
 
+    /** GET /otzar/comms/sources — automatic (primary) vs manual (fallback) rails. */
+    commsSources: (): Promise<
+      ApiResult<{
+        ok: true;
+        headline: string;
+        sources: Array<{
+          source_id: string;
+          label: string;
+          description: string;
+          status: string;
+          status_label: string;
+          automatic: boolean;
+          is_primary: boolean;
+          is_fallback: boolean;
+        }>;
+        primary_message: string;
+        fallback_message: string;
+      }>
+    > => this.request("/otzar/comms/sources"),
+
+    /** POST /otzar/comms/ambient-sync — PRIMARY: pull Meet (etc.) from connected tools. */
+    commsAmbientSync: (input?: {
+      max_records?: number;
+    }): Promise<
+      ApiResult<{
+        ok: true;
+        scanned: number;
+        ingested: number;
+        already_ingested: number;
+        no_transcript: number;
+        errors: number;
+        message: string;
+        records: Array<{
+          record_id: string;
+          outcome: string;
+          work_items_created?: number;
+          code?: string;
+        }>;
+      }>
+    > =>
+      this.request("/otzar/comms/ambient-sync", {
+        method: "POST",
+        body: input ?? {},
+      }),
+
     /** [CS-5] POST /otzar/context/seed-document — org corpus seeding
      *  (ADMIN-GATED server-side). One document → one company-owned,
      *  lineaged reference-context record; extraction OFF by contract. */
