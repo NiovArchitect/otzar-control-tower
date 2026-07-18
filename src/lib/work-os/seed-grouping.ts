@@ -12,8 +12,9 @@ import type { OrgSeed } from "../types/foundation";
 
 export type SeedQueueId =
   | "people_to_review"
-  | "tool_setup"
   | "role_project_team"
+  | "tool_setup"
+  | "external_review"
   | "ambiguous_identity"
   | "low_confidence"
   | "held"
@@ -25,15 +26,49 @@ export interface SeedQueueDef {
   description: string;
 }
 
-// Queue order = admin triage priority (most fundamental first).
+// Root-first Dandelion order (docs/otzar/DANDELION_OPERATIONAL_ORDER.md):
+// people → structure → tools → external → ambiguous → held → resolved.
 export const SEED_QUEUES: readonly SeedQueueDef[] = [
-  { id: "people_to_review", label: "People Otzar heard about", description: "Participants from your workstream who aren't in your organization yet — invite them as members, keep them as contacts, or ignore." },
-  { id: "tool_setup", label: "Tools Otzar noticed you need", description: "Connections discovered from real work — connect them in Tools & Connections so the blocked work can move." },
-  { id: "role_project_team", label: "Roles, projects & teams", description: "Suggested role / team / project structure from real work evidence." },
-  { id: "ambiguous_identity", label: "Ambiguous identities", description: "Low-confidence people — confirm who this is before acting." },
-  { id: "low_confidence", label: "Low-confidence suggestions", description: "Weaker signals held back from the main queues." },
+  {
+    id: "people_to_review",
+    label: "People Otzar heard about",
+    description:
+      "Participants from your workstream who need activation or confirmation before work can route to them.",
+  },
+  {
+    id: "role_project_team",
+    label: "Structure — projects & teams",
+    description:
+      "Org members who need a first project, team, or support role — from work evidence or structure scan. Nothing is assigned automatically.",
+  },
+  {
+    id: "tool_setup",
+    label: "Tools Otzar noticed you need",
+    description:
+      "Connections discovered from real work — connect them in Tools & Connections. Approve creates a setup step; access is never granted automatically.",
+  },
+  {
+    id: "external_review",
+    label: "External collaborators",
+    description:
+      "Outside parties Otzar noticed — review before tracking. Mentions never auto-promote.",
+  },
+  {
+    id: "ambiguous_identity",
+    label: "Ambiguous identities",
+    description: "Low-confidence people — confirm who this is before acting.",
+  },
+  {
+    id: "low_confidence",
+    label: "Low-confidence suggestions",
+    description: "Weaker signals held back from the main queues.",
+  },
   { id: "held", label: "Held", description: "You've paused these for later." },
-  { id: "resolved", label: "Reviewed & applied", description: "Approved, applied, or dismissed." },
+  {
+    id: "resolved",
+    label: "Reviewed",
+    description: "Approved, applied, or dismissed.",
+  },
 ] as const;
 
 export interface SeedGroup {
@@ -79,12 +114,17 @@ function queueForGroup(seeds: OrgSeed[]): SeedQueueId {
   if (pending.length === 0) return seeds.some(isHeld) ? "held" : "resolved";
   const has = (re: RegExp) => pending.some((s) => re.test(s.seed_type));
   const allLow = pending.every((s) => (s.confidence ?? "medium") === "low");
-  // Person activation is the most fundamental (can't route work/tools to a
-  // person who isn't in the org yet).
+  // Root-first: people → structure → tools → external.
   if (pending.some((s) => s.seed_type === "confirm_or_activate_person")) {
     return allLow ? "ambiguous_identity" : "people_to_review";
   }
-  if (has(/role|team|project|support/)) return "role_project_team";
+  if (pending.some((s) => s.seed_type === "resolve_identity")) {
+    return "ambiguous_identity";
+  }
+  if (pending.some((s) => s.seed_type === "review_external_party")) {
+    return "external_review";
+  }
+  if (has(/project|team|support|owner|membership/)) return "role_project_team";
   if (has(/tool|connector|grant/)) return "tool_setup";
   return allLow ? "low_confidence" : "people_to_review";
 }
