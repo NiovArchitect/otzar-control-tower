@@ -1581,6 +1581,89 @@ export class ApiClient {
         this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/hold`, { method: "POST", body: reason !== undefined ? { reason } : {} }),
     },
 
+    /**
+     * Phase E.1 — enterprise click-and-play tools (capability catalog +
+     * admin inventory). Human language; never auto-grants; MCP is advanced.
+     */
+    enterpriseTools: {
+      catalog: (): Promise<
+        ApiResult<{
+          ok: true;
+          catalog: {
+            headline: string;
+            capabilities: Array<{
+              capability_id: string;
+              label: string;
+              description: string;
+              category: string;
+              status: string;
+              status_label: string;
+              providers: Array<{
+                provider: string;
+                label: string;
+                oauth_slug: string | null;
+                employee_self_serve: boolean;
+                status: string;
+                status_label: string;
+                connect_action: string;
+              }>;
+            }>;
+            generated_at: string;
+          };
+        }>
+      > => this.request("/otzar/enterprise-tools/catalog"),
+      inventory: (): Promise<
+        ApiResult<{
+          ok: true;
+          inventory: {
+            headline: string;
+            kpis: {
+              capabilities_connected: number;
+              capabilities_ready: number;
+              capabilities_blocked: number;
+              oauth_verified: number;
+              oauth_ready_for_consent: number;
+              org_bindings_enabled: number;
+              pending_access_requests: number;
+            };
+            tools: Array<{
+              provider: string;
+              display_name: string;
+              category: string;
+              adapter_status: string;
+              oauth_status: string | null;
+              account_label: string | null;
+              last_verified_at: string | null;
+              can_write: boolean;
+              employee_self_serve: boolean;
+            }>;
+            pending_requests: Array<{
+              seed_id: string;
+              subject_name: string | null;
+              recommended_action: string;
+              created_at: string;
+            }>;
+            generated_at: string;
+          };
+        }>
+      > => this.request("/otzar/enterprise-tools/inventory"),
+      request: (body: {
+        capability_id: string;
+        provider?: string;
+      }): Promise<ApiResult<{ ok: true; seed_id: string }>> =>
+        this.request("/otzar/enterprise-tools/request", {
+          method: "POST",
+          body,
+        }),
+      oauthStart: (
+        slug: string,
+      ): Promise<ApiResult<{ ok: true; authorize_url: string }>> =>
+        this.request(
+          `/otzar/enterprise-tools/oauth/${encodeURIComponent(slug)}/start`,
+          { method: "POST", body: {} },
+        ),
+    },
+
     /** GET /api/v1/otzar/conversations -- the caller's OWN conversation
      *  session METADATA (read). No transcripts / message bodies. Optional
      *  status filter (ACTIVE|CLOSED) + skip/take pagination. */
