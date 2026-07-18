@@ -48,7 +48,7 @@ describe("[GAP-H OPS] toolReadinessLabel", () => {
         connected_tools_count: 0,
         required_tools_count: 2,
       }),
-    ).toBe("Needs 2 tools");
+    ).toBe("Needs Slack, GitHub");
   });
   it("older backends / unknown render honest 'Not set yet'", () => {
     expect(toolReadinessLabel(undefined)).toBe("Not set yet");

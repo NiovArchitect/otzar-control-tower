@@ -230,6 +230,54 @@ function mockPendingFollowUps(
   );
 }
 
+/** Primary path: connected-tool inventory + ambient pull (manual is fallback). */
+function mockAmbientComms(): void {
+  server.use(
+    http.get(`${API_BASE}/otzar/comms/sources`, () =>
+      HttpResponse.json({
+        ok: true,
+        headline: "Otzar is pulling communications from your connected tools.",
+        sources: [
+          {
+            source_id: "google_meet",
+            label: "Google Meet",
+            description: "Post-meeting transcripts pull automatically.",
+            status: "connected_auto",
+            status_label: "Auto-syncing",
+            automatic: true,
+            is_primary: true,
+            is_fallback: false,
+          },
+          {
+            source_id: "manual_paste",
+            label: "Paste or live capture",
+            description: "Fallback when a source is not connected.",
+            status: "connected_auto",
+            status_label: "Fallback available",
+            automatic: false,
+            is_primary: false,
+            is_fallback: true,
+          },
+        ],
+        primary_message: "Connected tools are the primary path.",
+        fallback_message: "Manual paste is a fallback only.",
+      }),
+    ),
+    http.post(`${API_BASE}/otzar/comms/ambient-sync`, () =>
+      HttpResponse.json({
+        ok: true,
+        scanned: 0,
+        ingested: 0,
+        already_ingested: 0,
+        no_transcript: 0,
+        errors: 0,
+        message: "No new Meet transcripts to pull.",
+        records: [],
+      }),
+    ),
+  );
+}
+
 // Capture PATCH /work-os/ledger/:id transitions (send -> EXECUTED, dismiss ->
 // CANCELLED). `fail` simulates a transition the server rejects.
 function mockPatchLedger(
@@ -258,21 +306,26 @@ beforeEach(() => {
   // empty so the cockpit renders its honest-empty state unless a test overrides.
   mockRecentArtifacts([]);
   mockPendingFollowUps([]);
+  // Ambient auto-sync is primary; mock so mount-time pull does not hang tests.
+  mockAmbientComms();
 });
 
 describe("Comms — HERO flow", () => {
-  it("renders the 'Otzar is ready to capture' hero on first visit", () => {
+  it("renders ambient primary hero; live capture is fallback only", async () => {
     mockExtract();
     renderPage();
-    expect(screen.getByTestId("comms-hero")).toHaveTextContent(
-      "Otzar is ready to capture",
+    expect(screen.getByTestId("comms-ambient-hero")).toBeInTheDocument();
+    expect(screen.getByTestId("comms-ambient-headline")).toHaveTextContent(
+      /connected tools|pulling communications/i,
     );
+    expect(screen.getByTestId("comms-ambient-sync")).toBeInTheDocument();
+    // Manual live capture + paste live in the FALLBACK card — not the primary CTA.
+    expect(screen.getByTestId("comms-fallback-hero")).toBeInTheDocument();
     expect(screen.getByTestId("comms-start")).toBeInTheDocument();
-    // Manual import is NOT the hero; it's a secondary button.
-    expect(screen.getByTestId("comms-import-toggle")).toBeInTheDocument();
-    expect(screen.getByTestId("comms-import-toggle")).toHaveTextContent(
-      "fallback",
-    );
+    expect(screen.getByTestId("comms-show-import")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("comms-sources-list")).toBeInTheDocument();
+    });
   });
 
   it("Start capture flips the page into the 'Otzar is listening' state", async () => {
@@ -283,7 +336,8 @@ describe("Comms — HERO flow", () => {
     expect(screen.getByTestId("comms-capturing")).toHaveTextContent(
       "Otzar is listening",
     );
-    expect(screen.queryByTestId("comms-hero")).toBeNull();
+    expect(screen.queryByTestId("comms-ambient-hero")).toBeNull();
+    expect(screen.queryByTestId("comms-fallback-hero")).toBeNull();
   });
 });
 
@@ -291,9 +345,9 @@ describe("Comms — default cockpit (Phase 1285-L2)", () => {
   it("shows the conversation-intelligence cockpit, not just two buttons", () => {
     mockExtract();
     renderPage();
-    // Capture controls present...
+    // Fallback capture controls present...
     expect(screen.getByTestId("comms-start")).toBeInTheDocument();
-    expect(screen.getByTestId("comms-import-toggle")).toBeInTheDocument();
+    expect(screen.getByTestId("comms-show-import")).toBeInTheDocument();
     // ...PLUS the cockpit: what Otzar turns conversations into + the flow.
     expect(screen.getByTestId("comms-cockpit")).toBeInTheDocument();
     expect(screen.getByTestId("comms-listens-for")).toBeInTheDocument();
