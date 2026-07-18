@@ -94,8 +94,10 @@ describe("seed-grouping — duplicate people collapse into one grouped queue", (
     expect(seedKey(stripKey(seed({ subject_entity_id: null, subject_name: null, seed_type: "connector_setup" })))).toBe("type:connector_setup");
   });
 
-  it("queue order is admin-triage priority", () => {
+  it("queue order is root-first Dandelion (people → structure → tools)", () => {
     expect(SEED_QUEUES[0]!.id).toBe("people_to_review");
+    expect(SEED_QUEUES[1]!.id).toBe("role_project_team");
+    expect(SEED_QUEUES[2]!.id).toBe("tool_setup");
     expect(SEED_QUEUES[SEED_QUEUES.length - 1]!.id).toBe("resolved");
   });
 });

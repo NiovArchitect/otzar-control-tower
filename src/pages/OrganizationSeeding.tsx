@@ -21,7 +21,7 @@ const SEED_TYPE_LABEL: Record<string, string> = {
   connector_setup: "Connector setup needed",
   confirm_or_activate_person: "Activate a person",
   resolve_identity: "Confirm who this is",
-  add_project_membership: "Project membership",
+  add_project_membership: "Needs a first project",
   add_team_membership: "Team membership",
   confirm_support_role: "Confirm support role",
   add_work_owner_edge: "Confirm work owner",
@@ -45,6 +45,12 @@ export function OrganizationSeedingPage(): JSX.Element {
   const [seeds, setSeeds] = useState<OrgSeed[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [growthHeadline, setGrowthHeadline] = useState<string | null>(null);
+  const [structureGapCount, setStructureGapCount] = useState<number | null>(
+    null,
+  );
+  const [lastSyncNote, setLastSyncNote] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     const r = await api.otzar.dandelionSeeds.list();
@@ -58,6 +64,31 @@ export function OrganizationSeedingPage(): JSX.Element {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Phase A — Discover → Seed bridge (structure scan lands in this queue).
+  async function syncFromGrowth(): Promise<void> {
+    setSyncBusy(true);
+    setLastSyncNote(null);
+    const r = await api.otzar.dandelionSeeds.syncFromGrowth();
+    setSyncBusy(false);
+    if (r.ok) {
+      setSeeds(r.data.seeds);
+      setGrowthHeadline(r.data.growth_headline);
+      setStructureGapCount(r.data.members_without_project_count);
+      setLastSyncNote(
+        r.data.created === 0
+          ? r.data.skipped_existing > 0
+            ? `Structure already reflected (${r.data.skipped_existing} open). Nothing new to seed.`
+            : "No structure gaps to seed right now."
+          : `Landed ${r.data.created} structure seed${r.data.created === 1 ? "" : "s"} for review.`,
+      );
+      setError(null);
+    } else {
+      setLastSyncNote(
+        "code" in r ? `Could not discover structure (${String(r.code)}).` : "Could not discover structure.",
+      );
+    }
+  }
 
   async function act(id: string, verb: "approve" | "reject" | "hold"): Promise<void> {
     setBusy(id);
@@ -88,19 +119,78 @@ export function OrganizationSeedingPage(): JSX.Element {
   }
 
   // Cluster duplicate suggestions for the same person/target into ONE card and
-  // organize into prioritized, comprehensible queues (scales past a flat wall).
+  // organize into root-first Dandelion queues (people → structure → tools).
   const grouped = groupSeeds(seeds ?? []);
 
   return (
     <div className="space-y-6" data-testid="org-seeding-page">
-      {/* PROD-MODEL-P3 §5 — Dandelion means DISCOVERY: Otzar listens to the
-          organization's workstream and surfaces the people, tools, and
-          structure it finds, like seeds landing from the air. Review before
-          anything joins the organization. */}
+      {/* Dandelion operational order: Listen → Discover → Seed → Govern → Grow */}
       <PageHeader
         title="Organization Seeding"
-        description="Otzar found people and context from your organization's workstream — meetings, conversations, and real work. Review each seed before it becomes part of your organization. Nothing is applied automatically."
+        description="Dandelion order: Otzar listens to work and structure, seeds land for your review, you choose, growth stays governed. Nothing is applied automatically."
       />
+
+      <Card data-testid="dandelion-order-strip">
+        <CardContent className="space-y-3 py-4 text-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            How Dandelion works here
+          </p>
+          <ol className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-5">
+            <li>
+              <span className="font-semibold text-foreground">1. Listen</span>
+              <br />
+              Workstream + org graph
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">2. Discover</span>
+              <br />
+              Calm structure signals
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">3. Seed</span>
+              <br />
+              Durable proposals below
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">4. Govern</span>
+              <br />
+              Approve · hold · reject
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">5. Grow</span>
+              <br />
+              Next step only — no auto-grant
+            </li>
+          </ol>
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              data-testid="dandelion-sync-growth"
+              disabled={syncBusy || error === "OPERATION_NOT_PERMITTED"}
+              onClick={() => void syncFromGrowth()}
+            >
+              {syncBusy ? "Discovering…" : "Discover from organization structure"}
+            </Button>
+            {structureGapCount !== null ? (
+              <span className="text-xs text-muted-foreground" data-testid="dandelion-structure-gap-count">
+                {structureGapCount} member{structureGapCount === 1 ? "" : "s"} without a first project
+              </span>
+            ) : null}
+          </div>
+          {growthHeadline !== null ? (
+            <p className="text-xs text-foreground" data-testid="dandelion-growth-headline">
+              {growthHeadline}
+            </p>
+          ) : null}
+          {lastSyncNote !== null ? (
+            <p className="text-xs text-muted-foreground" data-testid="dandelion-sync-note">
+              {lastSyncNote}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* CX-SLICE-3 — the meeting door into discovery: pick an approved
           recording and Otzar reviews it for participants, commitments, and
@@ -126,15 +216,21 @@ export function OrganizationSeedingPage(): JSX.Element {
       ) : seeds.length === 0 ? (
         <Card>
           <CardContent className="py-6 text-sm text-muted-foreground" data-testid="org-seeding-empty">
-            No suggestions yet. As Otzar processes conversations, setup and activation suggestions
-            will appear here for your review.
+            No seeds yet. Process a meeting above, or run{" "}
+            <span className="font-medium text-foreground">Discover from organization structure</span>{" "}
+            so structure gaps land here for review.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6" data-testid="org-seeding-queues">
           <p className="text-xs text-muted-foreground">
-            {grouped.pending_groups} {grouped.pending_groups === 1 ? "person/setup" : "people/setups"} to review
-            {grouped.total_seeds !== grouped.total_groups ? ` · ${grouped.total_seeds} suggestions grouped into ${grouped.total_groups}` : ""}
+            {grouped.pending_groups}{" "}
+            {grouped.pending_groups === 1 ? "person/setup" : "people/setups"} to
+            review
+            {grouped.total_seeds !== grouped.total_groups
+              ? ` · ${grouped.total_seeds} seeds in ${grouped.total_groups} groups`
+              : ""}{" "}
+            · root-first order (people → structure → tools)
           </p>
           {grouped.queues.map(({ def, groups }) => (
             <section key={def.id} className="space-y-2" data-testid={`org-seeding-queue-${def.id}`}>

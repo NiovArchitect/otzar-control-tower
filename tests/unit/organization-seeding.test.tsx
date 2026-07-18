@@ -112,7 +112,9 @@ describe("Organization Seeding — admin seed queue", () => {
   it("shows a calm empty state when there are no suggestions", async () => {
     mockSeeds([]);
     renderPage();
-    expect(await screen.findByTestId("org-seeding-empty")).toHaveTextContent(/No suggestions yet/i);
+    expect(await screen.findByTestId("org-seeding-empty")).toHaveTextContent(
+      /No seeds yet/i,
+    );
   });
 });
 
