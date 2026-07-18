@@ -1548,7 +1548,7 @@ export class ApiClient {
     dandelionSeeds: {
       list: (): Promise<ApiResult<OrgSeedListResponse>> =>
         this.request<OrgSeedListResponse>("/org/dandelion/seeds"),
-      /** Phase A — land org-growth structure discoveries into the seed queue. */
+      /** Phase A/B — land org-growth structure + hierarchy discoveries into the seed queue. */
       syncFromGrowth: (): Promise<
         ApiResult<{
           ok: true;
@@ -1556,6 +1556,7 @@ export class ApiClient {
           skipped_existing: number;
           growth_headline: string;
           members_without_project_count: number;
+          members_without_manager_count?: number;
           seeds: OrgSeedListResponse["seeds"];
         }>
       > =>
@@ -1565,11 +1566,12 @@ export class ApiClient {
         }),
       approve: (
         id: string,
-        // [T-3C] external review decision; [A.3] project_id for structure assign.
+        // [T-3C] external review; [A.3] project_id; [B.1] manager_entity_id.
         body?: {
           decision?: "link_existing" | "track_new";
           link_external_collaborator_id?: string;
           project_id?: string;
+          manager_entity_id?: string;
         },
       ): Promise<ApiResult<OrgSeedActionResponse>> =>
         this.request<OrgSeedActionResponse>(`/org/dandelion/seeds/${encodeURIComponent(id)}/approve`, { method: "POST", body: body ?? {} }),

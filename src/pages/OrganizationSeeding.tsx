@@ -26,6 +26,7 @@ const SEED_TYPE_LABEL: Record<string, string> = {
   confirm_or_activate_person: "Activate a person",
   resolve_identity: "Confirm who this is",
   add_project_membership: "Needs a first project",
+  set_manager: "Needs a manager",
   add_team_membership: "Team membership",
   confirm_support_role: "Confirm support role",
   add_work_owner_edge: "Confirm work owner",
@@ -54,6 +55,7 @@ export function OrganizationSeedingPage(): JSX.Element {
   const [structureGapCount, setStructureGapCount] = useState<number | null>(
     null,
   );
+  const [managerGapCount, setManagerGapCount] = useState<number | null>(null);
   const [lastSyncNote, setLastSyncNote] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
@@ -79,12 +81,17 @@ export function OrganizationSeedingPage(): JSX.Element {
       setSeeds(r.data.seeds);
       setGrowthHeadline(r.data.growth_headline);
       setStructureGapCount(r.data.members_without_project_count);
+      setManagerGapCount(
+        typeof r.data.members_without_manager_count === "number"
+          ? r.data.members_without_manager_count
+          : null,
+      );
       setLastSyncNote(
         r.data.created === 0
           ? r.data.skipped_existing > 0
-            ? `Signals already open (${r.data.skipped_existing}). Managers keep their ambient placement work.`
-            : "No structure gaps — Otzar has nothing quiet to route."
-          : `Routed ${r.data.created} structure signal${r.data.created === 1 ? "" : "s"} ambiently to managers. This page is oversight only.`,
+            ? `Signals already open (${r.data.skipped_existing}). Managers keep ambient placement; hierarchy waits for confirm.`
+            : "No structure or hierarchy gaps — Otzar has nothing quiet to route."
+          : `Landed ${r.data.created} signal${r.data.created === 1 ? "" : "s"} (project placement ambient · hierarchy needs your confirm).`,
       );
       setError(null);
     } else {
@@ -112,6 +119,16 @@ export function OrganizationSeedingPage(): JSX.Element {
     setBusy(id);
     const r = await api.otzar.dandelionSeeds.approve(id, {
       project_id: projectId,
+    });
+    setBusy(null);
+    if (r.ok) await load();
+  }
+
+  // Phase B — admin confirms hierarchy proposal (or chooses another manager).
+  async function confirmManager(id: string, managerEntityId: string): Promise<void> {
+    setBusy(id);
+    const r = await api.otzar.dandelionSeeds.approve(id, {
+      manager_entity_id: managerEntityId,
     });
     setBusy(null);
     if (r.ok) await load();
@@ -164,9 +181,15 @@ export function OrganizationSeedingPage(): JSX.Element {
             >
               {syncBusy ? "Scanning…" : "Refresh structure signals"}
             </Button>
-            {structureGapCount !== null ? (
+            {structureGapCount !== null || managerGapCount !== null ? (
               <span className="text-xs text-muted-foreground" data-testid="dandelion-structure-gap-count">
-                {structureGapCount} without a first project · managers notified ambiently
+                {structureGapCount !== null
+                  ? `${structureGapCount} without a first project · managers notified ambiently`
+                  : ""}
+                {structureGapCount !== null && managerGapCount !== null ? " · " : ""}
+                {managerGapCount !== null
+                  ? `${managerGapCount} without a manager · confirm below`
+                  : ""}
               </span>
             ) : null}
           </div>
@@ -241,6 +264,9 @@ export function OrganizationSeedingPage(): JSX.Element {
                   onAssignProject={(id, projectId) =>
                     void assignToProject(id, projectId)
                   }
+                  onConfirmManager={(id, managerId) =>
+                    void confirmManager(id, managerId)
+                  }
                 />
               ))}
             </section>
@@ -261,12 +287,14 @@ function SeedGroupCard({
   onAct,
   onDecide,
   onAssignProject,
+  onConfirmManager,
 }: {
   group: SeedGroup;
   busy: string | null;
   onAct: (id: string, v: "approve" | "reject" | "hold") => void;
   onDecide: (id: string, d: "link_existing" | "track_new", linkId?: string) => void;
   onAssignProject: (id: string, projectId: string) => void;
+  onConfirmManager: (id: string, managerEntityId: string) => void;
 }): JSX.Element {
   const title = group.subject_name ?? seedTypeLabel(group.seeds[0]!.seed_type);
   const multi = group.count > 1;
@@ -288,6 +316,7 @@ function SeedGroupCard({
           onAct={(v) => onAct(s.seed_id, v)}
           onDecide={(d, link) => onDecide(s.seed_id, d, link)}
           onAssignProject={(projectId) => onAssignProject(s.seed_id, projectId)}
+          onConfirmManager={(managerId) => onConfirmManager(s.seed_id, managerId)}
           actionable={isPending(s)}
         />
       ))}
@@ -317,6 +346,7 @@ function SeedCard({
   onAct,
   onDecide,
   onAssignProject,
+  onConfirmManager,
   actionable,
 }: {
   seed: OrgSeed;
@@ -324,10 +354,13 @@ function SeedCard({
   onAct: (v: "approve" | "reject" | "hold") => void;
   onDecide: (d: "link_existing" | "track_new", linkId?: string) => void;
   onAssignProject: (projectId: string) => void;
+  onConfirmManager: (managerEntityId: string) => void;
   actionable: boolean;
 }): JSX.Element {
   // Structure: ambient manager path by default; admin may assign when needed.
   const isStructure = seed.seed_type === "add_project_membership";
+  // Phase B — hierarchy propose + admin confirm.
+  const isHierarchy = seed.seed_type === "set_manager";
 
   return (
     <Card data-testid="org-seed-card" data-seed-status={seed.status} data-seed-type={seed.seed_type}>
@@ -410,7 +443,17 @@ function SeedCard({
             onDismiss={() => onAct("reject")}
           />
         ) : null}
-        {actionable && !isStructure ? (
+        {/* Phase B — hierarchy: Otzar proposes; admin confirms. */}
+        {actionable && isHierarchy ? (
+          <HierarchyConfirm
+            seed={seed}
+            busy={busy}
+            onConfirm={onConfirmManager}
+            onHold={() => onAct("hold")}
+            onDismiss={() => onAct("reject")}
+          />
+        ) : null}
+        {actionable && !isStructure && !isHierarchy ? (
           <div className="flex gap-2 pt-1">
             <Button type="button" size="sm" disabled={busy} onClick={() => onAct("approve")} data-testid="org-seed-approve">
               {approveLabel(seed.seed_type)}
@@ -425,6 +468,156 @@ function SeedCard({
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Phase B hierarchy seed: soft proposal + admin confirm.
+ * Never writes without an explicit confirm click.
+ */
+function HierarchyConfirm({
+  seed,
+  busy,
+  onConfirm,
+  onHold,
+  onDismiss,
+}: {
+  seed: OrgSeed;
+  busy: boolean;
+  onConfirm: (managerEntityId: string) => void;
+  onHold: () => void;
+  onDismiss: () => void;
+}): JSX.Element {
+  const proposedId = seed.proposed_manager_entity_id ?? "";
+  const proposedName = seed.proposed_manager_name ?? null;
+  const [managerId, setManagerId] = useState(proposedId);
+  const [people, setPeople] = useState<
+    Array<{ entity_id: string; display_name: string }> | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api.org.entities
+      .list({ type: "PERSON", take: 250 })
+      .then((r) => {
+        if (cancelled) return;
+        if (r.ok) {
+          const list = (r.data.items ?? []) as Array<{
+            entity_id: string;
+            display_name: string;
+          }>;
+          setPeople(
+            list
+              .map((p) => ({
+                entity_id: p.entity_id,
+                display_name: p.display_name,
+              }))
+              .sort((a, b) => a.display_name.localeCompare(b.display_name)),
+          );
+        } else if (proposedId.length > 0) {
+          setPeople([
+            {
+              entity_id: proposedId,
+              display_name: proposedName ?? "Proposed manager",
+            },
+          ]);
+        } else {
+          setPeople([]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPeople(
+            proposedId.length > 0
+              ? [
+                  {
+                    entity_id: proposedId,
+                    display_name: proposedName ?? "Proposed manager",
+                  },
+                ]
+              : [],
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [proposedId, proposedName]);
+
+  const subject = seed.subject_name ?? "this person";
+  const subjectId = seed.subject_entity_id ?? "";
+
+  return (
+    <div
+      className="space-y-2 rounded-md border border-border/50 bg-muted/15 p-2"
+      data-testid="org-seed-hierarchy-confirm"
+    >
+      <p className="text-[11px] text-muted-foreground">
+        Otzar proposes a reporting home for{" "}
+        <span className="font-medium text-foreground">{subject}</span>
+        {proposedName !== null ? (
+          <>
+            {" "}
+            — suggested manager:{" "}
+            <span className="font-medium text-foreground">{proposedName}</span>
+          </>
+        ) : (
+          <> — pick a manager to confirm</>
+        )}
+        . Nothing is written until you confirm.
+      </p>
+      {people === null ? (
+        <p className="text-[11px] text-muted-foreground">Loading people…</p>
+      ) : (
+        <select
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+          data-testid="org-seed-manager-select"
+          value={managerId}
+          onChange={(e) => setManagerId(e.target.value)}
+        >
+          <option value="">Choose manager…</option>
+          {people
+            .filter((p) => p.entity_id !== subjectId)
+            .map((p) => (
+              <option key={p.entity_id} value={p.entity_id}>
+                {p.display_name}
+                {p.entity_id === proposedId ? " (suggested)" : ""}
+              </option>
+            ))}
+        </select>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={busy || managerId.length === 0}
+          onClick={() => onConfirm(managerId)}
+          data-testid="org-seed-confirm-manager"
+        >
+          {busy ? "Saving…" : "Confirm manager"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={onHold}
+          data-testid="org-seed-hold"
+        >
+          Hold oversight
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={onDismiss}
+          data-testid="org-seed-reject"
+        >
+          Dismiss signal
+        </Button>
+      </div>
+    </div>
   );
 }
 
