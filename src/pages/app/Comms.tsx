@@ -161,6 +161,20 @@ export function Comms(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
+  // Ambient-first: connected tools pull automatically; paste is fallback.
+  const [sourcesHeadline, setSourcesHeadline] = useState<string | null>(null);
+  const [sources, setSources] = useState<
+    Array<{
+      source_id: string;
+      label: string;
+      description: string;
+      status_label: string;
+      automatic: boolean;
+      is_fallback: boolean;
+    }>
+  >([]);
+  const [ambientBusy, setAmbientBusy] = useState(false);
+  const [ambientMessage, setAmbientMessage] = useState<string | null>(null);
   // [PROD-UX-BUGB] Durable pending follow-ups projected from FOLLOW_UP ledger
   // rows. This is the SINGLE source for the resumable send-cards — it survives
   // navigation/refresh, unlike the volatile ingest response.
@@ -173,6 +187,31 @@ export function Comms(): JSX.Element {
     if (res.ok && res.data.ok) setPendingFollowUps(res.data.follow_ups ?? []);
   }, []);
 
+  const loadSources = useCallback(async (): Promise<void> => {
+    const res = await api.otzar.commsSources();
+    if (res.ok && res.data.ok) {
+      setSourcesHeadline(res.data.headline);
+      setSources(res.data.sources ?? []);
+    }
+  }, []);
+
+  const runAmbientSync = useCallback(async (): Promise<void> => {
+    setAmbientBusy(true);
+    setAmbientMessage(null);
+    const res = await api.otzar.commsAmbientSync({ max_records: 8 });
+    setAmbientBusy(false);
+    if (res.ok && res.data.ok) {
+      setAmbientMessage(res.data.message);
+      void loadPendingFollowUps();
+    } else {
+      const msg =
+        res.ok === false
+          ? res.message ?? res.code ?? "Could not sync connected sources"
+          : "Could not sync connected sources";
+      setAmbientMessage(msg);
+    }
+  }, [loadPendingFollowUps]);
+
   // Drop a card locally once its backing row has been dismissed (CANCELLED).
   // Sent (EXECUTED) cards are left in place so ProposedActionCard can show its
   // post-send audit confirmation; they disappear on the next load (excluded).
@@ -184,7 +223,10 @@ export function Comms(): JSX.Element {
   // when I leave Comms and come back".
   useEffect(() => {
     void loadPendingFollowUps();
-  }, [loadPendingFollowUps]);
+    void loadSources();
+    // Ambient primary path: try a quiet pull when Comms opens (connected tools).
+    void runAmbientSync();
+  }, [loadPendingFollowUps, loadSources, runAmbientSync]);
 
   useEffect(() => {
     return () => {
@@ -279,7 +321,7 @@ export function Comms(): JSX.Element {
     <div className="space-y-6" data-testid="comms-page">
       <PageHeader
         title="Comms"
-        description="Otzar captures meetings and conversations, then turns them into follow-ups you can approve."
+        description="Otzar pulls meetings and messages from your connected tools, then turns them into owned work. Manual paste is a fallback."
       />
 
       {/* [PROD-UX-BUGB] Durable pending follow-ups — shown in every phase so a
@@ -292,28 +334,97 @@ export function Comms(): JSX.Element {
         onReviewResolved={() => void loadPendingFollowUps()}
       />
 
-      {/* HERO state: ready to capture */}
+      {/* PRIMARY: ambient auto-ingest from connected tools */}
       {phase === "READY" ? (
         <Card
           className="border-primary/30 bg-primary/5"
-          data-testid="comms-hero"
+          data-testid="comms-ambient-hero"
         >
-          <CardContent className="flex flex-col items-start gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <CardContent className="space-y-4 py-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-medium" data-testid="comms-ambient-headline">
+                  {sourcesHeadline ??
+                    "Otzar pulls communications from your connected tools."}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Primary path: Google Meet and other connected sources. Work
+                  fans out to the right people automatically. Paste is only for
+                  offline moments.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={() => void runAmbientSync()}
+                disabled={ambientBusy}
+                data-testid="comms-ambient-sync"
+              >
+                {ambientBusy ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="mr-1 h-4 w-4" aria-hidden />
+                )}
+                {ambientBusy ? "Syncing…" : "Sync connected sources"}
+              </Button>
+            </div>
+            {sources.length > 0 ? (
+              <ul className="grid gap-2 sm:grid-cols-2" data-testid="comms-sources-list">
+                {sources.map((s) => (
+                  <li
+                    key={s.source_id}
+                    className="rounded-md border border-border bg-background/60 px-3 py-2 text-xs"
+                  >
+                    <span className="font-medium">{s.label}</span>
+                    <span className="ml-2 text-muted-foreground">
+                      {s.status_label}
+                    </span>
+                    <p className="mt-0.5 text-muted-foreground">{s.description}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {ambientMessage !== null ? (
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="comms-ambient-message"
+              >
+                {ambientMessage}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* FALLBACK: demo live-capture / paste — secondary only */}
+      {phase === "READY" ? (
+        <Card data-testid="comms-fallback-hero">
+          <CardContent className="flex flex-col items-start gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium">Otzar is ready to capture.</p>
+              <p className="text-sm font-medium">Fallback capture</p>
               <p className="text-xs text-muted-foreground">
-                Click Start capture and Otzar will listen, organize the
-                conversation, and draft follow-ups you can approve. Nothing
-                leaves your org without your approval.
+                Use only when a source is offline or the conversation happened
+                outside connected tools.
               </p>
             </div>
-            <Button
-              type="button"
-              onClick={startCapture}
-              data-testid="comms-start"
-            >
-              <Mic className="mr-1 h-4 w-4" aria-hidden /> Start capture
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={startCapture}
+                data-testid="comms-start"
+              >
+                <Mic className="mr-1 h-4 w-4" aria-hidden /> Live capture
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowImport(true)}
+                data-testid="comms-show-import"
+              >
+                Paste transcript
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -407,9 +518,9 @@ export function Comms(): JSX.Element {
           {showImport ? (
             <div className="space-y-2">
               <p className="text-muted-foreground">
-                Use this only when Otzar was not present for the meeting.
-                Otzar will organize what you paste, but the AI Work OS
-                experience is "Start capture".
+                Fallback only — when connected tools did not capture the
+                conversation. Prefer Sync connected sources (Google Meet)
+                above.
               </p>
               <textarea
                 className="h-32 w-full rounded border bg-background p-2 text-xs"
