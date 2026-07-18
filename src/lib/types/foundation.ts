@@ -1536,6 +1536,9 @@ export interface OrgSeed {
   hold_reason: string | null;
   reviewed: boolean;
   created_at: string;
+  /** Phase B — soft proposed manager on set_manager seeds (admin confirms). */
+  proposed_manager_entity_id?: string | null;
+  proposed_manager_name?: string | null;
 }
 export interface OrgSeedListResponse {
   ok: true;

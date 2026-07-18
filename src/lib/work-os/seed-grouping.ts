@@ -37,9 +37,9 @@ export const SEED_QUEUES: readonly SeedQueueDef[] = [
   },
   {
     id: "role_project_team",
-    label: "Structure — projects & teams",
+    label: "Structure — hierarchy, projects & teams",
     description:
-      "Org members who need a first project, team, or support role — from work evidence or structure scan. Nothing is assigned automatically.",
+      "Org members who need a manager, first project, or team — from structure scan. Hierarchy needs your confirm; project placement is ambient to managers.",
   },
   {
     id: "tool_setup",
@@ -124,7 +124,8 @@ function queueForGroup(seeds: OrgSeed[]): SeedQueueId {
   if (pending.some((s) => s.seed_type === "review_external_party")) {
     return "external_review";
   }
-  if (has(/project|team|support|owner|membership/)) return "role_project_team";
+  if (has(/project|team|support|owner|membership|manager|set_manager/))
+    return "role_project_team";
   if (has(/tool|connector|grant/)) return "tool_setup";
   return allLow ? "low_confidence" : "people_to_review";
 }
