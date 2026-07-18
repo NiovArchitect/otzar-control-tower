@@ -1,15 +1,11 @@
 // FILE: WorkProjects.tsx
-// PURPOSE: Phase 4E — minimal employee-facing WorkProject page
-//          consuming the Phase 1 routes (Foundation #281). Create a
-//          project (caller becomes OWNER), list owned/joined
-//          projects, archive a project, manage members.
-//          Deliberately minimal — not a full project-management
-//          suite. The directive said "do not build a huge project
-//          management suite" and "do not fake identities or
-//          membership".
-// CONNECTS TO: api.otzar.workProjects.*
+// PURPOSE: Employee Work OS project surface — see which projects you are on,
+//          create one, manage members with human names (not entity UUIDs).
+//          Projects are the coherence anchor for Twin / Dandelion structure.
+// CONNECTS TO: api.otzar.workProjects.*, AmbientWorkSurface "Your projects".
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -57,24 +53,39 @@ export function WorkProjects() {
     });
   }
 
+  const projects =
+    list.data?.ok === true ? list.data.data.projects : ([] as WorkProjectSafeView[]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="work-projects-page">
       <PageHeader
-        title="Work projects"
-        description="Create projects so your AI Teammate understands which work belongs together. Same-project collaboration usually flows automatically; cross-project work asks for approval."
+        title="Projects"
+        description="Projects group people and work so your AI Teammate knows what belongs together. You only see projects you own or joined — create one or ask an admin to add you."
       />
 
       <CreateProjectForm onCreated={invalidate} />
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Your active projects</CardTitle>
+          <CardTitle className="text-lg">Projects you are on</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {list.isLoading
+              ? "Loading…"
+              : projects.length === 0
+                ? "None yet"
+                : `${projects.length} active project${projects.length === 1 ? "" : "s"}`}
+          </p>
         </CardHeader>
         <CardContent>
           {list.isLoading && <Skeleton className="h-24 w-full" />}
+          {list.data && list.data.ok === false && (
+            <p className="text-sm text-destructive" data-testid="projects-load-error">
+              Couldn&apos;t load projects right now.
+            </p>
+          )}
           {list.data && list.data.ok && (
             <ProjectList
-              projects={list.data.data.projects}
+              projects={projects}
               selectedId={selectedId}
               onSelect={(id) =>
                 setSelectedId((curr) => (curr === id ? null : id))
@@ -88,6 +99,9 @@ export function WorkProjects() {
       {selectedId && (
         <ProjectMembersPanel
           projectId={selectedId}
+          projectName={
+            projects.find((p) => p.project_id === selectedId)?.name ?? "Project"
+          }
           onClose={() => setSelectedId(null)}
         />
       )}
@@ -122,7 +136,10 @@ function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
   return (
     <Card data-testid="create-project-form">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">New project</CardTitle>
+        <CardTitle className="text-lg">Start a project</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          You become the owner. Add teammates next so Otzar can route shared work.
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-3">
@@ -133,7 +150,7 @@ function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
             onChange={(e) => setName(e.target.value)}
             maxLength={200}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            placeholder="Phoenix launch"
+            placeholder="e.g. Enterprise pilot, Clinic intake redesign"
           />
           {error && (
             <p className="text-sm text-destructive" data-testid="project-error">
@@ -166,9 +183,16 @@ function ProjectList({
 }) {
   if (projects.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground" data-testid="projects-empty">
-        No projects yet. Create your first one above.
-      </p>
+      <div className="space-y-2 text-sm text-muted-foreground" data-testid="projects-empty">
+        <p>
+          You are not on any project yet. Create one above, or ask an org admin
+          to assign you from Organization Seeding when Otzar finds a structure gap.
+        </p>
+        <p className="text-xs">
+          Without a project, Otzar cannot group your work, tools, and Twin
+          context accurately — that is why structure seeds appear for admins.
+        </p>
+      </div>
     );
   }
   return (
@@ -205,14 +229,23 @@ function ProjectRow({
     <li
       className="rounded-md border border-border bg-card px-4 py-3"
       data-testid={`project-row-${project.project_id}`}
+      data-project-id={project.project_id}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Badge>{project.state}</Badge>
-        <span className="text-sm font-medium text-foreground">
-          {project.name}
-        </span>
+        <Badge variant="outline">{project.state === "ACTIVE" ? "Active" : project.state}</Badge>
+        {project.my_role ? (
+          <Badge variant="secondary" data-testid="project-my-role">
+            {labelRole(project.my_role)}
+          </Badge>
+        ) : null}
+        <span className="text-sm font-medium text-foreground">{project.name}</span>
+        {typeof project.member_count === "number" ? (
+          <span className="text-xs text-muted-foreground" data-testid="project-member-count">
+            · {project.member_count} member{project.member_count === 1 ? "" : "s"}
+          </span>
+        ) : null}
         <span className="text-xs text-muted-foreground">
-          {formatRelativeTime(project.created_at)}
+          · {formatRelativeTime(project.created_at)}
         </span>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -222,9 +255,9 @@ function ProjectRow({
           onClick={onSelect}
           data-testid={`project-toggle-${project.project_id}`}
         >
-          {selected ? "Hide members" : "Members"}
+          {selected ? "Hide people" : "People on this project"}
         </Button>
-        {project.archivable && (
+        {project.archivable && project.my_role === "OWNER" && (
           <Button
             variant="outline"
             size="sm"
@@ -242,15 +275,21 @@ function ProjectRow({
 
 function ProjectMembersPanel({
   projectId,
+  projectName,
   onClose,
 }: {
   projectId: string;
+  projectName: string;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
   const members = useQuery({
     queryKey: ["otzar", "work-projects", projectId, "members"],
     queryFn: () => api.otzar.workProjects.members(projectId),
+  });
+  const colleagues = useQuery({
+    queryKey: ["otzar", "work-projects", "colleagues"],
+    queryFn: () => api.otzar.workProjects.colleagues(),
   });
   const [entityId, setEntityId] = useState("");
   const [role, setRole] = useState<WorkProjectMemberRole>("MEMBER");
@@ -269,6 +308,9 @@ function ProjectMembersPanel({
         void queryClient.invalidateQueries({
           queryKey: ["otzar", "work-projects", projectId, "members"],
         });
+        void queryClient.invalidateQueries({
+          queryKey: ["otzar", "work-projects"],
+        });
       } else {
         setError(result.message);
       }
@@ -278,29 +320,43 @@ function ProjectMembersPanel({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (entityId.trim().length === 0) {
-      setError("Entity id is required.");
+      setError("Choose a teammate.");
       return;
     }
     add.mutate();
   }
 
+  const colleagueOptions =
+    colleagues.data?.ok === true ? colleagues.data.data.colleagues : [];
+
   return (
     <Card data-testid="project-members-panel">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Members</CardTitle>
+        <div>
+          <CardTitle className="text-lg">People · {projectName}</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Add teammates by name. Access is not granted outside this project.
+          </p>
+        </div>
         <Button variant="outline" size="sm" onClick={onClose}>
           Close
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={submit} className="space-y-3">
-          <input
+          <select
             data-testid="add-member-id"
             value={entityId}
             onChange={(e) => setEntityId(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            placeholder="Coworker entity id"
-          />
+          >
+            <option value="">Select a teammate…</option>
+            {colleagueOptions.map((c) => (
+              <option key={c.entity_id} value={c.entity_id}>
+                {c.display_name}
+              </option>
+            ))}
+          </select>
           <select
             data-testid="add-member-role"
             value={role}
@@ -323,7 +379,7 @@ function ProjectMembersPanel({
             disabled={add.isPending}
             data-testid="add-member-submit"
           >
-            {add.isPending ? "Adding…" : "Add member"}
+            {add.isPending ? "Adding…" : "Add to project"}
           </Button>
         </form>
         {members.isLoading && <Skeleton className="h-16 w-full" />}
@@ -353,9 +409,22 @@ function MembersList({ members }: { members: WorkProjectMemberSafeView[] }) {
           data-testid={`member-row-${m.project_member_id}`}
         >
           <Badge variant="outline">{labelRole(m.role)}</Badge>
-          <span className="font-mono text-xs">{m.entity_id}</span>
+          <span className="font-medium">
+            {m.display_name && m.display_name.length > 0
+              ? m.display_name
+              : "Teammate"}
+          </span>
         </li>
       ))}
     </ul>
+  );
+}
+
+// re-export path for ambient links
+export function ProjectsNavHint(): JSX.Element {
+  return (
+    <Link to="/app/work-projects" className="text-xs font-medium underline-offset-2 hover:underline">
+      Open projects
+    </Link>
   );
 }

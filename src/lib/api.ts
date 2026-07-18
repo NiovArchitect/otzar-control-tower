@@ -164,6 +164,7 @@ import type {
   WorkProjectMembersResponse,
   WorkProjectMemberSafeView,
   WorkProjectMemberRole,
+  ProjectColleagueView,
   // Phase 2 OrgCollaborationPolicy types
   OrgCollaborationPolicyListResponse,
   OrgCollaborationPolicyUpsertResponse,
@@ -1759,6 +1760,10 @@ export class ApiClient {
         this.request<WorkProjectMembersResponse>(
           `/otzar/work-projects/${encodeURIComponent(projectId)}/members`,
         ),
+      /** Org people for invite picker — display names, no email dump. */
+      colleagues: (): Promise<
+        ApiResult<{ ok: true; colleagues: ProjectColleagueView[] }>
+      > => this.request("/otzar/work-projects/colleagues"),
     },
 
     // ────────────────────────────────────────────────────────────

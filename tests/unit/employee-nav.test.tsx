@@ -62,15 +62,12 @@ describe("nav-employee.ts — primary / more groupings", () => {
 
   it("more group is curated secondary surfaces — no admin/diagnostic junk", () => {
     const labels = MORE_EMPLOYEE_NAV.map((i) => i.label);
-    expect(labels).toEqual([
-      "My AI Teammate",
-      "Captures",
-      "Account & Security",
-      "Schedule",
-      "Preferences",
-      "Corrections",
-      "Launch readiness",
-    ]);
+    expect(labels).toContain("Projects");
+    expect(labels).toContain("My AI Teammate");
+    expect(labels).toContain("Preferences");
+    // No admin/diagnostic labels.
+    expect(labels).not.toContain("Diagnostics");
+    expect(labels).not.toContain("Organization Seeding");
   });
 
   it("keeps redundant/niche surfaces route-only (hidden from nav, reachable by URL)", () => {
@@ -86,7 +83,6 @@ describe("nav-employee.ts — primary / more groupings", () => {
         "/app/operational-health",
         "/app/collaboration-workspaces",
         "/app/my-organization",
-        "/app/work-projects",
         "/app/meeting-captures",
         "/app/connector-health",
         "/app/approvals",

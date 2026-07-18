@@ -1,11 +1,12 @@
 // FILE: tests/unit/work-projects.test.tsx
-// PURPOSE: Phase 4E — page tests for the WorkProjects employee surface.
+// PURPOSE: Phase 4E + A.2 — page tests for the WorkProjects employee surface.
 // CONNECTS TO: src/pages/app/WorkProjects.tsx.
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { WorkProjects } from "@/pages/app/WorkProjects";
@@ -32,7 +33,9 @@ function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <WorkProjects />
+      <MemoryRouter>
+        <WorkProjects />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -43,6 +46,8 @@ const PROJECT_FIXTURE = {
   state: "ACTIVE" as const,
   created_at: new Date().toISOString(),
   archivable: true,
+  my_role: "OWNER" as const,
+  member_count: 1,
 };
 
 beforeEach(() => {
@@ -57,12 +62,13 @@ describe("WorkProjects page", () => {
       ),
     );
     renderPage();
-    expect(await screen.findByText("Work projects")).toBeInTheDocument();
+    expect(await screen.findByText("Projects")).toBeInTheDocument();
     expect(screen.getByTestId("create-project-form")).toBeInTheDocument();
     expect(await screen.findByText("Phoenix launch")).toBeInTheDocument();
+    expect(screen.getByTestId("project-my-role")).toHaveTextContent(/Owner/i);
   });
 
-  it("archive button only renders when project.archivable=true", async () => {
+  it("archive button only for owner when archivable", async () => {
     server.use(
       http.get(`${API_BASE}/otzar/work-projects`, () =>
         HttpResponse.json({
@@ -72,9 +78,8 @@ describe("WorkProjects page", () => {
             {
               ...PROJECT_FIXTURE,
               project_id: "66666666-7777-8888-9999-aaaaaaaaaaaa",
-              state: "ARCHIVED" as const,
-              archivable: false,
-              name: "Archived project",
+              my_role: "MEMBER" as const,
+              name: "Joined project",
             },
           ],
         }),
@@ -92,7 +97,7 @@ describe("WorkProjects page", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("clicking Members toggles the members panel", async () => {
+  it("people panel shows display names and teammate picker", async () => {
     server.use(
       http.get(`${API_BASE}/otzar/work-projects`, () =>
         HttpResponse.json({ ok: true, projects: [PROJECT_FIXTURE] }),
@@ -106,12 +111,19 @@ describe("WorkProjects page", () => {
               {
                 project_member_id: "mem-1",
                 project_id: PROJECT_FIXTURE.project_id,
-                entity_id: PROJECT_FIXTURE.project_id,
+                entity_id: "person-1",
                 role: "OWNER" as const,
                 created_at: new Date().toISOString(),
+                display_name: "Sadeil Lewis",
               },
             ],
           }),
+      ),
+      http.get(`${API_BASE}/otzar/work-projects/colleagues`, () =>
+        HttpResponse.json({
+          ok: true,
+          colleagues: [{ entity_id: "person-2", display_name: "David Odie" }],
+        }),
       ),
     );
     renderPage();
@@ -123,7 +135,9 @@ describe("WorkProjects page", () => {
     expect(
       await screen.findByTestId("project-members-panel"),
     ).toBeInTheDocument();
-    expect(await screen.findByTestId("members-list")).toBeInTheDocument();
+    expect(await screen.findByText("Sadeil Lewis")).toBeInTheDocument();
+    const picker = await screen.findByTestId("add-member-id");
+    expect(within(picker).getByText("David Odie")).toBeInTheDocument();
   });
 
   it("members form exposes all 3 roles", async () => {
@@ -135,6 +149,9 @@ describe("WorkProjects page", () => {
         `${API_BASE}/otzar/work-projects/${PROJECT_FIXTURE.project_id}/members`,
         () => HttpResponse.json({ ok: true, members: [] }),
       ),
+      http.get(`${API_BASE}/otzar/work-projects/colleagues`, () =>
+        HttpResponse.json({ ok: true, colleagues: [] }),
+      ),
     );
     renderPage();
     const user = userEvent.setup();
@@ -144,5 +161,17 @@ describe("WorkProjects page", () => {
     );
     const roleSel = await screen.findByTestId("add-member-role");
     expect(within(roleSel).getAllByRole("option")).toHaveLength(3);
+  });
+
+  it("empty state explains structure gap honestly", async () => {
+    server.use(
+      http.get(`${API_BASE}/otzar/work-projects`, () =>
+        HttpResponse.json({ ok: true, projects: [] }),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByTestId("projects-empty")).toHaveTextContent(
+      /not on any project yet/i,
+    );
   });
 });

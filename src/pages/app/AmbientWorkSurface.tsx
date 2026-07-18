@@ -22,6 +22,7 @@ import {
   Handshake,
   FileText,
   Bot,
+  FolderKanban,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -40,6 +41,7 @@ import type {
   MyDaySuggestion,
   SafeHandoffView,
   WorkLedgerEntryView,
+  WorkProjectSafeView,
 } from "@/lib/types/foundation";
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
 import {
@@ -148,6 +150,8 @@ export function AmbientWorkSurface(): JSX.Element {
   const [twinWorking, setTwinWorking] = useState<WorkLedgerEntryView[]>([]);
   const [verifyBusyId, setVerifyBusyId] = useState<string | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  // A.2 — projects you are on (Work OS coherence anchor).
+  const [myProjects, setMyProjects] = useState<WorkProjectSafeView[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +161,20 @@ export function AmbientWorkSurface(): JSX.Element {
         if (cancelled || !r.ok) return;
         const items = r.data.items ?? r.data.entries ?? [];
         setUrgentBlindSpots(items.filter((e) => triagePriority(e) <= 2).length);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.otzar.workProjects
+      .list({ state: "ACTIVE", take: 8 })
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        setMyProjects(r.data.projects ?? []);
       })
       .catch(() => undefined);
     return () => {
@@ -779,6 +797,79 @@ export function AmbientWorkSurface(): JSX.Element {
           </div>
         </GlassPanel>
       ) : null}
+
+      {/* YOUR PROJECTS — Work OS coherence; fills Dandelion structure gap. */}
+      <GlassPanel
+        intensity={myProjects.length > 0 ? "working" : "ambient"}
+        label="Your projects"
+        testId="my-projects-panel"
+      >
+        <div className="space-y-2 text-sm text-slate-700">
+          {myProjects.length === 0 ? (
+            <>
+              <p className="text-xs leading-relaxed text-slate-500">
+                You are not on a project yet. Projects group people and work so
+                Otzar and your AI Teammate know what belongs together.
+              </p>
+              <Link
+                to="/app/work-projects"
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-white/50 px-3 py-2.5 transition-colors hover:bg-white/80"
+                data-testid="my-projects-empty-cta"
+              >
+                <span className="flex items-center gap-2 font-medium text-slate-900">
+                  <FolderKanban className="h-3.5 w-3.5 text-slate-600" aria-hidden />
+                  Create or join a project
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+              </Link>
+            </>
+          ) : (
+            <>
+              <ul className="space-y-1.5" data-testid="my-projects-list">
+                {myProjects.slice(0, 5).map((p) => (
+                  <li key={p.project_id}>
+                    <Link
+                      to="/app/work-projects"
+                      className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
+                      data-testid="my-projects-row"
+                      data-project-id={p.project_id}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-slate-900">
+                          {p.name}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {p.my_role
+                            ? p.my_role === "OWNER"
+                              ? "Owner"
+                              : p.my_role === "REVIEWER"
+                                ? "Reviewer"
+                                : "Member"
+                            : "Member"}
+                          {typeof p.member_count === "number"
+                            ? ` · ${p.member_count} people`
+                            : ""}
+                        </span>
+                      </span>
+                      <ArrowRight
+                        className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                        aria-hidden
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/app/work-projects"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 underline-offset-2 hover:underline"
+                data-testid="my-projects-open-all"
+              >
+                All projects <ArrowRight className="h-3 w-3" aria-hidden />
+              </Link>
+            </>
+          )}
+        </div>
+      </GlassPanel>
 
       {/* TWIN WORKING — AI Teammate claimed work so you don't duplicate it. */}
       {twinWorking.length > 0 ? (
