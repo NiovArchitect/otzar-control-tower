@@ -32,7 +32,7 @@
 //     translated to friendly labels.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert, Scale, ArrowRightLeft } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert, Scale, ArrowRightLeft, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DecisionEvidenceDrawer } from "@/components/otzar/DecisionEvidenceDrawer";
 import { OrgTruthReviewDrawer } from "@/components/otzar/OrgTruthReviewDrawer";
@@ -53,6 +53,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AIBreakdownButton } from "@/components/otzar/AIBreakdownButton";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
+import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import {
   viewWhyFromAction,
   actionTypeLabel,
@@ -325,8 +326,8 @@ export function ActionCenter(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Needs you"
-        title="Action Center"
-        description="Decisions Otzar is making on your behalf. Confirm what matters, see what's done, and learn what was blocked and why."
+        title="Needs me"
+        description="Decisions and open work Otzar is tracking for you. Confirm what matters, open the exact item, and see what's blocked."
       />
 
       {/* Tab bar */}
@@ -656,6 +657,11 @@ export function ActionCenter(): JSX.Element {
         </ul>
       )}
 
+      {/* [OPEN-WORK-LANE] Wave-1 redirected /app/my-work here but only
+          rendered Action rows — owned ledger work was invisible. Compose
+          open work on Needs me so counts open exact underlying items. */}
+      <OpenWorkLane />
+
       {/* [SCHEDULED-LANE] A distinct, calm, READ-ONLY lane for the caller's
           terminal calendar meetings. It reads the caller-scoped MEETING ledger
           (NOT the Action queue), lives outside the tab ternary, and never feeds
@@ -671,6 +677,114 @@ export function ActionCenter(): JSX.Element {
       <DecisionEvidenceLane />
       <OrgTruthReviewLane />
     </div>
+  );
+}
+
+// ── [OPEN-WORK-LANE] owned work ledger on Needs me ──────────────────────────
+// Wave-1 IA: /app/my-work → action-center. Without this lane the redirect hid
+// durable owned work (commitments, tasks, follow-ups) while the API still
+// returned them. Terminal meetings stay in ScheduledLane only.
+
+const TERMINAL_LEDGER = new Set([
+  "EXECUTED",
+  "COMPLETED",
+  "CANCELLED",
+  "SUCCEEDED",
+  "CLOSED",
+  "DONE",
+]);
+
+function isOpenOwnedWork(entry: WorkLedgerEntryView): boolean {
+  // ScheduledLane owns terminal meetings.
+  if (
+    entry.ledger_type === "MEETING" &&
+    (entry.status === "EXECUTED" || entry.status === "CANCELLED")
+  ) {
+    return false;
+  }
+  if (TERMINAL_LEDGER.has(entry.status)) return false;
+  return true;
+}
+
+function OpenWorkLane(): JSX.Element {
+  const [items, setItems] = useState<WorkLedgerEntryView[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const load = useCallback(() => {
+    return api.workOs
+      .myWork({ take: 50 })
+      .then((result) => {
+        if (result.ok) {
+          const rows = result.data.items ?? result.data.entries ?? [];
+          setItems(rows.filter(isOpenOwnedWork));
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+      })
+      .catch(() => setFailed(true));
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useWorkStateChanged(
+    ["LEDGER_UPDATED", "TASK_COMPLETED", "SIGNAL_TRACKED"],
+    () => void load(),
+  );
+
+  const count = items?.length ?? 0;
+
+  return (
+    <section
+      className="space-y-2 border-t border-border pt-4"
+      data-testid="open-work-lane"
+      data-count={count}
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <span>Open work</span>
+        {items !== null ? (
+          <span
+            className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
+            data-testid="open-work-count"
+          >
+            {count}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Commitments and tasks Otzar extracted for you — open any row for the
+        exact item and its source.
+      </p>
+      {failed ? (
+        <Card data-testid="open-work-error">
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            Couldn&apos;t load your open work right now.
+          </CardContent>
+        </Card>
+      ) : items === null ? (
+        <p className="text-sm text-muted-foreground" data-testid="open-work-loading">
+          Loading your open work…
+        </p>
+      ) : items.length === 0 ? (
+        <Card data-testid="open-work-empty">
+          <CardContent className="py-6 text-sm text-muted-foreground">
+            No open work items right now. When Otzar extracts a commitment or
+            task for you, it shows up here.
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-2" data-testid="open-work-list">
+          {items.map((entry) => (
+            <li key={entry.ledger_entry_id}>
+              <WorkLedgerItem entry={entry} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

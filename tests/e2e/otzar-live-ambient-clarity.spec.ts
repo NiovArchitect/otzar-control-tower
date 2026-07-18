@@ -8,6 +8,7 @@
 //      npx playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-ambient-clarity.spec.ts
 
 import { test, expect, type APIRequestContext } from "@playwright/test";
+import { liveUiLogin } from "./live-login";
 
 test.describe.configure({ retries: 0 });
 
@@ -37,13 +38,8 @@ test("ambient bar answers about the opened work item; honest copy without a sele
   const escBefore = await pendingCount(request, token);
   console.log(`[amb] escalations pending BEFORE: ${escBefore}`);
 
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(EMPLOYEE_EMAIL);
-  await page.getByLabel("Password").fill(PW as string);
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), undefined, {
-    timeout: 45_000,
-  });
+  const cta = await liveUiLogin(page, EMPLOYEE_EMAIL, PW as string);
+  console.log(`[amb] login CTA=${cta}`);
   await page.waitForTimeout(2500);
   await page.evaluate(() => {
     history.pushState({}, "", "/app/my-work");

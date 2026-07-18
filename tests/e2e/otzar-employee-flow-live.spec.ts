@@ -11,6 +11,7 @@
 
 import { test, expect } from "@playwright/test";
 import { SMOKE_ORG_ENTITY_ID, resolveOrgEntityId } from "./live-tenancy";
+import { liveUiLogin } from "./live-login";
 
 const EMAIL = process.env.OTZAR_SMOKE_EMAIL;
 const PASSWORD = process.env.DEMO_SHARED_PASSWORD;
@@ -41,11 +42,8 @@ test.describe("Otzar employee flow — credentialed live smoke", () => {
   test("Communication → Governed Work Movement (live, read-mostly)", async ({
     page,
   }) => {
-    // A. Login / session.
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(EMAIL as string);
-    await page.getByLabel("Password").fill(PASSWORD as string);
-    await page.getByRole("button", { name: /sign in/i }).click();
+    // A. Login / session (Sign in preferred; Continue accepted during CT deploy lag).
+    await liveUiLogin(page, EMAIL as string, PASSWORD as string);
     // No auth error surfaced; the app shell loads.
     await expect(page.getByRole("alert")).toHaveCount(0);
     await page.waitForLoadState("networkidle");
