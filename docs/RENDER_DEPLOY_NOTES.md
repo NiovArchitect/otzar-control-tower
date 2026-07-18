@@ -83,3 +83,17 @@ only commits that already landed on `main`.
 - **Refresh `RENDER_API_KEY`** (it was 401 during the saga) so deploys can be verified/triggered
   via the API: `curl -H "Authorization: Bearer $RENDER_API_KEY" https://api.render.com/v1/services`.
   Needs a key with read+deploy scope on these services.
+
+## Incident log — 2026-07-18 (acceptance gate / #171)
+
+| Fact | Value |
+|------|-------|
+| CT `origin/main` | `a5c526d` — Login CTA **Sign in** (#171, merged 18:36Z, CI green 18:40Z) |
+| Prior live | Phase F wave-2 bundle `index-4BPnPgW8.js` / CSS `index-DzNUeESq.css`, last-modified **18:22:57Z** |
+| Live button string | still **Continue** (pre-#171) while heading already said Sign in |
+| `RENDER_API_KEY` | **401 Unauthorized** — cannot list services or `POST …/deploys` |
+| Service IDs | `otzar-app` `srv-d8t1qpj7uimc73db2il0` · `otzar-api` `srv-d8t17sm7r5hc73ed5h6g` |
+| Why lag matters | Investor e2e clicks `button /sign in/i` and times out on Continue |
+| Repair | Fresh commit on `main` to re-signal Auto-Deploy (same class of fix as 2026-06-29 stale GitHub surface). Operator must rotate Render API key for observability. |
+
+**Acceptance rule:** do not claim #171 live until HTML last-modified advances and live JS contains `Signing in…":"Sign in"` (not `Continue`) as the login submit label.
