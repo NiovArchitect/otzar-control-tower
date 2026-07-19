@@ -498,6 +498,18 @@ function ProjectContextPanel({
   const twinish = openWork.filter(
     (e) => e.twin_work !== undefined || e.status === "EXECUTING",
   );
+  const documents = stampedWork.filter(
+    (e) =>
+      e.ledger_type === "DOCUMENT" ||
+      (e.twin_work?.web_view_link != null &&
+        e.twin_work.web_view_link.includes("docs.google.com")),
+  );
+  const blockers = openWork.filter(
+    (e) =>
+      e.status === "BLOCKED" ||
+      e.status === "RUNTIME_MISSING" ||
+      e.blind_spot_reason !== undefined,
+  );
 
   const nextStep =
     dgi.data?.ok === true ? dgi.data.data.coherence?.next_best_step : null;
@@ -637,6 +649,63 @@ function ProjectContextPanel({
           </p>
         </section>
 
+        {/* Documents (provider-linked twin work) */}
+        <section
+          data-testid="project-context-documents"
+          className="space-y-2 border-t border-border pt-4"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-foreground">Documents</h3>
+            <span
+              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
+              data-testid="project-doc-count"
+            >
+              {myWork.isLoading ? "…" : documents.length}
+            </span>
+          </div>
+          {documents.length === 0 ? (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="project-docs-empty"
+            >
+              No project documents claimed yet. When Otzar prepares a brief, it
+              appears here with a link to the real Google Doc.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm" data-testid="project-docs-list">
+              {documents.map((d) => {
+                const link = d.twin_work?.web_view_link;
+                return (
+                  <li
+                    key={d.ledger_entry_id}
+                    className="rounded-md border border-border px-3 py-2"
+                    data-testid="project-doc-row"
+                  >
+                    <span className="font-medium">{d.title || "Document"}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {d.twin_work?.state ?? d.status}
+                      {d.twin_work?.edit_detected
+                        ? " · changed after claim"
+                        : ""}
+                    </span>
+                    {link ? (
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-0.5 block text-xs text-indigo-600 underline underline-offset-2"
+                        data-testid="project-doc-link"
+                      >
+                        Open in Google Docs
+                      </a>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
         {/* Meetings */}
         <section data-testid="project-context-meetings" className="space-y-2 border-t border-border pt-4">
           <div className="flex items-center justify-between gap-2">
@@ -676,6 +745,41 @@ function ProjectContextPanel({
                       On Google Calendar
                     </span>
                   ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Blockers */}
+        <section
+          data-testid="project-context-blockers"
+          className="space-y-2 border-t border-border pt-4"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-foreground">Blockers</h3>
+            <span
+              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
+              data-testid="project-blocker-count"
+            >
+              {myWork.isLoading ? "…" : blockers.length}
+            </span>
+          </div>
+          {blockers.length === 0 ? (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="project-blockers-empty"
+            >
+              Nothing blocked on this project right now.
+            </p>
+          ) : (
+            <ul className="space-y-1 text-sm" data-testid="project-blockers-list">
+              {blockers.map((b) => (
+                <li key={b.ledger_entry_id} data-testid="project-blocker-row">
+                  <span className="font-medium">{b.title || "Blocked work"}</span>
+                  <span className="ml-2 text-xs text-amber-700">
+                    {b.blind_spot_reason ?? b.status}
+                  </span>
                 </li>
               ))}
             </ul>

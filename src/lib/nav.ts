@@ -244,6 +244,8 @@ export const NAV: ReadonlyArray<NavItem> = [
     icon: ScrollText,
     description: "The operating envelope for autonomous collaboration — same-team, cross-team, and sensitive domains.",
     group: "Policies & Approvals",
+    // Policy detail lives under Access / setup; hide from primary rail.
+    hidden: true,
   },
   {
     label: "Review Center",

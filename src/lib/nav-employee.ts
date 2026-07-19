@@ -110,6 +110,8 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Headphones,
     description: "Meetings and conversations turned into follow-ups you approve.",
     group: "more",
+    // Prefer Comms deep-link from Today; keep route, thin the More drawer.
+    hidden: true,
   },
   {
     label: "Account & Security",
@@ -124,6 +126,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: Sun,
     description: "Time zone and working hours.",
     group: "more",
+    hidden: true,
   },
   {
     label: "Preferences",
@@ -131,6 +134,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: BookOpen,
     description: "How you like to work.",
     group: "more",
+    hidden: true,
   },
   {
     label: "Corrections",
@@ -138,6 +142,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     icon: PencilLine,
     description: "Teach and correct your AI Teammate.",
     group: "more",
+    hidden: true,
   },
   {
     label: "Launch readiness",
@@ -146,6 +151,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     description: "Manager checklist before go-live.",
     group: "more",
     adminOnly: true,
+    hidden: true,
   },
 
   // ── Hidden — deep links only (no nav) ─────────────────────────
