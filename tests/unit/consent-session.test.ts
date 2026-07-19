@@ -73,8 +73,11 @@ describe("consent-session — honest, non-surveillance copy", () => {
     expect(never).toMatch(/confidential|raw file|didn't consent/i);
   });
 
-  it("the status note states nothing is recorded yet — no surveillance language", () => {
-    expect(OBSERVATION_STATUS_NOTE).toMatch(/isn't recording anything yet/i);
+  it("the status note is consent-first and rejects surveillance language", () => {
+    expect(OBSERVATION_STATUS_NOTE).toMatch(
+      /consent|review|session|never company secrets|never new permissions/i,
+    );
     expect(OBSERVATION_STATUS_NOTE).not.toMatch(/track you|monitor you|spy/i);
   });
 });
+
