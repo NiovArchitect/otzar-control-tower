@@ -1866,6 +1866,110 @@ export class ApiClient {
         ),
     },
 
+    /**
+     * Work-style learning — explain less over time; methods improve;
+     * never company secrets; never silent authority; portable personal core.
+     */
+    workStyle: {
+      status: (): Promise<
+        ApiResult<{
+          ok: true;
+          org_policy_enabled: boolean;
+          user_consent_active: boolean;
+          active_session: null | {
+            session_id: string;
+            task_label: string;
+            app_context: string;
+            started_at: string;
+            signal_count: number;
+          };
+          pending_candidates_count: number;
+          approved_preferences_count: number;
+          rejected_count: number;
+        }>
+      > => this.request("/otzar/work-style/status"),
+      setPolicy: (
+        enabled: boolean,
+      ): Promise<ApiResult<{ ok: true; enabled: boolean }>> =>
+        this.request("/otzar/work-style/policy", {
+          method: "POST",
+          body: { enabled },
+        }),
+      startSession: (body: {
+        consent: boolean;
+        task_label: string;
+        app_context?: string;
+      }): Promise<ApiResult<{ ok: true; session_id: string }>> =>
+        this.request("/otzar/work-style/sessions/start", {
+          method: "POST",
+          body,
+        }),
+      signal: (
+        sessionId: string,
+        body: { signal_type: string; safe_label: string },
+      ): Promise<ApiResult<{ ok: true }>> =>
+        this.request(
+          `/otzar/work-style/sessions/${encodeURIComponent(sessionId)}/signal`,
+          { method: "POST", body },
+        ),
+      stopSession: (
+        sessionId: string,
+      ): Promise<
+        ApiResult<{
+          ok: true;
+          candidates: Array<{
+            candidate_id: string;
+            category: string;
+            plain_language: string;
+            evidence_count: number;
+            confidence: string;
+            ownership_proposal: string;
+            portability_proposal: string;
+            correction_type: string;
+            created_at: string;
+          }>;
+        }>
+      > =>
+        this.request(
+          `/otzar/work-style/sessions/${encodeURIComponent(sessionId)}/stop`,
+          { method: "POST" },
+        ),
+      candidates: (): Promise<
+        ApiResult<{
+          ok: true;
+          candidates: Array<{
+            candidate_id: string;
+            category: string;
+            plain_language: string;
+            evidence_count: number;
+            confidence: string;
+            ownership_proposal: string;
+            portability_proposal: string;
+            correction_type: string;
+            created_at: string;
+          }>;
+        }>
+      > => this.request("/otzar/work-style/candidates"),
+      approve: (
+        candidateId: string,
+        body?: { edited_plain?: string },
+      ): Promise<ApiResult<{ ok: true; preference: unknown }>> =>
+        this.request(
+          `/otzar/work-style/candidates/${encodeURIComponent(candidateId)}/approve`,
+          { method: "POST", body: body ?? {} },
+        ),
+      reject: (
+        candidateId: string,
+      ): Promise<ApiResult<{ ok: true }>> =>
+        this.request(
+          `/otzar/work-style/candidates/${encodeURIComponent(candidateId)}/reject`,
+          { method: "POST" },
+        ),
+      preferences: (): Promise<
+        ApiResult<{ ok: true; preferences: Array<{ safe_summary: string; correction_type: string; correction_id: string }> }>
+      > => this.request("/otzar/work-style/preferences"),
+    },
+
     // ────────────────────────────────────────────────────────────
     // Phase EDX-6 TwinCollaborationRequest routes (PR Foundation #277).
     // ────────────────────────────────────────────────────────────

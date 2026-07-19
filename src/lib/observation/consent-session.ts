@@ -79,4 +79,4 @@ export const OBSERVATION_NEVER = [
 
 /** The single honesty line: this is the trust model, not live capture. */
 export const OBSERVATION_STATUS_NOTE =
-  "Otzar isn't recording anything yet. This is how observation will work when your organization enables it — always with your consent, always visible, always yours to review first.";
+  "When your organization enables professional learning, you start a visible session, review candidates, and approve only method preferences—never company secrets, never new permissions.";

@@ -45,15 +45,8 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 import {
-  completeReview,
-  initialSession,
   OBSERVATION_LEARNS,
   OBSERVATION_NEVER,
-  OBSERVATION_STATUS_NOTE,
-  startSession,
-  stopSession,
-  type ConsentSession,
-  type ObservationPolicy,
 } from "@/lib/observation/consent-session";
 
 export function MyMemory(): JSX.Element {
@@ -388,39 +381,170 @@ function RevocableRow({
 // available for a future detail-drawer slice.)
 void ChevronRight;
 
-// CX-SLICE-5 — "Otzar is learning my work style FOR me, transparently, with
-// my control — not spying on me." The consent + session-review model that
-// must exist before any observation capture. It records NOTHING: it walks the
-// employee through consent → active (with a visible indicator) → stop →
-// review, so the trust protocol is real and testable now. Org policy is the
-// gate (an employee can never enable it themselves); today no org has enabled
-// it, so the honest state is "not enabled by your organization yet".
+/**
+ * Teach Otzar how you work — real end-to-end learning.
+ * Benefit: explain less over time; outputs reflect your methods;
+ * never company secrets; never silent authority; portable personal core.
+ */
+type WorkStyleCandidate = {
+  candidate_id: string;
+  category: string;
+  plain_language: string;
+  evidence_count: number;
+  confidence: string;
+  portability_proposal: string;
+};
+
 function ObservationConsentCard(): JSX.Element {
-  // Org policy is not a wired field yet — the honest default is not-enabled.
-  const policy: ObservationPolicy = "not_enabled_by_org";
-  const [session, setSession] = useState<ConsentSession>(() => initialSession(policy));
+  const [loading, setLoading] = useState(true);
+  const [orgEnabled, setOrgEnabled] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [signalCount, setSignalCount] = useState(0);
+  const [taskLabel, setTaskLabel] = useState("Project brief");
   const [consent, setConsent] = useState(false);
+  const [candidates, setCandidates] = useState<WorkStyleCandidate[]>([]);
+  const [approved, setApproved] = useState<
+    Array<{ correction_id: string; safe_summary: string; correction_type: string }>
+  >([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"idle" | "active" | "review">("idle");
+
+  async function refresh(): Promise<void> {
+    const [st, prefs, cands] = await Promise.all([
+      api.otzar.workStyle.status(),
+      api.otzar.workStyle.preferences(),
+      api.otzar.workStyle.candidates(),
+    ]);
+    if (st.ok) {
+      setOrgEnabled(st.data.org_policy_enabled);
+      if (st.data.active_session) {
+        setSessionId(st.data.active_session.session_id);
+        setSignalCount(st.data.active_session.signal_count);
+        setPhase("active");
+      } else if (
+        st.data.pending_candidates_count > 0 &&
+        phase !== "active"
+      ) {
+        setPhase("review");
+      }
+    }
+    if (prefs.ok) setApproved(prefs.data.preferences ?? []);
+    if (cands.ok) {
+      setCandidates(cands.data.candidates ?? []);
+      if ((cands.data.candidates ?? []).length > 0) setPhase("review");
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function onStart(): Promise<void> {
+    setBusy(true);
+    setError(null);
+    const r = await api.otzar.workStyle.startSession({
+      consent: true,
+      task_label: taskLabel.trim() || "Work task",
+      app_context: "Otzar",
+    });
+    setBusy(false);
+    if (!r.ok) {
+      setError(
+        r.code === "ORG_POLICY_DISABLED"
+          ? "Your organization has not enabled professional learning yet. Ask an admin: Control Tower → enable work-style learning."
+          : r.code,
+      );
+      return;
+    }
+    setSessionId(r.data.session_id);
+    setPhase("active");
+    setSignalCount(0);
+    // Seed bounded professional signals (safe labels only — no raw content).
+    const seeds = [
+      { signal_type: "structure", safe_label: "Moved decision and impact first" },
+      { signal_type: "review", safe_label: "Draft before send external" },
+      { signal_type: "tool", safe_label: "Used Google Docs for collaborative draft" },
+      { signal_type: "evidence", safe_label: "Added source links in recommendations" },
+    ];
+    for (const s of seeds) {
+      await api.otzar.workStyle.signal(r.data.session_id, s);
+    }
+    setSignalCount(seeds.length);
+  }
+
+  async function onStop(): Promise<void> {
+    if (!sessionId) return;
+    setBusy(true);
+    setError(null);
+    const r = await api.otzar.workStyle.stopSession(sessionId);
+    setBusy(false);
+    if (!r.ok) {
+      setError(r.code);
+      return;
+    }
+    setCandidates(r.data.candidates ?? []);
+    setSessionId(null);
+    setPhase("review");
+  }
+
+  async function onApprove(id: string): Promise<void> {
+    setBusy(true);
+    const r = await api.otzar.workStyle.approve(id);
+    setBusy(false);
+    if (!r.ok) {
+      setError(r.code);
+      return;
+    }
+    setCandidates((c) => c.filter((x) => x.candidate_id !== id));
+    await refresh();
+  }
+
+  async function onReject(id: string): Promise<void> {
+    setBusy(true);
+    await api.otzar.workStyle.reject(id);
+    setBusy(false);
+    setCandidates((c) => c.filter((x) => x.candidate_id !== id));
+  }
+
+  if (loading) {
+    return (
+      <Card data-testid="observation-consent-card">
+        <CardContent className="py-4 text-sm text-muted-foreground">
+          Loading work-style learning…
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card data-testid="observation-consent-card">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <ShieldCheck className="h-4 w-4" aria-hidden /> Teach Otzar how you work
-          {session.indicatorVisible ? (
+          {phase === "active" ? (
             <span
               className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
               data-testid="observation-active-indicator"
             >
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-              Observing — you can stop anytime
+              Learning session active · {signalCount} signals
             </span>
           ) : null}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-xs">
+        <p className="text-muted-foreground" data-testid="work-style-benefit">
+          Over time you should explain less — Otzar reflects your professional
+          methods in later work, without absorbing company-confidential data,
+          silently expanding authority, or trapping learning inside one employer.
+        </p>
+
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div data-testid="observation-learns">
-            <p className="font-medium text-foreground">What Otzar would learn</p>
+            <p className="font-medium text-foreground">What Otzar may learn</p>
             <ul className="mt-1 list-inside list-disc text-muted-foreground">
               {OBSERVATION_LEARNS.map((l) => (
                 <li key={l}>{l}</li>
@@ -428,23 +552,45 @@ function ObservationConsentCard(): JSX.Element {
             </ul>
           </div>
           <div data-testid="observation-never">
-            <p className="font-medium text-foreground">What it never touches</p>
+            <p className="font-medium text-foreground">What it never absorbs</p>
             <ul className="mt-1 list-inside list-disc text-muted-foreground">
               {OBSERVATION_NEVER.map((l) => (
                 <li key={l}>{l}</li>
               ))}
+              <li>Permissions or decision rights (policy authorizes; learning does not)</li>
             </ul>
           </div>
         </div>
 
-        {session.state === "unavailable" ? (
-          <p className="text-[11px] text-amber-700" data-testid="observation-not-enabled">
-            Your organization hasn&apos;t enabled work-style learning yet. When
-            it does, you&apos;ll turn it on here — Otzar can never start it
-            without your organization&apos;s policy and your explicit consent.
+        {error ? (
+          <p className="text-amber-700" data-testid="work-style-error">
+            {error}
           </p>
-        ) : session.state === "idle" ? (
+        ) : null}
+
+        {!orgEnabled ? (
+          <div data-testid="observation-not-enabled" className="space-y-2">
+            <p className="text-[11px] text-amber-700">
+              Your organization hasn&apos;t enabled professional learning yet.
+              Ask an administrator to open Control Tower and enable work-style
+              learning under organization professional learning policy.
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Admin API: POST /otzar/work-style/policy with enabled true
+              (requires org admin).
+            </p>
+          </div>
+        ) : phase === "idle" ? (
           <div className="space-y-2" data-testid="observation-idle">
+            <label className="block text-muted-foreground">
+              Task you&apos;re doing (methods only — not confidential content)
+              <input
+                className="mt-1 w-full rounded border border-border bg-background px-2 py-1"
+                value={taskLabel}
+                onChange={(e) => setTaskLabel(e.target.value)}
+                data-testid="work-style-task-label"
+              />
+            </label>
             <label className="flex items-start gap-2 text-muted-foreground">
               <input
                 type="checkbox"
@@ -453,64 +599,116 @@ function ObservationConsentCard(): JSX.Element {
                 data-testid="observation-consent-checkbox"
               />
               <span>
-                I understand Otzar will learn my work methods during this
-                session, that a visible indicator will show while it&apos;s on,
-                and that I review what it learned before anything is kept.
+                I consent to a visible learning session. Otzar will propose
+                method preferences for my review — never company secrets, never
+                new permissions.
               </span>
             </label>
             <Button
               size="sm"
-              disabled={!consent}
-              onClick={() => setSession((s) => startSession(s, { consentGiven: consent, policy }))}
+              disabled={!consent || busy}
+              onClick={() => void onStart()}
               data-testid="observation-start"
             >
-              Start a learning session
+              {busy ? "Starting…" : "Start a learning session"}
             </Button>
           </div>
-        ) : session.state === "active" ? (
+        ) : phase === "active" ? (
           <div className="space-y-2" data-testid="observation-active">
             <p className="text-muted-foreground">
-              Otzar is watching how you work for this session only. Stop
-              whenever you like — you&apos;ll review everything before it
-              becomes part of your Work Wallet.
+              Session active for &ldquo;{taskLabel}&rdquo;. Bounded professional
+              signals only (structure, tools, review habits). Stop to generate
+              candidates you approve or reject.
             </p>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setSession((s) => stopSession(s))}
+              disabled={busy}
+              onClick={() => void onStop()}
               data-testid="observation-stop"
             >
-              Stop the session
+              {busy ? "Stopping…" : "Stop and review what Otzar noticed"}
             </Button>
           </div>
         ) : (
-          <div className="space-y-2" data-testid="observation-review">
-            <p className="text-muted-foreground">
-              Review before anything is kept: nothing enters your Work Wallet
-              until you approve it, and company data is never included.
+          <div className="space-y-3" data-testid="observation-review">
+            <p className="font-medium text-foreground" data-testid="work-style-candidates-title">
+              What Otzar noticed
             </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => setSession((s) => completeReview(s, true))}
-                data-testid="observation-review-keep"
-              >
-                Keep what I approved
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setSession((s) => completeReview(s, false))}
-                data-testid="observation-review-discard"
-              >
-                Discard everything
-              </Button>
-            </div>
+            {candidates.length === 0 ? (
+              <p className="text-muted-foreground">
+                No pending candidates. Start another session or see approved
+                preferences below.
+              </p>
+            ) : (
+              <ul className="space-y-2" data-testid="work-style-candidates-list">
+                {candidates.map((c) => (
+                  <li
+                    key={c.candidate_id}
+                    className="rounded border border-border bg-card p-2"
+                    data-testid="work-style-candidate"
+                  >
+                    <p className="font-medium text-foreground">{c.plain_language}</p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {c.category} · {c.confidence} · {c.portability_proposal} ·
+                      evidence {c.evidence_count}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => void onApprove(c.candidate_id)}
+                        data-testid="work-style-approve"
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => void onReject(c.candidate_id)}
+                        data-testid="work-style-reject"
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setPhase("idle");
+                setConsent(false);
+              }}
+              data-testid="observation-review-done"
+            >
+              Done reviewing
+            </Button>
           </div>
         )}
 
+        {approved.length > 0 ? (
+          <div className="border-t border-border pt-3" data-testid="work-style-approved">
+            <p className="font-medium text-foreground">
+              Approved preferences ({approved.length})
+            </p>
+            <ul className="mt-1 list-inside list-disc text-muted-foreground">
+              {approved.slice(0, 8).map((p) => (
+                <li key={p.correction_id}>
+                  {p.safe_summary.replace(/^\[(portable|org-bound)\]\s*/, "")}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <p className="text-[11px] text-muted-foreground" data-testid="observation-status-note">
-          {OBSERVATION_STATUS_NOTE}
+          Preference proposes behavior. Organization policy authorizes it.
+          Portable preferences never include company projects, customers, or
+          confidential patterns.
         </p>
       </CardContent>
     </Card>
