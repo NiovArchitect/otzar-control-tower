@@ -468,18 +468,24 @@
         "src/pages/app/AmbientWorkSurface.tsx",
         "tests/unit/stale-truth.test.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Live stale badge depends on aged pending actions in org",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Stale badge only appears when pending actions age past 7d",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "950d313",
+      "final_proof": {
+        "live_bundle": "index-Df7YJ5DU.js",
+        "markers": [
+          "action-stale-badge"
+        ],
+        "regression": "9/9 role+kl+d04"
+      }
     },
     {
       "id": "B-04",
@@ -1515,15 +1521,18 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Not all spine facets composed on one surface",
+      "implementation_refs": [
+        "src/pages/app/WorkProjects.tsx ProjectContextPanel project-spine",
+        "tests/e2e/otzar-live-project-context.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Objective uses project name until API exposes mission objective field; live spine prove after deploy",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
@@ -2389,6 +2398,7 @@
     "A-07",
     "B-01",
     "B-02",
+    "B-03",
     "B-05",
     "C-01",
     "C-02",

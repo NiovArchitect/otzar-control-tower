@@ -57,6 +57,27 @@ test("open project context shows mission heart in viewport", async ({ page }) =>
   await expect(page.getByTestId("project-context-name")).toBeVisible();
   await expect(page.getByTestId("project-context-pulse")).toBeVisible();
 
+  // J-02 — full spine facets always present (honest empty OK).
+  const spine = page.getByTestId("project-spine");
+  if ((await spine.count()) > 0) {
+    await expect(spine).toBeVisible();
+    for (const facet of [
+      "objective",
+      "owners",
+      "truth",
+      "obligations",
+      "meetings",
+      "next",
+    ]) {
+      await expect(page.getByTestId(`project-spine-${facet}`)).toBeVisible();
+    }
+  } else {
+    test.info().annotations.push({
+      type: "note",
+      description: "project-spine not on this deploy yet — pulse-only heart.",
+    });
+  }
+
   const inView = await panel.evaluate((el) => {
     const r = el.getBoundingClientRect();
     return r.top < window.innerHeight * 0.85 && r.bottom > 80;

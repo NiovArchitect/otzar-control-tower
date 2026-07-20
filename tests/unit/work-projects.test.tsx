@@ -135,7 +135,19 @@ describe("WorkProjects page", () => {
     expect(
       await screen.findByTestId("project-members-panel"),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Sadeil Lewis")).toBeInTheDocument();
+    // J-02 spine + members list both show the owner name — scope the assert.
+    expect(
+      await within(screen.getByTestId("project-members-panel")).findByText(
+        "Sadeil Lewis",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("project-spine")).toBeInTheDocument();
+    expect(screen.getByTestId("project-spine-objective")).toHaveTextContent(
+      "Phoenix launch",
+    );
+    expect(screen.getByTestId("project-spine-owners")).toHaveTextContent(
+      "Sadeil Lewis",
+    );
     const picker = await screen.findByTestId("add-member-id");
     expect(within(picker).getByText("David Odie")).toBeInTheDocument();
   });
