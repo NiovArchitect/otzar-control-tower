@@ -48,6 +48,7 @@ import {
   OBSERVATION_LEARNS,
   OBSERVATION_NEVER,
 } from "@/lib/observation/consent-session";
+import { WindowContextShare } from "@/components/observation/WindowContextShare";
 
 export function MyMemory(): JSX.Element {
   const [data, setData] = useState<ContextHealthResponse | null>(null);
@@ -275,6 +276,8 @@ export function MyMemory(): JSX.Element {
           observation. Lives here because it is about YOUR portable work
           identity and how your Twin learns you. It captures NOTHING today. */}
       <ObservationConsentCard />
+      {/* D-04 — selected-window share: explicit browser permission + live indicator */}
+      <WindowContextShare />
 
       {/* Reassurance */}
       <p className="text-xs text-muted-foreground">
