@@ -167,3 +167,54 @@ export function presenceIntensity(state: OtzarPresenceState): PresenceIntensity 
       return "critical";
   }
 }
+
+// ────────────────────────────────────────────────────────────────────
+// D-01 — Founder/human presence language (5 states) mapped from the
+// nine-state machine. Surfaces expose data-presence-human so YC and
+// smokes can prove the user-facing model without raw enums.
+//   available · listening · working · blocked · complete
+// ────────────────────────────────────────────────────────────────────
+export type HumanPresenceState =
+  | "available"
+  | "listening"
+  | "working"
+  | "blocked"
+  | "complete";
+
+export function humanPresenceState(
+  state: OtzarPresenceState,
+): HumanPresenceState {
+  switch (state) {
+    case "LISTENING":
+      return "listening";
+    case "THINKING":
+    case "RECOMMENDATION":
+      return "working";
+    case "SUCCESS":
+      return "complete";
+    case "APPROVAL_REQUIRED":
+    case "BLOCKED":
+    case "FAILURE":
+      return "blocked";
+    case "IDLE":
+    case "QUIET":
+    default:
+      return "available";
+  }
+}
+
+/** Short human label for SR / tooltips. */
+export function humanPresenceLabel(human: HumanPresenceState): string {
+  switch (human) {
+    case "available":
+      return "Available";
+    case "listening":
+      return "Listening";
+    case "working":
+      return "Working";
+    case "blocked":
+      return "Needs you or blocked";
+    case "complete":
+      return "Just completed";
+  }
+}

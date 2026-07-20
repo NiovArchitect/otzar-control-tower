@@ -21,7 +21,10 @@
 //          src/index.css (edge-* keyframes),
 //          tests/unit/ambient-edge-presence.test.tsx.
 
-import { usePresenceState } from "@/lib/stores/presence";
+import {
+  humanPresenceState,
+  usePresenceState,
+} from "@/lib/stores/presence";
 import type { OtzarPresenceState } from "@/lib/stores/presence";
 
 interface EdgeVisual {
@@ -96,12 +99,14 @@ const EDGE_VISUALS: Record<OtzarPresenceState, EdgeVisual> = {
 
 export function AmbientEdgeGlow(): JSX.Element {
   const state = usePresenceState();
+  const human = humanPresenceState(state);
   const visual = EDGE_VISUALS[state];
   return (
     <div
       aria-hidden
       data-testid="ambient-edge-glow"
       data-presence={state}
+      data-presence-human={human}
       className="pointer-events-none fixed inset-0 z-[55]"
     >
       {/* Full-perimeter behavioral border — the whole surface glows the state. */}
