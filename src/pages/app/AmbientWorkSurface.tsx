@@ -58,6 +58,7 @@ import {
   resolveHomeRole,
   roleHomeCopy,
 } from "@/lib/today/role-home";
+import { buildRoleIntelligenceReport } from "@/lib/today/role-intelligence-report";
 import { isRealNextDecision } from "@/lib/today/stale-truth";
 import { buildWhatChanged } from "@/lib/today/what-changed";
 
@@ -576,6 +577,25 @@ export function AmbientWorkSurface(): JSX.Element {
   });
   const homeCopy = roleHomeCopy(homeRole);
 
+  // P-01 — role-specific intelligence (short, real destinations, no fake charts).
+  const roleIntel = buildRoleIntelligenceReport(homeRole, {
+    needsMeCount: actionUnreadCount + urgentBlindSpots + inboundCollab.length,
+    projectCount: myProjects.length,
+    teamOpenCount: teamPeople.reduce(
+      (n, p) => n + (p.open_obligation_count ?? 0),
+      0,
+    ),
+    structureGapCount: managerGapCount,
+    toolsNeedReconnect: toolsReconnectLabel !== null,
+    toolsLabel: toolsReconnectLabel,
+    twinWorkingCount: twinWorking.length,
+    hasWorkingDoc: docLink !== null && docLink.length > 0,
+    attentionCount: dgi?.attention_count ?? 0,
+    blockedOrUnpaired:
+      dgi?.coherence_status === "BLOCKED" ||
+      dgi?.coherence_status === "UNPAIRED",
+  });
+
   const glanceRaw: Array<{
     key: string;
     label: string;
@@ -809,6 +829,63 @@ export function AmbientWorkSurface(): JSX.Element {
           Nothing urgent in focus — open Needs me or talk.
         </p>
       ) : null}
+
+      {/* P-01 — Role intelligence report: role-ordered real links, ≤4 rows. */}
+      <section
+        className="rounded-2xl border border-indigo-200/50 bg-white/50 px-3 py-2.5"
+        data-testid="role-intelligence-report"
+        data-intel-role={roleIntel.role}
+        aria-label={roleIntel.title}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600/80"
+              data-testid="role-intel-title"
+            >
+              {roleIntel.title}
+            </p>
+            <p
+              className="mt-0.5 text-[11px] leading-snug text-slate-500"
+              data-testid="role-intel-subtitle"
+            >
+              {roleIntel.subtitle}
+            </p>
+          </div>
+        </div>
+        <ul className="mt-2 space-y-1" data-testid="role-intel-sections">
+          {roleIntel.sections.map((sec) => (
+            <li key={sec.id}>
+              <Link
+                to={sec.href}
+                data-testid={`role-intel-section-${sec.id}`}
+                data-intel-tone={sec.tone}
+                data-why={sec.why}
+                className="flex items-center justify-between gap-2 rounded-xl border border-white/60 bg-white/55 px-2.5 py-2 transition hover:bg-white/80"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-900">
+                    {sec.title}
+                  </p>
+                  <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
+                    {sec.signal}
+                  </p>
+                </div>
+                <ArrowRight
+                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                  aria-hidden
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <p
+          className="mt-2 text-[10px] leading-snug text-slate-400"
+          data-testid="role-intel-data-note"
+        >
+          {roleIntel.dataNote}
+        </p>
+      </section>
 
       {/* B-04 — What changed: real state only; quiet when nothing new. */}
       <section

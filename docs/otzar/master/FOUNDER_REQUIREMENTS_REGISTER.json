@@ -2100,15 +2100,23 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Reports still thin/generic",
+      "implementation_refs": [
+        "src/lib/today/role-intelligence-report.ts",
+        "src/pages/app/AmbientWorkSurface.tsx role-intelligence-report",
+        "tests/unit/role-intelligence-report.test.ts",
+        "tests/e2e/otzar-live-role-intel-p01.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Await MANUAL DEPLOY + deep smoke otzar-live-role-intel-p01",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit: distinct fingerprints per role + real hrefs",
+        "live deep: otzar-live-role-intel-p01 hard-fail"
+      ],
+      "live_acceptance": "Today role-intelligence-report with role title/sections; \u22644 rows; no surveillance score",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
