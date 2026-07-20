@@ -37,30 +37,32 @@ function resetStore() {
 }
 beforeEach(resetStore);
 
-describe("[SECTION-16] resolveDestination — returnTo preference + open-redirect safety", () => {
-  it("prefers a same-origin returnTo path over persona routing", () => {
-    expect(resolveDestination("/users", ADMIN)).toBe("/users");
-    expect(resolveDestination("/app/action-center", EMPLOYEE)).toBe("/app/action-center");
+describe("[SECTION-16 + YC login gate] resolveDestination — Home first, validated deep links only", () => {
+  it("does NOT restore prior admin/sensitive routes after login", () => {
+    expect(resolveDestination("/users", ADMIN)).toBe("/app");
+    expect(resolveDestination("/setup", ADMIN)).toBe("/app");
+    expect(resolveDestination("/agent-playground", ADMIN)).toBe("/app");
   });
 
-  it("accepts an already-decoded deep path (input comes decoded from useSearchParams)", () => {
+  it("honors intentional product deep links only", () => {
+    expect(resolveDestination("/app/action-center", EMPLOYEE)).toBe(
+      "/app/action-center",
+    );
     expect(resolveDestination("/app/my-twin", EMPLOYEE)).toBe("/app/my-twin");
   });
 
-  it("falls back to persona routing when returnTo is absent", () => {
-    expect(resolveDestination(null, ADMIN)).toBe("/");
+  it("lands everyone on product Home when returnTo is absent", () => {
+    expect(resolveDestination(null, ADMIN)).toBe("/app");
     expect(resolveDestination(null, EMPLOYEE)).toBe("/app");
-    expect(resolveDestination("", ADMIN)).toBe("/");
+    expect(resolveDestination("", ADMIN)).toBe("/app");
   });
 
   it("REJECTS open-redirect vectors and never bounces to /login", () => {
-    // protocol-relative + absolute URLs must not be honored
-    expect(resolveDestination("//evil.com", ADMIN)).toBe("/");
-    expect(resolveDestination("https://evil.com", ADMIN)).toBe("/");
+    expect(resolveDestination("//evil.com", ADMIN)).toBe("/app");
+    expect(resolveDestination("https://evil.com", ADMIN)).toBe("/app");
     expect(resolveDestination("http://evil.com", EMPLOYEE)).toBe("/app");
-    // a returnTo pointing back at /login would loop
     expect(resolveDestination("/login", EMPLOYEE)).toBe("/app");
-    expect(resolveDestination("/login?x=1", ADMIN)).toBe("/");
+    expect(resolveDestination("/login?x=1", ADMIN)).toBe("/app");
   });
 });
 

@@ -52,6 +52,7 @@ import {
   twinWorkNeedsVerification,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
+import { FirstUseReveal } from "@/components/first-use/FirstUseReveal";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -438,6 +439,9 @@ export function AmbientWorkSurface(): JSX.Element {
       className="mx-auto flex w-full max-w-lg flex-col gap-5 px-1 pb-32 pt-2 sm:max-w-2xl sm:pt-6"
       data-testid="ambient-work-surface"
     >
+      {/* YC first-use: recognition + one next action on the real Today surface. */}
+      <FirstUseReveal />
+
       {/* Phase-F hero presence stage — cinematic identity + intent. */}
       <section className="otzar-stage relative px-5 py-8 sm:px-8 sm:py-10">
         <div aria-hidden className="pointer-events-none absolute inset-0">

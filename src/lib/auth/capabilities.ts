@@ -84,16 +84,16 @@ export function isManager(_capabilities: AuthCapabilities | null): boolean {
   return false;
 }
 
-// WHAT: Where to land a user after login, by persona.
+// WHAT: Where to land a user after login (role Home).
 // INPUT: capabilities from the auth store after a successful login.
 // OUTPUT: a route path.
-// WHY: Org admins default to the Control Tower ("/"); product-only
-//      employees land in the Otzar shell ("/app"); a user with neither
-//      is sent to "/app" where EmployeeGuard renders the explicit
-//      "no Otzar access" state (never silently into the admin area).
+// WHY: YC / first-use gate — authentication ALWAYS lands on the product
+//      Home trust surface ("/app" = Today), never an arbitrary prior
+//      admin page. Org admins reach Control Tower intentionally via
+//      "Open Control Tower". Users with neither flag still land on
+//      "/app" where EmployeeGuard shows an honest no-access state.
 export function landingPathFor(
-  capabilities: AuthCapabilities | null,
+  _capabilities: AuthCapabilities | null,
 ): string {
-  if (isOrgAdmin(capabilities)) return "/";
   return "/app";
 }
