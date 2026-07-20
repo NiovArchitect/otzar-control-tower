@@ -31,14 +31,16 @@ test.describe("live workos IA: employee minimal + admin production sections", ()
   test("employee ambient nav is the minimal loop and leaks NO admin surface", async ({ page }) => {
     await loginEmployee(page);
     const rail = page.getByTestId("ambient-nav");
-    for (const label of ["Today", "Needs me", "Comms", "People", "Memory"]) {
+    // C-03 / WAVE-1 primary: Today · Talk · Needs me · People · Memory
+    for (const label of ["Today", "Talk", "Needs me", "People", "Memory"]) {
       expect(await rail.getByText(label, { exact: false }).count(), `primary rail has ${label}`).toBeGreaterThan(0);
     }
+    expect(await rail.getByText("Comms", { exact: true }).count(), "Comms not on primary rail").toBe(0);
     // Admin/diagnostic surfaces must not be on the employee primary surface.
     for (const admin of ["Organization Seeding", "Diagnostics", "Policies & Approvals", "Tools & Connections", "Work Graph & Memory"]) {
       expect(await page.getByText(admin, { exact: true }).count(), `no admin surface "${admin}"`).toBe(0);
     }
-    ev(test.info(), "employee rail = Today · Needs me · Comms · People · Memory (+ More); zero admin surfaces ✓");
+    ev(test.info(), "employee rail = Today · Talk · Needs me · People · Memory (+ More); zero admin surfaces ✓");
   });
 
   test("employee More is curated — hidden route-only surfaces are absent", async ({ page }) => {
@@ -46,15 +48,15 @@ test.describe("live workos IA: employee minimal + admin production sections", ()
     await page.getByTestId("ambient-nav-more").first().click().catch(() => undefined);
     const sheet = page.getByTestId("ambient-nav-more-sheet");
     await sheet.waitFor({ state: "visible", timeout: 8000 });
-    // Curated secondary surfaces are present...
-    for (const present of ["My Work", "Corrections", "Approvals"]) {
+    // Curated secondary surfaces present (Projects + Tools reconnect path).
+    for (const present of ["My AI Teammate", "Projects", "Tools", "Account & Security"]) {
       expect(await sheet.getByText(present, { exact: true }).count(), `More has ${present}`).toBeGreaterThan(0);
     }
-    // ...route-only (hidden) surfaces are NOT dumped into the sheet.
-    for (const hidden of ["Chat", "Getting started", "Observe", "Voice captures"]) {
+    // Route-only (hidden) surfaces are NOT dumped into the sheet.
+    for (const hidden of ["Chat", "Getting started", "Observe", "Voice captures", "My Work", "Corrections", "Approvals"]) {
       expect(await sheet.getByText(hidden, { exact: true }).count(), `More hides ${hidden}`).toBe(0);
     }
-    ev(test.info(), "More sheet curated: secondary surfaces present, 4 route-only surfaces hidden ✓");
+    ev(test.info(), "More sheet curated: Projects/Tools present; route-only surfaces hidden ✓");
   });
 
   test("admin nav = 8 production sections with the approved placements + connector fold", () => {

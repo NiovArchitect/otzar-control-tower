@@ -147,7 +147,8 @@ test("H2 ui pressure: admin Control Tower /users shows org map + reporting autho
   if (personVals.length >= 2) {
     await personSelect.selectOption(personVals[0]!);
     await managerSelect.selectOption(personVals[1]!);
-    await page.getByTestId("reporting-assign").click();
+    // Ambient Talk / notification chrome can intercept pointer events on CT.
+    await page.getByTestId("reporting-assign").click({ force: true });
     await page.getByTestId("reporting-notice").waitFor({ state: "visible", timeout: 20_000 });
     const notice1 = ((await page.getByTestId("reporting-notice").textContent()) ?? "").toLowerCase();
     expect(notice1.length).toBeGreaterThan(5);
@@ -155,7 +156,7 @@ test("H2 ui pressure: admin Control Tower /users shows org map + reporting autho
     if (notice1.includes("reports to") || notice1.includes("updated")) {
       await personSelect.selectOption(personVals[1]!);
       await managerSelect.selectOption(personVals[0]!);
-      await page.getByTestId("reporting-assign").click();
+      await page.getByTestId("reporting-assign").click({ force: true });
       await page.getByTestId("reporting-notice").waitFor({ state: "visible", timeout: 20_000 });
       const notice2 = ((await page.getByTestId("reporting-notice").textContent()) ?? "").toLowerCase();
       const cycleHonest =

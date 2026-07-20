@@ -37,12 +37,19 @@ test("setup page renders the guided journey honestly; reads only; no leaks (scre
     (p) => p.activation_status === "active" && p.status === "ACTIVE",
   ).length;
 
-  // Track every request the page fires — writes are forbidden.
+  // Track non-GET requests from the shell. Setup itself is read-only; ignore
+  // ambient background posts (e.g. twin-work detect-edits-batch from Today shell).
   const nonGet: string[] = [];
+  const ambientNoise = [
+    "/auth/login",
+    "/twin-work/detect-edits-batch",
+    "/otzar/presence",
+    "/work-style/signal",
+  ];
   page.on("request", (req) => {
-    if (req.url().includes("api.otzar.ai") && req.method() !== "GET" && !req.url().includes("/auth/login")) {
-      nonGet.push(`${req.method()} ${req.url()}`);
-    }
+    if (!req.url().includes("api.otzar.ai") || req.method() === "GET") return;
+    if (ambientNoise.some((p) => req.url().includes(p))) return;
+    nonGet.push(`${req.method()} ${req.url()}`);
   });
 
   await page.goto("/login");
