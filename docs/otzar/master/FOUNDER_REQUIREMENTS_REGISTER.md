@@ -48,7 +48,7 @@
 |----|-------|-------|
 | **C-01** Route/control inventory earn existence | IMPLEMENTED | matrix + welcome→Today cull |
 | **C-02** Admin/employee separation | LIVE_VERIFIED | #173 |
-| **C-03** No dead/fake/coming-soon primary | PARTIAL | |
+| **C-03** No dead/fake/coming-soon primary | IMPLEMENTED | |
 | **C-04** Contextual work surfaces | PARTIAL | |
 | **C-05** Viewport chrome pin | LIVE_VERIFIED | #175 |
 | **C-06** More zero-noise + Tools | LIVE_VERIFIED | #178–179 |

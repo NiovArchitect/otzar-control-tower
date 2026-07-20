@@ -228,6 +228,8 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "Curated organization-level intelligence assembled across your knowledge.",
     group: "Work Graph & Memory",
     comingSoon: true,
+    // C-03 — never a primary admin path until live.
+    hidden: true,
   },
 
   // ── 5. Policies & Approvals ────────────────────────────────────
@@ -317,6 +319,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "Usage trends, intelligence-score history, and activity roll-ups.",
     group: "Audit & Activity",
     comingSoon: true,
+    hidden: true,
   },
   {
     label: "Conversations",
@@ -325,6 +328,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "Otzar conversations with audit-traceable AI activity per turn.",
     group: "Audit & Activity",
     comingSoon: true,
+    hidden: true,
   },
 
   // ── 8. Diagnostics (operator/technical only) ───────────────────
@@ -349,6 +353,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "API keys, payouts, branding, and integration credentials.",
     group: "Diagnostics",
     comingSoon: true,
+    hidden: true,
   },
   {
     label: "Documentation",
@@ -357,5 +362,6 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "In-product runbooks and references, scoped to your organization's enabled features.",
     group: "Diagnostics",
     comingSoon: true,
+    hidden: true,
   },
 ];
