@@ -1,12 +1,7 @@
 // FILE: AmbientWorkSurface.tsx
-// PURPOSE: Default employee experience at /app. NOT a dashboard — an ambient
-//          intelligence surface that answers in 5 seconds (ADHD test): what
-//          needs me, what changed, what context Otzar holds, one next action.
-//          Built ONLY from real rails. Design Law + PRD-01 + quality rubric.
-//          [DGI-COHERENCE WAVE-2] Always-visible organizational intelligence
-//          strip from GET /otzar/dgi-coherence (single server authority).
-//          [C.3] Twin-claimed EXECUTING work from GET /work-os/my-work so
-//          humans see "Your AI Teammate is working on this" without dual effort.
+// PURPOSE: Default /app Today — one-shot ambient surface (ADHD + YC).
+//          Hero + Focus (≤3 actions) + glance chips + Talk. Users do not
+//          live here; power detail is under closed "More".
 // CONNECTS TO: EmployeeLayout, GlassPanel, presence, myDayIntelligence,
 //              api.otzar.dgiCoherence, api.workOs.myWork + twin_work.
 
@@ -16,12 +11,8 @@ import {
   ArrowRight,
   Mic,
   MoonStar,
-  ShieldAlert,
   Sparkles,
-  Users,
-  Handshake,
   FileText,
-  Bot,
   FolderKanban,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -30,14 +21,11 @@ import { usePresenceStore } from "@/lib/stores/presence";
 import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 import { GlassPanel } from "@/components/ambient/GlassPanel";
 import { OtzarMark } from "@/components/ambient/OtzarMark";
-import { buildWorkNodes } from "@/lib/work-os/work-nodes";
-import { GLASS_CTA, intensityDot } from "@/lib/ambient/glass";
+import { GLASS_CTA } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import type {
   CollaborationRequestSafeView,
   DgiCoherenceSnapshot,
-  DgiCollaborationPlanView,
-  DgiTwinAuthorityPosture,
   MyDaySuggestion,
   SafeHandoffView,
   WorkLedgerEntryView,
@@ -46,9 +34,7 @@ import type {
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
 import {
   activeTwinWorkItems,
-  twinAccuracyLabel,
   twinWorkDocClaimIds,
-  twinWorkEditDetected,
   twinWorkNeedsVerification,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
@@ -87,7 +73,6 @@ export function AmbientWorkSurface(): JSX.Element {
   const entity = useAuthStore((s) => s.entity);
   const quiet = usePresenceStore((s) => s.quiet);
   const approvalsCount = usePresenceStore((s) => s.approvalsCount);
-  const unreadCount = usePresenceStore((s) => s.unreadCount);
   const actionUnreadCount = usePresenceStore((s) => s.actionUnreadCount);
   const surfaceContext = useCurrentSurfaceContextStore((s) => s.context);
   const clearContext = useCurrentSurfaceContextStore((s) => s.clear);
@@ -120,11 +105,6 @@ export function AmbientWorkSurface(): JSX.Element {
   // [DGI WAVE-2/4] Single server authority for collaborative organizational
   // intelligence (pairing + work + truth + handoffs + collab plan + authority).
   const [dgi, setDgi] = useState<DgiCoherenceSnapshot | null>(null);
-  const [collabPlan, setCollabPlan] = useState<DgiCollaborationPlanView | null>(
-    null,
-  );
-  const [authorityPosture, setAuthorityPosture] =
-    useState<DgiTwinAuthorityPosture | null>(null);
   const [dgiLoaded, setDgiLoaded] = useState(false);
   const [teamPeople, setTeamPeople] = useState<
     Array<{
@@ -146,7 +126,6 @@ export function AmbientWorkSurface(): JSX.Element {
   >([]);
   const [ackBusyId, setAckBusyId] = useState<string | null>(null);
   const [ackError, setAckError] = useState<string | null>(null);
-  const [collabBusyId, setCollabBusyId] = useState<string | null>(null);
   // [C.3] AI Teammate claims currently in flight (my-work twin_work projection).
   const [twinWorking, setTwinWorking] = useState<WorkLedgerEntryView[]>([]);
   const [verifyBusyId, setVerifyBusyId] = useState<string | null>(null);
@@ -251,8 +230,6 @@ export function AmbientWorkSurface(): JSX.Element {
       .then((r) => {
         if (r.ok) {
           setDgi(r.data.coherence);
-          setCollabPlan(r.data.collaboration_plan ?? null);
-          setAuthorityPosture(r.data.twin_authority_posture ?? null);
         }
         setDgiLoaded(true);
       })
@@ -336,24 +313,6 @@ export function AmbientWorkSurface(): JSX.Element {
     }
   };
 
-  const acceptCollab = async (c: CollaborationRequestSafeView) => {
-    setCollabBusyId(c.collaboration_id);
-    try {
-      const r = await api.otzar.collaboration.accept(c.collaboration_id);
-      if (r.ok) {
-        setInboundCollab((prev) =>
-          prev.filter((x) => x.collaboration_id !== c.collaboration_id),
-        );
-      } else {
-        void refreshInboundCollab();
-      }
-    } catch {
-      void refreshInboundCollab();
-    } finally {
-      setCollabBusyId(null);
-    }
-  };
-
   // [GOOGLE-DOCS-WRITE] One-tap: create a real Google Doc after explicit confirm.
   // Honest gates surface reconnect / missing scope — never a fake success.
   const createWorkingDoc = async () => {
@@ -422,16 +381,6 @@ export function AmbientWorkSurface(): JSX.Element {
     }
   };
 
-  const workNodes = buildWorkNodes({
-    recipients: [],
-    awaitingRecipient: false,
-    draft: null,
-    contextTitle: ctxLabel,
-    approvalsCount,
-    unreadCount,
-    correctionsActive: dgi?.active_personal_corrections_count ?? 0,
-  });
-
   const dgiIntensity = dgiPanelIntensity(dgi);
 
   // One-shot Focus: at most a few actions that need the human now.
@@ -439,12 +388,12 @@ export function AmbientWorkSurface(): JSX.Element {
   type FocusItem = {
     key: string;
     title: string;
-    detail?: string;
-    to?: string;
+    detail: string | null;
+    to: string | null;
     tone: "attention" | "working" | "ambient";
-    actionLabel?: string;
-    onAction?: () => void;
-    actionBusy?: boolean;
+    actionLabel: string | null;
+    onAction: (() => void) | null;
+    actionBusy: boolean;
     testId: string;
   };
   const focusItems: FocusItem[] = [];
@@ -455,6 +404,9 @@ export function AmbientWorkSurface(): JSX.Element {
       detail: "Otzar will not blend them.",
       to: "/app/my-twin",
       tone: "attention",
+      actionLabel: null,
+      onAction: null,
+      actionBusy: false,
       testId: "dgi-twin-blocked",
     });
   } else if (dgi?.coherence_status === "UNPAIRED") {
@@ -464,6 +416,9 @@ export function AmbientWorkSurface(): JSX.Element {
       detail: "Pair a Twin for governed organizational intelligence.",
       to: "/app/my-twin",
       tone: "working",
+      actionLabel: null,
+      onAction: null,
+      actionBusy: false,
       testId: "dgi-twin-unpaired",
     });
   }
@@ -478,6 +433,9 @@ export function AmbientWorkSurface(): JSX.Element {
       detail: dgi.next_best_step.reason,
       to: dgi.next_best_step.route_hint || "/app/action-center",
       tone: "attention",
+      actionLabel: null,
+      onAction: null,
+      actionBusy: false,
       testId: "dgi-next-best-step",
     });
   }
@@ -488,8 +446,12 @@ export function AmbientWorkSurface(): JSX.Element {
         approvalsCount === 1
           ? "1 approval is waiting"
           : `${approvalsCount} approvals are waiting`,
+      detail: null,
       to: "/app/action-center",
       tone: "attention",
+      actionLabel: null,
+      onAction: null,
+      actionBusy: false,
       testId: "needs-approvals",
     });
   }
@@ -500,8 +462,12 @@ export function AmbientWorkSurface(): JSX.Element {
         urgentBlindSpots === 1
           ? "1 item is stuck and needs a decision"
           : `${urgentBlindSpots} items are stuck and need a decision`,
+      detail: null,
       to: "/app/action-center",
       tone: "attention",
+      actionLabel: null,
+      onAction: null,
+      actionBusy: false,
       testId: "needs-blind-spots",
     });
   }
@@ -512,8 +478,12 @@ export function AmbientWorkSurface(): JSX.Element {
         actionUnreadCount === 1
           ? "1 reply to review"
           : `${actionUnreadCount} replies to review`,
+      detail: null,
       to: "/app/comms",
       tone: "working",
+      actionLabel: null,
+      onAction: null,
+      actionBusy: false,
       testId: "needs-replies",
     });
   }
@@ -522,10 +492,13 @@ export function AmbientWorkSurface(): JSX.Element {
     focusItems.push({
       key: `handoff-${h.handoff_id}`,
       title: h.title,
-      detail: h.summary ?? undefined,
+      detail: h.summary ?? null,
+      to: null,
       tone: "working",
       actionLabel: "Acknowledge",
-      onAction: () => void acknowledgeHandoff(h),
+      onAction: () => {
+        void acknowledgeHandoff(h);
+      },
       actionBusy: ackBusyId === h.handoff_id,
       testId: "ambient-handoff-row",
     });
@@ -535,33 +508,41 @@ export function AmbientWorkSurface(): JSX.Element {
     const tw = e.twin_work;
     if (tw === undefined) continue;
     const needsVerify = twinWorkNeedsVerification(tw);
-    if (!needsVerify && tw.state !== "NEEDS_CLARITY" && tw.state !== "COLLAB_REQUESTED") {
+    if (
+      !needsVerify &&
+      tw.state !== "NEEDS_CLARITY" &&
+      tw.state !== "COLLAB_REQUESTED"
+    ) {
       continue;
     }
     focusItems.push({
       key: `twin-${e.ledger_entry_id}`,
       title: e.title,
       detail: twinWorkStateLabel(tw.state),
+      to: needsVerify ? null : "/app/my-work",
       tone: "working",
-      to: needsVerify ? undefined : "/app/my-work",
       actionLabel: needsVerify ? "Verify" : "Open",
       onAction: needsVerify
-        ? () => void verifyTwinWork(e.ledger_entry_id)
-        : undefined,
+        ? () => {
+            void verifyTwinWork(e.ledger_entry_id);
+          }
+        : null,
       actionBusy: verifyBusyId === e.ledger_entry_id,
       testId: "twin-working-row",
     });
   }
-  // Intelligence suggestions only when they add a real action — calm
-  // "keeping watch" headlines must not invent a Focus card (one-shot calm).
   if (focusItems.length === 0 && suggestions.length > 0) {
     if (headline !== null) {
       focusItems.push({
         key: "headline",
         title: headline,
-        tone: "ambient",
-        testId: "changed-headline",
+        detail: null,
         to: "/app/action-center",
+        tone: "ambient",
+        actionLabel: null,
+        onAction: null,
+        actionBusy: false,
+        testId: "changed-headline",
       });
     }
     for (const s of suggestions.slice(0, 2)) {
@@ -569,8 +550,12 @@ export function AmbientWorkSurface(): JSX.Element {
       focusItems.push({
         key: `sug-${s.rank}`,
         title: s.safe_title,
+        detail: null,
         to: "/app/my-day",
         tone: "ambient",
+        actionLabel: null,
+        onAction: null,
+        actionBusy: false,
         testId: "changed-suggestion",
       });
     }
@@ -688,7 +673,7 @@ export function AmbientWorkSurface(): JSX.Element {
           <ul className="space-y-1.5" data-testid="changed-suggestions">
             {focusItems.map((item) => (
               <li key={item.key}>
-                {item.onAction ? (
+                {item.onAction !== null ? (
                   <div
                     className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5"
                     data-testid={item.testId}
@@ -697,7 +682,7 @@ export function AmbientWorkSurface(): JSX.Element {
                       <p className="truncate text-sm font-medium text-slate-900">
                         {item.title}
                       </p>
-                      {item.detail ? (
+                      {item.detail !== null ? (
                         <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
                           {item.detail}
                         </p>
@@ -706,10 +691,10 @@ export function AmbientWorkSurface(): JSX.Element {
                     <button
                       type="button"
                       disabled={item.actionBusy}
-                      onClick={item.onAction}
+                      onClick={() => item.onAction?.()}
                       className="shrink-0 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
                     >
-                      {item.actionBusy ? "…" : item.actionLabel ?? "Go"}
+                      {item.actionBusy ? "…" : (item.actionLabel ?? "Go")}
                     </button>
                   </div>
                 ) : (
@@ -722,7 +707,7 @@ export function AmbientWorkSurface(): JSX.Element {
                       <p className="truncate text-sm font-medium text-slate-900">
                         {item.title}
                       </p>
-                      {item.detail ? (
+                      {item.detail !== null ? (
                         <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
                           {item.detail}
                         </p>
