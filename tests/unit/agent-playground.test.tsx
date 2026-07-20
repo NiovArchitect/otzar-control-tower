@@ -129,17 +129,19 @@ const FORBIDDEN_RAW_TOKENS = [
 ];
 
 describe("Section 5 Wave 10 Agent Playground -- nav + route + shell", () => {
-  it("registers Agent Playground in the main nav at /agent-playground", () => {
+  it("keeps Scenario Studio route registered but hidden from primary admin nav", () => {
     const entry = NAV.find((n) => n.to === "/agent-playground");
     expect(entry).toBeDefined();
-    // CX-SLICE-2 — reframed in executive language; route unchanged.
     expect(entry?.label).toBe("Scenario Studio");
+    // YC zero-noise: not a first-class admin destination (experimental).
+    expect(entry?.hidden).toBe(true);
   });
 
-  it("preserves the pre-existing /playground nav entry per ADR-0077 §11 Option A", () => {
+  it("keeps /playground route registered but hidden from primary admin nav", () => {
     const playground = NAV.find((n) => n.to === "/playground");
     expect(playground).toBeDefined();
     expect(playground?.label).toBe("Playground");
+    expect(playground?.hidden).toBe(true);
   });
 
   it("renders the cockpit page header", () => {
