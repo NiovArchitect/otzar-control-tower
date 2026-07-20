@@ -1324,17 +1324,22 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "role templates FND",
-        "CreateTwinDialog"
+        "src/lib/ai-teammates/role-template-skills.ts",
+        "src/components/ai-teammates/ApplyRoleTemplateSkillsButton.tsx",
+        "src/components/ai-teammates/TwinDetailDrawer.tsx Skills tab",
+        "tests/unit/role-template-skills.test.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "First session per role not fully productized",
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Foundation create still omits skill_package_id; auto-apply on drawer when catalog matches; seed packages must exist for full match",
       "dependencies": [],
       "priority": "P1",
       "phase": 5,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit template\u2192package resolve",
+        "live apply when admin opens skills"
+      ],
+      "live_acceptance": "Role template skills panel on AI Teammate Skills tab; apply assigns packages for template",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

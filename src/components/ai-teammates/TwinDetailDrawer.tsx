@@ -73,7 +73,9 @@ import { AuditAwareForm } from "@/components/audit/AuditAwareForm";
 import { DataTable } from "@/components/data/DataTable";
 import { ExecutiveOverrideBadge } from "@/components/ai-teammates/ExecutiveOverrideBadge";
 import { AssignSkillButton } from "@/components/ai-teammates/AssignSkillButton";
+import { ApplyRoleTemplateSkillsButton } from "@/components/ai-teammates/ApplyRoleTemplateSkillsButton";
 import { WalletProvenanceBadge } from "@/components/sovereignty/WalletProvenanceBadge";
+import { roleTemplateLabel } from "@/lib/labels/role-template";
 import { api } from "@/lib/api";
 import { getAuditEventLabel } from "@/lib/audit/event-types";
 import {
@@ -339,7 +341,21 @@ export function TwinDetailDrawer({
                   />
                   <ProfileField
                     label="Role template"
-                    value={detail.data.twin_config.role_template ?? "—"}
+                    value={
+                      detail.data.twin_config.role_template
+                        ? roleTemplateLabel(
+                            detail.data.twin_config.role_template,
+                          )
+                        : "Not set yet"
+                    }
+                  />
+                  <ProfileField
+                    label="Skills (from template)"
+                    value={
+                      skills.length > 0
+                        ? `${skills.length} assigned — acts with role capabilities under policy`
+                        : "None yet — apply role template skills on the Skills tab"
+                    }
                   />
                   <ProfileField
                     label="Created"
@@ -381,10 +397,24 @@ export function TwinDetailDrawer({
                  surfacing). Until then, Skills tab is read + assign
                  only. */}
             <TabsContent value="skills" className="space-y-4 pt-4">
-              <AssignSkillButton
-                twinId={twin.entity_id}
-                assignedPackageIds={assignedPackageIds}
-              />
+              {/* G-01 — skills come from the role template so the twin can act */}
+              {detail.data ? (
+                <ApplyRoleTemplateSkillsButton
+                  twinId={twin.entity_id}
+                  roleTemplate={detail.data.twin_config.role_template}
+                  assignedPackageIds={assignedPackageIds}
+                  autoApply={skills.length === 0}
+                />
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Extra packages (beyond the template defaults):
+                </p>
+                <AssignSkillButton
+                  twinId={twin.entity_id}
+                  assignedPackageIds={assignedPackageIds}
+                />
+              </div>
               <DataTable<TwinSkillWithPackage>
                 columns={skillColumns}
                 data={detail.data ? skills : undefined}
@@ -393,7 +423,7 @@ export function TwinDetailDrawer({
                 emptyState={{
                   title: "No skills assigned yet",
                   description:
-                    "Pick a SkillPackage above to give this AI Teammate a capability.",
+                    "Apply role template skills above so this AI Teammate can act on the member's behalf — or pick an extra SkillPackage.",
                 }}
                 pageSize={10}
                 onRetry={() => void detail.refetch()}

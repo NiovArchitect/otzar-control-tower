@@ -183,8 +183,10 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Skills</p>
             {t.skills.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No skills assigned yet.
+              <p className="text-sm text-muted-foreground" data-testid="my-twin-skills-empty">
+                No skills assigned yet. Role-templated AI Teammates get skills
+                from their template so they can act on your behalf — ask an admin
+                to apply the role template skills on AI Teammates.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2" data-testid="my-twin-skills">

@@ -1,10 +1,9 @@
 // FILE: CreateTwinDialog.tsx
 // PURPOSE: Dialog wrapping an AuditAwareForm that creates a new AI
 //          Teammate. Body shape per architectural anchor: { owner_
-//          entity_id, role_title, is_admin_invite } -- no synthetic
-//          name / skill_package_id / behavior_policy fields. Skill
-//          assignment is a separate post-create step from the
-//          TwinDetailDrawer Skills tab.
+//          entity_id, role_title, is_admin_invite }. Role template
+//          skills are applied from the detail Skills tab (G-01) so the
+//          twin is not an empty chatbot.
 // CONNECTS TO: AITeammates.tsx (Create button), api.org.aiTeammates.
 //              create (Stage 4 audit chain via 12B.0
 //              AITeammateCreateResponse.audit_event_id),
@@ -323,8 +322,9 @@ export function CreateTwinDialog({
         <DialogHeader>
           <DialogTitle>Create AI Teammate</DialogTitle>
           <DialogDescription>
-            One AI Teammate per member. Skills are assigned after
-            creation from the AI Teammate detail panel.
+            One AI Teammate per member. After creation, open the teammate and
+            set its role template — skills for that template apply so it can
+            act on the member&apos;s behalf under policy.
           </DialogDescription>
         </DialogHeader>
         <AuditAwareForm
