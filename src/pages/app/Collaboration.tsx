@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PeopleDirectory } from "@/components/otzar/PeopleDirectory";
+import { PeopleStructureGlance } from "@/components/otzar/PeopleStructureGlance";
 import { Sprout } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
@@ -181,15 +182,17 @@ export function Collaboration() {
     <div className="space-y-6">
       <PageHeader
         title="People & Collaboration"
-        description="See the teammates in your org, then ask coworkers, coworker Twins, teams, and projects for help. Same-project / same-team work usually moves without ceremony; cross-team or sensitive work asks for approval at the right boundary. Otzar helps the right people stay connected to the right work — without the noise."
+        description="Who reports to whom, who you can work with, and how to ask for help — without org-wide noise."
       />
+
+      {/* First-use: reporting structure before flat roster / collab form. */}
+      <PeopleStructureGlance />
 
       {/* Phase 1237 — Dandelion org-growth intelligence (admins). */}
       <DandelionGrowthCard />
 
-      {/* Phase 1216 -- People directory at the top of the surface
-          so the operator can see WHO they can collaborate with
-          before opening the request form. */}
+      {/* Phase 1216 -- People directory so the operator can see WHO they can
+          collaborate with before opening the request form. */}
       <PeopleDirectory
         onRequestHelp={(id, name) => {
           setPrefill({ id, name });
