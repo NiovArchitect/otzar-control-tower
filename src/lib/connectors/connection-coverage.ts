@@ -35,8 +35,53 @@ export interface CoverageKpiInput {
   oauth_ready_for_consent: number;
   org_bindings_enabled: number;
   pending_access_requests: number;
+  /** Present only when inventory reports people grants (E.2+). */
   active_employee_grants?: number;
+  /** Present only when inventory reports open-request people count. */
   people_with_open_requests?: number;
+}
+
+/**
+ * Inventory KPI shape from enterprise-tools (optional people fields).
+ * Source may carry explicit `undefined` when a property is read from a
+ * partial API object; coverageKpisFromInventory omits those on output so
+ * CoverageKpiInput stays exactOptionalPropertyTypes-clean.
+ */
+export interface InventoryKpiSource {
+  capabilities_connected: number;
+  capabilities_ready: number;
+  capabilities_blocked: number;
+  oauth_verified: number;
+  oauth_ready_for_consent: number;
+  org_bindings_enabled: number;
+  pending_access_requests: number;
+  active_employee_grants?: number | undefined;
+  people_with_open_requests?: number | undefined;
+}
+
+/**
+ * Build CoverageKpiInput without present-but-undefined optional props.
+ * Zero is kept when the API reported 0; absent fields are omitted
+ * (exactOptionalPropertyTypes-safe).
+ */
+export function coverageKpisFromInventory(
+  source: InventoryKpiSource,
+): CoverageKpiInput {
+  return {
+    capabilities_connected: source.capabilities_connected,
+    capabilities_ready: source.capabilities_ready,
+    capabilities_blocked: source.capabilities_blocked,
+    oauth_verified: source.oauth_verified,
+    oauth_ready_for_consent: source.oauth_ready_for_consent,
+    org_bindings_enabled: source.org_bindings_enabled,
+    pending_access_requests: source.pending_access_requests,
+    ...(typeof source.active_employee_grants === "number"
+      ? { active_employee_grants: source.active_employee_grants }
+      : {}),
+    ...(typeof source.people_with_open_requests === "number"
+      ? { people_with_open_requests: source.people_with_open_requests }
+      : {}),
+  };
 }
 
 export interface ScopeGrantLike {

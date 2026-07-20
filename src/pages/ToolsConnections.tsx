@@ -23,6 +23,7 @@ import {
   MCP_TAB_LABEL,
 } from "@/lib/connectors/capability-first-tools";
 import {
+  coverageKpisFromInventory,
   labelConnectionScope,
   normalizeConnectionScope,
   summarizeConnectionCoverage,
@@ -212,18 +213,9 @@ function InventoryPanel(): JSX.Element {
 
   const people = inv.people ?? [];
   const allGrants = people.flatMap((p) => p.grants ?? []);
+  // exactOptionalPropertyTypes: omit optional KPIs when API did not send them
   const coverage = summarizeConnectionCoverage({
-    kpis: {
-      capabilities_connected: k.capabilities_connected,
-      capabilities_ready: k.capabilities_ready,
-      capabilities_blocked: k.capabilities_blocked,
-      oauth_verified: k.oauth_verified,
-      oauth_ready_for_consent: k.oauth_ready_for_consent,
-      org_bindings_enabled: k.org_bindings_enabled,
-      pending_access_requests: k.pending_access_requests,
-      active_employee_grants: k.active_employee_grants,
-      people_with_open_requests: k.people_with_open_requests,
-    },
+    kpis: coverageKpisFromInventory(k),
     grants: allGrants,
   });
   const acc = inv.accuracy;
