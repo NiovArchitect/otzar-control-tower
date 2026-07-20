@@ -21,6 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
+import {
+  CAPABILITY_FIRST_DETAIL,
+  CAPABILITY_FIRST_HEADLINE,
+} from "@/lib/connectors/capability-first-tools";
 
 type ProviderRow = {
   provider: string;
@@ -194,11 +198,26 @@ export function ConnectorHealth(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6" data-testid="connector-health-page">
+    <div
+      className="space-y-6"
+      data-testid="connector-health-page"
+      data-capability-first="true"
+      data-mcp-primary="false"
+    >
       <PageHeader
         title="Your tools"
         description="Pick what you need for work — calendars, documents, Meet, chat. Connect or reconnect when scopes go stale. Otzar never writes without policy."
       />
+      {/* O-01 — capability-first framing; MCP is not the employee primary path. */}
+      <p
+        className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+        data-testid="tools-capability-first-banner"
+      >
+        <span className="font-medium text-foreground">
+          {CAPABILITY_FIRST_HEADLINE}
+        </span>{" "}
+        {CAPABILITY_FIRST_DETAIL}
+      </p>
 
       {needReconnect ? (
         <Card

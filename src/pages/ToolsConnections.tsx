@@ -1,7 +1,7 @@
 // FILE: ToolsConnections.tsx
 // PURPOSE: Admin Tools & Connections — inventory KPIs, per-person tool
 //          footprint, in-place approve/deny requests, force-revoke OAuth
-//          (Phase E.1 + E.2). MCP advanced-only.
+//          (Phase E.1 + E.2). O-01: capability-first primary; MCP advanced-only.
 // CONNECTS TO: api.otzar.enterpriseTools.*, ConnectorsAdmin, ConnectorRailsAdmin.
 
 import { useCallback, useEffect, useState } from "react";
@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
 import ConnectorRailsAdmin from "@/pages/ConnectorRailsAdmin";
 import { api } from "@/lib/api";
+import {
+  CAPABILITY_FIRST_DETAIL,
+  CAPABILITY_FIRST_HEADLINE,
+  DEFAULT_ADMIN_TOOLS_TAB,
+  MCP_ADVANCED_ONLY_COPY,
+  MCP_TAB_LABEL,
+} from "@/lib/connectors/capability-first-tools";
 
 type Inventory = {
   headline: string;
@@ -498,35 +505,59 @@ function InventoryPanel(): JSX.Element {
 
 export function ToolsConnectionsPage(): JSX.Element {
   return (
-    <div className="space-y-6" data-testid="tools-connections-page">
+    <div
+      className="space-y-6"
+      data-testid="tools-connections-page"
+      data-capability-first="true"
+      data-mcp-advanced-only="true"
+    >
       <PageHeader
         title="Connect the tools your company already uses"
         description="Employees pick a capability and connect in a few clicks when you enable it. You keep inventory, decide access requests, and can revoke. Otzar never posts without policy — and nobody needs MCP jargon for daily setup."
       />
+      <p
+        className="text-sm text-muted-foreground"
+        data-testid="tools-capability-first-banner"
+      >
+        <span className="font-medium text-foreground">
+          {CAPABILITY_FIRST_HEADLINE}
+        </span>{" "}
+        {CAPABILITY_FIRST_DETAIL}
+      </p>
 
-      <Tabs defaultValue="inventory" className="space-y-4">
-        <TabsList>
+      {/* O-01 — default inventory; MCP/protocol only under Advanced (last). */}
+      <Tabs defaultValue={DEFAULT_ADMIN_TOOLS_TAB} className="space-y-4">
+        <TabsList data-testid="tools-admin-tablist" data-tab-order="inventory>connected>advanced">
           <TabsTrigger value="inventory" data-testid="tab-tools-inventory">
             Inventory &amp; KPIs
           </TabsTrigger>
           <TabsTrigger value="connected" data-testid="tab-connected-tools">
             Your tools
           </TabsTrigger>
-          <TabsTrigger value="advanced" data-testid="tab-integrations-advanced">
-            Advanced (developers)
+          <TabsTrigger
+            value="advanced"
+            data-testid="tab-integrations-advanced"
+            data-mcp-advanced="true"
+          >
+            {MCP_TAB_LABEL}
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="inventory" data-testid="panel-tools-inventory">
+        <TabsContent value="inventory" data-testid="panel-tools-inventory" data-capability-primary="true">
           <InventoryPanel />
         </TabsContent>
-        <TabsContent value="connected" data-testid="panel-connected-tools">
+        <TabsContent value="connected" data-testid="panel-connected-tools" data-capability-primary="true">
           <ConnectorsAdminPage />
         </TabsContent>
-        <TabsContent value="advanced" data-testid="panel-integrations-advanced">
-          <p className="mb-3 text-sm text-muted-foreground">
-            Protocol-level connections, tool policies, and custom servers for
-            authorized technical administrators. Ordinary org setup does not
-            require this tab.
+        <TabsContent
+          value="advanced"
+          data-testid="panel-integrations-advanced"
+          data-mcp-advanced-only="true"
+        >
+          <p
+            className="mb-3 text-sm text-muted-foreground"
+            data-testid="tools-mcp-advanced-copy"
+          >
+            {MCP_ADVANCED_ONLY_COPY}
           </p>
           <ConnectorRailsAdmin />
         </TabsContent>

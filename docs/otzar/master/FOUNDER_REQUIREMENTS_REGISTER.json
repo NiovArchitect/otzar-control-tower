@@ -2072,17 +2072,23 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "ConnectorHealth enterprise tools",
-        "ToolsConnections"
+        "src/lib/connectors/capability-first-tools.ts",
+        "src/pages/app/ConnectorHealth.tsx data-capability-first",
+        "src/pages/ToolsConnections.tsx MCP advanced last",
+        "tests/unit/capability-first-tools.test.ts",
+        "tests/e2e/otzar-live-tools-o01.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Domain-wide provisioning incomplete",
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Domain-wide provisioning / SCIM still O-02; await MANUAL DEPLOY + deep smoke o01",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit capability-first contract",
+        "live deep o01"
+      ],
+      "live_acceptance": "Employee connector-health capability-first; admin inventory default; MCP advanced-only tab",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
