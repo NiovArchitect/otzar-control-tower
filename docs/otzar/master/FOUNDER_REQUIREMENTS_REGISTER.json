@@ -311,8 +311,8 @@
         "tests/unit/org-switch.test.ts",
         "tests/e2e/otzar-live-org-switch-a06.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Foundation multi-org membership list + server switch token still not wired; client isolation + Home reset ready; single-org live identity via context-health",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Foundation multi-org membership list + server switch token still not wired; client isolation + Home reset proven single-org; multi-org select UI ready when memberships > 1",
       "dependencies": [],
       "priority": "P1",
       "phase": 0,
@@ -321,11 +321,18 @@
         "live deep a06"
       ],
       "live_acceptance": "Org badge on shell; org-scoped conversation; org change navigates /app and clears blendable client state",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "ed68675",
+        "3651186"
+      ],
+      "deployment_sha": "3651186",
+      "final_proof": {
+        "live_bundle": "index-DruuhIGt.js",
+        "e2e": "otzar-live-org-switch-a06 6/6",
+        "notes": "org-context-badge; switch-home=/app; action-center→/app on org change; org-count=1 live identity"
+      }
     },
     {
       "id": "A-07",
