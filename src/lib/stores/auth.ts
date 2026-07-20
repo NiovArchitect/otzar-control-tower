@@ -37,6 +37,10 @@ import {
   bindConversationScope,
   clearConversationScope,
 } from "../work-os/conversation-store";
+import {
+  conversationScopeId,
+  writeStoredActiveOrg,
+} from "@/lib/auth/org-switch";
 
 // WHAT: TAR-derived capability flags surfaced to the UI.
 // INPUT: Used as part of state shape.
@@ -67,6 +71,9 @@ export interface AuthEntity {
   email: string;
   // Foundation's LoginResponse doesn't return entity_id today; if /auth/login is
   // extended in a future Foundation section, surface it here.
+  /** A-06 — active org binding (from context-health / org profile). */
+  org_entity_id?: string | null;
+  org_name?: string | null;
 }
 
 interface AuthState {
@@ -81,6 +88,11 @@ interface AuthState {
     password: string,
   ) => Promise<{ ok: boolean; message?: string }>;
   logout: () => void;
+  /** A-06 — bind active org identity without re-login. */
+  setActiveOrg: (org: {
+    org_entity_id: string | null;
+    org_name?: string | null;
+  }) => void;
 }
 
 // WHAT: Derive AuthCapabilities from Foundation's
@@ -138,17 +150,17 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
       }
       set({
         token: body.token,
-        entity: { email },
+        entity: { email, org_entity_id: null, org_name: null },
         capabilities: deriveCapabilities(body.allowed_operations),
         isAuthenticated: true,
         isLoading: false,
         loginError: null,
       });
-      // Phase 1284 P0 — bind the personal chat transcript to THIS user so a
-      // different account on the same device never sees this user's chat.
-      // session_id (unique per login) is the safest scope; falls back to the
-      // email when present. This loads only this user's transcript.
-      bindConversationScope(body.session_id ?? email);
+      // Phase 1284 P0 + A-06 — scope transcript to user (org rebind follows
+      // OrgContextBootstrap once context-health resolves org_entity_id).
+      bindConversationScope(
+        conversationScopeId(body.session_id ?? email, null),
+      );
       return { ok: true };
     },
 
@@ -156,6 +168,7 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
       // Hide the current user's transcript before clearing identity so the
       // next account starts from an empty chat (no stale leak).
       clearConversationScope();
+      writeStoredActiveOrg(null);
       set({
         token: null,
         entity: null,
@@ -163,6 +176,18 @@ export const useAuthStore: UseBoundStore<StoreApi<AuthState>> = create<AuthState
         isAuthenticated: false,
         isLoading: false,
         loginError: null,
+      });
+    },
+
+    setActiveOrg: (org): void => {
+      const state = useAuthStore.getState();
+      if (state.entity === null) return;
+      set({
+        entity: {
+          ...state.entity,
+          org_entity_id: org.org_entity_id,
+          org_name: org.org_name ?? state.entity.org_name ?? null,
+        },
       });
     },
   }),
@@ -183,14 +208,19 @@ export async function restoreSession(): Promise<boolean> {
   const body = result.data;
   useAuthStore.setState({
     token: body.token,
-    entity: { email: body.entity.email },
+    entity: {
+      email: body.entity.email,
+      org_entity_id: null,
+      org_name: null,
+    },
     capabilities: deriveCapabilities(body.allowed_operations),
     isAuthenticated: true,
     isLoading: false,
     loginError: null,
   });
-  // Rebind the SAME per-session scope (personal chat transcript) the login bound,
-  // so a reload continues the session instead of appearing to start fresh.
-  bindConversationScope(body.session_id ?? body.entity.email);
+  // Rebind user scope; OrgContextBootstrap rebinds with org once known (A-06).
+  bindConversationScope(
+    conversationScopeId(body.session_id ?? body.entity.email, null),
+  );
   return true;
 }

@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `f05d9d9` (#195) |
+| CT `origin/main` | `741dee5` |
 | Live bundle | `index-B7Ex-Jn5.js` |
 | Live last-modified | 2026-07-20 O-02 + C-04 LIVE 6/6 each |
-| Gate status | **OPEN** — O-02 + C-04 LIVE_VERIFIED; N-05 LIVE; N-02 EXTERNALLY_BLOCKED; phases 3–7 incomplete |
+| Gate status | **OPEN** — O-02 + C-04 LIVE; A-06 IMPLEMENTED (await deploy+smoke); N-02 EXTERNALLY_BLOCKED; Phase 0 P0 closed |
 
 ---
 
@@ -47,7 +47,7 @@
 | 7 | B-02 | Home counts reconcile with visible objects | LIVE_VERIFIED | data-why + object links on live Focus |
 | 8 | C-01 | Route inventory + every screen earns existence | LIVE_VERIFIED | Inventory + welcome→Today live |
 | 9 | C-02 | Admin vs employee shell separation | LIVE_VERIFIED | Guard remaining leaks |
-| 10 | C-03 | Zero dead buttons / no coming-soon in primary | PARTIAL | Admin/employee control inventory |
+| 10 | C-03 | Zero dead buttons / no coming-soon in primary | LIVE_VERIFIED | Regression only |
 | 11 | F-01 | People hierarchy glance + admin set line | LIVE_VERIFIED | Drag-drop editor F-02 |
 | 12 | N-01 | Meet/tools reconnect honesty | LIVE_VERIFIED (#180) | Operator OAuth for PROVIDER_PROVEN |
 | 13 | N-02 | Google Meet operational transcripts | EXTERNALLY_BLOCKED | Operator reauth; then ambient proof |
@@ -72,7 +72,8 @@
 
 ## Next slice (after this register lands)
 
-**Phase 0 remaining highest value:**  
-`A-04` server-side walkthrough state + `B-02` Home card reconciliation smoke + route inventory table for `C-01`.
+**Selected (master gate):** **A-06** org switch → Home without blending — multi-org / tenant-safety UX foundation for Q-02 / I-02 / YC multi-tenant demos.
 
-Do not open Phase 3 drag-drop until Phase 0 P0 open rows are LIVE_VERIFIED or EXTERNALLY_BLOCKED.
+Phase 0 P0 closed (N-02 is Phase 2 EXTERNALLY_BLOCKED). Do not open Phase 3 F-02 drag-drop until remaining Phase 0 P1 A-06 is LIVE or residual-honest.
+
+**Deferred (honest):** Foundation multi-org membership switch API; OPS-02 ops residual (does not outrank A-06); S-01 continuous YC harness (Phase 7).

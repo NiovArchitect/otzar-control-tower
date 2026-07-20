@@ -290,7 +290,7 @@
       "group": "A",
       "exact_requirement": "Org switching resets to new org Home without blending state.",
       "founder_intent": "Org switching resets to new org Home without blending state.",
-      "user_value": "",
+      "user_value": "Multi-org users get a clean Home per org — chat, continuity, and surface context never blend.",
       "roles": [
         "admin",
         "employee",
@@ -303,17 +303,25 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Org switch UX proof not continuous in current smokes",
+      "implementation_refs": [
+        "src/lib/auth/org-switch.ts",
+        "src/components/otzar/OrgContextBadge.tsx",
+        "src/components/employee/EmployeeLayout.tsx",
+        "src/lib/stores/auth.ts setActiveOrg",
+        "tests/unit/org-switch.test.ts",
+        "tests/e2e/otzar-live-org-switch-a06.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Foundation multi-org membership list + server switch token still not wired; client isolation + Home reset ready; single-org live identity via context-health",
       "dependencies": [],
       "priority": "P1",
       "phase": 0,
       "test_requirements": [
-        "multi-org browser"
+        "unit org-switch no-blend",
+        "live deep a06"
       ],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Org badge on shell; org-scoped conversation; org change navigates /app and clears blendable client state",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

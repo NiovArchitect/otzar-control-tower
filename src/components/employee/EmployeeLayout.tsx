@@ -14,6 +14,7 @@ import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
 import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
 import { AmbientNotificationStack } from "@/components/otzar/AmbientNotificationStack";
 import { NotificationBell } from "@/components/otzar/NotificationBell";
+import { OrgContextBadge } from "@/components/otzar/OrgContextBadge";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { api } from "@/lib/api";
@@ -67,6 +68,8 @@ export function EmployeeLayout() {
             </Link>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+            {/* A-06 — active org context; switch resets to Home without blend */}
+            <OrgContextBadge />
             <button
               type="button"
               onClick={() => {

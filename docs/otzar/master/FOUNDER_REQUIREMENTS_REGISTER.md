@@ -29,7 +29,7 @@
 | **A-03** Role-aware first-use strip | LIVE_VERIFIED | localStorage; see A-04 |
 | **A-04** Server-side versioned multi-role walkthrough | LIVE_VERIFIED | dual-write + roles; live verify after deploy |
 | **A-05** YC first 5 min aha | LIVE_VERIFIED | Needs S-01 continuous |
-| **A-06** Org switch → Home | PARTIAL | |
+| **A-06** Org switch → Home | IMPLEMENTED | Client isolation + badge; deploy + a06 smoke |
 | **A-07** Sole-admin lockout honesty | LIVE_VERIFIED | #178 |
 
 ### B — Home / Today / trust
