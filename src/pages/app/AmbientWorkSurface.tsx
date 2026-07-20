@@ -59,6 +59,14 @@ import {
   roleHomeCopy,
 } from "@/lib/today/role-home";
 import { buildRoleIntelligenceReport } from "@/lib/today/role-intelligence-report";
+import {
+  buildCreateBody,
+  defaultAppendMaterial,
+  editDetectionLabel,
+  sessionAfterAppend,
+  sessionAfterCreate,
+  type WorkingDocSession,
+} from "@/lib/connectors/google-docs-n03";
 import { isRealNextDecision } from "@/lib/today/stale-truth";
 import { buildWhatChanged } from "@/lib/today/what-changed";
 
@@ -383,26 +391,46 @@ export function AmbientWorkSurface(): JSX.Element {
     }
   };
 
-  // [GOOGLE-DOCS-WRITE] One-tap: create a real Google Doc after explicit confirm.
+  // [GOOGLE-DOCS-WRITE / N-03] One-tap: create a real non-empty Google Doc after
+  // explicit confirm; optional material append for edit-detection proof.
   // Honest gates surface reconnect / missing scope — never a fake success.
+  const [docSession, setDocSession] = useState<WorkingDocSession | null>(null);
+  const [docAppendBusy, setDocAppendBusy] = useState(false);
+
   const createWorkingDoc = async () => {
     setDocBusy(true);
     setDocError(null);
     setDocLink(null);
+    setDocSession(null);
     const day = new Date().toISOString().slice(0, 10);
+    const built = buildCreateBody({
+      title: `Working notes · ${day}`,
+      dayIso: day,
+    });
+    if ("error" in built) {
+      setDocError("EMPTY_BODY");
+      setDocBusy(false);
+      return;
+    }
     try {
       const r = await api.connectorData.googleDocCreate({
-        title: `Working notes · ${day}`,
-        body_text:
-          "Started from Otzar Today. Capture owners, decisions, and next steps here.",
+        title: built.title,
+        body_text: built.body_text,
         caller_confirmed: true,
         source_command: "ambient_today_create_doc",
       });
-      if (r.ok && r.data.web_view_link) {
-        setDocLink(r.data.web_view_link);
-      } else if (r.ok) {
-        setDocLink(
-          `https://docs.google.com/document/d/${r.data.document_id}/edit`,
+      if (r.ok) {
+        const link =
+          r.data.web_view_link ??
+          `https://docs.google.com/document/d/${r.data.document_id}/edit`;
+        setDocLink(link);
+        setDocSession(
+          sessionAfterCreate({
+            documentId: r.data.document_id,
+            title: r.data.title ?? built.title,
+            webViewLink: r.data.web_view_link,
+            bodyChars: built.body_text.length,
+          }),
         );
       } else {
         const code = "code" in r ? String(r.code) : "CREATE_FAILED";
@@ -420,6 +448,44 @@ export function AmbientWorkSurface(): JSX.Element {
       setDocError("NETWORK_ERROR");
     } finally {
       setDocBusy(false);
+    }
+  };
+
+  /** N-03 — append material body so Drive modifiedTime advances (edit detect). */
+  const appendWorkingDoc = async () => {
+    if (docSession === null) return;
+    setDocAppendBusy(true);
+    setDocError(null);
+    const material = defaultAppendMaterial(new Date().toISOString());
+    try {
+      const r = await api.connectorData.googleDocAppend({
+        document_id: docSession.documentId,
+        body_text: material,
+        caller_confirmed: true,
+      });
+      if (r.ok && r.data.appended) {
+        setDocSession(
+          sessionAfterAppend(
+            docSession,
+            r.data.body_char_count,
+            new Date().toISOString(),
+          ),
+        );
+        if (r.data.web_view_link) setDocLink(r.data.web_view_link);
+      } else {
+        const code = "code" in r ? String(r.code) : "APPEND_FAILED";
+        if (code === "GOOGLE_RECONNECT_REQUIRED" || code === "DOC_WRITE_SCOPE_MISSING") {
+          setDocError(
+            "Reconnect Google to append. Document create scopes are required.",
+          );
+        } else {
+          setDocError(code);
+        }
+      }
+    } catch {
+      setDocError("NETWORK_ERROR");
+    } finally {
+      setDocAppendBusy(false);
     }
   };
 
@@ -993,6 +1059,52 @@ export function AmbientWorkSurface(): JSX.Element {
             Fix connection
           </Link>
         </p>
+      ) : null}
+
+      {/* N-03 — working doc session: non-empty create + append + edit detection */}
+      {docSession !== null ? (
+        <section
+          className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 px-3 py-2.5"
+          data-testid="google-doc-session"
+          data-document-id={docSession.documentId}
+          data-edit-detected={docSession.editDetected ? "true" : "false"}
+          data-nonempty-create={docSession.createdBodyChars > 0 ? "true" : "false"}
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800/80">
+            Working doc
+          </p>
+          <p className="mt-0.5 truncate text-sm font-medium text-slate-900">
+            {docSession.title}
+          </p>
+          <p
+            className="mt-1 text-[11px] text-slate-600"
+            data-testid="google-doc-edit-status"
+          >
+            {editDetectionLabel(docSession)}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {docLink !== null ? (
+              <a
+                href={docLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-full border border-emerald-300/80 bg-white/70 px-2.5 py-1 text-[11px] font-medium text-emerald-950"
+                data-testid="google-doc-open-session"
+              >
+                Open in Google Docs
+              </a>
+            ) : null}
+            <button
+              type="button"
+              disabled={docAppendBusy}
+              onClick={() => void appendWorkingDoc()}
+              className="inline-flex items-center rounded-full border border-slate-300/80 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-800 disabled:opacity-60"
+              data-testid="google-doc-append"
+            >
+              {docAppendBusy ? "Appending…" : "Append material change"}
+            </button>
+          </div>
+        </section>
       ) : null}
 
       {/* Single primary invitation — Talk is the engine. */}

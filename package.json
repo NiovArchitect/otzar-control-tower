@@ -56,7 +56,8 @@
     "test:e2e:live:d02": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-voice-d02.spec.ts",
     "test:e2e:live:j03": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-project-j03.spec.ts",
     "test:e2e:live:p01": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-role-intel-p01.spec.ts",
-    "test:e2e:live:k01k03": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-comms-k01-k03.spec.ts"
+    "test:e2e:live:k01k03": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-comms-k01-k03.spec.ts",
+    "test:e2e:live:n03": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-docs-n03.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

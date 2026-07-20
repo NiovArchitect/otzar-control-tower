@@ -1960,15 +1960,24 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Append live proof may lag FND deploy",
+      "implementation_refs": [
+        "src/lib/connectors/google-docs-n03.ts",
+        "src/lib/api.ts googleDocAppend",
+        "src/pages/app/AmbientWorkSurface.tsx doc session",
+        "tests/unit/google-docs-n03.test.ts",
+        "tests/e2e/otzar-live-docs-n03.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Await MANUAL DEPLOY + deep smoke; provider may honest-gate without Google doc scopes",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit non-empty+edit session",
+        "live deep n03"
+      ],
+      "live_acceptance": "Create non-empty session or honest reconnect; append\u2192editDetected when provider allows",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

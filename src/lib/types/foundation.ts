@@ -5291,6 +5291,32 @@ export interface GoogleDocCreateSuccess {
   web_view_link: string | null;
 }
 
+// [N-03] POST /api/v1/google/docs/append — material body change for edit detection.
+export interface GoogleDocAppendBody {
+  document_id: string;
+  body_text: string;
+  caller_confirmed?: boolean;
+  policy_blocked?: boolean;
+}
+
+export type GoogleDocAppendGateCode =
+  | "NEEDS_DOCUMENT_ID"
+  | "BODY_REQUIRED"
+  | "NEEDS_CALLER_CONFIRMATION"
+  | "POLICY_BLOCKED"
+  | "GOOGLE_RECONNECT_REQUIRED"
+  | "DOC_WRITE_SCOPE_MISSING"
+  | "APPEND_FAILED"
+  | "PROVIDER_ERROR";
+
+export interface GoogleDocAppendSuccess {
+  ok: true;
+  document_id: string;
+  appended: true;
+  body_char_count: number;
+  web_view_link: string | null;
+}
+
 // Phase 1279 — durable Work Ledger entry (safe projection).
 // [CE-1] Read-only clarity projection (FND clarity.service.ts): ranked
 // "who can clarify?" candidates with human reasons. Suggestions only —

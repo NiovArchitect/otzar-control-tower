@@ -92,6 +92,8 @@ import type {
   CalendarEventProposalBody,
   GoogleDocCreateBody,
   GoogleDocCreateSuccess,
+  GoogleDocAppendBody,
+  GoogleDocAppendSuccess,
   AuthorityContextResponse,
   ResolveTargetResponse,
   RuntimeCapabilitiesResponse,
@@ -2231,6 +2233,18 @@ export class ApiClient {
       body: GoogleDocCreateBody,
     ): Promise<ApiResult<GoogleDocCreateSuccess>> =>
       this.request<GoogleDocCreateSuccess>("/google/docs/create", {
+        method: "POST",
+        body,
+        retries: 0,
+      }),
+
+    /** POST /api/v1/google/docs/append — N-03 material body append for
+     *  edit-detection proof. Hard-gated: caller_confirmed + doc-write scope.
+     *  Never logs body text; never auto-appends without confirmation. */
+    googleDocAppend: (
+      body: GoogleDocAppendBody,
+    ): Promise<ApiResult<GoogleDocAppendSuccess>> =>
+      this.request<GoogleDocAppendSuccess>("/google/docs/append", {
         method: "POST",
         body,
         retries: 0,
