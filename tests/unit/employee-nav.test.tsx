@@ -68,6 +68,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
     expect(visible).toContain("Projects");
     expect(visible).toContain("My AI Teammate");
     expect(visible).toContain("Account & Security");
+    expect(visible).toContain("Tools"); // reconnect path must be findable
     // Preferences/Schedule thinned to route-only under nav pressure.
     expect(visible).not.toContain("Preferences");
     // No admin/diagnostic labels.
@@ -80,6 +81,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       (i) => i.to,
     );
     // Must include the core legacy/redirect surfaces (list may grow as IA thins).
+    // Tools (/app/connector-health) is visible in More — not route-only.
     for (const r of [
       "/app/my-day",
       "/app/my-work",
@@ -89,7 +91,6 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "/app/collaboration-workspaces",
       "/app/my-organization",
       "/app/meeting-captures",
-      "/app/connector-health",
       "/app/approvals",
       "/app/authority-grants",
       "/app/chat",
@@ -102,6 +103,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
     ]) {
       expect(hiddenRoutes).toContain(r);
     }
+    expect(hiddenRoutes).not.toContain("/app/connector-health");
     const visibleRoutes = [
       ...PRIMARY_EMPLOYEE_NAV,
       ...MORE_EMPLOYEE_NAV.filter((i) => i.hidden !== true),
