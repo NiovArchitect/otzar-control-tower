@@ -603,6 +603,10 @@ export function AmbientOtzarBar(): JSX.Element {
   // this surface; afterwards serverSttPreferred routes the mic button
   // straight to server STT.
   const autoSttFallbackUsedRef = useRef(false);
+  /** Capture selection on pointerdown — button click clears the selection
+   *  before click handlers run, which previously made "Add current context"
+   *  silently no-op (matrix D / transcript→actions broken). */
+  const pendingSelectionRef = useRef("");
   // True right after a server transcript landed in the draft (browser
   // path) — drives the honest "Transcribed via server" note.
   const [serverTranscribed, setServerTranscribed] = useState(false);
@@ -766,12 +770,23 @@ export function AmbientOtzarBar(): JSX.Element {
     unreadCount,
     correctionsActive: savedCorrections.filter((c) => c.state !== "REVOKED").length,
   });
+  function capturePendingSelection(): void {
+    if (typeof window === "undefined") return;
+    const live = window.getSelection()?.toString() ?? "";
+    if (live.trim().length > 0) {
+      pendingSelectionRef.current = live;
+    }
+  }
+
   function handleAddContext(): void {
-    const selection =
+    // Prefer live selection; fall back to pointerdown-captured text
+    // (click on the button often collapses the selection first).
+    const live =
       typeof window !== "undefined"
         ? (window.getSelection()?.toString() ?? "")
         : "";
-    const text = selection.trim();
+    const text = (live.trim().length > 0 ? live : pendingSelectionRef.current).trim();
+    pendingSelectionRef.current = "";
     if (text.length === 0) return; // nothing selected — never capture silently
     provideSurfaceContext({
       type: "selected_text",
@@ -4588,6 +4603,8 @@ export function AmbientOtzarBar(): JSX.Element {
               <button
                 type="button"
                 className="text-muted-foreground/70 hover:text-foreground"
+                onPointerDown={capturePendingSelection}
+                onMouseDown={capturePendingSelection}
                 onClick={handleAddContext}
                 data-testid="surface-context-add"
               >
