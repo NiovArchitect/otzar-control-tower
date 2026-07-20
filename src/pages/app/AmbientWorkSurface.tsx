@@ -58,6 +58,7 @@ import {
   resolveHomeRole,
   roleHomeCopy,
 } from "@/lib/today/role-home";
+import { isRealNextDecision } from "@/lib/today/stale-truth";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -469,17 +470,20 @@ export function AmbientWorkSurface(): JSX.Element {
       actionBusy: false,
     });
   }
+  // B-03: only a real next decision — never IDLE_HEALTHY as a fake card.
   if (
     dgi?.next_best_step &&
-    dgi.next_best_step.kind !== "IDLE_HEALTHY" &&
+    isRealNextDecision(dgi.next_best_step.kind) &&
     focusItems.length < 3
   ) {
+    const nbs = focusNextBestStep({
+      title: dgi.next_best_step.safe_title,
+      reason: dgi.next_best_step.reason ?? null,
+      routeHint: dgi.next_best_step.route_hint ?? null,
+    });
     focusItems.push({
-      ...focusNextBestStep({
-        title: dgi.next_best_step.safe_title,
-        reason: dgi.next_best_step.reason ?? null,
-        routeHint: dgi.next_best_step.route_hint ?? null,
-      }),
+      ...nbs,
+      why: `${nbs.why} · real next decision`,
       onAction: null,
       actionBusy: false,
     });
