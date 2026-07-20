@@ -134,6 +134,10 @@ export function AmbientWorkSurface(): JSX.Element {
   const [myProjects, setMyProjects] = useState<WorkProjectSafeView[]>([]);
   // A.3 ambient — manager-only soft signal (reports without a first project).
   const [managerGapCount, setManagerGapCount] = useState(0);
+  // Honest tools gate: Google/etc needs reconnect — surface once as a glance chip.
+  const [toolsReconnectLabel, setToolsReconnectLabel] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -143,6 +147,37 @@ export function AmbientWorkSurface(): JSX.Element {
         if (cancelled || !r.ok) return;
         const items = r.data.items ?? r.data.entries ?? [];
         setUrgentBlindSpots(items.filter((e) => triagePriority(e) <= 2).length);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.otzar
+      .oauthStatus()
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        const bad = r.data.providers.filter(
+          (p) =>
+            p.status === "ERROR_NEEDS_RECONNECT" || p.status === "REVOKED",
+        );
+        if (bad.length === 0) {
+          setToolsReconnectLabel(null);
+          return;
+        }
+        const names = bad
+          .map((p) => p.display_name || p.provider)
+          .filter((n) => n.length > 0);
+        const label =
+          names.length === 1
+            ? `Reconnect ${names[0]}`
+            : names.length > 1
+              ? `Reconnect tools (${names.length})`
+              : "Reconnect tools";
+        setToolsReconnectLabel(label);
       })
       .catch(() => undefined);
     return () => {
@@ -803,6 +838,15 @@ export function AmbientWorkSurface(): JSX.Element {
             className="inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50/60 px-2.5 py-1 text-[11px] font-medium text-amber-900"
           >
             {managerGapCount} to place
+          </Link>
+        ) : null}
+        {toolsReconnectLabel !== null ? (
+          <Link
+            to="/app/connector-health"
+            data-testid="today-tools-reconnect"
+            className="inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50/70 px-2.5 py-1 text-[11px] font-medium text-amber-950"
+          >
+            {toolsReconnectLabel}
           </Link>
         ) : null}
       </div>

@@ -110,3 +110,25 @@ only commits that already landed on `main`.
 | Repair | Fresh content commit on `main` + operator: rotate Render API key, Manual Deploy **specific commit** `e3df5ae` or later if Auto-Deploy still silent. Reconnect GitHub if latest commit lags. |
 
 **Acceptance rule:** do not claim #175 live until HTML includes `viewport-fit=cover` and live JS contains `100dvh` + `employee-shell-header` / `project-context-pulse`.
+
+## Auto-Deploy lag model (2026-07-20)
+
+Render **auto-deploys after CI checks pass** on the watched branch (`main`). There is
+often multi-minute lag between:
+
+1. `origin/main` SHA advances  
+2. GitHub Actions `verify` completes green  
+3. Render Events starts a deploy  
+4. `app.otzar.ai` `last-modified` + bundle hash flip  
+
+**Operator / agent procedure:**
+
+| Step | Action |
+|------|--------|
+| 1 | Merge PR; confirm `git rev-parse --short origin/main` |
+| 2 | Wait for main CI green (`gh run list --branch main`) |
+| 3 | Poll live fingerprints — **do not force-deploy yet** |
+| 4 | Run `bash scripts/otzar-ambient-autosmoke.sh --wait-ci` (default timeout 15m) |
+| 5 | Only if still stale after CI green + ~10–15m: reconnect GitHub or `bash scripts/otzar-render-deploy.sh` (emergency) |
+
+Force deploy is the exception, not the default path.
