@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `7e22980` |
-| Live bundle | `index-B4shtStV.js` |
-| Live last-modified | 2026-07-20 E-02 complex deep 10/10; F-02 9/9; G-01 8/8 |
-| Gate status | **OPEN** — E-02 LIVE (complex deep); F-02/G-01 complex deep; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | (see latest push) |
+| Live bundle | `index-B4shtStV.js` (pre H-01) → pending `index-DPS0wBfX.js` after deploy |
+| Live last-modified | 2026-07-20 E-02 complex deep 10/10; F-02/G-01 complex deep; **H-01 shipped pending LIVE** |
+| Gate status | **OPEN** — Phase 4 P0 H-01 code shipped; deep smoke pending deploy; N-02 EXTERNALLY_BLOCKED |
 
 ---
 

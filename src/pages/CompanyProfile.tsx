@@ -2,13 +2,14 @@
 // PURPOSE: [ORG-SUBSTRATE] "/setup/company-profile" — the admin's ONE
 //          calm place for company operating truth: org time zone,
 //          default working hours and lunch/protected time (policy
-//          defaults, honestly labeled), and connector truth (calendar
-//          not connected → Otzar proposes times, never creates events).
+//          defaults, honestly labeled), connector truth (calendar
+//          not connected → Otzar proposes times, never creates events),
+//          and H-01 professional learning policy (Teach Otzar).
 //          Boundary doctrine on the page: admins govern boundaries;
 //          Otzar manages relevance; no document tagging, no chores.
 // CONNECTS TO: api.org.operatingProfile (GET/PATCH — admin-gated
-//          server-side), OrgSetup pointer, scheduling-policy defaults,
-//          tests/unit/company-profile.test.tsx.
+//          server-side), WorkStylePolicyCard, OrgSetup pointer,
+//          scheduling-policy defaults, tests/unit/company-profile.test.tsx.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,6 +17,7 @@ import { Clock, Globe, Scale } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
+import { WorkStylePolicyCard } from "@/components/otzar/WorkStylePolicyCard";
 import { api } from "@/lib/api";
 import type { DecisionDomain, DecisionRightsPosture } from "@/lib/types/foundation";
 import { DECISION_DOMAINS, decisionDomainLabel } from "@/lib/labels/decision-domains";
@@ -238,6 +240,9 @@ export function CompanyProfilePage() {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {/* H-01 — org enables professional learning so employees can Teach Otzar. */}
+      <WorkStylePolicyCard />
 
       <Card data-testid="decision-rights-card">
         <CardHeader className="pb-2">

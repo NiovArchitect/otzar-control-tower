@@ -76,7 +76,10 @@ PARTIAL — templates/authority substrate exist; distinct first sessions incompl
 
 ### H — Memory / work-style
 
-PARTIAL — Teach Otzar UI + FND work-style; multi-user isolation not SCALE/MULTI proven.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **H-01** Teach Otzar end-to-end | SHIPPED (pending LIVE) | Admin Company Profile policy + Memory consent→session→approve/reject; deep smoke `otzar-live-teach-otzar-h01` |
+| **H-02** Multi-user isolation | PARTIAL | multi-user isolation not SCALE/MULTI proven |
 
 ### I — Portability
 

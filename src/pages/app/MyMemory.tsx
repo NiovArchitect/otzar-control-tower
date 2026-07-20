@@ -48,6 +48,11 @@ import {
   OBSERVATION_LEARNS,
   OBSERVATION_NEVER,
 } from "@/lib/observation/consent-session";
+import {
+  TEACH_BOUNDARY_COPY,
+  journeyProgressLabel,
+  type TeachJourneyState,
+} from "@/lib/work-os/teach-otzar-journey";
 import { WindowContextShare } from "@/components/observation/WindowContextShare";
 
 export function MyMemory(): JSX.Element {
@@ -512,9 +517,30 @@ function ObservationConsentCard(): JSX.Element {
     setCandidates((c) => c.filter((x) => x.candidate_id !== id));
   }
 
+  const journeyPhase: TeachJourneyState["phase"] = !orgEnabled
+    ? "org_disabled"
+    : phase === "active"
+      ? "active"
+      : phase === "review"
+        ? "review"
+        : approved.length > 0
+          ? "complete"
+          : "idle";
+
+  const journeyState: TeachJourneyState = {
+    phase: journeyPhase,
+    org_policy_enabled: orgEnabled,
+    consent_given: consent || phase === "active" || phase === "review",
+    session_id: sessionId,
+    signal_count: signalCount,
+    pending_candidates: candidates.length,
+    approved_preferences: approved.length,
+  };
+  const progressLabel = journeyProgressLabel(journeyState);
+
   if (loading) {
     return (
-      <Card data-testid="observation-consent-card">
+      <Card data-testid="observation-consent-card" data-h01="true" data-h01-phase="loading">
         <CardContent className="py-4 text-sm text-muted-foreground">
           Loading work-style learning…
         </CardContent>
@@ -523,7 +549,14 @@ function ObservationConsentCard(): JSX.Element {
   }
 
   return (
-    <Card data-testid="observation-consent-card">
+    <Card
+      data-testid="observation-consent-card"
+      data-h01="true"
+      data-h01-phase={journeyPhase}
+      data-org-policy-enabled={orgEnabled ? "true" : "false"}
+      data-pending-candidates={String(candidates.length)}
+      data-approved-preferences={String(approved.length)}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <ShieldCheck className="h-4 w-4" aria-hidden /> Teach Otzar how you work
@@ -539,6 +572,13 @@ function ObservationConsentCard(): JSX.Element {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-xs">
+        <p
+          className="text-[11px] font-medium text-foreground"
+          data-testid="teach-journey-progress"
+          data-h01-progress={journeyPhase}
+        >
+          {progressLabel}
+        </p>
         <p className="text-muted-foreground" data-testid="work-style-benefit">
           Over time you should explain less — Otzar reflects your professional
           methods in later work, without absorbing company-confidential data,
@@ -575,12 +615,19 @@ function ObservationConsentCard(): JSX.Element {
           <div data-testid="observation-not-enabled" className="space-y-2">
             <p className="text-[11px] text-amber-700">
               Your organization hasn&apos;t enabled professional learning yet.
-              Ask an administrator to open Control Tower and enable work-style
-              learning under organization professional learning policy.
+              Ask an administrator to enable it in Company Profile under
+              Professional learning (Teach Otzar).
             </p>
             <p className="text-[10px] text-muted-foreground">
-              Admin API: POST /otzar/work-style/policy with enabled true
-              (requires org admin).
+              Admins:{" "}
+              <Link
+                to="/setup/company-profile"
+                className="font-medium text-foreground underline underline-offset-2"
+                data-testid="teach-admin-policy-link"
+              >
+                Company Profile → Professional learning
+              </Link>
+              .
             </p>
           </div>
         ) : phase === "idle" ? (
@@ -650,6 +697,9 @@ function ObservationConsentCard(): JSX.Element {
                     key={c.candidate_id}
                     className="rounded border border-border bg-card p-2"
                     data-testid="work-style-candidate"
+                    data-h01-candidate="true"
+                    data-candidate-id={c.candidate_id}
+                    data-portability={c.portability_proposal}
                   >
                     <p className="font-medium text-foreground">{c.plain_language}</p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">
@@ -708,10 +758,12 @@ function ObservationConsentCard(): JSX.Element {
           </div>
         ) : null}
 
-        <p className="text-[11px] text-muted-foreground" data-testid="observation-status-note">
-          Preference proposes behavior. Organization policy authorizes it.
-          Portable preferences never include company projects, customers, or
-          confidential patterns.
+        <p
+          className="text-[11px] text-muted-foreground"
+          data-testid="observation-status-note"
+          data-h01-boundary="true"
+        >
+          {TEACH_BOUNDARY_COPY}
         </p>
       </CardContent>
     </Card>
