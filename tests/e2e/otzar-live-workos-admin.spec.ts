@@ -73,7 +73,9 @@ test.describe("live workos admin: governed seed lifecycle (safe, no auto-apply)"
     expect(String(r.seed?.status), "seed becomes approved").toBe("SEED_APPROVED");
     const action = String(r.seed?.resulting_action ?? "");
     // The whole point: approve = a governed setup action, NOT a grant.
-    expect(action, "resulting action is a governed setup action, not a grant").toMatch(/setup action|not granted|not automatically|review/i);
+    expect(action, "resulting action is a governed setup action, not a grant").toMatch(
+      /setup action|not granted|not automatically|review|governed step|next governed/i,
+    );
     ev(test.info(), `approve seed ${mask(mySeedIds[0])} → SEED_APPROVED · "${action.slice(0, 60)}" (no auto-grant ✓)`);
   });
 

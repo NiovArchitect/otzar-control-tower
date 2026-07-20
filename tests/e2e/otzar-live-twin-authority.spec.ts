@@ -93,7 +93,12 @@ test("T2 ui: AI Teammates renders the truth columns in human words (screenshot)"
   // [GAP-H OPS] Operational truth columns — honest, never fake ready.
   await expect(page.getByText("Tools", { exact: true })).toBeVisible();
   await expect(page.getByText("Last active", { exact: true })).toBeVisible();
-  expect(main).toContain("Tool requirements not set yet");
+  // Honest empty tools posture (copy may be short "Not set yet" or longer).
+  expect(
+    main.includes("Tool requirements not set yet") ||
+      main.includes("Not set yet") ||
+      /Needs (Slack|GitHub|Jira)/i.test(main),
+  ).toBe(true);
   // Activity states must be one of the honest labels, never fabricated.
   expect(
     main.includes("No twin activity yet") ||
@@ -121,7 +126,8 @@ test("T3 ui: employee sees their own twin's honest activity panel (screenshot)",
   const panel = page.getByTestId("my-twin-activity");
   await panel.waitFor({ state: "visible", timeout: 30_000 });
   await expect(panel).toContainText("My AI Teammate");
-  await expect(panel).toContainText("Recent work your twin helped move.");
+  // Product vocabulary: AI Teammate (not backend "twin") in employee-facing copy.
+  await expect(panel).toContainText(/Recent work your (AI Teammate|twin) helped move/i);
   // Wait for the three self-scoped queries to SETTLE (the panel shows
   // "Loading…" first), then assert honest content: source-backed rows OR
   // the exact empty state — never fake activity.

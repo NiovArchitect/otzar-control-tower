@@ -939,18 +939,30 @@
         "src/pages/app/MyMemory.tsx",
         "tests/unit/window-context-session.test.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Frames not yet sent to governed method extraction API; local discard only. Live e2e needs manual permission dialog.",
+      "proof_level": "BROWSER_PROVEN",
+      "remaining_gap": "Method extraction API still future; browser permission dialog not automatable in e2e",
       "dependencies": [],
       "priority": "P0",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "status": "BROWSER_PROVEN",
+      "prs": [
+        "#185"
+      ],
+      "merge_shas": [
+        "dc84346"
+      ],
+      "deployment_sha": "dc84346",
+      "final_proof": {
+        "live_bundle": "index-BYGorI4l.js",
+        "e2e": "otzar-live-window-context-d04 1/1",
+        "markers": [
+          "window-context-share",
+          "window-context-start"
+        ],
+        "deep_smoke": "2026-07-20"
+      }
     },
     {
       "id": "E-01",

@@ -34,9 +34,8 @@ const TRANSCRIPT =
 test("live: Comms follow-up cards carry the recipient-governance trust layer", async ({ page }) => {
   await login(page);
 
-  // Client-side nav to Comms — now a PRIMARY rail entry (one click, no "More").
-  // In-memory auth survives client-side clicks.
-  await page.getByTestId("ambient-nav").getByRole("link", { name: /^Comms$/ }).first().click();
+  // Comms is route-only / More-adjacent (Talk is primary). Deep-link preserves session.
+  await page.goto("/app/comms", { waitUntil: "domcontentloaded" });
   await page.getByTestId("comms-page").waitFor({ state: "visible", timeout: 15_000 });
   await page.screenshot({ path: `screenshots/${TAG}-1-comms.png`, fullPage: true });
 
