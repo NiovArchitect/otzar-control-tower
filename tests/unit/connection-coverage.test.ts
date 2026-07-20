@@ -8,12 +8,24 @@ import {
   classifyCoverageHealth,
   classifyScimBridge,
   countScopesByLevel,
+  coverageKpisFromInventory,
   isFalseScimProvisionedClaim,
   labelConnectionScope,
   normalizeConnectionScope,
   scimHonestyCopy,
   summarizeConnectionCoverage,
+  type CoverageKpiInput,
 } from "@/lib/connectors/connection-coverage";
+
+const BASE_KPI = {
+  capabilities_connected: 2,
+  capabilities_ready: 1,
+  capabilities_blocked: 0,
+  oauth_verified: 1,
+  oauth_ready_for_consent: 1,
+  org_bindings_enabled: 3,
+  pending_access_requests: 1,
+} as const;
 
 describe("O-02 connection coverage", () => {
   it("normalizes foundation scope types to org/team/user", () => {
@@ -127,13 +139,7 @@ describe("O-02 connection coverage", () => {
   it("summarize includes scope breakdown and SCIM not_wired by default", () => {
     const s = summarizeConnectionCoverage({
       kpis: {
-        capabilities_connected: 2,
-        capabilities_ready: 1,
-        capabilities_blocked: 0,
-        oauth_verified: 1,
-        oauth_ready_for_consent: 1,
-        org_bindings_enabled: 3,
-        pending_access_requests: 1,
+        ...BASE_KPI,
         active_employee_grants: 4,
       },
       grants: [
@@ -150,4 +156,94 @@ describe("O-02 connection coverage", () => {
     expect(s.scimDetail.toLowerCase()).toMatch(/not wired/);
     expect(isFalseScimProvisionedClaim(s.scimDetail)).toBe(false);
   });
+
+  describe("coverageKpisFromInventory (exactOptionalPropertyTypes)", () => {
+    it("includes both optional counters when present", () => {
+      const kpis = coverageKpisFromInventory({
+        ...BASE_KPI,
+        active_employee_grants: 5,
+        people_with_open_requests: 2,
+      });
+      expect(kpis.active_employee_grants).toBe(5);
+      expect(kpis.people_with_open_requests).toBe(2);
+      expect(Object.prototype.hasOwnProperty.call(kpis, "active_employee_grants")).toBe(
+        true,
+      );
+      expect(
+        Object.prototype.hasOwnProperty.call(kpis, "people_with_open_requests"),
+      ).toBe(true);
+    });
+
+    it("omits both optional counters when absent", () => {
+      const kpis = coverageKpisFromInventory({ ...BASE_KPI });
+      expect(Object.prototype.hasOwnProperty.call(kpis, "active_employee_grants")).toBe(
+        false,
+      );
+      expect(
+        Object.prototype.hasOwnProperty.call(kpis, "people_with_open_requests"),
+      ).toBe(false);
+      // Consumers treat absent as zero for rollup — not NaN
+      const s = summarizeConnectionCoverage({ kpis, grants: [] });
+      expect(s.userCount).toBe(0);
+      expect(Number.isNaN(s.userCount)).toBe(false);
+    });
+
+    it("includes only active_employee_grants when people count absent", () => {
+      const kpis = coverageKpisFromInventory({
+        ...BASE_KPI,
+        active_employee_grants: 3,
+      });
+      expect(kpis.active_employee_grants).toBe(3);
+      expect(
+        Object.prototype.hasOwnProperty.call(kpis, "people_with_open_requests"),
+      ).toBe(false);
+    });
+
+    it("includes only people_with_open_requests when grants absent", () => {
+      const kpis = coverageKpisFromInventory({
+        ...BASE_KPI,
+        people_with_open_requests: 1,
+      });
+      expect(kpis.people_with_open_requests).toBe(1);
+      expect(Object.prototype.hasOwnProperty.call(kpis, "active_employee_grants")).toBe(
+        false,
+      );
+    });
+
+    it("preserves explicit zero (distinct from absent for property presence)", () => {
+      const kpis = coverageKpisFromInventory({
+        ...BASE_KPI,
+        active_employee_grants: 0,
+        people_with_open_requests: 0,
+      });
+      expect(kpis.active_employee_grants).toBe(0);
+      expect(kpis.people_with_open_requests).toBe(0);
+      expect(Object.prototype.hasOwnProperty.call(kpis, "active_employee_grants")).toBe(
+        true,
+      );
+      const s = summarizeConnectionCoverage({ kpis, grants: [] });
+      expect(s.userCount).toBe(0);
+    });
+
+    it("ignores present-but-undefined source fields (API partial)", () => {
+      const partial = {
+        ...BASE_KPI,
+        active_employee_grants: undefined as number | undefined,
+        people_with_open_requests: undefined as number | undefined,
+      };
+      const kpis: CoverageKpiInput = coverageKpisFromInventory(partial);
+      expect(Object.keys(kpis).sort()).toEqual(
+        [
+          "capabilities_blocked",
+          "capabilities_connected",
+          "capabilities_ready",
+          "oauth_ready_for_consent",
+          "oauth_verified",
+          "org_bindings_enabled",
+          "pending_access_requests",
+        ].sort(),
+      );
+    });
+  });
 });
+
