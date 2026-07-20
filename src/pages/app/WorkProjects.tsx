@@ -553,11 +553,79 @@ function ProjectContextPanel({
 
   const nextStep =
     dgi.data?.ok === true ? dgi.data.data.coherence?.next_best_step : null;
+  const coherence =
+    dgi.data?.ok === true ? dgi.data.data.coherence : null;
+  const truthConflicts =
+    coherence?.open_org_truth_conflicts_count ?? 0;
+  const obligationTitles =
+    coherence?.open_obligation_titles?.slice(0, 3) ?? [];
+  const obligationCount = coherence?.open_obligations_count ?? openWork.length;
 
   const peopleCount =
     typeof project.member_count === "number"
       ? project.member_count
       : memberRows.length;
+
+  // J-02 spine: always-present facets (honest empty when unknown).
+  const spineFacets: Array<{
+    id: string;
+    label: string;
+    value: string;
+    empty: boolean;
+  }> = [
+    {
+      id: "objective",
+      label: "Objective",
+      value: project.name,
+      empty: false,
+    },
+    {
+      id: "owners",
+      label: "Owners",
+      value: owner?.display_name
+        ? owner.display_name
+        : "Owner not listed yet",
+      empty: !owner?.display_name,
+    },
+    {
+      id: "truth",
+      label: "Truth",
+      value:
+        truthConflicts > 0
+          ? `${truthConflicts} org truth conflict${truthConflicts === 1 ? "" : "s"} need review`
+          : "No open org-truth conflicts",
+      empty: truthConflicts === 0,
+    },
+    {
+      id: "obligations",
+      label: "Obligations",
+      value:
+        openWork.length > 0
+          ? `${openWork.length} open on this mission`
+          : obligationCount > 0
+            ? `${obligationCount} open in your org posture`
+            : "No open obligations stamped here yet",
+      empty: openWork.length === 0 && obligationCount === 0,
+    },
+    {
+      id: "meetings",
+      label: "Meetings",
+      value:
+        meetings.length > 0
+          ? `${meetings.length} linked`
+          : "None linked yet",
+      empty: meetings.length === 0,
+    },
+    {
+      id: "next",
+      label: "Next",
+      value:
+        nextStep && nextStep.kind !== "IDLE_HEALTHY"
+          ? nextStep.safe_title
+          : "No forced next step — mission is quiet",
+      empty: !nextStep || nextStep.kind === "IDLE_HEALTHY",
+    },
+  ];
 
   return (
     <Card
@@ -592,6 +660,44 @@ function ProjectContextPanel({
             Close
           </Button>
         </div>
+
+        {/* J-02 — full spine always visible (honest empty, never missing facets). */}
+        <dl
+          className="grid gap-2 rounded-xl border border-slate-200/80 bg-white/50 p-3 sm:grid-cols-2"
+          data-testid="project-spine"
+        >
+          {spineFacets.map((f) => (
+            <div
+              key={f.id}
+              className="min-w-0"
+              data-testid={`project-spine-${f.id}`}
+              data-spine-empty={f.empty ? "true" : "false"}
+            >
+              <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                {f.label}
+              </dt>
+              <dd
+                className={`mt-0.5 text-sm leading-snug ${
+                  f.empty ? "text-slate-400" : "text-slate-800"
+                }`}
+              >
+                {f.value}
+              </dd>
+            </div>
+          ))}
+          {obligationTitles.length > 0 ? (
+            <div className="sm:col-span-2" data-testid="project-spine-obligation-samples">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Sample obligations
+              </p>
+              <ul className="mt-1 list-inside list-disc text-xs text-slate-600">
+                {obligationTitles.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </dl>
 
         {/* Pulse — one glance at the project heart */}
         <div
