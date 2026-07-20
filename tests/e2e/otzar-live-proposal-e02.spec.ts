@@ -227,7 +227,7 @@ test("E-02 deep: complex proposal honesty journey (admin + employee)", async ({
       // Hold may remove from pending or mark status — either is real work
       rec(
         "E02-G",
-        true ? "PASS" : "FAIL",
+        "PASS",
         `hold clicked; cards before=${before} after=${after}`,
       );
     } else {

@@ -329,15 +329,17 @@ test("H-01 deep: Teach Otzar admin enable + employee learning journey", async ({
           await approveBtn.click();
           await page.waitForTimeout(2000);
           const approved = page.getByTestId("work-style-approved");
+          const afterCand = await candList.count();
+          const approvedCount =
+            (await teach.getAttribute("data-approved-preferences")) ?? "0";
+          const ok =
+            (await approved.count()) > 0 ||
+            afterCand < nCand ||
+            approvedCount !== "0";
           rec(
             "H01-H",
-            (await approved.count()) > 0 ||
-              (await candList.count()) < nCand ||
-              ((await teach.getAttribute("data-approved-preferences")) ?? "0") !==
-                "0"
-              ? "PASS"
-              : "PASS",
-            `approve branch; candidates now=${await candList.count()}`,
+            ok ? "PASS" : "FAIL",
+            `approve branch; candidates now=${afterCand} approvedAttr=${approvedCount}`,
           );
         } else {
           rec("H01-H", "FAIL", "candidates present but no approve/reject controls");
