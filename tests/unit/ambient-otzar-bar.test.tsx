@@ -1389,8 +1389,10 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0);
   });
 
-  it("Confirm with an explicit time does NOT send selected_time:null / 'Choose a time' — says normalization not wired (Phase 1274/1275 Task D)", async () => {
+  it("Confirm with an explicit time normalizes selected_time (N-04) — never not-wired or null clock", async () => {
     let createCalls = 0;
+    let selectedStart: string | null = null;
+    let selectedEnd: string | null = null;
     server.use(
       http.post(`${API_BASE}/calendar/freebusy`, () =>
         HttpResponse.json({
@@ -1402,9 +1404,19 @@ describe("AmbientOtzarBar — Work OS commands", () => {
           busy: [],
         }),
       ),
-      http.post(`${API_BASE}/calendar/events/create`, () => {
+      http.post(`${API_BASE}/calendar/events/create`, async ({ request }) => {
         createCalls += 1;
-        return HttpResponse.json({ ok: false, code: "NEEDS_SELECTED_TIME" }, { status: 409 });
+        const body = (await request.json()) as {
+          selected_time?: { start?: string; end?: string } | null;
+        };
+        selectedStart = body.selected_time?.start ?? null;
+        selectedEnd = body.selected_time?.end ?? null;
+        return HttpResponse.json({
+          ok: true,
+          start: "2026-06-15T18:00:00.000Z",
+          end: "2026-06-15T18:30:00.000Z",
+          html_link: "https://calendar.example/event/1",
+        });
       }),
     );
     await speak("Schedule a meeting with Vishesh tomorrow at 11am PST.");
@@ -1413,13 +1425,13 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     );
     await userEvent.setup().click(screen.getByTestId("work-artifact-confirm"));
     await waitFor(() => {
-      expect(screen.getByTestId("work-artifact-card").textContent).toMatch(
-        /Selected-time normalization not wired/i,
-      );
+      expect(createCalls).toBeGreaterThanOrEqual(1);
     });
+    expect(selectedStart).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(selectedEnd).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     const card = screen.getByTestId("work-artifact-card").textContent ?? "";
-    expect(card).not.toMatch(/Choose a time/i);
-    expect(createCalls).toBe(0); // never sent selected_time: null
+    expect(card).not.toMatch(/normalization not wired/i);
+    expect(card).not.toMatch(/selected_time:\s*null/i);
     expect(actionPosts.length).toBe(0);
   });
 

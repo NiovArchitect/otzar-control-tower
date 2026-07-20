@@ -38,7 +38,10 @@ function renderNav(): void {
 describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
   it("shows the ambient primary loop by default", () => {
     renderNav();
-    const rail = screen.getByTestId("ambient-nav");
+    // Desktop + mobile rails share data-testid="ambient-nav"
+    const rails = screen.getAllByTestId("ambient-nav");
+    expect(rails.length).toBeGreaterThanOrEqual(1);
+    const rail = rails[0]!;
     // C-03 / WAVE-1: Today · Talk · Needs me · People · Memory (+ More).
     for (const label of ["Today", "Talk", "Needs me", "People", "Memory"]) {
       expect(within(rail).getAllByText(label).length).toBeGreaterThan(0);

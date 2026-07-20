@@ -104,8 +104,16 @@ describe("ConnectorHealth — Phase E.1 click-and-play", () => {
     expect(screen.getAllByTestId("enterprise-tools-capability").length).toBe(2);
     expect(screen.getByText("Calendars")).toBeInTheDocument();
     expect(screen.getByText("Team chat")).toBeInTheDocument();
-    // MCP never product vocabulary on employee surface.
-    expect(document.body.textContent).not.toMatch(/MCP|model context protocol/i);
+    // O-01: MCP may appear only as denial ("does not ask you to configure MCP"),
+    // never as the product lead. Capability-first banner must stay primary.
+    const banner = screen.getByTestId("tools-capability-first-banner");
+    expect(banner.textContent).toMatch(/capability|calendar|document|meet/i);
+    expect((banner.textContent ?? "").trim()).not.toMatch(
+      /^(MCP|model context protocol)\b/i,
+    );
+    expect(document.body.textContent).toMatch(
+      /does not ask you to configure MCP|nobody needs mcp/i,
+    );
   });
 
   it("Connect starts oauth; Ask admin posts a request", async () => {
