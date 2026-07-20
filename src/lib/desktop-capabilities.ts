@@ -73,11 +73,12 @@ export function getDesktopCapabilities(): DesktopCapability[] {
     },
     {
       id: "screen_capture",
-      label: "Screen sharing (Observe)",
-      status: displayMedia ? "NEEDS_PROVIDER" : "NEEDS_NATIVE",
+      label: "Selected-window share (D-04)",
+      // FALLBACK: browser picker works with visible indicator; frames not retained/servered yet.
+      status: displayMedia ? "FALLBACK" : "NEEDS_NATIVE",
       note: displayMedia
-        ? "Screen capture is available; the governed Observe pipeline connects next."
-        : "Live screen sharing needs the native capture plugin — pasted text and document reading work today.",
+        ? "You can share a selected window with an on-screen indicator; frames are discarded when you stop (no silent capture)."
+        : "Live window share needs a browser with display-media or the native capture plugin — pasted text still works.",
     },
     {
       id: "file_upload",
