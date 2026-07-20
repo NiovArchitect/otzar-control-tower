@@ -17,12 +17,17 @@ test("first-use reveal exposes role-aware primary CTA when shown", async ({
   test.setTimeout(150_000);
   await liveUiLogin(page, EMAIL, PW as string);
   await page.goto("/app", { waitUntil: "domcontentloaded" });
-  // Clear first-use so the strip can appear for this session.
+  // Clear versioned + legacy first-use keys so the strip can appear.
   await page.evaluate((em) => {
-    const key = `otzar_first_use_v1:${(em ?? "anonymous").trim().toLowerCase()}`;
-    localStorage.removeItem(key);
+    const id = (em ?? "anonymous").trim().toLowerCase();
+    localStorage.removeItem(`otzar_first_use_v1:${id}`);
     for (const k of Object.keys(localStorage)) {
-      if (k.startsWith("otzar_first_use_v1:")) localStorage.removeItem(k);
+      if (
+        k.startsWith("otzar_first_use_v1:") ||
+        k.startsWith("otzar_first_use_walkthrough:")
+      ) {
+        localStorage.removeItem(k);
+      }
     }
   }, EMAIL);
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -32,7 +37,8 @@ test("first-use reveal exposes role-aware primary CTA when shown", async ({
   if ((await reveal.count()) === 0) {
     test.info().annotations.push({
       type: "note",
-      description: "First-use already completed or not shown — skip CTA assert.",
+      description:
+        "First-use already completed (server marker) or not shown — skip CTA assert.",
     });
     // Still prove tools reconnect chip is honest when present.
     const reconnect = page.getByTestId("today-tools-reconnect");
@@ -43,11 +49,22 @@ test("first-use reveal exposes role-aware primary CTA when shown", async ({
   }
 
   await expect(reveal).toBeVisible({ timeout: 15_000 });
+  await expect(reveal).toHaveAttribute("data-walkthrough-version", /v\d+/);
   const role = await reveal.getAttribute("data-role");
-  if (role === "leader") {
-    await expect(page.getByTestId("first-use-see-org")).toBeVisible();
+  // A-04 roles: administrator | executive | manager | employee | contractor
+  if (
+    role === "administrator" ||
+    role === "executive" ||
+    role === "manager"
+  ) {
+    // Admin/leader primary path includes People (legacy testid on step 0 for admin).
+    if (role === "administrator") {
+      await expect(page.getByTestId("first-use-see-org")).toBeVisible();
+    }
+    await expect(page.getByTestId("walkthrough-step-title")).toBeVisible();
   } else {
     await expect(page.getByTestId("first-use-needs-me")).toBeVisible();
   }
   await expect(page.getByTestId("first-use-start-day")).toBeVisible();
+  await expect(page.getByTestId("walkthrough-next")).toBeVisible();
 });
