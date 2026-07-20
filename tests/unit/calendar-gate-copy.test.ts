@@ -45,7 +45,8 @@ describe("getCalendarCreateGateCopy", () => {
       proposedTime: "11:00 AM Pacific Time",
     });
     expect(c).toMatch(/Time captured: 11:00 AM Pacific Time/i);
-    expect(c).toMatch(/datetime normalization is not wired/i);
+    expect(c).toMatch(/final agreed datetime|timezone-aware|Confirm/i);
+    expect(c).not.toMatch(/not wired/i);
     expect(c).toMatch(SAFETY);
   });
 

@@ -2008,15 +2008,23 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Full matrix continuous",
+      "implementation_refs": [
+        "src/lib/work-os/calendar-datetime.ts",
+        "src/components/otzar/AmbientOtzarBar.tsx SCHEDULE_MEETING confirm",
+        "tests/unit/calendar-datetime.test.ts",
+        "tests/e2e/otzar-live-calendar-n04.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Await MANUAL DEPLOY + deep smoke; Meet conference link depends on provider create success + hangout_link field",
       "dependencies": [],
       "priority": "P1",
       "phase": 2,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit normalize+idempotency",
+        "live deep n04"
+      ],
+      "live_acceptance": "No \"not wired\" claim; final agreed time on proposal; create or honest gate",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

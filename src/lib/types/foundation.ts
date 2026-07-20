@@ -5259,6 +5259,24 @@ export interface CalendarEventProposalBody {
   requires_approval?: boolean;
   approved?: boolean;
   caller_confirmed?: boolean;
+  /** N-04 — client idempotency key for the same final slot (retries). */
+  client_idempotency_key?: string;
+}
+
+/** N-04 — create success envelope (lineage + final agreed window). */
+export interface CalendarEventCreateSuccess {
+  ok: true;
+  status: "CREATED";
+  source_kind?: string;
+  event_id?: string;
+  calendar_id?: string;
+  html_link?: string | null;
+  /** Meet / conference link when provider returned one. */
+  hangout_link?: string | null;
+  meet_link?: string | null;
+  start?: string;
+  end?: string;
+  project_id?: string | null;
 }
 
 // [GOOGLE-DOCS-WRITE] Gated Google Doc create — caller_confirmed required;

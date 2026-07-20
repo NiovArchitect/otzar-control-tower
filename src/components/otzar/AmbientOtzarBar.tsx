@@ -190,6 +190,7 @@ import {
 import {
   planWorkCommand,
   extractExplicitTime,
+  extractWhen,
   type PlannedAction,
 } from "@/lib/work-os/command-planner";
 import {
@@ -198,6 +199,10 @@ import {
   displayForIana,
 } from "@/lib/work-os/timezone";
 import { getCalendarCreateGateCopy } from "@/lib/work-os/calendar-gate-copy";
+import {
+  finalAgreedSummary,
+  normalizeSelectedTime,
+} from "@/lib/work-os/calendar-datetime";
 import {
   extractionSourceLabel,
   type PythonRuntimeStatus,
@@ -2547,18 +2552,38 @@ export function AmbientOtzarBar(): JSX.Element {
         setPendingArtifact({ ...a, body, status: "Resolve participant first." });
         return;
       }
-      // Phase 1274/1275 Task D — if the user GAVE an explicit time, do NOT
-      // send selected_time: null and then say "Choose a time". We have the
-      // clock time but converting "tomorrow" + timezone to a concrete
-      // datetime is a separate bridge — say so honestly, don't pretend.
+      // N-04 — normalize explicit clock + relative day + timezone → selected_time.
+      let selectedTime: { start: string; end: string } | null = null;
+      let finalAgreed: string | undefined;
+      let idemKey: string | undefined;
       if (a.explicitTime !== undefined) {
-        setPendingArtifact({
-          ...a,
-          body,
-          status: "Selected-time normalization not wired",
-          runtimeNote: `I have the time (${a.proposedTime ?? a.explicitTime}), but converting "tomorrow" + timezone to a concrete datetime isn't wired yet. No event created, no invite sent.`,
+        const when =
+          a.whenRelative ??
+          extractWhen(a.sourceCommand ?? body) ??
+          extractWhen(body) ??
+          "tomorrow";
+        const norm = normalizeSelectedTime({
+          time24: a.explicitTime,
+          when,
+          ...(a.timezoneLabel !== undefined
+            ? { timezoneLabel: a.timezoneLabel }
+            : {}),
+          ...(a.durationMinutes !== undefined
+            ? { durationMinutes: a.durationMinutes }
+            : {}),
         });
-        return;
+        if (norm === null) {
+          setPendingArtifact({
+            ...a,
+            body,
+            status: "Could not normalize time",
+            runtimeNote: `I have the clock time (${a.proposedTime ?? a.explicitTime}) but could not build a final datetime. No event created, no invite sent.`,
+          });
+          return;
+        }
+        selectedTime = { start: norm.start, end: norm.end };
+        finalAgreed = norm.display;
+        idemKey = norm.idempotencyKey;
       }
       const gateStatus: Record<string, string> = {
         NEEDS_SELECTED_TIME: "Choose a time.",
@@ -2581,13 +2606,24 @@ export function AmbientOtzarBar(): JSX.Element {
           a.targetLabel !== undefined
             ? [{ label: a.targetLabel, resolved: a.recipientEntityId !== undefined }]
             : [],
-        selected_time: null, // slot-selection UI is the next bridge
+        selected_time: selectedTime,
         caller_confirmed: true, // the user clicked Confirm
         ...(a.prerequisite !== undefined
           ? { prerequisite: a.prerequisite, participant_confirmations_satisfied: false }
           : { participant_confirmations_satisfied: true }),
         source_command: a.sourceCommand ?? body,
+        ...(idemKey !== undefined ? { client_idempotency_key: idemKey } : {}),
+        ...(a.durationMinutes !== undefined
+          ? { duration_minutes: a.durationMinutes }
+          : {}),
       });
+      const meetOrEvent =
+        r.ok
+          ? (r.data.meet_link ??
+            r.data.hangout_link ??
+            r.data.html_link ??
+            null)
+          : null;
       const status = r.ok
         ? "Created."
         : (gateStatus[r.code] ?? "Proposal saved (gated).");
@@ -2595,14 +2631,35 @@ export function AmbientOtzarBar(): JSX.Element {
       // forbids assigning undefined — omit the key instead).
       const { runtimeNote: _priorNote, ...rest } = a;
       void _priorNote;
+      const agreedLine =
+        r.ok && r.data.start
+          ? finalAgreedSummary({
+              display: finalAgreed ?? r.data.start,
+              ...(r.data.html_link != null ? { htmlLink: r.data.html_link } : {}),
+              ...((r.data.meet_link ?? r.data.hangout_link) != null
+                ? { meetLink: r.data.meet_link ?? r.data.hangout_link }
+                : {}),
+              created: true,
+            })
+          : finalAgreed !== undefined
+            ? finalAgreedSummary({
+                display: finalAgreed,
+                created: false,
+              })
+            : undefined;
       setPendingArtifact({
         ...rest,
         body,
         status,
+        ...(finalAgreed !== undefined ? { finalAgreedTime: finalAgreed } : {}),
+        ...(meetOrEvent !== null ? { eventLink: meetOrEvent } : {}),
         ...(r.ok
-          ? {}
+          ? agreedLine !== undefined
+            ? { runtimeNote: agreedLine }
+            : {}
           : {
               runtimeNote:
+                (agreedLine !== undefined ? `${agreedLine} ` : "") +
                 "No event was created — the proposal is held at the gate above. No invite sent.",
             }),
       });
@@ -3016,51 +3073,95 @@ export function AmbientOtzarBar(): JSX.Element {
       );
       return;
     }
-    // Task D — explicit time given: don't send null + say "Choose a time".
-    if (a.kind === "SCHEDULE_MEETING" && a.explicitTime !== undefined) {
-      setPlanArtifacts((prev) =>
-        prev.map((x, j) =>
-          j === index
-            ? {
-                ...x,
-                body,
-                status: "Selected-time normalization not wired",
-                runtimeNote: `I have the time (${a.proposedTime ?? a.explicitTime}), but converting "tomorrow" + timezone to a concrete datetime isn't wired yet. No event created.`,
-              }
-            : x,
-        ),
-      );
-      return;
-    }
     if (a.kind === "SCHEDULE_MEETING") {
+      // N-04 — normalize explicit time when present
+      let selectedTime: { start: string; end: string } | null = null;
+      let finalAgreed: string | undefined;
+      let idemKey: string | undefined;
+      if (a.explicitTime !== undefined) {
+        const when =
+          a.whenRelative ??
+          extractWhen(a.sourceCommand ?? body) ??
+          extractWhen(body) ??
+          "tomorrow";
+        const norm = normalizeSelectedTime({
+          time24: a.explicitTime,
+          when,
+          ...(a.timezoneLabel !== undefined
+            ? { timezoneLabel: a.timezoneLabel }
+            : {}),
+          ...(a.durationMinutes !== undefined
+            ? { durationMinutes: a.durationMinutes }
+            : {}),
+        });
+        if (norm === null) {
+          setPlanArtifacts((prev) =>
+            prev.map((x, j) =>
+              j === index
+                ? {
+                    ...x,
+                    body,
+                    status: "Could not normalize time",
+                    runtimeNote: `Could not build a final datetime from ${a.proposedTime ?? a.explicitTime}. No event created.`,
+                  }
+                : x,
+            ),
+          );
+          return;
+        }
+        selectedTime = { start: norm.start, end: norm.end };
+        finalAgreed = norm.display;
+        idemKey = norm.idempotencyKey;
+      }
       const r = await api.connectorData.calendarEventCreate({
         title: a.title,
         participants:
           a.targetLabel !== undefined
             ? [{ label: a.targetLabel, resolved: true }]
             : [],
-        selected_time: null,
+        selected_time: selectedTime,
         caller_confirmed: true,
         ...(a.prerequisite !== undefined
           ? { prerequisite: a.prerequisite, participant_confirmations_satisfied: false }
           : { participant_confirmations_satisfied: true }),
         source_command: a.sourceCommand ?? body,
+        ...(idemKey !== undefined ? { client_idempotency_key: idemKey } : {}),
+        ...(a.durationMinutes !== undefined
+          ? { duration_minutes: a.durationMinutes }
+          : {}),
       });
       if (r.ok) {
         status = "Created.";
+        note = finalAgreedSummary({
+          display: finalAgreed ?? r.data.start ?? "scheduled",
+          ...(r.data.html_link != null ? { htmlLink: r.data.html_link } : {}),
+          ...((r.data.meet_link ?? r.data.hangout_link) != null
+            ? { meetLink: r.data.meet_link ?? r.data.hangout_link }
+            : {}),
+          created: true,
+        });
       } else if (r.code === "NEEDS_SELECTED_TIME") {
         status = "Choose a time.";
+        note = "No event created — held at the gate. No invite sent.";
       } else if (
         r.code === "EVENT_WRITE_SCOPE_MISSING" ||
         r.code === "GOOGLE_RECONNECT_REQUIRED"
       ) {
         status = "Needs Google reconnect for event creation.";
+        note =
+          (finalAgreed !== undefined
+            ? finalAgreedSummary({ display: finalAgreed, created: false }) + " "
+            : "") + "No event created — held at the gate. No invite sent.";
       } else if (r.code === "NEEDS_PARTICIPANT_CONFIRMATION") {
         status = a.prerequisite ?? "Needs participant confirmation.";
+        note = "No event created — held at the gate. No invite sent.";
       } else {
         status = "Held at gate.";
+        note =
+          (finalAgreed !== undefined
+            ? finalAgreedSummary({ display: finalAgreed, created: false }) + " "
+            : "") + "No event created — held at the gate. No invite sent.";
       }
-      note = r.ok ? undefined : "No event created — held at the gate. No invite sent.";
     } else {
       // Follow-up / task: confirm as a local governed draft. No send,
       // no fake completion — real persistence is the next bridge.
@@ -3755,6 +3856,7 @@ export function AmbientOtzarBar(): JSX.Element {
         // Phase 1274 — parse an explicit time ("at 11am pst") so the card
         // shows a Proposed time, not just "Choose a time".
         const explicit = extractExplicitTime(text);
+        const whenRel = extractWhen(text);
         const proposedTime =
           explicit !== undefined
             ? formatProposedTime(explicit.time, explicit.timezone_label)
@@ -3767,6 +3869,17 @@ export function AmbientOtzarBar(): JSX.Element {
           explicit?.timezone_label !== undefined && tzInterp !== null
             ? `Interpreted ${explicit.timezone_label.toUpperCase()} as ${tzInterp.display}.`
             : undefined;
+        // N-04 — preview final agreed slot when we can normalize now
+        const previewNorm =
+          explicit !== undefined
+            ? normalizeSelectedTime({
+                time24: explicit.time,
+                when: whenRel ?? "tomorrow",
+                ...(explicit.timezone_label !== undefined
+                  ? { timezoneLabel: explicit.timezone_label }
+                  : {}),
+              })
+            : null;
         const baseStatus =
           explicit !== undefined
             ? prereqMatch !== null
@@ -3784,22 +3897,38 @@ export function AmbientOtzarBar(): JSX.Element {
           channel: "calendar",
           body: action.heard,
           status: baseStatus,
+          sourceCommand: text,
           ...(prereqMatch !== null
             ? { prerequisite: `Requires ${prereqMatch[1]}` }
             : {}),
           ...(proposedTime !== undefined ? { proposedTime } : {}),
           ...(explicit !== undefined ? { explicitTime: explicit.time } : {}),
+          ...(explicit?.timezone_label !== undefined
+            ? { timezoneLabel: explicit.timezone_label }
+            : {}),
+          ...(whenRel !== undefined ? { whenRelative: whenRel } : {}),
           ...(tzNote !== undefined ? { timezoneNote: tzNote } : {}),
-          runtimeNote: getCalendarCreateGateCopy({
-            ...(prereqMatch !== null
-              ? { prerequisite: `Requires ${prereqMatch[1]}` }
-              : {}),
-            ...(explicit !== undefined ? { explicitTime: explicit.time } : {}),
-            ...(proposedTime !== undefined ? { proposedTime } : {}),
-            ...(action.targetEntity !== undefined
-              ? { targetLabel: action.targetEntity }
-              : {}),
-          }),
+          ...(previewNorm !== null
+            ? { finalAgreedTime: previewNorm.display }
+            : {}),
+          runtimeNote:
+            previewNorm !== null
+              ? finalAgreedSummary({
+                  display: previewNorm.display,
+                  created: false,
+                })
+              : getCalendarCreateGateCopy({
+                  ...(prereqMatch !== null
+                    ? { prerequisite: `Requires ${prereqMatch[1]}` }
+                    : {}),
+                  ...(explicit !== undefined
+                    ? { explicitTime: explicit.time }
+                    : {}),
+                  ...(proposedTime !== undefined ? { proposedTime } : {}),
+                  ...(action.targetEntity !== undefined
+                    ? { targetLabel: action.targetEntity }
+                    : {}),
+                }),
         });
         setActionResult(action.spoken);
         setActionStatus(baseStatus);

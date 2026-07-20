@@ -62,11 +62,20 @@ export interface WorkArtifact {
   /** Phase 1274 — explicit proposed time, e.g. "11:00 AM Pacific Time". */
   proposedTime?: string;
   /** Phase 1274/1275 — machine 24h clock ("11:00") when the user gave an
-   *  explicit time. Present ⇒ Confirm must NOT treat it as "no time
-   *  selected"; full datetime normalization is a separate bridge. */
+   *  explicit time. Present ⇒ Confirm uses N-04 normalizeSelectedTime. */
   explicitTime?: string;
+  /** Casual timezone label from the utterance ("pst", "et"), if any. */
+  timezoneLabel?: string;
+  /** Relative day from utterance ("today", "tomorrow", "monday"). */
+  whenRelative?: string;
+  /** Duration minutes when stated. */
+  durationMinutes?: number;
   /** Phase 1274 — timezone interpretation + target local-time note. */
   timezoneNote?: string;
+  /** N-04 — final agreed display after normalization or create. */
+  finalAgreedTime?: string;
+  /** N-04 — calendar event or Meet link after create. */
+  eventLink?: string;
   /** Phase 1278 — which runtime produced the extraction (deterministic
    *  TypeScript vs. Python enrichment). Honest; shown in View/Why. */
   extractionSource?: string;

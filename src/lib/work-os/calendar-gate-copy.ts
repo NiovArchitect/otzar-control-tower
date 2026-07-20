@@ -41,10 +41,10 @@ export function getCalendarCreateGateCopy(a: CalendarGateInput): string {
     const subject = who !== undefined ? `${who} confirmation` : "confirmation";
     return `Waiting for ${subject} before event creation can proceed. ${SAFETY}`;
   }
-  // 3. Explicit time captured, but datetime normalization isn't wired.
+  // 3. Explicit time captured — N-04 normalizes on Confirm; surface readiness.
   if (a.explicitTime !== undefined) {
     const t = a.proposedTime ?? a.explicitTime;
-    return `Time captured: ${t}. Creating the event is blocked because datetime normalization is not wired yet. ${SAFETY}`;
+    return `Time captured: ${t}. Confirm to use the final agreed datetime (timezone-aware). ${SAFETY}`;
   }
   // 4. No time at all.
   // (No selected slot and no explicit time → the user must pick a time.)

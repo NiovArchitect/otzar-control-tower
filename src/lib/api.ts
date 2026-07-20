@@ -90,6 +90,7 @@ import type {
   ZoomRecordingsResponse,
   CalendarFreeBusyResponse,
   CalendarEventProposalBody,
+  CalendarEventCreateSuccess,
   GoogleDocCreateBody,
   GoogleDocCreateSuccess,
   GoogleDocAppendBody,
@@ -2220,11 +2221,12 @@ export class ApiClient {
      *  No event is created and no invite sent while gated. */
     calendarEventCreate: (
       body: CalendarEventProposalBody,
-    ): Promise<ApiResult<{ ok: true; status: "CREATED" }>> =>
-      this.request<{ ok: true; status: "CREATED" }>(
-        "/calendar/events/create",
-        { method: "POST", body },
-      ),
+    ): Promise<ApiResult<CalendarEventCreateSuccess>> =>
+      this.request<CalendarEventCreateSuccess>("/calendar/events/create", {
+        method: "POST",
+        body,
+        retries: 0,
+      }),
 
     /** POST /api/v1/google/docs/create — gated Google Doc create.
      *  Never auto-creates: requires caller_confirmed + doc-write scope.

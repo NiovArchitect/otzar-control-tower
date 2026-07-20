@@ -139,8 +139,11 @@ function extractDurationMinutes(text: string): number | undefined {
   return undefined;
 }
 
-function extractWhen(text: string): string | undefined {
-  const m = text.match(/\b(today|tomorrow|next week|this week|monday|tuesday|wednesday|thursday|friday)\b/i);
+/** Relative day token for N-04 datetime normalization. */
+export function extractWhen(text: string): string | undefined {
+  const m = text.match(
+    /\b(today|tomorrow|next week|this week|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i,
+  );
   return m === null ? undefined : (m[1] ?? "").toLowerCase();
 }
 
