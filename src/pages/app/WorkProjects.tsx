@@ -45,6 +45,9 @@ export function WorkProjects() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const contextRef = useRef<HTMLDivElement | null>(null);
+  // J-03 — conversation deep-link: /app/work-projects?project=<id>&open=1
+  // resolves Talk → mission heart in ONE hop (no list maze).
+  const [fromConversation, setFromConversation] = useState(false);
 
   const list = useQuery({
     queryKey: ["otzar", "work-projects", "active"],
@@ -64,6 +67,19 @@ export function WorkProjects() {
     list.data?.ok === true
       ? list.data.data.projects
       : ([] as WorkProjectSafeView[]);
+
+  // Apply ?project= once projects load (Talk / voice resolution).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (projects.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get("project");
+    if (pid === null || pid.length === 0) return;
+    const exists = projects.some((p) => p.project_id === pid);
+    if (!exists) return;
+    setSelectedId(pid);
+    if (params.get("open") === "1") setFromConversation(true);
+  }, [projects]);
 
   const selected =
     selectedId === null
@@ -95,6 +111,8 @@ export function WorkProjects() {
     <div
       className="mx-auto w-full max-w-3xl space-y-4 pb-24"
       data-testid="work-projects-page"
+      data-conversation-resolved={fromConversation && selected !== null ? "true" : "false"}
+      data-selected-project={selected?.project_id ?? ""}
     >
       <PageHeader
         eyebrow="Missions"
@@ -109,9 +127,20 @@ export function WorkProjects() {
           className="scroll-mt-3"
           data-testid="project-context-anchor"
         >
+          {fromConversation ? (
+            <p
+              className="mb-2 text-xs text-muted-foreground"
+              data-testid="conversation-project-resolved"
+            >
+              Opened from Talk — mission heart in one hop (not a multi-page maze).
+            </p>
+          ) : null}
           <ProjectContextPanel
             project={selected}
-            onClose={() => setSelectedId(null)}
+            onClose={() => {
+              setSelectedId(null);
+              setFromConversation(false);
+            }}
           />
         </div>
       ) : null}

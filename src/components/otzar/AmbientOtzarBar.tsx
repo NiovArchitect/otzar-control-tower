@@ -240,6 +240,11 @@ import {
   VOICE_FIRST_HEADLINE,
   VOICE_WORK_PATH_COPY,
 } from "@/lib/voice/voice-work-first";
+import {
+  detectProjectIntent,
+  resolveProjectFromConversation,
+  type ProjectCandidate,
+} from "@/lib/work-os/project-resolution";
 
 /**
  * The ambient Otzar dock. Mount once per authenticated employee
@@ -1840,6 +1845,79 @@ export function AmbientOtzarBar(): JSX.Element {
   // context, then reuse the same digest/actions/tracking flow. Only safe
   // summary text from the consent-gated MeetingCapture rail; no recording, no
   // raw transcript, no faked text. Returns true when handled.
+  // J-03 — conversation → project heart in ONE hop (no multi-page maze).
+  async function handleProjectCommand(text: string): Promise<boolean> {
+    if (detectProjectIntent(text) === null) return false;
+
+    const res = await api.otzar.workProjects.list({ state: "ACTIVE" });
+    const projects: ProjectCandidate[] =
+      res.ok === true
+        ? res.data.projects.map((p) => ({
+            project_id: p.project_id,
+            name: p.name,
+          }))
+        : [];
+    const result = resolveProjectFromConversation(text, projects);
+
+    const at = new Date().toISOString();
+    setDraft("");
+    setActionHeard(text);
+    setActionLabel("Project");
+    appendConversationEntry({ role: "user", text, at });
+
+    if (result.kind === "resolved" && result.project !== undefined) {
+      provideSurfaceContext({
+        type: "project",
+        title: result.project.name,
+        text: result.project.name,
+        sourceLabel: "Project",
+      });
+      const href =
+        result.href ??
+        `/app/work-projects?project=${encodeURIComponent(result.project.project_id)}&open=1`;
+      surfaceOutcome({
+        eventKind: "DIGEST_READY",
+        copy: result.message,
+        status: "Opened project",
+        at,
+        heard: text,
+        result: "success",
+        target: result.project.name,
+      });
+      markPresenceSuccess();
+      navigate(href);
+      return true;
+    }
+
+    surfaceOutcome({
+      eventKind:
+        result.kind === "no_projects" || result.kind === "not_found"
+          ? "MISSING_CONTEXT"
+          : "DIGEST_READY",
+      copy: result.message,
+      status:
+        result.kind === "needs_choice"
+          ? "Which project?"
+          : result.kind === "list_only"
+            ? "Projects"
+            : result.kind === "no_projects"
+              ? "No projects yet"
+              : "Not found",
+      at,
+      heard: text,
+      result:
+        result.kind === "list_only" || result.kind === "needs_choice"
+          ? "success"
+          : "blocked",
+      target: null,
+    });
+    if (result.href !== undefined) navigate(result.href);
+    if (result.kind === "list_only" || result.kind === "needs_choice") {
+      markPresenceSuccess();
+    }
+    return true;
+  }
+
   async function handleTranscriptIngestion(text: string): Promise<boolean> {
     const cmd = detectIngestionCommand(text);
     if (cmd === null) return false;
@@ -3284,6 +3362,10 @@ export function AmbientOtzarBar(): JSX.Element {
     // that", "that's not blocked anymore", "this is due next Friday"). Runs
     // first so it's applied to the active flow, never mis-routed as a message.
     if (await handleCorrectionCommand(text)) return;
+
+    // J-03 — resolve Talk → project heart (one hop). Before generic nav so
+    // "Open project Phoenix" does not only dump the bare projects list.
+    if (await handleProjectCommand(text)) return;
 
     // Phase 4C — bring an EXISTING governed meeting transcript into context
     // ("use/summarize the latest transcript"). Runs before the provided-text
