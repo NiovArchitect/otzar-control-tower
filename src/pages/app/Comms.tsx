@@ -52,6 +52,7 @@ import { ProposedActionCard } from "@/components/otzar/ProposedActionCard";
 import { ViewWhyPanel } from "@/components/work-os/ViewWhyPanel";
 import { MeetingIntelligencePanel } from "@/components/work-os/MeetingIntelligencePanel";
 import { viewWhyFromCommsFollowUp } from "@/lib/work-os/view-why";
+import { buildCommsLineage } from "@/lib/work-os/comms-lineage";
 import { api } from "@/lib/api";
 import { entityLabel } from "@/lib/identity/canonical-entity";
 import { formatOwnedByLine } from "@/lib/identity/owner-display";
@@ -615,8 +616,89 @@ function ExtractionView({
   const ready = extraction.suggested_actions.filter(
     (s) => s.resolution_status === "RESOLVED",
   ).length;
+  // K-03 — continuous lineage spine (decisions → commitments → truth → work).
+  const lineage = buildCommsLineage(extraction, ingest);
   return (
     <div className="space-y-4" data-testid="comms-review">
+      {/* K-03 communication lineage — always first so the chain is continuous */}
+      <Card
+        className="border-indigo-500/25 bg-indigo-500/5"
+        data-testid="comms-lineage"
+        data-has-governed-work={lineage.hasGovernedWork ? "true" : "false"}
+      >
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Communication lineage</CardTitle>
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid="comms-lineage-spine"
+          >
+            {lineage.spineSummary}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ol
+            className="space-y-2"
+            data-testid="comms-lineage-facets"
+          >
+            {lineage.facets.map((f) => (
+              <li
+                key={f.id}
+                className="rounded-md border border-border/70 bg-background/70 px-2.5 py-2"
+                data-testid={`comms-lineage-facet-${f.id}`}
+                data-lineage-kind={f.kind}
+                data-empty={f.empty ? "true" : "false"}
+                data-why={f.why}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-foreground">
+                    {f.label}
+                  </span>
+                  <Badge variant="outline" className="text-[10px]">
+                    {f.empty ? "none" : String(f.items.length)}
+                  </Badge>
+                </div>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{f.why}</p>
+                {!f.empty ? (
+                  <ul className="mt-1.5 space-y-0.5">
+                    {f.items.slice(0, 5).map((item, i) => (
+                      <li
+                        key={i}
+                        className="text-xs text-foreground/90"
+                        data-testid={`comms-lineage-item-${f.id}`}
+                      >
+                        {item.text}
+                        {item.owner ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {item.owner}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                    {f.items.length > 5 ? (
+                      <li className="text-[10px] text-muted-foreground">
+                        +{f.items.length - 5} more
+                      </li>
+                    ) : null}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Nothing in this facet yet.
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
+          <p
+            className="text-[10px] text-muted-foreground"
+            data-testid="comms-lineage-note"
+          >
+            Source conversation → signals → governed work. Follow-ups still need
+            your approval before send.
+          </p>
+        </CardContent>
+      </Card>
+
       {ingest !== null ? (
         <Card className="border-emerald-500/30 bg-emerald-500/5" data-testid="comms-ingest-saved">
           <CardContent className="flex flex-col gap-2 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">

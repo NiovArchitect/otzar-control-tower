@@ -1650,16 +1650,20 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "Comms.tsx ambient sync"
+        "Comms.tsx ambient sync",
+        "tests/e2e/otzar-live-comms-k01-k03.spec.ts",
+        "src/pages/app/Comms.tsx ambient primary + paste fallback"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "PROVIDER_PROVEN Meet transcripts",
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "PROVIDER_PROVEN Meet still EXTERNALLY_BLOCKED (N-02); ambient+paste+work deep smoke after deploy",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
-      "test_requirements": [],
+      "test_requirements": [
+        "live deep: otzar-live-comms-k01-k03"
+      ],
       "live_acceptance": "",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [
         "#168",
         "#179"
@@ -1733,15 +1737,23 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Full lineage UI continuous",
+      "implementation_refs": [
+        "src/lib/work-os/comms-lineage.ts",
+        "src/pages/app/Comms.tsx comms-lineage panel",
+        "tests/unit/comms-lineage.test.ts",
+        "tests/e2e/otzar-live-comms-k01-k03.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Await MANUAL DEPLOY + deep smoke lineage on live organize",
       "dependencies": [],
       "priority": "P1",
       "phase": 2,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit lineage facets",
+        "live deep k01k03"
+      ],
+      "live_acceptance": "comms-lineage 6 facets after paste organize; spine summary",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
