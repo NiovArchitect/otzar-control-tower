@@ -1,10 +1,11 @@
 // FILE: FirstUseReveal.tsx
 // PURPOSE: One-shot first-login recognition — a single calm strip, not a
-//          second dashboard. Fits ADHD "one view" + YC signal without scroll
-//          tax. Uses live context-health + DGI; same app they keep using.
+//          second dashboard. Role-aware CTAs (leader vs teammate) for first
+//          value without scroll tax. Uses live context-health + DGI.
 // CONNECTS TO: AmbientWorkSurface hero, first-use/state.
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -27,6 +28,7 @@ export function FirstUseReveal(): JSX.Element | null {
   const entity = useAuthStore((s) => s.entity);
   const capabilities = useAuthStore((s) => s.capabilities);
   const email = entity?.email ?? null;
+  const admin = isOrgAdmin(capabilities);
   const [dismissed, setDismissed] = useState(() => hasCompletedFirstUse(email));
   const [ctx, setCtx] = useState<ContextHealthResponse | null>(null);
   const [signal, setSignal] = useState<string | null>(null);
@@ -75,7 +77,24 @@ export function FirstUseReveal(): JSX.Element | null {
   const role =
     identity?.viewer?.title ||
     identity?.viewer?.org_role ||
-    (isOrgAdmin(capabilities) ? "leader" : null);
+    (admin ? "leader" : null);
+
+  // Leader first-value: people/structure. Teammate: work that needs them.
+  const primaryCta = admin
+    ? {
+        label: "See my org",
+        to: "/app/collaboration",
+        testId: "first-use-see-org",
+      }
+    : {
+        label: "What needs me",
+        to: "/app/action-center",
+        testId: "first-use-needs-me",
+      };
+
+  const secondaryHint = admin
+    ? "Check who reports to whom, then talk or clear what needs you."
+    : "Your AI Teammate is ready — start with what needs you, or talk.";
 
   function complete(): void {
     markFirstUseComplete(email);
@@ -86,6 +105,7 @@ export function FirstUseReveal(): JSX.Element | null {
     <div
       className="mt-3 rounded-2xl border border-indigo-200/50 bg-white/55 px-3 py-2.5 backdrop-blur-sm"
       data-testid="first-use-reveal"
+      data-role={admin ? "leader" : "teammate"}
     >
       <div className="flex items-start gap-2.5">
         <Sparkles
@@ -107,7 +127,10 @@ export function FirstUseReveal(): JSX.Element | null {
               <>{orgName}</>
             )}
             {signal ? (
-              <span className="mt-0.5 block text-xs text-slate-500" data-testid="first-use-org">
+              <span
+                className="mt-0.5 block text-xs text-slate-500"
+                data-testid="first-use-org"
+              >
                 {signal}
               </span>
             ) : (
@@ -115,19 +138,27 @@ export function FirstUseReveal(): JSX.Element | null {
                 className="mt-0.5 block text-xs text-slate-500"
                 data-testid="first-use-teammate"
               >
-                Your AI Teammate is ready — talk, or start with what needs you.
+                {secondaryHint}
               </span>
             )}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Link
+              to={primaryCta.to}
+              className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              data-testid={primaryCta.testId}
+              onClick={() => complete()}
+            >
+              {primaryCta.label}
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
             <button
               type="button"
-              className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-white"
               data-testid="first-use-start-day"
               onClick={() => complete()}
             >
               Start my day
-              <ArrowRight className="h-3 w-3" aria-hidden />
             </button>
             <button
               type="button"
