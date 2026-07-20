@@ -3,16 +3,18 @@
   "title": "Otzar Founder Requirements Register",
   "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
   "live_snapshot": {
-    "ct_main_sha": "ffbaa05",
-    "live_bundle": "index-DgHWueJq.js",
-    "live_last_modified_utc": "2026-07-20T18:27:10Z",
-    "register_updated_utc": "2026-07-20T18:27:10Z",
-    "live_product_sha": "ffbaa05",
+    "ct_main_sha": "ae3919a",
+    "live_bundle": "index-LPFcWwfL.js",
+    "live_last_modified_utc": "2026-07-20T18:50:50Z",
+    "register_updated_utc": "2026-07-20T18:50:50Z",
+    "live_product_sha": "5ab6415",
     "matrix_totals": "pass=63 fail=0 skip=6",
     "transcript_probe": "cards=6",
     "d02_deep": "pass=20 fail=0",
     "j03_deep": "pass=11 fail=0",
-    "p01_deep": "pass=8 fail=0 skip=1"
+    "p01_deep": "pass=8 fail=0 skip=1",
+    "repair_sha": "ae3919a",
+    "k01k03_deep": "pass=9 fail=0"
   },
   "groups": {
     "A": "Login and first-time experience",
@@ -1654,8 +1656,8 @@
         "tests/e2e/otzar-live-comms-k01-k03.spec.ts",
         "src/pages/app/Comms.tsx ambient primary + paste fallback"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "PROVIDER_PROVEN Meet still EXTERNALLY_BLOCKED (N-02); ambient+paste+work deep smoke after deploy",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Meet PROVIDER_PROVEN still N-02 EXTERNALLY_BLOCKED; ambient honest reconnect + paste\u2192work proven",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
@@ -1663,7 +1665,7 @@
         "live deep: otzar-live-comms-k01-k03"
       ],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [
         "#168",
         "#179"
@@ -1672,8 +1674,12 @@
         "f5fb8a3",
         "451bbb3"
       ],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "5ab6415",
+      "final_proof": {
+        "live_bundle": "index-LPFcWwfL.js",
+        "e2e": "otzar-live-comms-k01-k03 9/9",
+        "notes": "ambient primary before paste; reconnect honesty; paste\u2192review + lineage"
+      }
     },
     {
       "id": "K-02",
@@ -1743,8 +1749,8 @@
         "tests/unit/comms-lineage.test.ts",
         "tests/e2e/otzar-live-comms-k01-k03.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Await MANUAL DEPLOY + deep smoke lineage on live organize",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [],
       "priority": "P1",
       "phase": 2,
@@ -1753,11 +1759,15 @@
         "live deep k01k03"
       ],
       "live_acceptance": "comms-lineage 6 facets after paste organize; spine summary",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "5ab6415",
+      "final_proof": {
+        "live_bundle": "index-LPFcWwfL.js",
+        "e2e": "otzar-live-comms-k01-k03 lineage 6 facets",
+        "spine": "2 decisions \u2192 3 commitments \u2192 3 follow-ups \u2192 3 obligations"
+      }
     },
     {
       "id": "L-01",
@@ -2462,7 +2472,6 @@
     "H-01",
     "H-02",
     "I-02",
-    "K-01",
     "M-01",
     "N-02",
     "N-03",
@@ -2499,7 +2508,9 @@
     "J-01",
     "J-02",
     "J-03",
+    "K-01",
     "K-02",
+    "K-03",
     "N-01",
     "OPS-01",
     "P-01"
