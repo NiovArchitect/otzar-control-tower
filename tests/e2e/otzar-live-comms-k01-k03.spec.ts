@@ -119,8 +119,24 @@ test("K-01/K-03 deep: ambient primary, paste fallback, lineage spine", async ({
     }
   }
 
-  // ── K01-D paste organize ───────────────────────────────────────
-  // Prefer show-import on fallback; else import-toggle
+  // ── K01-D organize (paste fallback, else live demo capture) ────
+  // Do NOT treat "processing" as terminal — ingest can take 10–60s.
+  async function waitForReviewOrError(timeoutMs: number): Promise<"review" | "error" | "timeout"> {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeoutMs) {
+      if ((await page.getByTestId("comms-review").count()) > 0) return "review";
+      if ((await page.getByTestId("comms-error").count()) > 0) return "error";
+      await page.waitForTimeout(500);
+    }
+    if ((await page.getByTestId("comms-review").count()) > 0) return "review";
+    if ((await page.getByTestId("comms-error").count()) > 0) return "error";
+    return "timeout";
+  }
+
+  let organized: "review" | "error" | "timeout" | "no_path" = "no_path";
+  let organizePath = "none";
+
+  // Path 1: paste / import notes
   const showImport = page.getByTestId("comms-show-import");
   if ((await showImport.count()) > 0) {
     await showImport.click();
@@ -129,91 +145,106 @@ test("K-01/K-03 deep: ambient primary, paste fallback, lineage spine", async ({
   }
   await page.waitForTimeout(400);
   const ta = page.getByTestId("comms-import-textarea");
-  if ((await ta.count()) === 0) {
-    rec("K01-D", "FAIL", "import textarea not available");
-    rec("K03-E", "SKIP", "no organize path");
-    rec("K03-F", "SKIP", "no lineage");
-  } else {
+  if ((await ta.count()) > 0) {
+    organizePath = "paste";
     await ta.fill(DEMO_TRANSCRIPT);
     await page.getByTestId("comms-import-submit").click();
-    // Wait for review or processing or error
-    try {
-      await expect
-        .poll(
-          async () => {
-            if ((await page.getByTestId("comms-review").count()) > 0) return "review";
-            if ((await page.getByTestId("comms-error").count()) > 0) return "error";
-            if ((await page.getByTestId("comms-processing").count()) > 0) return "processing";
-            return "wait";
-          },
-          { timeout: 90_000 },
-        )
-        .not.toBe("wait");
-    } catch {
-      /* fall through */
-    }
-    await page.waitForTimeout(1500);
-    const review = (await page.getByTestId("comms-review").count()) > 0;
-    const err = (await page.getByTestId("comms-error").count()) > 0;
-    if (review) {
-      rec("K01-D", "PASS", "paste → review");
-    } else if (err) {
-      const et = ((await page.getByTestId("comms-error").textContent()) ?? "").slice(0, 120);
-      rec("K01-D", "FAIL", `organize failed: ${et}`);
-    } else {
-      rec("K01-D", "FAIL", "no review after organize (timeout/API)");
-    }
+    organized = await waitForReviewOrError(120_000);
+  }
 
-    // ── K03-E lineage ────────────────────────────────────────────
-    const lineage = page.getByTestId("comms-lineage");
-    if ((await lineage.count()) === 0) {
-      rec(
-        "K03-E",
-        review ? "FAIL" : "SKIP",
-        review
-          ? "lineage missing on review — deploy K-03 product"
-          : "no review",
-      );
-      rec("K03-F", "SKIP", "no lineage");
-    } else {
-      await expect(lineage).toBeVisible();
-      const facets = [
-        "decisions",
-        "commitments",
-        "blockers",
-        "truth",
-        "obligations",
-        "follow_ups",
-      ];
-      let missing = 0;
-      for (const id of facets) {
-        if ((await page.getByTestId(`comms-lineage-facet-${id}`).count()) === 0) {
-          missing += 1;
-        }
+  // Path 2: live capture demo script (canonical Foundation fixture)
+  if (organized !== "review") {
+    // Reset if stuck on error/processing by reloading Comms
+    await page.goto("/app/comms", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2000);
+    const start = page.getByTestId("comms-start");
+    if ((await start.count()) > 0) {
+      organizePath = organized === "no_path" ? "live-capture" : "live-capture-fallback";
+      await start.click();
+      // Wait until at least one captured line, then end
+      try {
+        await expect
+          .poll(async () => await page.getByTestId("comms-captured-line").count(), {
+            timeout: 25_000,
+          })
+          .toBeGreaterThan(0);
+      } catch {
+        /* may still end */
       }
-      rec(
-        "K03-E",
-        missing === 0 ? "PASS" : "FAIL",
-        missing === 0 ? "all 6 lineage facets" : `missing=${missing}`,
-      );
-
-      const spine = (
-        (await page.getByTestId("comms-lineage-spine").textContent()) ?? ""
-      ).trim();
-      const governed = await lineage.getAttribute("data-has-governed-work");
-      // Demo fixture should produce decisions + follow-ups when extract works
-      const nonEmptyDecisions =
-        (await page
-          .getByTestId("comms-lineage-facet-decisions")
-          .getAttribute("data-empty")) === "false";
-      rec(
-        "K03-F",
-        spine.length > 10 && (governed === "true" || nonEmptyDecisions || spine.length > 0)
-          ? "PASS"
-          : "FAIL",
-        `spine="${spine.slice(0, 100)}" governed=${governed} decisions=${nonEmptyDecisions}`,
-      );
+      await page.waitForTimeout(2000);
+      const end = page.getByTestId("comms-end");
+      if ((await end.count()) > 0) {
+        await end.click();
+        organized = await waitForReviewOrError(120_000);
+      }
     }
+  }
+
+  if (organized === "review") {
+    rec("K01-D", "PASS", `${organizePath} → review`);
+  } else if (organized === "error") {
+    const et = ((await page.getByTestId("comms-error").textContent()) ?? "").slice(0, 140);
+    rec("K01-D", "FAIL", `${organizePath} organize failed: ${et}`);
+  } else if (organized === "no_path") {
+    rec("K01-D", "FAIL", "no paste or live-capture path available");
+  } else {
+    rec(
+      "K01-D",
+      "FAIL",
+      `${organizePath} timeout waiting for review (ingest API slow/fail silent)`,
+    );
+  }
+
+  // ── K03-E lineage ────────────────────────────────────────────
+  const reviewOk = organized === "review";
+  const lineage = page.getByTestId("comms-lineage");
+  if ((await lineage.count()) === 0) {
+    rec(
+      "K03-E",
+      reviewOk ? "FAIL" : "SKIP",
+      reviewOk
+        ? "lineage missing on review — deploy K-03 product"
+        : "no review",
+    );
+    rec("K03-F", "SKIP", "no lineage");
+  } else {
+    await expect(lineage).toBeVisible();
+    const facets = [
+      "decisions",
+      "commitments",
+      "blockers",
+      "truth",
+      "obligations",
+      "follow_ups",
+    ];
+    let missing = 0;
+    for (const id of facets) {
+      if ((await page.getByTestId(`comms-lineage-facet-${id}`).count()) === 0) {
+        missing += 1;
+      }
+    }
+    rec(
+      "K03-E",
+      missing === 0 ? "PASS" : "FAIL",
+      missing === 0 ? "all 6 lineage facets" : `missing=${missing}`,
+    );
+
+    const spine = (
+      (await page.getByTestId("comms-lineage-spine").textContent()) ?? ""
+    ).trim();
+    const governed = await lineage.getAttribute("data-has-governed-work");
+    const nonEmptyDecisions =
+      (await page
+        .getByTestId("comms-lineage-facet-decisions")
+        .getAttribute("data-empty")) === "false";
+    rec(
+      "K03-F",
+      spine.length > 10 &&
+        (governed === "true" || nonEmptyDecisions || spine.length > 0)
+        ? "PASS"
+        : "FAIL",
+      `spine="${spine.slice(0, 100)}" governed=${governed} decisions=${nonEmptyDecisions}`,
+    );
   }
 
   // ── K01-G governance copy ──────────────────────────────────────

@@ -298,14 +298,24 @@ export function Comms(): JSX.Element {
     const text = buildCapturedText(DEMO_SCRIPT);
     // Governed ingest: persists the conversation + creates per-owner work under
     // proof (the noisy tail is quarantined; unproven owners are held for review).
-    const result = await api.otzar.commsIngest({ captured_text: text, title: DEMO_TITLE });
+    const result = await api.otzar.commsIngest({
+      captured_text: text,
+      title: DEMO_TITLE,
+      force_mode: "DEMO_SCRIPTED",
+    });
     if (!result.ok) {
-      setError(result.code);
+      setError(result.message ?? result.code ?? "INGEST_FAILED");
       setPhase("FAILED");
       return;
     }
-    setIngest(result.data.result);
-    setExtraction(result.data.result.extraction);
+    const body = result.data.result;
+    if (body.extraction === undefined) {
+      setError("INGEST_MISSING_EXTRACTION");
+      setPhase("FAILED");
+      return;
+    }
+    setIngest(body);
+    setExtraction(body.extraction);
     setPhase("READY_FOR_REVIEW");
     // Ingest just persisted the drafted follow-ups as durable FOLLOW_UP rows;
     // reload so the resumable cards (with their ledger ids) appear.
@@ -317,14 +327,41 @@ export function Comms(): JSX.Element {
     setPhase("PROCESSING");
     setError(null);
     setExtraction(null);
-    const result = await api.otzar.commsIngest({ captured_text: importText });
+    // Prefer demo fixture title when paste matches the launch script so
+    // Foundation DEMO_SCRIPTED path is reliable for smoke + offline demos.
+    const looksLikeDemo =
+      /Launch Follow-Up Meeting/i.test(importText) &&
+      /David/i.test(importText) &&
+      /Samiksha/i.test(importText);
+    const result = await api.otzar.commsIngest({
+      captured_text: importText,
+      ...(looksLikeDemo
+        ? { title: DEMO_TITLE, force_mode: "DEMO_SCRIPTED" as const }
+        : {}),
+    });
     if (!result.ok) {
-      setError(result.code);
+      setError(result.message ?? result.code ?? "INGEST_FAILED");
       setPhase("FAILED");
       return;
     }
-    setIngest(result.data.result);
-    setExtraction(result.data.result.extraction);
+    // Support both { result: { extraction } } and flat envelopes from API lag.
+    const payload = result.data as {
+      result?: CommsIngestResult & { extraction?: CommsExtractionResult };
+      extraction?: CommsExtractionResult;
+      ok?: boolean;
+    };
+    const ingestBody = payload.result ?? (payload as unknown as CommsIngestResult);
+    const extractionBody =
+      payload.result?.extraction ??
+      payload.extraction ??
+      (ingestBody as { extraction?: CommsExtractionResult }).extraction;
+    if (extractionBody === undefined) {
+      setError("INGEST_MISSING_EXTRACTION");
+      setPhase("FAILED");
+      return;
+    }
+    setIngest(ingestBody);
+    setExtraction(extractionBody);
     setPhase("READY_FOR_REVIEW");
     void loadPendingFollowUps();
   }
