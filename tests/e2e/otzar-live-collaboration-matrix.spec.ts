@@ -94,7 +94,7 @@ async function openOrb(page: Page): Promise<void> {
   const orb = page.getByTestId("ambient-otzar-bar").first();
   await orb.waitFor({ state: "visible", timeout: 12_000 }).catch(() => undefined);
   const input = page.getByLabel(/Message to Otzar/i);
-  let visible =
+  const visible =
     (await input.count()) > 0 && (await input.first().isVisible().catch(() => false));
   if (!visible) {
     await orb.click({ force: true }).catch(() => undefined);
