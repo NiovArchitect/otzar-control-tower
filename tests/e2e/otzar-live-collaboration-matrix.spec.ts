@@ -143,14 +143,24 @@ async function ask(page: Page, text: string): Promise<string> {
 }
 
 /** Inject real on-screen text and click "Add current context" — exercises the
- *  product's window.getSelection() path (not a store shortcut). */
+ *  product's window.getSelection() path (not a store shortcut). Uses
+ *  pointerdown capture (product pendingSelectionRef) so click-clear of
+ *  selection does not drop the transcript. Clears any prior chip first so a
+ *  leftover "latest meeting" summary cannot false-pass inject checks. */
 async function addContext(page: Page, text: string): Promise<boolean> {
+  await openOrb(page);
+  const priorChip = page.getByTestId("surface-context-chip");
+  if ((await priorChip.count()) > 0) {
+    await page.getByTestId("surface-context-clear").click().catch(() => undefined);
+    await page.waitForTimeout(150);
+  }
   await page.evaluate((t) => {
     let el = document.getElementById("__smoke_ctx__");
     if (!el) {
       el = document.createElement("div");
       el.id = "__smoke_ctx__";
-      el.style.position = "fixed"; el.style.bottom = "0"; el.style.left = "0"; el.style.opacity = "0.01";
+      el.style.position = "fixed"; el.style.bottom = "0"; el.style.left = "0";
+      el.style.opacity = "0.01"; el.style.zIndex = "1";
       document.body.appendChild(el);
     }
     el.textContent = t;
@@ -159,7 +169,22 @@ async function addContext(page: Page, text: string): Promise<boolean> {
     const sel = window.getSelection();
     sel?.removeAllRanges(); sel?.addRange(range);
   }, text);
-  await page.getByTestId("surface-context-add").click().catch(() => undefined);
+  const add = page.getByTestId("surface-context-add");
+  if ((await add.count()) === 0 || !(await add.first().isVisible().catch(() => false))) {
+    await openOrb(page);
+  }
+  // Re-assert selection immediately before capture
+  await page.evaluate(() => {
+    const el = document.getElementById("__smoke_ctx__");
+    if (!el) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel?.removeAllRanges(); sel?.addRange(range);
+  });
+  await add.dispatchEvent("pointerdown").catch(() => undefined);
+  await add.click().catch(() => undefined);
+  // Chip must appear AFTER we cleared — proves this inject took hold.
   return (await page.getByTestId("surface-context-chip").count()) > 0;
 }
 
@@ -365,16 +390,20 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
   });
 
   // C. Transcript / MeetingCapture ingestion -------------------------------
+  // MeetingCapture SAFE view only exposes summary text — thin summaries often
+  // yield empty extract. That is data-gap, not a product bug, when the load
+  // path itself is honest.
   for (const cmd of ["Use the latest transcript.", "Summarize the latest transcript.", "Create action items from the latest transcript."]) {
     await sect("C", cmd, async () => {
       await clearSelection(page);
       const out = await ask(page, cmd);
-      // Honest no-data = either "paste/select a transcript" OR "what context?" —
-      // both are correct when this user has no MeetingCaptures and no context.
       const noData = /paste or select|don'?t have transcript text|no transcript|which transcript|what should I use as the current context/i.test(out);
-      const loaded = /using the latest transcript|i found|decision|blocker|follow-?up|proposed action/i.test(out);
+      const emptyExtract = /didn'?t find (?:any clear next actions|clear decisions)/i.test(out);
+      const loaded =
+        /using the latest transcript/i.test(out) ||
+        (!emptyExtract && /i found|decision|blocker|follow-?up|proposed action/i.test(out));
       if (loaded) record("C", cmd, "PASS", "ok", out);
-      else if (noData) record("C", cmd, "SKIP", "data-gap", `honest no-data: ${out}`);
+      else if (noData || emptyExtract) record("C", cmd, "SKIP", "data-gap", `thin/empty meeting text: ${out}`);
       else record("C", cmd, "FAIL", "product-bug", out);
     });
   }
@@ -383,12 +412,15 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
   await sect("D", "provided transcript → summarize/actions/track", async () => {
     if (!(await addContext(page, TRANSCRIPT))) { record("D", "inject transcript", "SKIP", "brittleness", "selection did not take"); return; }
     const sum = await ask(page, "Summarize this transcript.");
-    record("D", "summarize provided transcript", /i found|decision|blocker|follow-?up/i.test(sum) ? "PASS" : "FAIL", /i found|decision|blocker/i.test(sum) ? "ok" : "product-bug", sum);
+    // Reject false PASS on "I didn't find clear decisions, follow-ups, or blockers"
+    const sumOk = /i found/i.test(sum) && !/didn'?t find/i.test(sum);
+    record("D", "summarize provided transcript", sumOk ? "PASS" : "FAIL", sumOk ? "ok" : "product-bug", sum);
     const acts = await ask(page, "Create action items from this meeting.");
     const n = await page.getByTestId("transcript-action").count();
     record("D", "proposed actions render", n > 0 ? "PASS" : "FAIL", n > 0 ? "ok" : "product-bug", `${acts} | cards=${n}`);
     const blk = await ask(page, "What is blocked?");
-    record("D", "tracking: what is blocked", /blocker|api keys|nothing is blocked|which/i.test(blk) ? "PASS" : "FAIL", /blocker|nothing is blocked/i.test(blk) ? "ok" : "product-bug", blk);
+    const blkOk = /api keys|blocker|blocked|nothing is blocked/i.test(blk) && !/which meeting|which transcript/i.test(blk);
+    record("D", "tracking: what is blocked", blkOk ? "PASS" : "FAIL", blkOk ? "ok" : "product-bug", blk);
   });
 
   // E. Entity / people resolution ------------------------------------------
