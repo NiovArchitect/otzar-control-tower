@@ -110,6 +110,9 @@ const router = createBrowserRouter(
                 auth guard (the invitee has no session yet). */}
             <Route path="/activate" element={<ActivatePage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            {/* Legacy /admin/* paths — never a separate shell. Bounce into CT
+                (AuthGuard) so non-admins land on /app via isolation rules. */}
+            <Route path="/admin/*" element={<Navigate to="/" replace />} />
 
             {/* Employee Otzar shell -- EmployeeGuard admits product
                 users (can_read_capsules); does NOT require can_admin_org
