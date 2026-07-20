@@ -39,6 +39,7 @@ import {
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 import { FirstUseReveal } from "@/components/first-use/FirstUseReveal";
+import { isOrgAdmin } from "@/lib/auth/capabilities";
 import {
   focusApprovals,
   focusBlindSpots,
@@ -52,6 +53,11 @@ import {
   focusTwinWork,
   type FocusTruthItem,
 } from "@/lib/today/focus-truth";
+import {
+  orderGlanceByRole,
+  resolveHomeRole,
+  roleHomeCopy,
+} from "@/lib/today/role-home";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -84,6 +90,7 @@ function dgiPanelIntensity(
 
 export function AmbientWorkSurface(): JSX.Element {
   const entity = useAuthStore((s) => s.entity);
+  const capabilities = useAuthStore((s) => s.capabilities);
   const quiet = usePresenceStore((s) => s.quiet);
   const approvalsCount = usePresenceStore((s) => s.approvalsCount);
   const actionUnreadCount = usePresenceStore((s) => s.actionUnreadCount);
@@ -91,6 +98,9 @@ export function AmbientWorkSurface(): JSX.Element {
   const clearContext = useCurrentSurfaceContextStore((s) => s.clear);
   const [headline, setHeadline] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<MyDaySuggestion[]>([]);
+  // B-05 — role title from context-health (viewer), not a second dashboard.
+  const [viewerTitle, setViewerTitle] = useState<string | null>(null);
+  const [viewerOrgRole, setViewerOrgRole] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +111,15 @@ export function AmbientWorkSurface(): JSX.Element {
           setHeadline(r.data.intelligence.headline);
           setSuggestions(r.data.intelligence.suggestions);
         }
+      })
+      .catch(() => undefined);
+    api.otzar
+      .contextHealth()
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        const v = r.data.identity?.viewer;
+        setViewerTitle(v?.title ?? null);
+        setViewerOrgRole(v?.org_role ?? null);
       })
       .catch(() => undefined);
     return () => {
@@ -545,7 +564,14 @@ export function AmbientWorkSurface(): JSX.Element {
     }
   }
 
-  const glance: Array<{
+  const homeRole = resolveHomeRole({
+    isOrgAdmin: isOrgAdmin(capabilities),
+    title: viewerTitle,
+    orgRole: viewerOrgRole ?? (isOrgAdmin(capabilities) ? "leader" : null),
+  });
+  const homeCopy = roleHomeCopy(homeRole);
+
+  const glanceRaw: Array<{
     key: string;
     label: string;
     to: string;
@@ -589,7 +615,25 @@ export function AmbientWorkSurface(): JSX.Element {
       testId: docLink ? "google-doc-open" : "google-doc-create",
       show: true,
     },
+    {
+      key: "people",
+      label: "People",
+      to: "/app/collaboration",
+      testId: "glance-people",
+      show:
+        homeRole === "administrator" ||
+        homeRole === "executive" ||
+        homeRole === "manager",
+    },
+    {
+      key: "tools",
+      label: toolsReconnectLabel ?? "Tools",
+      to: "/app/connector-health",
+      testId: "glance-tools",
+      show: homeRole === "administrator" || toolsReconnectLabel !== null,
+    },
   ];
+  const glance = orderGlanceByRole(homeRole, glanceRaw);
 
   const calmCaughtUp =
     focusItems.length === 0 &&
@@ -602,6 +646,7 @@ export function AmbientWorkSurface(): JSX.Element {
     <div
       className="mx-auto flex w-full max-w-lg flex-col gap-3 px-1 pb-28 pt-2 sm:max-w-xl sm:pt-4"
       data-testid="ambient-work-surface"
+      data-home-role={homeRole}
     >
       {/* One-shot hero — presence + optional first-use strip (not a second page). */}
       <section className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6">
@@ -632,10 +677,10 @@ export function AmbientWorkSurface(): JSX.Element {
               ) : dgi?.coherence_status === "BLOCKED" ||
                 dgi?.coherence_status === "UNPAIRED" ? (
                 "Present — pairing needs a quick fix."
-              ) : dgi?.coherence_status === "HEALTHY" ? (
-                "Present. Not another dashboard."
+              ) : dgi?.coherence_status === "HEALTHY" || calmCaughtUp ? (
+                homeCopy.presenceLine
               ) : (
-                "Speak, act, or leave me quiet."
+                homeCopy.presenceLine
               )}
             </p>
             <FirstUseReveal />
@@ -651,7 +696,7 @@ export function AmbientWorkSurface(): JSX.Element {
               ? "attention"
               : dgiIntensity
           }
-          label="Focus"
+          label={homeCopy.focusLabel}
           testId="dgi-coherence-panel"
         >
           <ul className="space-y-1.5" data-testid="changed-suggestions">
@@ -734,7 +779,7 @@ export function AmbientWorkSurface(): JSX.Element {
         >
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-slate-300" aria-hidden />
           <p className="text-sm text-slate-400" data-testid="dgi-healthy">
-            You&apos;re clear. Otzar is listening.
+            {homeCopy.caughtUpLine}
           </p>
         </div>
       ) : dgiLoaded ? (

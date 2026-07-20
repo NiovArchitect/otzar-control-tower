@@ -534,15 +534,19 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Only first-use CTA differs substantially; full role Home still thin",
+      "implementation_refs": [
+        "src/lib/today/role-home.ts",
+        "src/pages/app/AmbientWorkSurface.tsx",
+        "tests/unit/role-home.test.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Live multi-role Home presence/glance prove after deploy",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
@@ -939,29 +943,29 @@
         "src/pages/app/MyMemory.tsx",
         "tests/unit/window-context-session.test.ts"
       ],
-      "proof_level": "BROWSER_PROVEN",
-      "remaining_gap": "Method extraction API still future; browser permission dialog not automatable in e2e",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Method extraction API still future; browser picker not e2e-automatable",
       "dependencies": [],
       "priority": "P0",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "BROWSER_PROVEN",
+      "status": "LIVE_VERIFIED",
       "prs": [
         "#185"
       ],
       "merge_shas": [
         "dc84346"
       ],
-      "deployment_sha": "dc84346",
+      "deployment_sha": "5efab70",
       "final_proof": {
-        "live_bundle": "index-BYGorI4l.js",
-        "e2e": "otzar-live-window-context-d04 1/1",
+        "live_bundle": "index-xF6KoP6v.js",
+        "e2e": "window-context-d04 + matrix-kl 3/3 + admin-rbac isolation",
         "markers": [
           "window-context-share",
-          "window-context-start"
-        ],
-        "deep_smoke": "2026-07-20"
+          "action-center",
+          "authority-grants"
+        ]
       }
     },
     {
@@ -2348,7 +2352,6 @@
     }
   ],
   "open_p0": [
-    "D-04",
     "E-02",
     "F-02",
     "F-04",
@@ -2383,6 +2386,7 @@
     "C-03",
     "C-05",
     "C-06",
+    "D-04",
     "F-01",
     "J-01",
     "K-02",
