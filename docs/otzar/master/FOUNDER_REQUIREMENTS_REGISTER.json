@@ -3,11 +3,11 @@
   "title": "Otzar Founder Requirements Register",
   "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
   "live_snapshot": {
-    "ct_main_sha": "b6f95a2",
-    "live_bundle": "index-CaSyCGMQ.js",
-    "live_last_modified_utc": "2026-07-20T19:04:11Z",
-    "register_updated_utc": "2026-07-20T19:04:11Z",
-    "live_product_sha": "b6f95a2",
+    "ct_main_sha": "c051de3",
+    "live_bundle": "index-Cq_gLoQI.js",
+    "live_last_modified_utc": "2026-07-20T19:19:08Z",
+    "register_updated_utc": "2026-07-20T19:19:08Z",
+    "live_product_sha": "c051de3",
     "matrix_totals": "pass=63 fail=0 skip=6",
     "transcript_probe": "cards=6",
     "d02_deep": "pass=20 fail=0",
@@ -15,7 +15,8 @@
     "p01_deep": "pass=8 fail=0 skip=1",
     "repair_sha": "ae3919a",
     "k01k03_deep": "pass=9 fail=0",
-    "n03_deep": "pass=8 fail=0"
+    "n03_deep": "pass=8 fail=0",
+    "o01_deep": "employee 5/0/2 + admin direct prove inventory default MCP advanced"
   },
   "groups": {
     "A": "Login and first-time experience",
@@ -2078,8 +2079,8 @@
         "tests/unit/capability-first-tools.test.ts",
         "tests/e2e/otzar-live-tools-o01.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Domain-wide provisioning / SCIM still O-02; await MANUAL DEPLOY + deep smoke o01",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Domain-wide provisioning still O-02 (SCIM/groups)",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
@@ -2088,11 +2089,22 @@
         "live deep o01"
       ],
       "live_acceptance": "Employee connector-health capability-first; admin inventory default; MCP advanced-only tab",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "c051de3",
+      "final_proof": {
+        "live_bundle": "index-Cq_gLoQI.js",
+        "employee_e2e": "otzar-live-tools-o01 pass=5 (capability-first, 7 capabilities)",
+        "admin_direct": {
+          "path": "/tools-connections",
+          "data-capability-first": "true",
+          "data-mcp-advanced-only": "true",
+          "tab_order": "inventory>connected>advanced",
+          "inventory_default_visible": true,
+          "advanced_copy": "MCP technical administrators only"
+        }
+      }
     },
     {
       "id": "O-02",
@@ -2495,7 +2507,6 @@
     "I-02",
     "M-01",
     "N-02",
-    "O-01",
     "Q-01",
     "Q-02",
     "S-01",
@@ -2533,6 +2544,7 @@
     "K-03",
     "N-01",
     "N-03",
+    "O-01",
     "OPS-01",
     "P-01"
   ]
