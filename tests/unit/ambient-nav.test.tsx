@@ -65,6 +65,7 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
     expect(within(sheet).getByText("Account & Security")).toBeInTheDocument();
     expect(within(sheet).getByText("Projects")).toBeInTheDocument();
     expect(within(sheet).getByText("Tools")).toBeInTheDocument();
+    expect(within(sheet).getByTestId("more-tools")).toBeInTheDocument();
     // Preferences / Corrections / Captures are route-only or primary elsewhere.
     expect(within(sheet).queryByText("Preferences")).toBeNull();
     expect(within(sheet).queryByText("Corrections")).toBeNull();
