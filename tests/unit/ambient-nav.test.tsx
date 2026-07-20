@@ -39,11 +39,11 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
   it("shows the ambient primary loop by default", () => {
     renderNav();
     const rail = screen.getByTestId("ambient-nav");
-    // Ambient rail: Today · Needs me · Comms · People · Memory (+ More).
-    // Talk lives in the desktop EmployeeNav primary, not this compact rail.
-    for (const label of ["Today", "Needs me", "Comms", "People", "Memory"]) {
+    // C-03 / WAVE-1: Today · Talk · Needs me · People · Memory (+ More).
+    for (const label of ["Today", "Talk", "Needs me", "People", "Memory"]) {
       expect(within(rail).getAllByText(label).length).toBeGreaterThan(0);
     }
+    expect(within(rail).queryByText("Comms")).toBeNull();
     expect(within(rail).getAllByText("More").length).toBeGreaterThan(0);
   });
 
