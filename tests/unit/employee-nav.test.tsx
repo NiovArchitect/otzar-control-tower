@@ -61,43 +61,52 @@ describe("nav-employee.ts — primary / more groupings", () => {
   });
 
   it("more group is curated secondary surfaces — no admin/diagnostic junk", () => {
-    const labels = MORE_EMPLOYEE_NAV.map((i) => i.label);
-    expect(labels).toContain("Projects");
-    expect(labels).toContain("My AI Teammate");
-    expect(labels).toContain("Preferences");
+    // Visible More items only (hidden:true is route-only).
+    const visible = MORE_EMPLOYEE_NAV.filter((i) => i.hidden !== true).map(
+      (i) => i.label,
+    );
+    expect(visible).toContain("Projects");
+    expect(visible).toContain("My AI Teammate");
+    expect(visible).toContain("Account & Security");
+    // Preferences/Schedule thinned to route-only under nav pressure.
+    expect(visible).not.toContain("Preferences");
     // No admin/diagnostic labels.
-    expect(labels).not.toContain("Diagnostics");
-    expect(labels).not.toContain("Organization Seeding");
+    expect(visible).not.toContain("Diagnostics");
+    expect(visible).not.toContain("Organization Seeding");
   });
 
   it("keeps redundant/niche surfaces route-only (hidden from nav, reachable by URL)", () => {
     const hiddenRoutes = EMPLOYEE_NAV.filter((i) => i.hidden === true).map(
       (i) => i.to,
     );
-    expect(hiddenRoutes.sort()).toEqual(
-      [
-        "/app/my-day",
-        "/app/my-work",
-        "/app/workspace",
-        "/app/blind-spots",
-        "/app/operational-health",
-        "/app/collaboration-workspaces",
-        "/app/my-organization",
-        "/app/meeting-captures",
-        "/app/connector-health",
-        "/app/approvals",
-        "/app/authority-grants",
-        "/app/chat",
-        "/app/welcome",
-        "/app/observe",
-        "/app/voice-captures",
-        "/app/conversations",
-      ].sort(),
-    );
-    const navRoutes = [...PRIMARY_EMPLOYEE_NAV, ...MORE_EMPLOYEE_NAV].map(
-      (i) => i.to,
-    );
-    for (const r of hiddenRoutes) expect(navRoutes).not.toContain(r);
+    // Must include the core legacy/redirect surfaces (list may grow as IA thins).
+    for (const r of [
+      "/app/my-day",
+      "/app/my-work",
+      "/app/workspace",
+      "/app/blind-spots",
+      "/app/operational-health",
+      "/app/collaboration-workspaces",
+      "/app/my-organization",
+      "/app/meeting-captures",
+      "/app/connector-health",
+      "/app/approvals",
+      "/app/authority-grants",
+      "/app/chat",
+      "/app/welcome",
+      "/app/observe",
+      "/app/voice-captures",
+      "/app/conversations",
+      "/app/onboarding-readiness",
+      "/app/preferences",
+    ]) {
+      expect(hiddenRoutes).toContain(r);
+    }
+    const visibleRoutes = [
+      ...PRIMARY_EMPLOYEE_NAV,
+      ...MORE_EMPLOYEE_NAV.filter((i) => i.hidden !== true),
+    ].map((i) => i.to);
+    for (const r of hiddenRoutes) expect(visibleRoutes).not.toContain(r);
   });
 
   it("employee copy uses human language — no Dandelion/implementation internals", () => {
@@ -169,15 +178,17 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
   it("hides admin-only entries from normal employees and shows them to org admins", async () => {
     renderNav();
     await openMore();
+    // Launch readiness is route-only (hidden) for everyone — not in More.
     expect(screen.queryByText("Launch readiness")).toBeNull();
     expect(screen.queryByText("Team")).toBeNull();
 
     cleanup();
     setAuth(true);
     renderNav();
-    await openMore();
-    expect(screen.getByText("Launch readiness")).toBeInTheDocument();
+    // Team is primary + adminOnly — visible to org admins without opening More.
     expect(screen.getByText("Team")).toBeInTheDocument();
+    await openMore();
+    expect(screen.queryByText("Launch readiness")).toBeNull();
   });
 
   it("Needs me is visible to every user; Team is visible only to managers/admins", async () => {

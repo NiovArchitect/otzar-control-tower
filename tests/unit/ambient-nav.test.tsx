@@ -60,9 +60,13 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
     renderNav();
     await user.click(screen.getAllByTestId("ambient-nav-more")[0]!);
     const sheet = screen.getByTestId("ambient-nav-more-sheet");
-    expect(within(sheet).getByText("Corrections")).toBeInTheDocument();
-    expect(within(sheet).getByText("Preferences")).toBeInTheDocument();
-    // Captures routes to /app/comms which is already primary — not in More.
+    // Thinned WAVE-1 More: only everyday secondary destinations.
+    expect(within(sheet).getByText("My AI Teammate")).toBeInTheDocument();
+    expect(within(sheet).getByText("Account & Security")).toBeInTheDocument();
+    expect(within(sheet).getByText("Projects")).toBeInTheDocument();
+    // Preferences / Corrections / Captures are route-only or primary elsewhere.
+    expect(within(sheet).queryByText("Preferences")).toBeNull();
+    expect(within(sheet).queryByText("Corrections")).toBeNull();
     expect(within(sheet).queryByText("Captures")).toBeNull();
     // Approvals / Blind Spots are route-only (Needs me owns the daily path).
     expect(within(sheet).queryByText("Approvals")).toBeNull();

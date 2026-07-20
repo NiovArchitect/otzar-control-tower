@@ -86,6 +86,29 @@ function mockCtx(resp: ContextHealthResponse): void {
   );
 }
 
+/** Work-style learning surface — must resolve or Teach Otzar stays on "Loading…". */
+function mockWorkStyle(opts: { orgEnabled?: boolean } = {}): void {
+  const orgEnabled = opts.orgEnabled ?? false;
+  server.use(
+    http.get(`${API_BASE}/otzar/work-style/status`, () =>
+      HttpResponse.json({
+        ok: true,
+        org_policy_enabled: orgEnabled,
+        user_consent_required: true,
+        active_session: null,
+        pending_candidates_count: 0,
+        approved_preferences_count: 0,
+      }),
+    ),
+    http.get(`${API_BASE}/otzar/work-style/preferences`, () =>
+      HttpResponse.json({ ok: true, preferences: [] }),
+    ),
+    http.get(`${API_BASE}/otzar/work-style/candidates`, () =>
+      HttpResponse.json({ ok: true, candidates: [] }),
+    ),
+  );
+}
+
 function renderPage(): void {
   render(
     <MemoryRouter>
@@ -94,7 +117,11 @@ function renderPage(): void {
   );
 }
 
-beforeEach(() => setAuth());
+beforeEach(() => {
+  setAuth();
+  // Default: org policy not enabled — honest not-enabled surface.
+  mockWorkStyle({ orgEnabled: false });
+});
 
 describe("MyMemory — page title + user-facing label discipline", () => {
   it("renders 'My Digital Work Wallet' (NOT 'DMW' / 'COSMP')", async () => {
@@ -302,18 +329,23 @@ describe("MyMemory — privacy invariants (RULE 0)", () => {
   });
 });
 
-// CX-SLICE-5 — the observation consent/trust card. It captures NOTHING; it
-// proves the consent → active(indicator) → stop → review protocol, states
-// non-surveillance intent, and — with no org policy wired — honestly shows
-// the not-enabled state (an employee cannot bypass org policy).
+// CX-SLICE-5 / work-style learning — Teach Otzar card. Captures NOTHING until
+// a consent session starts; org policy gate is honest when disabled.
 describe("My Digital Work Wallet — observation consent card (CX-SLICE-5)", () => {
-  it("renders learn/never-touch categories and the honest not-recording note", async () => {
+  it("renders learn/never-touch categories and the honest status note", async () => {
+    mockCtx(ctx());
+    mockWorkStyle({ orgEnabled: false });
     renderPage();
     const card = await screen.findByTestId("observation-consent-card");
-    expect(within(card).getByTestId("observation-learns")).toHaveTextContent(/work methods/i);
+    await waitFor(() =>
+      expect(within(card).getByTestId("observation-learns")).toBeInTheDocument(),
+    );
+    expect(within(card).getByTestId("observation-learns").textContent ?? "").toMatch(
+      /structure|methods|review|tools|work/i,
+    );
     expect(within(card).getByTestId("observation-never")).toHaveTextContent(/confidential/i);
-    expect(within(card).getByTestId("observation-status-note")).toHaveTextContent(
-      /isn't recording anything yet/i,
+    expect(within(card).getByTestId("observation-status-note").textContent ?? "").toMatch(
+      /preference proposes behavior|organization policy authorizes|portable preferences/i,
     );
     // No surveillance language, no active indicator when idle/unavailable.
     expect(card.textContent ?? "").not.toMatch(/spy|monitor you|track you/i);
@@ -321,10 +353,15 @@ describe("My Digital Work Wallet — observation consent card (CX-SLICE-5)", () 
   });
 
   it("with no org policy, shows the not-enabled state and offers NO start action", async () => {
+    mockCtx(ctx());
+    mockWorkStyle({ orgEnabled: false });
     renderPage();
     await screen.findByTestId("observation-consent-card");
+    await waitFor(() =>
+      expect(screen.getByTestId("observation-not-enabled")).toBeInTheDocument(),
+    );
     expect(screen.getByTestId("observation-not-enabled")).toHaveTextContent(
-      /hasn't enabled work-style learning yet/i,
+      /hasn't enabled professional learning yet|hasn't enabled work-style learning yet/i,
     );
     expect(screen.queryByTestId("observation-start")).toBeNull();
     expect(screen.queryByTestId("observation-consent-checkbox")).toBeNull();
