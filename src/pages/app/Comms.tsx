@@ -205,6 +205,13 @@ export function Comms(): JSX.Element {
     setAmbientBusy(false);
     if (res.ok && res.data.ok) {
       setAmbientMessage(res.data.message);
+      // Success envelope can still report per-record reauth / scope errors.
+      if (
+        (res.data.errors ?? 0) > 0 ||
+        /SCOPE_REAUTH|REAUTH|RECONNECT|scope/i.test(res.data.message ?? "")
+      ) {
+        setNeedsReconnect(true);
+      }
       void loadPendingFollowUps();
     } else {
       const code = res.ok === false ? res.code ?? "" : "";
@@ -407,7 +414,9 @@ export function Comms(): JSX.Element {
                 </p>
                 {needsReconnect ? (
                   <Button asChild size="sm" variant="outline" data-testid="comms-reconnect-tools">
-                    <Link to="/app/connector-health">Reconnect tools</Link>
+                    <Link to="/app/connector-health?need=reconnect&from=comms">
+                      Reconnect tools
+                    </Link>
                   </Button>
                 ) : null}
               </div>

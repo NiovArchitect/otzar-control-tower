@@ -842,7 +842,7 @@ export function AmbientWorkSurface(): JSX.Element {
         ) : null}
         {toolsReconnectLabel !== null ? (
           <Link
-            to="/app/connector-health"
+            to="/app/connector-health?need=reconnect&from=today"
             data-testid="today-tools-reconnect"
             className="inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50/70 px-2.5 py-1 text-[11px] font-medium text-amber-950"
           >
