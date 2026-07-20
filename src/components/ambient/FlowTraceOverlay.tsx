@@ -56,7 +56,7 @@ export function FlowTraceOverlay(): JSX.Element | null {
       data-testid="flow-trace"
       data-kind={live.kind}
       data-direction={dir}
-      className="pointer-events-none fixed inset-x-0 top-0 z-[57]"
+      className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top,0px)] z-[57]"
     >
       {/* The directional streak — sweeps once (motion-safe), static otherwise. */}
       <div

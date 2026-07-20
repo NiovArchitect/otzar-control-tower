@@ -29,7 +29,11 @@ export function EmployeeLayout() {
 
   return (
     <div
-      className={`relative flex h-screen w-full overflow-hidden ${AMBIENT_FIELD}`}
+      // Viewport pin — not a scroll-under paint bug. When the shell is only
+      // relative + 100vh, document/browser layout can leave "Otzar / Work OS /
+      // Talk / 20" outside the visual viewport. fixed + 100dvh + safe-area
+      // keeps that chrome inside the view at all times; only <main> scrolls.
+      className={`fixed inset-0 flex h-[100dvh] max-h-[100dvh] w-full overflow-hidden pt-[env(safe-area-inset-top,0px)] ${AMBIENT_FIELD}`}
       data-testid="employee-shell"
     >
       {/* Atmospheric depth + grain */}
@@ -40,19 +44,19 @@ export function EmployeeLayout() {
 
       <AmbientNav />
 
-      <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
-        {/* Overlay-layering contract: relative z-40 + backdrop-blur on a
-            double-quoted className (locked by overlay-layering.test.ts). */}
-        <header className="relative z-40 flex h-16 items-center justify-between border-b border-white/50 bg-white/45 px-4 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/35 sm:px-6">
-          <div className="flex items-center gap-2.5">
+      <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Always-in-viewport chrome: Otzar · Work OS · Talk · notifications.
+            shrink-0 so main scrolls; never leave the visual viewport. */}
+        <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-slate-200/70 bg-white/95 px-4 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/90 sm:h-16 sm:px-6" data-testid="employee-shell-header">
+          <div className="flex min-w-0 items-center gap-2.5">
             <AppBackButton fallback="/app" />
             <Link
               to="/app"
-              className="group flex items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
+              className="group flex min-w-0 items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
               aria-label="Otzar home"
             >
               <OtzarMark size="sm" active />
-              <div className="leading-tight">
+              <div className="min-w-0 leading-tight">
                 <span className="block text-sm font-semibold tracking-tight text-slate-900">
                   Otzar
                 </span>
@@ -62,7 +66,7 @@ export function EmployeeLayout() {
               </div>
             </Link>
           </div>
-          <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
             <button
               type="button"
               onClick={() => {
@@ -99,7 +103,10 @@ export function EmployeeLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
+        <main
+          className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-8 sm:py-6"
+          data-testid="employee-shell-main"
+        >
           <Outlet />
         </main>
       </div>
