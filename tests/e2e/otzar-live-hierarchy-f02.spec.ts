@@ -86,33 +86,63 @@ test("F-02 deep: hierarchy editor bulk confirm + F-04 copy", async ({ page }) =>
     );
 
     if (rowsN >= 2 && selects >= 2) {
-      // Stage: change first person's manager to second option if possible
+      // Stage a *different* manager than current (same value is a no-op draft)
       const sel = page.getByTestId("hierarchy-manager-select").first();
+      const current = await sel.inputValue();
       const options = sel.locator("option");
       const nOpt = await options.count();
-      if (nOpt >= 2) {
-        const val = await options.nth(1).getAttribute("value");
-        if (val !== null) {
-          await sel.selectOption(val);
-          await page.waitForTimeout(400);
-          const count =
-            (await page.getByTestId("hierarchy-draft-count").getAttribute("data-count")) ??
-            "0";
-          rec(
-            "F02-E",
-            Number(count) >= 1 ||
-              (await page.getByTestId("hierarchy-draft-row").count()) > 0
-              ? "PASS"
-              : "FAIL",
-            `staged count=${count}`,
-          );
-          // Clear drafts — do not mutate live org hierarchy in smoke
-          await page.getByTestId("hierarchy-clear-drafts").click().catch(() => undefined);
-        } else {
-          rec("F02-E", "SKIP", "no option value");
+      let target: string | null = null;
+      for (let i = 0; i < nOpt; i++) {
+        const val = (await options.nth(i).getAttribute("value")) ?? "";
+        if (val !== current) {
+          target = val;
+          break;
         }
+      }
+      if (target !== null) {
+        await sel.selectOption(target);
+        // Ensure React onChange runs (some browsers need an extra input event)
+        await sel.dispatchEvent("change");
+        await page.waitForTimeout(600);
+        let count =
+          (await page
+            .getByTestId("hierarchy-draft-count")
+            .getAttribute("data-count")) ?? "0";
+        // Fallback: stage via second row if first is sticky top-level no-op
+        if (Number(count) < 1 && selects >= 2) {
+          const sel2 = page.getByTestId("hierarchy-manager-select").nth(1);
+          const cur2 = await sel2.inputValue();
+          const opts2 = sel2.locator("option");
+          const n2 = await opts2.count();
+          for (let i = 0; i < n2; i++) {
+            const v = (await opts2.nth(i).getAttribute("value")) ?? "";
+            if (v !== cur2) {
+              await sel2.selectOption(v);
+              await sel2.dispatchEvent("change");
+              await page.waitForTimeout(500);
+              break;
+            }
+          }
+          count =
+            (await page
+              .getByTestId("hierarchy-draft-count")
+              .getAttribute("data-count")) ?? "0";
+        }
+        rec(
+          "F02-E",
+          Number(count) >= 1 ||
+            (await page.getByTestId("hierarchy-draft-row").count()) > 0
+            ? "PASS"
+            : "FAIL",
+          `staged count=${count} from=${current.slice(0, 8)} to=${target.slice(0, 8)}`,
+        );
+        // Clear drafts — do not mutate live org hierarchy in smoke
+        await page
+          .getByTestId("hierarchy-clear-drafts")
+          .click()
+          .catch(() => undefined);
       } else {
-        rec("F02-E", "SKIP", "insufficient manager options");
+        rec("F02-E", "SKIP", "no alternate manager option");
       }
     } else {
       rec("F02-E", "SKIP", `people rows=${rowsN}`);

@@ -66,7 +66,7 @@ PARTIAL — growth card + seeding; full source-driven proposal classes open (E-0
 | ID | Proof | Notes |
 |----|-------|-------|
 | **F-01** People structure glance + assign | LIVE_VERIFIED | #176 |
-| **F-02** Drag-drop hierarchy editor | IMPLEMENTED | keyboard+drag bulk confirm/undo; deploy f02 |
+| **F-02** Drag-drop hierarchy editor | LIVE_VERIFIED | bulk stage/confirm; deep 6/6 |
 | **F-03** Matrix/sponsor edges | PARTIAL | |
 | **F-04** Hierarchy ≠ RBAC/TAR | IMPLEMENTED | not-authority copy on hierarchy editor |
 

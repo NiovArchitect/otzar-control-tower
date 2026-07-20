@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `d350f7f` |
-| Live bundle | `index-DruuhIGt.js` |
-| Live last-modified | 2026-07-20 A-06 LIVE 6/6 |
-| Gate status | **OPEN** — A-06 LIVE; F-02+F-04 IMPLEMENTED (await deploy); N-02 EXTERNALLY_BLOCKED; Phase 3 E-02 open |
+| CT `origin/main` | `215c546` |
+| Live bundle | `index-B2HYLarm.js` |
+| Live last-modified | 2026-07-20 F-02 + F-04 + G-01 LIVE 6/6 |
+| Gate status | **OPEN** — F-02/F-04/G-01 LIVE; A-06 LIVE; N-02 EXTERNALLY_BLOCKED; Phase 3 E-02 open |
 
 ---
 
