@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
-2. **H-01** Teach Otzar work-style end-to-end (Phase 4 P0) — first-user learning proof;
-3. **F-02** hierarchy drag-drop (Phase 3 P0) — admin setup aha;
+1. **H-01** Teach Otzar — code on main (admin policy card + Memory journey + deep smoke); **prove LIVE** after deploy (`otzar-live-teach-otzar-h01`);
+2. **H-02 / I** multi-user isolation + portable core UI (Phase 4 residual);
+3. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
 4. **Q-01/Q-02** cross-tenant isolation continuous (Phase 6) — when multi-tenant credentials available.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).
