@@ -41,11 +41,11 @@
 | 1 | A-01 | Login lands Home, not prior arbitrary route | BROWSER_PROVEN / LIVE_VERIFIED | Regression only |
 | 2 | A-02 | Deep links validated | UNIT_PROVEN / LIVE_VERIFIED | Expand deep-link matrix |
 | 3 | A-03 | Role-aware first-use strip | BROWSER_PROVEN / LIVE_VERIFIED | Server-side walkthrough versioning (A-04) |
-| 4 | A-04 | Server-side versioned walkthrough (all roles) | PARTIAL | Implement server flag + multi-role paths |
+| 4 | A-04 | Server-side versioned walkthrough (all roles) | IMPLEMENTED | Dual-write PREFERENCE + multi-step UI; LIVE after deploy |
 | 5 | A-05 | YC first 5 minutes aha | BROWSER_PROVEN (prior multi-role smoke) | Dedicated YC org harness continuous |
 | 6 | B-01 | Today one-shot ADHD | LIVE_VERIFIED | Keep density; no re-bloat |
-| 7 | B-02 | Home counts reconcile with visible objects | PARTIAL | Audit Today cards vs counts |
-| 8 | C-01 | Route inventory + every screen earns existence | PARTIAL | Finish inventory matrix; cull/redirect |
+| 7 | B-02 | Home counts reconcile with visible objects | IMPLEMENTED | data-why + object links; live count oracle follow-up |
+| 8 | C-01 | Route inventory + every screen earns existence | IMPLEMENTED | ROUTE_INVENTORY + welcome redirect |
 | 9 | C-02 | Admin vs employee shell separation | LIVE_VERIFIED | Guard remaining leaks |
 | 10 | C-03 | Zero dead buttons / no coming-soon in primary | PARTIAL | Admin/employee control inventory |
 | 11 | F-01 | People hierarchy glance + admin set line | LIVE_VERIFIED | Drag-drop editor F-02 |

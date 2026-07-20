@@ -1,10 +1,10 @@
 // FILE: FirstUseReveal.tsx
-// PURPOSE: One-shot first-login recognition — a single calm strip, not a
-//          second dashboard. Role-aware CTAs (leader vs teammate) for first
-//          value without scroll tax. Uses live context-health + DGI.
-// CONNECTS TO: AmbientWorkSurface hero, first-use/state.
+// PURPOSE: A-04 — versioned multi-step first-use walkthrough (≤3 steps).
+//          Role-aware paths; real product deep links; skip/replay-friendly;
+//          reduced-motion safe. Dual completion: local + server PREFERENCE.
+// CONNECTS TO: AmbientWorkSurface, first-use/state, walkthrough.ts.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
@@ -12,9 +12,16 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import {
-  hasCompletedFirstUse,
-  markFirstUseComplete,
+  hasCompletedWalkthrough,
+  hydrateWalkthroughFromServer,
+  markWalkthroughComplete,
 } from "@/lib/first-use/state";
+import {
+  prefersReducedMotion,
+  resolveWalkthroughRole,
+  walkthroughStepsFor,
+  WALKTHROUGH_VERSION,
+} from "@/lib/first-use/walkthrough";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 
 function openOrb(): void {
@@ -23,22 +30,38 @@ function openOrb(): void {
   }
 }
 
-/** Compact strip for the Today hero — never a multi-card wall. */
+/** Compact multi-step strip for Today — never a second dashboard. */
 export function FirstUseReveal(): JSX.Element | null {
   const entity = useAuthStore((s) => s.entity);
   const capabilities = useAuthStore((s) => s.capabilities);
   const email = entity?.email ?? null;
   const admin = isOrgAdmin(capabilities);
-  const [dismissed, setDismissed] = useState(() => hasCompletedFirstUse(email));
+  const [dismissed, setDismissed] = useState(() =>
+    hasCompletedWalkthrough(email),
+  );
+  const [hydrating, setHydrating] = useState(true);
   const [ctx, setCtx] = useState<ContextHealthResponse | null>(null);
   const [signal, setSignal] = useState<string | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  const reduceMotion = prefersReducedMotion();
 
   useEffect(() => {
-    setDismissed(hasCompletedFirstUse(email));
+    let cancelled = false;
+    void (async () => {
+      const serverDone = await hydrateWalkthroughFromServer(email);
+      if (cancelled) return;
+      if (serverDone || hasCompletedWalkthrough(email)) {
+        setDismissed(true);
+      }
+      setHydrating(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [email]);
 
   useEffect(() => {
-    if (dismissed) return;
+    if (dismissed || hydrating) return;
     let cancelled = false;
     void (async () => {
       const [health, dgi] = await Promise.all([
@@ -65,53 +88,53 @@ export function FirstUseReveal(): JSX.Element | null {
     return () => {
       cancelled = true;
     };
-  }, [dismissed]);
-
-  if (dismissed) return null;
+  }, [dismissed, hydrating]);
 
   const identity = ctx?.identity;
+  const roleTitle =
+    identity?.viewer?.title || identity?.viewer?.org_role || null;
+  const walkRole = useMemo(
+    () =>
+      resolveWalkthroughRole({
+        isOrgAdmin: admin,
+        title: identity?.viewer?.title ?? null,
+        orgRole: identity?.viewer?.org_role ?? (admin ? "leader" : null),
+      }),
+    [admin, identity?.viewer?.title, identity?.viewer?.org_role],
+  );
+  const steps = useMemo(() => walkthroughStepsFor(walkRole), [walkRole]);
+  const step = steps[Math.min(stepIndex, steps.length - 1)]!;
+
+  if (hydrating) return null;
+  if (dismissed) return null;
+
   const displayName =
     identity?.viewer?.display_name || nameFromEmail(email) || "there";
   const firstName = displayName.split(" ")[0] ?? displayName;
   const orgName = identity?.org?.name ?? "your organization";
-  const role =
-    identity?.viewer?.title ||
-    identity?.viewer?.org_role ||
-    (admin ? "leader" : null);
-
-  // Role first-value: leaders/managers → People structure; IC → Needs me.
-  const roleLower = (role ?? "").toLowerCase();
-  const managerish =
-    admin ||
-    /\b(manager|lead|director|founder|ceo|head|owner)\b/i.test(roleLower);
-  const primaryCta = managerish
-    ? {
-        label: admin ? "See my org" : "See my people",
-        to: "/app/collaboration",
-        testId: admin ? "first-use-see-org" : "first-use-see-people",
-      }
-    : {
-        label: "What needs me",
-        to: "/app/action-center",
-        testId: "first-use-needs-me",
-      };
-
-  const secondaryHint = managerish
-    ? "Check who reports to whom, then talk or clear what needs you."
-    : "Your AI Teammate is ready — start with what needs you, or talk.";
-
-  const roleBand = admin ? "leader" : managerish ? "manager" : "teammate";
 
   function complete(): void {
-    markFirstUseComplete(email);
+    markWalkthroughComplete(email);
     setDismissed(true);
+  }
+
+  function next(): void {
+    if (stepIndex + 1 >= steps.length) {
+      complete();
+      return;
+    }
+    setStepIndex((i) => i + 1);
   }
 
   return (
     <div
-      className="mt-3 rounded-2xl border border-indigo-200/50 bg-white/55 px-3 py-2.5 backdrop-blur-sm"
+      className={`mt-3 rounded-2xl border border-indigo-200/50 bg-white/55 px-3 py-2.5 backdrop-blur-sm ${
+        reduceMotion ? "" : "transition-opacity duration-200"
+      }`}
       data-testid="first-use-reveal"
-      data-role={roleBand}
+      data-role={walkRole}
+      data-walkthrough-version={WALKTHROUGH_VERSION}
+      data-step={step.id}
     >
       <div className="flex items-start gap-2.5">
         <Sparkles
@@ -119,45 +142,78 @@ export function FirstUseReveal(): JSX.Element | null {
           aria-hidden
         />
         <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-indigo-500/80">
+            Getting started · {stepIndex + 1}/{steps.length}
+          </p>
           <p
-            className="text-sm leading-snug text-slate-800"
+            className="mt-0.5 text-sm leading-snug text-slate-800"
             data-testid="first-use-recognition"
           >
             <span className="font-semibold">Welcome, {firstName}.</span>{" "}
-            {role ? (
-              <>
-                {orgName}
-                <span className="text-slate-500"> · {role}</span>
-              </>
-            ) : (
-              <>{orgName}</>
-            )}
-            {signal ? (
-              <span
-                className="mt-0.5 block text-xs text-slate-500"
-                data-testid="first-use-org"
-              >
-                {signal}
-              </span>
-            ) : (
-              <span
-                className="mt-0.5 block text-xs text-slate-500"
-                data-testid="first-use-teammate"
-              >
-                {secondaryHint}
-              </span>
-            )}
+            <span className="text-slate-500">
+              {orgName}
+              {roleTitle ? ` · ${roleTitle}` : ""}
+            </span>
           </p>
+          <p
+            className="mt-1.5 text-sm font-medium text-slate-900"
+            data-testid="walkthrough-step-title"
+          >
+            {step.title}
+          </p>
+          <p
+            className="mt-0.5 text-xs leading-snug text-slate-500"
+            data-testid="walkthrough-step-body"
+          >
+            {step.body}
+          </p>
+          {signal && stepIndex === 0 ? (
+            <span
+              className="mt-1 block text-xs text-slate-500"
+              data-testid="first-use-org"
+            >
+              Live now: {signal}
+            </span>
+          ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Link
-              to={primaryCta.to}
+              to={step.ctaTo}
               className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
-              data-testid={primaryCta.testId}
+              data-testid={step.testId}
               onClick={() => complete()}
             >
-              {primaryCta.label}
+              {step.ctaLabel}
               <ArrowRight className="h-3 w-3" aria-hidden />
             </Link>
+            {/* Primary legacy CTAs for e2e compatibility */}
+            {walkRole === "administrator" && stepIndex === 0 ? (
+              <Link
+                to="/app/collaboration"
+                className="sr-only"
+                data-testid="first-use-see-org"
+                onClick={() => complete()}
+              >
+                See my org
+              </Link>
+            ) : null}
+            {walkRole === "employee" || walkRole === "contractor" ? (
+              <Link
+                to="/app/action-center"
+                className="sr-only"
+                data-testid="first-use-needs-me"
+                onClick={() => complete()}
+              >
+                What needs me
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-white"
+              data-testid="walkthrough-next"
+              onClick={() => next()}
+            >
+              {stepIndex + 1 >= steps.length ? "Finish" : "Next"}
+            </button>
             <button
               type="button"
               className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-white"
@@ -183,7 +239,7 @@ export function FirstUseReveal(): JSX.Element | null {
               data-testid="first-use-review-work"
               onClick={() => complete()}
             >
-              Dismiss
+              Skip
             </button>
           </div>
         </div>

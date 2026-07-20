@@ -39,6 +39,19 @@ import {
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 import { FirstUseReveal } from "@/components/first-use/FirstUseReveal";
+import {
+  focusApprovals,
+  focusBlindSpots,
+  focusHandoff,
+  focusHeadline,
+  focusNextBestStep,
+  focusReplies,
+  focusSuggestion,
+  focusTwinBlocked,
+  focusTwinUnpaired,
+  focusTwinWork,
+  type FocusTruthItem,
+} from "@/lib/today/focus-truth";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -418,43 +431,23 @@ export function AmbientWorkSurface(): JSX.Element {
 
   const dgiIntensity = dgiPanelIntensity(dgi);
 
-  // One-shot Focus: at most a few actions that need the human now.
-  // Everything else is glance chips — users do not live in Otzar.
-  type FocusItem = {
-    key: string;
-    title: string;
-    detail: string | null;
-    to: string | null;
-    tone: "attention" | "working" | "ambient";
-    actionLabel: string | null;
+  // One-shot Focus (B-02): ≤3 actions; every card has why + object/queue link.
+  type FocusItem = FocusTruthItem & {
     onAction: (() => void) | null;
     actionBusy: boolean;
-    testId: string;
   };
   const focusItems: FocusItem[] = [];
   if (dgi?.coherence_status === "BLOCKED") {
     focusItems.push({
-      key: "blocked",
-      title: `${dgi.eligible_twin_count} AI Teammates linked — pick one`,
-      detail: "Otzar will not blend them.",
-      to: "/app/my-twin",
-      tone: "attention",
-      actionLabel: null,
+      ...focusTwinBlocked(dgi.eligible_twin_count),
       onAction: null,
       actionBusy: false,
-      testId: "dgi-twin-blocked",
     });
   } else if (dgi?.coherence_status === "UNPAIRED") {
     focusItems.push({
-      key: "unpaired",
-      title: "No AI Teammate paired yet",
-      detail: "Pair a Twin for governed organizational intelligence.",
-      to: "/app/my-twin",
-      tone: "working",
-      actionLabel: null,
+      ...focusTwinUnpaired(),
       onAction: null,
       actionBusy: false,
-      testId: "dgi-twin-unpaired",
     });
   }
   if (
@@ -463,79 +456,48 @@ export function AmbientWorkSurface(): JSX.Element {
     focusItems.length < 3
   ) {
     focusItems.push({
-      key: "nbs",
-      title: dgi.next_best_step.safe_title,
-      detail: dgi.next_best_step.reason,
-      to: dgi.next_best_step.route_hint || "/app/action-center",
-      tone: "attention",
-      actionLabel: null,
+      ...focusNextBestStep({
+        title: dgi.next_best_step.safe_title,
+        reason: dgi.next_best_step.reason ?? null,
+        routeHint: dgi.next_best_step.route_hint ?? null,
+      }),
       onAction: null,
       actionBusy: false,
-      testId: "dgi-next-best-step",
     });
   }
   if (approvalsCount > 0 && focusItems.length < 3) {
     focusItems.push({
-      key: "approvals",
-      title:
-        approvalsCount === 1
-          ? "1 approval is waiting"
-          : `${approvalsCount} approvals are waiting`,
-      detail: null,
-      to: "/app/action-center",
-      tone: "attention",
-      actionLabel: null,
+      ...focusApprovals(approvalsCount),
       onAction: null,
       actionBusy: false,
-      testId: "needs-approvals",
     });
   }
   if (urgentBlindSpots > 0 && focusItems.length < 3) {
     focusItems.push({
-      key: "blind",
-      title:
-        urgentBlindSpots === 1
-          ? "1 item is stuck and needs a decision"
-          : `${urgentBlindSpots} items are stuck and need a decision`,
-      detail: null,
-      to: "/app/action-center",
-      tone: "attention",
-      actionLabel: null,
+      ...focusBlindSpots(urgentBlindSpots),
       onAction: null,
       actionBusy: false,
-      testId: "needs-blind-spots",
     });
   }
   if (actionUnreadCount > 0 && focusItems.length < 3) {
     focusItems.push({
-      key: "replies",
-      title:
-        actionUnreadCount === 1
-          ? "1 reply to review"
-          : `${actionUnreadCount} replies to review`,
-      detail: null,
-      to: "/app/comms",
-      tone: "working",
-      actionLabel: null,
+      ...focusReplies(actionUnreadCount),
       onAction: null,
       actionBusy: false,
-      testId: "needs-replies",
     });
   }
   for (const h of incomingHandoffs.slice(0, 2)) {
     if (focusItems.length >= 3) break;
     focusItems.push({
-      key: `handoff-${h.handoff_id}`,
-      title: h.title,
-      detail: h.summary ?? null,
-      to: null,
-      tone: "working",
-      actionLabel: "Acknowledge",
+      ...focusHandoff({
+        handoffId: h.handoff_id,
+        title: h.title,
+        summary: h.summary ?? null,
+      }),
       onAction: () => {
         void acknowledgeHandoff(h);
       },
       actionBusy: ackBusyId === h.handoff_id,
-      testId: "ambient-handoff-row",
     });
   }
   for (const e of twinWorking) {
@@ -551,47 +513,34 @@ export function AmbientWorkSurface(): JSX.Element {
       continue;
     }
     focusItems.push({
-      key: `twin-${e.ledger_entry_id}`,
-      title: e.title,
-      detail: twinWorkStateLabel(tw.state),
-      to: needsVerify ? null : "/app/my-work",
-      tone: "working",
-      actionLabel: needsVerify ? "Verify" : "Open",
+      ...focusTwinWork({
+        ledgerEntryId: e.ledger_entry_id,
+        title: e.title,
+        stateLabel: twinWorkStateLabel(tw.state),
+        needsVerify,
+      }),
       onAction: needsVerify
         ? () => {
             void verifyTwinWork(e.ledger_entry_id);
           }
         : null,
       actionBusy: verifyBusyId === e.ledger_entry_id,
-      testId: "twin-working-row",
     });
   }
   if (focusItems.length === 0 && suggestions.length > 0) {
     if (headline !== null) {
       focusItems.push({
-        key: "headline",
-        title: headline,
-        detail: null,
-        to: "/app/action-center",
-        tone: "ambient",
-        actionLabel: null,
+        ...focusHeadline(headline),
         onAction: null,
         actionBusy: false,
-        testId: "changed-headline",
       });
     }
     for (const s of suggestions.slice(0, 2)) {
       if (focusItems.length >= 3) break;
       focusItems.push({
-        key: `sug-${s.rank}`,
-        title: s.safe_title,
-        detail: null,
-        to: "/app/my-day",
-        tone: "ambient",
-        actionLabel: null,
+        ...focusSuggestion(s.rank, s.safe_title),
         onAction: null,
         actionBusy: false,
-        testId: "changed-suggestion",
       });
     }
   }
@@ -706,20 +655,28 @@ export function AmbientWorkSurface(): JSX.Element {
           testId="dgi-coherence-panel"
         >
           <ul className="space-y-1.5" data-testid="changed-suggestions">
-            {focusItems.map((item) => (
+            {focusItems.map((item) => {
+              const secondary = item.detail ?? item.why;
+              const whyAttrs = {
+                "data-why": item.why,
+                "data-object-id": item.objectId ?? undefined,
+                "data-object-link": item.to ?? undefined,
+              } as const;
+              return (
               <li key={item.key}>
                 {item.onAction !== null ? (
                   <div
                     className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5"
                     data-testid={item.testId}
+                    {...whyAttrs}
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-900">
                         {item.title}
                       </p>
-                      {item.detail !== null ? (
+                      {secondary ? (
                         <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
-                          {item.detail}
+                          {secondary}
                         </p>
                       ) : null}
                     </div>
@@ -737,14 +694,15 @@ export function AmbientWorkSurface(): JSX.Element {
                     to={item.to ?? "/app/action-center"}
                     className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5 transition-colors hover:bg-white/70"
                     data-testid={item.testId}
+                    {...whyAttrs}
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-900">
                         {item.title}
                       </p>
-                      {item.detail !== null ? (
+                      {secondary ? (
                         <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
-                          {item.detail}
+                          {secondary}
                         </p>
                       ) : null}
                     </div>
@@ -755,7 +713,8 @@ export function AmbientWorkSurface(): JSX.Element {
                   </Link>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
           {ackError !== null ? (
             <p className="mt-2 text-[11px] text-rose-700" data-testid="ambient-handoff-ack-error">

@@ -88,11 +88,16 @@ test("L4 first-use reveal is skippable and leaves real Today", async ({
   page,
 }) => {
   test.setTimeout(150_000);
-  // Clear first-use flag for this account in the browser
+  // Clear versioned + legacy first-use flags for this account
   await page.goto("/login", { waitUntil: "domcontentloaded" });
   await page.evaluate(() => {
     for (const k of Object.keys(localStorage)) {
-      if (k.startsWith("otzar_first_use_v1:")) localStorage.removeItem(k);
+      if (
+        k.startsWith("otzar_first_use_v1:") ||
+        k.startsWith("otzar_first_use_walkthrough:")
+      ) {
+        localStorage.removeItem(k);
+      }
     }
   });
   await liveUiLogin(page, ADMIN, PW as string);

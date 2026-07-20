@@ -183,20 +183,26 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Only client first-use flag; no server version, no full multi-role walkthrough with 3D/real action",
+      "implementation_refs": [
+        "src/lib/first-use/walkthrough.ts",
+        "src/lib/first-use/state.ts",
+        "src/components/first-use/FirstUseReveal.tsx",
+        "tests/unit/first-use-walkthrough.test.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Live multi-role e2e + version-bump server hydrate still need LIVE_VERIFIED on deploy",
       "dependencies": [
         "A-03"
       ],
       "priority": "P0",
       "phase": 0,
       "test_requirements": [
-        "API walkthrough complete",
-        "e2e each role"
+        "unit walkthrough role + version keys",
+        "e2e first-use role",
+        "server PREFERENCE marker dual-write"
       ],
       "live_acceptance": "Replay/skip/version bump server-authoritative",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
@@ -377,17 +383,22 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "No continuous reconcile oracle smoke",
+      "implementation_refs": [
+        "src/lib/today/focus-truth.ts",
+        "src/pages/app/AmbientWorkSurface.tsx",
+        "tests/unit/focus-truth.test.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Browser card-count reconcile oracle on live org still open for LIVE_VERIFIED",
       "dependencies": [],
       "priority": "P0",
       "phase": 1,
       "test_requirements": [
-        "browser card count audit"
+        "unit focus why/link truth",
+        "browser card count audit (follow-up)"
       ],
       "live_acceptance": "",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
@@ -516,12 +527,15 @@
       ],
       "architecture": "",
       "implementation_refs": [
+        "src/lib/nav/route-inventory.ts",
+        "docs/otzar/master/ROUTE_INVENTORY.md",
+        "tests/unit/route-inventory.test.ts",
         "src/App.tsx",
         "src/lib/nav-employee.ts",
         "src/lib/nav.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Inventory table not complete; ~80 App routes remain",
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Execute remaining cull redirects (welcome\u2192Today) in follow-up PR if product agrees",
       "dependencies": [],
       "priority": "P0",
       "phase": 0,
@@ -530,7 +544,7 @@
         "admin-nav unit"
       ],
       "live_acceptance": "",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

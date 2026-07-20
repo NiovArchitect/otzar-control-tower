@@ -27,6 +27,10 @@ beforeEach(() => {
   // First-use strip must not inflate default density in unit tests.
   try {
     localStorage.setItem("otzar_first_use_v1:vishesh@niovlabs.com", "done");
+    localStorage.setItem(
+      "otzar_first_use_walkthrough:v1:vishesh@niovlabs.com",
+      "done",
+    );
   } catch {
     /* ignore */
   }
