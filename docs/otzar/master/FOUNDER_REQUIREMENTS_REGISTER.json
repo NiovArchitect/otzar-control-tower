@@ -3,18 +3,19 @@
   "title": "Otzar Founder Requirements Register",
   "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
   "live_snapshot": {
-    "ct_main_sha": "ae3919a",
-    "live_bundle": "index-LPFcWwfL.js",
-    "live_last_modified_utc": "2026-07-20T18:50:50Z",
-    "register_updated_utc": "2026-07-20T18:50:50Z",
-    "live_product_sha": "5ab6415",
+    "ct_main_sha": "b6f95a2",
+    "live_bundle": "index-CaSyCGMQ.js",
+    "live_last_modified_utc": "2026-07-20T19:04:11Z",
+    "register_updated_utc": "2026-07-20T19:04:11Z",
+    "live_product_sha": "b6f95a2",
     "matrix_totals": "pass=63 fail=0 skip=6",
     "transcript_probe": "cards=6",
     "d02_deep": "pass=20 fail=0",
     "j03_deep": "pass=11 fail=0",
     "p01_deep": "pass=8 fail=0 skip=1",
     "repair_sha": "ae3919a",
-    "k01k03_deep": "pass=9 fail=0"
+    "k01k03_deep": "pass=9 fail=0",
+    "n03_deep": "pass=8 fail=0"
   },
   "groups": {
     "A": "Login and first-time experience",
@@ -1967,8 +1968,8 @@
         "tests/unit/google-docs-n03.test.ts",
         "tests/e2e/otzar-live-docs-n03.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Await MANUAL DEPLOY + deep smoke; provider may honest-gate without Google doc scopes",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Create non-empty LIVE; append UI+API wired \u2014 provider returned APPEND_FAILED on smoke (honest gate). Full editDetected needs provider append success.",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
@@ -1977,11 +1978,16 @@
         "live deep n03"
       ],
       "live_acceptance": "Create non-empty session or honest reconnect; append\u2192editDetected when provider allows",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "b6f95a2",
+      "final_proof": {
+        "live_bundle": "index-CaSyCGMQ.js",
+        "e2e": "otzar-live-docs-n03 8/8",
+        "create": "session nonempty=true",
+        "append": "honest APPEND_FAILED + Fix connection"
+      }
     },
     {
       "id": "N-04",
@@ -2483,7 +2489,6 @@
     "I-02",
     "M-01",
     "N-02",
-    "N-03",
     "O-01",
     "Q-01",
     "Q-02",
@@ -2521,6 +2526,7 @@
     "K-02",
     "K-03",
     "N-01",
+    "N-03",
     "OPS-01",
     "P-01"
   ]
