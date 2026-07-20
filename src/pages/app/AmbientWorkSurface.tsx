@@ -59,6 +59,7 @@ import {
   roleHomeCopy,
 } from "@/lib/today/role-home";
 import { isRealNextDecision } from "@/lib/today/stale-truth";
+import { buildWhatChanged } from "@/lib/today/what-changed";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -646,6 +647,23 @@ export function AmbientWorkSurface(): JSX.Element {
     dgi?.coherence_status !== "BLOCKED" &&
     dgi?.coherence_status !== "UNPAIRED";
 
+  // B-04 — What changed from real state only (never a fake activity feed).
+  const whatChanged = buildWhatChanged({
+    openHandoffCount: incomingHandoffs.length,
+    handoffSampleTitles: incomingHandoffs.map((h) => h.title).filter(Boolean),
+    attentionCount: dgi?.attention_count ?? 0,
+    blockedOrUnpaired:
+      dgi?.coherence_status === "BLOCKED" ||
+      dgi?.coherence_status === "UNPAIRED",
+    twinWorkingCount: twinWorking.length,
+    toolsReconnectLabel,
+    truthConflictCount: dgi?.open_org_truth_conflicts_count ?? 0,
+    teamOpenSample:
+      teamPeople.length > 0
+        ? `${teamPeople[0]!.display_name} · ${teamPeople[0]!.open_obligation_count} open`
+        : null,
+  });
+
   return (
     <div
       className="mx-auto flex w-full max-w-lg flex-col gap-3 px-1 pb-28 pt-2 sm:max-w-xl sm:pt-4"
@@ -791,6 +809,39 @@ export function AmbientWorkSurface(): JSX.Element {
           Nothing urgent in focus — open Needs me or talk.
         </p>
       ) : null}
+
+      {/* B-04 — What changed: real state only; quiet when nothing new. */}
+      <section
+        className="rounded-2xl border border-slate-200/60 bg-white/40 px-3 py-2.5"
+        data-testid="what-changed"
+        aria-label="What changed"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          What changed
+        </p>
+        <ul className="mt-1.5 space-y-1">
+          {whatChanged.map((row) => (
+            <li key={row.testId} data-testid={row.testId} data-why={row.why}>
+              {row.to ? (
+                <Link
+                  to={row.to}
+                  className="flex items-center justify-between gap-2 rounded-lg px-1 py-1 text-sm text-slate-800 hover:bg-white/70"
+                >
+                  <span className="min-w-0 truncate">{row.title}</span>
+                  <ArrowRight
+                    className="h-3 w-3 shrink-0 text-slate-400"
+                    aria-hidden
+                  />
+                </Link>
+              ) : (
+                <span className="block px-1 py-1 text-sm text-slate-500">
+                  {row.title}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {/* GLANCE — one row of chips, not stacked panels. */}
       <div
