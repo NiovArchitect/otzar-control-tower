@@ -756,7 +756,7 @@
         "tests/unit/contextual-work-surfaces.test.ts",
         "tests/e2e/otzar-live-contextual-c04.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "Optional empty lanes stay quiet (no noise); corrections full form remains secondary deep-link",
       "dependencies": [],
       "priority": "P1",
@@ -766,11 +766,19 @@
         "live deep c04"
       ],
       "live_acceptance": "Needs me hosts blind spots + corrections context; blind-spots redirects; obligations/handoffs/evidence lanes when non-empty",
-      "status": "IMPLEMENTED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "195"
+      ],
+      "merge_shas": [
+        "f05d9d9"
+      ],
+      "deployment_sha": "f05d9d9",
+      "final_proof": {
+        "live_bundle": "index-B7Ex-Jn5.js",
+        "e2e": "otzar-live-contextual-c04 6/6",
+        "notes": "c04 host; blind-spots-lane; corrections context; open-work; blind-spots redirect; form deep-link"
+      }
     },
     {
       "id": "C-05",
@@ -2165,7 +2173,7 @@
         "tests/unit/connection-coverage.test.ts",
         "tests/e2e/otzar-live-tools-o02.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "Live SCIM IdP wire still not_wired (honest); group sync when foundation SCIM lands",
       "dependencies": [],
       "priority": "P1",
@@ -2175,11 +2183,20 @@
         "live deep o02"
       ],
       "live_acceptance": "Admin coverage panel shows org/team/user; consent line; SCIM not_wired honesty",
-      "status": "IMPLEMENTED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "195"
+      ],
+      "merge_shas": [
+        "f05d9d9",
+        "79db34a"
+      ],
+      "deployment_sha": "f05d9d9",
+      "final_proof": {
+        "live_bundle": "index-B7Ex-Jn5.js",
+        "e2e": "otzar-live-tools-o02 6/6",
+        "notes": "coverage panel org/team/user; consent healthy; scim=not_wired honesty; no false provisioned"
+      }
     },
     {
       "id": "P-01",

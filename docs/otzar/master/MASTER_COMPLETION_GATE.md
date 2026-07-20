@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `23eb1a8` |
-| Live bundle | `index-2lu-y0G3.js` |
-| Live last-modified | 2026-07-20 N-05 LIVE 6/6 |
-| Gate status | **OPEN** — N-05 LIVE; O-02 + C-04 IMPLEMENTED (await MANUAL DEPLOY); N-02 EXTERNALLY_BLOCKED; phases 3–7 incomplete |
+| CT `origin/main` | `f05d9d9` (#195) |
+| Live bundle | `index-B7Ex-Jn5.js` |
+| Live last-modified | 2026-07-20 O-02 + C-04 LIVE 6/6 each |
+| Gate status | **OPEN** — O-02 + C-04 LIVE_VERIFIED; N-05 LIVE; N-02 EXTERNALLY_BLOCKED; phases 3–7 incomplete |
 
 ---
 

@@ -49,7 +49,7 @@
 | **C-01** Route/control inventory earn existence | LIVE_VERIFIED | matrix + welcome→Today cull |
 | **C-02** Admin/employee separation | LIVE_VERIFIED | #173 |
 | **C-03** No dead/fake/coming-soon primary | LIVE_VERIFIED | |
-| **C-04** Contextual work surfaces | IMPLEMENTED | Needs me host; deploy + c04 smoke |
+| **C-04** Contextual work surfaces | LIVE_VERIFIED | Needs me host; deep 6/6 |
 | **C-05** Viewport chrome pin | LIVE_VERIFIED | #175 |
 | **C-06** More zero-noise + Tools | LIVE_VERIFIED | #178–179 |
 
@@ -121,7 +121,7 @@ PARTIAL — TAR/grants/escalations; graduated product ladder open.
 | ID | Proof | Notes |
 |----|-------|-------|
 | **O-01** Capability-first tools | LIVE_VERIFIED | MCP advanced-only |
-| **O-02** Org/team/user coverage + SCIM honesty | IMPLEMENTED | Deploy then deep o02 |
+| **O-02** Org/team/user coverage + SCIM honesty | LIVE_VERIFIED | not_wired SCIM; deep 6/6 |
 
 ### P — Role reports
 
