@@ -132,3 +132,19 @@ often multi-minute lag between:
 | 5 | Only if still stale after CI green + ~10–15m: reconnect GitHub or `bash scripts/otzar-render-deploy.sh` (emergency) |
 
 Force deploy is the exception, not the default path.
+
+## Sole-admin lockout recovery
+
+Five failed sign-ins suspend the account (`SUSPENDED`). Org admins **cannot**
+clear their own lockout in Control Tower. Recovery:
+
+```sh
+# Preferred when you have RENDER_API_KEY / bootstrap secrets
+bash scripts/otzar-clear-lockout.sh sadeil@niovlabs.com
+```
+
+Or platform rail (needs `can_admin_niov`):  
+`POST /api/v1/platform/entities/<email>/clear-lockout` with `{ "reason": "…" }`.
+
+Login UI copy must not say “contact your administrator” for this case — the
+locked person may *be* the only admin (see `login-error-copy.ts`).

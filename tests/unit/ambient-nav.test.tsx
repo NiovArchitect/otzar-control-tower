@@ -50,7 +50,7 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
   it("does NOT expose the dense destination list by default", () => {
     renderNav();
     expect(screen.queryByText("Blind Spots")).not.toBeInTheDocument();
-    expect(screen.queryByText("Tool connections")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tools")).not.toBeInTheDocument();
     expect(screen.queryByText("Work health")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ambient-nav-more-sheet")).not.toBeInTheDocument();
   });
@@ -60,10 +60,11 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
     renderNav();
     await user.click(screen.getAllByTestId("ambient-nav-more")[0]!);
     const sheet = screen.getByTestId("ambient-nav-more-sheet");
-    // Thinned WAVE-1 More: only everyday secondary destinations.
+    // Thinned WAVE-1 More: everyday secondary destinations + Tools reconnect.
     expect(within(sheet).getByText("My AI Teammate")).toBeInTheDocument();
     expect(within(sheet).getByText("Account & Security")).toBeInTheDocument();
     expect(within(sheet).getByText("Projects")).toBeInTheDocument();
+    expect(within(sheet).getByText("Tools")).toBeInTheDocument();
     // Preferences / Corrections / Captures are route-only or primary elsewhere.
     expect(within(sheet).queryByText("Preferences")).toBeNull();
     expect(within(sheet).queryByText("Corrections")).toBeNull();
