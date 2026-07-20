@@ -173,7 +173,17 @@ function WatcherCard({ finding }: { finding: WatcherFinding }): JSX.Element {
   );
 }
 
-export function BlindSpots(): JSX.Element {
+export type BlindSpotsVariant = "page" | "lane";
+
+/**
+ * Blind spots feed. `lane` embeds on Needs me (C-04 contextual surface);
+ * `page` is the standalone chrome (legacy — route redirects to Needs me).
+ */
+export function BlindSpots({
+  variant = "page",
+}: {
+  variant?: BlindSpotsVariant;
+} = {}): JSX.Element {
   const [findings, setFindings] = useState<WatcherFinding[] | null>(null);
   const [legacy, setLegacy] = useState<WorkLedgerEntryView[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -223,10 +233,22 @@ export function BlindSpots(): JSX.Element {
   const empty =
     !loading && feedItems.length === 0 && runtimeIssues.length === 0 && otherAttention.length === 0;
 
+  const isLane = variant === "lane";
+
   return (
-    <div className="space-y-4" data-testid="blind-spots-page">
+    <div
+      className={isLane ? "space-y-2 border-t border-border pt-4" : "space-y-4"}
+      data-testid={isLane ? "blind-spots-lane" : "blind-spots-page"}
+      data-contextual-kind="blind_spots"
+    >
       <div>
-        <h1 className="text-lg font-semibold">Blind Spots</h1>
+        {isLane ? (
+          <h2 className="flex items-center gap-2 text-sm font-medium">
+            Blind spots
+          </h2>
+        ) : (
+          <h1 className="text-lg font-semibold">Blind Spots</h1>
+        )}
         <p className="text-xs text-muted-foreground">
           Otzar surfaces stale, overdue, blocked, or unresolved work before it
           becomes invisible — from your durable work, not guessed.

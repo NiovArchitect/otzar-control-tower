@@ -33,6 +33,10 @@ export const EMPLOYEE_REDIRECTS: ReadonlyArray<{
   { path: "/app/my-day", target: "/app" },
   { path: "/app/workspace", target: "/app" },
   { path: "/app/voice-ready", target: "/app/voice" },
+  // C-04 — contextual work surfaces on Needs me
+  { path: "/app/blind-spots", target: "/app/action-center" },
+  { path: "/app/approvals", target: "/app/action-center" },
+  { path: "/app/my-work", target: "/app/action-center" },
 ];
 
 /**
@@ -66,8 +70,8 @@ export const EMPLOYEE_ROUTE_ONLY: ReadonlyArray<{
   {
     path: "/app/corrections",
     label: "Corrections",
-    earns: "yes",
-    notes: "Memory corrections deep-link",
+    earns: "thin",
+    notes: "C-04 deep-link form; context strip on Needs me",
   },
   {
     path: "/app/my-organization",

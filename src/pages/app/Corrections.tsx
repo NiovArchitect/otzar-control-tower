@@ -76,10 +76,15 @@ export function Corrections() {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      data-testid="corrections-page"
+      data-contextual-kind="corrections"
+      data-contextual-host="/app/action-center"
+    >
       <PageHeader
         title="Corrections"
-        description="Tell Otzar what it got wrong and what the right behavior is. Saved as personal learning in your Digital Work Wallet — it improves how Otzar works with you at this organization, and it does not retrain a global model or act in outside tools."
+        description="Tell Otzar what it got wrong and what the right behavior is. Saved as personal learning in your Digital Work Wallet — it improves how Otzar works with you at this organization, and it does not retrain a global model or act in outside tools. Also reachable from Needs me."
       />
 
       <form

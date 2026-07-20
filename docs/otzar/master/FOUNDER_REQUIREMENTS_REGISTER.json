@@ -750,17 +750,23 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "ActionCenter",
-        "Needs me redirects"
+        "src/lib/nav/contextual-work-surfaces.ts",
+        "src/pages/app/ActionCenter.tsx BlindSpots lane + CorrectionsContextLane",
+        "src/pages/app/BlindSpots.tsx variant=lane",
+        "tests/unit/contextual-work-surfaces.test.ts",
+        "tests/e2e/otzar-live-contextual-c04.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Some routes still exist as legacy pages",
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Optional empty lanes stay quiet (no noise); corrections full form remains secondary deep-link",
       "dependencies": [],
       "priority": "P1",
       "phase": 0,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit contextual map",
+        "live deep c04"
+      ],
+      "live_acceptance": "Needs me hosts blind spots + corrections context; blind-spots redirects; obligations/handoffs/evidence lanes when non-empty",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

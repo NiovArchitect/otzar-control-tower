@@ -1,16 +1,12 @@
 // FILE: ActionCenter.tsx
-// PURPOSE: Phase 1211 — Action Center page. Lists the viewer's own
-//          Action rows (source_entity_id = caller) in human terms
-//          per [FOUNDER — WARMWIND OS REFERENCE]. Reads
-//          api.actions.list() (GET /api/v1/actions, self-scoped at
-//          Foundation tier).
+// PURPOSE: Phase 1211 — Action Center ("Needs me"). Lists the viewer's own
+//          Action rows plus contextual work surfaces (C-04): open work,
+//          blind spots, obligations, handoffs, decision evidence,
+//          corrections entry — not as separate primary destinations.
 //
 //          The page surfaces the decisions Otzar has on behalf of
 //          the operator -- what's pending, what was approved, what
-//          succeeded, what was blocked. NO inline Approve/Deny in
-//          this slice (that arrives with the "AI breakdown" /
-//          Action Center detail drawer in a follow-on); the focus
-//          here is making the lifecycle visible.
+//          succeeded, what was blocked.
 //
 // CONNECTS TO:
 //   - src/lib/api.ts (api.actions.list)
@@ -32,10 +28,12 @@
 //     translated to friendly labels.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert, Scale, ArrowRightLeft, Briefcase } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CheckCircle2, Clock, AlertTriangle, Slash, ListChecks, CalendarClock, ShieldAlert, Scale, ArrowRightLeft, Briefcase, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DecisionEvidenceDrawer } from "@/components/otzar/DecisionEvidenceDrawer";
 import { OrgTruthReviewDrawer } from "@/components/otzar/OrgTruthReviewDrawer";
+import { BlindSpots } from "@/pages/app/BlindSpots";
 import type { ConflictSetWithCount } from "@/lib/types/foundation";
 import {
   ORG_TRUTH_COPY,
@@ -324,11 +322,16 @@ export function ActionCenter(): JSX.Element {
       : grouped[t].length;
 
   return (
-    <div className="space-y-6" data-testid="action-center">
+    <div
+      className="space-y-6"
+      data-testid="action-center"
+      data-contextual-work="true"
+      data-c04-host="true"
+    >
       <PageHeader
         eyebrow="Needs you"
         title="Needs me"
-        description="Decisions and open work Otzar is tracking for you. Confirm what matters, open the exact item, and see what's blocked."
+        description="Decisions, open work, blind spots, handoffs, obligations, and evidence — act here instead of hunting separate pages."
       />
 
       {/* Tab bar */}
@@ -687,7 +690,39 @@ export function ActionCenter(): JSX.Element {
       <IncomingHandoffsLane />
       <DecisionEvidenceLane />
       <OrgTruthReviewLane />
+
+      {/* C-04 — blind spots + corrections live here, not as primary destinations */}
+      <BlindSpots variant="lane" />
+      <CorrectionsContextLane />
     </div>
+  );
+}
+
+/** C-04 — teach/correct entry on Needs me; full form remains deep-link. */
+function CorrectionsContextLane(): JSX.Element {
+  return (
+    <section
+      className="space-y-2 border-t border-border pt-4"
+      data-testid="corrections-context-lane"
+      data-contextual-kind="corrections"
+      aria-label="Corrections"
+    >
+      <h2 className="flex items-center gap-2 text-sm font-medium">
+        <PencilLine className="h-4 w-4 text-muted-foreground" aria-hidden />
+        Corrections
+      </h2>
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <p className="text-xs text-muted-foreground">
+            Teach Otzar what it got wrong — personal learning for this org, not
+            global model retrain.
+          </p>
+          <Button asChild size="sm" variant="outline" data-testid="corrections-open-form">
+            <Link to="/app/corrections">Open correction form</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 

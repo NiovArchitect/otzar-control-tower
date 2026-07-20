@@ -49,7 +49,7 @@
 | **C-01** Route/control inventory earn existence | LIVE_VERIFIED | matrix + welcome→Today cull |
 | **C-02** Admin/employee separation | LIVE_VERIFIED | #173 |
 | **C-03** No dead/fake/coming-soon primary | LIVE_VERIFIED | |
-| **C-04** Contextual work surfaces | PARTIAL | |
+| **C-04** Contextual work surfaces | IMPLEMENTED | Needs me host; deploy + c04 smoke |
 | **C-05** Viewport chrome pin | LIVE_VERIFIED | #175 |
 | **C-06** More zero-noise + Tools | LIVE_VERIFIED | #178–179 |
 
