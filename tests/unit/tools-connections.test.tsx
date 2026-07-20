@@ -142,6 +142,17 @@ describe("Tools & Connections — Phase E.2 inventory actions", () => {
     expect(screen.getByTestId("tools-accuracy-panel")).toBeInTheDocument();
     expect(screen.getByTestId("acc-awaiting-verify")).toHaveTextContent("1");
     expect(screen.getByTestId("acc-human-edits")).toHaveTextContent("1");
+    // O-02 coverage panel
+    const cov = screen.getByTestId("tools-coverage-panel");
+    expect(cov).toBeInTheDocument();
+    expect(cov).toHaveAttribute("data-scim-state", "not_wired");
+    expect(screen.getByTestId("tools-scope-org")).toBeInTheDocument();
+    expect(screen.getByTestId("tools-scope-team")).toBeInTheDocument();
+    expect(screen.getByTestId("tools-scope-user")).toBeInTheDocument();
+    expect(screen.getByTestId("tools-scim-status").textContent?.toLowerCase()).toMatch(
+      /not wired/,
+    );
+    expect(screen.getByTestId("tools-admin-consent")).toBeInTheDocument();
   });
 
   it("approve posts decide decision", async () => {

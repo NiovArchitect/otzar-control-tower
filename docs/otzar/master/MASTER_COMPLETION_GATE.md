@@ -9,7 +9,7 @@
 | CT `origin/main` | `23eb1a8` |
 | Live bundle | `index-2lu-y0G3.js` |
 | Live last-modified | 2026-07-20 N-05 LIVE 6/6 |
-| Gate status | **OPEN** — Phase 2 P1 N-05 LIVE; O-02 SCIM open; N-02 EXTERNALLY_BLOCKED; phases 3–7 incomplete |
+| Gate status | **OPEN** — Phase 2 P1 N-05 LIVE; O-02 IMPLEMENTED (await MANUAL DEPLOY + o02 smoke); N-02 EXTERNALLY_BLOCKED; phases 3–7 incomplete |
 
 ---
 

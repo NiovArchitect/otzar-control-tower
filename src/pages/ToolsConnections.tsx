@@ -2,6 +2,7 @@
 // PURPOSE: Admin Tools & Connections — inventory KPIs, per-person tool
 //          footprint, in-place approve/deny requests, force-revoke OAuth
 //          (Phase E.1 + E.2). O-01: capability-first primary; MCP advanced-only.
+//          O-02: org/team/user coverage, enterprise admin consent, SCIM honesty.
 // CONNECTS TO: api.otzar.enterpriseTools.*, ConnectorsAdmin, ConnectorRailsAdmin.
 
 import { useCallback, useEffect, useState } from "react";
@@ -21,6 +22,11 @@ import {
   MCP_ADVANCED_ONLY_COPY,
   MCP_TAB_LABEL,
 } from "@/lib/connectors/capability-first-tools";
+import {
+  labelConnectionScope,
+  normalizeConnectionScope,
+  summarizeConnectionCoverage,
+} from "@/lib/connectors/connection-coverage";
 
 type Inventory = {
   headline: string;
@@ -205,6 +211,21 @@ function InventoryPanel(): JSX.Element {
   ];
 
   const people = inv.people ?? [];
+  const allGrants = people.flatMap((p) => p.grants ?? []);
+  const coverage = summarizeConnectionCoverage({
+    kpis: {
+      capabilities_connected: k.capabilities_connected,
+      capabilities_ready: k.capabilities_ready,
+      capabilities_blocked: k.capabilities_blocked,
+      oauth_verified: k.oauth_verified,
+      oauth_ready_for_consent: k.oauth_ready_for_consent,
+      org_bindings_enabled: k.org_bindings_enabled,
+      pending_access_requests: k.pending_access_requests,
+      active_employee_grants: k.active_employee_grants,
+      people_with_open_requests: k.people_with_open_requests,
+    },
+    grants: allGrants,
+  });
   const acc = inv.accuracy;
   const accuracyItems: Array<{ label: string; value: number; testId: string }> =
     acc !== undefined
@@ -272,6 +293,66 @@ function InventoryPanel(): JSX.Element {
           </Card>
         ))}
       </div>
+
+      {/* O-02 — org/team/user coverage, enterprise consent, SCIM honesty */}
+      <Card
+        data-testid="tools-coverage-panel"
+        data-coverage-health={coverage.health}
+        data-admin-consent={coverage.adminConsent}
+        data-scim-state={coverage.scim}
+        data-org-count={String(coverage.orgCount)}
+        data-team-count={String(coverage.teamCount)}
+        data-user-count={String(coverage.userCount)}
+      >
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">
+            Coverage · org / team / user
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p
+            className="text-xs text-foreground"
+            data-testid="tools-coverage-headline"
+          >
+            {coverage.headline}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" data-testid="tools-scope-org">
+              Organization · {coverage.orgCount}
+            </Badge>
+            <Badge variant="outline" data-testid="tools-scope-team">
+              Team · {coverage.teamCount}
+            </Badge>
+            <Badge variant="outline" data-testid="tools-scope-user">
+              User · {coverage.userCount}
+            </Badge>
+            <span
+              className="text-[11px] text-muted-foreground self-center"
+              data-testid="tools-scope-breakdown"
+            >
+              {coverage.scopeBreakdownLabel}
+            </span>
+          </div>
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid="tools-admin-consent"
+            data-consent-state={coverage.adminConsent}
+          >
+            <span className="font-medium text-foreground">
+              Enterprise admin consent:{" "}
+            </span>
+            {coverage.consentDetail}
+          </p>
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid="tools-scim-status"
+            data-scim-state={coverage.scim}
+          >
+            <span className="font-medium text-foreground">SCIM / groups: </span>
+            {coverage.scimDetail}
+          </p>
+        </CardContent>
+      </Card>
 
       {accuracyItems.length > 0 ? (
         <Card data-testid="tools-accuracy-panel">
@@ -412,9 +493,14 @@ function InventoryPanel(): JSX.Element {
                           key={g.grant_id}
                           className="flex flex-wrap items-center justify-between gap-2 rounded bg-muted/20 px-2 py-1"
                           data-testid="tools-grant-row"
+                          data-scope-type={g.scope_type}
+                          data-scope-level={
+                            normalizeConnectionScope(g.scope_type) ?? "other"
+                          }
                         >
                           <span className="text-muted-foreground">
-                            Grant · {g.allowed_operations.join(", ") || "scoped"}
+                            {labelConnectionScope(g.scope_type)} ·{" "}
+                            {g.allowed_operations.join(", ") || "scoped"}
                           </span>
                           <Button
                             type="button"

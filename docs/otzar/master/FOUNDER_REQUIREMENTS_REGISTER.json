@@ -2153,15 +2153,23 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "SCIM/group mappings",
+      "implementation_refs": [
+        "src/lib/connectors/connection-coverage.ts",
+        "src/pages/ToolsConnections.tsx tools-coverage-panel",
+        "tests/unit/connection-coverage.test.ts",
+        "tests/e2e/otzar-live-tools-o02.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Live SCIM IdP wire still not_wired (honest); group sync when foundation SCIM lands",
       "dependencies": [],
       "priority": "P1",
       "phase": 2,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit scope+consent+scim honesty",
+        "live deep o02"
+      ],
+      "live_acceptance": "Admin coverage panel shows org/team/user; consent line; SCIM not_wired honesty",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

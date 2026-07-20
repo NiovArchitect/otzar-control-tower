@@ -118,7 +118,10 @@ PARTIAL — TAR/grants/escalations; graduated product ladder open.
 
 ### O — Connections / MCP
 
-PARTIAL — capability UI; domain-wide provisioning open.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **O-01** Capability-first tools | LIVE_VERIFIED | MCP advanced-only |
+| **O-02** Org/team/user coverage + SCIM honesty | IMPLEMENTED | Deploy then deep o02 |
 
 ### P — Role reports
 
