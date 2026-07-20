@@ -669,6 +669,38 @@ export function classifyVoiceAction(
   //    is executed safely, drafted, proposed, routed to approval, or
   //    honestly blocked with the exact missing runtime.
 
+  // N-05 — "Email <Name> …" BEFORE ask-twin (utterances often include "ask him"
+  // in the body and must not false-route to ASK_TWIN / one-shot internal send).
+  if (
+    /^(?:please\s+)?(?:email|e-mail)\s+[A-Za-z]/i.test(heard.trim()) ||
+    /^(?:please\s+)?send\s+(?:an?\s+)?(?:email|e-mail)\s+to\b/i.test(heard.trim()) ||
+    (/\bgmail\b/i.test(lower) &&
+      /\b(send|email|message)\b/i.test(lower) &&
+      extractRecipient(heard) !== undefined)
+  ) {
+    const recipient = extractRecipient(heard);
+    const body =
+      extractBody(heard) ??
+      (recipient !== undefined ? extractTellBody(heard, recipient) : undefined);
+    return {
+      kind: "SEND_REQUIRES_APPROVAL",
+      heard,
+      actionLabel: recipient
+        ? `Email → ${recipient} (draft only)`
+        : "Email (draft only)",
+      spoken:
+        "I drafted an external email. Gmail send is not wired yet — nothing is sent or delivered. Review the draft; Confirm keeps it as a local draft only.",
+      route: COMMS_ROUTE,
+      connector: "email",
+      ...(recipient !== undefined ? { targetEntity: recipient } : {}),
+      ...(body !== undefined && body.length > 0 ? { draftPayload: body } : {}),
+      backendActionType: "SEND_INTERNAL_NOTIFICATION",
+      isExternalWrite: true,
+      requiresApproval: true,
+      needsConfirmation: true,
+    };
+  }
+
   // 5a) Ask ANOTHER person's Twin / agent — never fake the answer, never
   //     impersonate. Phase 1285-R: a SELF question ("ask my twin …", "ask
   //     otzar …") is NOT caught here — it falls through to GOVERNED_CHAT so the

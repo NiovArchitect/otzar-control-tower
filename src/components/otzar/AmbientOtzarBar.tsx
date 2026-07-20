@@ -96,6 +96,7 @@ import {
 } from "@/lib/work-os/target-resolution";
 import {
   interpretAmbientOutboundWork,
+  isExplicitExternalEmailIntent,
   isSelfKind,
   type AmbientOutboundKind,
   type CollaborationRequestType,
@@ -3552,8 +3553,12 @@ export function AmbientOtzarBar(): JSX.Element {
     // governed internal-message rail. This runs BEFORE the generic task planner
     // so a message to a teammate is never mis-parsed into fake tasks (e.g. a
     // pronoun "you" / verb "sent" becoming task recipients).
+    // N-05: skip for explicit Email/Gmail — those stay draft-until-confirm.
     {
-      const outbound = interpretAmbientOutboundWork(text);
+      const outbound =
+        isExplicitExternalEmailIntent(text)
+          ? null
+          : interpretAmbientOutboundWork(text);
       if (outbound !== null) {
         const at0 = new Date().toISOString();
         setDraft("");

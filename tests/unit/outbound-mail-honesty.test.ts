@@ -11,6 +11,17 @@ import {
   outboundMailRuntimeNote,
   outboundMailStatusLabel,
 } from "@/lib/work-os/outbound-mail-honesty";
+import { isExplicitExternalEmailIntent } from "@/lib/work-os/ambient-outbound";
+import { classifyVoiceAction } from "@/lib/voice/voice-action-runtime";
+import type { AuthCapabilities } from "@/lib/stores/auth";
+
+const EMPLOYEE: AuthCapabilities = {
+  can_read_capsules: true,
+  can_write_capsules: true,
+  can_share_capsules: false,
+  can_admin_org: false,
+  can_admin_niov: false,
+};
 
 describe("N-05 outbound mail honesty", () => {
   it("detects email/gmail channels", () => {
@@ -90,5 +101,28 @@ describe("N-05 outbound mail honesty", () => {
         s,
       ),
     ).toBe(false);
+  });
+
+  it("Email <Name> is external email intent (not ambient one-shot)", () => {
+    expect(
+      isExplicitExternalEmailIntent(
+        "Email David that the launch is Friday and ask him to confirm the deck.",
+      ),
+    ).toBe(true);
+    expect(isExplicitExternalEmailIntent("Ask David to review this.")).toBe(
+      false,
+    );
+  });
+
+  it("classifyVoiceAction routes Email Name to email connector draft", () => {
+    const a = classifyVoiceAction(
+      "Email David that the launch is Friday and ask him to confirm the deck.",
+      EMPLOYEE,
+    );
+    expect(a.kind).toBe("SEND_REQUIRES_APPROVAL");
+    expect(a.connector).toBe("email");
+    expect(a.isExternalWrite).toBe(true);
+    expect(a.needsConfirmation).toBe(true);
+    expect(a.spoken.toLowerCase()).toMatch(/not sent|draft|not wired|not delivered/);
   });
 });

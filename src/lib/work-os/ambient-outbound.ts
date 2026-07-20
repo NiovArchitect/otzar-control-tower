@@ -354,11 +354,28 @@ function composeFor(
 // OUTPUT: an AmbientOutboundPlan (INTERNAL_MESSAGE / CLARIFY), or null when the
 //         utterance is NOT recipient-directed (so normal chat/tasks/queries flow
 //         through their existing paths untouched).
+/** N-05 — explicit external email/Gmail intent must NOT use one-shot internal
+ *  delivery (that would false-complete as "I sent … on your behalf"). */
+export function isExplicitExternalEmailIntent(text: string): boolean {
+  const raw = text.trim();
+  if (raw.length === 0) return false;
+  if (/^(?:please\s+)?(?:email|e-mail)\s+[A-Za-z]/i.test(raw)) return true;
+  if (/^(?:please\s+)?send\s+(?:an?\s+)?(?:email|e-mail)\s+to\b/i.test(raw))
+    return true;
+  if (/\bvia\s+gmail\b/i.test(raw)) return true;
+  if (/\bgmail\b/i.test(raw) && /\b(send|email|message|write)\b/i.test(raw))
+    return true;
+  return false;
+}
+
 export function interpretAmbientOutboundWork(
   text: string,
 ): AmbientOutboundPlan | null {
   const raw = text.trim();
   if (raw.length === 0) return null;
+
+  // N-05: "Email David …" / "send an email to …" → voice draft path only.
+  if (isExplicitExternalEmailIntent(raw)) return null;
 
   // SELF-directed work ("remind me…", "note to self…", "message myself…") —
   // route to the self note/task/reminder rail, NEVER a "Hey <Name>" message.
