@@ -462,15 +462,20 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Needs continuous Needs-me / Today audit",
+      "implementation_refs": [
+        "src/lib/today/stale-truth.ts",
+        "src/pages/app/ActionCenter.tsx",
+        "src/pages/app/AmbientWorkSurface.tsx",
+        "tests/unit/stale-truth.test.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Live stale badge depends on aged pending actions in org",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
@@ -539,18 +544,21 @@
         "src/pages/app/AmbientWorkSurface.tsx",
         "tests/unit/role-home.test.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Live multi-role Home presence/glance prove after deploy",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Role maps from title/admin; live titles may not match contractor archetype",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "f924eed",
+      "final_proof": {
+        "live_bundle": "index-BL-3AO64.js",
+        "e2e": "role-home-b05 multi-role data-home-role"
+      }
     },
     {
       "id": "C-01",
@@ -2381,6 +2389,7 @@
     "A-07",
     "B-01",
     "B-02",
+    "B-05",
     "C-01",
     "C-02",
     "C-03",

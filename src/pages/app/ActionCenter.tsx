@@ -65,6 +65,7 @@ import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView, WorkLedgerEntryView } from "@/lib/types/foundation";
 import { isActionablePending, actionClassLabel } from "@/lib/work-os/action-classify";
+import { isStaleOpenWork, staleLabel } from "@/lib/today/stale-truth";
 import { useWorkStateChanged, emitWorkStateChanged } from "@/lib/events/work-state";
 
 type Tab = "pending" | "approved" | "completed" | "blocked";
@@ -552,6 +553,16 @@ export function ActionCenter(): JSX.Element {
                       <span>Created {formatRelative(a.created_at)}</span>
                       <span aria-hidden>·</span>
                       <span>Updated {formatRelative(a.updated_at)}</span>
+                      {/* B-03: open work older than a week is labeled Stale — still open. */}
+                      {tab === "pending" && isStaleOpenWork(a.updated_at) ? (
+                        <span
+                          className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900"
+                          data-testid="action-stale-badge"
+                          title={staleLabel(a.updated_at) ?? undefined}
+                        >
+                          Stale
+                        </span>
+                      ) : null}
                     </div>
                     {a.decision_reason !== undefined && a.decision_reason.length > 0 ? (
                       <p data-testid="action-decision-reason">
