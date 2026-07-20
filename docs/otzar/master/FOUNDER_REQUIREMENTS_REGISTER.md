@@ -27,8 +27,8 @@
 | **A-01** Login → Home | LIVE_VERIFIED | #173 post-login-destination |
 | **A-02** Deep-link validation | LIVE_VERIFIED | Expand matrix |
 | **A-03** Role-aware first-use strip | LIVE_VERIFIED | localStorage; see A-04 |
-| **A-04** Server-side versioned multi-role walkthrough | IMPLEMENTED | dual-write + roles; live verify after deploy |
-| **A-05** YC first 5 min aha | BROWSER_PROVEN | Needs S-01 continuous |
+| **A-04** Server-side versioned multi-role walkthrough | LIVE_VERIFIED | dual-write + roles; live verify after deploy |
+| **A-05** YC first 5 min aha | LIVE_VERIFIED | Needs S-01 continuous |
 | **A-06** Org switch → Home | PARTIAL | |
 | **A-07** Sole-admin lockout honesty | LIVE_VERIFIED | #178 |
 
@@ -37,7 +37,7 @@
 | ID | Proof | Notes |
 |----|-------|-------|
 | **B-01** Today one-shot ADHD | LIVE_VERIFIED | #174 |
-| **B-02** Counts reconcile + why-card | IMPLEMENTED | focus-truth why/link; live oracle follow-up |
+| **B-02** Counts reconcile + why-card | LIVE_VERIFIED | focus-truth why/link; live oracle follow-up |
 | **B-03** Resolved/stale/Next truth | PARTIAL | |
 | **B-04** What changed / integrations | PARTIAL | reconnect chip live |
 | **B-05** Role-different Home | PARTIAL | |
@@ -46,9 +46,9 @@
 
 | ID | Proof | Notes |
 |----|-------|-------|
-| **C-01** Route/control inventory earn existence | IMPLEMENTED | matrix + welcome→Today cull |
+| **C-01** Route/control inventory earn existence | LIVE_VERIFIED | matrix + welcome→Today cull |
 | **C-02** Admin/employee separation | LIVE_VERIFIED | #173 |
-| **C-03** No dead/fake/coming-soon primary | IMPLEMENTED | |
+| **C-03** No dead/fake/coming-soon primary | LIVE_VERIFIED | |
 | **C-04** Contextual work surfaces | PARTIAL | |
 | **C-05** Viewport chrome pin | LIVE_VERIFIED | #175 |
 | **C-06** More zero-noise + Tools | LIVE_VERIFIED | #178–179 |
