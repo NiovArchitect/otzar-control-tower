@@ -265,15 +265,16 @@ export const NAV: ReadonlyArray<NavItem> = [
   },
 
   // ── 6. Workflows & Automation ──────────────────────────────────
+  // Scenario Studio / Playground / Workflows — not primary admin jobs.
+  // Routes remain registered for deep links; hidden from nav so YC/admin
+  // first experience is not a technical demonstration of voice intent.
   {
-    // CX-SLICE-2 — the ADR-0077 pipeline is real; the name undersold it.
-    // "Scenario Studio": explore outcomes with your AI teammates, in
-    // executive language. Route unchanged (deep-link-safe).
     label: "Scenario Studio",
     to: "/agent-playground",
     icon: Network,
-    description: "Explore what could happen next. Your AI teammates compare options over your organization's own knowledge, recommend the best path, and — only with approval — turn it into real work. Governed and recorded.",
+    description: "Internal experimental surface — not a primary admin workflow.",
     group: "Workflows & Automation",
+    hidden: true,
   },
   {
     label: "Workflows",
@@ -282,14 +283,16 @@ export const NAV: ReadonlyArray<NavItem> = [
     description: "Multi-step orchestrations spanning people and AI Teammates.",
     group: "Workflows & Automation",
     comingSoon: true,
+    hidden: true,
   },
   {
     label: "Playground",
     to: "/playground",
     icon: FlaskConical,
-    description: "Stage a NEGOTIATE end to end — the patent claims, made tangible for buyers.",
+    description: "Internal experimental surface.",
     group: "Workflows & Automation",
     comingSoon: true,
+    hidden: true,
   },
 
   // ── 7. Audit & Activity ────────────────────────────────────────

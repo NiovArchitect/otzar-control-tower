@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/lib/stores/auth";
 import { landingPathFor } from "@/lib/auth/capabilities";
+import { resolvePostLoginDestination } from "@/lib/auth/post-login-destination";
 import { AMBIENT_FIELD, GLASS_SURFACE } from "@/lib/ambient/glass";
 import { OtzarMark } from "@/components/ambient/OtzarMark";
 
@@ -60,37 +61,24 @@ const DEMO_ACCOUNTS: ReadonlyArray<{
     role: "Org admin (demo seed)",
     email: "DEMO-2026-06-04-admin@niov.demo",
     password: "demo-password-123",
-    description: "Lands in Control Tower (/) — can_admin_org granted",
+    description: "Lands on Today Home (/app) — Control Tower via Open Control Tower",
   },
   {
     role: "Employee (demo seed)",
     email: "DEMO-2026-06-04-employee@niov.demo",
     password: "demo-password-123",
-    description: "Lands in /app — Twin + Authority + Projects",
+    description: "Lands on Today Home (/app) — Twin + current work",
   },
 ];
 
-// [SECTION-16] Post-login destination: prefer the guard-captured returnTo
-// (protected deep-link continuity), else persona routing. The input is the value
-// from useSearchParams().get("returnTo"), which React Router has ALREADY decoded
-// once (the guards encodeURIComponent it into the URL) — so we do NOT decode
-// again here (a second decode would corrupt a path containing a literal '%').
-// Accepted ONLY as a same-origin app path: it must start with a single "/" and
-// never be protocol-relative ("//host") or an absolute URL (open-redirect
-// safety), and never bounce back to /login. Pure + module-level for testability.
+// Post-login destination (YC first-use gate):
+// Authentication always lands on Home unless returnTo is a *validated*
+// intentional deep link. Prior admin/sensitive routes never restore.
 export function resolveDestination(
   returnTo: string | null,
   caps: Parameters<typeof landingPathFor>[0],
 ): string {
-  if (
-    returnTo !== null &&
-    returnTo.startsWith("/") &&
-    !returnTo.startsWith("//") &&
-    !returnTo.startsWith("/login")
-  ) {
-    return returnTo;
-  }
-  return landingPathFor(caps);
+  return resolvePostLoginDestination(returnTo, caps);
 }
 
 export function LoginPage() {
@@ -101,9 +89,7 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Org admins land in the Control Tower ("/"); product-only employees
-  // land in the Otzar shell ("/app") — unless a returnTo carries them back to
-  // the protected page they were originally headed for.
+  // Fresh authenticated session → Home (or validated deep link only).
   useEffect(() => {
     if (isAuthenticated) {
       navigate(resolveDestination(searchParams.get("returnTo"), capabilities), {
@@ -116,8 +102,8 @@ export function LoginPage() {
     event.preventDefault();
     const result = await login(email, password);
     if (result.ok) {
-      // Login is audited server-side; no user-facing success popup — users
-      // know they signed in. Go to returnTo if present, else the persona home.
+      // Login is audited server-side. Destination is Home unless the user
+      // opened a validated deep link before authenticating.
       navigate(
         resolveDestination(
           searchParams.get("returnTo"),

@@ -7,7 +7,7 @@
 //   - canWriteOtzar keys off can_write_capsules.
 //   - isOrgAdmin keys off can_admin_org.
 //   - PRODUCT access NEVER derives from can_admin_niov.
-//   - landingPathFor routes admins to "/" and product-only users to "/app".
+//   - landingPathFor routes all personas to product Home "/app".
 
 import { describe, expect, it } from "vitest";
 import {
@@ -87,8 +87,8 @@ describe("capabilities helpers", () => {
     ).toBe(true);
   });
 
-  it("landingPathFor sends admins to / and product-only users to /app", () => {
-    expect(landingPathFor(orgAdmin)).toBe("/");
+  it("landingPathFor sends everyone to product Home /app (Control Tower is intentional)", () => {
+    expect(landingPathFor(orgAdmin)).toBe("/app");
     expect(landingPathFor(employee)).toBe("/app");
     expect(landingPathFor(null)).toBe("/app");
   });
