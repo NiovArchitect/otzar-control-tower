@@ -45,17 +45,28 @@ export function ApplyRoleTemplateSkillsButton({
     },
   });
 
-  const catalog = catalogQuery.data ?? [];
-  const plan = resolveSkillPackagesForRoleTemplate({
-    roleTemplate,
-    catalog,
-    alreadyAssignedPackageIds: assignedPackageIds,
-  });
-  const needs = needsRoleTemplateSkills({
-    roleTemplate,
-    catalog,
-    alreadyAssignedPackageIds: assignedPackageIds,
-  });
+  const catalog = useMemo(
+    () => catalogQuery.data ?? [],
+    [catalogQuery.data],
+  );
+  const plan = useMemo(
+    () =>
+      resolveSkillPackagesForRoleTemplate({
+        roleTemplate,
+        catalog,
+        alreadyAssignedPackageIds: assignedPackageIds,
+      }),
+    [assignedPackageIds, catalog, roleTemplate],
+  );
+  const needs = useMemo(
+    () =>
+      needsRoleTemplateSkills({
+        roleTemplate,
+        catalog,
+        alreadyAssignedPackageIds: assignedPackageIds,
+      }),
+    [assignedPackageIds, catalog, roleTemplate],
+  );
   const intents = skillIntentsForRoleTemplate(roleTemplate);
   const templateLabel = roleTemplateLabel(roleTemplate);
 
