@@ -70,12 +70,27 @@ test("Live admin RBAC / ABAC verification", async ({ browser }: { browser: Brows
     stdAdminShell = s.adminShell;
     record("A: standard login reaches employee shell, NOT admin", !s.adminShell && s.employeeShell ? "PASS" : "FAIL", !s.adminShell ? "rbac-expected" : "product-bug", `landed ${s.path} adminShell=${s.adminShell} employeeShell=${s.employeeShell}`);
     // Direct admin route is blocked (redirect/login/AccessDenied — never admin UI).
-    await stdPage.goto("/admin/users").catch(() => undefined);
-    await stdPage.waitForTimeout(1200);
-    const reachedAdmin = (await stdPage.getByTestId("admin-nav-group").count()) > 0;
-    const denied = (await stdPage.getByRole("heading", { name: /access denied/i }).count()) > 0;
-    const onLogin = /\/login/.test(stdPage.url());
-    record("A: standard blocked from /admin/users", !reachedAdmin ? "PASS" : "FAIL", !reachedAdmin ? "rbac-expected" : "product-bug", `reachedAdminUI=${reachedAdmin} accessDenied=${denied} login=${onLogin} at=${new URL(stdPage.url()).pathname}`);
+    // Legacy /admin/* and real CT /users — non-admin must not see admin chrome.
+    let blockedAll = true;
+    for (const probe of ["/admin/users", "/users"]) {
+      await stdPage.goto(probe).catch(() => undefined);
+      await stdPage.waitForTimeout(1500);
+      const reachedAdmin = (await stdPage.getByTestId("admin-nav-group").count()) > 0;
+      const denied = (await stdPage.getByRole("heading", { name: /access denied/i }).count()) > 0;
+      const onLogin = /\/login/.test(stdPage.url());
+      const onEmployee = new URL(stdPage.url()).pathname.startsWith("/app");
+      const blocked = !reachedAdmin && (onEmployee || denied || onLogin);
+      if (!blocked) blockedAll = false;
+      record(
+        `A: standard blocked from ${probe}`,
+        blocked ? "PASS" : "FAIL",
+        blocked ? "rbac-expected" : "product-bug",
+        `reachedAdminUI=${reachedAdmin} accessDenied=${denied} login=${onLogin} employee=${onEmployee} at=${new URL(stdPage.url()).pathname}`,
+      );
+    }
+    if (!blockedAll) {
+      /* already recorded FAIL rows */
+    }
     const leak = await leakCheck(stdPage);
     record("A: no backend leakage on the denial path", leak.ok ? "PASS" : "FAIL", leak.ok ? "ok" : "product-bug", leak.ok ? "clean" : `leak: ${leak.hit}`);
   } finally { await stdCtx.close(); }

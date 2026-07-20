@@ -129,7 +129,7 @@ export function AuthorityGrants() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="authority-grants">
       <PageHeader
         title="Authority you have granted your AI Teammate"
         description="Choose what your AI Teammate may do for you, for how long, and revoke it whenever you want. Org policy, memory scope, audit, and approvals still apply."

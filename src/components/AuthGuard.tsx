@@ -8,7 +8,8 @@
 //
 // CONTRACT (regression-protected by tests/unit/auth-guard.test.tsx):
 // - !isAuthenticated → <Navigate to="/login" replace />
-// - isAuthenticated && !capabilities?.can_admin_org → AccessDenied
+// - isAuthenticated && !capabilities?.can_admin_org → bounce to employee
+//   Home (/app) — never leave non-admins sitting on CT URLs (matrix L)
 // - Otherwise → children
 
 import { Navigate, useLocation } from "react-router-dom";
@@ -19,7 +20,7 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated, isLoading, capabilities, logout } = useAuthStore();
+  const { isAuthenticated, isLoading, capabilities } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -41,32 +42,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
   }
 
+  // Matrix L / C-02: non-admins never remain in the Control Tower URL space.
+  // Employee product lives under /app — bounce them there rather than a CT
+  // "Access Denied" shell that still shows a CT path in the address bar.
   if (capabilities === null || !capabilities.can_admin_org) {
-    return <AccessDeniedScreen onLogout={logout} />;
+    return (
+      <Navigate
+        to="/app"
+        replace
+        state={{ ctDenied: true, from: location.pathname }}
+      />
+    );
   }
 
   return <>{children}</>;
-}
-
-function AccessDeniedScreen({ onLogout }: { onLogout: () => void }) {
-  return (
-    <main
-      role="main"
-      className="flex h-screen flex-col items-center justify-center gap-4 px-6 text-center"
-    >
-      <h1 className="text-2xl font-semibold">Access Denied</h1>
-      <p className="max-w-md text-muted-foreground">
-        You're signed in, but your account doesn't have admin access to the
-        Control Tower yet. Ask your organization's owner to give you admin
-        access.
-      </p>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="mt-4 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-      >
-        Log out
-      </button>
-    </main>
-  );
 }

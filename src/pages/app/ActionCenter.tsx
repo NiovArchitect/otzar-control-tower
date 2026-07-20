@@ -323,7 +323,7 @@ export function ActionCenter(): JSX.Element {
       : grouped[t].length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="action-center">
       <PageHeader
         eyebrow="Needs you"
         title="Needs me"

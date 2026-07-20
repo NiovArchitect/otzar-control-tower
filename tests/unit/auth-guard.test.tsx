@@ -55,7 +55,7 @@ describe("AuthGuard", () => {
     expect(screen.queryByText("protected content")).not.toBeInTheDocument();
   });
 
-  it("renders Access Denied for authenticated users without can_admin_org", () => {
+  it("bounces authenticated non-admins to employee Home (/app) — no CT shell", () => {
     setStore({
       token: "tok",
       entity: { email: "viewer@example.com" },
@@ -70,22 +70,24 @@ describe("AuthGuard", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/"]}>
+      <MemoryRouter initialEntries={["/users"]}>
         <Routes>
           <Route
-            path="/"
+            path="/users"
             element={
               <AuthGuard>
                 <div>protected content</div>
               </AuthGuard>
             }
           />
+          <Route path="/app" element={<div>employee home</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: /access denied/i })).toBeInTheDocument();
+    expect(screen.getByText("employee home")).toBeInTheDocument();
     expect(screen.queryByText("protected content")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /access denied/i })).toBeNull();
   });
 
   it("still admits an authenticated org admin (Control Tower not weakened)", () => {
