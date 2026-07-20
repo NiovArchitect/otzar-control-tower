@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `3651186` |
+| CT `origin/main` | `d350f7f` |
 | Live bundle | `index-DruuhIGt.js` |
 | Live last-modified | 2026-07-20 A-06 LIVE 6/6 |
-| Gate status | **OPEN** — Phase 0 A-06 LIVE; O-02+C-04 LIVE; N-02 EXTERNALLY_BLOCKED; Phase 3+ open residuals |
+| Gate status | **OPEN** — A-06 LIVE; F-02+F-04 IMPLEMENTED (await deploy); N-02 EXTERNALLY_BLOCKED; Phase 3 E-02 open |
 
 ---
 
@@ -72,8 +72,12 @@
 
 ## Next slice (after this register lands)
 
-**Selected (master gate):** **A-06** org switch → Home without blending — multi-org / tenant-safety UX foundation for Q-02 / I-02 / YC multi-tenant demos.
+**A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
-Phase 0 P0 closed (N-02 is Phase 2 EXTERNALLY_BLOCKED). Do not open Phase 3 F-02 drag-drop until remaining Phase 0 P1 A-06 is LIVE or residual-honest.
+**Highest next internal product (YC / investor gate):** recompute — candidates by impact:
+1. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
+2. **H-01** Teach Otzar work-style end-to-end (Phase 4 P0) — first-user learning proof;
+3. **F-02** hierarchy drag-drop (Phase 3 P0) — admin setup aha;
+4. **Q-01/Q-02** cross-tenant isolation continuous (Phase 6) — when multi-tenant credentials available.
 
-**Deferred (honest):** Foundation multi-org membership switch API; OPS-02 ops residual (does not outrank A-06); S-01 continuous YC harness (Phase 7).
+**Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

@@ -66,9 +66,9 @@ PARTIAL — growth card + seeding; full source-driven proposal classes open (E-0
 | ID | Proof | Notes |
 |----|-------|-------|
 | **F-01** People structure glance + assign | LIVE_VERIFIED | #176 |
-| **F-02** Drag-drop hierarchy editor | NOT_STARTED | **P0 phase 3** |
+| **F-02** Drag-drop hierarchy editor | IMPLEMENTED | keyboard+drag bulk confirm/undo; deploy f02 |
 | **F-03** Matrix/sponsor edges | PARTIAL | |
-| **F-04** Hierarchy ≠ RBAC/TAR | PARTIAL | doctrine |
+| **F-04** Hierarchy ≠ RBAC/TAR | IMPLEMENTED | not-authority copy on hierarchy editor |
 
 ### G — Role-templated AI Teammates
 

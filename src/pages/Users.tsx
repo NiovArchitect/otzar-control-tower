@@ -38,6 +38,7 @@ import { getEntityTypeLabel } from "@/lib/labels/entity-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type { Entity, EntityMembership, EntityStatus } from "@/lib/types/foundation";
 import { buildOrgMap, type OrgMapPerson } from "@/lib/org/org-map";
+import { HierarchyEditor } from "@/components/otzar/HierarchyEditor";
 
 const PAGE_SIZE = 25;
 
@@ -424,11 +425,49 @@ export function UsersPage() {
         people={allPeople.data ?? []}
       />
 
-      {/* PROD-UX-HIER — admin authoring of the reporting structure. The
-          selects carry stable entity ids (labels show name + email so
-          duplicate names can never mis-assign); the server enforces org
-          scope, the single-manager rule, and cycle safety, and writes an
-          audit record. */}
+      {/* F-02 — hierarchy editor: stage, bulk confirm, undo, keyboard + drag.
+          F-04 — copy states hierarchy ≠ access/TAR. Server assign still audited. */}
+      <HierarchyEditor
+        people={(allPeople.data ?? []).map((p) => ({
+          entity_id: p.entity_id,
+          display_name: p.display_name,
+          email: p.email,
+        }))}
+        edges={
+          hierarchy.data
+            ? (() => {
+                const orgId = hierarchy.data.org_entity_id;
+                const byPerson = new Map<string, string | null>();
+                for (const m of hierarchy.data.memberships) {
+                  if (!m.is_active) continue;
+                  const isManagerEdge = m.parent_id !== orgId;
+                  const existing = byPerson.get(m.child_id);
+                  if (
+                    existing === undefined ||
+                    (isManagerEdge && existing === null)
+                  ) {
+                    byPerson.set(
+                      m.child_id,
+                      isManagerEdge ? m.parent_id : null,
+                    );
+                  }
+                }
+                return Array.from(byPerson.entries()).map(
+                  ([person_entity_id, manager_entity_id]) => ({
+                    person_entity_id,
+                    manager_entity_id,
+                  }),
+                );
+              })()
+            : []
+        }
+        onApplied={() => {
+          void queryClient.invalidateQueries({ queryKey: ["org", "hierarchy"] });
+          void queryClient.invalidateQueries({ queryKey: ["org", "entities"] });
+        }}
+      />
+
+      {/* PROD-UX-HIER — quick single assign (still available). */}
       <ReportingCard
         people={allPeople.data ?? []}
         onAssigned={() => {
