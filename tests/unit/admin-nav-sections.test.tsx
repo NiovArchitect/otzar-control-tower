@@ -106,10 +106,15 @@ describe("Admin sidebar — renders the production sections, no connector confus
     );
   }
 
-  it("shows the eight section headers and the merged Tools & Connections link", () => {
+  it("shows production section headers (empty groups omitted) and Tools & Connections", () => {
     renderSidebar();
-    const groups = screen.getAllByTestId("admin-nav-group").map((el) => el.getAttribute("data-group"));
-    expect(groups).toEqual([...NAV_GROUP_ORDER]);
+    const groups = screen
+      .getAllByTestId("admin-nav-group")
+      .map((el) => el.getAttribute("data-group"));
+    // Workflows & Automation is fully hidden (zero-noise) — section not rendered.
+    expect(groups).toEqual(
+      NAV_GROUP_ORDER.filter((g) => g !== "Workflows & Automation"),
+    );
     expect(screen.getByRole("link", { name: /Tools & Connections/i })).toBeInTheDocument();
   });
 
@@ -119,9 +124,16 @@ describe("Admin sidebar — renders the production sections, no connector confus
     expect(screen.queryByRole("link", { name: /Integrations & MCP/i })).toBeNull();
   });
 
-  it("does not render stub screens in the sidebar", () => {
+  it("does not render stub or experimental screens in the sidebar", () => {
     renderSidebar();
-    for (const label of ["Analytics", "Workflows", "Playground", "Settings", "Documentation"]) {
+    for (const label of [
+      "Analytics",
+      "Workflows",
+      "Playground",
+      "Scenario Studio",
+      "Settings",
+      "Documentation",
+    ]) {
       expect(screen.queryByRole("link", { name: new RegExp(`^${label}$`, "i") })).toBeNull();
     }
   });
