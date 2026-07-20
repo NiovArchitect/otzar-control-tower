@@ -152,13 +152,21 @@ test("A-06 deep: org switch → Home without blending", async ({ page }) => {
     );
 
     // Scope key shape (unit-proven); live checks badge org id present or honest
-    const orgId2 = (await page.getByTestId("org-context-badge").getAttribute("data-org-id").catch(() => "")) ?? "";
+    const orgId2 =
+      (await page
+        .getByTestId("org-context-badge")
+        .getAttribute("data-org-id")
+        .catch(() => "")) ?? "";
+    // After simulated switch, org id may be stale until reload — badge presence is enough
+    const hasBadge = (await page.getByTestId("org-context-badge").count()) > 0;
     rec(
       "A06-E",
-      true ? "PASS" : "FAIL",
+      hasBadge ? "PASS" : "FAIL",
       orgId2.length > 0
         ? `org-scoped ready id=${orgId2.slice(0, 20)}`
-        : "org id empty after sim (context-health may lag)",
+        : hasBadge
+          ? "badge present (org id after context-health)"
+          : "badge missing after sim",
     );
 
     // Restore real org by full reload
