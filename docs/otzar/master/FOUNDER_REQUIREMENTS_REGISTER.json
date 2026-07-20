@@ -3,10 +3,13 @@
   "title": "Otzar Founder Requirements Register",
   "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
   "live_snapshot": {
-    "ct_main_sha": "683fc46",
-    "live_bundle": "index-DISpRqZe.js",
-    "live_last_modified_utc": "2026-07-20T07:47:37Z",
-    "register_updated_utc": "2026-07-20T08:00:00Z"
+    "ct_main_sha": "882361d",
+    "live_bundle": "index-CqgWhZAo.js",
+    "live_last_modified_utc": "2026-07-20T17:26:00Z",
+    "register_updated_utc": "2026-07-20T17:27:10Z",
+    "live_product_sha": "d320c12",
+    "matrix_totals": "pass=63 fail=0 skip=6",
+    "transcript_probe": "cards=6"
   },
   "groups": {
     "A": "Login and first-time experience",
@@ -857,21 +860,28 @@
         "AmbientOtzarBar data-presence-human",
         "tests/e2e/otzar-live-presence-d01.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Live prove data-presence-human after deploy",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [
         "#169",
         "#170"
       ],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "d320c12",
+      "final_proof": {
+        "live_bundle": "index-CqgWhZAo.js",
+        "e2e": "otzar-live-presence-d01 (machine=RECOMMENDATION human=working)",
+        "markers": [
+          "data-presence-human",
+          "ambient-otzar-bar"
+        ]
+      }
     },
     {
       "id": "D-02",
@@ -2419,6 +2429,7 @@
     "C-03",
     "C-05",
     "C-06",
+    "D-01",
     "D-04",
     "F-01",
     "J-01",
