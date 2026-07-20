@@ -1112,7 +1112,7 @@
         "tests/unit/proposal-honesty.test.ts",
         "tests/e2e/otzar-live-proposal-e02.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "Alternatives are listed; hierarchy/structure still use dedicated confirm UIs for apply",
       "dependencies": [],
       "priority": "P0",
@@ -1122,11 +1122,18 @@
         "live deep e02"
       ],
       "live_acceptance": "Seed cards show source/confidence/alternatives; authority-affecting requires admin confirm; never auto-apply",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "1a741c4",
+        "7e22980"
+      ],
+      "deployment_sha": "7e22980",
+      "final_proof": {
+        "live_bundle": "index-B4shtStV.js",
+        "e2e": "otzar-live-proposal-e02 10/10 complex",
+        "notes": "sync discovery; 66-card queue sample; source+confidence+alts; hold branch; employee isolation"
+      }
     },
     {
       "id": "E-03",
