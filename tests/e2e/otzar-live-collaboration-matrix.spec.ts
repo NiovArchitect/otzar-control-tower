@@ -90,12 +90,22 @@ async function login(page: Page, email: string): Promise<boolean> {
  *  region only expands when collapsed (so we never accidentally collapse an open
  *  orb). Waits for the input so later fills don't burn the action timeout. */
 async function openOrb(page: Page): Promise<void> {
-  const region = page.getByRole("region", { name: /Talk to Otzar/i });
-  await region.first().waitFor({ state: "visible", timeout: 12_000 }).catch(() => undefined);
+  // Prefer the Talk orb testid (collapsed or expanded).
+  const orb = page.getByTestId("ambient-otzar-bar").first();
+  await orb.waitFor({ state: "visible", timeout: 12_000 }).catch(() => undefined);
   const input = page.getByLabel(/Message to Otzar/i);
-  const visible = (await input.count()) > 0 && (await input.first().isVisible().catch(() => false));
-  if (!visible) await region.first().click().catch(() => undefined);
-  await input.first().waitFor({ state: "visible", timeout: 8_000 }).catch(() => undefined);
+  let visible =
+    (await input.count()) > 0 && (await input.first().isVisible().catch(() => false));
+  if (!visible) {
+    await orb.click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(400);
+    // Expanded panel may re-mount the bar; click Talk header CTA as fallback.
+    if (!(await input.first().isVisible().catch(() => false))) {
+      await page.getByTestId("header-talk-otzar").click({ force: true }).catch(() => undefined);
+      await page.waitForTimeout(400);
+    }
+  }
+  await input.first().waitFor({ state: "visible", timeout: 10_000 }).catch(() => undefined);
 }
 
 /** Send a command and return the outcome belonging to THIS command. Completion
@@ -192,24 +202,32 @@ async function softGoto(page: Page, path: string): Promise<string> {
   // Prefer clicking an existing Link to the same path (true SPA).
   const existing = page.locator(`a[href="${path}"], a[href^="${path}?"]`);
   if ((await existing.count()) > 0) {
-    await existing.first().click().catch(() => undefined);
+    await existing.first().click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(800);
     await settle(page);
-    return new URL(page.url()).pathname;
-  }
-  // Ambient primary aliases
-  if (path === "/app/action-center" || path.startsWith("/app/action-center")) {
-    const needs = page.getByTestId("ambient-nav").getByRole("link", { name: /needs me/i });
-    if ((await needs.count()) > 0) {
-      await needs.first().click().catch(() => undefined);
-      await settle(page);
+    if (new URL(page.url()).pathname.includes(path.replace(/\/$/, "").split("/").pop() || "___")) {
       return new URL(page.url()).pathname;
+    }
+  }
+  // Ambient primary aliases — both desktop + mobile rails share Needs me.
+  if (path === "/app/action-center" || path.startsWith("/app/action-center")) {
+    const needs = page.getByRole("link", { name: /needs me/i });
+    if ((await needs.count()) > 0) {
+      await needs.first().click({ force: true }).catch(() => undefined);
+      await page
+        .waitForURL(/action-center/, { timeout: 10_000 })
+        .catch(() => undefined);
+      await settle(page);
+      if (/action-center/.test(page.url())) return new URL(page.url()).pathname;
     }
   }
   // Cookie-backed session restore (SECTION-16) — full load is OK on live.
   await page.goto(path, { waitUntil: "domcontentloaded" }).catch(() => undefined);
+  await page.waitForTimeout(1200);
   if (/\/login/.test(page.url()) && PASSWORD) {
     await login(page, EMAIL);
     await page.goto(path, { waitUntil: "domcontentloaded" }).catch(() => undefined);
+    await page.waitForTimeout(1200);
   }
   await settle(page);
   return new URL(page.url()).pathname;
@@ -437,10 +455,16 @@ test("Live Collaboration Verification Matrix", async ({ browser }) => {
 
   // K. Approvals — product consolidates to Needs me (/app/action-center).
   await sect("K", "approvals surface", async () => {
-    const path = await navClient(page, /approvals/i);
+    let path = await softGoto(page, "/app/action-center");
+    if (!/action-center|approvals/i.test(path)) {
+      path = await navClient(page, /needs me/i);
+    }
     const onQueue =
       /action-center|approvals/i.test(path) ||
-      (await page.getByTestId("action-center").count()) > 0;
+      (await page.getByTestId("action-center").count()) > 0 ||
+      (await page.getByTestId("action-center-list").count()) > 0 ||
+      (await page.getByTestId("action-center-empty").count()) > 0 ||
+      (await page.getByRole("heading", { name: /needs me/i }).count()) > 0;
     const body = ((await page.locator("body").textContent().catch(() => "")) ?? "").toLowerCase();
     const honest = /approval|needs me|waiting|clear|nothing|empty|queue|handoff|work|inbox/i.test(
       body,

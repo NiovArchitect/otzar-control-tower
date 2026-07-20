@@ -6,6 +6,7 @@
 // CONNECTS TO: Collaboration page, api.org.hierarchy, personal-structure.
 
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Network } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,22 +169,35 @@ export function PeopleStructureGlance(): JSX.Element {
         )}
 
         {admin ? (
-          <AdminReportingEditor
-            people={
-              people.data?.ok
-                ? people.data.data.items.map((p) => ({
-                    entity_id: p.entity_id,
-                    display_name: p.display_name,
-                    email: p.email,
-                  }))
-                : []
-            }
-            onSaved={() => {
-              void queryClient.invalidateQueries({
-                queryKey: ["org", "hierarchy"],
-              });
-            }}
-          />
+          <>
+            <AdminReportingEditor
+              people={
+                people.data?.ok
+                  ? people.data.data.items.map((p) => ({
+                      entity_id: p.entity_id,
+                      display_name: p.display_name,
+                      email: p.email,
+                    }))
+                  : []
+              }
+              onSaved={() => {
+                void queryClient.invalidateQueries({
+                  queryKey: ["org", "hierarchy"],
+                });
+              }}
+            />
+            {/* Discoverability: full org map + bulk tools still live in CT. */}
+            <p className="text-[11px] text-muted-foreground">
+              Full org map and bulk hierarchy tools:{" "}
+              <Link
+                to="/users"
+                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                data-testid="people-structure-open-ct-users"
+              >
+                Open Control Tower · Users
+              </Link>
+            </p>
+          </>
         ) : (
           <p className="text-[11px] text-muted-foreground">
             Only org admins change reporting lines. Ask your admin if your
