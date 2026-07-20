@@ -19,6 +19,7 @@ import type {
   ZoomRecordingView,
 } from "@/lib/types/foundation";
 import { groupSeeds, type SeedGroup } from "@/lib/work-os/seed-grouping";
+import { buildProposalHonestyView } from "@/lib/work-os/proposal-honesty";
 
 const SEED_TYPE_LABEL: Record<string, string> = {
   grant_tool_access: "Tool access needed",
@@ -361,9 +362,20 @@ function SeedCard({
   const isStructure = seed.seed_type === "add_project_membership";
   // Phase B — hierarchy propose + admin confirm.
   const isHierarchy = seed.seed_type === "set_manager";
+  // E-02 — source, confidence, alternatives, authority-affecting honesty
+  const honesty = buildProposalHonestyView(seed);
 
   return (
-    <Card data-testid="org-seed-card" data-seed-status={seed.status} data-seed-type={seed.seed_type}>
+    <Card
+      data-testid="org-seed-card"
+      data-seed-status={seed.status}
+      data-seed-type={seed.seed_type}
+      data-e02-honesty="true"
+      data-authority-affecting={honesty.authority_affecting ? "true" : "false"}
+      data-requires-admin-confirm={honesty.requires_admin_confirm ? "true" : "false"}
+      data-confidence={honesty.confidence}
+      data-source-missing={honesty.source_missing ? "true" : "false"}
+    >
       <CardContent className="space-y-2 py-3 text-sm">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -377,16 +389,70 @@ function SeedCard({
             {statusLabel(seed.status)}
           </Badge>
         </div>
-        {seed.source_evidence ? (
+        {/* E-02 source — always surface presence or honest absence */}
+        {honesty.source !== null ? (
           <p className="text-[11px] italic text-muted-foreground" data-testid="org-seed-evidence">
-            Why: “{seed.source_evidence}”
+            Source: “{honesty.source}”
           </p>
-        ) : null}
-        <div className="flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
-          <span>Confidence: {seed.confidence}</span>
+        ) : (
+          <p
+            className="text-[11px] text-amber-700 dark:text-amber-400"
+            data-testid="org-seed-evidence-missing"
+          >
+            Source evidence is missing — review carefully before approving.
+          </p>
+        )}
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground"
+          data-testid="org-seed-confidence"
+          data-confidence={honesty.confidence}
+        >
+          <Badge variant="secondary" className="text-[10px] font-normal">
+            {honesty.confidence_label}
+          </Badge>
           {seed.risk_if_ignored ? <span>· If ignored: {seed.risk_if_ignored}</span> : null}
-          {seed.approval_required ? <span>· Approval required</span> : null}
+          {honesty.requires_admin_confirm ? (
+            <span data-testid="org-seed-admin-confirm-required">
+              · Admin must confirm (nothing auto-applies)
+            </span>
+          ) : null}
         </div>
+        {honesty.authority_affecting ? (
+          <p
+            className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-[11px] text-amber-900 dark:text-amber-200"
+            data-testid="org-seed-authority-banner"
+          >
+            {honesty.honesty_summary}
+          </p>
+        ) : (
+          <p
+            className="text-[11px] text-muted-foreground"
+            data-testid="org-seed-honesty-summary"
+          >
+            {honesty.honesty_summary}
+          </p>
+        )}
+        {/* E-02 alternatives — always listed for pending authority/structure */}
+        {actionable ? (
+          <div
+            className="rounded-md border border-border/50 bg-muted/15 px-2 py-1.5"
+            data-testid="org-seed-alternatives"
+            data-count={String(honesty.alternatives.length)}
+          >
+            <p className="text-[11px] font-medium text-foreground">Alternatives</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-muted-foreground">
+              {honesty.alternatives.map((a) => (
+                <li
+                  key={a.id}
+                  data-testid="org-seed-alternative"
+                  data-alt-kind={a.kind}
+                >
+                  {a.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {seed.resulting_action ? (
           <p className="text-[11px] text-emerald-700 dark:text-emerald-400">{seed.resulting_action}</p>
         ) : null}

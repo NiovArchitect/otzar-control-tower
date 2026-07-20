@@ -1106,15 +1106,23 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Full confidence UI incomplete",
+      "implementation_refs": [
+        "src/lib/work-os/proposal-honesty.ts",
+        "src/pages/OrganizationSeeding.tsx SeedCard E-02",
+        "tests/unit/proposal-honesty.test.ts",
+        "tests/e2e/otzar-live-proposal-e02.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Alternatives are listed; hierarchy/structure still use dedicated confirm UIs for apply",
       "dependencies": [],
       "priority": "P0",
       "phase": 3,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit honesty",
+        "live deep e02"
+      ],
+      "live_acceptance": "Seed cards show source/confidence/alternatives; authority-affecting requires admin confirm; never auto-apply",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
@@ -1219,7 +1227,7 @@
         "tests/unit/hierarchy-editor.test.ts",
         "tests/e2e/otzar-live-hierarchy-f02.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "True virtualization library optional for 2500+ rows; full drag animation polish residual",
       "dependencies": [
         "F-01"
@@ -1231,11 +1239,18 @@
         "live deep f02"
       ],
       "live_acceptance": "Admin /users hierarchy-editor stages reparents, bulk confirm, undo; F-04 not-authority copy",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "0b40a03",
+        "215c546"
+      ],
+      "deployment_sha": "215c546",
+      "final_proof": {
+        "live_bundle": "index-B2HYLarm.js",
+        "e2e": "otzar-live-hierarchy-f02 6/6",
+        "notes": "hierarchy-editor; F-04 copy; stage reparent; confirm/undo controls"
+      }
     },
     {
       "id": "F-03",
@@ -1292,18 +1307,22 @@
         "src/lib/org/hierarchy-editor.ts HIERARCHY_NOT_AUTHORITY_COPY",
         "src/components/otzar/HierarchyEditor.tsx data-hierarchy-not-authority"
       ],
-      "proof_level": "IMPLEMENTED",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "Access Control page may still need cross-link residual",
       "dependencies": [],
       "priority": "P0",
       "phase": 3,
       "test_requirements": [],
       "live_acceptance": "Hierarchy editor copy states hierarchy \u2260 RBAC/TAR/tool authority",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "215c546",
+      "final_proof": {
+        "live_bundle": "index-B2HYLarm.js",
+        "e2e": "otzar-live-hierarchy-f02 F02-B",
+        "notes": "hierarchy \u2260 RBAC/TAR/tool authority copy on editor"
+      }
     },
     {
       "id": "G-01",
@@ -1327,9 +1346,10 @@
         "src/lib/ai-teammates/role-template-skills.ts",
         "src/components/ai-teammates/ApplyRoleTemplateSkillsButton.tsx",
         "src/components/ai-teammates/TwinDetailDrawer.tsx Skills tab",
-        "tests/unit/role-template-skills.test.ts"
+        "tests/unit/role-template-skills.test.ts",
+        "tests/e2e/otzar-live-role-template-skills-g01.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "Foundation create still omits skill_package_id; auto-apply on drawer when catalog matches; seed packages must exist for full match",
       "dependencies": [],
       "priority": "P1",
@@ -1339,11 +1359,19 @@
         "live apply when admin opens skills"
       ],
       "live_acceptance": "Role template skills panel on AI Teammate Skills tab; apply assigns packages for template",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "6d98555",
+        "367912f",
+        "215c546"
+      ],
+      "deployment_sha": "215c546",
+      "final_proof": {
+        "live_bundle": "index-B2HYLarm.js",
+        "e2e": "otzar-live-role-template-skills-g01 6/6",
+        "notes": "role-template-skills-panel on Skills tab; marketing manager template; act on behalf copy"
+      }
     },
     {
       "id": "G-02",

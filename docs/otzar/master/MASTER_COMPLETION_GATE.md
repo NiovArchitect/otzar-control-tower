@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `215c546` |
+| CT `origin/main` | `cb78cb4` |
 | Live bundle | `index-B2HYLarm.js` |
 | Live last-modified | 2026-07-20 F-02 + F-04 + G-01 LIVE 6/6 |
-| Gate status | **OPEN** — F-02/F-04/G-01 LIVE; A-06 LIVE; N-02 EXTERNALLY_BLOCKED; Phase 3 E-02 open |
+| Gate status | **OPEN** — E-02 IMPLEMENTED (await deploy); F-02/G-01 LIVE; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
