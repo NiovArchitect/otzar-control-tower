@@ -1,0 +1,2286 @@
+{
+  "schema_version": 1,
+  "title": "Otzar Founder Requirements Register",
+  "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
+  "live_snapshot": {
+    "ct_main_sha": "683fc46",
+    "live_bundle": "index-DISpRqZe.js",
+    "live_last_modified_utc": "2026-07-20T07:47:37Z",
+    "register_updated_utc": "2026-07-20T08:00:00Z"
+  },
+  "groups": {
+    "A": "Login and first-time experience",
+    "B": "Home, Today, and trust",
+    "C": "User-interface consolidation",
+    "D": "Ambient and futuristic experience",
+    "E": "Organization discovery and Dandelion",
+    "F": "Hierarchy and organizational graph",
+    "G": "Role-templated AI Teammates",
+    "H": "Memory and work-style learning",
+    "I": "Portable professional identity",
+    "J": "Project-centered coherence",
+    "K": "Communication-to-execution",
+    "L": "AI-to-AI collaboration",
+    "M": "Autonomy and permissions",
+    "N": "Google Docs/Calendar/Gmail/tools",
+    "O": "Connections and MCP simplification",
+    "P": "Reporting and role-specific intelligence",
+    "Q": "Multi-tenant isolation",
+    "R": "Enterprise pressure testing",
+    "S": "YC and investor experience",
+    "T": "Otzar Relay roadmap preservation",
+    "OPS": "Deploy and ops rails"
+  },
+  "requirements": [
+    {
+      "id": "A-01",
+      "group": "A",
+      "exact_requirement": "Every normal login lands on role-appropriate Home (/app for employees); prior arbitrary route is not restored.",
+      "founder_intent": "YC first-use: authentication establishes a fresh Home session.",
+      "user_value": "User always knows where they are after login.",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "src/lib/auth/post-login-destination.ts",
+        "src/pages/Login.tsx",
+        "tests/e2e/otzar-live-login-home-first-use.spec.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "unit post-login-destination",
+        "e2e login-home"
+      ],
+      "live_acceptance": "Login as employee \u2192 /app; returnTo=/users refused",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#173",
+        "#171"
+      ],
+      "merge_shas": [
+        "3b9dfa8",
+        "a5c526d"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": "Browser proven live 2026-07-20; keep regression"
+    },
+    {
+      "id": "A-02",
+      "group": "A",
+      "exact_requirement": "Pre-auth deep links validated before restore; admin/sensitive shells never auto-restore.",
+      "founder_intent": "Pre-auth deep links validated before restore; admin/sensitive shells never auto-restore.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "src/lib/auth/post-login-destination.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Expand matrix of deep-link prefixes",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "unit isValidatedDeepLink"
+      ],
+      "live_acceptance": "returnTo admin path \u2192 Home; validated /app/* deep link ok",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#173"
+      ],
+      "merge_shas": [
+        "3b9dfa8"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "A-03",
+      "group": "A",
+      "exact_requirement": "First-time compact role-aware reveal on Today (leader/manager/teammate CTAs).",
+      "founder_intent": "First-time compact role-aware reveal on Today (leader/manager/teammate CTAs).",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "src/components/first-use/FirstUseReveal.tsx",
+        "src/lib/first-use/state.ts",
+        "tests/e2e/otzar-live-first-use-role.spec.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "localStorage only \u2014 not server-side versioned (A-04)",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "e2e first-use-role"
+      ],
+      "live_acceptance": "First-use strip shows role CTA; dismissible",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#173",
+        "#174",
+        "#177",
+        "#179"
+      ],
+      "merge_shas": [
+        "3b9dfa8",
+        "d64fb6c",
+        "a6aefe4",
+        "451bbb3"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "A-04",
+      "group": "A",
+      "exact_requirement": "Walkthrough completion server-side and versioned; distinct paths for admin, CEO, manager, employee, contractor.",
+      "founder_intent": "Walkthrough completion server-side and versioned; distinct paths for admin, CEO, manager, employee, contractor.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Only client first-use flag; no server version, no full multi-role walkthrough with 3D/real action",
+      "dependencies": [
+        "A-03"
+      ],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "API walkthrough complete",
+        "e2e each role"
+      ],
+      "live_acceptance": "Replay/skip/version bump server-authoritative",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "A-05",
+      "group": "A",
+      "exact_requirement": "YC first five minutes: immediate signal, aha, real data/action.",
+      "founder_intent": "YC first five minutes: immediate signal, aha, real data/action.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "tests/e2e multi-role first-5-min (historical)",
+        "AmbientWorkSurface"
+      ],
+      "proof_level": "BROWSER_PROVEN",
+      "remaining_gap": "Dedicated continuous YC synthetic org harness S-01",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "multi-role browser"
+      ],
+      "live_acceptance": "Unscripted exploration survives empty/dead routes",
+      "status": "BROWSER_PROVEN",
+      "prs": [
+        "#fee4916 era"
+      ],
+      "merge_shas": [
+        "fee4916"
+      ],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "A-06",
+      "group": "A",
+      "exact_requirement": "Org switching resets to new org Home without blending state.",
+      "founder_intent": "Org switching resets to new org Home without blending state.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Org switch UX proof not continuous in current smokes",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 0,
+      "test_requirements": [
+        "multi-org browser"
+      ],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "A-07",
+      "group": "A",
+      "exact_requirement": "Sole-admin lockout copy is honest; recovery path documented.",
+      "founder_intent": "Sole-admin lockout copy is honest; recovery path documented.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "src/lib/auth/login-error-copy.ts",
+        "scripts/otzar-clear-lockout.sh"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "unit login-error-copy"
+      ],
+      "live_acceptance": "SUSPENDED message never says contact your administrator only",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#178"
+      ],
+      "merge_shas": [
+        "05f6464"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "B-01",
+      "group": "B",
+      "exact_requirement": "Today is one-shot ADHD-safe: Focus \u22643, glance chips, Talk.",
+      "founder_intent": "Today is one-shot ADHD-safe: Focus \u22643, glance chips, Talk.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "src/pages/app/AmbientWorkSurface.tsx"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "unit ambient-work-surface",
+        "e2e viewport"
+      ],
+      "live_acceptance": "No scroll wall of cards on first paint",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#174"
+      ],
+      "merge_shas": [
+        "d64fb6c"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "B-02",
+      "group": "B",
+      "exact_requirement": "Home counts reconcile with actual visible objects; every card explains why and links exact object.",
+      "founder_intent": "Home counts reconcile with actual visible objects; every card explains why and links exact object.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "No continuous reconcile oracle smoke",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 1,
+      "test_requirements": [
+        "browser card count audit"
+      ],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "B-03",
+      "group": "B",
+      "exact_requirement": "Resolved work leaves open surfaces; stale labeled; Next is real decision.",
+      "founder_intent": "Resolved work leaves open surfaces; stale labeled; Next is real decision.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Needs continuous Needs-me / Today audit",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "B-04",
+      "group": "B",
+      "exact_requirement": "What changed / team activity from real state; missing integrations explained specifically.",
+      "founder_intent": "What changed / team activity from real state; missing integrations explained specifically.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "AmbientWorkSurface tools reconnect chip"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [
+        "#177",
+        "#180"
+      ],
+      "merge_shas": [
+        "a6aefe4",
+        "683fc46"
+      ],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "B-05",
+      "group": "B",
+      "exact_requirement": "Home differs by role (CEO/manager/employee/contractor).",
+      "founder_intent": "Home differs by role (CEO/manager/employee/contractor).",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Only first-use CTA differs substantially; full role Home still thin",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "C-01",
+      "group": "C",
+      "exact_requirement": "Full employee+admin route and control inventory; every screen earns existence.",
+      "founder_intent": "Full employee+admin route and control inventory; every screen earns existence.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "src/App.tsx",
+        "src/lib/nav-employee.ts",
+        "src/lib/nav.ts"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Inventory table not complete; ~80 App routes remain",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "employee-nav unit",
+        "admin-nav unit"
+      ],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "C-02",
+      "group": "C",
+      "exact_requirement": "Admin vs employee shells separated; Scenario Studio/Playground hidden from primary admin nav.",
+      "founder_intent": "Admin vs employee shells separated; Scenario Studio/Playground hidden from primary admin nav.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "src/lib/nav.ts hidden Scenario Studio",
+        "EmployeeLayout"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#173"
+      ],
+      "merge_shas": [
+        "3b9dfa8"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "C-03",
+      "group": "C",
+      "exact_requirement": "No dead buttons, fake metrics, coming-soon in primary paths.",
+      "founder_intent": "No dead buttons, fake metrics, coming-soon in primary paths.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Full control inventory incomplete",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "C-04",
+      "group": "C",
+      "exact_requirement": "Blind spots/corrections/obligations/handoffs/evidence live in contextual work surfaces.",
+      "founder_intent": "Blind spots/corrections/obligations/handoffs/evidence live in contextual work surfaces.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "ActionCenter",
+        "Needs me redirects"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Some routes still exist as legacy pages",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "C-05",
+      "group": "C",
+      "exact_requirement": "Viewport chrome Otzar/Work OS/Talk/notifications stay in visual viewport.",
+      "founder_intent": "Viewport chrome Otzar/Work OS/Talk/notifications stay in visual viewport.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "EmployeeLayout 100dvh fixed"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 0,
+      "test_requirements": [
+        "e2e viewport chrome"
+      ],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#175"
+      ],
+      "merge_shas": [
+        "e3df5ae"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "C-06",
+      "group": "C",
+      "exact_requirement": "More drawer zero-noise: Tools findable; growth not walling People.",
+      "founder_intent": "More drawer zero-noise: Tools findable; growth not walling People.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#178",
+        "#179"
+      ],
+      "merge_shas": [
+        "05f6464",
+        "451bbb3"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "D-01",
+      "group": "D",
+      "exact_requirement": "Ambient presence states (available/listening/working/blocked/complete) without distraction.",
+      "founder_intent": "Ambient presence states (available/listening/working/blocked/complete) without distraction.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "Phase F ambient UI",
+        "OtzarMark",
+        "AmbientOtzarBar"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Full state machine not user-proven",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [
+        "#169",
+        "#170"
+      ],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "D-02",
+      "group": "D",
+      "exact_requirement": "Voice-first text-second; voice drives work not decorative page.",
+      "founder_intent": "Voice-first text-second; voice drives work not decorative page.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "/app/voice",
+        "AmbientOtzarBar"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Not all voice paths \u2192 ledger proof continuous",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "D-03",
+      "group": "D",
+      "exact_requirement": "Purposeful 3D optional; reduced-motion 2D fallback; spatial readiness.",
+      "founder_intent": "Purposeful 3D optional; reduced-motion 2D fallback; spatial readiness.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "3D walkthrough not shipped",
+      "dependencies": [],
+      "priority": "P2",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "D-04",
+      "group": "D",
+      "exact_requirement": "Selected-window context only with explicit permission; no covert surveillance.",
+      "founder_intent": "Selected-window context only with explicit permission; no covert surveillance.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "DISCOVERED",
+      "remaining_gap": "Desktop permission UX incomplete",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "DISCOVERED",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "E-01",
+      "group": "E",
+      "exact_requirement": "Dandelion discovers/proposes people, roles, managers, teams, projects, externals.",
+      "founder_intent": "Dandelion discovers/proposes people, roles, managers, teams, projects, externals.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "dandelion org growth card",
+        "organization-seeding"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Not all proposal classes source-driven continuous",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 3,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "E-02",
+      "group": "E",
+      "exact_requirement": "Proposals preserve source, confidence, alternatives; admin confirms authority-affecting.",
+      "founder_intent": "Proposals preserve source, confidence, alternatives; admin confirms authority-affecting.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Full confidence UI incomplete",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 3,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "E-03",
+      "group": "E",
+      "exact_requirement": "Observed participation \u2260 authority; employee/contractor/vendor/customer distinguished.",
+      "founder_intent": "Observed participation \u2260 authority; employee/contractor/vendor/customer distinguished.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Person-type taxonomy not fully productized",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 3,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "F-01",
+      "group": "F",
+      "exact_requirement": "People surface shows reporting structure glance; admin can set reporting line.",
+      "founder_intent": "People surface shows reporting structure glance; admin can set reporting line.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "PeopleStructureGlance",
+        "personal-structure.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [
+        "unit personal-structure",
+        "e2e people-structure"
+      ],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#176"
+      ],
+      "merge_shas": [
+        "d9cf7dd"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "F-02",
+      "group": "F",
+      "exact_requirement": "Admin drag-and-drop hierarchy editor with bulk confirm, undo, audit, a11y, virtualization.",
+      "founder_intent": "Admin drag-and-drop hierarchy editor with bulk confirm, undo, audit, a11y, virtualization.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "NOT_STARTED",
+      "remaining_gap": "No drag-drop editor; only form assign",
+      "dependencies": [
+        "F-01"
+      ],
+      "priority": "P0",
+      "phase": 3,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "NOT_STARTED",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "F-03",
+      "group": "F",
+      "exact_requirement": "Matrix/dotted-line, contractor sponsor, executive without manager.",
+      "founder_intent": "Matrix/dotted-line, contractor sponsor, executive without manager.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Edge relationship types not full UI",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 3,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "F-04",
+      "group": "F",
+      "exact_requirement": "Hierarchy separate from RBAC/ABAC/TAR/decision rights/tool authority.",
+      "founder_intent": "Hierarchy separate from RBAC/ABAC/TAR/decision rights/tool authority.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "Foundation hierarchy model"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Product copy/docs must stay clear",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 3,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "G-01",
+      "group": "G",
+      "exact_requirement": "AI Teammates start from role templates not empty chatbots.",
+      "founder_intent": "AI Teammates start from role templates not empty chatbots.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "role templates FND",
+        "CreateTwinDialog"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "First session per role not fully productized",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 5,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "G-02",
+      "group": "G",
+      "exact_requirement": "Authority from Foundation not template; Twin tied to human/org/team/projects/autonomy.",
+      "founder_intent": "Authority from Foundation not template; Twin tied to human/org/team/projects/autonomy.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "Twin authority grants",
+        "TAR"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 5,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "H-01",
+      "group": "H",
+      "exact_requirement": "Teach Otzar how you work end-to-end with consent, review, approve/reject/revoke.",
+      "founder_intent": "Teach Otzar how you work end-to-end with consent, review, approve/reject/revoke.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "MyMemory work-style",
+        "FND work-style routes"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "MULTI_USER_PROVEN isolation continuous",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 4,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [
+        "work-style UI commits"
+      ],
+      "merge_shas": [
+        "781f85a"
+      ],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "H-02",
+      "group": "H",
+      "exact_requirement": "No raw confidential source in reusable memory; org policy overrides.",
+      "founder_intent": "No raw confidential source in reusable memory; org policy overrides.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Full redaction proof suite",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 4,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "H-03",
+      "group": "H",
+      "exact_requirement": "Approved learning changes later work; rejected never applies.",
+      "founder_intent": "Approved learning changes later work; rejected never applies.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "End-to-end behavioral smoke",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 4,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "I-01",
+      "group": "I",
+      "exact_requirement": "User-owned portable professional core vs org-bound Twin relationships.",
+      "founder_intent": "User-owned portable professional core vs org-bound Twin relationships.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "UI for portability boundaries incomplete",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 4,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "I-02",
+      "group": "I",
+      "exact_requirement": "One user multiple orgs without blended memory.",
+      "founder_intent": "One user multiple orgs without blended memory.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "MULTI_USER_PROVEN multi-org isolation suite",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 4,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "J-01",
+      "group": "J",
+      "exact_requirement": "Project mission heart: people, open work, blockers, AI, docs pulse in viewport.",
+      "founder_intent": "Project mission heart: people, open work, blockers, AI, docs pulse in viewport.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "WorkProjects ProjectContextPanel"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 1,
+      "test_requirements": [
+        "e2e project-context"
+      ],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#175",
+        "#8ab66a1 era"
+      ],
+      "merge_shas": [
+        "e3df5ae"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "J-02",
+      "group": "J",
+      "exact_requirement": "Full project spine: objective, owners, truth, obligations, meetings, next-best.",
+      "founder_intent": "Full project spine: objective, owners, truth, obligations, meetings, next-best.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Not all spine facets composed on one surface",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "J-03",
+      "group": "J",
+      "exact_requirement": "Conversation resolves to project safely; routine work not multi-page maze.",
+      "founder_intent": "Conversation resolves to project safely; routine work not multi-page maze.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Resolution accuracy continuous proof",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "K-01",
+      "group": "K",
+      "exact_requirement": "Comms ambient sync primary; paste fallback; work items created under governance.",
+      "founder_intent": "Comms ambient sync primary; paste fallback; work items created under governance.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "Comms.tsx ambient sync"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "PROVIDER_PROVEN Meet transcripts",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [
+        "#168",
+        "#179"
+      ],
+      "merge_shas": [
+        "f5fb8a3",
+        "451bbb3"
+      ],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "K-02",
+      "group": "K",
+      "exact_requirement": "Honest reconnect path when Meet/scopes fail (no false green).",
+      "founder_intent": "Honest reconnect path when Meet/scopes fail (no false green).",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "Comms reconnect CTA",
+        "ConnectorHealth need=reconnect"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 2,
+      "test_requirements": [
+        "e2e tools-reconnect",
+        "e2e comms-reconnect"
+      ],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#179",
+        "#180"
+      ],
+      "merge_shas": [
+        "451bbb3",
+        "683fc46"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "K-03",
+      "group": "K",
+      "exact_requirement": "Communication lineage \u2192 decisions/commitments/obligations/truth candidates.",
+      "founder_intent": "Communication lineage \u2192 decisions/commitments/obligations/truth candidates.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Full lineage UI continuous",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "L-01",
+      "group": "L",
+      "exact_requirement": "Governed AI-to-AI collaboration envelope with audit; fail closed.",
+      "founder_intent": "Governed AI-to-AI collaboration envelope with audit; fail closed.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "collaboration requests",
+        "Twin collab"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Load/storm/loop proofs",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 5,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "M-01",
+      "group": "M",
+      "exact_requirement": "Graduated autonomy observe\u2192draft\u2192confirm\u2192execute; preference \u2260 authority.",
+      "founder_intent": "Graduated autonomy observe\u2192draft\u2192confirm\u2192execute; preference \u2260 authority.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "TAR",
+        "authority grants",
+        "escalations"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Full graduated ladder product UX",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 5,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "M-02",
+      "group": "M",
+      "exact_requirement": "One-time/session/project/time-limited auth; revocation; transparent reason.",
+      "founder_intent": "One-time/session/project/time-limited auth; revocation; transparent reason.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Continuous multi-class proof",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 5,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "N-01",
+      "group": "N",
+      "exact_requirement": "Tools UI reconnect honesty for Google even when catalog says Connected.",
+      "founder_intent": "Tools UI reconnect honesty for Google even when catalog says Connected.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 2,
+      "test_requirements": [
+        "e2e tools-reconnect"
+      ],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#180"
+      ],
+      "merge_shas": [
+        "683fc46"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "N-02",
+      "group": "N",
+      "exact_requirement": "Google Meet operational meeting artifact/transcript pull.",
+      "founder_intent": "Google Meet operational meeting artifact/transcript pull.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "EXTERNALLY_BLOCKED",
+      "remaining_gap": "Operator OAuth/scopes; Comms still reports reconnect need",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "Ambient sync ingests real Meet with proof",
+      "status": "EXTERNALLY_BLOCKED",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": "Blocked until operator reauth completes"
+    },
+    {
+      "id": "N-03",
+      "group": "N",
+      "exact_requirement": "Google Docs non-empty create + append + edit detection.",
+      "founder_intent": "Google Docs non-empty create + append + edit detection.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Append live proof may lag FND deploy",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "N-04",
+      "group": "N",
+      "exact_requirement": "Calendar final agreed date, timezones, Meet link, idempotent updates.",
+      "founder_intent": "Calendar final agreed date, timezones, Meet link, idempotent updates.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Full matrix continuous",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "N-05",
+      "group": "N",
+      "exact_requirement": "Gmail draft vs sent; provider accepted vs delivered; no false completion.",
+      "founder_intent": "Gmail draft vs sent; provider accepted vs delivered; no false completion.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Honesty matrix",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "O-01",
+      "group": "O",
+      "exact_requirement": "Primary UI capability-first; MCP advanced only.",
+      "founder_intent": "Primary UI capability-first; MCP advanced only.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "ConnectorHealth enterprise tools",
+        "ToolsConnections"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Domain-wide provisioning incomplete",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "O-02",
+      "group": "O",
+      "exact_requirement": "Org/team/user connections; enterprise admin consent; coverage/health.",
+      "founder_intent": "Org/team/user connections; enterprise admin consent; coverage/health.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "SCIM/group mappings",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 2,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "P-01",
+      "group": "P",
+      "exact_requirement": "Role-specific intelligence reports (CEO/exec/manager/employee/contractor).",
+      "founder_intent": "Role-specific intelligence reports (CEO/exec/manager/employee/contractor).",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Reports still thin/generic",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 1,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "Q-01",
+      "group": "Q",
+      "exact_requirement": "Cross-tenant/cross-user/cross-Twin zero leakage.",
+      "founder_intent": "Cross-tenant/cross-user/cross-Twin zero leakage.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Continuous multi-tenant smoke credential",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 6,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "Q-02",
+      "group": "Q",
+      "exact_requirement": "Same identity multi-org; separate org-bound Twins; deep-link isolation.",
+      "founder_intent": "Same identity multi-org; separate org-bound Twins; deep-link isolation.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Dedicated isolation suite",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 6,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "R-01",
+      "group": "R",
+      "exact_requirement": "Enterprise pressure harness progressive 25\u2192250\u21922500 with repair loop.",
+      "founder_intent": "Enterprise pressure harness progressive 25\u2192250\u21922500 with repair loop.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "otzar-enterprise-pressure-level1/2 scripts"
+      ],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "SCALE_PROVEN not continuous",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 6,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "R-02",
+      "group": "R",
+      "exact_requirement": "Every discovered defect becomes regression coverage.",
+      "founder_intent": "Every discovered defect becomes regression coverage.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Process not automated end-to-end",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 6,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "S-01",
+      "group": "S",
+      "exact_requirement": "Dedicated synthetic YC org; fresh-account walkthrough; unscripted survival.",
+      "founder_intent": "Dedicated synthetic YC org; fresh-account walkthrough; unscripted survival.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "PARTIAL",
+      "remaining_gap": "Continuous dedicated YC org harness",
+      "dependencies": [
+        "A-05",
+        "A-04"
+      ],
+      "priority": "P0",
+      "phase": 7,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "PARTIAL",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "S-02",
+      "group": "S",
+      "exact_requirement": "Investor browser journey pass without staged frontend-only fakes.",
+      "founder_intent": "Investor browser journey pass without staged frontend-only fakes.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [],
+      "proof_level": "BROWSER_PROVEN",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 7,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "BROWSER_PROVEN",
+      "prs": [
+        "acceptance investor"
+      ],
+      "merge_shas": [
+        "5c3c998 era"
+      ],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "T-01",
+      "group": "T",
+      "exact_requirement": "Otzar Relay remains separate work-communications app roadmap; not confused with CT employee shell.",
+      "founder_intent": "Otzar Relay remains separate work-communications app roadmap; not confused with CT employee shell.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "EXPERIENCE_GOVERNING_SPEC Relay section",
+        "RELAY_BOUNDARY docs"
+      ],
+      "proof_level": "DISCOVERED",
+      "remaining_gap": "Relay app not built; preserve boundary",
+      "dependencies": [],
+      "priority": "P2",
+      "phase": 7,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "DISCOVERED",
+      "prs": [],
+      "merge_shas": [],
+      "deployment_sha": null,
+      "final_proof": null
+    },
+    {
+      "id": "OPS-01",
+      "group": "OPS",
+      "exact_requirement": "Short-lag auto-deploy protocol: 3m poll then MANUAL DEPLOY signal.",
+      "founder_intent": "Short-lag auto-deploy protocol: 3m poll then MANUAL DEPLOY signal.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "scripts/otzar-ambient-autosmoke.sh",
+        "docs/RENDER_DEPLOY_NOTES.md"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#179"
+      ],
+      "merge_shas": [
+        "451bbb3"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null
+    },
+    {
+      "id": "OPS-02",
+      "group": "OPS",
+      "exact_requirement": "Sole-admin lockout recovery script via Render Postgres.",
+      "founder_intent": "Sole-admin lockout recovery script via Render Postgres.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "scripts/otzar-clear-lockout.sh"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "IMPLEMENTED",
+      "prs": [
+        "#178"
+      ],
+      "merge_shas": [
+        "05f6464"
+      ],
+      "deployment_sha": null,
+      "final_proof": null
+    }
+  ],
+  "open_p0": [
+    "A-04",
+    "A-05",
+    "B-02",
+    "C-01",
+    "C-03",
+    "D-04",
+    "E-02",
+    "F-02",
+    "F-04",
+    "G-02",
+    "H-01",
+    "H-02",
+    "I-02",
+    "K-01",
+    "M-01",
+    "N-02",
+    "N-03",
+    "O-01",
+    "Q-01",
+    "Q-02",
+    "S-01",
+    "S-02"
+  ],
+  "externally_blocked": [
+    "N-02"
+  ],
+  "live_verified": [
+    "A-01",
+    "A-02",
+    "A-03",
+    "A-07",
+    "B-01",
+    "C-02",
+    "C-05",
+    "C-06",
+    "F-01",
+    "J-01",
+    "K-02",
+    "N-01",
+    "OPS-01"
+  ]
+}

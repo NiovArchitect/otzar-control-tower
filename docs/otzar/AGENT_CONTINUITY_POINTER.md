@@ -1,10 +1,24 @@
 # Agent continuity pointer
 
-Full durable memory lives in **niov-foundation**:
+## REQUIRED FIRST READ (anti-drift)
 
-`docs/otzar/AGENT_CONTINUITY_MEMORY.md`
+Before any Otzar product implementation, status claim, or “slice complete” assertion, read:
 
-Read that file before continuing Otzar build/smoke/UI work. It includes founder
-whole-system doctrine, live smoke state, open PRs, and next order.
+1. **`docs/otzar/master/MASTER_COMPLETION_CONTRACT.md`** — controlling rules  
+2. **`docs/otzar/master/MASTER_COMPLETION_GATE.md`** — phase order + open P0  
+3. **`docs/otzar/master/FOUNDER_REQUIREMENTS_REGISTER.json`** — machine register  
+4. **`docs/otzar/master/REQUIREMENTS_PROOF_MATRIX.md`** — proof levels  
 
-Also: `docs/otzar/HOLISTIC_EXECUTION_LEDGER.md` in Foundation for phase status.
+**Rule:** Every task maps to a stable requirement ID.  
+**Rule:** Do not mark CLOSED from code existence alone.  
+**Rule:** Do not long-wait Render; short poll then **MANUAL DEPLOY** signal (`docs/RENDER_DEPLOY_NOTES.md`).
+
+---
+
+Full durable Foundation memory also lives in **niov-foundation**:
+
+* `docs/otzar/AGENT_CONTINUITY_MEMORY.md`  
+* `docs/otzar/HOLISTIC_EXECUTION_LEDGER.md`  
+* `docs/otzar/HOLISTIC_ACCEPTANCE_GATE.md` (must point at this master register)
+
+Read those after the master register for API/substrate detail.
