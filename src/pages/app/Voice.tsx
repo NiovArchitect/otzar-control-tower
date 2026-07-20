@@ -105,6 +105,14 @@ import {
   voiceConfirmationCopy,
   voiceSafetyLevelLabel,
 } from "@/lib/voice/voice-approval-safety";
+import {
+  TEXT_SECONDARY_LABEL,
+  VOICE_FIRST_HEADLINE,
+  VOICE_PAGE_DESCRIPTION,
+  VOICE_PAGE_TITLE,
+  VOICE_WORK_PATH_COPY,
+} from "@/lib/voice/voice-work-first";
+import { Link } from "react-router-dom";
 
 const TEST_VOICE_PHRASE =
   "Otzar voice is active. I can speak responses back to you.";
@@ -552,17 +560,55 @@ export function Voice() {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl py-8 space-y-6">
-      <PageHeader
-        title="Talk to Otzar"
-        description="Speak or type. Otzar responds with text + your device's TTS. No raw audio is stored."
-      />
+    <div
+      className="container mx-auto max-w-3xl py-8 space-y-6"
+      data-testid="voice-work-page"
+      data-voice-first="true"
+      data-drives-work="true"
+    >
+      <PageHeader title={VOICE_PAGE_TITLE} description={VOICE_PAGE_DESCRIPTION} />
+
+      {/* D-02 — work path banner: not a decorative mic demo */}
+      <div
+        className="rounded-lg border border-teal-500/30 bg-teal-500/5 px-3 py-2 space-y-1"
+        data-testid="voice-work-path-banner"
+      >
+        <p className="text-sm font-medium text-foreground" data-testid="voice-first-headline">
+          {VOICE_FIRST_HEADLINE}
+        </p>
+        <p className="text-xs text-muted-foreground" data-testid="voice-work-path-copy">
+          {VOICE_WORK_PATH_COPY}
+        </p>
+        <div className="flex flex-wrap gap-3 pt-1 text-xs">
+          <Link
+            to="/app/action-center"
+            className="underline text-muted-foreground hover:text-foreground"
+            data-testid="voice-work-needs-me-link"
+          >
+            Needs me
+          </Link>
+          <Link
+            to="/app"
+            className="underline text-muted-foreground hover:text-foreground"
+            data-testid="voice-work-today-link"
+          >
+            Today
+          </Link>
+          <Link
+            to="/app/work-projects"
+            className="underline text-muted-foreground hover:text-foreground"
+            data-testid="voice-work-projects-link"
+          >
+            Projects
+          </Link>
+        </div>
+      </div>
 
       <ContextHealthBadge />
 
-      <Card>
+      <Card data-testid="voice-primary-mic-card" data-voice-primary="true">
         <CardHeader>
-          <CardTitle className="text-base">Microphone</CardTitle>
+          <CardTitle className="text-base">Microphone (primary)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div
@@ -613,7 +659,7 @@ export function Voice() {
             ) : null}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" data-testid="voice-work-rail">
             <Button
               type="button"
               variant={
@@ -623,6 +669,8 @@ export function Voice() {
               }
               onClick={() => void handleMicToggle()}
               disabled={!micCopy.micButtonEnabled}
+              data-testid="voice-page-mic"
+              data-voice-primary="true"
               aria-label={
                 recognition.listening || serverCapActive
                   ? "Stop listening"
@@ -1095,9 +1143,9 @@ export function Voice() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-testid="voice-text-secondary-card" data-text-secondary="true">
         <CardHeader>
-          <CardTitle className="text-base">Compose</CardTitle>
+          <CardTitle className="text-base">{TEXT_SECONDARY_LABEL}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <textarea
@@ -1105,33 +1153,37 @@ export function Voice() {
             onChange={(e) => setDraft(e.target.value)}
             placeholder={
               recognition.supported
-                ? "Speak or type to Otzar…"
+                ? "Or type to Otzar (same work path as voice)…"
                 : "Type to Otzar (voice input unsupported in this shell)…"
             }
             aria-label="Message to Otzar"
+            data-testid="voice-page-text-secondary"
+            data-text-secondary="true"
             className="w-full min-h-[6rem] rounded-md border border-input bg-background px-3 py-2 text-sm"
             disabled={intent.processing}
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               type="button"
               onClick={() => void handleSend()}
               disabled={draft.trim().length === 0 || intent.processing}
               className="gap-2"
+              data-testid="voice-page-send"
             >
               <Send className="h-4 w-4" />
               {intent.processing ? "Sending…" : "Send to Otzar"}
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={handleTestVoice}
               disabled={!synthesis.supported || synthesis.muted}
               className="gap-2"
+              data-testid="voice-page-test-tts"
             >
               <Volume2 className="h-4 w-4" />
-              Test Otzar voice
+              Test device TTS only
             </Button>
             <Button
               type="button"

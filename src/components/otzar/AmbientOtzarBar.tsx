@@ -235,6 +235,11 @@ import {
   type OrbSize,
 } from "@/lib/ambient/orb-position";
 import { describeAmbientVoiceMode } from "@/lib/voice/ambient-voice-capture";
+import {
+  TEXT_SECONDARY_PLACEHOLDER,
+  VOICE_FIRST_HEADLINE,
+  VOICE_WORK_PATH_COPY,
+} from "@/lib/voice/voice-work-first";
 
 /**
  * The ambient Otzar dock. Mount once per authenticated employee
@@ -4209,6 +4214,8 @@ export function AmbientOtzarBar(): JSX.Element {
       data-testid="ambient-otzar-bar"
       data-presence={presenceState}
       data-presence-human={humanPresenceState(presenceState)}
+      data-voice-first="true"
+      data-drives-work="true"
       data-orb-edge={orbPos?.edge ?? "right"}
       style={dockAnchorStyle}
       className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
@@ -4502,12 +4509,33 @@ export function AmbientOtzarBar(): JSX.Element {
             );
           })()}
 
-          <div className="flex gap-2 items-center">
+          {/* D-02 — voice-first work rail: mic primary, text secondary,
+              same governed path as typed. Not a decorative voice demo. */}
+          <div
+            className="space-y-1.5"
+            data-testid="voice-work-rail"
+            data-voice-first="true"
+            data-drives-work="true"
+          >
+            <p
+              className="text-[11px] font-medium text-slate-700"
+              data-testid="voice-first-headline"
+            >
+              {VOICE_FIRST_HEADLINE}
+            </p>
+            <p
+              className="text-[10px] text-muted-foreground leading-snug"
+              data-testid="voice-work-path-copy"
+            >
+              {VOICE_WORK_PATH_COPY}
+            </p>
+            <div className="flex gap-2 items-center">
             <Button
               type="button"
               variant={micActive ? "destructive" : "default"}
               onClick={() => void handleMicToggle()}
               data-testid="ambient-mic-button"
+              data-voice-primary="true"
               data-mic-active={micActive ? "true" : "false"}
               aria-label={
                 quiet
@@ -4542,10 +4570,12 @@ export function AmbientOtzarBar(): JSX.Element {
               onChange={(e) => setDraft(e.target.value)}
               placeholder={
                 voiceInputAvailable
-                  ? "Speak or type…"
+                  ? TEXT_SECONDARY_PLACEHOLDER
                   : "Voice input unavailable. Type to Otzar."
               }
               aria-label="Message to Otzar"
+              data-testid="ambient-text-secondary"
+              data-text-secondary="true"
               className="flex-1 rounded-md border border-input bg-background/60 px-2 py-1 text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -4562,9 +4592,11 @@ export function AmbientOtzarBar(): JSX.Element {
               disabled={draft.trim().length === 0 || intent.processing}
               aria-label="Send"
               title="Send to Otzar"
+              data-testid="ambient-send"
             >
               <Send className="h-4 w-4" />
             </Button>
+            </div>
           </div>
 
           {/* Phase 2.9 — permissioned current-surface context. The user

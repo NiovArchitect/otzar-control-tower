@@ -189,6 +189,28 @@ describe("AmbientOtzarBar — ambient node surface", () => {
     // A fresh orb with nothing in flight has no nodes — the strip is absent.
     expect(screen.queryByTestId("ambient-work-nodes")).not.toBeInTheDocument();
   });
+
+  it("D-02 expanded orb is voice-first work rail (mic primary, text secondary)", async () => {
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
+    const dock = screen.getByTestId("ambient-otzar-bar");
+    expect(dock).toHaveAttribute("data-voice-first", "true");
+    expect(dock).toHaveAttribute("data-drives-work", "true");
+    const rail = screen.getByTestId("voice-work-rail");
+    expect(rail).toHaveAttribute("data-voice-first", "true");
+    expect(rail).toHaveAttribute("data-drives-work", "true");
+    expect(screen.getByTestId("voice-first-headline")).toBeInTheDocument();
+    expect(screen.getByTestId("voice-work-path-copy")).toBeInTheDocument();
+    expect(screen.getByTestId("ambient-mic-button")).toHaveAttribute(
+      "data-voice-primary",
+      "true",
+    );
+    expect(screen.getByTestId("ambient-text-secondary")).toHaveAttribute(
+      "data-text-secondary",
+      "true",
+    );
+  });
 });
 
 describe("AmbientOtzarBar — send flow", () => {
@@ -376,7 +398,8 @@ describe("AmbientOtzarBar — privacy / safety copy", () => {
     const user = userEvent.setup();
     renderBar();
     await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
-    expect(screen.getByText(/No raw audio is stored/i)).toBeInTheDocument();
+    // D-02 work-path copy also states no raw audio — allow multiple hits.
+    expect(screen.getAllByText(/No raw audio is stored/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("NEVER mentions surveillance / productivity score / manager visibility / Sesame active", async () => {
