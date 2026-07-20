@@ -3,15 +3,16 @@
   "title": "Otzar Founder Requirements Register",
   "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
   "live_snapshot": {
-    "ct_main_sha": "772d3f7",
-    "live_bundle": "index-ChNyp3h9.js",
-    "live_last_modified_utc": "2026-07-20T18:18:06Z",
-    "register_updated_utc": "2026-07-20T18:18:06Z",
-    "live_product_sha": "772d3f7",
+    "ct_main_sha": "ffbaa05",
+    "live_bundle": "index-DgHWueJq.js",
+    "live_last_modified_utc": "2026-07-20T18:27:10Z",
+    "register_updated_utc": "2026-07-20T18:27:10Z",
+    "live_product_sha": "ffbaa05",
     "matrix_totals": "pass=63 fail=0 skip=6",
     "transcript_probe": "cards=6",
     "d02_deep": "pass=20 fail=0",
-    "j03_deep": "pass=11 fail=0"
+    "j03_deep": "pass=11 fail=0",
+    "p01_deep": "pass=8 fail=0 skip=1"
   },
   "groups": {
     "A": "Login and first-time experience",
@@ -2106,8 +2107,8 @@
         "tests/unit/role-intelligence-report.test.ts",
         "tests/e2e/otzar-live-role-intel-p01.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Await MANUAL DEPLOY + deep smoke otzar-live-role-intel-p01",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Multi-role live second-login flaky (unit locks fingerprints); admin dual-login SKIP ok",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
@@ -2116,11 +2117,16 @@
         "live deep: otzar-live-role-intel-p01 hard-fail"
       ],
       "live_acceptance": "Today role-intelligence-report with role title/sections; \u22644 rows; no surveillance score",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "ffbaa05",
+      "final_proof": {
+        "live_bundle": "index-DgHWueJq.js",
+        "e2e": "otzar-live-role-intel-p01 pass=8 fail=0",
+        "role": "employee \u2192 Your work intelligence; sections decisions,missions,twin,docs",
+        "nav": "first section \u2192 /app/action-center"
+      }
     },
     {
       "id": "Q-01",
@@ -2483,6 +2489,7 @@
     "J-03",
     "K-02",
     "N-01",
-    "OPS-01"
+    "OPS-01",
+    "P-01"
   ]
 }

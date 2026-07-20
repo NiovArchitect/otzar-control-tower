@@ -111,12 +111,20 @@ async function proveRoleIntel(page: Page, label: string): Promise<void> {
     );
   }
 
-  const body = ((await page.locator("body").innerText().catch(() => "")) ?? "").toLowerCase();
-  const bad =
-    /productivity score|surveillance score|sesame active|covert monitoring/i.test(
-      body,
-    );
-  rec(`${label}-D`, bad ? "FAIL" : "PASS", bad ? "forbidden copy" : "clean copy");
+  // Scope to the report — body-wide scans false-fail on the honest denial
+  // phrase "not a surveillance score" in role-intel-data-note.
+  const reportText = (
+    (await report.innerText().catch(() => "")) ?? ""
+  ).toLowerCase();
+  const claimsSurveillance =
+    /\b(productivity score|sesame active|covert monitoring)\b/i.test(reportText) ||
+    (/\bsurveillance score\b/i.test(reportText) &&
+      !/not a surveillance/i.test(reportText));
+  rec(
+    `${label}-D`,
+    claimsSurveillance ? "FAIL" : "PASS",
+    claimsSurveillance ? "forbidden claim in report" : "clean report copy",
+  );
 
   // Focus ≤3 if present
   const focus = page.locator('[data-testid="changed-suggestions"] li');
