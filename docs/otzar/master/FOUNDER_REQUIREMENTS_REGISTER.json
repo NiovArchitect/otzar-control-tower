@@ -189,8 +189,8 @@
         "src/components/first-use/FirstUseReveal.tsx",
         "tests/unit/first-use-walkthrough.test.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Live multi-role e2e + version-bump server hydrate still need LIVE_VERIFIED on deploy",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [
         "A-03"
       ],
@@ -202,11 +202,26 @@
         "server PREFERENCE marker dual-write"
       ],
       "live_acceptance": "Replay/skip/version bump server-authoritative",
-      "status": "IMPLEMENTED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#182",
+        "#183"
+      ],
+      "merge_shas": [
+        "d79bd19",
+        "cb7125b"
+      ],
+      "deployment_sha": "cb7125b",
+      "final_proof": {
+        "live_bundle": "index-C61jlcLs.js",
+        "markers": [
+          "otzar_first_use_walkthrough",
+          "walkthrough-next",
+          "data-why"
+        ],
+        "autosmoke": "6/6 pass 2026-07-20",
+        "deployment_sha": "cb7125b"
+      }
     },
     {
       "id": "A-05",
@@ -227,11 +242,13 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "tests/e2e multi-role first-5-min (historical)",
-        "AmbientWorkSurface"
+        "tests/e2e/otzar-live-multi-role-first5.spec.ts",
+        "tests/e2e/otzar-live-login-home-first-use.spec.ts",
+        "AmbientWorkSurface",
+        "FirstUseReveal"
       ],
-      "proof_level": "BROWSER_PROVEN",
-      "remaining_gap": "Dedicated continuous YC synthetic org harness S-01",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Dedicated synthetic YC org continuous harness remains S-01 (phase 7)",
       "dependencies": [],
       "priority": "P0",
       "phase": 0,
@@ -239,15 +256,23 @@
         "multi-role browser"
       ],
       "live_acceptance": "Unscripted exploration survives empty/dead routes",
-      "status": "BROWSER_PROVEN",
+      "status": "LIVE_VERIFIED",
       "prs": [
-        "#fee4916 era"
+        "#fee4916 era",
+        "#182",
+        "#183"
       ],
       "merge_shas": [
         "fee4916"
       ],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "cb7125b",
+      "final_proof": {
+        "live_bundle": "index-C61jlcLs.js",
+        "login_home": "4/4 pass",
+        "autosmoke_first_use": "6/6 pass",
+        "deployment_sha": "cb7125b",
+        "multi_role_first5": "5/5 pass CEO/manager/employee/executive/contractor"
+      }
     },
     {
       "id": "A-06",
@@ -388,8 +413,8 @@
         "src/pages/app/AmbientWorkSurface.tsx",
         "tests/unit/focus-truth.test.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Browser card-count reconcile oracle on live org still open for LIVE_VERIFIED",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [],
       "priority": "P0",
       "phase": 1,
@@ -398,11 +423,26 @@
         "browser card count audit (follow-up)"
       ],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#182",
+        "#183"
+      ],
+      "merge_shas": [
+        "d79bd19",
+        "cb7125b"
+      ],
+      "deployment_sha": "cb7125b",
+      "final_proof": {
+        "live_bundle": "index-C61jlcLs.js",
+        "markers": [
+          "otzar_first_use_walkthrough",
+          "walkthrough-next",
+          "data-why"
+        ],
+        "autosmoke": "6/6 pass 2026-07-20",
+        "deployment_sha": "cb7125b"
+      }
     },
     {
       "id": "B-03",
@@ -534,8 +574,8 @@
         "src/lib/nav-employee.ts",
         "src/lib/nav.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Execute remaining cull redirects (welcome\u2192Today) in follow-up PR if product agrees",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [],
       "priority": "P0",
       "phase": 0,
@@ -544,11 +584,26 @@
         "admin-nav unit"
       ],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#182",
+        "#183"
+      ],
+      "merge_shas": [
+        "d79bd19",
+        "cb7125b"
+      ],
+      "deployment_sha": "cb7125b",
+      "final_proof": {
+        "live_bundle": "index-C61jlcLs.js",
+        "markers": [
+          "otzar_first_use_walkthrough",
+          "walkthrough-next",
+          "data-why"
+        ],
+        "autosmoke": "6/6 pass 2026-07-20",
+        "deployment_sha": "cb7125b"
+      }
     },
     {
       "id": "C-02",
@@ -613,18 +668,33 @@
         "src/lib/nav.ts",
         "tests/unit/primary-path-integrity.test.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Live primary-path click-through smoke after deploy",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [],
       "priority": "P0",
       "phase": 0,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#182",
+        "#183"
+      ],
+      "merge_shas": [
+        "d79bd19",
+        "cb7125b"
+      ],
+      "deployment_sha": "cb7125b",
+      "final_proof": {
+        "live_bundle": "index-C61jlcLs.js",
+        "markers": [
+          "otzar_first_use_walkthrough",
+          "walkthrough-next",
+          "data-why"
+        ],
+        "autosmoke": "6/6 pass 2026-07-20",
+        "deployment_sha": "cb7125b"
+      }
     },
     {
       "id": "C-04",
@@ -2261,11 +2331,6 @@
     }
   ],
   "open_p0": [
-    "A-04",
-    "A-05",
-    "B-02",
-    "C-01",
-    "C-03",
     "D-04",
     "E-02",
     "F-02",
@@ -2291,9 +2356,14 @@
     "A-01",
     "A-02",
     "A-03",
+    "A-04",
+    "A-05",
     "A-07",
     "B-01",
+    "B-02",
+    "C-01",
     "C-02",
+    "C-03",
     "C-05",
     "C-06",
     "F-01",
