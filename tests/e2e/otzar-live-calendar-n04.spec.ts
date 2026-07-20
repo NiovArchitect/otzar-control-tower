@@ -151,9 +151,12 @@ test("N-04 deep: calendar final agreed time + timezone normalize", async ({
       : "final agreed not required if early ask path",
   );
 
-  const falseInvite =
-    /invite sent|sent invite|calendar invite delivered/i.test(pageText) &&
-    /no event (was )?created|held at the gate/i.test(pageText);
+  // Do not treat safety copy "No invite sent" as a false claim of delivery.
+  const positiveInvite =
+    /\b(invite sent|sent invite|calendar invite delivered)\b/i.test(pageText) &&
+    !/\bno invite sent\b/i.test(pageText);
+  const gated = /no event (was )?created|held at the gate/i.test(pageText);
+  const falseInvite = positiveInvite && gated;
   rec(
     "N04-E",
     !falseInvite ? "PASS" : "FAIL",

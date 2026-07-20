@@ -3,11 +3,11 @@
   "title": "Otzar Founder Requirements Register",
   "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
   "live_snapshot": {
-    "ct_main_sha": "c051de3",
-    "live_bundle": "index-Cq_gLoQI.js",
-    "live_last_modified_utc": "2026-07-20T19:19:08Z",
-    "register_updated_utc": "2026-07-20T19:19:08Z",
-    "live_product_sha": "c051de3",
+    "ct_main_sha": "1b31bdb",
+    "live_bundle": "index-S47h2JJ0.js",
+    "live_last_modified_utc": "2026-07-20T19:35:46Z",
+    "register_updated_utc": "2026-07-20T19:35:46Z",
+    "live_product_sha": "1b31bdb",
     "matrix_totals": "pass=63 fail=0 skip=6",
     "transcript_probe": "cards=6",
     "d02_deep": "pass=20 fail=0",
@@ -16,7 +16,8 @@
     "repair_sha": "ae3919a",
     "k01k03_deep": "pass=9 fail=0",
     "n03_deep": "pass=8 fail=0",
-    "o01_deep": "employee 5/0/2 + admin direct prove inventory default MCP advanced"
+    "o01_deep": "employee 5/0/2 + admin direct prove inventory default MCP advanced",
+    "n04_deep": "pass=6 fail=0"
   },
   "groups": {
     "A": "Login and first-time experience",
@@ -2014,8 +2015,8 @@
         "tests/unit/calendar-datetime.test.ts",
         "tests/e2e/otzar-live-calendar-n04.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Await MANUAL DEPLOY + deep smoke; Meet conference link depends on provider create success + hangout_link field",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Provider create may still gate (reconnect/scope); Meet hangout_link only when Google returns it on create success",
       "dependencies": [],
       "priority": "P1",
       "phase": 2,
@@ -2024,11 +2025,15 @@
         "live deep n04"
       ],
       "live_acceptance": "No \"not wired\" claim; final agreed time on proposal; create or honest gate",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "1b31bdb",
+      "final_proof": {
+        "live_bundle": "index-S47h2JJ0.js",
+        "e2e": "otzar-live-calendar-n04 6/6",
+        "notes": "no not-wired; final agreed visible; honest gate; no false invite"
+      }
     },
     {
       "id": "N-05",
@@ -2552,6 +2557,7 @@
     "K-03",
     "N-01",
     "N-03",
+    "N-04",
     "O-01",
     "OPS-01",
     "P-01"
