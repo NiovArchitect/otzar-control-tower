@@ -3,13 +3,14 @@
   "title": "Otzar Founder Requirements Register",
   "controlling_rule": "Nothing is complete until register + implementation + tests + live proof + regression.",
   "live_snapshot": {
-    "ct_main_sha": "882361d",
-    "live_bundle": "index-CqgWhZAo.js",
-    "live_last_modified_utc": "2026-07-20T17:26:00Z",
-    "register_updated_utc": "2026-07-20T17:27:10Z",
-    "live_product_sha": "d320c12",
+    "ct_main_sha": "a5eb599",
+    "live_bundle": "index-GQHt8mz8.js",
+    "live_last_modified_utc": "2026-07-20T17:53:43Z",
+    "register_updated_utc": "2026-07-20T17:53:43Z",
+    "live_product_sha": "a5eb599",
     "matrix_totals": "pass=63 fail=0 skip=6",
-    "transcript_probe": "cards=6"
+    "transcript_probe": "cards=6",
+    "d02_deep": "pass=20 fail=0"
   },
   "groups": {
     "A": "Login and first-time experience",
@@ -908,8 +909,8 @@
         "tests/unit/voice-work-first.test.ts",
         "tests/e2e/otzar-live-voice-d02.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Await live deep smoke otzar-live-voice-d02 after deploy (markers + multi-command work path)",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
@@ -918,11 +919,22 @@
         "live deep: otzar-live-voice-d02 (A\u2013J multi-scenario hard fail)"
       ],
       "live_acceptance": "Deep smoke pass=all: voice-work-rail, mic primary, text secondary, work commands, transcript\u2192cards, /app/voice drives-work, Needs me link, no fake voice",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "a5eb599",
+      "final_proof": {
+        "live_bundle": "index-GQHt8mz8.js",
+        "e2e": "otzar-live-voice-d02 20/20",
+        "markers": [
+          "voice-work-rail",
+          "data-voice-first",
+          "voice-work-page",
+          "ambient-mic-button",
+          "transcript-action cards=6"
+        ],
+        "notes": "D02-D-blocked treated utterance as context once \u2014 still work-path, not decorative"
+      }
     },
     {
       "id": "D-03",
@@ -2436,6 +2448,7 @@
     "C-05",
     "C-06",
     "D-01",
+    "D-02",
     "D-04",
     "F-01",
     "J-01",

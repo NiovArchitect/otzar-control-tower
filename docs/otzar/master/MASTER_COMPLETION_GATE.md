@@ -7,8 +7,8 @@
 | Field | Value |
 |-------|--------|
 | CT `origin/main` | `683fc46` (#180) |
-| Live bundle | `index-CqgWhZAo.js` |
-| Live last-modified | 2026-07-20 (d320c12 product + 882361d harness) |
+| Live bundle | `index-GQHt8mz8.js` |
+| Live last-modified | 2026-07-20 D-02 LIVE 20/20 |
 | Gate status | **OPEN** — D-01 LIVE; matrix 63/0/6; transcript→actions cards=6; **OPEN** — Phase 0 P0 first-use LIVE on cb7125b; phases 1–7 incomplete |
 
 ---
