@@ -97,3 +97,16 @@ only commits that already landed on `main`.
 | Repair | Fresh commit on `main` to re-signal Auto-Deploy (same class of fix as 2026-06-29 stale GitHub surface). Operator must rotate Render API key for observability. |
 
 **Acceptance rule:** do not claim #171 live until HTML last-modified advances and live JS contains `Signing in…":"Sign in"` (not `Continue`) as the login submit label.
+
+## Incident log — 2026-07-20 (viewport chrome / #175)
+
+| Fact | Value |
+|------|-------|
+| CT `origin/main` | `e3df5ae` — Pin Otzar chrome in view + project mission heart (#175) |
+| Nudge | `135ae35` empty chore commit to re-signal Auto-Deploy |
+| Prior live | last-modified **04:35:34Z**, viewport meta without `viewport-fit=cover`, bundle without `100dvh` / `employee-shell-header` |
+| `RENDER_API_KEY` | **401 Unauthorized** — still cannot list services or `POST …/deploys` (`srv-d8t1qpj7uimc73db2il0`) |
+| Why lag matters | Product bug is chrome **outside visual viewport** (Otzar / Work OS / Talk / notif count). Cannot prove fixed until new static bundle ships. |
+| Repair | Fresh content commit on `main` + operator: rotate Render API key, Manual Deploy **specific commit** `e3df5ae` or later if Auto-Deploy still silent. Reconnect GitHub if latest commit lags. |
+
+**Acceptance rule:** do not claim #175 live until HTML includes `viewport-fit=cover` and live JS contains `100dvh` + `employee-shell-header` / `project-context-pulse`.
