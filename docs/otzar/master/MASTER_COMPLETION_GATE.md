@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `cb78cb4` |
-| Live bundle | `index-B2HYLarm.js` |
-| Live last-modified | 2026-07-20 F-02 + F-04 + G-01 LIVE 6/6 |
-| Gate status | **OPEN** — E-02 IMPLEMENTED (await deploy); F-02/G-01 LIVE; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `7e22980` |
+| Live bundle | `index-B4shtStV.js` |
+| Live last-modified | 2026-07-20 E-02 complex deep 10/10; F-02 9/9; G-01 8/8 |
+| Gate status | **OPEN** — E-02 LIVE (complex deep); F-02/G-01 complex deep; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
