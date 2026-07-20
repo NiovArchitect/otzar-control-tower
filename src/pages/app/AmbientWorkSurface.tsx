@@ -434,964 +434,509 @@ export function AmbientWorkSurface(): JSX.Element {
 
   const dgiIntensity = dgiPanelIntensity(dgi);
 
+  // One-shot Focus: at most a few actions that need the human now.
+  // Everything else is glance chips — users do not live in Otzar.
+  type FocusItem = {
+    key: string;
+    title: string;
+    detail?: string;
+    to?: string;
+    tone: "attention" | "working" | "ambient";
+    actionLabel?: string;
+    onAction?: () => void;
+    actionBusy?: boolean;
+    testId: string;
+  };
+  const focusItems: FocusItem[] = [];
+  if (dgi?.coherence_status === "BLOCKED") {
+    focusItems.push({
+      key: "blocked",
+      title: `${dgi.eligible_twin_count} AI Teammates linked — pick one`,
+      detail: "Otzar will not blend them.",
+      to: "/app/my-twin",
+      tone: "attention",
+      testId: "dgi-twin-blocked",
+    });
+  } else if (dgi?.coherence_status === "UNPAIRED") {
+    focusItems.push({
+      key: "unpaired",
+      title: "No AI Teammate paired yet",
+      detail: "Pair a Twin for governed organizational intelligence.",
+      to: "/app/my-twin",
+      tone: "working",
+      testId: "dgi-twin-unpaired",
+    });
+  }
+  if (
+    dgi?.next_best_step &&
+    dgi.next_best_step.kind !== "IDLE_HEALTHY" &&
+    focusItems.length < 3
+  ) {
+    focusItems.push({
+      key: "nbs",
+      title: dgi.next_best_step.safe_title,
+      detail: dgi.next_best_step.reason,
+      to: dgi.next_best_step.route_hint || "/app/action-center",
+      tone: "attention",
+      testId: "dgi-next-best-step",
+    });
+  }
+  if (approvalsCount > 0 && focusItems.length < 3) {
+    focusItems.push({
+      key: "approvals",
+      title:
+        approvalsCount === 1
+          ? "1 approval is waiting"
+          : `${approvalsCount} approvals are waiting`,
+      to: "/app/action-center",
+      tone: "attention",
+      testId: "needs-approvals",
+    });
+  }
+  if (urgentBlindSpots > 0 && focusItems.length < 3) {
+    focusItems.push({
+      key: "blind",
+      title:
+        urgentBlindSpots === 1
+          ? "1 item is stuck and needs a decision"
+          : `${urgentBlindSpots} items are stuck and need a decision`,
+      to: "/app/action-center",
+      tone: "attention",
+      testId: "needs-blind-spots",
+    });
+  }
+  if (actionUnreadCount > 0 && focusItems.length < 3) {
+    focusItems.push({
+      key: "replies",
+      title:
+        actionUnreadCount === 1
+          ? "1 reply to review"
+          : `${actionUnreadCount} replies to review`,
+      to: "/app/comms",
+      tone: "working",
+      testId: "needs-replies",
+    });
+  }
+  for (const h of incomingHandoffs.slice(0, 2)) {
+    if (focusItems.length >= 3) break;
+    focusItems.push({
+      key: `handoff-${h.handoff_id}`,
+      title: h.title,
+      detail: h.summary ?? undefined,
+      tone: "working",
+      actionLabel: "Acknowledge",
+      onAction: () => void acknowledgeHandoff(h),
+      actionBusy: ackBusyId === h.handoff_id,
+      testId: "ambient-handoff-row",
+    });
+  }
+  for (const e of twinWorking) {
+    if (focusItems.length >= 3) break;
+    const tw = e.twin_work;
+    if (tw === undefined) continue;
+    const needsVerify = twinWorkNeedsVerification(tw);
+    if (!needsVerify && tw.state !== "NEEDS_CLARITY" && tw.state !== "COLLAB_REQUESTED") {
+      continue;
+    }
+    focusItems.push({
+      key: `twin-${e.ledger_entry_id}`,
+      title: e.title,
+      detail: twinWorkStateLabel(tw.state),
+      tone: "working",
+      to: needsVerify ? undefined : "/app/my-work",
+      actionLabel: needsVerify ? "Verify" : "Open",
+      onAction: needsVerify
+        ? () => void verifyTwinWork(e.ledger_entry_id)
+        : undefined,
+      actionBusy: verifyBusyId === e.ledger_entry_id,
+      testId: "twin-working-row",
+    });
+  }
+  // Intelligence suggestions only when they add a real action — calm
+  // "keeping watch" headlines must not invent a Focus card (one-shot calm).
+  if (focusItems.length === 0 && suggestions.length > 0) {
+    if (headline !== null) {
+      focusItems.push({
+        key: "headline",
+        title: headline,
+        tone: "ambient",
+        testId: "changed-headline",
+        to: "/app/action-center",
+      });
+    }
+    for (const s of suggestions.slice(0, 2)) {
+      if (focusItems.length >= 3) break;
+      focusItems.push({
+        key: `sug-${s.rank}`,
+        title: s.safe_title,
+        to: "/app/my-day",
+        tone: "ambient",
+        testId: "changed-suggestion",
+      });
+    }
+  }
+
+  const glance: Array<{
+    key: string;
+    label: string;
+    to: string;
+    testId: string;
+    show: boolean;
+  }> = [
+    {
+      key: "projects",
+      label:
+        myProjects.length > 0
+          ? `${myProjects.length} project${myProjects.length === 1 ? "" : "s"}`
+          : "Projects",
+      to: "/app/work-projects",
+      testId: "my-projects-open-all",
+      show: true,
+    },
+    {
+      key: "twin",
+      label:
+        twinWorking.length > 0
+          ? `AI · ${twinWorking.length}`
+          : "AI Teammate",
+      to: twinWorking.length > 0 ? "/app/my-work" : "/app/my-twin",
+      testId: "twin-working-open-my-work",
+      show: true,
+    },
+    {
+      key: "needs",
+      label:
+        actionUnreadCount + urgentBlindSpots + inboundCollab.length > 0
+          ? `More · ${actionUnreadCount + urgentBlindSpots + inboundCollab.length}`
+          : "Needs me",
+      to: "/app/action-center",
+      testId: "glance-needs-me",
+      show: true,
+    },
+    {
+      key: "doc",
+      label: docLink ? "Working doc" : "New doc",
+      to: docLink ?? "#create-doc",
+      testId: docLink ? "google-doc-open" : "google-doc-create",
+      show: true,
+    },
+  ];
+
+  const calmCaughtUp =
+    focusItems.length === 0 &&
+    nothingInFlight &&
+    (dgi === null || dgi.attention_count === 0) &&
+    dgi?.coherence_status !== "BLOCKED" &&
+    dgi?.coherence_status !== "UNPAIRED";
+
   return (
     <div
-      className="mx-auto flex w-full max-w-lg flex-col gap-5 px-1 pb-32 pt-2 sm:max-w-2xl sm:pt-6"
+      className="mx-auto flex w-full max-w-lg flex-col gap-3 px-1 pb-28 pt-2 sm:max-w-xl sm:pt-4"
       data-testid="ambient-work-surface"
     >
-      {/* YC first-use: recognition + one next action on the real Today surface. */}
-      <FirstUseReveal />
-
-      {/* Phase-F hero presence stage — cinematic identity + intent. */}
-      <section className="otzar-stage relative px-5 py-8 sm:px-8 sm:py-10">
+      {/* One-shot hero — presence + optional first-use strip (not a second page). */}
+      <section className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="otzar-aurora-layer opacity-90" />
-          <div className="otzar-grain opacity-[0.04]" />
+          <div className="otzar-aurora-layer opacity-80" />
+          <div className="otzar-grain opacity-[0.03]" />
         </div>
-        <div className="relative flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
-          <OtzarMark size="xl" active={!quiet} />
+        <div className="relative flex items-center gap-4">
+          <OtzarMark size="lg" active={!quiet} />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-500/80">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-500/80">
               Today
             </p>
-            <h1 className="otzar-text-luminous mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h1 className="otzar-text-luminous mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">
               {greetingFor(new Date().getHours(), name)}
             </h1>
             <p
-              className="mt-2 max-w-md text-sm leading-relaxed text-slate-500"
+              className="mt-1 text-xs leading-snug text-slate-500"
               data-testid="ambient-presence-line"
             >
               {quiet ? (
                 <>
-                  <MoonStar className="mr-1 inline h-3.5 w-3.5" aria-hidden />
-                  Quiet mode — I&apos;m present, not interrupting.
+                  <MoonStar className="mr-1 inline h-3 w-3" aria-hidden />
+                  Quiet mode
                 </>
               ) : dgi?.coherence_status === "NEEDS_ATTENTION" ? (
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400 motion-safe:animate-pulse"
-                  />
-                  I&apos;m with you — one thing needs you; the rest stays quiet.
-                </span>
+                "One thing needs you — the rest stays quiet."
               ) : dgi?.coherence_status === "BLOCKED" ||
                 dgi?.coherence_status === "UNPAIRED" ? (
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"
-                  />
-                  I&apos;m here, but collaborative intelligence is paused until
-                  pairing is clear.
-                </span>
+                "Present — pairing needs a quick fix."
               ) : dgi?.coherence_status === "HEALTHY" ? (
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/90"
-                  />
-                  Present. Working alongside you — not another dashboard.
-                </span>
+                "Present. Not another dashboard."
               ) : (
-                "I'm with you across your work. Speak, act, or leave me quiet."
+                "Speak, act, or leave me quiet."
               )}
             </p>
+            <FirstUseReveal />
           </div>
         </div>
       </section>
 
-      {/* DGI COHERENCE — always-visible trust surface (server authority). */}
-      {dgiLoaded ? (
+      {/* FOCUS — max ~3 actions. The ADHD / YC one-shot surface. */}
+      {focusItems.length > 0 ? (
         <GlassPanel
-          intensity={dgiIntensity}
-          label="Organizational intelligence"
+          intensity={
+            focusItems.some((f) => f.tone === "attention")
+              ? "attention"
+              : dgiIntensity
+          }
+          label="Focus"
           testId="dgi-coherence-panel"
         >
-          <div className="space-y-2.5 text-sm text-slate-700">
-            <p className="text-xs leading-relaxed text-slate-500">
-              Your AI Teammate keeps private context private. Shared
-              organizational answers only appear after governed promotion —
-              never from chat alone.
-            </p>
-
-            {/* Next-best-step — server-derived action, not a dashboard tile. */}
-            {dgi?.next_best_step &&
-            dgi.next_best_step.kind !== "IDLE_HEALTHY" ? (
-              <Link
-                to={dgi.next_best_step.route_hint || "/app/action-center"}
-                className="flex items-center justify-between gap-3 rounded-xl border border-violet-400/20 bg-violet-500/[0.06] px-3 py-2.5 transition-colors hover:bg-violet-500/[0.1]"
-                data-testid="dgi-next-best-step"
-                data-kind={dgi.next_best_step.kind}
-                data-autonomy={dgi.next_best_step.autonomy_ceiling}
-              >
-                <span className="min-w-0">
-                  <span className="block font-medium text-slate-900">
-                    {dgi.next_best_step.safe_title}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
-                    {dgi.next_best_step.reason}
-                  </span>
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/15 px-2.5 py-1 text-[11px] font-semibold text-violet-900">
-                  Next <ArrowRight className="h-3 w-3" aria-hidden />
-                </span>
-              </Link>
-            ) : null}
-
-            {/* Pairing posture — fail-closed multi-Twin / unpaired recovery. */}
-            {dgi?.coherence_status === "BLOCKED" ? (
-              <div
-                className="flex items-start gap-2.5 rounded-xl bg-amber-400/15 px-3 py-2.5"
-                data-testid="dgi-twin-blocked"
-              >
-                <ShieldAlert
-                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-800"
-                  aria-hidden
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-slate-900">
-                    {dgi.eligible_twin_count} AI Teammates are linked — Otzar
-                    will not blend them
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-600">
-                    Resolve to a single active Twin before collaborative
-                    intelligence continues.
-                  </p>
-                  <Link
-                    to="/app/my-twin"
-                    className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-900 underline-offset-2 hover:underline"
-                    data-testid="dgi-resolve-twin"
-                  >
-                    Open My Twin <ArrowRight className="h-3 w-3" aria-hidden />
-                  </Link>
-                </div>
-              </div>
-            ) : null}
-
-            {dgi?.coherence_status === "UNPAIRED" ? (
-              <div
-                className="flex items-start gap-2.5 rounded-xl bg-slate-900/5 px-3 py-2.5"
-                data-testid="dgi-twin-unpaired"
-              >
-                <Users
-                  className="mt-0.5 h-4 w-4 shrink-0 text-slate-500"
-                  aria-hidden
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-slate-900">
-                    No AI Teammate is paired yet
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-600">
-                    Pair a Twin to unlock governed organizational intelligence.
-                  </p>
-                  <Link
-                    to="/app/my-twin"
-                    className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
-                    data-testid="dgi-pair-twin"
-                  >
-                    Set up My Twin <ArrowRight className="h-3 w-3" aria-hidden />
-                  </Link>
-                </div>
-              </div>
-            ) : null}
-
-            {dgi?.coherence_status === "HEALTHY" ? (
-              <p
-                className="flex items-center gap-2 text-xs text-slate-500"
-                data-testid="dgi-healthy"
-              >
-                <span
-                  aria-hidden
-                  className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400"
-                />
-                Coherence is healthy — no open organizational pressure.
-              </p>
-            ) : null}
-
-            {dgi !== null && dgi.open_obligations_count > 0 ? (
-              <Link
-                to="/app/action-center"
-                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
-                data-testid="dgi-open-obligations"
-              >
-                <span>
-                  {dgi.open_obligations_count === 1
-                    ? "1 open obligation in your work"
-                    : `${dgi.open_obligations_count} open obligations in your work`}
-                  {dgi.open_obligation_titles[0] ? (
-                    <span className="mt-0.5 block truncate text-xs text-slate-500">
-                      e.g. {dgi.open_obligation_titles[0]}
-                    </span>
-                  ) : null}
-                </span>
-                <ArrowRight
-                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                  aria-hidden
-                />
-              </Link>
-            ) : null}
-
-            {(dgi !== null && dgi.open_incoming_handoffs_count > 0) ||
-            incomingHandoffs.length > 0 ? (
-              <div
-                className="space-y-2 rounded-xl border border-violet-400/15 bg-violet-500/[0.04] px-3 py-2.5"
-                data-testid="dgi-incoming-handoffs"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-900">
-                    {(dgi?.open_incoming_handoffs_count ??
-                      incomingHandoffs.length) === 1
-                      ? "1 incoming handoff needs you"
-                      : `${dgi?.open_incoming_handoffs_count ?? incomingHandoffs.length} incoming handoffs need you`}
-                  </p>
-                  <Link
-                    to="/app/action-center?lane=handoffs"
-                    className="text-[11px] font-semibold text-violet-900 underline-offset-2 hover:underline"
-                  >
-                    Open all
-                  </Link>
-                </div>
-                {incomingHandoffs.slice(0, 2).map((h) => (
+          <ul className="space-y-1.5" data-testid="changed-suggestions">
+            {focusItems.map((item) => (
+              <li key={item.key}>
+                {item.onAction ? (
                   <div
-                    key={h.handoff_id}
-                    className="flex items-start justify-between gap-2 rounded-lg bg-white/50 px-2.5 py-2"
-                    data-testid="ambient-handoff-row"
+                    className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5"
+                    data-testid={item.testId}
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-slate-800">
-                        {h.title}
+                      <p className="truncate text-sm font-medium text-slate-900">
+                        {item.title}
                       </p>
-                      {h.summary ? (
+                      {item.detail ? (
                         <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
-                          {h.summary}
+                          {item.detail}
                         </p>
                       ) : null}
                     </div>
                     <button
                       type="button"
-                      data-testid="ambient-handoff-ack"
-                      disabled={ackBusyId === h.handoff_id}
-                      onClick={() => void acknowledgeHandoff(h)}
-                      className="shrink-0 rounded-full bg-violet-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:opacity-60"
+                      disabled={item.actionBusy}
+                      onClick={item.onAction}
+                      className="shrink-0 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
                     >
-                      {ackBusyId === h.handoff_id ? "…" : "Acknowledge"}
+                      {item.actionBusy ? "…" : item.actionLabel ?? "Go"}
                     </button>
                   </div>
-                ))}
-                {ackError !== null ? (
-                  <p
-                    className="text-[11px] text-rose-700"
-                    data-testid="ambient-handoff-ack-error"
-                  >
-                    Couldn&apos;t acknowledge ({ackError}). Try again or open
-                    Action Center.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {inboundCollab.length > 0 ? (
-              <div
-                className="space-y-2 rounded-xl border border-sky-400/15 bg-sky-500/[0.04] px-3 py-2.5"
-                data-testid="ambient-inbound-collab"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
-                    <Handshake className="h-3.5 w-3.5 text-sky-700" aria-hidden />
-                    {inboundCollab.length === 1
-                      ? "1 collaboration waiting on you"
-                      : `${inboundCollab.length} collaborations waiting on you`}
-                  </p>
+                ) : (
                   <Link
-                    to="/app/collaboration"
-                    className="text-[11px] font-semibold text-sky-900 underline-offset-2 hover:underline"
+                    to={item.to ?? "/app/action-center"}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5 transition-colors hover:bg-white/70"
+                    data-testid={item.testId}
                   >
-                    Inbox
-                  </Link>
-                </div>
-                {inboundCollab.slice(0, 2).map((c) => (
-                  <div
-                    key={c.collaboration_id}
-                    className="flex items-start justify-between gap-2 rounded-lg bg-white/50 px-2.5 py-2"
-                    data-testid="ambient-collab-row"
-                  >
-                    <p className="min-w-0 truncate text-xs text-slate-800">
-                      {c.safe_summary}
-                    </p>
-                    {c.state === "REQUESTED" || c.state === "NEEDS_APPROVAL" ? (
-                      <button
-                        type="button"
-                        data-testid="ambient-collab-accept"
-                        disabled={collabBusyId === c.collaboration_id}
-                        onClick={() => void acceptCollab(c)}
-                        className="shrink-0 rounded-full bg-sky-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-60"
-                      >
-                        {collabBusyId === c.collaboration_id ? "…" : "Accept"}
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {dgi !== null && dgi.open_org_truth_conflicts_count > 0 ? (
-              <Link
-                to="/app/action-center"
-                className="flex items-center justify-between gap-3 rounded-xl bg-amber-400/10 px-3 py-2.5 transition-colors hover:bg-amber-400/15"
-                data-testid="dgi-org-truth-conflicts"
-              >
-                <span className="font-medium text-slate-900">
-                  {dgi.open_org_truth_conflicts_count === 1
-                    ? "1 organizational truth conflict needs review"
-                    : `${dgi.open_org_truth_conflicts_count} organizational truth conflicts need review`}
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/25 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
-                  Review <ArrowRight className="h-3 w-3" aria-hidden />
-                </span>
-              </Link>
-            ) : null}
-
-            {/* Collaboration plan — top deterministic recommendation (WAVE-4). */}
-            {collabPlan !== null &&
-            collabPlan.recommendation_count > 0 &&
-            collabPlan.recommendations[0] ? (
-              <div
-                className="rounded-xl border border-white/50 bg-white/40 px-3 py-2 text-xs text-slate-600"
-                data-testid="dgi-collab-plan"
-                data-kind={collabPlan.recommendations[0].kind}
-              >
-                <p className="font-medium text-slate-800">
-                  Collaboration plan · {collabPlan.recommendations[0].kind}
-                </p>
-                <p className="mt-0.5 leading-relaxed">
-                  {collabPlan.recommendations[0].safe_summary}
-                </p>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Ceiling: {collabPlan.recommendations[0].autonomy_ceiling}
-                  {collabPlan.metrics.fail_closed_count > 0
-                    ? ` · ${collabPlan.metrics.fail_closed_count} fail-closed`
-                    : ""}
-                </p>
-              </div>
-            ) : null}
-
-            {/* Quiet capacity strip — corrections + authority (not pressure). */}
-            {dgi !== null &&
-            (dgi.active_personal_corrections_count > 0 ||
-              dgi.active_twin_authority_grants_count > 0 ||
-              authorityPosture !== null) &&
-            dgi.coherence_status !== "BLOCKED" &&
-            dgi.coherence_status !== "UNPAIRED" ? (
-              <div
-                className="flex flex-wrap gap-2 border-t border-white/50 pt-2 text-[11px] text-slate-500"
-                data-testid="dgi-capacity-strip"
-              >
-                {dgi.active_personal_corrections_count > 0 ? (
-                  <span data-testid="dgi-corrections-count">
-                    {dgi.active_personal_corrections_count} personal correction
-                    {dgi.active_personal_corrections_count === 1 ? "" : "s"}
-                  </span>
-                ) : null}
-                {dgi.active_twin_authority_grants_count > 0 ? (
-                  <span data-testid="dgi-authority-count">
-                    {dgi.active_twin_authority_grants_count} Twin authorit
-                    {dgi.active_twin_authority_grants_count === 1 ? "y" : "ies"}{" "}
-                    granted
-                  </span>
-                ) : null}
-                {authorityPosture !== null &&
-                !authorityPosture.has_active_grants ? (
-                  <Link
-                    to="/app/authority-grants"
-                    className="underline-offset-2 hover:underline"
-                    data-testid="dgi-authority-missing"
-                  >
-                    No Twin authority grants — material actions need approval
-                  </Link>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </GlassPanel>
-      ) : null}
-
-      {/* YOUR PROJECTS — ambient coherence, not a place to live. */}
-      <GlassPanel
-        intensity={
-          managerGapCount > 0
-            ? "working"
-            : myProjects.length > 0
-              ? "working"
-              : "ambient"
-        }
-        label="Your projects"
-        testId="my-projects-panel"
-      >
-        <div className="space-y-2 text-sm text-slate-700">
-          {managerGapCount > 0 ? (
-            <Link
-              to="/app/work-projects"
-              className="flex items-center justify-between gap-3 rounded-xl border border-amber-200/70 bg-amber-50/40 px-3 py-2.5 transition-colors hover:bg-amber-50/70"
-              data-testid="manager-placement-ambient-cta"
-            >
-              <span className="min-w-0 text-xs leading-relaxed text-slate-700">
-                <span className="font-medium text-slate-900">
-                  {managerGapCount} teammate
-                  {managerGapCount === 1 ? "" : "s"} without a first project.
-                </span>{" "}
-                Place them when it fits — Otzar will not nag.
-              </span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-            </Link>
-          ) : null}
-          {myProjects.length === 0 ? (
-            <>
-              <p className="text-xs leading-relaxed text-slate-500">
-                You are not on a project yet. Projects group people and work so
-                Otzar and your AI Teammate know what belongs together. Your
-                manager can place you — you do not need to live in Otzar.
-              </p>
-              <Link
-                to="/app/work-projects"
-                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-white/50 px-3 py-2.5 transition-colors hover:bg-white/80"
-                data-testid="my-projects-empty-cta"
-              >
-                <span className="flex items-center gap-2 font-medium text-slate-900">
-                  <FolderKanban className="h-3.5 w-3.5 text-slate-600" aria-hidden />
-                  Create or open projects
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-              </Link>
-            </>
-          ) : (
-            <>
-              <ul className="space-y-1.5" data-testid="my-projects-list">
-                {myProjects.slice(0, 5).map((p) => (
-                  <li key={p.project_id}>
-                    <Link
-                      to="/app/work-projects"
-                      className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 transition-colors hover:bg-white/50"
-                      data-testid="my-projects-row"
-                      data-project-id={p.project_id}
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium text-slate-900">
-                          {p.name}
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          {p.my_role
-                            ? p.my_role === "OWNER"
-                              ? "Owner"
-                              : p.my_role === "REVIEWER"
-                                ? "Reviewer"
-                                : "Member"
-                            : "Member"}
-                          {typeof p.member_count === "number"
-                            ? ` · ${p.member_count} people`
-                            : ""}
-                        </span>
-                      </span>
-                      <ArrowRight
-                        className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                        aria-hidden
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/app/work-projects"
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 underline-offset-2 hover:underline"
-                data-testid="my-projects-open-all"
-              >
-                All projects <ArrowRight className="h-3 w-3" aria-hidden />
-              </Link>
-            </>
-          )}
-        </div>
-      </GlassPanel>
-
-      {/* TWIN WORKING — AI Teammate claimed work so you don't duplicate it. */}
-      {twinWorking.length > 0 ? (
-        <GlassPanel
-          intensity="working"
-          label="Your AI Teammate"
-          testId="twin-working-panel"
-        >
-          <div className="space-y-2 text-sm text-slate-700">
-            <p className="text-xs leading-relaxed text-slate-500">
-              Your AI Teammate is handling this from communication — no need to
-              start it yourself unless you want to take over.
-            </p>
-            <ul className="space-y-1.5" data-testid="twin-working-list">
-              {twinWorking.map((e) => {
-                const tw = e.twin_work;
-                if (tw === undefined) return null;
-                const acc = twinAccuracyLabel(tw.accuracy_class);
-                const needsHuman =
-                  tw.state === "NEEDS_CLARITY" || tw.state === "COLLAB_REQUESTED";
-                const needsVerify = twinWorkNeedsVerification(tw);
-                const edited = twinWorkEditDetected(tw);
-                return (
-                  <li
-                    key={e.ledger_entry_id}
-                    className="rounded-xl border border-violet-400/15 bg-violet-500/[0.04] px-3 py-2.5"
-                    data-testid="twin-working-row"
-                    data-twin-state={tw.state}
-                    data-accuracy={tw.accuracy_class}
-                    data-edit-detected={edited ? "true" : "false"}
-                    data-needs-verify={needsVerify ? "true" : "false"}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="flex items-center gap-1.5 font-medium text-slate-900">
-                          <Bot
-                            className="h-3.5 w-3.5 shrink-0 text-violet-700"
-                            aria-hidden
-                          />
-                          <span className="truncate">{e.title}</span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">
+                        {item.title}
+                      </p>
+                      {item.detail ? (
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
+                          {item.detail}
                         </p>
-                        <p className="mt-0.5 text-[11px] text-slate-500">
-                          {twinWorkStateLabel(tw.state)}
-                          {acc !== null ? ` · ${acc}` : ""}
-                          {tw.requires_verification
-                            ? " · verification posture"
-                            : ""}
-                        </p>
-                        {edited ? (
-                          <p
-                            className="mt-1 text-xs font-medium text-amber-800"
-                            data-testid="twin-working-edit-detected"
-                          >
-                            Document updated since claim — review so you share
-                            one truth.
-                          </p>
-                        ) : null}
-                        {tw.state === "NEEDS_CLARITY" &&
-                        tw.clarity_question !== null ? (
-                          <p className="mt-1 text-xs text-slate-600">
-                            {tw.clarity_question}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        {tw.web_view_link !== null &&
-                        tw.web_view_link !== undefined ? (
-                          <a
-                            href={tw.web_view_link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] font-semibold text-violet-900 underline-offset-2 hover:underline"
-                            data-testid="twin-working-open-doc"
-                          >
-                            Open doc
-                          </a>
-                        ) : null}
-                        {needsVerify ? (
-                          <button
-                            type="button"
-                            data-testid="twin-working-verify"
-                            disabled={verifyBusyId === e.ledger_entry_id}
-                            onClick={() => void verifyTwinWork(e.ledger_entry_id)}
-                            className="shrink-0 rounded-full bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:opacity-60"
-                          >
-                            {verifyBusyId === e.ledger_entry_id
-                              ? "…"
-                              : "Verify"}
-                          </button>
-                        ) : null}
-                        {needsHuman && !needsVerify ? (
-                          <Link
-                            to="/app/my-work"
-                            className="inline-flex items-center gap-1 rounded-full bg-amber-400/25 px-2 py-0.5 text-[11px] font-semibold text-amber-900"
-                            data-testid="twin-working-needs-you"
-                          >
-                            Needs you
-                          </Link>
-                        ) : null}
-                      </div>
+                      ) : null}
                     </div>
-                  </li>
-                );
-              })}
-            </ul>
-            {verifyError !== null ? (
-              <p
-                className="text-[11px] text-rose-700"
-                data-testid="twin-working-verify-error"
-              >
-                Couldn&apos;t verify ({verifyError}). Try again from My Work.
-              </p>
-            ) : null}
-            <Link
-              to="/app/my-work"
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-900 underline-offset-2 hover:underline"
-              data-testid="twin-working-open-my-work"
-            >
-              All my work <ArrowRight className="h-3 w-3" aria-hidden />
-            </Link>
-          </div>
-        </GlassPanel>
-      ) : null}
-
-      {/* NEEDS YOU — only when the human must act. Category-specific copy. */}
-      {approvalsCount > 0 || actionUnreadCount > 0 || urgentBlindSpots > 0 ? (
-        <GlassPanel
-          intensity="attention"
-          label="Needs you"
-          testId="needs-me-panel"
-        >
-          <div className="space-y-2 text-sm">
-            {approvalsCount > 0 ? (
-              <Link
-                to="/app/action-center"
-                className="flex items-center justify-between gap-3 rounded-xl bg-amber-400/10 px-3 py-2.5 transition-colors hover:bg-amber-400/15"
-                data-testid="needs-approvals"
-              >
-                <span className="font-medium text-slate-900">
-                  {approvalsCount === 1
-                    ? "1 approval is waiting"
-                    : `${approvalsCount} approvals are waiting`}
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/25 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
-                  Review <ArrowRight className="h-3 w-3" aria-hidden />
-                </span>
-              </Link>
-            ) : null}
-            {urgentBlindSpots > 0 ? (
-              <Link
-                to="/app/action-center"
-                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-slate-800 transition-colors hover:bg-white/50"
-                data-testid="needs-blind-spots"
-              >
-                <span>
-                  {urgentBlindSpots === 1
-                    ? "1 item is stuck and needs a decision"
-                    : `${urgentBlindSpots} items are stuck and need a decision`}
-                </span>
-                <ArrowRight
-                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                  aria-hidden
-                />
-              </Link>
-            ) : null}
-            {actionUnreadCount > 0 ? (
-              <Link
-                to="/app/comms"
-                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-slate-800 transition-colors hover:bg-white/50"
-                data-testid="needs-replies"
-              >
-                <span>
-                  {actionUnreadCount === 1
-                    ? "1 reply to review"
-                    : `${actionUnreadCount} replies to review`}
-                </span>
-                <ArrowRight
-                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                  aria-hidden
-                />
-              </Link>
-            ) : null}
-          </div>
-        </GlassPanel>
-      ) : null}
-
-      {/* WHAT CHANGED — prefer DGI next-best-step when org pressure is live,
-          otherwise My Day intelligence. One calm headline, no dual stories. */}
-      {(() => {
-        const dgiStep =
-          dgi?.next_best_step && dgi.next_best_step.kind !== "IDLE_HEALTHY"
-            ? dgi.next_best_step
-            : null;
-        const displayHeadline =
-          dgiStep !== null
-            ? dgiStep.reason
-            : headline;
-        const displaySuggestions =
-          dgiStep !== null
-            ? [
-                {
-                  rank: 1,
-                  reason: dgiStep.kind,
-                  safe_title: dgiStep.safe_title,
-                  route: dgiStep.route_hint || "/app/action-center",
-                },
-                ...suggestions.slice(0, 2).map((s) => ({
-                  rank: s.rank + 1,
-                  reason: s.reason,
-                  safe_title: s.safe_title,
-                  route: "/app/my-day",
-                })),
-              ]
-            : suggestions.slice(0, 3).map((s) => ({
-                rank: s.rank,
-                reason: s.reason,
-                safe_title: s.safe_title,
-                route: "/app/my-day",
-              }));
-        if (displayHeadline === null && displaySuggestions.length === 0) {
-          return null;
-        }
-        return (
-          <GlassPanel
-            intensity={
-              dgiStep !== null || suggestions.length > 0 ? "attention" : "ambient"
-            }
-            label="What needs attention"
-            testId="changed-panel"
-          >
-            {displayHeadline !== null ? (
-              <p
-                className="text-sm leading-relaxed text-slate-600"
-                data-testid="changed-headline"
-                data-source={dgiStep !== null ? "dgi" : "my-day"}
-              >
-                {displayHeadline}
-              </p>
-            ) : null}
-            {displaySuggestions.length > 0 ? (
-              <ul className="mt-3 space-y-1.5" data-testid="changed-suggestions">
-                {displaySuggestions.map((s) => (
-                  <li key={`${s.rank}-${s.reason}`}>
-                    <Link
-                      to={s.route}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/60 bg-white/50 px-3 py-2.5 text-sm text-slate-800 transition-colors hover:border-indigo-200/80 hover:bg-white/80"
-                      data-testid="changed-suggestion"
-                    >
-                      <span className="truncate">{s.safe_title}</span>
-                      <ArrowRight
-                        className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                        aria-hidden
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </GlassPanel>
-        );
-      })()}
-
-      {/* TEAM — capacity-only "what is my team working on?" */}
-      {teamPeople.length > 0 ? (
-        <GlassPanel
-          intensity="working"
-          label="Your team"
-          testId="team-work-panel"
-        >
-          <ul className="space-y-2 text-sm text-slate-700">
-            {teamPeople.slice(0, 5).map((p) => (
-              <li
-                key={p.display_name}
-                className="rounded-xl px-3 py-2 hover:bg-white/40"
-                data-testid="team-work-person"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-slate-900">
-                    {p.display_name}
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    {p.open_obligation_count + p.open_incoming_handoff_count} open
-                  </span>
-                </div>
-                {p.sample_titles[0] ? (
-                  <p className="mt-0.5 truncate text-xs text-slate-500">
-                    {p.sample_titles[0]}
-                  </p>
-                ) : null}
+                    <ArrowRight
+                      className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                      aria-hidden
+                    />
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
-        </GlassPanel>
-      ) : null}
-
-      {/* Communication — Relay is the channel; Otzar is presence. */}
-      <GlassPanel intensity="working" label="Messages" testId="relay-presence-panel">
-        <div className="space-y-2 text-sm text-slate-700">
-          <p className="text-xs leading-relaxed text-slate-500">
-            Real-time conversation lives in Otzar Relay — not another
-            dashboard tab. Otzar stays with you; messages feed governed work.
-          </p>
-          <a
-            href={
-              (import.meta as ImportMeta & { env?: { VITE_RELAY_URL?: string } })
-                .env?.VITE_RELAY_URL ?? "https://github.com/NiovArchitect/otzar-relay"
-            }
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-between gap-3 rounded-xl border border-violet-400/20 bg-violet-500/[0.06] px-3 py-2.5 transition-colors hover:bg-violet-500/[0.1]"
-            data-testid="open-relay"
-          >
-            <span className="font-medium text-slate-900">Open Otzar Relay</span>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/15 px-2.5 py-1 text-[11px] font-semibold text-violet-900">
-              Messages <ArrowRight className="h-3 w-3" aria-hidden />
-            </span>
-          </a>
-        </div>
-      </GlassPanel>
-
-      {/* Working doc — one-tap real Google Doc (gated; never fabricated). */}
-      <GlassPanel intensity="working" label="Working document" testId="google-doc-panel">
-        <div className="space-y-2 text-sm text-slate-700">
-          <p className="text-xs leading-relaxed text-slate-500">
-            Land shared writing in Google Docs — not a maze of admin screens.
-            Otzar creates the doc only when you ask.
-          </p>
-          {docLink !== null ? (
-            <a
-              href={docLink}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between gap-3 rounded-xl border border-emerald-400/25 bg-emerald-500/[0.08] px-3 py-2.5 transition-colors hover:bg-emerald-500/[0.12]"
-              data-testid="google-doc-open"
-            >
-              <span className="flex min-w-0 items-center gap-2 font-medium text-slate-900">
-                <FileText className="h-3.5 w-3.5 shrink-0 text-emerald-700" aria-hidden />
-                <span className="truncate">Open your working doc</span>
-              </span>
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
-                Open <ArrowRight className="h-3 w-3" aria-hidden />
-              </span>
-            </a>
-          ) : (
-            <button
-              type="button"
-              data-testid="google-doc-create"
-              disabled={docBusy}
-              onClick={() => void createWorkingDoc()}
-              className="flex w-full items-center justify-between gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/[0.06] px-3 py-2.5 text-left transition-colors hover:bg-emerald-500/[0.1] disabled:opacity-60"
-            >
-              <span className="flex items-center gap-2 font-medium text-slate-900">
-                <FileText className="h-3.5 w-3.5 text-emerald-700" aria-hidden />
-                {docBusy ? "Creating…" : "Create a Google Doc"}
-              </span>
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
-                One tap
-              </span>
-            </button>
-          )}
-          {docError !== null ? (
-            <p
-              className="text-[11px] text-amber-800"
-              data-testid="google-doc-create-error"
-            >
-              {docError}{" "}
-              <Link
-                to="/app/tools-connections"
-                className="font-semibold underline-offset-2 hover:underline"
-              >
-                Tools & Connections
-              </Link>
+          {ackError !== null ? (
+            <p className="mt-2 text-[11px] text-rose-700" data-testid="ambient-handoff-ack-error">
+              Couldn&apos;t acknowledge ({ackError}).
             </p>
           ) : null}
-        </div>
-      </GlassPanel>
-
-      {/* CONTEXT — what Otzar is using. */}
-      <GlassPanel intensity="ambient" label="Context" testId="context-panel">
-        {ctxActive ? (
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="truncate text-slate-800" data-testid="context-active">
-              Working from {ctxLabel}
-            </span>
-            <button
-              type="button"
-              onClick={() => clearContext()}
-              data-testid="context-clear"
-              className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-800"
-            >
-              Clear
-            </button>
-          </div>
-        ) : (
-          <p className="text-sm leading-relaxed text-slate-500">
-            No context yet. Tell Otzar what you&apos;re working on and it
-            remembers.
-          </p>
-        )}
-      </GlassPanel>
-
-      {/* CONNECTED NOW — collapsed real-node strip. */}
-      {workNodes.length > 0 ? (
-        <details className="group px-1" data-testid="surface-work-nodes">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-800">
-            <span
-              aria-hidden
-              className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400"
-            />
-            Connected now
-            <span className="opacity-60">· {workNodes.length}</span>
-          </summary>
-          <div
-            className="mt-2 flex flex-wrap gap-1.5"
-            data-testid="surface-work-nodes-list"
-          >
-            {workNodes.map((n) => (
-              <span
-                key={n.id}
-                data-testid="surface-work-node"
-                data-kind={n.kind}
-                data-intensity={n.intensity}
-                title={n.detail}
-                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/60 px-2.5 py-0.5 text-[11px] text-slate-700 backdrop-blur-xl"
-              >
-                <span
-                  aria-hidden
-                  className={`inline-block h-1 w-1 rounded-full ${intensityDot(n.intensity)}`}
-                />
-                {n.label}
-              </span>
-            ))}
-          </div>
-        </details>
-      ) : null}
-
-      {/* ALL CAUGHT UP — calm, not blank. */}
-      {nothingInFlight &&
-      (dgi === null || dgi.attention_count === 0) &&
-      dgi?.coherence_status !== "BLOCKED" &&
-      dgi?.coherence_status !== "UNPAIRED" ? (
+          {verifyError !== null ? (
+            <p className="mt-2 text-[11px] text-rose-700" data-testid="twin-working-verify-error">
+              Couldn&apos;t verify ({verifyError}).
+            </p>
+          ) : null}
+        </GlassPanel>
+      ) : calmCaughtUp ? (
         <div
-          className="flex items-start gap-2.5 px-1"
+          className="flex items-center gap-2 px-1 py-1"
           data-testid="ambient-caught-up"
         >
-          <Sparkles
-            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300"
-            aria-hidden
-          />
-          <p className="text-sm leading-relaxed text-slate-400">
-            You&apos;re all caught up. Otzar is listening.
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-slate-300" aria-hidden />
+          <p className="text-sm text-slate-400" data-testid="dgi-healthy">
+            You&apos;re clear. Otzar is listening.
           </p>
         </div>
+      ) : dgiLoaded ? (
+        <p className="px-1 text-xs text-slate-400" data-testid="dgi-coherence-panel">
+          Nothing urgent in focus — open Needs me or talk.
+        </p>
       ) : null}
 
-      {/* Primary invitation — the orb is the engine. */}
+      {/* GLANCE — one row of chips, not stacked panels. */}
+      <div
+        className="flex flex-wrap gap-1.5 px-0.5"
+        data-testid="today-glance"
+        role="navigation"
+        aria-label="Quick destinations"
+      >
+        {glance
+          .filter((g) => g.show)
+          .map((g) =>
+            g.to === "#create-doc" ? (
+              <button
+                key={g.key}
+                type="button"
+                data-testid={g.testId}
+                disabled={docBusy}
+                onClick={() => void createWorkingDoc()}
+                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/55 px-2.5 py-1 text-[11px] font-medium text-slate-700 backdrop-blur-sm transition hover:bg-white/80 disabled:opacity-60"
+              >
+                <FileText className="h-3 w-3 text-slate-500" aria-hidden />
+                {docBusy ? "…" : g.label}
+              </button>
+            ) : g.to.startsWith("http") || (docLink && g.key === "doc") ? (
+              <a
+                key={g.key}
+                href={g.key === "doc" && docLink ? docLink : g.to}
+                target={g.key === "doc" ? "_blank" : undefined}
+                rel={g.key === "doc" ? "noreferrer" : undefined}
+                data-testid={g.testId}
+                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/55 px-2.5 py-1 text-[11px] font-medium text-slate-700 backdrop-blur-sm transition hover:bg-white/80"
+              >
+                {g.label}
+              </a>
+            ) : (
+              <Link
+                key={g.key}
+                to={g.to}
+                data-testid={g.testId}
+                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/55 px-2.5 py-1 text-[11px] font-medium text-slate-700 backdrop-blur-sm transition hover:bg-white/80"
+              >
+                {g.key === "projects" ? (
+                  <FolderKanban className="h-3 w-3 text-slate-500" aria-hidden />
+                ) : null}
+                {g.label}
+              </Link>
+            ),
+          )}
+        {managerGapCount > 0 ? (
+          <Link
+            to="/app/work-projects"
+            data-testid="manager-placement-ambient-cta"
+            className="inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50/60 px-2.5 py-1 text-[11px] font-medium text-amber-900"
+          >
+            {managerGapCount} to place
+          </Link>
+        ) : null}
+      </div>
+      {docError !== null ? (
+        <p className="px-1 text-[11px] text-amber-800" data-testid="google-doc-create-error">
+          {docError}{" "}
+          <Link to="/app/connector-health" className="font-semibold underline-offset-2 hover:underline">
+            Fix connection
+          </Link>
+        </p>
+      ) : null}
+
+      {/* Single primary invitation — Talk is the engine. */}
       <button
         type="button"
         onClick={openOrb}
         data-testid="ambient-talk"
-        className={`${GLASS_CTA} mt-1 flex w-full items-center gap-3.5 px-4 py-4 text-left transition-transform active:scale-[0.99]`}
+        className={`${GLASS_CTA} flex w-full items-center gap-3 px-3.5 py-3 text-left transition-transform active:scale-[0.99]`}
       >
-        <span className="otzar-cta-fill flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+        <span className="otzar-cta-fill flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
           <Mic className="h-4 w-4 text-white" aria-hidden />
         </span>
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-slate-900">
             Talk to Otzar
           </span>
-          <span className="mt-0.5 block text-xs leading-snug text-slate-500">
-            &ldquo;What matters today?&rdquo; · &ldquo;What needs my
-            approval?&rdquo; · &ldquo;Open my workspace&rdquo;
+          <span className="block text-[11px] text-slate-500">
+            What matters · what needs me · open work
           </span>
         </span>
       </button>
 
+      {/* Power-user detail only — not the default scroll path. */}
+      <details className="group px-1" data-testid="today-more-details">
+        <summary className="cursor-pointer list-none text-[11px] font-medium text-slate-400 hover:text-slate-600">
+          More detail
+          <span className="ml-1 opacity-50 group-open:hidden">
+            · projects, team, context
+          </span>
+        </summary>
+        <div className="mt-2 space-y-2">
+          {myProjects.length > 0 ? (
+            <GlassPanel intensity="ambient" label="Projects" testId="my-projects-panel">
+              <ul className="space-y-1" data-testid="my-projects-list">
+                {myProjects.slice(0, 4).map((proj) => (
+                  <li key={proj.project_id}>
+                    <Link
+                      to="/app/work-projects"
+                      className="block truncate rounded-lg px-2 py-1.5 text-sm text-slate-800 hover:bg-white/50"
+                      data-testid="my-projects-row"
+                      data-project-id={proj.project_id}
+                    >
+                      {proj.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </GlassPanel>
+          ) : (
+            <p className="px-1 text-xs text-slate-400" data-testid="my-projects-empty-cta">
+              No projects yet — your manager can place you when ready.
+            </p>
+          )}
+          {teamPeople.length > 0 ? (
+            <GlassPanel intensity="ambient" label="Team" testId="team-work-panel">
+              <ul className="space-y-1">
+                {teamPeople.slice(0, 4).map((person) => (
+                  <li
+                    key={person.display_name}
+                    className="flex justify-between gap-2 px-2 py-1 text-sm"
+                    data-testid="team-work-person"
+                  >
+                    <span className="truncate font-medium text-slate-800">
+                      {person.display_name}
+                    </span>
+                    <span className="shrink-0 text-[11px] text-slate-500">
+                      {person.open_obligation_count + person.open_incoming_handoff_count} open
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </GlassPanel>
+          ) : null}
+          {ctxActive ? (
+            <GlassPanel intensity="ambient" label="Context" testId="context-panel">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="truncate text-slate-700" data-testid="context-active">
+                  Working from {ctxLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => clearContext()}
+                  data-testid="context-clear"
+                  className="shrink-0 text-[11px] text-slate-500 hover:text-slate-800"
+                >
+                  Clear
+                </button>
+              </div>
+            </GlassPanel>
+          ) : null}
+          {inboundCollab.length > 0 ? (
+            <Link
+              to="/app/collaboration"
+              className="block px-1 text-xs font-medium text-sky-800"
+              data-testid="ambient-inbound-collab"
+            >
+              {inboundCollab.length} collaboration
+              {inboundCollab.length === 1 ? "" : "s"} in inbox →
+            </Link>
+          ) : null}
+        </div>
+      </details>
+
       <Link
         to="/app/my-day"
-        className="px-1 text-xs font-medium text-slate-400 underline-offset-4 transition-colors hover:text-slate-700 hover:underline"
+        className="px-1 text-center text-[11px] font-medium text-slate-400 underline-offset-4 hover:text-slate-600 hover:underline"
         data-testid="ambient-open-workbench"
       >
-        Open the full workbench →
+        Full workbench
       </Link>
     </div>
   );

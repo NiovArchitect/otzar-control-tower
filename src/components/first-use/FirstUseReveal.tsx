@@ -1,12 +1,11 @@
 // FILE: FirstUseReveal.tsx
-// PURPOSE: YC first-five-minutes reveal on the real Today surface — not a
-//          separate onboarding universe. Uses live context-health + twin +
-//          DGI when available. Sparse, role-aware, one primary action.
-// CONNECTS TO: AmbientWorkSurface, first-use/state, contextHealth API.
+// PURPOSE: One-shot first-login recognition — a single calm strip, not a
+//          second dashboard. Fits ADHD "one view" + YC signal without scroll
+//          tax. Uses live context-health + DGI; same app they keep using.
+// CONNECTS TO: AmbientWorkSurface hero, first-use/state.
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, Bot, Building2, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
@@ -15,8 +14,6 @@ import {
   hasCompletedFirstUse,
   markFirstUseComplete,
 } from "@/lib/first-use/state";
-import { GlassPanel } from "@/components/ambient/GlassPanel";
-import { GLASS_CTA } from "@/lib/ambient/glass";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 
 function openOrb(): void {
@@ -25,13 +22,14 @@ function openOrb(): void {
   }
 }
 
+/** Compact strip for the Today hero — never a multi-card wall. */
 export function FirstUseReveal(): JSX.Element | null {
   const entity = useAuthStore((s) => s.entity);
   const capabilities = useAuthStore((s) => s.capabilities);
   const email = entity?.email ?? null;
   const [dismissed, setDismissed] = useState(() => hasCompletedFirstUse(email));
   const [ctx, setCtx] = useState<ContextHealthResponse | null>(null);
-  const [dgiLine, setDgiLine] = useState<string | null>(null);
+  const [signal, setSignal] = useState<string | null>(null);
 
   useEffect(() => {
     setDismissed(hasCompletedFirstUse(email));
@@ -49,33 +47,16 @@ export function FirstUseReveal(): JSX.Element | null {
       if (health.ok) setCtx(health.data);
       if (dgi.ok && dgi.data?.coherence) {
         const c = dgi.data.coherence;
-        const bits: string[] = [];
         if (c.attention_count > 0) {
-          bits.push(
+          setSignal(
             `${c.attention_count} item${c.attention_count === 1 ? "" : "s"} need attention`,
           );
-        }
-        if (c.open_org_truth_conflicts_count > 0) {
-          bits.push(
-            `${c.open_org_truth_conflicts_count} organizational decision${c.open_org_truth_conflicts_count === 1 ? "" : "s"} open`,
-          );
-        }
-        if (c.open_incoming_handoffs_count > 0) {
-          bits.push(
+        } else if (c.open_incoming_handoffs_count > 0) {
+          setSignal(
             `${c.open_incoming_handoffs_count} handoff${c.open_incoming_handoffs_count === 1 ? "" : "s"} waiting`,
           );
-        }
-        if (c.open_obligations_count > 0) {
-          bits.push(
-            `${c.open_obligations_count} open obligation${c.open_obligations_count === 1 ? "" : "s"}`,
-          );
-        }
-        if (bits.length > 0) {
-          setDgiLine(`Otzar sees ${bits.join(", ")} from live organization state.`);
-        } else if (c.coherence_status) {
-          setDgiLine(
-            `Organization coherence is ${String(c.coherence_status).toLowerCase().replace(/_/g, " ")} — ask Otzar what the team is working on.`,
-          );
+        } else if (c.next_best_step && c.next_best_step.kind !== "IDLE_HEALTHY") {
+          setSignal(c.next_best_step.safe_title);
         }
       }
     })();
@@ -88,17 +69,13 @@ export function FirstUseReveal(): JSX.Element | null {
 
   const identity = ctx?.identity;
   const displayName =
-    identity?.viewer?.display_name ||
-    nameFromEmail(email) ||
-    "there";
+    identity?.viewer?.display_name || nameFromEmail(email) || "there";
   const firstName = displayName.split(" ")[0] ?? displayName;
   const orgName = identity?.org?.name ?? "your organization";
   const role =
     identity?.viewer?.title ||
     identity?.viewer?.org_role ||
-    (isOrgAdmin(capabilities) ? "Organization leader" : null);
-  const twinName = identity?.twin?.display_name ?? "your AI Teammate";
-  const admin = isOrgAdmin(capabilities);
+    (isOrgAdmin(capabilities) ? "leader" : null);
 
   function complete(): void {
     markFirstUseComplete(email);
@@ -106,108 +83,74 @@ export function FirstUseReveal(): JSX.Element | null {
   }
 
   return (
-    <GlassPanel
-      intensity="working"
-      className="space-y-4 p-5"
+    <div
+      className="mt-3 rounded-2xl border border-indigo-200/50 bg-white/55 px-3 py-2.5 backdrop-blur-sm"
       data-testid="first-use-reveal"
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-xl bg-indigo-500/10 p-2">
-          <Sparkles className="h-5 w-5 text-indigo-600" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-500/90">
-            First minutes
-          </p>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
-            Welcome, {firstName}.
-          </h2>
-          <p className="text-sm text-slate-600" data-testid="first-use-recognition">
-            {role
-              ? `Otzar has prepared your workspace for ${orgName} as ${role}.`
-              : `Otzar has prepared your workspace for ${orgName}. Your role or team needs confirmation if anything looks off.`}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-white/60 bg-white/50 p-3" data-testid="first-use-teammate">
-          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-800">
-            <Bot className="h-3.5 w-3.5" aria-hidden /> AI Teammate
-          </div>
-          <p className="text-xs text-slate-600">
-            {twinName} can prepare work, find permitted context, coordinate with
-            your team, draft documents, and track what you own — with your
-            approval on what leaves.
-          </p>
-        </div>
-        <div className="rounded-xl border border-white/60 bg-white/50 p-3" data-testid="first-use-org">
-          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-800">
-            <Building2 className="h-3.5 w-3.5" aria-hidden /> Organization
-          </div>
-          <p className="text-xs text-slate-600">
-            {dgiLine ??
-              "Ask what the team is working on — answers come from live organization state, not a generic chat."}
-          </p>
-        </div>
-        <div className="rounded-xl border border-white/60 bg-white/50 p-3" data-testid="first-use-next">
-          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-800">
-            <Users className="h-3.5 w-3.5" aria-hidden /> What to do first
-          </div>
-          <p className="text-xs text-slate-600">
-            {admin
-              ? "Review what needs attention on Today, then open Control Tower only when you need org setup, people, or connections."
-              : "Review what needs you, talk to your AI Teammate, or open Needs me for approvals and handoffs."}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <button
-          type="button"
-          className={`${GLASS_CTA} inline-flex items-center gap-1.5`}
-          data-testid="first-use-start-day"
-          onClick={() => {
-            complete();
-          }}
-        >
-          Start my day
-          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white"
-          data-testid="first-use-talk"
-          onClick={() => {
-            complete();
-            openOrb();
-          }}
-        >
-          Talk to my AI Teammate
-        </button>
-        <Link
-          to="/app/action-center"
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900"
-          data-testid="first-use-review-work"
-          onClick={() => complete()}
-        >
-          Review my current work
-        </Link>
-        {admin ? (
-          <Link
-            to="/setup"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-800"
-            data-testid="first-use-admin-setup"
-            onClick={() => complete()}
+      <div className="flex items-start gap-2.5">
+        <Sparkles
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500"
+          aria-hidden
+        />
+        <div className="min-w-0 flex-1">
+          <p
+            className="text-sm leading-snug text-slate-800"
+            data-testid="first-use-recognition"
           >
-            Organization setup
-          </Link>
-        ) : null}
+            <span className="font-semibold">Welcome, {firstName}.</span>{" "}
+            {role ? (
+              <>
+                {orgName}
+                <span className="text-slate-500"> · {role}</span>
+              </>
+            ) : (
+              <>{orgName}</>
+            )}
+            {signal ? (
+              <span className="mt-0.5 block text-xs text-slate-500" data-testid="first-use-org">
+                {signal}
+              </span>
+            ) : (
+              <span
+                className="mt-0.5 block text-xs text-slate-500"
+                data-testid="first-use-teammate"
+              >
+                Your AI Teammate is ready — talk, or start with what needs you.
+              </span>
+            )}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              data-testid="first-use-start-day"
+              onClick={() => complete()}
+            >
+              Start my day
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-white"
+              data-testid="first-use-talk"
+              onClick={() => {
+                complete();
+                openOrb();
+              }}
+            >
+              Talk
+            </button>
+            <button
+              type="button"
+              className="text-[11px] font-medium text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline"
+              data-testid="first-use-review-work"
+              onClick={() => complete()}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       </div>
-      <p className="text-[10px] text-slate-500">
-        This uses the same live work, people, and AI Teammate you will use every
-        day — not a demo sandbox.
-      </p>
-    </GlassPanel>
+    </div>
   );
 }
