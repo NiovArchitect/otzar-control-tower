@@ -112,9 +112,9 @@ PARTIAL — TAR/grants/escalations; graduated product ladder open.
 |----|-------|-------|
 | **N-01** Tools reconnect honesty | LIVE_VERIFIED | #180 |
 | **N-02** Meet operational | **EXTERNALLY_BLOCKED** | Operator OAuth |
-| **N-03** Docs create/append/edit | PARTIAL | |
-| **N-04** Calendar honesty | PARTIAL | |
-| **N-05** Gmail draft/sent honesty | PARTIAL | |
+| **N-03** Docs create/append/edit | LIVE_VERIFIED | create + honest append fail |
+| **N-04** Calendar honesty | LIVE_VERIFIED | final agreed; deep 6/6 |
+| **N-05** Gmail draft/sent honesty | LIVE_VERIFIED | not_wired draft; deep 6/6 |
 
 ### O — Connections / MCP
 

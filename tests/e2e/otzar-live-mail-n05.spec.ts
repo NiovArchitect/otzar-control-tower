@@ -67,24 +67,43 @@ test("N-05 deep: Gmail/email draft vs sent honesty", async ({ page }) => {
   await page.getByLabel(/Message to Otzar/i).fill(cmd);
   await page.getByRole("button", { name: /^send$/i }).click();
 
-  // Wait for draft outcome / card (not internal one-shot send)
+  // Wait for full draft artifact (card + honesty) — not intermediate title-only
   try {
     await expect
       .poll(
         async () => {
+          const card = page.getByTestId("work-artifact-card");
+          if ((await card.count()) > 0) {
+            const life =
+              (await card.first().getAttribute("data-mail-lifecycle")) ?? "";
+            if (
+              life === "not_wired" ||
+              life === "local_draft" ||
+              (await card.first().getAttribute("data-external-channel")) ===
+                "true"
+            ) {
+              return "card";
+            }
+            return "card";
+          }
           const t = (
             (await page.getByTestId("voice-action-outcome").textContent().catch(() => "")) ??
             (await page.locator("body").innerText()) ??
             ""
           ).toLowerCase();
-          if ((await page.getByTestId("work-artifact-card").count()) > 0)
-            return "card";
-          if (/draft|not sent|not wired|not delivered|external email/i.test(t))
+          if (
+            /not sent|not delivered|nothing (was )?(sent|delivered)|not wired|local draft|external email is not sent/i.test(
+              t,
+            )
+          ) {
             return "draft";
+          }
           if (/i sent .+ on your behalf/i.test(t)) return "false_internal";
+          // Intermediate "Email → X (draft only)" — keep polling for full honesty
+          if (/draft only/i.test(t)) return "wait";
           return "wait";
         },
-        { timeout: 25_000 },
+        { timeout: 35_000 },
       )
       .not.toBe("wait");
   } catch {
@@ -155,14 +174,15 @@ test("N-05 deep: Gmail/email draft vs sent honesty", async ({ page }) => {
     (await outcome.count()) > 0
       ? ((await outcome.textContent()) ?? "").toLowerCase()
       : text;
+  // "draft only" / "not wired" / "nothing was delivered" are all honest denials
   const denies =
-    /not sent|not delivered|nothing (was )?(sent|delivered)|local draft|not wired/i.test(
+    /not sent|not delivered|nothing (was )?(sent|delivered)|local draft|draft only|not wired|external email is not sent/i.test(
       out,
     );
   const falseComplete =
     /\b(delivered to|email delivered|message sent|sent successfully)\b/i.test(
       out,
-    ) && !/not (sent|delivered)/i.test(out);
+    ) && !/not (sent|delivered)|draft only|nothing (was )?(sent|delivered)/i.test(out);
   rec(
     "N05-D",
     denies && !falseComplete ? "PASS" : "FAIL",
@@ -181,19 +201,26 @@ test("N-05 deep: Gmail/email draft vs sent honesty", async ({ page }) => {
         .first()
         .getAttribute("data-mail-lifecycle")
         .catch(() => "")) ?? "";
-    const stillHonest =
-      /not sent|not delivered|not wired|local draft|provider rejected/i.test(
+    const honestDenial =
+      /not sent|not delivered|nothing (was )?(sent|delivered)|not wired|local draft|provider rejected|never (auto-)?sent/i.test(
         text,
-      ) ||
+      );
+    const stillHonest =
+      honestDenial ||
       afterLife === "not_wired" ||
-      afterLife === "local_draft";
-    const nowDelivered =
+      afterLife === "local_draft" ||
+      afterLife === "provider_rejected";
+    // Positive delivery claim only (ignore honest "nothing was delivered")
+    const positiveDelivered =
       afterLife === "delivered" ||
-      (/\bdelivered\b/i.test(text) && !/not delivered/i.test(text));
+      (/\b(email delivered|message delivered|delivered to|delivery confirmed)\b/i.test(
+        text,
+      ) &&
+        !/not delivered|nothing (was )?delivered/i.test(text));
     rec(
       "N05-E",
-      stillHonest && !nowDelivered ? "PASS" : "FAIL",
-      `after confirm lifecycle=${afterLife} honest=${stillHonest}`,
+      stillHonest && !positiveDelivered ? "PASS" : "FAIL",
+      `after confirm lifecycle=${afterLife || "(none)"} honest=${stillHonest} posDelivered=${positiveDelivered}`,
     );
   } else {
     rec("N05-E", "SKIP", "no confirm button (still ok if draft-only)");

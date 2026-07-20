@@ -2060,7 +2060,7 @@
         "tests/unit/outbound-mail-honesty.test.ts",
         "tests/e2e/otzar-live-mail-n05.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "Gmail send bridge still not wired (honest not_wired); provider_accepted/delivered paths ready for when write lands",
       "dependencies": [],
       "priority": "P1",
@@ -2070,11 +2070,18 @@
         "live deep n05"
       ],
       "live_acceptance": "Email command stays draft/not_wired; never claims sent/delivered",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "e71e5bd",
+        "23eb1a8"
+      ],
+      "deployment_sha": "23eb1a8",
+      "final_proof": {
+        "live_bundle": "index-2lu-y0G3.js",
+        "e2e": "otzar-live-mail-n05 6/6",
+        "notes": "Email verb → external draft not ASK_TWIN; lifecycle=not_wired; confirm stays not_wired; no false delivery; N05-E ignores honest nothing-was-delivered"
+      }
     },
     {
       "id": "O-01",

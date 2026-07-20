@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `683fc46` (#180) |
-| Live bundle | `index-S47h2JJ0.js` |
-| Live last-modified | 2026-07-20 N-04 LIVE 6/6 |
-| Gate status | **OPEN** — D-01 LIVE; matrix 63/0/6; transcript→actions cards=6; **OPEN** — Phase 0 P0 first-use LIVE on cb7125b; phases 1–7 incomplete |
+| CT `origin/main` | `23eb1a8` |
+| Live bundle | `index-2lu-y0G3.js` |
+| Live last-modified | 2026-07-20 N-05 LIVE 6/6 |
+| Gate status | **OPEN** — Phase 2 P1 N-05 LIVE; O-02 SCIM open; N-02 EXTERNALLY_BLOCKED; phases 3–7 incomplete |
 
 ---
 
