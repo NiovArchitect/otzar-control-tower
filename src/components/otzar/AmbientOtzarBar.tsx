@@ -62,6 +62,7 @@ import {
   usePresenceStore,
   usePresenceState,
   presenceIntensity,
+  humanPresenceState,
   type PresenceIntensity,
 } from "@/lib/stores/presence";
 import { presenceRing } from "@/lib/ambient/presence-ring";
@@ -4136,6 +4137,7 @@ export function AmbientOtzarBar(): JSX.Element {
           data-testid="ambient-otzar-bar"
           data-quiet={quiet ? "true" : "false"}
           data-presence={presenceState}
+          data-presence-human={humanPresenceState(presenceState)}
           onClick={handleOrbClick}
           onPointerDown={handleOrbPointerDown}
           onPointerMove={handleOrbPointerMove}
@@ -4191,6 +4193,7 @@ export function AmbientOtzarBar(): JSX.Element {
       aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
       data-presence={presenceState}
+      data-presence-human={humanPresenceState(presenceState)}
       data-orb-edge={orbPos?.edge ?? "right"}
       style={dockAnchorStyle}
       className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}

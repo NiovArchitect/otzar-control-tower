@@ -21,9 +21,11 @@ import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import {
   derivePresenceState,
+  humanPresenceState,
   usePresenceStore,
   FAILURE_GLOW_MS,
   type PresenceSignals,
+  type OtzarPresenceState,
 } from "@/lib/stores/presence";
 import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
 import { AmbientNotificationStack } from "@/components/otzar/AmbientNotificationStack";
@@ -133,6 +135,32 @@ describe("Phase 1251 — presence state derivation (pure)", () => {
     expect(
       derivePresenceState(signals({ lastSuccessAt: now - 100 }), now),
     ).toBe("SUCCESS");
+  });
+});
+
+describe("D-01 — human presence language (5 states)", () => {
+  it("maps machine states onto available/listening/working/blocked/complete", () => {
+    const cases: Array<[OtzarPresenceState, string]> = [
+      ["IDLE", "available"],
+      ["QUIET", "available"],
+      ["LISTENING", "listening"],
+      ["THINKING", "working"],
+      ["RECOMMENDATION", "working"],
+      ["SUCCESS", "complete"],
+      ["APPROVAL_REQUIRED", "blocked"],
+      ["BLOCKED", "blocked"],
+      ["FAILURE", "blocked"],
+    ];
+    for (const [machine, human] of cases) {
+      expect(humanPresenceState(machine)).toBe(human);
+    }
+  });
+
+  it("edge glow exposes data-presence-human", () => {
+    usePresenceStore.getState().setSignals({ listening: true });
+    render(<AmbientEdgeGlow />);
+    const glow = screen.getByTestId("ambient-edge-glow");
+    expect(glow.getAttribute("data-presence-human")).toBe("listening");
   });
 });
 

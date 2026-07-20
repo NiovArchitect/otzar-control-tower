@@ -511,14 +511,14 @@
         "tests/unit/what-changed.test.ts",
         "tests/e2e/otzar-live-what-changed-b04.spec.ts"
       ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "Live prove after deploy",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [
         "#177",
         "#180"
@@ -527,8 +527,11 @@
         "a6aefe4",
         "683fc46"
       ],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "4843a7a",
+      "final_proof": {
+        "live_bundle": "index-43OBfQiB.js",
+        "e2e": "what-changed-b04 + 10/10 regression"
+      }
     },
     {
       "id": "B-05",
@@ -849,18 +852,19 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "Phase F ambient UI",
-        "OtzarMark",
-        "AmbientOtzarBar"
+        "src/lib/stores/presence.ts humanPresenceState",
+        "AmbientEdgeGlow data-presence-human",
+        "AmbientOtzarBar data-presence-human",
+        "tests/e2e/otzar-live-presence-d01.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Full state machine not user-proven",
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Live prove data-presence-human after deploy",
       "dependencies": [],
       "priority": "P1",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "prs": [
         "#169",
         "#170"
@@ -2408,6 +2412,7 @@
     "B-01",
     "B-02",
     "B-03",
+    "B-04",
     "B-05",
     "C-01",
     "C-02",
