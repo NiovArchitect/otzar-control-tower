@@ -176,13 +176,19 @@ test("H2 ui pressure: admin Control Tower /users shows org map + reporting autho
   // pressure, admins may never find Control Tower /users hierarchy authoring.
   await page.goto("/app/collaboration", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1500);
-  const ambientHasReporting = (await page.getByTestId("reporting-card").count()) > 0;
+  // Ambient People has structure glance + admin assign (not the CT reporting-card).
+  const ambientHasReporting =
+    (await page.getByTestId("people-structure-admin").count()) > 0 ||
+    (await page.getByTestId("people-structure-admin-toggle").count()) > 0 ||
+    (await page.getByTestId("reporting-card").count()) > 0;
+  const ambientCtLink =
+    (await page.getByTestId("people-structure-open-ct-users").count()) > 0;
   console.log(
-    `[hierarchy-pressure] admin map_people=${mapCountOnUsers} person_options=${optionCount} ambient_people_has_reporting=${ambientHasReporting}`,
+    `[hierarchy-pressure] admin map_people=${mapCountOnUsers} person_options=${optionCount} ambient_people_has_reporting=${ambientHasReporting} ambient_ct_link=${ambientCtLink}`,
   );
   if (!ambientHasReporting) {
     console.log(
-      "[pressure-note] DISCOVERABILITY: ambient People nav has no reporting authoring; Control Tower /users does. Enterprise admins who stay in ambient shell cannot fix hierarchy without CT deep link.",
+      "[pressure-note] DISCOVERABILITY: ambient People has no reporting authoring; Control Tower /users does.",
     );
   }
 });

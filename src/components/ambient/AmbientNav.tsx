@@ -99,8 +99,9 @@ export function AmbientNav(): JSX.Element {
         <MoreButton className={`${railLink(false)} mt-auto`} />
       </nav>
 
-      {/* Mobile: glass bottom bar */}
+      {/* Mobile: glass bottom bar (same primary loop; testid for live smokes). */}
       <nav
+        data-testid="ambient-nav"
         aria-label="Otzar"
         className={`fixed inset-x-0 bottom-0 z-[56] flex items-center justify-around border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:hidden ${GLASS_CHROME} bg-white/80`}
       >
