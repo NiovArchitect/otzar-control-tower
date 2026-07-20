@@ -111,27 +111,21 @@ only commits that already landed on `main`.
 
 **Acceptance rule:** do not claim #175 live until HTML includes `viewport-fit=cover` and live JS contains `100dvh` + `employee-shell-header` / `project-context-pulse`.
 
-## Auto-Deploy lag model (2026-07-20)
+## Auto-Deploy lag model (2026-07-20, revised founder time)
 
-Render **auto-deploys after CI checks pass** on the watched branch (`main`). There is
-often multi-minute lag between:
-
-1. `origin/main` SHA advances  
-2. GitHub Actions `verify` completes green  
-3. Render Events starts a deploy  
-4. `app.otzar.ai` `last-modified` + bundle hash flip  
-
-**Operator / agent procedure:**
+Render **auto-deploys after CI checks pass** on `main`, but lag is often long enough
+to waste founder time. Prefer **short poll + manual deploy signal**.
 
 | Step | Action |
 |------|--------|
-| 1 | Merge PR; confirm `git rev-parse --short origin/main` |
-| 2 | Wait for main CI green (`gh run list --branch main`) |
-| 3 | Poll live fingerprints — **do not force-deploy yet** |
-| 4 | Run `bash scripts/otzar-ambient-autosmoke.sh --wait-ci` (default timeout 15m) |
-| 5 | Only if still stale after CI green + ~10–15m: reconnect GitHub or `bash scripts/otzar-render-deploy.sh` (emergency) |
+| 1 | Merge PR; note `origin/main` short SHA |
+| 2 | Wait main CI green only |
+| 3 | Poll live **~2–3 minutes** (`otzar-ambient-autosmoke.sh --wait-ci`, default 180s) |
+| 4 | If markers still missing → script exits **4** and prints **MANUAL DEPLOY RECOMMENDED** with exact commit |
+| 5 | Founder: Render → **otzar-app** → Manual Deploy → that commit → reply `deployed` |
+| 6 | Agent re-runs smokes immediately (no more long waits) |
 
-Force deploy is the exception, not the default path.
+`--long-wait` (15m) is opt-in only. `--deploy` force API trigger is emergency only.
 
 ## Sole-admin lockout recovery
 

@@ -27,7 +27,7 @@
 //     / wallet / clearance / payload internals.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   Brain,
@@ -175,6 +175,8 @@ export function Comms(): JSX.Element {
   >([]);
   const [ambientBusy, setAmbientBusy] = useState(false);
   const [ambientMessage, setAmbientMessage] = useState<string | null>(null);
+  /** When sync fails for reauth/scope, surface Tools reconnect (Meet gate). */
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   // [PROD-UX-BUGB] Durable pending follow-ups projected from FOLLOW_UP ledger
   // rows. This is the SINGLE source for the resumable send-cards — it survives
   // navigation/refresh, unlike the volatile ingest response.
@@ -198,17 +200,29 @@ export function Comms(): JSX.Element {
   const runAmbientSync = useCallback(async (): Promise<void> => {
     setAmbientBusy(true);
     setAmbientMessage(null);
+    setNeedsReconnect(false);
     const res = await api.otzar.commsAmbientSync({ max_records: 8 });
     setAmbientBusy(false);
     if (res.ok && res.data.ok) {
       setAmbientMessage(res.data.message);
       void loadPendingFollowUps();
     } else {
+      const code = res.ok === false ? res.code ?? "" : "";
       const msg =
         res.ok === false
           ? res.message ?? res.code ?? "Could not sync connected sources"
           : "Could not sync connected sources";
-      setAmbientMessage(msg);
+      // Honest Meet/Google gate — never fake a successful sync.
+      const reauth =
+        /SCOPE_REAUTH|REAUTH|RECONNECT|NEEDS_RECONNECT|OAUTH|UNAUTHORIZED|FORBIDDEN/i.test(
+          `${code} ${msg}`,
+        );
+      setNeedsReconnect(reauth);
+      setAmbientMessage(
+        reauth
+          ? "Google Meet (or calendar) needs a reconnect before Otzar can pull meetings. Open Tools to fix it — paste remains available offline."
+          : msg,
+      );
     }
   }, [loadPendingFollowUps]);
 
@@ -385,12 +399,18 @@ export function Comms(): JSX.Element {
               </ul>
             ) : null}
             {ambientMessage !== null ? (
-              <p
-                className="text-xs text-muted-foreground"
-                data-testid="comms-ambient-message"
-              >
-                {ambientMessage}
-              </p>
+              <div className="space-y-2" data-testid="comms-ambient-message">
+                <p
+                  className={`text-xs ${needsReconnect ? "text-amber-900" : "text-muted-foreground"}`}
+                >
+                  {ambientMessage}
+                </p>
+                {needsReconnect ? (
+                  <Button asChild size="sm" variant="outline" data-testid="comms-reconnect-tools">
+                    <Link to="/app/connector-health">Reconnect tools</Link>
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
           </CardContent>
         </Card>

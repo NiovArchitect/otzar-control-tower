@@ -185,14 +185,9 @@ export function Collaboration() {
         description="Who reports to whom, who you can work with, and how to ask for help — without org-wide noise."
       />
 
-      {/* First-use: reporting structure before flat roster / collab form. */}
+      {/* First-use one-shot: structure + people, then collab. Growth is secondary. */}
       <PeopleStructureGlance />
 
-      {/* Phase 1237 — Dandelion org-growth intelligence (admins). */}
-      <DandelionGrowthCard />
-
-      {/* Phase 1216 -- People directory so the operator can see WHO they can
-          collaborate with before opening the request form. */}
       <PeopleDirectory
         onRequestHelp={(id, name) => {
           setPrefill({ id, name });
@@ -237,6 +232,16 @@ export function Collaboration() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin growth suggestions — below the fold so first paint stays ADHD-safe. */}
+      <details className="rounded-lg border border-border bg-card/40 p-3" data-testid="people-growth-details">
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          Organization growth suggestions
+        </summary>
+        <div className="mt-3">
+          <DandelionGrowthCard />
+        </div>
+      </details>
     </div>
   );
 }

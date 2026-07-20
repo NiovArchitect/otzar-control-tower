@@ -153,6 +153,13 @@ export function AmbientNav(): JSX.Element {
                   key={item.to}
                   to={item.to}
                   onClick={() => setMoreOpen(false)}
+                  data-testid={
+                    item.to === "/app/connector-health"
+                      ? "more-tools"
+                      : item.to === "/app/work-projects"
+                        ? "more-projects"
+                        : undefined
+                  }
                   className="rounded-2xl border border-white/60 bg-white/50 px-3.5 py-3 text-sm text-slate-700 shadow-sm transition-all hover:bg-white/85 hover:shadow-md"
                 >
                   <span className="font-medium text-slate-900">{item.label}</span>

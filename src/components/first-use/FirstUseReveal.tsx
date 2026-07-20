@@ -79,12 +79,16 @@ export function FirstUseReveal(): JSX.Element | null {
     identity?.viewer?.org_role ||
     (admin ? "leader" : null);
 
-  // Leader first-value: people/structure. Teammate: work that needs them.
-  const primaryCta = admin
+  // Role first-value: leaders/managers → People structure; IC → Needs me.
+  const roleLower = (role ?? "").toLowerCase();
+  const managerish =
+    admin ||
+    /\b(manager|lead|director|founder|ceo|head|owner)\b/i.test(roleLower);
+  const primaryCta = managerish
     ? {
-        label: "See my org",
+        label: admin ? "See my org" : "See my people",
         to: "/app/collaboration",
-        testId: "first-use-see-org",
+        testId: admin ? "first-use-see-org" : "first-use-see-people",
       }
     : {
         label: "What needs me",
@@ -92,9 +96,11 @@ export function FirstUseReveal(): JSX.Element | null {
         testId: "first-use-needs-me",
       };
 
-  const secondaryHint = admin
+  const secondaryHint = managerish
     ? "Check who reports to whom, then talk or clear what needs you."
     : "Your AI Teammate is ready — start with what needs you, or talk.";
+
+  const roleBand = admin ? "leader" : managerish ? "manager" : "teammate";
 
   function complete(): void {
     markFirstUseComplete(email);
@@ -105,7 +111,7 @@ export function FirstUseReveal(): JSX.Element | null {
     <div
       className="mt-3 rounded-2xl border border-indigo-200/50 bg-white/55 px-3 py-2.5 backdrop-blur-sm"
       data-testid="first-use-reveal"
-      data-role={admin ? "leader" : "teammate"}
+      data-role={roleBand}
     >
       <div className="flex items-start gap-2.5">
         <Sparkles
