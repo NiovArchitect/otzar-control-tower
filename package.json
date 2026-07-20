@@ -59,7 +59,8 @@
     "test:e2e:live:k01k03": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-comms-k01-k03.spec.ts",
     "test:e2e:live:n03": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-docs-n03.spec.ts",
     "test:e2e:live:o01": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-tools-o01.spec.ts",
-    "test:e2e:live:n04": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-calendar-n04.spec.ts"
+    "test:e2e:live:n04": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-calendar-n04.spec.ts",
+    "test:e2e:live:n05": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-mail-n05.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

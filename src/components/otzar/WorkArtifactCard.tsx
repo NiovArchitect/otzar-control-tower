@@ -38,6 +38,13 @@ export interface WorkArtifact {
   proposed?: boolean;
   /** True for an external channel (Slack/email) — never auto-sent. */
   externalChannel?: boolean;
+  /** N-05 — outbound mail lifecycle (draft / accepted / delivered). */
+  mailLifecycle?:
+    | "local_draft"
+    | "not_wired"
+    | "provider_rejected"
+    | "provider_accepted"
+    | "delivered";
   /** The original spoken/typed command (shown as source). */
   sourceCommand?: string;
   /** Resolved recipient entity id — lets Confirm propose the action. */
@@ -131,6 +138,8 @@ export function WorkArtifactCard({
       data-testid="work-artifact-card"
       data-kind={artifact.kind}
       data-action-id={artifact.actionId ?? ""}
+      data-mail-lifecycle={artifact.mailLifecycle ?? ""}
+      data-external-channel={artifact.externalChannel === true ? "true" : "false"}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium text-foreground break-words">
@@ -140,6 +149,15 @@ export function WorkArtifactCard({
           {artifact.status}
         </Badge>
       </div>
+      {artifact.mailLifecycle !== undefined ? (
+        <p
+          className="text-[10px] text-muted-foreground"
+          data-testid="work-artifact-mail-lifecycle"
+          data-lifecycle={artifact.mailLifecycle}
+        >
+          Mail: {artifact.mailLifecycle.replace(/_/g, " ")}
+        </p>
+      ) : null}
       {artifact.targetLabel !== undefined ? (
         <div className="text-muted-foreground">
           To: {artifact.targetLabel}

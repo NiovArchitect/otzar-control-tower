@@ -204,6 +204,14 @@ import {
   normalizeSelectedTime,
 } from "@/lib/work-os/calendar-datetime";
 import {
+  classifyOutboundMailState,
+  isExternalMailChannel,
+  isMailSendBridgeWired,
+  outboundMailOutcomeCopy,
+  outboundMailRuntimeNote,
+  outboundMailStatusLabel,
+} from "@/lib/work-os/outbound-mail-honesty";
+import {
   extractionSourceLabel,
   type PythonRuntimeStatus,
 } from "@/lib/work-os/extraction-source";
@@ -1195,7 +1203,8 @@ export function AmbientOtzarBar(): JSX.Element {
   ): Promise<void> {
     const isSend = action.kind === "SEND_REQUIRES_APPROVAL";
     const channel = action.connector ?? "internal";
-    const external = channel === "slack" || channel === "email";
+    const external =
+      channel === "slack" || isExternalMailChannel(channel);
     const recipientName = action.targetEntity;
     const body = action.draftPayload ?? action.heard;
 
@@ -1225,14 +1234,25 @@ export function AmbientOtzarBar(): JSX.Element {
       resolveNote = "Tell me who it's for, then Confirm to propose.";
     }
 
-    const status = external
-      ? "Local draft — external send not wired"
-      : recipientEntityId !== undefined
-        ? "Draft — Confirm to propose"
-        : "Local draft — pick a recipient";
-    const runtimeNote = external
-      ? "External send (Slack/email) isn't wired yet. This stays a local draft until that bridge lands — it is never auto-sent."
-      : resolveNote;
+    // N-05 — honesty matrix for external mail / slack-as-external.
+    const mailState = external
+      ? classifyOutboundMailState({
+          channel: isExternalMailChannel(channel) ? channel : "email",
+          sendBridgeWired: isMailSendBridgeWired(
+            isExternalMailChannel(channel) ? channel : "email",
+          ),
+        })
+      : null;
+    const status =
+      mailState !== null
+        ? outboundMailStatusLabel(mailState)
+        : recipientEntityId !== undefined
+          ? "Draft — Confirm to propose"
+          : "Local draft — pick a recipient";
+    const runtimeNote =
+      mailState !== null
+        ? outboundMailRuntimeNote(mailState)
+        : resolveNote;
 
     setPendingArtifact({
       kind: action.kind,
@@ -1243,6 +1263,7 @@ export function AmbientOtzarBar(): JSX.Element {
       status,
       ...(recipientEntityId !== undefined ? { recipientEntityId } : {}),
       externalChannel: external,
+      ...(mailState !== null ? { mailLifecycle: mailState } : {}),
       sourceCommand: action.heard,
       // Open routes to the Work Comms DRAFT surface — it never confirms
       // or proposes. Once proposed, Confirm rewrites the route to the
@@ -1251,11 +1272,12 @@ export function AmbientOtzarBar(): JSX.Element {
       ...(runtimeNote !== undefined ? { runtimeNote } : {}),
     });
 
-    const msg = external
-      ? "Draft created. External send isn't wired — nothing is sent. Edit, then Confirm to keep it for review."
-      : recipientEntityId !== undefined
-        ? `Draft to ${label} created. Review it, then Confirm to propose — nothing is sent yet.`
-        : "Draft created. Pick the recipient, then Confirm to propose — nothing is sent.";
+    const msg =
+      mailState !== null
+        ? outboundMailOutcomeCopy(mailState)
+        : recipientEntityId !== undefined
+          ? `Draft to ${label} created. Review it, then Confirm to propose — nothing is sent yet.`
+          : "Draft created. Pick the recipient, then Confirm to propose — nothing is sent.";
     setActionResult(msg);
     setActionStatus(status);
     appendConversationEntry({ role: "action", text: msg, at, kind: action.kind, status });
@@ -2666,12 +2688,20 @@ export function AmbientOtzarBar(): JSX.Element {
       return;
     }
     if (a.externalChannel === true) {
+      // N-05 — never upgrade external mail to "sent/delivered" on Confirm.
+      const mailState = classifyOutboundMailState({
+        channel: isExternalMailChannel(a.channel ?? "email")
+          ? (a.channel ?? "email")
+          : "email",
+        sendBridgeWired: isMailSendBridgeWired(a.channel ?? "email"),
+        localDraftConfirmed: true,
+      });
       setPendingArtifact({
         ...a,
         body,
-        status: "Local draft — external send not wired",
-        runtimeNote:
-          "Slack/email send isn't wired yet, so this can't be proposed for external send. Saved as a local draft.",
+        status: outboundMailStatusLabel(mailState),
+        mailLifecycle: mailState,
+        runtimeNote: outboundMailRuntimeNote(mailState),
       });
       return;
     }

@@ -2053,15 +2053,24 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Honesty matrix",
+      "implementation_refs": [
+        "src/lib/work-os/outbound-mail-honesty.ts",
+        "src/components/otzar/AmbientOtzarBar.tsx executeMessageAction",
+        "src/components/otzar/WorkArtifactCard.tsx mailLifecycle",
+        "tests/unit/outbound-mail-honesty.test.ts",
+        "tests/e2e/otzar-live-mail-n05.spec.ts"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "Gmail send bridge still not wired (honest not_wired); provider_accepted/delivered paths ready for when write lands",
       "dependencies": [],
       "priority": "P1",
       "phase": 2,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "test_requirements": [
+        "unit honesty matrix",
+        "live deep n05"
+      ],
+      "live_acceptance": "Email command stays draft/not_wired; never claims sent/delivered",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
