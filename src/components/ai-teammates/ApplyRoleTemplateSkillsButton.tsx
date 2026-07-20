@@ -36,6 +36,12 @@ export function ApplyRoleTemplateSkillsButton({
   const [notice, setNotice] = useState<string | null>(null);
   const autoAttempted = useRef(false);
 
+  // Lazy catalog: only fetch when applying template skills (empty twin or
+  // explicit apply). Do NOT N+1 on every drawer open when skills already
+  // hydrated on GET /org/ai-teammates/:id (12B.3 single-fetch anchor).
+  const catalogNeeded =
+    autoApply || assignedPackageIds.length === 0;
+
   const catalogQuery = useQuery({
     queryKey: ["org", "skill-packages"],
     queryFn: async () => {
@@ -43,6 +49,7 @@ export function ApplyRoleTemplateSkillsButton({
       if (!result.ok) throw new Error(result.message);
       return result.data.items;
     },
+    enabled: catalogNeeded,
   });
 
   const catalog = useMemo(
@@ -114,6 +121,49 @@ export function ApplyRoleTemplateSkillsButton({
     autoAttempted.current = true;
     void apply();
   }, [autoApply, apply, busy, catalog.length, catalogQuery.isLoading, needs]);
+
+  // Skills already present — no catalog fetch (preserve single-fetch drawer).
+  if (!catalogNeeded && assignedPackageIds.length > 0) {
+    return (
+      <div
+        className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3"
+        data-testid="role-template-skills-panel"
+        data-role-template={roleTemplate ?? ""}
+        data-skills-needed="false"
+        data-to-assign="0"
+      >
+        <p className="text-sm font-medium">
+          Skills from role template · {templateLabel}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Templated AI Teammates carry skills so they can act on the member&apos;s
+          behalf under policy — not as an empty chatbot.
+        </p>
+        <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+          {intents.map((i) => (
+            <li key={i.label}>{i.label}</li>
+          ))}
+        </ul>
+        <p
+          className="text-xs text-muted-foreground"
+          data-testid="role-template-skills-summary"
+        >
+          Role template skills already assigned ({assignedPackageIds.length}{" "}
+          package{assignedPackageIds.length === 1 ? "" : "s"}).
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled
+          data-testid="apply-role-template-skills"
+        >
+          <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          Role template skills applied
+        </Button>
+      </div>
+    );
+  }
 
   if (catalogQuery.isLoading) {
     return (
