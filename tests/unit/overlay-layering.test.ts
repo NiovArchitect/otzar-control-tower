@@ -31,7 +31,15 @@ function read(path: string): string {
 describe("[OVERLAY-LAYERING] employee shell stacking contract", () => {
   it("the employee header chrome is elevated above the content plane (relative z-40)", () => {
     const layout = read("src/components/employee/EmployeeLayout.tsx");
-    const header = layout.match(/<header className="([^"]*)"/);
+    // className may be single-line or split; anchor on employee-shell-header.
+    const header =
+      layout.match(
+        /className="([^"]*)"[^>]*data-testid="employee-shell-header"/,
+      ) ??
+      layout.match(
+        /data-testid="employee-shell-header"[^>]*className="([^"]*)"/,
+      ) ??
+      layout.match(/<header className="([^"]*)"/);
     expect(header, "EmployeeLayout must render a <header>").not.toBeNull();
     const classes = header![1] ?? "";
     // The blur creates a stacking context; without an explicit z the

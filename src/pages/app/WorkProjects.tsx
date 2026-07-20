@@ -1,13 +1,11 @@
 // FILE: WorkProjects.tsx
-// PURPOSE: Employee Work OS project surface — see which projects you are on,
-//          create one, manage members with human names (not entity UUIDs).
-//          Projects are the coherence anchor for Twin / Dandelion structure.
-//          [ACCEPTANCE] Selecting a project opens a composed context: people,
-//          open work, meetings, and next steps in one place (not a tour of
-//          Documents / Calendar / Obligations pages).
+// PURPOSE: Projects are Otzar's mission anchors — who, what work, blockers,
+//          and AI Teammate activity for an organizational goal. Opening
+//          context must land in-viewport with a clear project heart (not an
+//          empty panel below the fold). Users do not live here.
 // CONNECTS TO: api.otzar.workProjects.*, api.workOs.myWork, AmbientWorkSurface.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
@@ -46,6 +44,7 @@ function labelRole(r: WorkProjectMemberRole): string {
 export function WorkProjects() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const contextRef = useRef<HTMLDivElement | null>(null);
 
   const list = useQuery({
     queryKey: ["otzar", "work-projects", "active"],
@@ -62,38 +61,85 @@ export function WorkProjects() {
   }
 
   const projects =
-    list.data?.ok === true ? list.data.data.projects : ([] as WorkProjectSafeView[]);
+    list.data?.ok === true
+      ? list.data.data.projects
+      : ([] as WorkProjectSafeView[]);
+
+  const selected =
+    selectedId === null
+      ? null
+      : (projects.find((p) => p.project_id === selectedId) ?? null);
+
+  // Smoke-proven: panel used to mount below the fold with no scroll — felt
+  // like "nothing opened". Always bring context into the shell viewport.
+  useEffect(() => {
+    if (selectedId === null || contextRef.current === null) return;
+    const el = contextRef.current;
+    // Prefer scrolling the employee shell main (not the window).
+    const main = el.closest("main");
+    requestAnimationFrame(() => {
+      if (main instanceof HTMLElement) {
+        const top =
+          el.getBoundingClientRect().top -
+          main.getBoundingClientRect().top +
+          main.scrollTop -
+          12;
+        main.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      } else {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }, [selectedId]);
 
   return (
     <div
-      className="mx-auto w-full max-w-3xl space-y-6 pb-24"
+      className="mx-auto w-full max-w-3xl space-y-4 pb-24"
       data-testid="work-projects-page"
     >
       <PageHeader
         eyebrow="Missions"
         title="Projects"
-        description="Projects group people and work so Otzar and your AI Teammate know what belongs together. Placement is ambient — nobody lives here."
+        description="A project is the mission Otzar organizes around — people, work, and AI Teammate effort for one organizational goal. Open context to see that heart in one place."
       />
+
+      {/* Context first when open — never buried under create/list scroll. */}
+      {selected !== null ? (
+        <div
+          ref={contextRef}
+          className="scroll-mt-3"
+          data-testid="project-context-anchor"
+        >
+          <ProjectContextPanel
+            project={selected}
+            onClose={() => setSelectedId(null)}
+          />
+        </div>
+      ) : null}
 
       <ManagerAmbientPlacement onPlaced={invalidate} />
 
-      <CreateProjectForm onCreated={invalidate} />
+      {selected === null ? <CreateProjectForm onCreated={invalidate} /> : null}
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Projects you are on</CardTitle>
+          <CardTitle className="text-base">
+            {selected !== null ? "Switch project" : "Your projects"}
+          </CardTitle>
           <p className="text-xs text-muted-foreground">
             {list.isLoading
               ? "Loading…"
               : projects.length === 0
                 ? "None yet"
-                : `${projects.length} active project${projects.length === 1 ? "" : "s"}`}
+                : `${projects.length} active · tap Open to see the mission heart`}
           </p>
         </CardHeader>
         <CardContent>
           {list.isLoading && <Skeleton className="h-24 w-full" />}
           {list.data && list.data.ok === false && (
-            <p className="text-sm text-destructive" data-testid="projects-load-error">
+            <p
+              className="text-sm text-destructive"
+              data-testid="projects-load-error"
+            >
               Couldn&apos;t load projects right now.
             </p>
           )}
@@ -110,22 +156,12 @@ export function WorkProjects() {
         </CardContent>
       </Card>
 
-      {selectedId && (
-        <ProjectContextPanel
-          project={
-            projects.find((p) => p.project_id === selectedId) ?? {
-              project_id: selectedId,
-              name: "Project",
-              state: "ACTIVE",
-              created_at: new Date(0).toISOString(),
-              archivable: false,
-              my_role: null,
-              member_count: 0,
-            }
-          }
-          onClose={() => setSelectedId(null)}
-        />
-      )}
+      {selected === null ? (
+        <p className="text-center text-[11px] text-muted-foreground">
+          Otzar uses project membership to keep work, meetings, and AI Teammate
+          activity on the right mission — not a generic chat.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -409,7 +445,11 @@ function ProjectRow({
   );
 }
 
-/** Composed project context — people + open work + meetings in one panel. */
+/**
+ * Project heart — one-shot mission view for YC + ADHD:
+ * who owns it, who is on it, open work, blockers, AI activity.
+ * Mounted at top of page and scrolled into the shell main viewport on open.
+ */
 function ProjectContextPanel({
   project,
   onClose,
@@ -513,84 +553,95 @@ function ProjectContextPanel({
 
   const nextStep =
     dgi.data?.ok === true ? dgi.data.data.coherence?.next_best_step : null;
-  const nextLabel = nextStep
-    ? `${nextStep.safe_title}${nextStep.reason ? ` — ${nextStep.reason}` : ""}`
-    : "";
+
+  const peopleCount =
+    typeof project.member_count === "number"
+      ? project.member_count
+      : memberRows.length;
 
   return (
-    <Card data-testid="project-context-panel" data-project-id={projectId}>
-      <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-500/80">
-            Project context
-          </p>
-          <CardTitle className="text-lg" data-testid="project-context-name">
-            {project.name}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground" data-testid="project-context-summary">
-            {project.my_role ? `${labelRole(project.my_role)} · ` : ""}
-            {typeof project.member_count === "number"
-              ? `${project.member_count} people · `
-              : ""}
-            {owner?.display_name
-              ? `Owner ${owner.display_name}`
-              : "Owner not listed"}
-            {" · "}
-            work, meetings, and decisions that belong here — without touring
-            separate backend pages.
-          </p>
+    <Card
+      className="border-indigo-200/50 shadow-sm"
+      data-testid="project-context-panel"
+      data-project-id={projectId}
+    >
+      <CardHeader className="space-y-3 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-500/80">
+              Mission
+            </p>
+            <CardTitle className="text-xl" data-testid="project-context-name">
+              {project.name}
+            </CardTitle>
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="project-context-summary"
+            >
+              Otzar organizes people, work, and AI Teammate effort around this
+              goal so the organization moves one mission forward — not scattered
+              tasks.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            data-testid="project-context-close"
+          >
+            Close
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={onClose}>
-          Close
-        </Button>
+
+        {/* Pulse — one glance at the project heart */}
+        <div
+          className="flex flex-wrap gap-2"
+          data-testid="project-context-pulse"
+        >
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+            {project.my_role ? labelRole(project.my_role) : "Member"}
+          </span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+            {peopleCount} people
+          </span>
+          <span
+            className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700"
+            data-testid="project-work-count"
+          >
+            {myWork.isLoading ? "…" : `${openWork.length} open`}
+          </span>
+          <span
+            className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700"
+            data-testid="project-blocker-count"
+          >
+            {myWork.isLoading ? "…" : `${blockers.length} blocked`}
+          </span>
+          <span
+            className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700"
+            data-testid="project-doc-count"
+          >
+            {myWork.isLoading ? "…" : `${documents.length} docs`}
+          </span>
+          <span
+            className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700"
+            data-testid="project-meeting-count"
+          >
+            {myWork.isLoading ? "…" : `${meetings.length} meetings`}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {owner?.display_name
+            ? `Owner ${owner.display_name}`
+            : "Owner not listed yet"}
+          {project.my_role ? ` · you are ${labelRole(project.my_role)}` : ""}
+        </p>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* People */}
-        <section data-testid="project-context-people" className="space-y-3">
-          <h3 className="text-sm font-medium text-foreground">People</h3>
-          <p className="text-xs text-muted-foreground">
-            Project roles are not the same as org hierarchy or tool access.
-          </p>
-          <form onSubmit={submit} className="space-y-3">
-            <select
-              data-testid="add-member-id"
-              value={entityId}
-              onChange={(e) => setEntityId(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Select a teammate…</option>
-              {colleagueOptions.map((c) => (
-                <option key={c.entity_id} value={c.entity_id}>
-                  {c.display_name}
-                </option>
-              ))}
-            </select>
-            <select
-              data-testid="add-member-role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as WorkProjectMemberRole)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {labelRole(r)}
-                </option>
-              ))}
-            </select>
-            {error && (
-              <p className="text-sm text-destructive" data-testid="add-member-error">
-                {error}
-              </p>
-            )}
-            <Button
-              type="submit"
-              disabled={add.isPending}
-              data-testid="add-member-submit"
-            >
-              {add.isPending ? "Adding…" : "Add to project"}
-            </Button>
-          </form>
-          {members.isLoading && <Skeleton className="h-16 w-full" />}
+
+      <CardContent className="space-y-4">
+        {/* People — compact */}
+        <section data-testid="project-context-people" className="space-y-2">
+          <h3 className="text-sm font-medium text-foreground">Who</h3>
+          {members.isLoading && <Skeleton className="h-12 w-full" />}
           {members.data && members.data.ok && (
             <div data-testid="project-members-panel">
               <MembersList members={members.data.data.members} />
@@ -599,226 +650,207 @@ function ProjectContextPanel({
           {members.data && !members.data.ok && (
             <p className="text-sm text-destructive">{members.data.message}</p>
           )}
+          <details className="text-xs">
+            <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">
+              Add teammate
+            </summary>
+            <form onSubmit={submit} className="mt-2 space-y-2">
+              <select
+                data-testid="add-member-id"
+                value={entityId}
+                onChange={(e) => setEntityId(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Select a teammate…</option>
+                {colleagueOptions.map((c) => (
+                  <option key={c.entity_id} value={c.entity_id}>
+                    {c.display_name}
+                  </option>
+                ))}
+              </select>
+              <select
+                data-testid="add-member-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as WorkProjectMemberRole)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {labelRole(r)}
+                  </option>
+                ))}
+              </select>
+              {error && (
+                <p className="text-sm text-destructive" data-testid="add-member-error">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                size="sm"
+                disabled={add.isPending}
+                data-testid="add-member-submit"
+              >
+                {add.isPending ? "Adding…" : "Add to project"}
+              </Button>
+            </form>
+          </details>
         </section>
 
-        {/* Open work stamped to this project */}
-        <section data-testid="project-context-work" className="space-y-2 border-t border-border pt-4">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-foreground">
-              Open work on this project
-            </h3>
-            <span
-              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
-              data-testid="project-work-count"
-            >
-              {myWork.isLoading ? "…" : openWork.length}
-            </span>
-          </div>
+        {/* Open work */}
+        <section
+          data-testid="project-context-work"
+          className="space-y-2 border-t border-border pt-3"
+        >
+          <h3 className="text-sm font-medium text-foreground">Open work</h3>
           {myWork.isLoading ? (
-            <Skeleton className="h-20 w-full" />
-          ) : myWork.data && !myWork.data.ok ? (
-            <p className="text-sm text-muted-foreground">
-              Couldn&apos;t load project work right now.
-            </p>
+            <Skeleton className="h-16 w-full" />
           ) : openWork.length === 0 ? (
             <p
               className="text-sm text-muted-foreground"
               data-testid="project-work-empty"
             >
-              No open work is stamped to this project yet. Commitments from
-              communications land here when Otzar links them.
+              No work is stamped to this project yet. When Otzar links
+              commitments from communications or your AI Teammate, they appear
+              here so the mission stays coherent.
             </p>
           ) : (
             <ul className="space-y-2" data-testid="project-work-list">
-              {openWork.map((entry) => (
+              {openWork.slice(0, 5).map((entry) => (
                 <li key={entry.ledger_entry_id}>
                   <WorkLedgerItem entry={entry} />
                 </li>
               ))}
             </ul>
           )}
-          <p className="text-xs text-muted-foreground">
-            Decisions waiting on you also appear under{" "}
-            <Link
-              to="/app/action-center"
-              className="underline underline-offset-2"
-            >
+          <p className="text-[11px] text-muted-foreground">
+            Personal decisions also surface under{" "}
+            <Link to="/app/action-center" className="underline underline-offset-2">
               Needs me
             </Link>
             .
           </p>
         </section>
 
-        {/* Documents (provider-linked twin work) */}
-        <section
-          data-testid="project-context-documents"
-          className="space-y-2 border-t border-border pt-4"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-foreground">Documents</h3>
-            <span
-              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
-              data-testid="project-doc-count"
-            >
-              {myWork.isLoading ? "…" : documents.length}
-            </span>
+        {/* Blockers + AI — compact side by side on wide */}
+        <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
+          <section data-testid="project-context-blockers" className="space-y-1.5">
+            <h3 className="text-sm font-medium text-foreground">Blockers</h3>
+            {blockers.length === 0 ? (
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid="project-blockers-empty"
+              >
+                Nothing blocked.
+              </p>
+            ) : (
+              <ul className="space-y-1 text-sm" data-testid="project-blockers-list">
+                {blockers.slice(0, 4).map((b) => (
+                  <li key={b.ledger_entry_id} data-testid="project-blocker-row">
+                    <span className="font-medium">{b.title || "Blocked work"}</span>
+                    <span className="ml-1 text-xs text-amber-700">
+                      {b.blind_spot_reason ?? b.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section data-testid="project-context-twin" className="space-y-1.5">
+            <h3 className="text-sm font-medium text-foreground">AI Teammate</h3>
+            {twinish.length === 0 ? (
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid="project-twin-empty"
+              >
+                No AI Teammate work active on this mission right now.
+              </p>
+            ) : (
+              <ul className="space-y-1 text-sm" data-testid="project-twin-list">
+                {twinish.slice(0, 4).map((e) => (
+                  <li key={e.ledger_entry_id}>
+                    <span className="font-medium">{e.title || "Work"}</span>
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      {e.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        {/* Docs + meetings collapsed if empty, compact if present */}
+        {(documents.length > 0 || meetings.length > 0) && (
+          <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
+            {documents.length > 0 ? (
+              <section data-testid="project-context-documents" className="space-y-1.5">
+                <h3 className="text-sm font-medium">Documents</h3>
+                <ul className="space-y-1 text-sm" data-testid="project-docs-list">
+                  {documents.slice(0, 3).map((d) => (
+                    <li key={d.ledger_entry_id} data-testid="project-doc-row">
+                      {d.twin_work?.web_view_link ? (
+                        <a
+                          href={d.twin_work.web_view_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                          data-testid="project-doc-link"
+                        >
+                          {d.title || "Document"}
+                        </a>
+                      ) : (
+                        <span className="font-medium">{d.title || "Document"}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
+              <section data-testid="project-context-documents" className="hidden" />
+            )}
+            {meetings.length > 0 ? (
+              <section data-testid="project-context-meetings" className="space-y-1.5">
+                <h3 className="text-sm font-medium">Meetings</h3>
+                <ul className="space-y-1 text-sm" data-testid="project-meetings-list">
+                  {meetings.slice(0, 3).map((m) => (
+                    <li key={m.ledger_entry_id} data-testid="project-meeting-row">
+                      <span className="font-medium">{m.title || "Meeting"}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
+              <section data-testid="project-context-meetings" className="hidden" />
+            )}
           </div>
-          {documents.length === 0 ? (
+        )}
+        {documents.length === 0 && meetings.length === 0 ? (
+          <>
+            <section data-testid="project-context-documents" className="hidden" />
+            <section data-testid="project-context-meetings" className="hidden" />
             <p
-              className="text-sm text-muted-foreground"
+              className="text-[11px] text-muted-foreground"
               data-testid="project-docs-empty"
             >
-              No project documents claimed yet. When Otzar prepares a brief, it
-              appears here with a link to the real Google Doc.
+              Docs and meetings appear when Otzar links them to this mission.
             </p>
-          ) : (
-            <ul className="space-y-2 text-sm" data-testid="project-docs-list">
-              {documents.map((d) => {
-                const link = d.twin_work?.web_view_link;
-                return (
-                  <li
-                    key={d.ledger_entry_id}
-                    className="rounded-md border border-border px-3 py-2"
-                    data-testid="project-doc-row"
-                  >
-                    <span className="font-medium">{d.title || "Document"}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {d.twin_work?.state ?? d.status}
-                      {d.twin_work?.edit_detected
-                        ? " · changed after claim"
-                        : ""}
-                    </span>
-                    {link ? (
-                      <a
-                        href={link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-0.5 block text-xs text-indigo-600 underline underline-offset-2"
-                        data-testid="project-doc-link"
-                      >
-                        Open in Google Docs
-                      </a>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+            <p className="hidden" data-testid="project-meetings-empty" />
+          </>
+        ) : null}
 
-        {/* Meetings */}
-        <section data-testid="project-context-meetings" className="space-y-2 border-t border-border pt-4">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-foreground">Meetings</h3>
-            <span
-              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
-              data-testid="project-meeting-count"
-            >
-              {myWork.isLoading ? "…" : meetings.length}
-            </span>
-          </div>
-          {meetings.length === 0 ? (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="project-meetings-empty"
-            >
-              No meetings linked to this project in your work yet.
-            </p>
-          ) : (
-            <ul className="space-y-2 text-sm" data-testid="project-meetings-list">
-              {meetings.map((m) => (
-                <li
-                  key={m.ledger_entry_id}
-                  className="rounded-md border border-border px-3 py-2"
-                  data-testid="project-meeting-row"
-                >
-                  <span className="font-medium">{m.title || "Meeting"}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {m.status === "EXECUTED"
-                      ? "Scheduled"
-                      : m.status === "CANCELLED"
-                        ? "Cancelled"
-                        : m.status}
-                  </span>
-                  {m.scheduled_meeting?.provider === "google_calendar_event" ? (
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      On Google Calendar
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* Blockers */}
-        <section
-          data-testid="project-context-blockers"
-          className="space-y-2 border-t border-border pt-4"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-foreground">Blockers</h3>
-            <span
-              className="rounded-full bg-muted px-2 text-xs text-muted-foreground"
-              data-testid="project-blocker-count"
-            >
-              {myWork.isLoading ? "…" : blockers.length}
-            </span>
-          </div>
-          {blockers.length === 0 ? (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="project-blockers-empty"
-            >
-              Nothing blocked on this project right now.
-            </p>
-          ) : (
-            <ul className="space-y-1 text-sm" data-testid="project-blockers-list">
-              {blockers.map((b) => (
-                <li key={b.ledger_entry_id} data-testid="project-blocker-row">
-                  <span className="font-medium">{b.title || "Blocked work"}</span>
-                  <span className="ml-2 text-xs text-amber-700">
-                    {b.blind_spot_reason ?? b.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* AI Teammate activity on project work */}
-        <section data-testid="project-context-twin" className="space-y-2 border-t border-border pt-4">
-          <h3 className="text-sm font-medium text-foreground">AI Teammate activity</h3>
-          {twinish.length === 0 ? (
-            <p className="text-sm text-muted-foreground" data-testid="project-twin-empty">
-              No AI Teammate-owned work is active on this project right now.
-            </p>
-          ) : (
-            <ul className="space-y-1 text-sm" data-testid="project-twin-list">
-              {twinish.slice(0, 5).map((e) => (
-                <li key={e.ledger_entry_id}>
-                  <span className="font-medium">{e.title || "Work item"}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {e.status}
-                    {e.owner_display_name ? ` · ${e.owner_display_name}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* Org next step (honest: may be broader than this project) */}
-        {nextLabel.length > 0 ? (
+        {nextStep && nextStep.kind !== "IDLE_HEALTHY" ? (
           <section
             data-testid="project-context-next"
-            className="space-y-1 border-t border-border pt-4"
+            className="space-y-1 rounded-xl border border-violet-200/60 bg-violet-50/40 px-3 py-2.5"
           >
-            <h3 className="text-sm font-medium text-foreground">Next best step</h3>
-            <p className="text-sm text-muted-foreground">{nextLabel}</p>
+            <h3 className="text-sm font-medium text-foreground">Suggested next</h3>
+            <p className="text-sm text-slate-700">
+              {nextStep.safe_title}
+              {nextStep.reason ? ` — ${nextStep.reason}` : ""}
+            </p>
             <p className="text-[11px] text-muted-foreground">
-              Suggested from your organization posture — confirm it applies to
-              this project before acting.
+              From live organization posture — confirm it applies to this mission.
             </p>
           </section>
         ) : null}
@@ -826,6 +858,7 @@ function ProjectContextPanel({
     </Card>
   );
 }
+
 
 function MembersList({ members }: { members: WorkProjectMemberSafeView[] }) {
   if (members.length === 0) {
