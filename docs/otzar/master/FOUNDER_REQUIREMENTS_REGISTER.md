@@ -94,7 +94,7 @@ PARTIAL / DISCOVERED — presence, voice, 3D, permissioned window context (D-01�
 | ID | Proof | Notes |
 |----|-------|-------|
 | **I-01** Portable personal core UI | LIVE_VERIFIED | Memory PortableCoreCard: doctrine, portable vs org-bound, export-not-shipped honesty; deep with H-02 |
-| **I-02** Multi-org memory isolation | IMPLEMENTED | MultiOrgMemoryIsolationCard + isolation math; LIVE deep pending deploy; continuous second-tenant residual |
+| **I-02** Multi-org memory isolation | LIVE_VERIFIED | Complex deep 10/10 on `index-BbOS73Ky.js` — doctrine+4 rules; org-scoped bag; export honesty; client clear 4 buckets; admin dual; continuous second-tenant residual |
 
 ### J — Project coherence
 
