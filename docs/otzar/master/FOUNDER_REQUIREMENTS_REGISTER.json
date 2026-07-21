@@ -1072,21 +1072,30 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "dandelion org growth card",
-        "organization-seeding"
+        "src/lib/work-os/dandelion-proposal-classes.ts",
+        "src/components/otzar/DandelionProposalClassMatrix.tsx",
+        "src/pages/OrganizationSeeding.tsx",
+        "tests/unit/dandelion-proposal-classes.test.ts",
+        "tests/e2e/otzar-live-dandelion-classes-e01.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Not all proposal classes source-driven continuous",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "teams/externals may be empty when no open signals \u2014 not a defect",
       "dependencies": [],
       "priority": "P1",
       "phase": 3,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Dandelion proposal class matrix multi-class continuous on live",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "881a32c"
+      ],
+      "deployment_sha": "881a32c",
+      "final_proof": {
+        "live_bundle": "index-B7T6sByK.js",
+        "e2e": "otzar-live-dandelion-classes-e01 10/10",
+        "notes": "7-class matrix; multi-class people,roles,managers,projects,tools; 66 seeds; hold; employee isolation"
+      }
     },
     {
       "id": "E-02",

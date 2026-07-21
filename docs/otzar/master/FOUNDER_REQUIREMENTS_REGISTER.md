@@ -59,7 +59,11 @@ PARTIAL / DISCOVERED — presence, voice, 3D, permissioned window context (D-01�
 
 ### E — Dandelion
 
-PARTIAL — growth card + seeding; full source-driven proposal classes open (E-01–E-03).
+| ID | Proof | Notes |
+|----|-------|-------|
+| **E-01** Multi-class proposals | LIVE_VERIFIED | Complex deep 10/10 on `index-B7T6sByK.js` — 7-class matrix; 5 present (people/roles/managers/projects/tools); 66 seeds; hold; employee isolated |
+| **E-02** Proposal honesty | LIVE_VERIFIED | source/confidence/alternatives; admin confirm |
+| **E-03** Participation ≠ authority | PARTIAL | person-type taxonomy not fully productized |
 
 ### F — Hierarchy
 
