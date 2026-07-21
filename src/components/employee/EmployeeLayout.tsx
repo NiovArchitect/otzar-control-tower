@@ -15,6 +15,7 @@ import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
 import { AmbientNotificationStack } from "@/components/otzar/AmbientNotificationStack";
 import { NotificationBell } from "@/components/otzar/NotificationBell";
 import { OrgContextBadge } from "@/components/otzar/OrgContextBadge";
+import { FirstUseReveal } from "@/components/first-use/FirstUseReveal";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { api } from "@/lib/api";
@@ -118,6 +119,8 @@ export function EmployeeLayout() {
       <FlowTraceOverlay />
       <AmbientNotificationStack />
       <AmbientOtzarBar />
+      {/* Persistent first-use guide: survives route changes (not Home-only). */}
+      <FirstUseReveal />
 
       <NavigationGuard />
     </div>

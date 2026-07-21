@@ -488,19 +488,20 @@ export function UsersPage() {
         })()}
       />
 
-      {/* R-01 — progressive enterprise pressure 25→250→2500 + repair loop */}
-      <EnterprisePressureCard
-        variant="admin"
-        peopleCount={(allPeople.data ?? []).length}
-      />
-
-      {/* R-03 — internal synthetic scale (no YC/Google credentials required) */}
-      <SyntheticScaleHarnessCard
-        livePeopleCount={(allPeople.data ?? []).length}
-      />
-
-      {/* R-02 — every discovered defect becomes regression coverage */}
-      <DefectRegressionCard variant="admin" />
+      {/* Engineering pressure/scale harness cards are internal only.
+          Never compete with admin people work on the Users surface. */}
+      {import.meta.env.VITE_SHOW_ENGINEERING_DIAGNOSTICS === "true" ? (
+        <>
+          <EnterprisePressureCard
+            variant="admin"
+            peopleCount={(allPeople.data ?? []).length}
+          />
+          <SyntheticScaleHarnessCard
+            livePeopleCount={(allPeople.data ?? []).length}
+          />
+          <DefectRegressionCard variant="admin" />
+        </>
+      ) : null}
 
       {/* F-02 — hierarchy editor: stage, bulk confirm, undo, keyboard + drag.
           F-04 — copy states hierarchy ≠ access/TAR. Server assign still audited.

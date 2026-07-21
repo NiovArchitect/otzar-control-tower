@@ -452,7 +452,7 @@ function CreateCollaborationForm({
 
           <div className="space-y-1" data-testid="collab-target-mode">
             <span className="text-xs font-medium text-muted-foreground">
-              Route to (L-01 envelope)
+              Who should receive this request?
             </span>
             <div className="flex flex-wrap gap-2">
               <button
@@ -484,8 +484,8 @@ function CreateCollaborationForm({
             </div>
             {targetMode === "ai_teammate" ? (
               <p className="text-[11px] text-muted-foreground" data-testid="collab-ai-target-hint">
-                Twin-targeted requests use the AI↔AI envelope — policy, approval,
-                and audit apply; never silent.
+                Requests to an AI Teammate still need policy, approval, and audit.
+                Nothing goes out silently.
               </p>
             ) : null}
           </div>
@@ -670,7 +670,7 @@ function CollaborationRow({
         <Badge variant="outline">{labelRequest(item.request_type)}</Badge>
         {aiToAi ? (
           <Badge variant="outline" data-testid="collab-ai-to-ai-badge">
-            AI Teammate envelope
+            AI Teammate request
           </Badge>
         ) : null}
         {item.blocked_reason && (
@@ -684,7 +684,7 @@ function CollaborationRow({
         className="mt-1 text-[11px] text-muted-foreground"
         data-testid="collab-envelope-status"
       >
-        {envelope.reason_label} · audited
+        {envelope.reason_label}. Recorded for your organization.
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
         Created {formatRelativeTime(item.created_at)}

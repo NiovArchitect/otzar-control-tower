@@ -1,10 +1,10 @@
 // FILE: walkthrough.ts
-// PURPOSE: A-04/A-08 — versioned, role-aware first-use walkthrough plan.
-//          A-08 v2: every role includes org-state pointer, provider honesty,
-//          and one real AI action (≤3 steps). Dual completion local+server.
-// CONNECTS TO: FirstUseReveal, correctionMemory API, FOUNDER A-04/A-08.
+// PURPOSE: Role-aware first-use walkthrough plan (v3).
+//          Persistent, route-aware steps. Plain language only.
+//          No long dashes. No internal engineering terms.
+// CONNECTS TO: FirstUseReveal, correctionMemory API.
 
-export const WALKTHROUGH_VERSION = "v2" as const;
+export const WALKTHROUGH_VERSION = "v3" as const;
 
 export type WalkthroughRole =
   | "administrator"
@@ -17,11 +17,16 @@ export interface WalkthroughStep {
   id: string;
   title: string;
   body: string;
-  /** Real product path — never a dead route. */
+  /** Why this matters (one short line). */
+  why: string;
+  /** What to do next. */
+  doNext: string;
+  /** Real product path. */
   ctaLabel: string;
   ctaTo: string;
   testId: string;
-  /** A-08 facet tags for proof inventory. */
+  /** data-walkthrough-target selectors that should exist on the destination. */
+  targetContract: string[];
   facets?: Array<"org_state" | "ai_action" | "provider_honesty">;
 }
 
@@ -42,29 +47,34 @@ export function resolveWalkthroughRole(input: {
   return "employee";
 }
 
-const AI_ACTION: WalkthroughStep = {
-  id: "ai_action",
-  title: "One real AI action",
-  body: "Open Talk and ask what needs you or draft a follow-up. You approve what leaves — Otzar does not freestyle outbound.",
-  ctaLabel: "Open Talk",
-  ctaTo: "/app/voice",
-  testId: "walkthrough-step-talk",
-  facets: ["ai_action"],
-};
-
-const PROVIDER_HONESTY: WalkthroughStep = {
-  id: "provider_honesty",
-  title: "Provider honesty",
-  body: "Tools shows Google Meet, Calendar, and Docs connection state. Stale scopes are honest — reconnect when needed.",
-  ctaLabel: "Open Tools",
+const CONNECTIONS: WalkthroughStep = {
+  id: "connections",
+  title: "Tools your organization uses",
+  body: "See which apps are connected. If something needs reconnecting, Otzar says so clearly.",
+  why: "Documents and meetings only work when tools are connected.",
+  doNext: "Open Connections and check Google status.",
+  ctaLabel: "Open Connections",
   ctaTo: "/app/connector-health",
   testId: "walkthrough-step-tools",
+  targetContract: ["[data-testid='connector-health'], [data-testid='tools-connections']"],
   facets: ["provider_honesty"],
 };
 
+const TALK: WalkthroughStep = {
+  id: "ai_action",
+  title: "Ask Otzar one real question",
+  body: "Open Talk and ask what needs you, or draft a follow-up. You approve anything that leaves.",
+  why: "Your AI Teammate works from live org context, not a blank chat.",
+  doNext: "Open Talk and ask one question about current work.",
+  ctaLabel: "Open Talk",
+  ctaTo: "/app/voice",
+  testId: "walkthrough-step-talk",
+  targetContract: ["[data-testid='voice-ready'], [data-testid='ambient-otzar-bar']"],
+  facets: ["ai_action"],
+};
+
 /**
- * A-08 cinematic plan: ≤3 steps, every role has org_state + provider + AI.
- * ADHD one-shot, not a tour maze.
+ * Role-specific paths. ≤3 steps. Plain language.
  */
 export function walkthroughStepsFor(role: WalkthroughRole): WalkthroughStep[] {
   switch (role) {
@@ -72,57 +82,73 @@ export function walkthroughStepsFor(role: WalkthroughRole): WalkthroughStep[] {
       return [
         {
           id: "org",
-          title: "See how work reports",
-          body: "People shows your real reporting structure — who reports to whom — so Otzar routes work correctly.",
+          title: "Confirm who is in the organization",
+          body: "People shows reporting lines and teammates. Confirm the structure, not every setting by hand.",
+          why: "Otzar routes work using this structure.",
+          doNext: "Open People and scan who reports to whom.",
           ctaLabel: "Open People",
           ctaTo: "/app/collaboration",
           testId: "walkthrough-step-org",
+          targetContract: [
+            "[data-testid='people-directory'], [data-testid='collaboration-page']",
+          ],
           facets: ["org_state"],
         },
-        PROVIDER_HONESTY,
-        AI_ACTION,
+        CONNECTIONS,
+        TALK,
       ];
     case "executive":
       return [
         {
           id: "today",
-          title: "Today is your command surface",
-          body: "Focus holds at most a few decisions from live org state. Glance chips open projects, AI work, and Needs me.",
-          ctaLabel: "Stay on Today",
+          title: "What needs a decision today",
+          body: "Home shows what changed, what is blocked, and what Otzar already handled.",
+          why: "You steer without chasing status across tools.",
+          doNext: "Scan Home for decisions and blockers.",
+          ctaLabel: "Stay on Home",
           ctaTo: "/app",
           testId: "walkthrough-step-today",
+          targetContract: ["[data-testid='ambient-work-surface'], [data-testid='employee-shell']"],
           facets: ["org_state"],
         },
-        PROVIDER_HONESTY,
-        AI_ACTION,
+        CONNECTIONS,
+        TALK,
       ];
     case "manager":
       return [
         {
           id: "team",
-          title: "Your people and open work",
-          body: "People shows reporting lines from live org state. Needs me holds approvals and stuck work for your team.",
+          title: "Your team and open work",
+          body: "People shows your team. Needs me holds approvals and stuck items for them.",
+          why: "You unblock people and AI coordination in one place.",
+          doNext: "Open People, then check Needs me for exceptions.",
           ctaLabel: "Open People",
           ctaTo: "/app/collaboration",
           testId: "walkthrough-step-people",
+          targetContract: [
+            "[data-testid='people-directory'], [data-testid='collaboration-page']",
+          ],
           facets: ["org_state"],
         },
-        PROVIDER_HONESTY,
-        AI_ACTION,
+        CONNECTIONS,
+        TALK,
       ];
     case "contractor":
       return [
         {
           id: "needs",
-          title: "Your scoped work",
-          body: "Needs me shows only what you’re allowed to act on from live org state. Otzar stays inside your boundaries.",
+          title: "Work you are allowed to act on",
+          body: "Needs me shows only authorized deliverables. Access stays intentionally limited.",
+          why: "You stay inside your project scope.",
+          doNext: "Open Needs me and open one item.",
           ctaLabel: "Open Needs me",
           ctaTo: "/app/action-center",
           testId: "walkthrough-step-needs",
+          targetContract: ["[data-testid='action-center'], [data-testid='employee-shell']"],
           facets: ["org_state"],
         },
-        PROVIDER_HONESTY,
-        AI_ACTION,
+        CONNECTIONS,
+        TALK,
       ];
     case "employee":
     default:
@@ -130,14 +156,17 @@ export function walkthroughStepsFor(role: WalkthroughRole): WalkthroughStep[] {
         {
           id: "needs",
           title: "What needs you",
-          body: "Approvals, replies, and stuck items from live org state land in Needs me — start here when in doubt.",
+          body: "Approvals, replies, and stuck items land in Needs me. Start here when unsure.",
+          why: "Your current work is not buried in tools.",
+          doNext: "Open Needs me and complete or open one item.",
           ctaLabel: "Open Needs me",
           ctaTo: "/app/action-center",
           testId: "walkthrough-step-needs",
+          targetContract: ["[data-testid='action-center'], [data-testid='employee-shell']"],
           facets: ["org_state"],
         },
-        PROVIDER_HONESTY,
-        AI_ACTION,
+        CONNECTIONS,
+        TALK,
       ];
   }
 }
@@ -149,4 +178,15 @@ export function walkthroughMarker(version: string = WALKTHROUGH_VERSION): string
 export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined" || !window.matchMedia) return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Pure: clamp step index to plan length. */
+export function clampWalkthroughStep(
+  index: number,
+  stepCount: number,
+): number {
+  if (stepCount <= 0) return 0;
+  if (index < 0) return 0;
+  if (index >= stepCount) return stepCount - 1;
+  return index;
 }

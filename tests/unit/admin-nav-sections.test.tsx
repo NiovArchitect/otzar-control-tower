@@ -13,7 +13,10 @@ import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { NAV, NAV_GROUP_ORDER, type NavGroup } from "@/lib/nav";
 import { AdminSidebar } from "@/components/AdminSidebar";
 
-const visible = NAV.filter((n) => n.comingSoon !== true);
+// Match AdminSidebar: hide comingSoon + hidden unless VITE_SHOW_COMING_SOON.
+const visible = NAV.filter(
+  (n) => n.comingSoon !== true && n.hidden !== true,
+);
 const routesIn = (group: NavGroup): string[] =>
   visible.filter((n) => n.group === group).map((n) => n.to).sort();
 
@@ -37,35 +40,36 @@ describe("Admin Center IA — eight production sections", () => {
   });
 
   // Approved per-section VISIBLE membership (stub entries excluded by design).
-  it("Overview = Home + Organization Setup + Billing & Entitlements", () => {
-    // [GAP-U SLICE-1] /setup joins Overview — the guided read-only setup
-    // journey belongs beside Home, not buried in a sub-section.
-    expect(routesIn("Overview")).toEqual(["/", "/billing", "/setup"].sort());
+  it("Overview = Home + Organization Setup (billing is advanced/hidden)", () => {
+    // YC RC2 signal: Billing is not first-login Overview focus.
+    expect(routesIn("Overview")).toEqual(["/", "/setup"].sort());
   });
   it("People & Roles = Users, AI Teammates, Organization Seeding, Onboarding", () => {
     expect(routesIn("People & Roles")).toEqual(
       ["/ai-teammates", "/onboarding", "/organization-seeding", "/users"].sort(),
     );
   });
-  it("Tools & Connections = merged landing + Voice Providers + Voice", () => {
+  it("Tools & Connections = merged landing + Voice (providers advanced/hidden)", () => {
     expect(routesIn("Tools & Connections")).toEqual(
-      ["/tools-connections", "/voice", "/voice-providers"].sort(),
+      ["/tools-connections", "/voice"].sort(),
     );
   });
-  it("Work Graph & Memory = Data & Knowledge, ONE Access Control (grants folded in as a tab), Marketplace, Cohorts", () => {
-    // PROD-MODEL-P3 §9 — /access-grants stays a registered route but is no
-    // longer a separate nav destination.
+  it("Work Graph & Memory = Data & Knowledge + Access Control (marketplace/cohorts advanced)", () => {
+    // PROD-MODEL-P3 §9 — grants folded into Access Control.
+    // YC RC2: Marketplace + Federation Cohorts hidden from primary nav.
     expect(routesIn("Work Graph & Memory")).toEqual(
-      ["/access-control", "/cohorts", "/data-knowledge", "/marketplace"].sort(),
+      ["/access-control", "/data-knowledge"].sort(),
     );
   });
-  it("Policies & Approvals = Policies, Collaboration policy, Review Center, Pending Approvals", () => {
+  it("Policies & Approvals = Policies, Review Center, Pending Approvals", () => {
+    // collaboration-policy is advanced/hidden; routes remain registered.
     expect(routesIn("Policies & Approvals")).toEqual(
-      ["/approvals", "/collaboration-policy", "/policies", "/review-center"].sort(),
+      ["/approvals", "/policies", "/review-center"].sort(),
     );
   });
-  it("Workflows & Automation = Agent Playground (stubs hidden)", () => {
-    expect(routesIn("Workflows & Automation")).toEqual(["/agent-playground"]);
+  it("Workflows & Automation has no primary visible entries (playground advanced)", () => {
+    // Agent Playground remains a registered route but is not first-class nav.
+    expect(routesIn("Workflows & Automation")).toEqual([]);
   });
   it("Audit & Activity = Security & Audit + Reports", () => {
     expect(routesIn("Audit & Activity")).toEqual(["/reports", "/security-audit"].sort());
