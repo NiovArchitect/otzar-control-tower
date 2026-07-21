@@ -41,7 +41,6 @@ import {
 
 import {
   SpatialPresenceLayer,
-  SpatialReadinessNote,
 } from "@/components/ambient/SpatialPresenceLayer";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import {
@@ -814,7 +813,7 @@ export function AmbientWorkSurface(): JSX.Element {
           <div className="otzar-grain opacity-[0.03]" />
         </div>
         {/* D-03 — optional purposeful CSS depth; reduced-motion → flat 2D */}
-        <SpatialPresenceLayer depthEnabled={!quiet} showReadinessNote />
+        <SpatialPresenceLayer depthEnabled={!quiet} showReadinessNote={false} />
         <div className="relative flex items-center gap-4">
           <OtzarMark size="lg" active={!quiet} />
           <div className="min-w-0 flex-1">
@@ -834,10 +833,10 @@ export function AmbientWorkSurface(): JSX.Element {
                   Quiet mode
                 </>
               ) : dgi?.coherence_status === "NEEDS_ATTENTION" ? (
-                "One thing needs you. The rest stays quiet."
+                "One item needs your attention."
               ) : dgi?.coherence_status === "BLOCKED" ||
                 dgi?.coherence_status === "UNPAIRED" ? (
-                "Present. Pairing needs a quick fix."
+                "Your AI Teammate pairing needs a quick fix."
               ) : dgi?.coherence_status === "HEALTHY" || calmCaughtUp ? (
                 homeCopy.presenceLine
               ) : (
@@ -1020,9 +1019,6 @@ export function AmbientWorkSurface(): JSX.Element {
           </Link>
         ) : null}
       </div>
-
-      {/* D-03 — spatial readiness note (below glance; not Focus path) */}
-      <SpatialReadinessNote />
 
       {docError !== null ? (
         <p className="px-1 text-[11px] text-amber-800" data-testid="google-doc-create-error">

@@ -47,7 +47,7 @@ describe("B-05 role Home", () => {
     expect(contractor.presenceLine).toMatch(/scoped/i);
     expect(admin.glanceOrder[0]).toBe("people");
     expect(employee.glanceOrder[0]).toBe("needs");
-    expect(contractor.caughtUpLine).toMatch(/boundar/i);
+    expect(contractor.caughtUpLine).toMatch(/caught up|access/i);
   });
 
   it("orders glance chips by role preference", () => {
