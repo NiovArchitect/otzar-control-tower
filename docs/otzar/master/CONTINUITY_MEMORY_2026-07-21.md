@@ -448,34 +448,39 @@ Identity growth remains **closed**. Active work is product behavior on live R-03
 * Org label: R03 Synthetic Scale; no Meridian foreign label
 * Classification: **`YC_FIRST_FIVE_BROWSER_PROVEN`**
 
-### Phase 2 — Project loop (PARTIAL — extraction repair in flight)
+### Phase 2 — Project loop (PARTIAL — extraction now live-proven; full chain open)
 
 * Project: `9481e76b-b618-46bc-93aa-3e63d4a0ac1a` — Enterprise Customer Pilot
-* Hidden oracle: final date **2026-09-18**, rejected **2026-09-11** (model must never receive oracle)
-* **Classification remains:** `PROJECT_LOOP_PARTIAL — CAPTURE PROVEN, EXTRACTION NOT PROVEN`
-* Seeded `PROJECT_BRIEF` / `DECISION_LOG` = **test scaffolding only** — do **not** count as conversation-to-execution proof
+* Hidden oracle: final date **2026-09-18**, rejected **2026-09-11** (model never received oracle)
+* **Whole Phase 2 still open for:** obligations completion UI, AI-to-AI from extracted dependency, role reports, Home reconcile, Google
+* **Communication→extraction→owned work:** **`PROJECT_LOOP_EXTRACTION_PROVEN`** on live `8c3047c` (2026-07-21)
+* Seeded `PROJECT_BRIEF` / `DECISION_LOG` = **scaffolding only** — not extraction proof
 
-#### Exact LOCAL_FALLBACK diagnosis (2026-07-21 re-probe)
+#### Exact LOCAL_FALLBACK diagnosis (was NOT missing API key)
 
 | Probe | Result |
 | --- | --- |
-| `GET /admin/llm-status` | **CONFIGURED** · provider `anthropic` · model `claude-sonnet-4-5` (no secret values) |
-| `POST /otzar/comms/extract` (no force) | **LLM** · decisions/commitments include final **2026-09-18** + reject **2026-09-11** |
-| `POST /otzar/comms/ingest` (no force) | Can reach **LLM** when isolated; prior run path still produced **0 work_items** |
-| `force_mode: LOCAL_FALLBACK` | Empty extraction (control) |
-| `DEMO_SCRIPTED` | Correctly disallowed on this tenant |
+| `GET /admin/llm-status` | **CONFIGURED** · `anthropic` · `claude-sonnet-4-5` |
+| Prior zero-item path | quality + graph + planner bugs (below), not `ANTHROPIC_API_KEY` absence |
+| `DEMO_SCRIPTED` | Correctly disallowed |
 
-**Not** “API key missing on Render.” Provider is present.
+**Root causes fixed:**
 
-**Root causes of zero work items (code, fixed in FND PR #726):**
+1. ISO speaker stamps `[2026-07-21 09:12]` rejected → date lines quarantined (**FND #726**)
+2. Digit handles `R03P1` rejected by NAME / `isPronounOrNonName` (**#726**)
+3. Multi-owner sentences only first owner (**#726**)
+4. Silent LOCAL_FALLBACK without `extraction_outcome` / `fallback_reason` (**#726**)
+5. Owner resolve used identity peer `take:50` → R03P1 NEEDS_OWNER (**FND #727**)
 
-1. **ISO speaker stamps** `[2026-07-21 09:12]` rejected by quality `splitSpeaker` (hyphen not allowed) → speaker=null + digit-poisoned alpha ratio → date-rich lines (final/rejected dates + ownership) mislabeled `asr_garbage` / `low_confidence` and **excluded from trustedText**.
-2. **NAME / handle patterns** `[A-Z][A-Za-z]+` rejected **R03P1**-style owners; multi-owner sentence only placed first owner.
-3. **`isPronounOrNonName`** treated digit handles as non-names → even when graph had owners, planner forced **NEEDS_OWNER** / blank owner.
-4. **Silent LOCAL_FALLBACK** had no `fallback_reason` / `extraction_outcome` → harness treated capture 200 as organizational success.
+#### Live oracle re-run (no force_mode, no DEMO_SCRIPTED, no oracle to model)
 
-**Repair PR:** https://github.com/NiovArchitect/niov-foundation/pull/726  
-**Rerun harness:** `otzar-control-tower/scripts/otzar-r03-project-loop-extract-rerun.mjs` (post-deploy live oracle re-ingest).
+* Deploy: `8c3047c613f6…` · capture `4108a803-…`
+* Quality: **8/8 trusted**
+* Mode: **LLM** · outcome: **`EXTRACTION_COMPLETED_WITH_SIGNALS`**
+* Work items: **3** · owned **2** (R03P1 + R03P4 PROPOSED with entity_ids)
+* Final date **2026-09-18** in decisions; rejected **2026-09-11** not current final
+* Collective “Team” → honest **NEEDS_OWNER**
+* Harness: `scripts/otzar-r03-project-loop-extract-rerun.mjs`
 
 ### Phase 3 — Google Docs/Calendar (HONEST BLOCK)
 
