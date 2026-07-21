@@ -51,6 +51,7 @@ Regression anchors:
 | I-01 | 4 | LIVE_VERIFIED portable core UI (with H-02 deep) |
 | I-02 | 4 | Multi-org memory isolation (open — needs 2nd tenant) |
 | K-01 | 2 | Meet provider after N-02 |
+| L-01 | 5 | LIVE_VERIFIED complex deep 10/10 AI↔AI envelope |
 | M-01 | 5 | LIVE_VERIFIED complex deep 10/10 graduated ladder |
 | N-02 | 2 | **Operator Meet reauth** |
 | N-03 | 2 | Docs append live |

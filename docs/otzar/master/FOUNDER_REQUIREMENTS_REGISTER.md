@@ -109,7 +109,9 @@ PARTIAL — growth card + seeding; full source-driven proposal classes open (E-0
 
 ### L — AI↔AI
 
-PARTIAL — collab envelope exists; load/storm proofs open.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **L-01** Governed AI↔AI envelope | LIVE_VERIFIED | Complex deep 10/10 on `index-CuYNQjjV.js` — fail-closed doctrine; AI Teammate target mode; 14 envelope rows; admin policy; residual: load/storm/loop stress |
 
 ### M — Autonomy
 

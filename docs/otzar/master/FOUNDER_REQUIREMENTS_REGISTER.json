@@ -1882,21 +1882,30 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "collaboration requests",
-        "Twin collab"
+        "src/lib/work-os/ai-collab-envelope.ts",
+        "src/components/otzar/AiCollabEnvelopeCard.tsx",
+        "src/pages/app/Collaboration.tsx",
+        "tests/unit/ai-collab-envelope.test.ts",
+        "tests/e2e/otzar-live-ai-collab-l01.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Load/storm/loop proofs",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Load/storm/loop stress proofs residual",
       "dependencies": [],
       "priority": "P1",
       "phase": 5,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "AI collab envelope card + twin target mode; rows classify allow/needs_approval/blocked; fail closed",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "ff13d1c"
+      ],
+      "deployment_sha": "ff13d1c",
+      "final_proof": {
+        "live_bundle": "index-CuYNQjjV.js",
+        "e2e": "otzar-live-ai-collab-l01 10/10",
+        "notes": "envelope card; AI target mode; 14 rows needs_approval; fail closed; admin collab policy"
+      }
     },
     {
       "id": "M-01",

@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `15c430c` |
-| Live bundle | `index-CzDer3IR.js` |
-| Live last-modified | 2026-07-21 M-01 complex deep **10/10**; G-02 10/10; H/I LIVE |
-| Gate status | **OPEN** — M-01 + G-02 LIVE_VERIFIED; Phase 5 residual L-01/M-02; I-02; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `ff13d1c` |
+| Live bundle | `index-CuYNQjjV.js` |
+| Live last-modified | 2026-07-21 L-01 complex deep **10/10**; M-01 10/10; G-02 10/10 |
+| Gate status | **OPEN** — L-01 + M-01 + G-02 LIVE_VERIFIED; Phase 5 residual M-02; I-02; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -63,7 +63,7 @@
 4. **F-02** Drag-drop / bulk hierarchy editor.  
 5. **N-02** Meet PROVIDER_PROVEN (external).  
 6. **I-02** Multi-org memory isolation residual (H-01 + H-02/I-01 LIVE_VERIFIED same-org multi-user).  
-7. **K / L / M** Communication lineage + AI↔AI + autonomy full proof.  
+7. **K / M-02** Communication lineage + time-limited grants (L-01 + M-01 LIVE_VERIFIED).  
 8. **R** Progressive enterprise pressure 25→2500.  
 9. **S** Dedicated YC synthetic org continuous unscripted.  
 10. **T** Otzar Relay kept separate from CT employee shell.
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **L-01** governed AI↔AI collaboration envelope deep proof (Phase 5);
-2. **M-02** one-time/session/project grants continuous multi-class proof;
-3. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
-4. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available.
+1. **M-02** one-time/session/project grants continuous multi-class proof (Phase 5);
+2. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
+3. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
+4. **K-03** communication lineage residual (Phase 2).
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).
