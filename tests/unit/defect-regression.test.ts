@@ -37,9 +37,11 @@ describe("R-02 defect→regression", () => {
   it("summarizes coverage and requires most P0 covered", () => {
     const s = catalogCoverageSummary();
     expect(s.total).toBe(DEFECT_REGRESSION_CATALOG.length);
-    expect(s.covered).toBeGreaterThanOrEqual(6);
-    expect(s.p0_covered).toBeGreaterThanOrEqual(4);
+    expect(s.total).toBeGreaterThanOrEqual(10);
+    expect(s.covered).toBeGreaterThanOrEqual(7);
+    expect(s.p0_covered).toBeGreaterThanOrEqual(5);
     expect(s.coverage_ratio).toBeGreaterThan(0.5);
+    expect(entryById("memory-redaction-corpus")?.coverage).toBe("covered");
   });
 
   it("looks up entries and covered filter", () => {

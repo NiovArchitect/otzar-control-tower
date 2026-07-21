@@ -77,6 +77,15 @@ export const DEFECT_REGRESSION_CATALOG: readonly DefectRegressionEntry[] = [
     plain: "Employee preference fingerprints never appear in another principal's core.",
   },
   {
+    id: "memory-redaction-corpus",
+    title: "Confidential samples never portable-safe",
+    severity: "P0",
+    discovered_in: "H-02 redaction residual",
+    regression_suite: "otzar-live-memory-redaction-h02 + memory-redaction units",
+    coverage: "covered",
+    plain: "Stress corpus (≥10 leak classes) fails isSafePortablePlain; live preference scan stays clean.",
+  },
+  {
     id: "no-staged-fakes",
     title: "No staged frontend-only fakes",
     severity: "P0",

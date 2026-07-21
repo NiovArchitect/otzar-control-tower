@@ -46,6 +46,7 @@ const REQUIRED_P0 = [
   "hier-cycle-refuse",
   "hier-nonadmin-deny",
   "no-staged-fakes",
+  "memory-redaction-corpus",
 ] as const;
 
 async function openUsers(page: Page): Promise<void> {
@@ -118,7 +119,7 @@ test("R-02 deep: defect→regression catalog", async ({ page }) => {
   const catalogN = await page.getByTestId("r02-defect-row").count();
   rec(
     "R02-C",
-    covered >= 6 && total >= 8 && catalogN >= 8 ? "PASS" : "FAIL",
+    covered >= 7 && total >= 10 && catalogN >= 10 ? "PASS" : "FAIL",
     `covered=${covered} total=${total} rows=${catalogN}`,
   );
 
