@@ -247,7 +247,7 @@ test("M-02 deep: multi-class time-limited authority + revoke", async ({
   rec(
     "M02-I",
     /purpose|reason/i.test(reason) &&
-      /revok/i.test(revCopy) &&
+      /revoc/i.test(revCopy) &&
       /not mean unlimited|unlimited/i.test(indef)
       ? "PASS"
       : "FAIL",
