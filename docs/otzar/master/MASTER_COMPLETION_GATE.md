@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `0c9b90a` |
-| Live bundle | `index-B0--oBmE.js` |
-| Live last-modified | 2026-07-21 Q-01/Q-02 complex deep **10/10** cross-tenant zero-leak |
-| Gate status | **OPEN** — Q-01/Q-02 LIVE; residual S-01 YC; R scale; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `e41fb7e` |
+| Live bundle | `index-DRMA2lL7.js` |
+| Live last-modified | 2026-07-21 S-01 complex deep **10/10** multi-role YC walkthrough |
+| Gate status | **OPEN** — S-01 LIVE; residual R scale; N-02 EXTERNALLY_BLOCKED; dedicated YC org residual |
 
 ---
 
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **S-01** dedicated YC synthetic org continuous walkthrough if harness credentials exist;
-2. **R-01** enterprise pressure harness progressive 25→250→2500 when scale credentials available;
-3. **R-02** defect→regression automation;
-4. Regression + continuous re-bind of LIVE Phase 3–6 rows (E/F/G/H/I/Q/L/M/S-02).
+1. **R-01** enterprise pressure harness progressive 25→250→2500 (product + continuous);
+2. **R-02** defect→regression automation;
+3. Dedicated YC org credentials residual (S-01 continuous multi-role LIVE on demo);
+4. Regression + continuous re-bind of LIVE Phase 3–7 rows.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

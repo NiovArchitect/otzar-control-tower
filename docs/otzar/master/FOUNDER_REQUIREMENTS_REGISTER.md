@@ -14,7 +14,7 @@
 | CT main | `882361d` (product live `d320c12`) |
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
-| LIVE_VERIFIED count | 55 |
+| LIVE_VERIFIED count | 56 |
 | Open P0 count | 22 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
@@ -161,7 +161,7 @@ PARTIAL — level1/2 harnesses exist; progressive scale continuous open.
 
 | ID | Proof | Notes |
 |----|-------|-------|
-| **S-01** Dedicated synthetic YC org | PARTIAL | Needs dedicated YC org credentials; multi-role first5 + S-02 continuous on demo org |
+| **S-01** Dedicated synthetic YC org | LIVE_VERIFIED | Complex deep 10/10 on `index-DRMA2lL7.js` — 4 roles continuous first-five; 5 paths; dedicated-org residual honest |
 | **S-02** Investor browser journey | LIVE_VERIFIED | Complex deep 10/10 on `index-ZpL1xYAm.js` — 10 surfaces; 82 ledger items; 10 projects compose; no staged fakes |
 
 ### T — Relay
