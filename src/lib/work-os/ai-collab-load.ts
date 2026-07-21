@@ -243,7 +243,7 @@ export function runCollabLoadPressure(
 export function buildSyntheticLoadScenario(seed = 42): CollabLoadEvent[] {
   const out: CollabLoadEvent[] = [];
   const principals = ["twin-a", "twin-b", "twin-c", "twin-d", "twin-e"];
-  let t = 1_700_000_000_000 + seed;
+  const t = 1_700_000_000_000 + seed;
   for (let i = 0; i < 20; i++) {
     const from = principals[i % principals.length]!;
     const to = principals[(i + 1) % principals.length]!;
