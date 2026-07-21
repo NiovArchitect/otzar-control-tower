@@ -8,9 +8,10 @@
 // Usage: node scripts/copy-signal-lint.mjs
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCAN_ROOTS = ["src/pages", "src/components", "src/lib/today", "src/lib/first-use"];
 const EXT = new Set([".ts", ".tsx"]);
 
