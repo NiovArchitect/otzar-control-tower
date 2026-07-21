@@ -1546,7 +1546,7 @@
         "tests/e2e/otzar-live-memory-redaction-h02.spec.ts"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Redaction stress corpus shipped pending LIVE deep; continuous expansion when pressure finds new classes",
+      "remaining_gap": "Continuous corpus expansion when pressure finds new leak classes; multi-user isolation already LIVE",
       "dependencies": [],
       "priority": "P0",
       "phase": 4,
@@ -1559,7 +1559,13 @@
       "final_proof": {
         "live_bundle": "index-BREL-m19.js",
         "e2e": "otzar-live-portable-isolation-h02 10/10",
-        "notes": "employee vs admin personal cores isolated; no cross-leak fingerprints"
+        "notes": "employee vs admin personal cores isolated; no cross-leak fingerprints",
+        "redaction_residual": {
+          "live_bundle": "index-By9mE18P.js",
+          "e2e": "otzar-live-memory-redaction-h02 10/10",
+          "corpus": 12,
+          "live_scan": "clean"
+        }
       }
     },
     {

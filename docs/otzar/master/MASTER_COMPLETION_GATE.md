@@ -6,9 +6,9 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `618783b` |
-| Live bundle | `index-Bq4gB3kV.js` |
-| Live last-modified | 2026-07-21 continuous gate re-bind **8/8** deep smokes PASS |
+| CT `origin/main` | `9a742df` |
+| Live bundle | `index-By9mE18P.js` |
+| Live last-modified | 2026-07-21 H-02 redaction residual **10/10** + gate re-bind suite expanded |
 | Gate status | **PRODUCT COMPLETE** — continuous re-bind green; only **N-02** EXTERNALLY_BLOCKED (operator Meet OAuth) + credential residuals |
 
 ---
