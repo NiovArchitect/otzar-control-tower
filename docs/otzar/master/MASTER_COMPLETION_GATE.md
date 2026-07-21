@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `53d727c` |
-| Live bundle | `index-CZ_K4POl.js` |
-| Live last-modified | 2026-07-21 T-01 complex deep **10/10** Relay boundary |
-| Gate status | **OPEN** — T-01 LIVE; only N-02 EXTERNALLY_BLOCKED (+ credential residuals) |
+| CT `origin/main` | `c875bc6` |
+| Live bundle | `index-Bq4gB3kV.js` |
+| Live last-modified | 2026-07-21 N-02 honesty residual complex deep **10/10** (status still EXTERNALLY_BLOCKED) |
+| Gate status | **PRODUCT COMPLETE** for CT shippable rows — only **N-02** EXTERNALLY_BLOCKED (operator Meet OAuth) + credential residuals |
 
 ---
 
@@ -26,58 +26,35 @@
 | **6** | Multi-tenant + enterprise pressure | Zero-leak + progressive scale harness |
 | **7** | YC walkthrough + Relay roadmap freeze | Unscripted YC org survives; Relay preserved not confused with CT |
 
-**Do not start Phase N+1 P0 work while Phase N P0 is open**, except:
-
-* EXTERNALLY_BLOCKED rows (continue independent work);  
-* pure docs/register maintenance;  
-* regression fixes for already-CLOSED rows.
+**Phases 0–7 product rows:** LIVE_VERIFIED (or honesty residual for N-02), except N-02 operational Meet which remains **EXTERNALLY_BLOCKED**.
 
 ---
 
-## Phase 0 — P0 sequence (current)
+## Open residuals only
 
-| Order | ID | Title | Proof now | Next action |
-|-------|-----|--------|-----------|-------------|
-| 1 | A-01 | Login lands Home, not prior arbitrary route | BROWSER_PROVEN / LIVE_VERIFIED | Regression only |
-| 2 | A-02 | Deep links validated | UNIT_PROVEN / LIVE_VERIFIED | Expand deep-link matrix |
-| 3 | A-03 | Role-aware first-use strip | BROWSER_PROVEN / LIVE_VERIFIED | Server-side walkthrough versioning (A-04) |
-| 4 | A-04 | Server-side versioned walkthrough (all roles) | LIVE_VERIFIED | Dual-write + multi-step; live smokes 2026-07-20 |
-| 5 | A-05 | YC first 5 minutes aha | BROWSER_PROVEN (prior multi-role smoke) | Dedicated YC org harness continuous |
-| 6 | B-01 | Today one-shot ADHD | LIVE_VERIFIED | Keep density; no re-bloat |
-| 7 | B-02 | Home counts reconcile with visible objects | LIVE_VERIFIED | data-why + object links on live Focus |
-| 8 | C-01 | Route inventory + every screen earns existence | LIVE_VERIFIED | Inventory + welcome→Today live |
-| 9 | C-02 | Admin vs employee shell separation | LIVE_VERIFIED | Guard remaining leaks |
-| 10 | C-03 | Zero dead buttons / no coming-soon in primary | LIVE_VERIFIED | Regression only |
-| 11 | F-01 | People hierarchy glance + admin set line | LIVE_VERIFIED | Drag-drop editor F-02 |
-| 12 | N-01 | Meet/tools reconnect honesty | LIVE_VERIFIED (#180) | Operator OAuth for PROVIDER_PROVEN |
-| 13 | N-02 | Google Meet operational transcripts | EXTERNALLY_BLOCKED | Operator reauth; then ambient proof |
-| 14 | Q-01 | Cross-tenant zero-leak | LIVE_VERIFIED | Continuous second-tenant residual |
+| ID | Status | What unblocks |
+|----|--------|---------------|
+| **N-02** | EXTERNALLY_BLOCKED | Operator Google Meet OAuth/scopes; then ambient PROVIDER_PROVEN deep smoke |
+| Scale L2/L3 | residual under R-01 | Scale credentials / synthetic pressure org |
+| Dedicated YC org | residual under S-01 | Dedicated YC harness credentials |
+| Relay app build | residual under T-01 | Separate Relay product engineering (boundary LIVE) |
+| Immersive 3D | residual under D-03 | Optional WebGL walkthrough (CSS depth LIVE) |
 
 ---
 
-## Active residuals (do not forget)
+## Active honesty proof (N-02)
 
-1. **A-04** Server-side first-use walkthrough versioned per role (not only localStorage strip).  
-2. **B-02 / B-03** Home card truth (“why this card”, exact object links).  
-3. **C-01** Complete route/control inventory + cull.  
-4. **F-02** Drag-drop / bulk hierarchy editor.  
-5. **N-02** Meet PROVIDER_PROVEN (external).  
-6. **I-02** Multi-org memory isolation LIVE_VERIFIED (complex deep 10/10); continuous second-tenant residual.  
-7. **K / M-02** Communication lineage + time-limited grants (L-01 + M-01 LIVE_VERIFIED).  
-8. **R** Progressive enterprise pressure 25→2500.  
-9. **S** Dedicated YC synthetic org continuous unscripted.  
-10. **T** Otzar Relay kept separate from CT employee shell.
+* Product: `MeetOperationalResidualCard` on Comms + Tools  
+* Deep: `otzar-live-meet-residual-n02` **10/10** on `index-Bq4gB3kV.js`  
+* Proves: EXTERNALLY_BLOCKED stamp, operator steps, Tools reconnect, no false complete  
+* Does **not** claim Meet transcripts operational  
 
 ---
 
-## Next slice (after this register lands)
+## Next slice
 
-**A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
+1. **Operator:** reauth Meet OAuth → re-run ambient Comms sync → promote N-02 to PROVIDER_PROVEN / LIVE_VERIFIED when continuous.  
+2. Optional credential harnesses: L2/L3 scale, dedicated YC org.  
+3. Regression re-bind of LIVE rows as needed.  
 
-**Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **N-02** Meet OAuth EXTERNALLY_BLOCKED (operator reauth) — only open product P0;
-2. Continuous L2/L3 scale + dedicated YC org credentials when available;
-3. Relay messaging app residual (boundary LIVE; app not built);
-4. Regression re-bind of LIVE rows.
-
-**Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).
+**Do not claim N-02 LIVE operational without operator OAuth proof.**

@@ -2155,7 +2155,7 @@
         "tests/e2e/otzar-live-meet-residual-n02.spec.ts"
       ],
       "proof_level": "EXTERNALLY_BLOCKED",
-      "remaining_gap": "Operator Meet OAuth/scopes; honesty residual product shipped pending LIVE deep; PROVIDER_PROVEN blocked",
+      "remaining_gap": "Operator Meet OAuth/scopes \u2192 PROVIDER_PROVEN ambient transcripts; honesty residual LIVE on index-Bq4gB3kV.js",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
@@ -2164,8 +2164,14 @@
       "status": "EXTERNALLY_BLOCKED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": "Blocked until operator reauth completes"
+      "deployment_sha": "c875bc6",
+      "final_proof": {
+        "live_bundle": "index-Bq4gB3kV.js",
+        "e2e": "otzar-live-meet-residual-n02 10/10 honesty",
+        "notes": "status EXTERNALLY_BLOCKED; mode reconnect_needed; 4 operator steps; Tools CTA; no false complete; PROVIDER_PROVEN still blocked",
+        "sha": "c875bc6",
+        "honesty_residual": "LIVE_PROVEN"
+      }
     },
     {
       "id": "N-03",

@@ -130,7 +130,7 @@ D-01–D-04 LIVE_VERIFIED (D-03: optional CSS depth + reduced-motion 2D; immersi
 | ID | Proof | Notes |
 |----|-------|-------|
 | **N-01** Tools reconnect honesty | LIVE_VERIFIED | #180 |
-| **N-02** Meet operational | **EXTERNALLY_BLOCKED** | Operator OAuth |
+| **N-02** Meet operational | **EXTERNALLY_BLOCKED** | Honesty residual LIVE 10/10 on `index-Bq4gB3kV.js`; operator OAuth still required for PROVIDER_PROVEN |
 | **N-03** Docs create/append/edit | LIVE_VERIFIED | create + honest append fail |
 | **N-04** Calendar honesty | LIVE_VERIFIED | final agreed; deep 6/6 |
 | **N-05** Gmail draft/sent honesty | LIVE_VERIFIED | not_wired draft; deep 6/6 |
