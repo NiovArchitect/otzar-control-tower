@@ -79,11 +79,14 @@ PARTIAL — templates/authority substrate exist; distinct first sessions incompl
 | ID | Proof | Notes |
 |----|-------|-------|
 | **H-01** Teach Otzar end-to-end | LIVE_VERIFIED | Complex deep 10/10 on `index-DXhe634d.js` — admin enable → consent → 4 signals → 5 candidates → reject branch; employee blocked from org policy |
-| **H-02** Multi-user isolation | PARTIAL | multi-user isolation not SCALE/MULTI proven |
+| **H-02** Multi-user isolation | LIVE_VERIFIED | Complex deep 10/10 on `index-BREL-m19.js` — employee vs admin personal cores isolated (8 vs 10 fingerprints, no cross-leak) |
 
 ### I — Portability
 
-PARTIAL — doctrine strong; product UI incomplete.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **I-01** Portable personal core UI | LIVE_VERIFIED | Memory PortableCoreCard: doctrine, portable vs org-bound, export-not-shipped honesty; deep with H-02 |
+| **I-02** Multi-org memory isolation | PARTIAL | Needs second-tenant credential; same-org multi-user proven under H-02 |
 
 ### J — Project coherence
 

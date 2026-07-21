@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `952dc1a` |
-| Live bundle | `index-DXhe634d.js` |
-| Live last-modified | 2026-07-21 H-01 complex deep **10/10**; E-02 10/10; F-02/G-01 complex deep |
-| Gate status | **OPEN** — H-01 LIVE_VERIFIED (complex deep); next Phase 4 residual H-02/I; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `d162655` |
+| Live bundle | `index-BREL-m19.js` |
+| Live last-modified | 2026-07-21 H-02/I complex deep **10/10**; H-01 10/10; E-02/F-02/G-01 complex deep |
+| Gate status | **OPEN** — H-01 + H-02/I-01 LIVE_VERIFIED; Phase 4 residual I-02 multi-org; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -62,7 +62,7 @@
 3. **C-01** Complete route/control inventory + cull.  
 4. **F-02** Drag-drop / bulk hierarchy editor.  
 5. **N-02** Meet PROVIDER_PROVEN (external).  
-6. **I / H-02** Portable core + Teach Otzar multi-user isolation (H-01 LIVE_VERIFIED).  
+6. **I-02** Multi-org memory isolation residual (H-01 + H-02/I-01 LIVE_VERIFIED same-org multi-user).  
 7. **K / L / M** Communication lineage + AI↔AI + autonomy full proof.  
 8. **R** Progressive enterprise pressure 25→2500.  
 9. **S** Dedicated YC synthetic org continuous unscripted.  
