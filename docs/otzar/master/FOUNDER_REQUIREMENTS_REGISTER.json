@@ -3508,7 +3508,7 @@
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "S250 seeded org+scenarios+oracle pipeline+metrics+repair UNIT_PROVEN. S2500 not started. Live UI product surface exists; continuous CI seed volume expansion residual. Not full Foundation-backed 250-identity provision \u2014 pure synthetic harness in CT.",
+      "remaining_gap": "S250 seeded pressure UNIT_PROVEN (250 people/twins, 40 scenarios, oracles, metrics, repair). UI surface LIVE. S2500 planned. Full multi-day provider-emulated volume + live tenant provision residual. Next Gate B candidates: J-04 project graph, then A-08/L-02.",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
@@ -3539,7 +3539,15 @@
           "unit": "synthetic-s250-harness 4/4",
           "notes": "hidden oracles; failure injection; repair loop; metrics; no external creds"
         },
-        "ui": "SyntheticScaleHarnessCard S25+S250 partial"
+        "ui": "SyntheticScaleHarnessCard S25+S250 partial",
+        "s250_unit": {
+          "commit": "3da4084",
+          "people": 250,
+          "scenarios": 40,
+          "unit": "4/4 pass",
+          "live_ui_e2e": "otzar-live-synthetic-scale-r03 10/10",
+          "live_bundle_hint": "index-3wOHHe2X.js or later"
+        }
       },
       "deployment_sha": "cdadd1d"
     },

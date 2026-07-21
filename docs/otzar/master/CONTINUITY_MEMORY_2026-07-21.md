@@ -100,3 +100,13 @@ Until then:
 * `src/lib/org/synthetic-s250/` — seed graph, scenarios/oracles, pipeline, metrics, repair
 * Unit: `tests/unit/synthetic-s250-harness.test.ts`
 * S250 status: **partial/UNIT_PROVEN** (not SCALE_PROVEN at provisioned live tenant)
+
+## R-03 S250 first slice (committed)
+
+* Commit `3da4084` — full S250 harness under `src/lib/org/synthetic-s250/`
+* UNIT_PROVEN: 250 people + twins, ≥20 teams, ≥30 projects, 40 scenarios, hidden oracles, failure injection, metrics, repair loop
+* UI: SyntheticScaleHarnessCard marks S250 partial
+* Run: `npm run test:unit:s250`
+* Not yet: S2500, live provision of 250 accounts, multi-day real-provider volume
+* **Next gate priority after this slice:** evaluate J-04 project graph vs further R-03 depth
+
