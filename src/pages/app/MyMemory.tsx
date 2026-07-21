@@ -58,6 +58,7 @@ import {
   ownershipLabel,
 } from "@/lib/work-os/portable-core";
 import { PortableCoreCard } from "@/components/otzar/PortableCoreCard";
+import { LearningAppliesCard } from "@/components/otzar/LearningAppliesCard";
 import { WindowContextShare } from "@/components/observation/WindowContextShare";
 
 export function MyMemory(): JSX.Element {
@@ -288,6 +289,8 @@ export function MyMemory(): JSX.Element {
       <ObservationConsentCard />
       {/* I-01 / H-02 — portable personal core vs org-bound; multi-user isolation surface */}
       <PortableCoreCard />
+      {/* H-03 LearningAppliesCard is also nested under Teach Otzar for in-flow
+          feedback; Portable core is the later-work inventory surface. */}
       {/* D-04 — selected-window share: explicit browser permission + live indicator */}
       <WindowContextShare />
 
@@ -424,6 +427,13 @@ function ObservationConsentCard(): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<"idle" | "active" | "review">("idle");
+  // H-03 — session reject fingerprints never enter approved later-work surfaces.
+  const [rejectedSession, setRejectedSession] = useState<
+    Array<{ candidate_id: string; plain: string }>
+  >([]);
+  const [lastDecision, setLastDecision] = useState<
+    null | { kind: "approve" | "reject"; plain: string }
+  >(null);
 
   async function refresh(): Promise<void> {
     const [st, prefs, cands] = await Promise.all([
@@ -506,6 +516,7 @@ function ObservationConsentCard(): JSX.Element {
   }
 
   async function onApprove(id: string): Promise<void> {
+    const cand = candidates.find((x) => x.candidate_id === id);
     setBusy(true);
     const r = await api.otzar.workStyle.approve(id);
     setBusy(false);
@@ -514,14 +525,25 @@ function ObservationConsentCard(): JSX.Element {
       return;
     }
     setCandidates((c) => c.filter((x) => x.candidate_id !== id));
+    if (cand) {
+      setLastDecision({ kind: "approve", plain: cand.plain_language });
+    }
     await refresh();
   }
 
   async function onReject(id: string): Promise<void> {
+    const cand = candidates.find((x) => x.candidate_id === id);
     setBusy(true);
     await api.otzar.workStyle.reject(id);
     setBusy(false);
     setCandidates((c) => c.filter((x) => x.candidate_id !== id));
+    if (cand) {
+      setRejectedSession((prev) => [
+        ...prev,
+        { candidate_id: id, plain: cand.plain_language },
+      ]);
+      setLastDecision({ kind: "reject", plain: cand.plain_language });
+    }
   }
 
   const journeyPhase: TeachJourneyState["phase"] = !orgEnabled
@@ -719,8 +741,9 @@ function ObservationConsentCard(): JSX.Element {
                         disabled={busy}
                         onClick={() => void onApprove(c.candidate_id)}
                         data-testid="work-style-approve"
+                        data-h03-action="approve"
                       >
-                        Approve
+                        Approve (applies later)
                       </Button>
                       <Button
                         size="sm"
@@ -728,14 +751,26 @@ function ObservationConsentCard(): JSX.Element {
                         disabled={busy}
                         onClick={() => void onReject(c.candidate_id)}
                         data-testid="work-style-reject"
+                        data-h03-action="reject"
                       >
-                        Reject
+                        Reject (never applies)
                       </Button>
                     </div>
                   </li>
                 ))}
               </ul>
             )}
+            {lastDecision ? (
+              <p
+                className="text-[11px] text-foreground"
+                data-testid="h03-last-decision"
+                data-decision-kind={lastDecision.kind}
+              >
+                {lastDecision.kind === "approve"
+                  ? `Approved — will shape later work: “${lastDecision.plain.slice(0, 120)}”`
+                  : `Rejected — will never apply: “${lastDecision.plain.slice(0, 120)}”`}
+              </p>
+            ) : null}
             <Button
               size="sm"
               variant="outline"
@@ -751,9 +786,13 @@ function ObservationConsentCard(): JSX.Element {
         )}
 
         {approved.length > 0 ? (
-          <div className="border-t border-border pt-3" data-testid="work-style-approved">
+          <div
+            className="border-t border-border pt-3"
+            data-testid="work-style-approved"
+            data-h03-approved-list="true"
+          >
             <p className="font-medium text-foreground">
-              Approved preferences ({approved.length})
+              Approved preferences ({approved.length}) — apply to later work
             </p>
             <ul className="mt-1 space-y-1 text-muted-foreground">
               {approved.slice(0, 8).map((p) => {
@@ -764,6 +803,7 @@ function ObservationConsentCard(): JSX.Element {
                     className="flex items-start gap-2"
                     data-testid="work-style-approved-item"
                     data-ownership={c.ownership}
+                    data-h03-applies="true"
                   >
                     <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
                       {ownershipLabel(c.ownership)}
@@ -776,6 +816,30 @@ function ObservationConsentCard(): JSX.Element {
           </div>
         ) : null}
 
+        {rejectedSession.length > 0 ? (
+          <div
+            className="border-t border-border pt-3"
+            data-testid="work-style-rejected-session"
+            data-h03-rejected-list="true"
+            data-rejected-count={String(rejectedSession.length)}
+          >
+            <p className="font-medium text-foreground">
+              Rejected this session ({rejectedSession.length}) — never apply
+            </p>
+            <ul className="mt-1 list-inside list-disc text-muted-foreground">
+              {rejectedSession.slice(0, 6).map((r) => (
+                <li
+                  key={r.candidate_id}
+                  data-testid="work-style-rejected-item"
+                  data-h03-applies="false"
+                >
+                  {r.plain}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <p
           className="text-[11px] text-muted-foreground"
           data-testid="observation-status-note"
@@ -783,6 +847,13 @@ function ObservationConsentCard(): JSX.Element {
         >
           {TEACH_BOUNDARY_COPY}
         </p>
+
+        {/* H-03 — approved → later work; rejected never applies. */}
+        <LearningAppliesCard
+          approvedCount={approved.length}
+          rejectedSessionCount={rejectedSession.length}
+          pendingCount={candidates.length}
+        />
       </CardContent>
     </Card>
   );
