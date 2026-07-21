@@ -192,12 +192,7 @@ export function Collaboration() {
         description="Who reports to whom, who you can work with, and how to ask for help, without org-wide noise."
       />
 
-      {/* L-01 — AI↔AI collaboration is a governed, fail-closed envelope. */}
-      <AiCollabEnvelopeCard />
-      {/* L-02 — load / storm / loop protection beyond single envelope. */}
-      <AiCollabLoadCard />
-
-      {/* First-use one-shot: structure + people, then collab. Growth is secondary. */}
+      {/* Structure first — must land in viewport for first-use (RC2 F6). */}
       <PeopleStructureGlance />
 
       <PeopleDirectory
@@ -244,6 +239,17 @@ export function Collaboration() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Advanced AI-collab diagnostics — below the fold (not first paint). */}
+      <details className="rounded-lg border border-border bg-card/40 p-3" data-testid="people-ai-collab-details">
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          AI collaboration health
+        </summary>
+        <div className="mt-3 space-y-3">
+          <AiCollabEnvelopeCard />
+          <AiCollabLoadCard />
+        </div>
+      </details>
 
       {/* Admin growth suggestions — below the fold so first paint stays ADHD-safe. */}
       <details className="rounded-lg border border-border bg-card/40 p-3" data-testid="people-growth-details">
