@@ -834,10 +834,10 @@ export function AmbientWorkSurface(): JSX.Element {
                   Quiet mode
                 </>
               ) : dgi?.coherence_status === "NEEDS_ATTENTION" ? (
-                "One thing needs you. The rest stays quiet."
+                "One item needs your attention."
               ) : dgi?.coherence_status === "BLOCKED" ||
                 dgi?.coherence_status === "UNPAIRED" ? (
-                "Present. Pairing needs a quick fix."
+                "Your AI Teammate pairing needs a quick fix."
               ) : dgi?.coherence_status === "HEALTHY" || calmCaughtUp ? (
                 homeCopy.presenceLine
               ) : (

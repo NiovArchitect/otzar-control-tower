@@ -572,10 +572,11 @@ export function AmbientOtzarBar(): JSX.Element {
   }, []);
   const navigate = useNavigate();
   const capabilities = useAuthStore((s) => s.capabilities);
-  // EMERGENCY TTS LOOP GUARD per [FOUNDER-AUTH — EMERGENCY FIX]:
-  // auto-speak is OFF by default. The operator enables it
-  // explicitly via the "Auto-speak responses" toggle.
+  // Auto-speak: ON after the user has used the mic this session (voice-first),
+  // or when the operator enables the toggle. Still off for pure typing until
+  // they opt in — avoids unexpected audio on text-only turns.
   const [autoSpeak, setAutoSpeak] = useState(false);
+  const voiceTurnPendingRef = useRef(false);
   // Phase 1235b — quiet mode: Otzar won't speak or listen. For
   // meetings / shared spaces / focus. Voice resumes when the
   // employee turns it back off. When calendar connectors land,
@@ -942,31 +943,28 @@ export function AmbientOtzarBar(): JSX.Element {
     });
   }
 
-  // AUTO-SPEAK effect — only fires when:
-  //   1. auto-speak is explicitly enabled by the operator
-  //   2. there's a response
-  //   3. its stable key differs from the last auto-spoken key
-  //   4. synthesis is supported + not muted
-  // The dep array uses ONLY stable values; synthesis.speak() is
-  // also a stable callback (memoized inside the hook).
+  // AUTO-SPEAK: voice-first after a mic turn, or when toggle is on.
+  // Does not speak unexpected audio for pure typed turns unless toggled.
   const responseKey =
     intent.response !== null
       ? `${intent.response.conversation_id}:${intent.response.tokens_consumed}`
       : null;
   useEffect(() => {
-    if (!autoSpeak) return;
     if (quiet) return;
     if (responseKey === null) return;
     if (lastAutoSpokenKeyRef.current === responseKey) return;
     if (intent.response === null) return;
+    const shouldSpeak =
+      autoSpeak || voiceTurnPendingRef.current === true;
+    if (!shouldSpeak) return;
     const sayable =
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
     lastAutoSpokenKeyRef.current = responseKey;
+    voiceTurnPendingRef.current = false;
+    if (!autoSpeak) setAutoSpeak(true); // persist voice preference this session
     speakAssistant(sayable, { source: "auto", force: false });
-    // intent.response is intentionally NOT in the deps — we mirror
-    // it via responseKey to keep the effect stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSpeak, quiet, responseKey]);
 
@@ -1054,10 +1052,7 @@ export function AmbientOtzarBar(): JSX.Element {
       recognition.stop();
       return;
     }
-    // Explicitly ask for mic permission BEFORE we start the speech-
-    // recognition engine when the Permissions API actually supports
-    // prompting. When the state is "unsupported" we let the
-    // recognition.start() call surface the OS prompt directly.
+    // Shared mic permission (Talk bar + Voice page). Grant once.
     if (
       micPerm.state !== "granted" &&
       micPerm.state !== "unsupported" &&
@@ -1066,6 +1061,8 @@ export function AmbientOtzarBar(): JSX.Element {
       const next = await micPerm.request();
       if (next !== "granted") return;
     }
+    // Next Otzar answer should be spoken (voice-first).
+    voiceTurnPendingRef.current = true;
     recognition.reset();
     recognition.start();
   }

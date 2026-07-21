@@ -28,7 +28,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { RelayBoundaryCard } from "@/components/otzar/RelayBoundaryCard";
+
 import { MeetOperationalResidualCard } from "@/components/otzar/MeetOperationalResidualCard";
 import {
   AlertCircle,
@@ -386,8 +386,6 @@ export function Comms(): JSX.Element {
         description="Otzar pulls meetings and messages from your connected tools, then turns them into owned work. Manual paste is a fallback."
       />
 
-      {/* T-01 — Comms is CT Work OS capture, not Otzar Relay messaging */}
-      <RelayBoundaryCard variant="employee" />
 
       {/* N-02 — Meet operational residual (EXTERNALLY_BLOCKED until operator OAuth) */}
       <MeetOperationalResidualCard
@@ -991,7 +989,7 @@ function CommsCockpit(): JSX.Element {
                     <span className="font-medium text-foreground">{c.label}</span>
                     {!c.wired ? (
                       <Badge variant="outline" className="text-[9px]">
-                        coming next
+                        not connected
                       </Badge>
                     ) : null}
                   </div>

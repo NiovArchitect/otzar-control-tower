@@ -220,7 +220,7 @@ export function PersonCockpit({
           <p className="mt-1 text-[11px] text-amber-600">{sendState.note}</p>
         ) : null}
         <p className="mt-1 text-[10px] italic text-muted-foreground">
-          Internal Otzar message only. No Slack, email, or calendar. Ask your AI Teammate coming next.
+          Internal Otzar message only. No Slack, email, or calendar.
         </p>
       </div>
     </div>

@@ -1,8 +1,6 @@
 // FILE: tests/unit/my-work.test.tsx
-// PURPOSE: Phase 1287-C — My Work ambient collapsibility: high-priority buckets
-//          (Needs action / Blocked) lead expanded; lower-priority + history
-//          buckets (Meetings / Recently created) collapse by default; ALL items
-//          stay accessible (expand reveals them); urgent work is never hidden.
+// PURPOSE: My Work human buckets: Needs review / To do / …; Meetings+Done
+//          collapse by default; urgent work stays expanded.
 // CONNECTS TO: src/pages/app/MyWork.tsx + CollapsibleSection.
 
 import { describe, expect, it, beforeEach } from "vitest";
@@ -50,40 +48,40 @@ function renderPage(): void {
 beforeEach(() => setAuth());
 
 describe("MyWork — ambient collapsible sections", () => {
-  it("leads with high-priority buckets expanded and collapses history by default", async () => {
+  it("leads with high-priority buckets expanded and collapses meetings by default", async () => {
     mockMyWork([
-      entry({ ledger_entry_id: "need", status: "NEEDS_OWNER", title: "Needs an owner" }), // "Needs action"
-      entry({ ledger_entry_id: "recent", status: "PROPOSED", ledger_type: "DECISION", title: "A recent decision" }), // "Recently created"
+      entry({ ledger_entry_id: "need", status: "NEEDS_OWNER", title: "Needs an owner" }), // Needs review
+      entry({
+        ledger_entry_id: "meet",
+        ledger_type: "MEETING",
+        status: "PROPOSED",
+        title: "Launch sync",
+      }), // Meetings — collapsed
     ]);
     renderPage();
-    // Wait for the DATA-dependent bucket, not just the always-present page
-    // container — the page div renders during loading before any bucket exists,
-    // so a sync querySelector here races the async /work-os/my-work fetch.
     const needsSection = (await waitFor(() => {
       const s = screen
         .getByTestId("my-work-page")
-        .querySelector('[data-bucket="Needs action"]');
+        .querySelector('[data-bucket="Needs review"]');
       expect(s).not.toBeNull();
       return s;
     })) as HTMLElement;
-    expect(needsSection.getAttribute("data-bucket")).toBe("Needs action");
+    expect(needsSection.getAttribute("data-bucket")).toBe("Needs review");
     expect(within(needsSection as HTMLElement).getByText("Needs an owner")).toBeInTheDocument();
     expect(needsSection.querySelector('[data-testid="my-work-section"]')!.getAttribute("data-open")).toBe("true");
 
-    // Recently created → collapsed by default → its item is NOT yet in the DOM.
-    const recentSection = screen.getByTestId("my-work-page").querySelector('[data-bucket="Recently created"]')!;
-    expect(recentSection.querySelector('[data-testid="my-work-section"]')!.getAttribute("data-open")).toBe("false");
-    expect(within(recentSection as HTMLElement).queryByText("A recent decision")).toBeNull();
+    const meetSection = screen.getByTestId("my-work-page").querySelector('[data-bucket="Meetings"]')!;
+    expect(meetSection.querySelector('[data-testid="my-work-section"]')!.getAttribute("data-open")).toBe("false");
+    expect(within(meetSection as HTMLElement).queryByText("Launch sync")).toBeNull();
   });
 
   it("expanding a collapsed section reveals its items (nothing is lost)", async () => {
     mockMyWork([entry({ ledger_entry_id: "recent", ledger_type: "MEETING", status: "PROPOSED", title: "Launch sync" })]);
     renderPage();
-    // Await the data-dependent bucket (see note above) — not just the page div.
     const section = (await waitFor(() => {
       const s = screen
         .getByTestId("my-work-page")
-        .querySelector('[data-bucket="Meetings / confirmations"]');
+        .querySelector('[data-bucket="Meetings"]');
       expect(s).not.toBeNull();
       return s;
     })) as HTMLElement;
