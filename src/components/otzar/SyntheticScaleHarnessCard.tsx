@@ -97,6 +97,18 @@ export function SyntheticScaleHarnessCard({
           {virt.reason}
         </p>
 
+        <p
+          className="rounded-md border border-border/50 px-2 py-1.5 text-[11px]"
+          data-testid="r03-s250-harness-note"
+          data-s250-harness="synthetic-s250"
+        >
+          S250 harness: deterministic seed → 250 people + twins, ≥20 teams, ≥30
+          projects, 40 multi-day NL scenarios with hidden oracles, failure
+          injection, metrics, repair loop. Run{" "}
+          <code className="text-[10px]">npx vitest run tests/unit/synthetic-s250-harness.test.ts</code>
+          . No YC credentials.
+        </p>
+
         <p data-testid="r03-residual">{R03_RESIDUAL}</p>
       </CardContent>
     </Card>

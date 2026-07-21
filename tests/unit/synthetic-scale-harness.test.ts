@@ -23,9 +23,10 @@ describe("R-03 synthetic scale harness", () => {
     expect(SYNTHETIC_CHECKLIST.length).toBeGreaterThanOrEqual(5);
   });
 
-  it("plans S25 partial and higher planned", () => {
+  it("plans S25+S250 partial and S2500 planned", () => {
     expect(planSyntheticLevel("S25").status).toBe("partial");
-    expect(planSyntheticLevel("S250").status).toBe("planned");
+    expect(planSyntheticLevel("S250").status).toBe("partial");
+    expect(planSyntheticLevel("S2500").status).toBe("planned");
     expect(planSyntheticLevel("S2500").requires_external_creds).toBe(false);
     expect(progressiveSyntheticPlans()).toHaveLength(3);
   });

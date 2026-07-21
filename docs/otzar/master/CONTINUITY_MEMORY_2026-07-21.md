@@ -64,7 +64,7 @@ Internal synthetic scale (**R-03**) must **not** wait on YC credentials.
 
 ## Next highest internally achievable Work OS work
 
-1. **R-03 deepen** — actual S250 synthetic seed harness (CI-safe), not just the card  
+1. **R-03 deepen** — S250 seeded harness UNIT_PROVEN (see `src/lib/org/synthetic-s250/`); next S2500 + live provision optional  
 2. **J-04** — canonical project graph deep proof  
 3. **A-08** — unify cinematic first-login multi-role journey  
 4. **L-02** — AI collab load/storm  
@@ -94,3 +94,9 @@ Until then:
 * Calling all scale “blocked on YC credentials”  
 * Declaring “nothing left to ship” from CT subset green  
 * Letting H-02 redaction stand for full work-style learning lifecycle  
+
+## S250 progress
+
+* `src/lib/org/synthetic-s250/` — seed graph, scenarios/oracles, pipeline, metrics, repair
+* Unit: `tests/unit/synthetic-s250-harness.test.ts`
+* S250 status: **partial/UNIT_PROVEN** (not SCALE_PROVEN at provisioned live tenant)

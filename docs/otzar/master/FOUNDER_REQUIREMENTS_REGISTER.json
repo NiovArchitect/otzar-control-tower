@@ -3502,22 +3502,25 @@
       "exact_requirement": "Internally simulatable enterprise pressure: seeded replayable org generation at progressive sizes (25\u2192250\u21922500 where safe), communication generation, concurrency, hierarchy scaling, UI virtualization, authorization attacks, chaos/replay, performance percentiles \u2014 without requiring YC or production Google credentials.",
       "founder_intent": "Scale is core Work OS proof, not optional curiosity.",
       "status": "PARTIAL",
-      "proof_level": "BROWSER_PROVEN",
+      "proof_level": "UNIT_PROVEN",
       "priority": "P0",
       "phase": 6,
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "Product doctrine+levels browser-proven; S25 partial via R-01; S250/S2500 continuous seed harness not yet SCALE_PROVEN",
+      "remaining_gap": "S250 seeded org+scenarios+oracle pipeline+metrics+repair UNIT_PROVEN. S2500 not started. Live UI product surface exists; continuous CI seed volume expansion residual. Not full Foundation-backed 250-identity provision \u2014 pure synthetic harness in CT.",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
         "src/pages/Users.tsx",
         "tests/unit/synthetic-scale-harness.test.ts",
         "tests/e2e/otzar-live-synthetic-scale-r03.spec.ts",
-        "docs/otzar/simulation/CUSTOMER_ORG_SIMULATION_PLAN.md"
+        "docs/otzar/simulation/CUSTOMER_ORG_SIMULATION_PLAN.md",
+        "src/lib/org/synthetic-s250/",
+        "tests/unit/synthetic-s250-harness.test.ts",
+        "scripts/otzar-s250-pressure.mjs"
       ],
-      "acceptance_limitations": "Not SCALE_PROVEN at 250/2500 synthetic continuous.",
+      "acceptance_limitations": "In-process synthetic graph + NL scenario pressure \u2014 not live multi-tenant provision of 250 real accounts. Provider volume remains R-04/N-*.",
       "proof_dimensions": {
         "implementation": true,
         "browser": true,
@@ -3527,10 +3530,16 @@
         "live": false
       },
       "final_proof": {
-        "live_bundle": "index-CDUr8iyt.js",
-        "e2e": "otzar-live-synthetic-scale-r03 10/10 product surface",
-        "notes": "S25 partial; S250/S2500 planned; requires_external_creds=false; honest residual",
-        "sha": "cdadd1d"
+        "s250": {
+          "people": 250,
+          "twins": 250,
+          "teams": ">=20",
+          "projects": ">=30",
+          "scenarios": 40,
+          "unit": "synthetic-s250-harness 4/4",
+          "notes": "hidden oracles; failure injection; repair loop; metrics; no external creds"
+        },
+        "ui": "SyntheticScaleHarnessCard S25+S250 partial"
       },
       "deployment_sha": "cdadd1d"
     },

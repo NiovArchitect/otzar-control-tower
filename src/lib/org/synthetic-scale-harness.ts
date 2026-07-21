@@ -76,9 +76,11 @@ export type SyntheticRunPlan = {
 
 export function planSyntheticLevel(level: SyntheticScaleId): SyntheticRunPlan {
   const def = SYNTHETIC_SCALE_LEVELS.find((l) => l.id === level)!;
-  // Current product proof: S25 partially covered by R-01 L1 + hierarchy-pressure + customer-sim
+  // S25: R-01 L1 + hierarchy-pressure + customer-sim partial
+  // S250: synthetic-s250 seeded pressure harness (graph+scenarios+metrics+repair)
+  // S2500: planned continuous expansion
   const status: SyntheticRunPlan["status"] =
-    level === "S25" ? "partial" : "planned";
+    level === "S25" ? "partial" : level === "S250" ? "partial" : "planned";
   return {
     level,
     people_target: def.people_target,
@@ -124,7 +126,7 @@ export function syntheticHarnessStatusLabel(plans: SyntheticRunPlan[]): string {
   const partial = plans.filter((p) => p.status === "partial").length;
   if (proven === plans.length) return "All synthetic levels proven";
   if (partial > 0) {
-    return `S25 partial (R-01/customer-sim); S250/S2500 planned — internal only, no YC creds required`;
+    return `S25+S250 partial (seeded pressure harness); S2500 planned — internal only, no YC creds required`;
   }
   return "Synthetic progressive harness planned";
 }

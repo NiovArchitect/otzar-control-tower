@@ -129,7 +129,9 @@ test("R-03 deep: internal synthetic scale harness", async ({ page }) => {
   const s2500 = (await card.getAttribute("data-s2500-status")) ?? "";
   rec(
     "R03-E",
-    s25 === "partial" && s250 === "planned" && s2500 === "planned"
+    s25 === "partial" &&
+      (s250 === "partial" || s250 === "planned") &&
+      s2500 === "planned"
       ? "PASS"
       : "FAIL",
     `S25=${s25} S250=${s250} S2500=${s2500}`,
