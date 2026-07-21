@@ -22,12 +22,8 @@ export function SpatialPresenceLayer({
   depthEnabled?: boolean;
   showReadinessNote?: boolean;
 }): JSX.Element {
-  const [mode, setMode] = useState<SpatialMode>(() =>
-    resolveSpatialMode({
-      reducedMotion: prefersReducedMotion(),
-      depthEnabled,
-    }),
-  );
+  // Default flat until client effect measures motion preference (SSR/jsdom safe).
+  const [mode, setMode] = useState<SpatialMode>("flat_2d");
 
   useEffect(() => {
     const apply = (): void => {
@@ -90,9 +86,7 @@ export function SpatialPresenceLayer({
 
 /** Compact visible readiness strip (not on primary Focus path). */
 export function SpatialReadinessNote(): JSX.Element {
-  const [mode, setMode] = useState<SpatialMode>(() =>
-    resolveSpatialMode({ reducedMotion: prefersReducedMotion() }),
-  );
+  const [mode, setMode] = useState<SpatialMode>("flat_2d");
 
   useEffect(() => {
     setMode(resolveSpatialMode({ reducedMotion: prefersReducedMotion() }));

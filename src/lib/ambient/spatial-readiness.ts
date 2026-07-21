@@ -36,12 +36,17 @@ export const SPATIAL_READINESS_RULES = [
 ] as const;
 
 export function prefersReducedMotion(
-  matchMedia: ((query: string) => { matches: boolean }) | null | undefined =
-    typeof window !== "undefined" ? window.matchMedia.bind(window) : null,
+  matchMediaFn?: ((query: string) => { matches: boolean }) | null,
 ): boolean {
-  if (!matchMedia) return false;
+  const mm =
+    matchMediaFn ??
+    (typeof window !== "undefined" &&
+    typeof window.matchMedia === "function"
+      ? (q: string) => window.matchMedia(q)
+      : null);
+  if (!mm) return false;
   try {
-    return matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return mm("(prefers-reduced-motion: reduce)").matches;
   } catch {
     return false;
   }
