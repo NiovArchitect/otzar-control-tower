@@ -14,7 +14,7 @@
 | CT main | `882361d` (product live `d320c12`) |
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
-| LIVE_VERIFIED count | 53 |
+| LIVE_VERIFIED count | 55 |
 | Open P0 count | 22 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
@@ -148,7 +148,10 @@ PARTIAL — thin.
 
 ### Q — Multi-tenant
 
-PARTIAL — continuous isolation suite + second-tenant credential open.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **Q-01** Cross-tenant zero-leak | LIVE_VERIFIED | Complex deep 10/10 on `index-B0--oBmE.js` — 4 facets; deep-link matrix; dual principal leaks=0; continuous second-tenant residual |
+| **Q-02** Multi-org Twin + deep-link isolation | LIVE_VERIFIED | Twin scope user::org; deep-link allow/block; admin Company Profile + employee Memory |
 
 ### R — Pressure
 

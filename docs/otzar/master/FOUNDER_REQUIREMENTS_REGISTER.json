@@ -2458,18 +2458,23 @@
         "tests/unit/cross-tenant-isolation.test.ts",
         "tests/e2e/otzar-live-cross-tenant-q01.spec.ts"
       ],
-      "proof_level": "UNIT_PROVEN",
-      "remaining_gap": "Product shipped; LIVE complex deep after deploy; continuous second-tenant residual",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Continuous multi-tenant second-org credential harness",
       "dependencies": [],
       "priority": "P0",
       "phase": 6,
       "test_requirements": [],
       "live_acceptance": "Cross-tenant isolation card; zero-leak facets; deep-link isolation; twin scope",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "0c9b90a",
+      "final_proof": {
+        "live_bundle": "index-B0--oBmE.js",
+        "e2e": "otzar-live-cross-tenant-q01 10/10",
+        "notes": "4 facets; deep-link allow/block; twin scope user::org; admin+employee; empFp 10 vs admin 10 leaks=0; second-tenant residual",
+        "sha": "0c9b90a"
+      }
     },
     {
       "id": "Q-02",
@@ -2497,18 +2502,23 @@
         "tests/unit/cross-tenant-isolation.test.ts",
         "tests/e2e/otzar-live-cross-tenant-q01.spec.ts"
       ],
-      "proof_level": "UNIT_PROVEN",
-      "remaining_gap": "Product shipped; LIVE complex deep after deploy; continuous second-tenant residual",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Continuous multi-org same-identity suite when multi-membership API continuous",
       "dependencies": [],
       "priority": "P0",
       "phase": 6,
       "test_requirements": [],
       "live_acceptance": "Cross-tenant isolation card; zero-leak facets; deep-link isolation; twin scope",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "0c9b90a",
+      "final_proof": {
+        "live_bundle": "index-B0--oBmE.js",
+        "e2e": "otzar-live-cross-tenant-q01 10/10",
+        "notes": "4 facets; deep-link allow/block; twin scope user::org; admin+employee; empFp 10 vs admin 10 leaks=0; second-tenant residual",
+        "sha": "0c9b90a"
+      }
     },
     {
       "id": "R-01",
