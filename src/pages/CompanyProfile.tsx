@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { WorkStylePolicyCard } from "@/components/otzar/WorkStylePolicyCard";
+import { CrossTenantIsolationCard } from "@/components/otzar/CrossTenantIsolationCard";
 import { api } from "@/lib/api";
 import type { DecisionDomain, DecisionRightsPosture } from "@/lib/types/foundation";
 import { DECISION_DOMAINS, decisionDomainLabel } from "@/lib/labels/decision-domains";
@@ -243,6 +244,9 @@ export function CompanyProfilePage() {
 
       {/* H-01 — org enables professional learning so employees can Teach Otzar. */}
       <WorkStylePolicyCard />
+
+      {/* Q-01 / Q-02 — cross-tenant zero leakage + deep-link isolation */}
+      <CrossTenantIsolationCard variant="admin" />
 
       <Card data-testid="decision-rights-card">
         <CardHeader className="pb-2">

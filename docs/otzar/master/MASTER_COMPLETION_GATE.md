@@ -9,7 +9,7 @@
 | CT `origin/main` | `6dcb549` |
 | Live bundle | `index-BbOS73Ky.js` |
 | Live last-modified | 2026-07-21 I-02 complex deep **10/10** multi-org memory isolation |
-| Gate status | **OPEN** — I-02 LIVE; residual S-01 YC; Q multi-tenant; R scale; N-02 EXTERNALLY_BLOCKED |
+| Gate status | **OPEN** — Q-01/Q-02 product shipped pending LIVE; residual S-01 YC; R scale; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
