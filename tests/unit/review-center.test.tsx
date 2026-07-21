@@ -111,10 +111,14 @@ function renderPage(): void {
 beforeEach(() => setAuth());
 
 describe("Review Center — nav + render", () => {
-  it("the nav registers a Review Center entry in Policies & Approvals", () => {
+  it("the nav keeps Review Center under Action Center (hidden; Action Center is primary)", () => {
     const item = NAV.find((n) => n.to === "/review-center");
     expect(item).toBeDefined();
-    expect(item?.group).toBe("Policies & Approvals");
+    expect(item?.group).toBe("Action Center");
+    expect(item?.hidden).toBe(true);
+    const primary = NAV.find((n) => n.to === "/approvals");
+    expect(primary?.label).toBe("Action Center");
+    expect(primary?.hidden).not.toBe(true);
   });
 
   it("renders the page with safe subtitle (no raw content language)", async () => {
@@ -301,9 +305,14 @@ describe("Review Center — nav badge", () => {
     );
   }
 
-  it("shows the needs-review count when there are pending org reviews", async () => {
+  it("shows the needs-review count on Action Center when there are pending org reviews", async () => {
     mockBadge(3);
     renderSidebar();
+    // Review badge is on the unified Action Center primary nav entry
+    // (group header + link both say "Action Center").
+    expect(
+      await screen.findByRole("link", { name: /Action Center/i }),
+    ).toBeInTheDocument();
     const badge = await screen.findByTestId("review-nav-badge");
     expect(badge).toHaveTextContent("3");
   });
@@ -311,7 +320,7 @@ describe("Review Center — nav badge", () => {
   it("hides the badge when there are no pending org reviews (or unauthorized)", async () => {
     mockBadge(0);
     renderSidebar();
-    await screen.findByText("Review Center");
+    await screen.findByRole("link", { name: /Action Center/i });
     expect(screen.queryByTestId("review-nav-badge")).not.toBeInTheDocument();
   });
 });

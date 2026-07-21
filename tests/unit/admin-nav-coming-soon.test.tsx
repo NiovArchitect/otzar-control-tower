@@ -1,8 +1,8 @@
 // FILE: admin-nav-coming-soon.test.tsx (unit)
-// PURPOSE: [OTZAR-V1-LIVE-1B] Lock which admin nav entries are placeholder
-//          ("coming soon") and therefore hidden from the sidebar by default, so
-//          v1 validation never walks a teammate into a reserved/stub screen.
-//          Their ROUTES stay registered (App.tsx) — only the nav entry hides.
+// PURPOSE: Lock which admin nav entries are placeholder ("coming soon") and
+//          therefore hidden from the sidebar by default. Also lock the RC2
+//          jobs-model visibility: Voice/seeding/onboarding/architecture
+//          surfaces stay registered but are not primary nav.
 // CONNECTS TO: src/lib/nav.ts, src/components/AdminSidebar.tsx.
 
 import { describe, expect, it } from "vitest";
@@ -19,12 +19,9 @@ const EXPECTED_COMING_SOON = [
   "/workflows",
 ].sort();
 
-// Real, working surfaces that MUST remain visible during validation.
-// NOTE: /connectors and /connector-rails are no longer top-level nav entries —
-// they fold into the single "Tools & Connections" landing (/tools-connections)
-// as tabs. Their ROUTES stay registered (App.tsx), but the visible destination
-// is now /tools-connections.
-const MUST_STAY_VISIBLE = [
+// Real, working surfaces that MUST remain registered (not comingSoon).
+// Many are hidden from the sidebar (jobs model) but routes stay deep-link safe.
+const MUST_STAY_REGISTERED = [
   "/",
   "/users",
   "/tools-connections",
@@ -34,6 +31,24 @@ const MUST_STAY_VISIBLE = [
   "/agent-playground",
   "/policies",
   "/system-health",
+  "/setup",
+  "/approvals",
+  "/security-audit",
+];
+
+// Primary-visible destinations under the jobs model (comingSoon + hidden filtered).
+const MUST_BE_SIDEBAR_VISIBLE = [
+  "/",
+  "/setup",
+  "/users",
+  "/ai-teammates",
+  "/tools-connections",
+  "/policies",
+  "/access-control",
+  "/retention",
+  "/approvals",
+  "/reports",
+  "/security-audit",
 ];
 
 describe("admin nav — placeholder (comingSoon) hiding (LIVE-1B)", () => {
@@ -44,12 +59,12 @@ describe("admin nav — placeholder (comingSoon) hiding (LIVE-1B)", () => {
     expect(comingSoon).toEqual(EXPECTED_COMING_SOON);
   });
 
-  it("keeps real working surfaces visible (not comingSoon)", () => {
-    const visible = new Set(
+  it("keeps real working surfaces registered (not comingSoon)", () => {
+    const registered = new Set(
       NAV.filter((n) => n.comingSoon !== true).map((n) => n.to),
     );
-    for (const route of MUST_STAY_VISIBLE) {
-      expect(visible.has(route)).toBe(true);
+    for (const route of MUST_STAY_REGISTERED) {
+      expect(registered.has(route)).toBe(true);
     }
   });
 
@@ -57,6 +72,26 @@ describe("admin nav — placeholder (comingSoon) hiding (LIVE-1B)", () => {
     const defaultVisible = NAV.filter((n) => n.comingSoon !== true).map((n) => n.to);
     for (const route of EXPECTED_COMING_SOON) {
       expect(defaultVisible).not.toContain(route);
+    }
+  });
+
+  it("sidebar-visible nav matches the jobs model primary destinations", () => {
+    const sidebar = NAV.filter(
+      (n) => n.comingSoon !== true && n.hidden !== true,
+    ).map((n) => n.to);
+    for (const route of MUST_BE_SIDEBAR_VISIBLE) {
+      expect(sidebar).toContain(route);
+    }
+    // Architecture / duplicate destinations must not be primary.
+    for (const hidden of [
+      "/voice",
+      "/organization-seeding",
+      "/onboarding",
+      "/data-knowledge",
+      "/review-center",
+      "/system-health",
+    ]) {
+      expect(sidebar).not.toContain(hidden);
     }
   });
 });

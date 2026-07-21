@@ -1,9 +1,8 @@
 // FILE: admin-nav-sections.test.tsx (unit)
-// PURPOSE: Lock the production Admin Center IA — eight coherent sections, the
-//          approved per-section membership, stub screens hidden from the visible
-//          nav (routes preserved), and the two connector surfaces folded into one
-//          "Tools & Connections" destination. This is the contract the sidebar
-//          and route map must honor.
+// PURPOSE: Lock the production Admin Center IA — administrator jobs model
+//          (~6–7 primary areas), no architecture-oriented primary tabs,
+//          seeding/onboarding folded into Organization, Voice not primary,
+//          Action Center as the single exception queue.
 // CONNECTS TO: src/lib/nav.ts, src/components/AdminSidebar.tsx, src/App.tsx.
 
 import { describe, expect, it } from "vitest";
@@ -20,85 +19,128 @@ const visible = NAV.filter(
 const routesIn = (group: NavGroup): string[] =>
   visible.filter((n) => n.group === group).map((n) => n.to).sort();
 
-describe("Admin Center IA — eight production sections", () => {
-  it("renders exactly the eight approved sections in order", () => {
+describe("Admin Center IA — jobs model (RC2 coherence)", () => {
+  it("renders the approved primary sections in order", () => {
     expect([...NAV_GROUP_ORDER]).toEqual([
       "Overview",
-      "People & Roles",
-      "Tools & Connections",
-      "Work Graph & Memory",
-      "Policies & Approvals",
-      "Workflows & Automation",
-      "Audit & Activity",
-      "Diagnostics",
+      "People & AI",
+      "Connections",
+      "Governance",
+      "Action Center",
+      "Intelligence",
+      "Security",
     ]);
   });
 
-  it("every nav entry belongs to one of the eight sections", () => {
+  it("every nav entry belongs to one of the approved sections", () => {
     const groups = new Set<string>(NAV_GROUP_ORDER);
     for (const n of NAV) expect(groups.has(n.group)).toBe(true);
   });
 
-  // Approved per-section VISIBLE membership (stub entries excluded by design).
-  it("Overview = Home + Organization Setup (billing is advanced/hidden)", () => {
-    // YC RC2 signal: Billing is not first-login Overview focus.
+  it("Overview = Home + Organization (billing advanced/hidden)", () => {
     expect(routesIn("Overview")).toEqual(["/", "/setup"].sort());
   });
-  it("People & Roles = Users, AI Teammates, Organization Seeding, Onboarding", () => {
-    expect(routesIn("People & Roles")).toEqual(
-      ["/ai-teammates", "/onboarding", "/organization-seeding", "/users"].sort(),
+
+  it("People & AI = People + AI Teammates only (seeding/onboarding not primary)", () => {
+    expect(routesIn("People & AI")).toEqual(
+      ["/ai-teammates", "/users"].sort(),
     );
-  });
-  it("Tools & Connections = merged landing + Voice (providers advanced/hidden)", () => {
-    expect(routesIn("Tools & Connections")).toEqual(
-      ["/tools-connections", "/voice"].sort(),
-    );
-  });
-  it("Work Graph & Memory = Data & Knowledge + Access Control (marketplace/cohorts advanced)", () => {
-    // PROD-MODEL-P3 §9 — grants folded into Access Control.
-    // YC RC2: Marketplace + Federation Cohorts hidden from primary nav.
-    expect(routesIn("Work Graph & Memory")).toEqual(
-      ["/access-control", "/data-knowledge"].sort(),
-    );
-  });
-  it("Policies & Approvals = Policies, Review Center, Pending Approvals", () => {
-    // collaboration-policy is advanced/hidden; routes remain registered.
-    expect(routesIn("Policies & Approvals")).toEqual(
-      ["/approvals", "/policies", "/review-center"].sort(),
-    );
-  });
-  it("Workflows & Automation has no primary visible entries (playground advanced)", () => {
-    // Agent Playground remains a registered route but is not first-class nav.
-    expect(routesIn("Workflows & Automation")).toEqual([]);
-  });
-  it("Audit & Activity = Security & Audit + Reports", () => {
-    expect(routesIn("Audit & Activity")).toEqual(["/reports", "/security-audit"].sort());
-  });
-  it("Diagnostics = System Health + Data retention", () => {
-    expect(routesIn("Diagnostics")).toEqual(["/retention", "/system-health"].sort());
+    const labels = visible
+      .filter((n) => n.group === "People & AI")
+      .map((n) => n.label);
+    expect(labels).not.toContain("Organization Seeding");
+    expect(labels).not.toContain("Onboarding");
   });
 
-  it("folds the two connector surfaces into one Tools & Connections entry", () => {
+  it("Connections = Connections landing only (Voice not primary)", () => {
+    expect(routesIn("Connections")).toEqual(["/tools-connections"]);
+    expect(visible.map((n) => n.label)).not.toContain("Voice");
+  });
+
+  it("Governance = Policies + Access + Data retention", () => {
+    expect(routesIn("Governance")).toEqual(
+      ["/access-control", "/policies", "/retention"].sort(),
+    );
+  });
+
+  it("Action Center = single exception queue (not Review + Pending + Policies)", () => {
+    expect(routesIn("Action Center")).toEqual(["/approvals"]);
+    const labels = visible.map((n) => n.label);
+    expect(labels).not.toContain("Review Center");
+    expect(labels).not.toContain("Pending Approvals");
+    expect(labels).not.toContain("Policies & Approvals");
+  });
+
+  it("Intelligence = Reports (Work Graph not primary)", () => {
+    expect(routesIn("Intelligence")).toEqual(["/reports"]);
+    const groupNames = [...NAV_GROUP_ORDER];
+    expect(groupNames).not.toContain("Work Graph & Memory");
+  });
+
+  it("Security = Security & Audit primary (System Health advanced)", () => {
+    expect(routesIn("Security")).toEqual(["/security-audit"]);
+    expect(visible.map((n) => n.to)).not.toContain("/system-health");
+  });
+
+  it("does not expose architecture-oriented primary groups", () => {
+    const groups = [...NAV_GROUP_ORDER];
+    for (const banned of [
+      "Tools & Connections",
+      "Work Graph & Memory",
+      "Policies & Approvals",
+      "Audit & Activity",
+      "Diagnostics",
+      "People & Roles",
+      "Workflows & Automation",
+    ]) {
+      expect(groups).not.toContain(banned);
+    }
+  });
+
+  it("folds connectors into one Connections entry", () => {
     const navRoutes = NAV.map((n) => n.to);
-    // The former top-level connector destinations are no longer nav entries…
     expect(navRoutes).not.toContain("/connectors");
     expect(navRoutes).not.toContain("/connector-rails");
-    // …replaced by exactly one merged landing.
     expect(navRoutes.filter((r) => r === "/tools-connections")).toHaveLength(1);
   });
 
-  it("hides the seven stub screens from the visible nav", () => {
+  it("hides stub and architecture screens from the visible nav", () => {
     const visibleRoutes = visible.map((n) => n.to);
     for (const stub of [
-      "/analytics", "/conversations", "/documentation", "/intelligence",
-      "/playground", "/settings", "/workflows",
+      "/analytics",
+      "/conversations",
+      "/documentation",
+      "/intelligence",
+      "/playground",
+      "/settings",
+      "/workflows",
+      "/voice",
+      "/organization-seeding",
+      "/onboarding",
+      "/data-knowledge",
+      "/review-center",
+      "/system-health",
     ]) {
       expect(visibleRoutes).not.toContain(stub);
     }
   });
+
+  it("keeps deep-link routes registered for folded destinations", () => {
+    const all = NAV.map((n) => n.to);
+    for (const route of [
+      "/organization-seeding",
+      "/onboarding",
+      "/review-center",
+      "/voice",
+      "/data-knowledge",
+      "/system-health",
+    ]) {
+      expect(all).toContain(route);
+    }
+  });
 });
 
-describe("Admin sidebar — renders the production sections, no connector confusion", () => {
+describe("Admin sidebar — jobs model, no connector or architecture confusion", () => {
   function renderSidebar(): void {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -110,27 +152,36 @@ describe("Admin sidebar — renders the production sections, no connector confus
     );
   }
 
-  it("shows production section headers (empty groups omitted) and Tools & Connections", () => {
+  it("shows job-section headers and Connections", () => {
     renderSidebar();
     const groups = screen
       .getAllByTestId("admin-nav-group")
       .map((el) => el.getAttribute("data-group"));
-    // Workflows & Automation is fully hidden (zero-noise) — section not rendered.
-    expect(groups).toEqual(
-      NAV_GROUP_ORDER.filter((g) => g !== "Workflows & Automation"),
-    );
-    expect(screen.getByRole("link", { name: /Tools & Connections/i })).toBeInTheDocument();
+    expect(groups).toEqual([...NAV_GROUP_ORDER]);
+    expect(
+      screen.getByRole("link", { name: /^Connections$/i }),
+    ).toBeInTheDocument();
   });
 
-  it("does not surface the old separate connector labels as nav links", () => {
+  it("does not surface old separate connector labels as nav links", () => {
     renderSidebar();
     expect(screen.queryByRole("link", { name: /^Connectors$/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /Integrations & MCP/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Tools & Connections$/i })).toBeNull();
   });
 
-  it("does not render stub or experimental screens in the sidebar", () => {
+  it("does not render competing seeding/onboarding/voice/architecture tabs", () => {
     renderSidebar();
     for (const label of [
+      "Organization Seeding",
+      "Onboarding",
+      "Voice",
+      "Work Graph & Memory",
+      "Data & Knowledge",
+      "Review Center",
+      "Pending Approvals",
+      "System Health",
+      "Diagnostics",
       "Analytics",
       "Workflows",
       "Playground",
@@ -138,7 +189,16 @@ describe("Admin sidebar — renders the production sections, no connector confus
       "Settings",
       "Documentation",
     ]) {
-      expect(screen.queryByRole("link", { name: new RegExp(`^${label}$`, "i") })).toBeNull();
+      expect(
+        screen.queryByRole("link", { name: new RegExp(`^${label}$`, "i") }),
+      ).toBeNull();
     }
+  });
+
+  it("exposes one Action Center link", () => {
+    renderSidebar();
+    expect(
+      screen.getByRole("link", { name: /Action Center/i }),
+    ).toBeInTheDocument();
   });
 });

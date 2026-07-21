@@ -16,6 +16,11 @@
 
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
 import {
+  composeMessageFromInstruction,
+  isPurposeOnlyClause,
+  stripDiscourseMarkers,
+} from "@/lib/work-os/message-compose";
+import {
   parseDirectAddress,
   parseRelationalMessage,
 } from "@/lib/voice/voice-action-runtime";
@@ -76,9 +81,10 @@ export function isSelfKind(kind: AmbientOutboundKind): boolean {
 // Imperative lead verbs that address a teammate/team for outbound work.
 // NOTE: "send" is deliberately EXCLUDED — "Send <Name> this/a message" is owned
 // by the draft-until-Confirm flow (SEND_REQUIRES_APPROVAL / DRAFT_MESSAGE). The
-// ambient one-shot cases are ask/tell/message/have/remind/check with/follow up with.
+// ambient one-shot cases are ask/tell/message/ping/have/remind/check with/follow up with.
+// "ping"/"notify" are intent verbs (status / attention), never literal body text.
 const LEAD_VERBS =
-  "ask|tell|message|msg|have|remind|check\\s+with|follow\\s+up\\s+with";
+  "ask|tell|message|msg|ping|notify|have|remind|check\\s+with|follow\\s+up\\s+with";
 
 // A team/role phrase ("the product team", "product team") OR a capitalized name.
 const TARGET = "(the\\s+[a-z][a-z'’-]*\\s+team|[a-z][a-z'’-]*\\s+team|[A-Z][a-zA-Z'’-]+)";
@@ -371,17 +377,22 @@ export function isExplicitExternalEmailIntent(text: string): boolean {
 export function interpretAmbientOutboundWork(
   text: string,
 ): AmbientOutboundPlan | null {
-  const raw = text.trim();
+  const original = text.trim();
+  if (original.length === 0) return null;
+
+  // Affirmations to Otzar ("Yes, ping David…") are not message content.
+  const raw = stripDiscourseMarkers(original);
   if (raw.length === 0) return null;
 
   // N-05: "Email David …" / "send an email to …" → voice draft path only.
-  if (isExplicitExternalEmailIntent(raw)) return null;
+  if (isExplicitExternalEmailIntent(raw) || isExplicitExternalEmailIntent(original))
+    return null;
 
   // SELF-directed work ("remind me…", "note to self…", "message myself…") —
   // route to the self note/task/reminder rail, NEVER a "Hey <Name>" message.
   const self = detectSelf(raw);
   if (self !== null) {
-    return selfPlan(self.kind, raw, self.body);
+    return selfPlan(self.kind, original, self.body);
   }
 
   // "ask my twin / my own twin / my agent / otzar <…>" is a reflective question
@@ -397,7 +408,7 @@ export function interpretAmbientOutboundWork(
     return plan(
       rel.recipient,
       "PERSON",
-      raw,
+      original,
       composeFor(rel.recipient, "PERSON", rel.body, false),
       0.7,
       "relational",
@@ -405,7 +416,7 @@ export function interpretAmbientOutboundWork(
   }
 
   // (a)/(b) Imperative or modal lead + target ("ask David to …", "Tell the
-  //          product team …", "can you message Shweta about …").
+  //          product team …", "can you message Shweta about …", "ping David…").
   const m = raw.match(LEAD_RE);
   if (m !== null) {
     const verb = m[1]!.toLowerCase().replace(/\s+/g, " ");
@@ -425,7 +436,7 @@ export function interpretAmbientOutboundWork(
     // Compound framing: "Message David and ask him to validate …" — drop the
     // second directive verb + optional pronoun so only the ask clause remains.
     rest = rest.replace(
-      /^(?:[,:]\s*)?and\s+(?:ask|tell|message|remind|let)\s+(?:him|her|them)?\s*/i,
+      /^(?:[,:]\s*)?and\s+(?:ask|tell|message|remind|let|ping)\s+(?:him|her|them)?\s*/i,
       " ",
     );
 
@@ -433,36 +444,106 @@ export function interpretAmbientOutboundWork(
       ? "TEAM"
       : "PERSON";
 
+    // Purpose-only / ping-for-status → professional status draft (never "for a
+    // status update" or the raw command as body).
+    if (
+      recipientType === "PERSON" &&
+      !NON_RECIPIENT.has(recipient.toLowerCase()) &&
+      (verb === "ping" ||
+        verb === "notify" ||
+        isPurposeOnlyClause(rest) ||
+        /\b(?:status\s+update|for\s+(?:a\s+)?(?:status\s+)?update)\b/i.test(rest) ||
+        (rest.length === 0 && (verb === "ping" || verb === "notify" || verb === "message")))
+    ) {
+      const composed = composeMessageFromInstruction({
+        instruction: original,
+        recipient,
+        extractedBody: rest,
+      });
+      return plan(
+        recipient,
+        recipientType,
+        original,
+        composed.body,
+        0.88,
+        `intent-compose:${verb}`,
+        "INTERNAL_MESSAGE",
+        undefined,
+        composeSelfFacing("send myself a status update"),
+      );
+    }
+
     // A relayed question ("…what he thinks", "…how she wants to proceed") is
     // FORWARDED as a direct question, not wrapped as "can you …".
     const questionClause = rest.trim();
     if (/^(?:what|how|when|where|why|whether|which|who)\b/i.test(questionClause)) {
       const q = toSecondPersonQuestion(questionClause.replace(/[?.!]+$/, ""));
       if (q.length === 0 || NON_RECIPIENT.has(recipient.toLowerCase())) {
-        return clarify(raw, `Who should I send that to, and what should it say?`);
+        return clarify(original, `Who should I send that to, and what should it say?`);
       }
       return plan(
         recipient,
         recipientType,
-        raw,
+        original,
         composeFor(recipient, recipientType, q, true),
         0.8,
         `imperative-question:${verb}`,
       );
     }
 
-    // A "to <clause>" connector (or an "ask" lead) marks an actionable request;
+    // A "to <clause>" connector (or an "ask"/"ping" lead) marks an actionable request;
     // a bare clause after "tell X …" is an informational statement.
-    const isRequest = verb === "ask" || /^\s*to\b/i.test(rest);
+    const isRequest =
+      verb === "ask" ||
+      verb === "ping" ||
+      verb === "notify" ||
+      /^\s*to\b/i.test(rest);
     rest = rest
-      .replace(/^\s*(?:to|that|if|about|know\s+that)\b\s*/i, "")
+      .replace(/^\s*(?:to|that|if|about|know\s+that|for)\b\s*/i, "")
       .replace(/^\s*[,:—–-]\s*/, "")
       .trim();
 
     if (rest.length === 0 || NON_RECIPIENT.has(recipient.toLowerCase())) {
+      // Empty ask after a named recipient — still compose a status request when
+      // the verb was attention-oriented; otherwise clarify.
+      if (
+        recipientType === "PERSON" &&
+        !NON_RECIPIENT.has(recipient.toLowerCase()) &&
+        (verb === "ping" || verb === "notify" || verb === "ask" || verb === "message")
+      ) {
+        const composed = composeMessageFromInstruction({
+          instruction: original,
+          recipient,
+        });
+        return plan(
+          recipient,
+          recipientType,
+          original,
+          composed.body,
+          0.8,
+          `intent-compose-empty:${verb}`,
+        );
+      }
       return clarify(
-        raw,
+        original,
         `Who should I send that to, and what should it say?`,
+      );
+    }
+
+    // Purpose-only residue after stripping connectors ("a status update")
+    if (isPurposeOnlyClause(rest) || /^(?:a\s+)?(?:quick\s+)?(?:status\s+)?update\b/i.test(rest)) {
+      const composed = composeMessageFromInstruction({
+        instruction: original,
+        recipient,
+        extractedBody: rest,
+      });
+      return plan(
+        recipient,
+        recipientType,
+        original,
+        composed.body,
+        0.86,
+        `intent-compose-purpose:${verb}`,
       );
     }
 
@@ -480,7 +561,7 @@ export function interpretAmbientOutboundWork(
     return plan(
       recipient,
       recipientType,
-      raw,
+      original,
       composeFor(recipient, recipientType, body, isQuestion),
       0.82,
       `imperative:${verb}`,
@@ -501,7 +582,7 @@ export function interpretAmbientOutboundWork(
     return plan(
       da.recipient,
       "PERSON",
-      raw,
+      original,
       composeFor(da.recipient, "PERSON", body, isQuestionBody(body)),
       0.75,
       "direct-address",
@@ -521,7 +602,7 @@ export function interpretAmbientOutboundWork(
       return plan(
         approver,
         "PERSON",
-        raw,
+        original,
         composeFor(approver, "PERSON", "can you approve this?", true),
         0.8,
         "escalation-approval",
@@ -530,7 +611,7 @@ export function interpretAmbientOutboundWork(
         composeSelfFacing("approve this"),
       );
     }
-    return clarify(raw, "Who should approve this?");
+    return clarify(original, "Who should approve this?");
   }
 
   return null;

@@ -59,21 +59,38 @@ test.describe("live workos IA: employee minimal + admin production sections", ()
     ev(test.info(), "More sheet curated: Projects/Tools present; route-only surfaces hidden ✓");
   });
 
-  test("admin nav = 8 production sections with the approved placements + connector fold", () => {
+  test("admin nav = jobs model sections with Connections fold (no architecture IA)", () => {
     const nav = readFileSync(resolve(process.cwd(), "src/lib/nav.ts"), "utf8");
     for (const section of [
-      '"Overview"', '"People & Roles"', '"Tools & Connections"', '"Work Graph & Memory"',
-      '"Policies & Approvals"', '"Workflows & Automation"', '"Audit & Activity"', '"Diagnostics"',
+      '"Overview"',
+      '"People & AI"',
+      '"Connections"',
+      '"Governance"',
+      '"Action Center"',
+      '"Intelligence"',
+      '"Security"',
     ]) {
       expect(nav.includes(section), `section ${section}`).toBe(true);
     }
-    // Approved placements + connector fold (one merged destination, no separate entries).
-    expect(nav.includes('to: "/tools-connections"'), "merged Tools & Connections entry").toBe(true);
+    // Architecture-oriented primary groups must not be the IA.
+    for (const banned of [
+      '"People & Roles"',
+      '"Tools & Connections"',
+      '"Work Graph & Memory"',
+      '"Policies & Approvals"',
+      '"Audit & Activity"',
+      '"Diagnostics"',
+    ]) {
+      // May appear only in comments about what was removed — require NavGroup union form
+      expect(nav.includes(`| ${banned.replace(/"/g, "")}`), `no NavGroup ${banned}`).toBe(false);
+    }
+    // Connections fold (one merged destination, no separate entries).
+    expect(nav.includes('to: "/tools-connections"'), "merged Connections entry").toBe(true);
     expect(nav.includes('to: "/connectors"'), "no separate Connectors nav entry").toBe(false);
     expect(nav.includes('to: "/connector-rails"'), "no separate MCP nav entry").toBe(false);
     // No raw developer labels as primary nav labels.
     expect(/label:\s*"[^"]*(binding|schema|MCP rail|capability object)/i.test(nav), "no dev jargon labels").toBe(false);
-    ev(test.info(), "admin nav.ts: 8 sections ✓, /tools-connections merged ✓, /connectors + /connector-rails folded out ✓");
+    ev(test.info(), "admin nav.ts: jobs model ✓, /tools-connections merged ✓, architecture groups out ✓");
   });
 
   test("admin routes are deep-link safe (folded + moved + stub routes all resolve)", async () => {

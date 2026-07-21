@@ -4,12 +4,12 @@
 //          drafted something but no artifact existed. This card makes
 //          every draft / proposed action / meeting proposal a real,
 //          on-screen object with a recipient, channel, body, governed
-//          status, and Edit / Confirm / Cancel / Open controls.
+//          status, and Edit / Send message / Cancel / Open controls.
 //
-//          It NEVER sends anything itself — Confirm calls back into the
-//          governed runtime (which proposes/approval-gates), and Edit
-//          revises the local body before re-proposing. If a backend
-//          ProposedAction was created, its id + status are shown.
+//          It NEVER sends anything itself — the primary action calls
+//          back into the governed runtime (which sends or approval-gates),
+//          and Edit revises the local body before re-submitting. If a
+//          backend ProposedAction was created, its id + status are shown.
 // CONNECTS TO: src/components/otzar/AmbientOtzarBar.tsx,
 //          tests/unit/work-artifact-card.test.tsx.
 
@@ -28,7 +28,11 @@ export interface WorkArtifact {
   channel?: string;
   /** The editable draft body / meeting note. */
   body: string;
-  /** Governed status badge (Approval required / Draft only / …). */
+  /** One-line purpose under the title (intent summary, not backend jargon). */
+  purpose?: string;
+  /** Primary action label: "Send message" | "Submit for approval" | "Save draft". */
+  primaryActionLabel?: string;
+  /** Governed status badge (Review before sending / …). */
   status: string;
   /** A preserved prerequisite, e.g. "Requires Samiksha's confirmation". */
   prerequisite?: string;
@@ -149,6 +153,14 @@ export function WorkArtifactCard({
           {artifact.status}
         </Badge>
       </div>
+      {artifact.purpose !== undefined && artifact.purpose.length > 0 ? (
+        <p
+          className="text-[11px] text-muted-foreground"
+          data-testid="work-artifact-purpose"
+        >
+          {artifact.purpose}
+        </p>
+      ) : null}
       {artifact.mailLifecycle !== undefined ? (
         <p
           className="text-[10px] text-muted-foreground"
@@ -311,7 +323,8 @@ export function WorkArtifactCard({
               data-testid="work-artifact-confirm"
               onClick={() => onConfirm(draft)}
             >
-              <Check className="mr-1 h-3 w-3" /> Confirm
+              <Check className="mr-1 h-3 w-3" />{" "}
+              {artifact.primaryActionLabel ?? "Send message"}
             </Button>
             <Button
               type="button"
@@ -321,7 +334,7 @@ export function WorkArtifactCard({
               data-testid="work-artifact-edit-open"
               onClick={() => setEditing(true)}
             >
-              <Pencil className="mr-1 h-3 w-3" /> Edit
+              <Pencil className="mr-1 h-3 w-3" /> Edit message
             </Button>
             <Button
               type="button"
@@ -331,7 +344,7 @@ export function WorkArtifactCard({
               data-testid="work-artifact-include-open"
               onClick={() => setIncludeOpen((v) => !v)}
             >
-              Include others
+              Add people
             </Button>
             <Button
               type="button"

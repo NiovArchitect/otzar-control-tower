@@ -87,7 +87,7 @@ describe("Marketplace discovery — nav + render", () => {
   it("the nav registers Marketplace as advanced Diagnostics (hidden)", () => {
     const item = NAV.find((n) => n.to === "/marketplace");
     expect(item).toBeDefined();
-    expect(item?.group).toBe("Diagnostics");
+    expect(item?.group).toBe("Security");
     expect(item?.hidden).toBe(true);
   });
 
