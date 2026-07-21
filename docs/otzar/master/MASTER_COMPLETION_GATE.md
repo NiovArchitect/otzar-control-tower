@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `7125122` |
-| Live bundle | `index-BQpyBPT2.js` |
-| Live last-modified | 2026-07-21 D-03 complex deep **10/10** spatial readiness |
-| Gate status | **OPEN** — D-03 LIVE; residual N-02 EXTERNALLY_BLOCKED; T-01 Relay DISCOVERED; scale/YC credential residuals |
+| CT `origin/main` | `53d727c` |
+| Live bundle | `index-CZ_K4POl.js` |
+| Live last-modified | 2026-07-21 T-01 complex deep **10/10** Relay boundary |
+| Gate status | **OPEN** — T-01 LIVE; only N-02 EXTERNALLY_BLOCKED (+ credential residuals) |
 
 ---
 
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **N-02** Meet OAuth EXTERNALLY_BLOCKED (operator reauth);
-2. **T-01** Relay boundary DISCOVERED (preserve separate app — no CT merge);
-3. Continuous L2/L3 scale + dedicated YC org credentials when available;
-4. Regression re-bind of LIVE rows; immersive 3D residual under D-03.
+1. **N-02** Meet OAuth EXTERNALLY_BLOCKED (operator reauth) — only open product P0;
+2. Continuous L2/L3 scale + dedicated YC org credentials when available;
+3. Relay messaging app residual (boundary LIVE; app not built);
+4. Regression re-bind of LIVE rows.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

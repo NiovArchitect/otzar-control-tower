@@ -14,7 +14,7 @@
 | CT main | `882361d` (product live `d320c12`) |
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
-| LIVE_VERIFIED count | 59 |
+| LIVE_VERIFIED count | 60 |
 | Open P0 count | 22 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
@@ -169,7 +169,9 @@ PARTIAL — thin.
 
 ### T — Relay
 
-DISCOVERED — preserve separate app; do not merge into CT employee shell.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **T-01** Relay boundary | LIVE_VERIFIED | Complex deep 10/10 on `index-CZ_K4POl.js` — CT shell vs Relay roadmap; Relay app residual not built |
 
 ### OPS
 

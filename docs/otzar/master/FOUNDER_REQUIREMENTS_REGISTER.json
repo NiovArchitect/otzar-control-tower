@@ -2737,18 +2737,23 @@
         "tests/unit/relay-boundary.test.ts",
         "tests/e2e/otzar-live-relay-boundary-t01.spec.ts"
       ],
-      "proof_level": "UNIT_PROVEN",
-      "remaining_gap": "Boundary product shipped; LIVE deep after deploy; Relay messaging app residual not built",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Relay messaging application not built; boundary preservation LIVE in CT",
       "dependencies": [],
       "priority": "P2",
       "phase": 7,
       "test_requirements": [],
       "live_acceptance": "Relay boundary card; CT shell vs Relay roadmap; no merge confusion",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "53d727c",
+      "final_proof": {
+        "live_bundle": "index-CZ_K4POl.js",
+        "e2e": "otzar-live-relay-boundary-t01 10/10",
+        "notes": "Comms+admin cards; 5 rules; relay not shipped; no merge confusion; Today is CT Work OS",
+        "sha": "53d727c"
+      }
     },
     {
       "id": "OPS-01",
