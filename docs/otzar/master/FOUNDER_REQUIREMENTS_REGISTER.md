@@ -14,7 +14,7 @@
 | CT main | `882361d` (product live `d320c12`) |
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
-| LIVE_VERIFIED count | 56 |
+| LIVE_VERIFIED count | 57 |
 | Open P0 count | 22 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
@@ -155,7 +155,10 @@ PARTIAL — thin.
 
 ### R — Pressure
 
-PARTIAL — level1/2 harnesses exist; progressive scale continuous open.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **R-01** Progressive pressure 25→250→2500 | LIVE_VERIFIED | Complex deep 10/10 on `index-ya6xL-aK.js` — L1 live; cycle refuse; non-admin 403; residual L2/L3 continuous scale |
+| **R-02** Defect→regression | PARTIAL | Process not automated end-to-end |
 
 ### S — YC investor
 

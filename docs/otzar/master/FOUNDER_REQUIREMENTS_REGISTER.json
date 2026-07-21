@@ -2546,18 +2546,23 @@
         "tests/e2e/otzar-live-enterprise-pressure-r01.spec.ts",
         "tests/e2e/otzar-live-hierarchy-pressure.spec.ts"
       ],
-      "proof_level": "UNIT_PROVEN",
-      "remaining_gap": "Product shipped; LIVE deep after deploy; continuous 250/2500 scale residual",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Continuous progressive scale load 250\u21922500 needs scale credentials / synthetic pressure org",
       "dependencies": [],
       "priority": "P1",
       "phase": 6,
       "test_requirements": [],
       "live_acceptance": "Enterprise pressure card; L1\u2013L3 bands; repair loop; cycle refuse + non-admin deny",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "f417f9f",
+      "final_proof": {
+        "live_bundle": "index-ya6xL-aK.js",
+        "e2e": "otzar-live-enterprise-pressure-r01 10/10",
+        "notes": "L1 band 8 people; cycle 422 CYCLE; employee 403; repair loop 4 steps; residual L2/L3",
+        "sha": "f417f9f"
+      }
     },
     {
       "id": "R-02",
