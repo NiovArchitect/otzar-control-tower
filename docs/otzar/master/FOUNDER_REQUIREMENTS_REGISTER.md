@@ -15,7 +15,7 @@
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
 | LIVE_VERIFIED count | 60 |
-| Open P0 count | 1 |
+| Open residual rows | 13 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
 ## Groups A–T (summary)
@@ -201,3 +201,26 @@ Conflicts: none unresolved — external Meet blocked honestly vs “Connected”
 2. Refresh this MD summary for open P0.  
 3. Update `MASTER_COMPLETION_GATE.md` live snapshot.  
 4. Never mark CLOSED without regression ref.
+
+## Post-audit open residuals (2026-07-21)
+
+| ID | Status | Program | Notes |
+|----|--------|---------|-------|
+| **A-08** | PARTIAL | A,B | A-03/A-04/A-05/S-01 cover pieces (strip, server completion, multi-role first5). Not yet un |
+| **C-07** | PARTIAL | A,B | C-01 inventory + cull LIVE; durable published before/after control counts matrix incomplet |
+| **J-04** | PARTIAL | B | J-01/J-02/J-03 LIVE pieces; not proven as one complete multi-object project graph deep smo |
+| **L-02** | PARTIAL | B | L-01 LIVE envelope; storm/loop/concurrency residual. |
+| **N-02** | EXTERNALLY_BLOCKED | A,B | Operator Meet OAuth/scopes → PROVIDER_PROVEN ambient transcripts; honesty residual LIVE on |
+| **R-03** | PARTIAL | B | Customer-sim + Redwood + hierarchy-pressure + R-01 L1 exist. Missing unified progressive s |
+| **R-04** | PARTIAL | B | N-03/N-04/N-05 LIVE honesty exists; not folded into progressive scale matrix. |
+| **T-02** | DISCOVERED | C | Not built. EXPERIENCE_GOVERNING_SPEC defines first slice; CT boundary T-01 LIVE. |
+| **T-03** | DISCOVERED | C | Separate product program not started; prerequisites include Foundation messaging rails. |
+| **U-01** | DISCOVERED | D | Model documented; substrate primitives (grants/audit/org boundary) exist. No regulator rol |
+| **U-02** | NOT_STARTED | D,B | Documented as safe first slice; not implemented in CT UI. |
+| **V-01** | PARTIAL | B | Web ambient (D-01/D-02/D-04) LIVE; desktop verification docs exist; native mobile shell an |
+| **V-02** | PARTIAL | B | K-01/K-03/N paths LIVE at demo scale; full multi-day messy concurrent ingestion sim residu |
+
+See `REGISTER_COMPLETENESS_AUDIT.md` and `PROGRAM_GATES.md`.
+
+**Gate A** nearly closed (N-02 external). **Gates B/C/D** still open.
+

@@ -1,80 +1,75 @@
 # Otzar Master Completion Gate
 
-> Machine-enforced order. Work **only** the active phase’s open P0/P1 rows unless an external blocker forces a parallel track.
+> **Do not declare the complete Otzar program frozen because Gate A is green.**  
+> See `PROGRAM_GATES.md` and `REGISTER_COMPLETENESS_AUDIT.md` (2026-07-21).
 
-**Live snapshot (update on every prove):**
+**Live snapshot:**
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `b60fab3` |
-| Live bundle | `index-By1gQYV4.js` |
-| Live last-modified | 2026-07-21 continuous gate re-bind **9/9**; proof matrix re-synced from register |
-| Gate status | **PRODUCT COMPLETE / FROZEN** — 60 LIVE_VERIFIED; only **N-02** EXTERNALLY_BLOCKED; no further CT product rows without operator/credentials |
+| CT `origin/main` | (post-audit register expand) |
+| Live bundle | `index-By1gQYV4.js` (last re-bind 9/9) |
+| Register rows | **74** (was 62 before audit) |
+| Gate status | **Gate A nearly closed**; **Gates B/C/D open** |
 
 ---
 
-## Phases (execution order)
+## Program gates (required)
 
-| Phase | Name | Exit when |
-|-------|------|-----------|
-| **0** | Login / Home / first-use / IA zero-noise | P0 rows LIVE_VERIFIED or EXTERNALLY_BLOCKED with honest residual |
-| **1** | Home trust + project spine + Needs me | Cards reconcile, project heart, open-work not dead-end |
-| **2** | Communication→execution + tools proof | Comms→work, Meet/Docs/Calendar honest |
-| **3** | Hierarchy + Dandelion | Propose + confirm + editor (drag-drop or keyboard parity) |
-| **4** | Memory / work-style / portability | Teach Otzar real end-to-end + isolation |
-| **5** | AI Teammates role templates + AI↔AI | Role-first Twins + governed collaboration |
-| **6** | Multi-tenant + enterprise pressure | Zero-leak + progressive scale harness |
-| **7** | YC walkthrough + Relay roadmap freeze | Unscripted YC org survives; Relay preserved not confused with CT |
-
-**Phases 0–7 product rows:** LIVE_VERIFIED (or honesty residual for N-02), except N-02 operational Meet which remains **EXTERNALLY_BLOCKED**.
+| Gate | Name | Status |
+|------|------|--------|
+| **A** | Control Tower investor surface | Nearly closed — **N-02 EXTERNALLY_BLOCKED**; A-08/C-07 PARTIAL |
+| **B** | Otzar autonomous Work OS | **Open** — R-03 synthetic scale P0; J-04; L-02; V-* |
+| **C** | Otzar Relay | **Open** — T-01 boundary LIVE; T-02/T-03 DISCOVERED not built |
+| **D** | Foundation compliance | **Open** — U-01 DISCOVERED; U-02 NOT_STARTED |
 
 ---
 
-## Open residuals only
+## Phases (CT execution order — still valid inside Gate A/B)
 
-| ID | Status | What unblocks |
-|----|--------|---------------|
-| **N-02** | EXTERNALLY_BLOCKED | Operator Google Meet OAuth/scopes; then ambient PROVIDER_PROVEN deep smoke |
-| Scale L2/L3 | residual under R-01 | Scale credentials / synthetic pressure org |
-| Dedicated YC org | residual under S-01 | Dedicated YC harness credentials |
-| Relay app build | residual under T-01 | Separate Relay product engineering (boundary LIVE) |
-| Immersive 3D | residual under D-03 | Optional WebGL walkthrough (CSS depth LIVE) |
-
----
-
-## Active honesty proof (N-02)
-
-* Product: `MeetOperationalResidualCard` on Comms + Tools  
-* Deep: `otzar-live-meet-residual-n02` **10/10** on `index-Bq4gB3kV.js`  
-* Proves: EXTERNALLY_BLOCKED stamp, operator steps, Tools reconnect, no false complete  
-* Does **not** claim Meet transcripts operational  
+| Phase | Name | Notes |
+|-------|------|-------|
+| **0–5** | Login → AI/tools | Largely LIVE with acceptance_limitations |
+| **6** | Multi-tenant + scale | Q LIVE limitations; **R-03 internal scale P0** |
+| **7** | YC + Relay | S LIVE demo limitations; Relay program T-02/T-03 |
+| **8** | Compliance | U-01/U-02 |
 
 ---
 
-## Continuous re-bind (latest)
+## Active P0 (internally achievable first)
 
-Command: `npm run test:e2e:live:gate-rebind` (`scripts/otzar-gate-rebind.sh`)
+1. **R-03** Progressive **internal synthetic** enterprise pressure 25→250→2500 (no YC creds required).  
+2. **J-04** Canonical project graph deep proof.  
+3. **A-08** Unify cinematic first-login multi-role journey.  
+4. **L-02** AI collab load/storm.  
+5. **V-02** Messy multi-source ingestion sim.  
 
-| Spec | Result |
-|------|--------|
-| N-02 meet residual honesty | PASS |
-| T-01 relay boundary | PASS |
-| D-03 spatial readiness | PASS |
-| R-02 defect→regression (incl. memory-redaction-corpus P0) | PASS |
-| R-01 enterprise pressure | PASS |
-| Q-01/Q-02 cross-tenant | PASS |
-| I-02 multi-org isolation | PASS |
-| E-03 person types | PASS |
-| H-02 memory redaction residual | PASS |
+## Externally blocked (do not greenwash)
 
-**Totals: 9 passed · 0 failed** on `index-By1gQYV4.js` (~2.2m).
+* **N-02** Google Meet operational transcripts — operator OAuth. Honesty residual LIVE.
+
+## Separate programs (not optional)
+
+* **Relay T-02/T-03** — required product program.  
+* **Compliance U-01/U-02** — Foundation substrate program.  
 
 ---
 
-## Next slice
+## Freeze rule (restored)
 
-1. **Operator:** reauth Meet OAuth → re-run ambient Comms sync → promote N-02 to PROVIDER_PROVEN / LIVE_VERIFIED when continuous.  
-2. Optional credential harnesses: L2/L3 scale, dedicated YC org.  
-3. Re-run `npm run test:e2e:live:gate-rebind` after deploys.  
+A freeze is appropriate only when:
 
-**Do not claim N-02 LIVE operational without operator OAuth proof.**
+* every founder requirement is in the register;  
+* every program has a separate gate;  
+* every LIVE row has matching proof depth / acceptance_limitations;  
+* remaining work is external, deliberately deferred, or a separate active program with a next step.  
+
+**Until then:**  
+`Gate A is nearly closed, but the full Otzar product program still has preserved open requirements.`
+
+---
+
+## Continuous CT regression
+
+`npm run test:e2e:live:gate-rebind` — 9/9 last PASS on `index-By1gQYV4.js`.  
+Useful for Gate A regression; **not** proof that Gates B/C/D are complete.

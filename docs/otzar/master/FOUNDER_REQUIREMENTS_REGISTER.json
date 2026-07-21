@@ -86,7 +86,18 @@
         "a5c526d"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": "Browser proven live 2026-07-20; keep regression"
+      "final_proof": "Browser proven live 2026-07-20; keep regression",
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "A-02",
@@ -126,7 +137,18 @@
         "3b9dfa8"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "A-03",
@@ -174,7 +196,18 @@
         "451bbb3"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "A-04",
@@ -201,7 +234,7 @@
         "tests/unit/first-use-walkthrough.test.ts"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "",
+      "remaining_gap": "Server-side versioned completion LIVE for primary roles. Full cinematic multi-role walkthrough with purposeful 3D + real AI action + provider proof is A-08 (not fully proven under A-04).",
       "dependencies": [
         "A-03"
       ],
@@ -232,7 +265,19 @@
         ],
         "autosmoke": "6/6 pass 2026-07-20",
         "deployment_sha": "cb7125b"
-      }
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Walkthrough steps + dual-write completion; not a full investor cinematic film per role."
     },
     {
       "id": "A-05",
@@ -283,6 +328,17 @@
         "autosmoke_first_use": "6/6 pass",
         "deployment_sha": "cb7125b",
         "multi_role_first5": "5/5 pass CEO/manager/employee/executive/contractor"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -332,6 +388,17 @@
         "live_bundle": "index-DruuhIGt.js",
         "e2e": "otzar-live-org-switch-a06 6/6",
         "notes": "org-context-badge; switch-home=/app; action-center\u2192/app on org change; org-count=1 live identity"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -373,7 +440,47 @@
         "05f6464"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
+    },
+    {
+      "id": "A-08",
+      "group": "A",
+      "exact_requirement": "Cinematic first-login walkthrough per role (admin/CEO/manager/employee/contractor): real org state pointers, purposeful restrained spatial depth, one real AI action, one provider honesty pointer, server-side completion/replay; returning users land Home.",
+      "founder_intent": "YC aha is not a thin strip only \u2014 full first-login experience.",
+      "status": "PARTIAL",
+      "proof_level": "PARTIAL",
+      "priority": "P0",
+      "phase": 0,
+      "program_gates": [
+        "A",
+        "B"
+      ],
+      "remaining_gap": "A-03/A-04/A-05/S-01 cover pieces (strip, server completion, multi-role first5). Not yet unified as one cinematic multi-step per-role live journey with provider+AI action proofs.",
+      "implementation_refs": [
+        "src/components/first-use/FirstUseReveal.tsx",
+        "src/lib/first-use/walkthrough.ts",
+        "tests/e2e/otzar-live-multi-role-first5.spec.ts"
+      ],
+      "acceptance_limitations": "Composition of thinner rows; not a single cinematic deep smoke.",
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": false
+      }
     },
     {
       "id": "B-01",
@@ -414,7 +521,18 @@
         "d64fb6c"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "B-02",
@@ -468,6 +586,17 @@
         ],
         "autosmoke": "6/6 pass 2026-07-20",
         "deployment_sha": "cb7125b"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -511,6 +640,17 @@
           "action-stale-badge"
         ],
         "regression": "9/9 role+kl+d04"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -557,6 +697,17 @@
       "final_proof": {
         "live_bundle": "index-43OBfQiB.js",
         "e2e": "what-changed-b04 + 10/10 regression"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -596,6 +747,17 @@
       "final_proof": {
         "live_bundle": "index-BL-3AO64.js",
         "e2e": "role-home-b05 multi-role data-home-role"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -653,6 +815,17 @@
         ],
         "autosmoke": "6/6 pass 2026-07-20",
         "deployment_sha": "cb7125b"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -692,7 +865,18 @@
         "3b9dfa8"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "C-03",
@@ -744,6 +928,17 @@
         ],
         "autosmoke": "6/6 pass 2026-07-20",
         "deployment_sha": "cb7125b"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -793,6 +988,17 @@
         "live_bundle": "index-B7Ex-Jn5.js",
         "e2e": "otzar-live-contextual-c04 6/6",
         "notes": "c04 host; blind-spots-lane; corrections context; open-work; blind-spots redirect; form deep-link"
+      },
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -833,7 +1039,18 @@
         "e3df5ae"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "C-06",
@@ -871,7 +1088,45 @@
         "451bbb3"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
+    },
+    {
+      "id": "C-07",
+      "group": "C",
+      "exact_requirement": "Route/control inventory before/after counts prove material shrinkage: every retained screen earns existence; no filler; admin vs employee distinct; no dead routes in primary paths.",
+      "founder_intent": "UI practicality measurable, not asserted.",
+      "status": "PARTIAL",
+      "proof_level": "PARTIAL",
+      "priority": "P1",
+      "phase": 0,
+      "program_gates": [
+        "A",
+        "B"
+      ],
+      "remaining_gap": "C-01 inventory + cull LIVE; durable published before/after control counts matrix incomplete.",
+      "implementation_refs": [
+        "docs/otzar/master/ROUTE_INVENTORY.md",
+        "src/lib/nav/route-inventory.ts"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
+      }
     },
     {
       "id": "D-01",
@@ -918,6 +1173,17 @@
           "data-presence-human",
           "ambient-otzar-bar"
         ]
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -970,6 +1236,17 @@
           "transcript-action cards=6"
         ],
         "notes": "D02-D-blocked treated utterance as context once \u2014 still work-path, not decorative"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1014,6 +1291,17 @@
         "e2e": "otzar-live-spatial-d03 10/10",
         "notes": "depth_css mode; reduced-motion\u2192flat_2d; 4 rules; immersive not shipped; Focus ADHD-safe",
         "sha": "7125122"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1063,7 +1351,19 @@
           "action-center",
           "authority-grants"
         ]
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Explicit permission share UI LIVE; method extraction / deep desktop automation residual."
     },
     {
       "id": "E-01",
@@ -1107,6 +1407,17 @@
         "live_bundle": "index-B7T6sByK.js",
         "e2e": "otzar-live-dandelion-classes-e01 10/10",
         "notes": "7-class matrix; multi-class people,roles,managers,projects,tools; 66 seeds; hold; employee isolation"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1154,6 +1465,17 @@
         "live_bundle": "index-B4shtStV.js",
         "e2e": "otzar-live-proposal-e02 10/10 complex",
         "notes": "sync discovery; 66-card queue sample; source+confidence+alts; hold branch; employee isolation"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1199,6 +1521,17 @@
         "live_bundle": "index-CkybVteH.js",
         "e2e": "otzar-live-person-types-e03 10/10",
         "notes": "4 type rows; admin+employee taxonomy; 7 badges; participation-implies-authority=false"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1241,7 +1574,18 @@
         "d9cf7dd"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "F-02",
@@ -1291,7 +1635,19 @@
         "live_bundle": "index-B2HYLarm.js",
         "e2e": "otzar-live-hierarchy-f02 6/6",
         "notes": "hierarchy-editor; F-04 copy; stage reparent; confirm/undo controls"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Editor stage/confirm/undo LIVE for demo org sizes; true virtualization for 2500+ rows residual."
     },
     {
       "id": "F-03",
@@ -1336,6 +1692,17 @@
         "live_bundle": "index-STDeYBuI.js",
         "e2e": "otzar-live-relationship-edges-f03 10/10",
         "notes": "solid=2 exec=1 needs=5; 8 badges; kinds needs_manager,solid_reporting,executive_no_manager"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1376,6 +1743,17 @@
         "live_bundle": "index-B2HYLarm.js",
         "e2e": "otzar-live-hierarchy-f02 F02-B",
         "notes": "hierarchy \u2260 RBAC/TAR/tool authority copy on editor"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1425,6 +1803,17 @@
         "live_bundle": "index-B2HYLarm.js",
         "e2e": "otzar-live-role-template-skills-g01 6/6",
         "notes": "role-template-skills-panel on Skills tab; marketing manager template; act on behalf copy"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1471,6 +1860,17 @@
         "live_bundle": "index-DpvdFWKT.js",
         "e2e": "otzar-live-twin-authority-g02 10/10",
         "notes": "admin+employee+manager binding; template recommendation-only; preference\u2260authority"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1516,7 +1916,19 @@
         "live_bundle": "index-DXhe634d.js",
         "e2e": "otzar-live-teach-otzar-h01 10/10",
         "notes": "admin enable \u2192 consent \u2192 signals \u2192 candidates \u2192 reject; employee blocked from org policy"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Deep smoke: admin policy enable \u2192 consent \u2192 signals \u2192 candidates \u2192 reject; employee denied org policy. Revocation continuous + multi-day later-application stress residual."
     },
     {
       "id": "H-02",
@@ -1566,7 +1978,19 @@
           "corpus": 12,
           "live_scan": "clean"
         }
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Proves multi-user core isolation + confidential redaction corpus + live portable scan. Does NOT alone prove teach session lifecycle (H-01) or later-work application (H-03)."
     },
     {
       "id": "H-03",
@@ -1610,6 +2034,17 @@
         "live_bundle": "index-ZpL1xYAm.js",
         "e2e": "otzar-live-learning-applies-h03 10/10",
         "notes": "reject branch never in approved; approve later surfaces; 5 approved+portable"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1651,7 +2086,19 @@
         "live_bundle": "index-BREL-m19.js",
         "e2e": "portable-core-card with H-02 deep",
         "notes": "doctrine, portable vs org-bound, export-not-shipped honesty"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Portable vs org-bound classification + export-not-shipped honesty LIVE; consented export transfer not shipped."
     },
     {
       "id": "I-02",
@@ -1694,7 +2141,19 @@
         "e2e": "otzar-live-multi-org-isolation-i02 10/10",
         "notes": "doctrine+4 rules; org-scoped bag 5 portable; export honesty; client clear 4 buckets; admin dual-principal; single-org residual honest",
         "sha": "6dcb549"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Continuous second-tenant / multi-org membership suite residual when credentials exist."
     },
     {
       "id": "J-01",
@@ -1735,7 +2194,18 @@
         "e3df5ae"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "J-02",
@@ -1776,7 +2246,19 @@
         "markers": [
           "project-spine"
         ]
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Project spine UI LIVE; API project.objective may still alias name as mission label."
     },
     {
       "id": "J-03",
@@ -1826,6 +2308,44 @@
           "?project=&open=1"
         ],
         "sample": "Open project [SMOKE] pilot \u2192 heart one hop; action center not hijacked"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
+    },
+    {
+      "id": "J-04",
+      "group": "J",
+      "exact_requirement": "Canonical project graph: people, teams, AI Teammates, conversations, documents, meetings, decisions, obligations, handoffs, actions, provider proof, reports \u2014 one browser-visible project context; material document edits propagate.",
+      "founder_intent": "Full project-centered coherence beyond spine panel.",
+      "status": "PARTIAL",
+      "proof_level": "PARTIAL",
+      "priority": "P0",
+      "phase": 1,
+      "program_gates": [
+        "B"
+      ],
+      "remaining_gap": "J-01/J-02/J-03 LIVE pieces; not proven as one complete multi-object project graph deep smoke with doc edit propagation.",
+      "implementation_refs": [
+        "src/pages/app/WorkProjects.tsx",
+        "tests/e2e/otzar-live-project-context.spec.ts",
+        "tests/e2e/otzar-live-project-j03.spec.ts"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
       }
     },
     {
@@ -1874,6 +2394,17 @@
         "live_bundle": "index-LPFcWwfL.js",
         "e2e": "otzar-live-comms-k01-k03 9/9",
         "notes": "ambient primary before paste; reconnect honesty; paste\u2192review + lineage"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1918,7 +2449,18 @@
         "683fc46"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": true,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "K-03",
@@ -1962,6 +2504,17 @@
         "live_bundle": "index-LPFcWwfL.js",
         "e2e": "otzar-live-comms-k01-k03 lineage 6 facets",
         "spine": "2 decisions \u2192 3 commitments \u2192 3 follow-ups \u2192 3 obligations"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -1990,7 +2543,7 @@
         "tests/e2e/otzar-live-ai-collab-l01.spec.ts"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Load/storm/loop stress proofs residual",
+      "remaining_gap": "Browser envelope + fail-closed LIVE; load/storm/loop concurrency and true work-advancement under multi-principal pressure residual (L-02).",
       "dependencies": [],
       "priority": "P1",
       "phase": 5,
@@ -2006,6 +2559,44 @@
         "live_bundle": "index-CuYNQjjV.js",
         "e2e": "otzar-live-ai-collab-l01 10/10",
         "notes": "envelope card; AI target mode; 14 rows needs_approval; fail closed; admin collab policy"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "14 envelope rows + policy; not storm concurrency or multi-org AI collab load."
+    },
+    {
+      "id": "L-02",
+      "group": "L",
+      "exact_requirement": "AI\u2194AI collaboration under load: concurrency, loop/storm protection, multi-principal attribution, true work advancement proofs beyond single-envelope deep smoke.",
+      "founder_intent": "L-01 envelope is not full collab pressure proof.",
+      "status": "PARTIAL",
+      "proof_level": "PARTIAL",
+      "priority": "P1",
+      "phase": 5,
+      "program_gates": [
+        "B"
+      ],
+      "remaining_gap": "L-01 LIVE envelope; storm/loop/concurrency residual.",
+      "implementation_refs": [
+        "tests/e2e/otzar-live-ai-collab-l01.spec.ts",
+        "src/lib/work-os/ai-collab-envelope.ts"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": false
       }
     },
     {
@@ -2053,6 +2644,17 @@
         "live_bundle": "index-CzDer3IR.js",
         "e2e": "otzar-live-graduated-autonomy-m01 10/10",
         "notes": "ladder stages; Needs me confirm path; grants reminder; admin ladder; prefRaise=false"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2098,6 +2700,17 @@
         "live_bundle": "index-DiTdcg9T.js",
         "e2e": "otzar-live-time-limited-auth-m02 10/10",
         "notes": "8 duration classes; SESSION+ONE_TIME create ok; 6 grants with purpose; revoke clicked"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2136,7 +2749,18 @@
         "683fc46"
       ],
       "deployment_sha": "683fc46",
-      "final_proof": null
+      "final_proof": null,
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": true,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     },
     {
       "id": "N-02",
@@ -2181,7 +2805,20 @@
         "notes": "status EXTERNALLY_BLOCKED; mode reconnect_needed; 4 operator steps; Tools CTA; no false complete; PROVIDER_PROVEN still blocked",
         "sha": "c875bc6",
         "honesty_residual": "LIVE_PROVEN"
-      }
+      },
+      "program_gates": [
+        "A",
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
+      },
+      "acceptance_limitations": "Honesty residual LIVE (operator steps, no false complete). Operational transcripts EXTERNALLY_BLOCKED."
     },
     {
       "id": "N-03",
@@ -2227,6 +2864,17 @@
         "e2e": "otzar-live-docs-n03 8/8",
         "create": "session nonempty=true",
         "append": "honest APPEND_FAILED + Fix connection"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": true,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2271,6 +2919,17 @@
         "live_bundle": "index-S47h2JJ0.js",
         "e2e": "otzar-live-calendar-n04 6/6",
         "notes": "no not-wired; final agreed visible; honest gate; no false invite"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": true,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2319,6 +2978,17 @@
         "live_bundle": "index-2lu-y0G3.js",
         "e2e": "otzar-live-mail-n05 6/6",
         "notes": "Email verb \u2192 external draft not ASK_TWIN; lifecycle=not_wired; confirm stays not_wired; no false delivery; N05-E ignores honest nothing-was-delivered"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": true,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2371,6 +3041,17 @@
           "inventory_default_visible": true,
           "advanced_copy": "MCP technical administrators only"
         }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2420,6 +3101,117 @@
         "live_bundle": "index-B7Ex-Jn5.js",
         "e2e": "otzar-live-tools-o02 6/6",
         "notes": "coverage panel org/team/user; consent healthy; scim=not_wired honesty; no false provisioned"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Coverage panel org/team/user + SCIM not_wired honesty; true enterprise IdP SCIM provision not wired."
+    },
+    {
+      "id": "OPS-01",
+      "group": "OPS",
+      "exact_requirement": "Short-lag auto-deploy protocol: 3m poll then MANUAL DEPLOY signal.",
+      "founder_intent": "Short-lag auto-deploy protocol: 3m poll then MANUAL DEPLOY signal.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "scripts/otzar-ambient-autosmoke.sh",
+        "docs/RENDER_DEPLOY_NOTES.md"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P0",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "LIVE_VERIFIED",
+      "prs": [
+        "#179"
+      ],
+      "merge_shas": [
+        "451bbb3"
+      ],
+      "deployment_sha": "683fc46",
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
+    },
+    {
+      "id": "OPS-02",
+      "group": "OPS",
+      "exact_requirement": "Sole-admin lockout recovery script via Render Postgres.",
+      "founder_intent": "Sole-admin lockout recovery script via Render Postgres.",
+      "user_value": "",
+      "roles": [
+        "admin",
+        "employee",
+        "manager",
+        "executive",
+        "contractor"
+      ],
+      "repos": [
+        "otzar-control-tower",
+        "niov-foundation"
+      ],
+      "architecture": "",
+      "implementation_refs": [
+        "scripts/otzar-clear-lockout.sh"
+      ],
+      "proof_level": "IMPLEMENTED",
+      "remaining_gap": "",
+      "dependencies": [],
+      "priority": "P1",
+      "phase": 0,
+      "test_requirements": [],
+      "live_acceptance": "",
+      "status": "IMPLEMENTED",
+      "prs": [
+        "#178"
+      ],
+      "merge_shas": [
+        "05f6464"
+      ],
+      "deployment_sha": null,
+      "final_proof": null,
+      "program_gates": [
+        "A"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": false,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
       }
     },
     {
@@ -2465,6 +3257,17 @@
         "e2e": "otzar-live-role-intel-p01 pass=8 fail=0",
         "role": "employee \u2192 Your work intelligence; sections decisions,missions,twin,docs",
         "nav": "first section \u2192 /app/action-center"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2509,7 +3312,19 @@
         "e2e": "otzar-live-cross-tenant-q01 10/10",
         "notes": "4 facets; deep-link allow/block; twin scope user::org; admin+employee; empFp 10 vs admin 10 leaks=0; second-tenant residual",
         "sha": "0c9b90a"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Continuous second-tenant / multi-org membership suite residual when credentials exist."
     },
     {
       "id": "Q-02",
@@ -2553,7 +3368,19 @@
         "e2e": "otzar-live-cross-tenant-q01 10/10",
         "notes": "4 facets; deep-link allow/block; twin scope user::org; admin+employee; empFp 10 vs admin 10 leaks=0; second-tenant residual",
         "sha": "0c9b90a"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Continuous second-tenant / multi-org membership suite residual when credentials exist."
     },
     {
       "id": "R-01",
@@ -2582,7 +3409,7 @@
         "tests/e2e/otzar-live-hierarchy-pressure.spec.ts"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Continuous progressive scale load 250\u21922500 needs scale credentials / synthetic pressure org",
+      "remaining_gap": "L1 band (~25) product+API pressure LIVE; progressive synthetic 250\u21922500 not SCALE_PROVEN. See R-03 internal synthetic scale (do not wait on YC credentials).",
       "dependencies": [],
       "priority": "P1",
       "phase": 6,
@@ -2597,7 +3424,19 @@
         "e2e": "otzar-live-enterprise-pressure-r01 10/10",
         "notes": "L1 band 8 people; cycle 422 CYCLE; employee 403; repair loop 4 steps; residual L2/L3",
         "sha": "f417f9f"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Proved cycle refuse + non-admin deny + L1 headcount band UI; not 250/2500 seeded load."
     },
     {
       "id": "R-02",
@@ -2644,6 +3483,75 @@
         "sha": "da23b9f",
         "gate_rebind": "9/9 pass 2026-07-21 index-By1gQYV4.js",
         "catalog_rows": 11
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
+    },
+    {
+      "id": "R-03",
+      "group": "R",
+      "exact_requirement": "Internally simulatable enterprise pressure: seeded replayable org generation at progressive sizes (25\u2192250\u21922500 where safe), communication generation, concurrency, hierarchy scaling, UI virtualization, authorization attacks, chaos/replay, performance percentiles \u2014 without requiring YC or production Google credentials.",
+      "founder_intent": "Scale is core Work OS proof, not optional curiosity.",
+      "status": "PARTIAL",
+      "proof_level": "UNIT_PROVEN",
+      "priority": "P0",
+      "phase": 6,
+      "program_gates": [
+        "B"
+      ],
+      "remaining_gap": "Product doctrine+levels LIVE pending deep; S25 partial via R-01; S250/S2500 seed harness continuous not wired",
+      "implementation_refs": [
+        "src/lib/org/synthetic-scale-harness.ts",
+        "src/components/otzar/SyntheticScaleHarnessCard.tsx",
+        "src/pages/Users.tsx",
+        "tests/unit/synthetic-scale-harness.test.ts",
+        "tests/e2e/otzar-live-synthetic-scale-r03.spec.ts",
+        "docs/otzar/simulation/CUSTOMER_ORG_SIMULATION_PLAN.md"
+      ],
+      "acceptance_limitations": "Not SCALE_PROVEN at 250/2500 synthetic continuous.",
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": false
+      }
+    },
+    {
+      "id": "R-04",
+      "group": "R",
+      "exact_requirement": "Bounded real-provider proof subset for scale-adjacent connectors (Docs/Calendar/Mail honesty) separated from full synthetic scale harness.",
+      "founder_intent": "Real providers only for small proof subset.",
+      "status": "PARTIAL",
+      "proof_level": "PARTIAL",
+      "priority": "P1",
+      "phase": 6,
+      "program_gates": [
+        "B"
+      ],
+      "remaining_gap": "N-03/N-04/N-05 LIVE honesty exists; not folded into progressive scale matrix.",
+      "implementation_refs": [
+        "tests/e2e/otzar-live-docs-n03.spec.ts",
+        "tests/e2e/otzar-live-calendar-n04.spec.ts",
+        "tests/e2e/otzar-live-mail-n05.spec.ts"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": true,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
@@ -2691,7 +3599,19 @@
         "e2e": "otzar-live-yc-walkthrough-s01 10/10",
         "notes": "4 roles ceo/employee/manager/executive; 5 paths; no staged fakes; dedicated-org residual honest",
         "sha": "e41fb7e"
-      }
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": true,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Multi-role continuous walkthrough LIVE on demo org; dedicated synthetic YC org credentials residual."
     },
     {
       "id": "S-02",
@@ -2736,12 +3656,23 @@
         "live_bundle": "index-ZpL1xYAm.js",
         "e2e": "otzar-live-investor-journey-s02 10/10",
         "notes": "founder multi-surface; 82 ledger; 10 projects compose; no staged fakes"
+      },
+      "program_gates": [
+        "B"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
       }
     },
     {
       "id": "T-01",
       "group": "T",
-      "exact_requirement": "Otzar Relay remains separate work-communications app roadmap; not confused with CT employee shell.",
+      "exact_requirement": "Otzar Relay remains a separate work-communications product (not CT employee shell); CT must not claim Relay is built or merged into primary nav.",
       "founder_intent": "Otzar Relay remains separate work-communications app roadmap; not confused with CT employee shell.",
       "user_value": "",
       "roles": [
@@ -2765,7 +3696,7 @@
         "tests/e2e/otzar-live-relay-boundary-t01.spec.ts"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Relay messaging application not built; boundary preservation LIVE in CT",
+      "remaining_gap": "Boundary preservation LIVE. Relay messaging product itself is NOT_STARTED (see T-02+).",
       "dependencies": [],
       "priority": "P2",
       "phase": 7,
@@ -2780,84 +3711,176 @@
         "e2e": "otzar-live-relay-boundary-t01 10/10",
         "notes": "Comms+admin cards; 5 rules; relay not shipped; no merge confusion; Today is CT Work OS",
         "sha": "53d727c"
+      },
+      "program_gates": [
+        "A",
+        "C"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      },
+      "acceptance_limitations": "Proves CT vs Relay doctrine + UI honesty only; zero Relay chat/call/attachment runtime."
+    },
+    {
+      "id": "T-02",
+      "group": "T",
+      "exact_requirement": "Otzar Relay first messaging slice: human sends message; Foundation durable communication event + thread turn; optional Twin participation labeled; Comms can promote to work under gates.",
+      "founder_intent": "Relay is required program \u2014 first real messaging slice.",
+      "status": "DISCOVERED",
+      "proof_level": "DISCOVERED",
+      "priority": "P0",
+      "phase": 7,
+      "program_gates": [
+        "C"
+      ],
+      "remaining_gap": "Not built. EXPERIENCE_GOVERNING_SPEC defines first slice; CT boundary T-01 LIVE.",
+      "implementation_refs": [
+        "docs/otzar/EXPERIENCE_GOVERNING_SPEC.md",
+        "docs/otzar/OTZAR_COMMUNICATION_INGESTION_MODEL.md"
+      ],
+      "proof_dimensions": {
+        "implementation": false,
+        "browser": false,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
       }
     },
     {
-      "id": "OPS-01",
-      "group": "OPS",
-      "exact_requirement": "Short-lag auto-deploy protocol: 3m poll then MANUAL DEPLOY signal.",
-      "founder_intent": "Short-lag auto-deploy protocol: 3m poll then MANUAL DEPLOY signal.",
-      "user_value": "",
-      "roles": [
-        "admin",
-        "employee",
-        "manager",
-        "executive",
-        "contractor"
+      "id": "T-03",
+      "group": "T",
+      "exact_requirement": "Relay mobile+desktop: chats, calls, voice notes, attachments, phone credential \u2260 identity, portable professional identity, org-bound context, AI Teammate, communication\u2192execution, BEAM/Elixir real-time boundary, Foundation authority, multi-org external safety.",
+      "founder_intent": "Full Relay product vision.",
+      "status": "DISCOVERED",
+      "proof_level": "DISCOVERED",
+      "priority": "P1",
+      "phase": 7,
+      "program_gates": [
+        "C"
       ],
-      "repos": [
-        "otzar-control-tower",
-        "niov-foundation"
-      ],
-      "architecture": "",
+      "remaining_gap": "Separate product program not started; prerequisites include Foundation messaging rails.",
       "implementation_refs": [
-        "scripts/otzar-ambient-autosmoke.sh",
-        "docs/RENDER_DEPLOY_NOTES.md"
+        "docs/otzar/EXPERIENCE_GOVERNING_SPEC.md"
       ],
-      "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "",
-      "dependencies": [],
-      "priority": "P0",
-      "phase": 0,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "LIVE_VERIFIED",
-      "prs": [
-        "#179"
-      ],
-      "merge_shas": [
-        "451bbb3"
-      ],
-      "deployment_sha": "683fc46",
-      "final_proof": null
+      "proof_dimensions": {
+        "implementation": false,
+        "browser": false,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
+      }
     },
     {
-      "id": "OPS-02",
-      "group": "OPS",
-      "exact_requirement": "Sole-admin lockout recovery script via Render Postgres.",
-      "founder_intent": "Sole-admin lockout recovery script via Render Postgres.",
-      "user_value": "",
-      "roles": [
-        "admin",
-        "employee",
-        "manager",
-        "executive",
-        "contractor"
-      ],
-      "repos": [
-        "otzar-control-tower",
-        "niov-foundation"
-      ],
-      "architecture": "",
-      "implementation_refs": [
-        "scripts/otzar-clear-lockout.sh"
-      ],
-      "proof_level": "IMPLEMENTED",
-      "remaining_gap": "",
-      "dependencies": [],
+      "id": "U-01",
+      "group": "U",
+      "exact_requirement": "Industry-specific compliance packages: selective regulator disclosure, evidence packages, approvals, redactions, source manifests, correction/supplementation, cross-application evidence.",
+      "founder_intent": "Compliance/regulator substrate is core Foundation program.",
+      "status": "DISCOVERED",
+      "proof_level": "DISCOVERED",
       "priority": "P1",
-      "phase": 0,
-      "test_requirements": [],
-      "live_acceptance": "",
-      "status": "IMPLEMENTED",
-      "prs": [
-        "#178"
+      "phase": 8,
+      "program_gates": [
+        "D"
       ],
-      "merge_shas": [
-        "05f6464"
+      "remaining_gap": "Model documented; substrate primitives (grants/audit/org boundary) exist. No regulator role, package objects, or external access path.",
+      "implementation_refs": [
+        "docs/otzar/OTZAR_COMPLIANCE_REGULATOR_SHARING_MODEL.md"
       ],
-      "deployment_sha": null,
-      "final_proof": null
+      "proof_dimensions": {
+        "implementation": false,
+        "browser": false,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
+      }
+    },
+    {
+      "id": "U-02",
+      "group": "U",
+      "exact_requirement": "Internal compliance package preview: admin defines policy-bound query over curated knowledge; sees exactly what a regulator would see with lineage + simulated access log; zero external access.",
+      "founder_intent": "Safe first compliance slice before any external door.",
+      "status": "NOT_STARTED",
+      "proof_level": "NOT_STARTED",
+      "priority": "P1",
+      "phase": 8,
+      "program_gates": [
+        "D",
+        "B"
+      ],
+      "remaining_gap": "Documented as safe first slice; not implemented in CT UI.",
+      "implementation_refs": [
+        "docs/otzar/OTZAR_COMPLIANCE_REGULATOR_SHARING_MODEL.md \u00a713"
+      ],
+      "proof_dimensions": {
+        "implementation": false,
+        "browser": false,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
+      }
+    },
+    {
+      "id": "V-01",
+      "group": "V",
+      "exact_requirement": "Mobile and desktop continuity of ambient Otzar presence: same orchestrator across web/desktop/voice; selected-window/safe desktop context; no covert keylogging; future device readiness.",
+      "founder_intent": "Ambient multi-surface, not web-only.",
+      "status": "PARTIAL",
+      "proof_level": "PARTIAL",
+      "priority": "P1",
+      "phase": 1,
+      "program_gates": [
+        "B"
+      ],
+      "remaining_gap": "Web ambient (D-01/D-02/D-04) LIVE; desktop verification docs exist; native mobile shell and full desktop method extraction residual.",
+      "implementation_refs": [
+        "docs/otzar/OTZAR_DESKTOP_EXPERIENCE_VERIFICATION.md",
+        "docs/otzar/PRD-00-product-definition.md",
+        "src/components/observation/WindowContextShare.tsx"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": false
+      }
+    },
+    {
+      "id": "V-02",
+      "group": "V",
+      "exact_requirement": "Communication ingestion at enterprise volume: multi-source, messy concurrency, lineage-preserving ETL, honest missing-provider states \u2014 simulated and bounded real.",
+      "founder_intent": "Comms ingestion is core Work OS, not optional.",
+      "status": "PARTIAL",
+      "proof_level": "PARTIAL",
+      "priority": "P0",
+      "phase": 2,
+      "program_gates": [
+        "B"
+      ],
+      "remaining_gap": "K-01/K-03/N paths LIVE at demo scale; full multi-day messy concurrent ingestion sim residual.",
+      "implementation_refs": [
+        "docs/otzar/OTZAR_COMMUNICATION_INGESTION_MODEL.md",
+        "docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md",
+        "tests/e2e/otzar-live-comms-k01-k03.spec.ts"
+      ],
+      "proof_dimensions": {
+        "implementation": true,
+        "browser": true,
+        "provider": false,
+        "multi_user": false,
+        "scale": false,
+        "live": true
+      }
     }
   ],
   "open_p0": [
@@ -2910,5 +3933,16 @@
     "O-01",
     "OPS-01",
     "P-01"
-  ]
+  ],
+  "program_gates": {
+    "A": "Control Tower investor surface",
+    "B": "Otzar autonomous Work OS",
+    "C": "Otzar Relay",
+    "D": "Foundation compliance substrate"
+  },
+  "register_completeness_audit": {
+    "date": "2026-07-21",
+    "note": "Audit restored missing Relay/compliance/scale/continuity rows; CT Gate A nearly closed \u2260 full Otzar freeze.",
+    "doc": "docs/otzar/master/REGISTER_COMPLETENESS_AUDIT.md"
+  }
 }
