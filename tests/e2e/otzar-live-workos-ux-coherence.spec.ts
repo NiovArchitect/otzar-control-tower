@@ -46,22 +46,6 @@ async function uiLogin(page: Page): Promise<void> {
   await liveUiLogin(page, EMAIL, PW as string);
 }
 
-// Sessions are DELIBERATELY in-memory (auth store doctrine: no localStorage/
-// cookies) — a full page load drops the session by design. In-app movement is
-// therefore CLIENT-SIDE routing, exactly like a real user clicking nav.
-async function spaGoto(page: Page, path: string): Promise<void> {
-  await page.evaluate((p) => {
-    window.history.pushState({}, "", p);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }, path);
-  // Client router may need a tick; avoid hanging forever on networkidle.
-  await page.waitForTimeout(400);
-  try {
-    await page.waitForLoadState("networkidle", { timeout: 8_000 });
-  } catch {
-    /* still continue — page may keep long-polls open */
-  }
-}
 
 test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
   test.skip(!PW, SKIP_NO_PW);

@@ -41,13 +41,6 @@ const rows: DeepRow[] = [];
 const rec = (id: string, status: DeepRow["status"], detail: string) =>
   deepRec(rows, "d03", id, status, detail);
 
-const RULE_IDS = [
-  "purposeful",
-  "optional",
-  "reduced_motion",
-  "immersive_residual",
-] as const;
-
 async function openToday(page: Page): Promise<void> {
   await page.goto("/app", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2000);
@@ -122,38 +115,20 @@ test("D-03 deep: spatial readiness + reduced-motion fallback", async ({
     `planes far/mid/near`,
   );
 
+  // Builder "Spatial readiness" copy is purged from product UI (RC2).
   const note = page.getByTestId("spatial-readiness-note");
-  const doctrine = (
-    (await page.getByTestId("d03-doctrine").textContent().catch(() => "")) ?? ""
-  ).toLowerCase();
-  const ruleRows = page.getByTestId("d03-rule-row");
-  const ruleIds: string[] = [];
-  for (let i = 0; i < (await ruleRows.count()); i++) {
-    ruleIds.push((await ruleRows.nth(i).getAttribute("data-rule-id")) ?? "");
-  }
-  const residual = (
-    (await page.getByTestId("d03-immersive-residual").textContent().catch(() => "")) ??
-    ""
-  ).toLowerCase();
   rec(
     "D03-D",
-    (await note.count()) > 0 &&
-      /optional|purposeful|reduced-motion|2d/i.test(doctrine) &&
-      RULE_IDS.every((id) => ruleIds.includes(id)) &&
-      /not shipped|webgl|walkthrough/i.test(residual)
-      ? "PASS"
-      : "FAIL",
-    `rules=${ruleIds.join(",")} doctrine=${doctrine.slice(0, 50)}`,
+    (await note.count()) === 0 ? "PASS" : "FAIL",
+    `spatial-readiness-note count=${await note.count()} (must be 0 on product)`,
   );
 
   const immersiveLayer =
     (await layer.getAttribute("data-immersive-shipped")) ?? "";
-  const immersiveNote =
-    (await note.getAttribute("data-immersive-shipped")) ?? "";
   rec(
     "D03-E",
-    immersiveLayer === "false" && immersiveNote === "false" ? "PASS" : "FAIL",
-    `layer=${immersiveLayer} note=${immersiveNote}`,
+    immersiveLayer === "false" ? "PASS" : "FAIL",
+    `layer immersive-shipped=${immersiveLayer} (note purged)`,
   );
 
   // Emulate reduced motion and re-evaluate mode via page.evaluate + remount path

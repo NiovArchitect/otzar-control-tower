@@ -254,6 +254,7 @@ import {
   VOICE_FIRST_HEADLINE,
   VOICE_WORK_PATH_COPY,
 } from "@/lib/voice/voice-work-first";
+import { normalizeOtzarInTranscript, otzarSpeakText } from "@/lib/voice/otzar-transcript-normalize";
 import {
   detectProjectIntent,
   resolveProjectFromConversation,
@@ -871,7 +872,7 @@ export function AmbientOtzarBar(): JSX.Element {
   // employee can edit before sending.
   useEffect(() => {
     if (recognition.transcript.length > 0) {
-      setDraft(recognition.transcript);
+      setDraft(normalizeOtzarInTranscript(recognition.transcript));
     }
   }, [recognition.transcript]);
 
@@ -927,9 +928,11 @@ export function AmbientOtzarBar(): JSX.Element {
   // newer prompt cancels the older one (no double-speak, no robot
   // voice "second"). premiumSpeaking drives the honest orb state.
   function speakAssistant(
-    text: string,
+    rawText: string,
     opts: { source: "auto" | "replay" | "manual"; force: boolean },
   ): void {
+    const text = otzarSpeakText(rawText);
+    if (text.length === 0) return;
     void speakWithOtzarVoice(
       text,
       (t) => synthesis.speak(t, opts),
@@ -1061,8 +1064,11 @@ export function AmbientOtzarBar(): JSX.Element {
       const next = await micPerm.request();
       if (next !== "granted") return;
     }
-    // Next Otzar answer should be spoken (voice-first).
+    // Next Otzar answer should be spoken (voice-first). Unmute so
+    // speak-back is audible after the user deliberately used the mic.
     voiceTurnPendingRef.current = true;
+    if (synthesis.muted) synthesis.setMuted(false);
+    if (!autoSpeak) setAutoSpeak(true);
     recognition.reset();
     recognition.start();
   }
@@ -2204,6 +2210,8 @@ export function AmbientOtzarBar(): JSX.Element {
   }
 
   async function handleSendAction(a: TranscriptProposedAction): Promise<void> {
+    // Product-name STT cleanup before send/display.
+
     const at = new Date().toISOString();
     const target = a.targetName ?? a.ownerName;
     // [OTZAR-LIVE-6] immediate in-flight feedback; reset to "proposed" on any
@@ -4225,7 +4233,7 @@ export function AmbientOtzarBar(): JSX.Element {
   }
 
   async function handleSend(): Promise<void> {
-    await handleSendText(draft);
+    await handleSendText(normalizeOtzarInTranscript(draft));
   }
 
   // Phase 1264 — when the desktop (Whisper) transcript lands, submit it
@@ -4241,7 +4249,7 @@ export function AmbientOtzarBar(): JSX.Element {
     const prov = desktopCapRef.current.provider;
     if (detectShellMode() === "tauri_webview") {
       // Desktop (unchanged): auto-submit through the governed path.
-      setDraft(t);
+      setDraft(normalizeOtzarInTranscript(t));
       void handleSendTextRef.current(t);
       // handleSendText clears transcriptionProvider for typed input;
       // re-set it AFTER so the desktop-voice provider wins.
@@ -4251,7 +4259,7 @@ export function AmbientOtzarBar(): JSX.Element {
     }
     // P0G browser fallback: the server transcript fills the SAME draft
     // the Web Speech path fills — the employee reviews, then sends.
-    setDraft(t);
+    setDraft(normalizeOtzarInTranscript(t));
     setTranscriptionProvider(prov);
     setServerTranscribed(true);
     desktopCapRef.current.reset();
@@ -4769,11 +4777,74 @@ export function AmbientOtzarBar(): JSX.Element {
             );
           })()}
 
+          {/* Phase 1266. The persistent, scrollable Otzar conversation
+              thread. Survives navigation + reloads (localStorage). Shows
+              prompts, Otzar answers, Work-OS action results, and errors
+              with ordering. So messages never disappear. */}
+          {conversation.length > 0 ? (
+            <div
+              className="min-h-[7rem] flex-1 rounded-md border border-border bg-background/60 flex flex-col min-h-0"
+              data-testid="otzar-conversation"
+              data-talk-layout="history-above-composer"
+            >
+              <div className="flex items-center justify-between px-2 py-1 border-b border-border">
+                <span className="text-[11px] font-medium text-foreground">
+                  Conversation
+                </span>
+                <button
+                  type="button"
+                  onClick={() => clearConversation()}
+                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  data-testid="otzar-conversation-clear"
+                  aria-label="Clear conversation"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="max-h-52 min-h-[6rem] flex-1 overflow-y-auto px-2 py-1 space-y-1 text-xs">
+                {conversation.map((m) => (
+                  <div
+                    key={m.id}
+                    data-testid="otzar-conversation-entry"
+                    data-role={m.role}
+                    className={
+                      m.role === "user"
+                        ? "text-foreground"
+                        : m.role === "error"
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    <span className="font-medium">
+                      {m.role === "user"
+                        ? "You: "
+                        : m.role === "otzar"
+                          ? "Otzar: "
+                          : m.role === "error"
+                            ? "Error: "
+                            : "Action: "}
+                    </span>
+                    <span className="whitespace-pre-wrap break-words">
+                      {m.text}
+                    </span>
+                    {m.status !== undefined ? (
+                      <span className="ml-1 text-[10px] opacity-70">
+                        [{m.status}]
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+                <div ref={transcriptEndRef} />
+              </div>
+            </div>
+          ) : null}
+
           {/* D-02. Voice-first work rail: mic primary, text secondary,
               same governed path as typed. Not a decorative voice demo. */}
           <div
-            className="space-y-1.5"
+            className="mt-auto space-y-1.5 border-t border-black/[0.06] pt-2"
             data-testid="voice-work-rail"
+            data-talk-composer="bottom"
             data-voice-first="true"
             data-drives-work="true"
           >
@@ -4958,67 +5029,6 @@ export function AmbientOtzarBar(): JSX.Element {
             >
               {routerAck}
             </p>
-          ) : null}
-
-          {/* Phase 1266. The persistent, scrollable Otzar conversation
-              thread. Survives navigation + reloads (localStorage). Shows
-              prompts, Otzar answers, Work-OS action results, and errors
-              with ordering. So messages never disappear. */}
-          {conversation.length > 0 ? (
-            <div
-              className="rounded-md border border-border bg-background/60"
-              data-testid="otzar-conversation"
-            >
-              <div className="flex items-center justify-between px-2 py-1 border-b border-border">
-                <span className="text-[11px] font-medium text-foreground">
-                  Conversation
-                </span>
-                <button
-                  type="button"
-                  onClick={() => clearConversation()}
-                  className="text-[10px] text-muted-foreground hover:text-foreground"
-                  data-testid="otzar-conversation-clear"
-                  aria-label="Clear conversation"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="max-h-44 overflow-y-auto px-2 py-1 space-y-1 text-xs">
-                {conversation.map((m) => (
-                  <div
-                    key={m.id}
-                    data-testid="otzar-conversation-entry"
-                    data-role={m.role}
-                    className={
-                      m.role === "user"
-                        ? "text-foreground"
-                        : m.role === "error"
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                    }
-                  >
-                    <span className="font-medium">
-                      {m.role === "user"
-                        ? "You: "
-                        : m.role === "otzar"
-                          ? "Otzar: "
-                          : m.role === "error"
-                            ? "Error: "
-                            : "Action: "}
-                    </span>
-                    <span className="whitespace-pre-wrap break-words">
-                      {m.text}
-                    </span>
-                    {m.status !== undefined ? (
-                      <span className="ml-1 text-[10px] opacity-70">
-                        [{m.status}]
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-                <div ref={transcriptEndRef} />
-              </div>
-            </div>
           ) : null}
 
           {/* Phase 2.8. Compress the Voice Action Runtime into ONE calm
