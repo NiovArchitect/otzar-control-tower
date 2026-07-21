@@ -756,6 +756,8 @@ export function AmbientWorkSurface(): JSX.Element {
       data-testid="ambient-work-surface"
       data-home-role={homeRole}
       data-s02-journey="true"
+      data-s01-walkthrough="true"
+      data-s01-primary-paths="login_home,needs_me,talk,twin,memory"
     >
       {/* One-shot hero — presence + optional first-use strip (not a second page). */}
       <section className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6">

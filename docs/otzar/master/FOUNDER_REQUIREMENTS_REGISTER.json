@@ -2604,9 +2604,16 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Continuous dedicated YC org harness",
+      "implementation_refs": [
+        "src/lib/work-os/yc-synthetic-walkthrough.ts",
+        "src/components/otzar/YcContinuousWalkthroughCard.tsx",
+        "src/pages/CompanyProfile.tsx",
+        "src/pages/app/AmbientWorkSurface.tsx data-s01-walkthrough",
+        "tests/unit/yc-synthetic-walkthrough.test.ts",
+        "tests/e2e/otzar-live-yc-walkthrough-s01.spec.ts"
+      ],
+      "proof_level": "UNIT_PROVEN",
+      "remaining_gap": "Product shipped; LIVE multi-role deep after deploy; dedicated YC org credential residual",
       "dependencies": [
         "A-05",
         "A-04"
@@ -2614,8 +2621,8 @@
       "priority": "P0",
       "phase": 7,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "YC continuous walkthrough card; multi-role first-five survival; dedicated-org residual honest",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
