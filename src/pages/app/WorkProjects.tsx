@@ -23,6 +23,8 @@ import type {
   WorkProjectSafeView,
   WorkProjectMemberSafeView,
 } from "@/lib/types/foundation";
+import { ProjectGraphCoherenceCard } from "@/components/otzar/ProjectGraphCoherenceCard";
+import { buildProjectGraphInventory } from "@/lib/work-os/project-graph";
 
 const ROLES: ReadonlyArray<WorkProjectMemberRole> = [
   "OWNER",
@@ -596,6 +598,48 @@ function ProjectContextPanel({
       : memberRows.length;
 
   // J-02 spine: always-present facets (honest empty when unknown).
+  const graphInventory = useMemo(
+    () =>
+      buildProjectGraphInventory({
+        project_id: projectId,
+        name: project.name,
+        objective: project.name,
+        owner_names: owner?.display_name ? [owner.display_name] : [],
+        member_names: memberRows
+          .map((m) => m.display_name)
+          .filter((n): n is string => typeof n === "string" && n.length > 0),
+        open_work_titles: openWork.map(
+          (e) => e.title ?? e.ledger_type ?? "work",
+        ),
+        blocker_titles: blockers.map(
+          (e) => e.title ?? e.ledger_type ?? "blocker",
+        ),
+        meeting_titles: meetings.map((e) => e.title ?? "Meeting"),
+        doc_titles: documents.map((e) => e.title ?? "Document"),
+        obligation_titles: obligationTitles.filter(
+          (t): t is string => typeof t === "string" && t.length > 0,
+        ),
+        ai_notes: twinish.map((e) => e.title ?? "AI work"),
+        next_best:
+          nextStep && nextStep.kind !== "IDLE_HEALTHY"
+            ? nextStep.safe_title
+            : null,
+      }),
+    [
+      projectId,
+      project.name,
+      owner?.display_name,
+      memberRows,
+      openWork,
+      blockers,
+      meetings,
+      documents,
+      obligationTitles,
+      twinish,
+      nextStep,
+    ],
+  );
+
   const spineFacets: Array<{
     id: string;
     label: string;
@@ -727,6 +771,9 @@ function ProjectContextPanel({
             </div>
           ) : null}
         </dl>
+
+        {/* J-04 — graph coherence inventory across facets */}
+        <ProjectGraphCoherenceCard inventory={graphInventory} />
 
         {/* Pulse — one glance at the project heart */}
         <div

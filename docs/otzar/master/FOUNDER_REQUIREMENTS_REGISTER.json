@@ -2326,27 +2326,32 @@
       "group": "J",
       "exact_requirement": "Canonical project graph: people, teams, AI Teammates, conversations, documents, meetings, decisions, obligations, handoffs, actions, provider proof, reports \u2014 one browser-visible project context; material document edits propagate.",
       "founder_intent": "Full project-centered coherence beyond spine panel.",
-      "status": "PARTIAL",
-      "proof_level": "PARTIAL",
+      "status": "IMPLEMENTED",
+      "proof_level": "UNIT_PROVEN",
       "priority": "P0",
       "phase": 1,
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "J-01/J-02/J-03 LIVE pieces; not proven as one complete multi-object project graph deep smoke with doc edit propagation.",
+      "remaining_gap": "Project graph inventory + disconnect detection UNIT_PROVEN; WorkProjects coherence card wired (J-04). Await BROWSER_PROVEN deep smoke otzar-live-project-graph-j04; full multi-object provider doc-edit propagation residual.",
       "implementation_refs": [
         "src/pages/app/WorkProjects.tsx",
         "tests/e2e/otzar-live-project-context.spec.ts",
-        "tests/e2e/otzar-live-project-j03.spec.ts"
+        "tests/e2e/otzar-live-project-j03.spec.ts",
+        "src/lib/work-os/project-graph.ts",
+        "src/components/otzar/ProjectGraphCoherenceCard.tsx",
+        "tests/unit/project-graph.test.ts",
+        "tests/e2e/otzar-live-project-graph-j04.spec.ts"
       ],
       "proof_dimensions": {
         "implementation": true,
-        "browser": true,
+        "browser": false,
         "provider": false,
         "multi_user": false,
         "scale": false,
         "live": false
-      }
+      },
+      "acceptance_limitations": "Inventory from project context ledger + coherence API samples \u2014 not a full federated multi-object graph store. Doc edit propagation across providers not yet deep-proven in this row."
     },
     {
       "id": "K-01",

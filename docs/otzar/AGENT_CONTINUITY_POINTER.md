@@ -29,7 +29,7 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Next internal Work OS priority:** deepen **R-03** (S250 synthetic seed harness).
+**Next internal Work OS priority:** ship **J-04** project graph LIVE, then **A-08** / further **R-03** depth (S2500 / multi-day volume).
 
 ---
 

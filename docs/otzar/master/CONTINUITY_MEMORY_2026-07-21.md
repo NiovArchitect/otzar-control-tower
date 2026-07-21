@@ -110,3 +110,14 @@ Until then:
 * Not yet: S2500, live provision of 250 accounts, multi-day real-provider volume
 * **Next gate priority after this slice:** evaluate J-04 project graph vs further R-03 depth
 
+## J-04 progress (in flight → ship)
+
+* `src/lib/work-os/project-graph.ts` — inventory facets + disconnect detection + health score
+* `src/components/otzar/ProjectGraphCoherenceCard.tsx` — browser surface on project heart
+* Wired into `WorkProjects` ProjectContextPanel after J-02 spine
+* Unit: `tests/unit/project-graph.test.ts`
+* Deep smoke: `tests/e2e/otzar-live-project-graph-j04.spec.ts`
+* Status: **UNIT_PROVEN / IMPLEMENTED** pending live deep smoke
+* R-03 S250 remains UNIT_PROVEN (first slice); do not drop S2500 residual
+* **Next after J-04 browser proof:** A-08 cinematic first-login OR deepen R-03 multi-day volume metrics — use register priority
+
