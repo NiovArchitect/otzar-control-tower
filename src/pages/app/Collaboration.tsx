@@ -26,11 +26,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PeopleDirectory } from "@/components/otzar/PeopleDirectory";
 import { PeopleStructureGlance } from "@/components/otzar/PeopleStructureGlance";
+import { AiCollabEnvelopeCard } from "@/components/otzar/AiCollabEnvelopeCard";
 import { Sprout } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { api } from "@/lib/api";
 import { resolveTargetGoverned } from "@/lib/work-os/target-resolution";
+import {
+  classifyEnvelopeState,
+  isAiToAiTarget,
+  resolveCollabTarget,
+} from "@/lib/work-os/ai-collab-envelope";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
   AssignmentTarget,
@@ -179,11 +185,14 @@ export function Collaboration() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="collaboration-page" data-l01-surface="true">
       <PageHeader
         title="People & Collaboration"
         description="Who reports to whom, who you can work with, and how to ask for help — without org-wide noise."
       />
+
+      {/* L-01 — AI↔AI collaboration is a governed, fail-closed envelope. */}
+      <AiCollabEnvelopeCard />
 
       {/* First-use one-shot: structure + people, then collab. Growth is secondary. */}
       <PeopleStructureGlance />
@@ -268,11 +277,14 @@ function CreateCollaborationForm({
   const [locked, setLocked] = useState<{ id: string; name: string } | null>(
     null,
   );
+  // L-01 — explicit path: coworker's AI Teammate (EMPLOYEE_TWIN envelope).
+  const [targetMode, setTargetMode] = useState<"human" | "ai_teammate">("human");
 
   useEffect(() => {
     if (prefill !== undefined && prefill.id.length > 0) {
       setWho(prefill.name);
       setLocked({ id: prefill.id, name: prefill.name });
+      setTargetMode("human");
     }
   }, [prefill]);
 
@@ -298,16 +310,26 @@ function CreateCollaborationForm({
     return HELP_CHIPS.find((c) => c.key === key)?.requestType ?? "STATUS_REQUEST";
   }
 
-  // Send through the governed rail. target_type stays EMPLOYEE; when no entity
-  // is resolved we send NO id and let org policy route — that's Otzar's job,
-  // never a human typing an entity/project/team id, never a fabricated target.
-  function send(entityId: string | undefined): void {
+  // Send through the governed rail. L-01: human vs AI Teammate targets use
+  // different Foundation target_type fields; never fabricate ids.
+  function send(
+    entityId: string | undefined,
+    kind: "human" | "ai_teammate" = targetMode,
+  ): void {
+    const resolved = resolveCollabTarget(
+      entityId !== undefined ? { kind, entityId } : { kind },
+    );
     const body: CreateCollaborationRequestBody = {
-      target_type: "EMPLOYEE",
+      target_type: resolved.target_type,
       request_type: requestTypeFor(helpKey),
       safe_summary: safeSummary.trim(),
     };
-    if (entityId !== undefined) body.target_entity_id = entityId;
+    if (resolved.target_entity_id !== undefined) {
+      body.target_entity_id = resolved.target_entity_id;
+    }
+    if (resolved.target_twin_entity_id !== undefined) {
+      body.target_twin_entity_id = resolved.target_twin_entity_id;
+    }
     create.mutate(body);
   }
 
@@ -323,12 +345,12 @@ function CreateCollaborationForm({
     const name = who.trim();
     // No teammate named — let Otzar find the right person by policy.
     if (name.length === 0) {
-      send(undefined);
+      send(undefined, targetMode);
       return;
     }
     // Prefilled from a person card — already resolved; skip the lookup.
     if (locked !== null && locked.name === name) {
-      send(locked.id);
+      send(locked.id, targetMode);
       return;
     }
     // Resolve the typed name through the governed (employee-safe) resolver.
@@ -336,12 +358,15 @@ function CreateCollaborationForm({
     const r = await resolveTargetGoverned(name);
     setResolving(false);
     if (
-      (r.kind === "RESOLVED_HUMAN" ||
-        r.kind === "RESOLVED_AI_AGENT" ||
-        r.kind === "RESOLVED_TWIN") &&
+      (r.kind === "RESOLVED_AI_AGENT" || r.kind === "RESOLVED_TWIN") &&
       r.entityId !== undefined
     ) {
-      send(r.entityId);
+      // Resolved to an AI Teammate identity → EMPLOYEE_TWIN envelope (L-01).
+      send(r.entityId, "ai_teammate");
+      return;
+    }
+    if (r.kind === "RESOLVED_HUMAN" && r.entityId !== undefined) {
+      send(r.entityId, targetMode);
       return;
     }
     if (
@@ -420,6 +445,46 @@ function CreateCollaborationForm({
                 );
               })}
             </div>
+          </div>
+
+          <div className="space-y-1" data-testid="collab-target-mode">
+            <span className="text-xs font-medium text-muted-foreground">
+              Route to (L-01 envelope)
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                data-testid="collab-target-human"
+                aria-pressed={targetMode === "human"}
+                onClick={() => setTargetMode("human")}
+                className={`rounded-full border px-3 py-1 text-xs transition ${
+                  targetMode === "human"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                }`}
+              >
+                Coworker (human)
+              </button>
+              <button
+                type="button"
+                data-testid="collab-target-ai-teammate"
+                aria-pressed={targetMode === "ai_teammate"}
+                onClick={() => setTargetMode("ai_teammate")}
+                className={`rounded-full border px-3 py-1 text-xs transition ${
+                  targetMode === "ai_teammate"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                }`}
+              >
+                Coworker&apos;s AI Teammate
+              </button>
+            </div>
+            {targetMode === "ai_teammate" ? (
+              <p className="text-[11px] text-muted-foreground" data-testid="collab-ai-target-hint">
+                Twin-targeted requests use the AI↔AI envelope — policy, approval,
+                and audit apply; never silent.
+              </p>
+            ) : null}
           </div>
 
           <Field label="Who should help? (optional)" id="collab-who">
@@ -577,16 +642,34 @@ function CollaborationRow({
   });
 
   const isOpen = !TERMINAL_STATES.has(item.state) && item.state !== "BLOCKED";
+  const envelope = classifyEnvelopeState({
+    state: item.state,
+    blocked_reason: item.blocked_reason,
+    requires_approval: item.requires_approval,
+    requested_by_ai: item.requested_by_ai,
+    has_target_twin: item.has_target_twin,
+  });
+  const aiToAi = isAiToAiTarget(item.target_type, item.has_target_twin);
 
   return (
     <li
       className="rounded-md border border-border bg-card px-4 py-3"
       data-testid={`collab-row-${item.collaboration_id}`}
+      data-l01-envelope="true"
+      data-envelope-outcome={envelope.outcome}
+      data-fail-closed={envelope.fail_closed ? "true" : "false"}
+      data-ai-to-ai={aiToAi ? "true" : "false"}
+      data-requested-by-ai={item.requested_by_ai ? "true" : "false"}
     >
       <div className="flex flex-wrap items-center gap-2">
         <Badge>{labelState(item.state)}</Badge>
         <Badge variant="outline">{labelTarget(item.target_type)}</Badge>
         <Badge variant="outline">{labelRequest(item.request_type)}</Badge>
+        {aiToAi ? (
+          <Badge variant="outline" data-testid="collab-ai-to-ai-badge">
+            AI Teammate envelope
+          </Badge>
+        ) : null}
         {item.blocked_reason && (
           <Badge variant="destructive">
             {labelBlocked(item.blocked_reason)}
@@ -594,6 +677,12 @@ function CollaborationRow({
         )}
       </div>
       <p className="mt-2 text-sm text-foreground">{item.safe_summary}</p>
+      <p
+        className="mt-1 text-[11px] text-muted-foreground"
+        data-testid="collab-envelope-status"
+      >
+        {envelope.reason_label} · audited
+      </p>
       <p className="mt-1 text-xs text-muted-foreground">
         Created {formatRelativeTime(item.created_at)}
         {item.completed_at &&
