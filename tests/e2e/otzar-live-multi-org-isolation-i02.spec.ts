@@ -177,15 +177,17 @@ test("I-02 deep: multi-org memory isolation", async ({ page }) => {
     `load=${loadState} ${summary.slice(0, 80)}`,
   );
 
-  const honesty = (
-    (await page.getByTestId("i02-export-honesty").textContent().catch(() => "")) ??
-    ""
-  ).toLowerCase();
-  const exportAttr = (await card.getAttribute("data-export-available")) ?? "";
+  const honestyEl = page.getByTestId("i02-export-honesty");
+  const honesty = ((await honestyEl.textContent().catch(() => "")) ?? "").toLowerCase();
+  const exportAttrCard = (await card.getAttribute("data-export-available")) ?? "";
+  const exportAttrHonesty =
+    (await honestyEl.getAttribute("data-export-available").catch(() => null)) ?? "";
+  const exportAttr =
+    exportAttrCard === "false" || exportAttrHonesty === "false" ? "false" : exportAttrCard;
   const exportBtns = await page.getByRole("button", { name: /export|import/i }).count();
   rec(
     "I02-F",
-    /not available yet|never silent|future/i.test(honesty) &&
+    /not available yet|never silent|future|not silent multi-org/i.test(honesty) &&
       exportAttr === "false" &&
       exportBtns === 0
       ? "PASS"

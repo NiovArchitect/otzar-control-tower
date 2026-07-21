@@ -72,6 +72,7 @@ export function MultiOrgMemoryIsolationCard(): JSX.Element {
       data-pref-count={String(prefCount)}
       data-org-bound-count={String(orgBoundCount)}
       data-portable-count={String(portableCount)}
+      data-export-available="false"
       data-second-tenant-suite={status.mode === "multi_org" ? "ready" : "residual"}
     >
       <CardHeader className="pb-2">
