@@ -35,19 +35,23 @@ export function SpatialPresenceLayer({
       );
     };
     apply();
-    const mq =
-      typeof window !== "undefined"
-        ? window.matchMedia("(prefers-reduced-motion: reduce)")
-        : null;
-    if (!mq) return;
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
+      return;
+    }
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const handler = (): void => apply();
-    mq.addEventListener?.("change", handler);
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }
     // Safari < 14
-    mq.addListener?.(handler);
-    return () => {
-      mq.removeEventListener?.("change", handler);
-      mq.removeListener?.(handler);
-    };
+    if (typeof mq.addListener === "function") {
+      mq.addListener(handler);
+      return () => mq.removeListener(handler);
+    }
   }, [depthEnabled]);
 
   const isFlat = mode === "flat_2d";
@@ -57,7 +61,7 @@ export function SpatialPresenceLayer({
       data-testid="spatial-presence-layer"
       data-d03="true"
       data-spatial-mode={mode}
-      data-reduced-motion={isFlat && prefersReducedMotion() ? "true" : "false"}
+      data-reduced-motion={isFlat ? "true" : "false"}
       data-depth-enabled={depthEnabled ? "true" : "false"}
       data-immersive-shipped="false"
       className={
