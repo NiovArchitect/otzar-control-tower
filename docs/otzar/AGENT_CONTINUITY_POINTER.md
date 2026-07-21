@@ -29,13 +29,17 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Active phase:** **`YC_RELEASE_CANDIDATE_READY`** (tag `OTZAR_YC_RC1`).  
+**Active phase:** **`YC_RC1_REOPENED_FOR_SIGNAL_AND_FIRST_USE_REPAIR`** (RC2 signal audit).  
 
-**Pins:** FND live `afe1491` · CT `c57052a` (full-chain UI from `80e36b4`) · bundle `index-D8TMNmma.js` / `index-CyE4kMZQ.css`.  
+`YC_RELEASE_CANDIDATE_READY` is **off** until walkthrough + copy + utility gate pass.  
 
-**Trust residuals:** create idempotency + intent-ledger project visibility **closed** (#732); npm audit assessed not force-fixed; Meet still no eligible artifact.  
+**Backend proof preserved:** full project chain, docs/calendar, change propagation, isolation, bounded enterprise.  
 
-**Do not:** restart scale provisioning, Relay build-out, or unrelated feature deploys without reopening the RC gate. Packet: `docs/otzar/master/YC_PROOF_PACKET.md` · freeze: `YC_RC1_FREEZE.md`.
+**RC2 focus:** persistent walkthrough (v3), strip eng proof from UI, plain language, People hover, admin nav calm. See `YC_RC2_STATUS.md` · `YC_RC2_SIGNAL_DESIGN_MAPS.md`.  
+
+**Pins (backend):** FND `afe1491` · CT full-chain UI `80e36b4` lineage.  
+
+**Do not:** scale reboot, Relay, or unrelated feature work while signal repair is open.
 
 ---
 

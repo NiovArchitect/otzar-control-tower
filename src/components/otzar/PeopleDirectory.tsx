@@ -30,6 +30,7 @@ import { api } from "@/lib/api";
 import { formatPersonName } from "@/lib/identity/person-name";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 import { PersonCockpit } from "@/components/otzar/PersonCockpit";
+import { PersonRelationshipPreview } from "@/components/otzar/PersonRelationshipPreview";
 import { PersonTypeTaxonomyCard } from "@/components/otzar/PersonTypeTaxonomyCard";
 import {
   classifyPersonType,
@@ -227,16 +228,30 @@ export function PeopleDirectory({
                         {personTypeLabel(pType)}
                       </Badge>
                       {p.shared_project_count > 0 ? (
-                        <Badge variant="outline" className="text-[10px]">
-                          {p.shared_project_count} shared project
-                          {p.shared_project_count === 1 ? "" : "s"}
-                        </Badge>
+                        <PersonRelationshipPreview
+                          entityId={p.entity_id}
+                          displayName={formatPersonName(p.display_name)}
+                          mode="projects"
+                          count={p.shared_project_count}
+                        >
+                          <Badge variant="outline" className="text-[10px]">
+                            {p.shared_project_count} shared project
+                            {p.shared_project_count === 1 ? "" : "s"}
+                          </Badge>
+                        </PersonRelationshipPreview>
                       ) : null}
                       {p.recent_collab_count > 0 ? (
-                        <Badge variant="outline" className="text-[10px]">
-                          {p.recent_collab_count} recent collab
-                          {p.recent_collab_count === 1 ? "" : "s"}
-                        </Badge>
+                        <PersonRelationshipPreview
+                          entityId={p.entity_id}
+                          displayName={formatPersonName(p.display_name)}
+                          mode="collabs"
+                          count={p.recent_collab_count}
+                        >
+                          <Badge variant="outline" className="text-[10px]">
+                            {p.recent_collab_count} recent collab
+                            {p.recent_collab_count === 1 ? "" : "s"}
+                          </Badge>
+                        </PersonRelationshipPreview>
                       ) : null}
                     </div>
                   </div>
@@ -259,9 +274,8 @@ export function PeopleDirectory({
           })}
         </ul>
         <p className="mt-3 text-[10px] text-muted-foreground">
-          Otzar can route collaboration requests to any of these teammates.
-          Cross-team or sensitive requests still go through your organization's
-          policy. Participation counts are not authority.
+          You can ask these teammates for help. Sensitive requests still follow
+          your organization&apos;s rules.
         </p>
       </CardContent>
     </Card>

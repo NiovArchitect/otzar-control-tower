@@ -124,11 +124,13 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Overview",
   },
   {
+    // YC RC signal: commercial capacity is advanced, not first-login focus.
     label: "Billing & Entitlements",
     to: "/billing",
     icon: CreditCard,
-    description: "Your plan, seats, and what's available — the capacity and entitlements that govern what this organization can use.",
-    group: "Overview",
+    description: "Plan, seats, and what this organization can use.",
+    group: "Diagnostics",
+    hidden: true,
   },
 
   // ── 2. People & Roles ──────────────────────────────────────────
@@ -208,18 +210,21 @@ export const NAV: ReadonlyArray<NavItem> = [
     group: "Work Graph & Memory",
   },
   {
+    // Advanced commercial surface. Route kept; not first-class admin IA for YC.
     label: "Marketplace",
     to: "/marketplace",
     icon: Store,
-    description: "Knowledge other organizations have opted into sharing. Safe metadata browse only — access stays governed by the provider.",
-    group: "Work Graph & Memory",
+    description: "Shared knowledge other organizations offer. Access stays governed.",
+    group: "Diagnostics",
+    hidden: true,
   },
   {
     label: "Federation Cloud Cohorts",
     to: "/cohorts",
     icon: Boxes,
-    description: "Govern your organization's data cohorts — usage, access requests, and governed proofs. Cohorts deliver proofs, never raw data.",
-    group: "Work Graph & Memory",
+    description: "Data cohorts and governed proofs for advanced operators.",
+    group: "Diagnostics",
+    hidden: true,
   },
   {
     label: "Intelligence",

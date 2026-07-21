@@ -15,9 +15,9 @@ import {
 } from "@/lib/first-use/walkthrough";
 
 describe("A-08 cinematic first-login", () => {
-  it("states doctrine and uses v2 walkthrough", () => {
+  it("states doctrine and uses v3 walkthrough", () => {
     expect(A08_DOCTRINE).toMatch(/cinematic|role-specific|provider honesty/i);
-    expect(WALKTHROUGH_VERSION).toBe("v2");
+    expect(WALKTHROUGH_VERSION).toBe("v3");
   });
 
   it.each([...A08_ROLES])(

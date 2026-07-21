@@ -1,8 +1,7 @@
 // FILE: first-use/state.ts
-// PURPOSE: A-04 — first-use / walkthrough completion. Dual write:
-//          (1) versioned localStorage key per account
-//          (2) server Twin PREFERENCE correction marker (when API allows)
-//          Version bumps re-show the walkthrough.
+// PURPOSE: First-use walkthrough completion AND in-progress step.
+//          Dual write: versioned localStorage + best-effort server marker.
+//          Progress survives route changes, refresh, and return visits.
 // CONNECTS TO: walkthrough.ts, FirstUseReveal, correctionMemory API.
 
 import { api } from "@/lib/api";
@@ -12,6 +11,7 @@ import {
 } from "@/lib/first-use/walkthrough";
 
 const PREFIX = "otzar_first_use_walkthrough:";
+const STEP_PREFIX = "otzar_first_use_walkthrough_step:";
 
 export function firstUseStorageKey(
   email: string | null | undefined,
@@ -21,7 +21,15 @@ export function firstUseStorageKey(
   return `${PREFIX}${version}:${id}`;
 }
 
-/** @deprecated use hasCompletedWalkthrough — kept for older tests */
+function stepStorageKey(
+  email: string | null | undefined,
+  version: string = WALKTHROUGH_VERSION,
+): string {
+  const id = (email ?? "anonymous").trim().toLowerCase();
+  return `${STEP_PREFIX}${version}:${id}`;
+}
+
+/** @deprecated use hasCompletedWalkthrough */
 export function hasCompletedFirstUse(email: string | null | undefined): boolean {
   return hasCompletedWalkthrough(email);
 }
@@ -35,7 +43,6 @@ export function hasCompletedWalkthrough(
     if (window.localStorage.getItem(firstUseStorageKey(email, version)) === "done") {
       return true;
     }
-    // Legacy unversioned key (A-03 era) only satisfies v1 — version bumps re-show.
     if (version === "v1") {
       const legacy = `otzar_first_use_v1:${(email ?? "anonymous").trim().toLowerCase()}`;
       return window.localStorage.getItem(legacy) === "done";
@@ -43,6 +50,42 @@ export function hasCompletedWalkthrough(
     return false;
   } catch {
     return true;
+  }
+}
+
+/** Current step index (0-based). Defaults to 0 when unset. */
+export function getWalkthroughStepIndex(
+  email: string | null | undefined,
+  version: string = WALKTHROUGH_VERSION,
+): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = window.localStorage.getItem(stepStorageKey(email, version));
+    if (raw === null) return 0;
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return n;
+  } catch {
+    return 0;
+  }
+}
+
+/** Persist in-progress step. Does not complete the walkthrough. */
+export function setWalkthroughStepIndex(
+  email: string | null | undefined,
+  index: number,
+  version: string = WALKTHROUGH_VERSION,
+  options?: { persistServer?: boolean },
+): void {
+  if (typeof window === "undefined") return;
+  const next = Math.max(0, Math.floor(index));
+  try {
+    window.localStorage.setItem(stepStorageKey(email, version), String(next));
+  } catch {
+    /* private mode */
+  }
+  if (options?.persistServer !== false) {
+    void persistServerWalkthroughProgress(version, next);
   }
 }
 
@@ -57,7 +100,7 @@ export function markWalkthroughComplete(
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(firstUseStorageKey(email, version), "done");
-    // Keep legacy key for v1 so A-03 readers stay quiet; never use it for v2+.
+    window.localStorage.removeItem(stepStorageKey(email, version));
     if (version === "v1") {
       const legacy = `otzar_first_use_v1:${(email ?? "anonymous").trim().toLowerCase()}`;
       window.localStorage.setItem(legacy, "done");
@@ -65,16 +108,12 @@ export function markWalkthroughComplete(
   } catch {
     /* private mode */
   }
-  // Server marker — best-effort (Twin PREFERENCE)
   void persistServerWalkthroughDone(version);
 }
 
-async function persistServerWalkthroughDone(
-  version: string,
-): Promise<void> {
+async function persistServerWalkthroughDone(version: string): Promise<void> {
   try {
     const marker = walkthroughMarker(version);
-    // Avoid duplicates: list PREFERENCE and skip if marker present
     const listed = await api.otzar.correctionMemory.list({
       correction_type: "PREFERENCE",
       state: "ACTIVE",
@@ -89,10 +128,26 @@ async function persistServerWalkthroughDone(
     await api.otzar.correctionMemory.create({
       scope_type: "PERSONAL",
       correction_type: "PREFERENCE",
-      safe_summary: `${marker} — first-use walkthrough completed`,
+      safe_summary: `${marker} first-use walkthrough completed`,
     });
   } catch {
-    /* offline / permission — local still holds */
+    /* offline / permission */
+  }
+}
+
+async function persistServerWalkthroughProgress(
+  version: string,
+  index: number,
+): Promise<void> {
+  try {
+    const marker = `otzar_first_use_walkthrough:${version}:step:${index}`;
+    await api.otzar.correctionMemory.create({
+      scope_type: "PERSONAL",
+      correction_type: "PREFERENCE",
+      safe_summary: marker,
+    });
+  } catch {
+    /* best-effort; local step is source of truth while in progress */
   }
 }
 
@@ -117,6 +172,23 @@ export async function hydrateWalkthroughFromServer(
       markWalkthroughComplete(email, version);
       return true;
     }
+    // Resume highest step marker if present
+    let maxStep = -1;
+    for (const c of listed.data.corrections ?? []) {
+      const s = c.safe_summary ?? "";
+      const m = s.match(
+        new RegExp(
+          `otzar_first_use_walkthrough:${version}:step:(\\d+)`,
+        ),
+      );
+      if (m?.[1] !== undefined) {
+        const n = Number.parseInt(m[1], 10);
+        if (Number.isFinite(n) && n > maxStep) maxStep = n;
+      }
+    }
+    if (maxStep >= 0) {
+      setWalkthroughStepIndex(email, maxStep, version, { persistServer: false });
+    }
   } catch {
     return false;
   }
@@ -127,6 +199,7 @@ export function clearFirstUse(email: string | null | undefined): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(firstUseStorageKey(email));
+    window.localStorage.removeItem(stepStorageKey(email));
     window.localStorage.removeItem(
       `otzar_first_use_v1:${(email ?? "anonymous").trim().toLowerCase()}`,
     );
@@ -142,6 +215,7 @@ export function clearWalkthrough(
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(firstUseStorageKey(email, version));
+    window.localStorage.removeItem(stepStorageKey(email, version));
   } catch {
     /* ignore */
   }

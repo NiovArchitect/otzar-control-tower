@@ -15,6 +15,8 @@ import {
   markWalkthroughComplete,
   clearWalkthrough,
   clearFirstUse,
+  getWalkthroughStepIndex,
+  setWalkthroughStepIndex,
 } from "@/lib/first-use/state";
 
 describe("resolveWalkthroughRole (A-04)", () => {
@@ -93,6 +95,13 @@ describe("walkthroughStepsFor (A-04)", () => {
       expect(s.ctaTo.startsWith("/app")).toBe(true);
       expect(s.ctaLabel.length).toBeGreaterThan(0);
       expect(s.testId).toMatch(/^walkthrough-step-/);
+      expect(s.why.length).toBeGreaterThan(0);
+      expect(s.doNext.length).toBeGreaterThan(0);
+      expect(s.targetContract.length).toBeGreaterThan(0);
+      // No em dash or en dash in user-facing walkthrough copy.
+      expect(s.body).not.toMatch(/[—–]/);
+      expect(s.title).not.toMatch(/[—–]/);
+      expect(s.why).not.toMatch(/[—–]/);
     }
   });
 
@@ -117,6 +126,19 @@ describe("versioned completion keys (A-04)", () => {
     expect(walkthroughMarker()).toBe(
       `otzar_first_use_walkthrough:${WALKTHROUGH_VERSION}:done`,
     );
+  });
+
+  it("persists in-progress step without completing", () => {
+    clearWalkthrough(email);
+    expect(hasCompletedWalkthrough(email)).toBe(false);
+    setWalkthroughStepIndex(email, 2, WALKTHROUGH_VERSION, {
+      persistServer: false,
+    });
+    expect(getWalkthroughStepIndex(email)).toBe(2);
+    expect(hasCompletedWalkthrough(email)).toBe(false);
+    markWalkthroughComplete(email);
+    expect(hasCompletedWalkthrough(email)).toBe(true);
+    expect(getWalkthroughStepIndex(email)).toBe(0);
   });
 
   it("mark / has / clear round-trip", () => {

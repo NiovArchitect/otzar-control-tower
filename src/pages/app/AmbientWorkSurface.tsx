@@ -38,7 +38,7 @@ import {
   twinWorkNeedsVerification,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
-import { FirstUseReveal } from "@/components/first-use/FirstUseReveal";
+
 import {
   SpatialPresenceLayer,
   SpatialReadinessNote,
@@ -804,7 +804,6 @@ export function AmbientWorkSurface(): JSX.Element {
                 homeCopy.presenceLine
               )}
             </p>
-            <FirstUseReveal />
           </div>
         </div>
       </section>
