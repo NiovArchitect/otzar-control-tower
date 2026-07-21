@@ -401,9 +401,22 @@ export function AmbientOtzarBar(): JSX.Element {
   // orb via a window event — invocation lives in the surface, the engine is here.
   useEffect(() => {
     const open = (): void => setExpanded(true);
+    const close = (): void => setExpanded(false);
     window.addEventListener("otzar:open", open);
-    return () => window.removeEventListener("otzar:open", open);
+    window.addEventListener("otzar:close", close);
+    return () => {
+      window.removeEventListener("otzar:open", open);
+      window.removeEventListener("otzar:close", close);
+    };
   }, []);
+
+  // Broadcast expand/collapse so the walkthrough coach can compact (RC2 F1–F5).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent(expanded ? "otzar:open" : "otzar:close"),
+    );
+  }, [expanded]);
   const [draft, setDraft] = useState("");
   // ── P0H — draggable orb position (per device, persisted) ──────────
   // null = the default bottom-right anchor (pre-P0H classes, unchanged).
@@ -4380,10 +4393,12 @@ export function AmbientOtzarBar(): JSX.Element {
         : orbPos !== null
           ? orbPositionToStyle(orbPos)
           : undefined;
+    // Talk surface sits above the walkthrough coach (z-45) so the guide
+    // never steals orb clicks. See FirstUseReveal layer contract.
     const orbAnchorClass =
       orbDragPoint !== null || orbPos !== null
-        ? "fixed z-[60]"
-        : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60]";
+        ? "fixed z-[70]"
+        : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[70]";
     return (
       <div
         ref={orbWrapperRef}
@@ -4451,13 +4466,14 @@ export function AmbientOtzarBar(): JSX.Element {
       : undefined;
   const dockAnchorClass =
     orbPos !== null
-      ? "fixed z-[60]"
-      : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60]";
+      ? "fixed z-[70]"
+      : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[70]";
   return (
     <div
       role="region"
       aria-label="Talk to Otzar"
       data-testid="ambient-otzar-bar"
+      data-talk-layer="active"
       data-presence={presenceState}
       data-presence-human={humanPresenceState(presenceState)}
       data-voice-first="true"
