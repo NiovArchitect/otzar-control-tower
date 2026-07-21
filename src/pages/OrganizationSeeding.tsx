@@ -20,6 +20,11 @@ import type {
 } from "@/lib/types/foundation";
 import { groupSeeds, type SeedGroup } from "@/lib/work-os/seed-grouping";
 import { buildProposalHonestyView } from "@/lib/work-os/proposal-honesty";
+import {
+  classForSeedType,
+  inventoryProposalClasses,
+} from "@/lib/work-os/dandelion-proposal-classes";
+import { DandelionProposalClassMatrix } from "@/components/otzar/DandelionProposalClassMatrix";
 
 const SEED_TYPE_LABEL: Record<string, string> = {
   grant_tool_access: "Tool access needed",
@@ -154,14 +159,19 @@ export function OrganizationSeedingPage(): JSX.Element {
   // Cluster duplicate suggestions for the same person/target into ONE card and
   // organize into root-first Dandelion queues (people → structure → tools).
   const grouped = groupSeeds(seeds ?? []);
+  // E-01 — multi-class coverage inventory (people/roles/managers/teams/projects/externals).
+  const classInventory = inventoryProposalClasses(seeds ?? []);
 
   return (
-    <div className="space-y-6" data-testid="org-seeding-page">
+    <div className="space-y-6" data-testid="org-seeding-page" data-e01-surface="true">
       {/* Dandelion operational order: Listen → Discover → Seed → Govern → Grow */}
       <PageHeader
         title="Organization Seeding"
         description="Oversight only — Otzar already routes structure and work into the right people’s ambient Work OS. You hold, dismiss, or handle exceptions. People do not live here."
       />
+
+      {/* E-01 — which proposal classes Dandelion has open right now. */}
+      <DandelionProposalClassMatrix inventory={classInventory} />
 
       <Card data-testid="dandelion-order-strip">
         <CardContent className="space-y-3 py-4 text-sm">
@@ -364,12 +374,14 @@ function SeedCard({
   const isHierarchy = seed.seed_type === "set_manager";
   // E-02 — source, confidence, alternatives, authority-affecting honesty
   const honesty = buildProposalHonestyView(seed);
+  const e01Class = classForSeedType(seed.seed_type);
 
   return (
     <Card
       data-testid="org-seed-card"
       data-seed-status={seed.status}
       data-seed-type={seed.seed_type}
+      data-e01-class={e01Class ?? ""}
       data-e02-honesty="true"
       data-authority-affecting={honesty.authority_affecting ? "true" : "false"}
       data-requires-admin-confirm={honesty.requires_admin_confirm ? "true" : "false"}
