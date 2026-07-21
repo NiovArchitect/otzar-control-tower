@@ -77,12 +77,14 @@ describe("[GAP-F] Pending Approvals badge == the caller's pending queue", () => 
     renderSidebar();
     // Let queries settle, then assert absence.
     await waitFor(() =>
-      expect(screen.getByText("Pending Approvals")).toBeInTheDocument(),
+      expect(
+        screen.getByRole("link", { name: /Action Center/i }),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByLabelText(/pending approvals/)).toBeNull();
   });
 
-  it("Review Center badge counts ONLY pending reviews from the queue's own list", async () => {
+  it("Action Center review badge counts ONLY pending reviews from the queue's own list", async () => {
     server.use(
       http.get(`${API_BASE}/escalations/pending`, () =>
         HttpResponse.json({ ok: true, escalations: [] }),

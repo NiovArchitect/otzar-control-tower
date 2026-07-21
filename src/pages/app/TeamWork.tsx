@@ -257,7 +257,7 @@ export function TeamWork(): JSX.Element {
                     {health.external_relationships!.external_review_pending_count === 1
                       ? "y needs"
                       : "ies need"}{" "}
-                    review in Organization Seeding.
+                    review in Organization setup.
                   </p>
                 ) : null}
               </div>

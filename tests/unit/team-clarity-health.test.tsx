@@ -136,7 +136,7 @@ describe("[T-4] Team Work — external exception section (calm, no CRM)", () => 
     expect(box).toContain("2 client commitments are overdue");
     expect(box).toContain("3 items are waiting on Acme.");
     expect(box).toContain("1 external commitment needs an internal owner.");
-    expect(box).toContain("1 external party needs review in Organization Seeding.");
+    expect(box).toContain("1 external party needs review in Organization setup.");
     // No CRM vocabulary, no backend enums, no ids, no emails/domains.
     expect(box).not.toMatch(/pipeline|deal|opportunity|account stage|CRM/i);
     expect(box).not.toMatch(/EXTERNAL_OWES_INTERNAL|INTERNAL_OWES_EXTERNAL|[0-9a-f]{8}-[0-9a-f]{4}|@/);

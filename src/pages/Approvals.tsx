@@ -606,7 +606,7 @@ export function ApprovalsPage() {
   return (
     <div className="space-y-6" data-testid="approvals-page">
       <PageHeader
-        title="Pending Approvals"
+        title="Action Center"
         description="Dual-control approval queue. Two-person rule applies — you cannot resolve a request you sourced. Audit chain captures every action."
       />
       <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
