@@ -1539,10 +1539,14 @@
       "implementation_refs": [
         "src/lib/work-os/portable-core.ts",
         "src/components/otzar/PortableCoreCard.tsx",
-        "tests/e2e/otzar-live-portable-isolation-h02.spec.ts"
+        "tests/e2e/otzar-live-portable-isolation-h02.spec.ts",
+        "src/lib/work-os/memory-redaction.ts",
+        "src/components/otzar/MemoryRedactionCard.tsx",
+        "tests/unit/memory-redaction.test.ts",
+        "tests/e2e/otzar-live-memory-redaction-h02.spec.ts"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Full redaction stress corpus continuous",
+      "remaining_gap": "Redaction stress corpus shipped pending LIVE deep; continuous expansion when pressure finds new classes",
       "dependencies": [],
       "priority": "P0",
       "phase": 4,

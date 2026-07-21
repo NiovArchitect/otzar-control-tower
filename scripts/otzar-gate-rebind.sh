@@ -30,6 +30,7 @@ SPECS=(
   tests/e2e/otzar-live-cross-tenant-q01.spec.ts
   tests/e2e/otzar-live-multi-org-isolation-i02.spec.ts
   tests/e2e/otzar-live-person-types-e03.spec.ts
+  tests/e2e/otzar-live-memory-redaction-h02.spec.ts
 )
 
 echo "[gate-rebind] base=$OTZAR_SMOKE_BASE_URL specs=${#SPECS[@]}"

@@ -60,6 +60,7 @@ import {
 import { PortableCoreCard } from "@/components/otzar/PortableCoreCard";
 import { MultiOrgMemoryIsolationCard } from "@/components/otzar/MultiOrgMemoryIsolationCard";
 import { CrossTenantIsolationCard } from "@/components/otzar/CrossTenantIsolationCard";
+import { MemoryRedactionCard } from "@/components/otzar/MemoryRedactionCard";
 import { LearningAppliesCard } from "@/components/otzar/LearningAppliesCard";
 import { WindowContextShare } from "@/components/observation/WindowContextShare";
 
@@ -295,6 +296,8 @@ export function MyMemory(): JSX.Element {
       <MultiOrgMemoryIsolationCard />
       {/* Q-01 / Q-02 — cross-tenant / cross-user / Twin zero leak + deep-link isolation */}
       <CrossTenantIsolationCard variant="employee" />
+      {/* H-02 residual — redaction stress corpus + live portable scan */}
+      <MemoryRedactionCard />
       {/* H-03 LearningAppliesCard is also nested under Teach Otzar for in-flow
           feedback; Portable core is the later-work inventory surface. */}
       {/* D-04 — selected-window share: explicit browser permission + live indicator */}

@@ -105,15 +105,22 @@ export function preferencesIsolatedAcrossUsers(
 
 /** Reject confidential / org-substance markers in portable plain text. */
 export function isSafePortablePlain(plain: string): boolean {
-  const t = plain.toLowerCase();
+  const t = (plain ?? "").toLowerCase();
+  if (t.trim().length === 0) return true;
+  // Core confidential / credential classes (H-02 redaction stress)
   if (
-    /\b(customer secret|ssn|salary band confidential|api key|password|confidential document)\b/i.test(
+    /\b(customer secret|ssn|salary band confidential|api key|password|confidential document|oauth token|bearer\s+eyj|bank routing|nda body)\b/i.test(
       t,
     )
   ) {
     return false;
   }
-  if (/\b(export twin|take this with you|portable today)\b/i.test(t)) {
+  // False portability claims
+  if (/\b(export twin|take this with you|portable today|without consent)\b/i.test(t)) {
+    return false;
+  }
+  // Source-excerpt shape (raw transcript / paste of secrets)
+  if (/\b(diagnosis in customer|patient ssn|shared password for the vendor)\b/i.test(t)) {
     return false;
   }
   return true;
