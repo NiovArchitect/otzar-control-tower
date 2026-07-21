@@ -53,6 +53,7 @@ Regression anchors:
 | K-01 | 2 | Meet provider after N-02 |
 | L-01 | 5 | LIVE_VERIFIED complex deep 10/10 AI↔AI envelope |
 | M-01 | 5 | LIVE_VERIFIED complex deep 10/10 graduated ladder |
+| M-02 | 5 | LIVE_VERIFIED complex deep 10/10 time-limited multi-class grants |
 | N-02 | 2 | **Operator Meet reauth** |
 | N-03 | 2 | Docs append live |
 | O-01 | 2 | Capability-first domain provision |

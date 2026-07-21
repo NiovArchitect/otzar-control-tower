@@ -118,7 +118,7 @@ PARTIAL — growth card + seeding; full source-driven proposal classes open (E-0
 | ID | Proof | Notes |
 |----|-------|-------|
 | **M-01** Graduated autonomy ladder | LIVE_VERIFIED | Complex deep 10/10 on `index-CzDer3IR.js` — observe→draft→confirm→execute; Needs me + grants; preference ≠ authority |
-| **M-02** Time-limited auth classes | PARTIAL | continuous multi-class proof open |
+| **M-02** Time-limited auth classes | LIVE_VERIFIED | Complex deep 10/10 on `index-DiTdcg9T.js` — 8 duration classes; SESSION+ONE_TIME create; purpose on all grants; revoke branch |
 
 ### N — Providers
 

@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `ff13d1c` |
-| Live bundle | `index-CuYNQjjV.js` |
-| Live last-modified | 2026-07-21 L-01 complex deep **10/10**; M-01 10/10; G-02 10/10 |
-| Gate status | **OPEN** — L-01 + M-01 + G-02 LIVE_VERIFIED; Phase 5 residual M-02; I-02; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `04d68c3` |
+| Live bundle | `index-DiTdcg9T.js` |
+| Live last-modified | 2026-07-21 M-02 complex deep **10/10**; L-01 10/10; M-01 10/10 |
+| Gate status | **OPEN** — Phase 5 core LIVE (G-02/L-01/M-01/M-02); I-02 multi-org; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **M-02** one-time/session/project grants continuous multi-class proof (Phase 5);
-2. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
-3. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
-4. **K-03** communication lineage residual (Phase 2).
+1. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
+2. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
+3. **K-03** communication lineage residual (Phase 2);
+4. **J-02** full project spine residual (Phase 1).
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

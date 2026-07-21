@@ -1972,19 +1972,32 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Continuous multi-class proof",
+      "implementation_refs": [
+        "src/lib/work-os/time-limited-authority.ts",
+        "src/components/otzar/TimeLimitedAuthorityCard.tsx",
+        "src/pages/app/AuthorityGrants.tsx",
+        "tests/unit/time-limited-authority.test.ts",
+        "tests/e2e/otzar-live-time-limited-auth-m02.spec.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "PROJECT_SCOPED continuous class residual if seed projects sparse",
       "dependencies": [],
       "priority": "P1",
       "phase": 5,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Multi-class duration catalog; transparent purpose; create+revoke live",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "b35ff53",
+        "04d68c3"
+      ],
+      "deployment_sha": "b35ff53",
+      "final_proof": {
+        "live_bundle": "index-DiTdcg9T.js",
+        "e2e": "otzar-live-time-limited-auth-m02 10/10",
+        "notes": "8 duration classes; SESSION+ONE_TIME create ok; 6 grants with purpose; revoke clicked"
+      }
     },
     {
       "id": "N-01",
