@@ -29,7 +29,7 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Next internal Work OS priority:** Google Workspace reauthorization → auto-resume Doc (2026-09-18 cal) + Meet. Internal project loop closed through UI + cross-tenant zero-leak. Live FND `72c6864`. CT `319c1cd`.
+**Next internal Work OS priority:** Fix Google Doc append/revision propagation (APPEND_FAILED); then claim LIVE_DOCUMENT_CHANGE_PROPAGATION_PROVEN + PROJECT_LOOP_FULL_CHAIN_PROVEN. Doc+Cal live proven. Meet: no eligible artifact.
 
 ---
 

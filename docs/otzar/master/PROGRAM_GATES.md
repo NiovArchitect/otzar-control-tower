@@ -31,3 +31,13 @@ A **Gate A freeze** may be stated separately when only N-02 (and documented resi
 - `LIVE_CROSS_TENANT_ZERO_LEAK` after full adversarial pack + ledger malformed-ID fix (`72c6864`).
 - Google Docs/Calendar remain **EXTERNALLY_BLOCKED** (reauth). No `PROJECT_LOOP_FULL_CHAIN_PROVEN`.
 - YC first-five re-run PASS on R-03.
+
+
+## Google provider (2026-07-21)
+
+- OAuth VERIFIED on R-03.
+- LIVE_DOC_PROVIDER_PROVEN — non-empty Google Doc with project/source linkage.
+- LIVE_CALENDAR_PROVIDER_PROVEN — event on 2026-09-18 (rejected 2026-09-11 excluded).
+- MEET_PERMISSION_AVAILABLE_NO_ELIGIBLE_ARTIFACT — no Meet post-meeting source.
+- Not PROJECT_LOOP_FULL_CHAIN_PROVEN until document change-propagation (append) is fixed.
+- Not unrestricted SCALE_PROVEN; S2500 FOUNDER_DEFERRED.

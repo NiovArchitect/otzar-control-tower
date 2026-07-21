@@ -489,7 +489,24 @@ Identity growth remains **closed**. Active work is product behavior on live R-03
 
 **Harnesses:** `otzar-r03-project-loop-extract-rerun.mjs`, `otzar-r03-project-loop-downstream.mjs`, `otzar-r03-cross-tenant-adversarial.mjs`, `otzar-r03-project-loop-ui-reconcile.mjs`
 
-**Google sole external blocker:** Reconnect Google Workspace so Otzar can update Google Docs and access approved Google Meet artifacts.
+#### Google provider resume (2026-07-21 post-consent)
+
+OAuth for R-03: **VERIFIED** (connected_at 10:41Z, verified 10:43Z). App credentials + Docs/Calendar/Meet scopes **available**.
+
+| Object | Proof |
+| --- | --- |
+| Google Doc | **CREATED** `1-Tyn5pAkU-fXOjMmh8Tkp9AN9rtncwhj3Xa46A7emX8` · [open](https://docs.google.com/document/d/1-Tyn5pAkU-fXOjMmh8Tkp9AN9rtncwhj3Xa46A7emX8/edit) · body **2062** chars · `body_inserted` · project `9481e76b-…` · source capture `4108a803-…` · share to `sadeil@niovlabs.com` **writer** |
+| Calendar event | **CREATED** `rqlod8caefrs7o7vkttqn49fes` · **2026-09-18** 08:00–09:00 PDT · project linked · [Calendar link](https://www.google.com/calendar/event?eid=cnFsb2Q4Y2FlZnJzN283dmt0dHFuNDlmZXMgc2FkZWlsQG5pb3ZsYWJzLmNvbQ) |
+| Intents | Doc `35aec899-…` + Cal `c2159668-…` → **EXECUTED** |
+| Classifications | `LIVE_DOC_PROVIDER_PROVEN` · `LIVE_CALENDAR_PROVIDER_PROVEN` · `BOUNDED_ENTERPRISE_WORK_OS_PROVEN` · `MEET_PERMISSION_AVAILABLE_NO_ELIGIBLE_ARTIFACT` |
+
+**Not claimed:** `LIVE_DOCUMENT_CHANGE_PROPAGATION_PROVEN` (append → `APPEND_FAILED`); `GOOGLE_MEET_ARTIFACT_PROVEN` (no eligible Meet artifact); `PROJECT_LOOP_FULL_CHAIN_PROVEN` (blocked on change-propagation).
+
+**Residuals:** provider create not server-idempotent (retry minted second doc/event; primary retained; cal dup delete attempted); synthetic r03-*@ emails not valid Google share targets; append/revision path needs repair.
+
+**YC first-five re-run post-provider:** PASS.
+
+Artifact: `.r03-s250-state/google-provider-resume.json`
 
 #### Exact LOCAL_FALLBACK diagnosis (was NOT missing API key)
 
