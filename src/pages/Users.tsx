@@ -41,6 +41,7 @@ import { buildOrgMap, type OrgMapPerson } from "@/lib/org/org-map";
 import { HierarchyEditor } from "@/components/otzar/HierarchyEditor";
 import { RelationshipEdgesCard } from "@/components/otzar/RelationshipEdgesCard";
 import { PersonTypeTaxonomyCard } from "@/components/otzar/PersonTypeTaxonomyCard";
+import { EnterprisePressureCard } from "@/components/otzar/EnterprisePressureCard";
 import { inventoryRelationships } from "@/lib/org/relationship-edges";
 import { inventoryPersonTypes } from "@/lib/org/person-type-taxonomy";
 
@@ -483,6 +484,12 @@ export function UsersPage() {
           });
           return inventoryPersonTypes(people);
         })()}
+      />
+
+      {/* R-01 — progressive enterprise pressure 25→250→2500 + repair loop */}
+      <EnterprisePressureCard
+        variant="admin"
+        peopleCount={(allPeople.data ?? []).length}
       />
 
       {/* F-02 — hierarchy editor: stage, bulk confirm, undo, keyboard + drag.
