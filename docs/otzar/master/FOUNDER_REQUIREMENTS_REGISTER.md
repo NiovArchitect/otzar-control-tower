@@ -78,7 +78,7 @@ PARTIAL — templates/authority substrate exist; distinct first sessions incompl
 
 | ID | Proof | Notes |
 |----|-------|-------|
-| **H-01** Teach Otzar end-to-end | SHIPPED (pending LIVE) | Admin Company Profile policy + Memory consent→session→approve/reject; deep smoke `otzar-live-teach-otzar-h01` |
+| **H-01** Teach Otzar end-to-end | LIVE_VERIFIED | Complex deep 10/10 on `index-DXhe634d.js` — admin enable → consent → 4 signals → 5 candidates → reject branch; employee blocked from org policy |
 | **H-02** Multi-user isolation | PARTIAL | multi-user isolation not SCALE/MULTI proven |
 
 ### I — Portability

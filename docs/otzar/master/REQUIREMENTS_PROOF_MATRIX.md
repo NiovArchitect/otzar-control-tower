@@ -46,7 +46,8 @@ Regression anchors:
 | F-02 | 3 | Drag-drop hierarchy editor |
 | F-04 | 3 | Product copy separation |
 | G-02 | 5 | Twin authority live multi-role |
-| H-01/H-02 | 4 | Teach Otzar multi-user isolation |
+| H-01 | 4 | LIVE_VERIFIED complex deep 10/10 Teach Otzar e2e |
+| H-02 | 4 | Teach Otzar multi-user isolation (open) |
 | I-02 | 4 | Multi-org memory isolation |
 | K-01 | 2 | Meet provider after N-02 |
 | M-01 | 5 | Graduated autonomy UX |
