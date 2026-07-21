@@ -65,22 +65,27 @@ describe("Production Admin Center IA — grouped admin navigation", () => {
     const byGroup = (g: string): string[] =>
       NAV.filter((i) => i.group === g).map((i) => i.label);
     expect(byGroup("Overview")).toEqual(
-      expect.arrayContaining(["Home", "Billing & Entitlements"]),
+      expect.arrayContaining(["Home", "Organization Setup"]),
     );
     expect(byGroup("People & Roles")).toEqual(
       expect.arrayContaining(["Users", "AI Teammates", "Organization Seeding", "Onboarding"]),
     );
     expect(byGroup("Tools & Connections")).toEqual(
-      expect.arrayContaining(["Tools & Connections", "Voice", "Voice Providers"]),
+      expect.arrayContaining(["Tools & Connections", "Voice"]),
     );
     expect(byGroup("Work Graph & Memory")).toEqual(
-      expect.arrayContaining(["Data & Knowledge", "Access Control", "Marketplace"]),
+      expect.arrayContaining(["Data & Knowledge", "Access Control"]),
     );
     expect(byGroup("Audit & Activity")).toEqual(
       expect.arrayContaining(["Security & Audit", "Reports"]),
     );
     expect(byGroup("Diagnostics")).toEqual(
-      expect.arrayContaining(["System Health", "Data retention"]),
+      expect.arrayContaining([
+        "System Health",
+        "Data retention",
+        "Billing & Entitlements",
+        "Marketplace",
+      ]),
     );
   });
 });

@@ -52,11 +52,12 @@ const FORBIDDEN_UI_COPY = [
 ];
 
 describe("Billing Preview — nav", () => {
-  it("registers /billing in the main nav", () => {
+  it("registers /billing as advanced (not Overview primary)", () => {
     const entry = NAV.find((n) => n.to === "/billing");
     expect(entry).toBeDefined();
     expect(entry?.label).toBe("Billing & Entitlements");
-    expect(entry?.group).toBe("Overview");
+    expect(entry?.group).toBe("Diagnostics");
+    expect(entry?.hidden).toBe(true);
   });
 });
 
