@@ -755,6 +755,7 @@ export function AmbientWorkSurface(): JSX.Element {
       className="mx-auto flex w-full max-w-lg flex-col gap-3 px-1 pb-28 pt-2 sm:max-w-xl sm:pt-4"
       data-testid="ambient-work-surface"
       data-home-role={homeRole}
+      data-s02-journey="true"
     >
       {/* One-shot hero — presence + optional first-use strip (not a second page). */}
       <section className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6">
