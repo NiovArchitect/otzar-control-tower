@@ -25,12 +25,18 @@ const API = "http://localhost:3000/api/v1";
 // Routes registered in App.tsx that setup actions may point to.
 const REGISTERED = new Set([
   "/",
+  "/setup",
   "/setup/import-people",
+  "/setup/go-live",
+  "/setup/data-flow",
+  "/setup/seed-history",
   "/users",
   "/ai-teammates",
   "/tools-connections",
   "/data-knowledge",
+  "/policies",
   "/organization-seeding",
+  "/onboarding",
   "/settings",
 ]);
 
@@ -237,7 +243,7 @@ describe("[GAP-U] Organization Setup — guided read-only journey", () => {
     const workflows = screen.getByTestId("setup-section-workflows");
     expect(workflows.textContent).toContain("Work is flowing");
     const next = screen.getByTestId("setup-next-step");
-    expect(next.textContent).toContain("Review 1 suggestion in Organization Seeding");
+    expect(next.textContent).toContain("Review 1 suggestion Otzar found");
     // Every action link targets a registered route.
     // Button asChild renders the Link AS the testid element itself.
     for (const key of ["foundation", "people", "roles", "twins", "tools", "governance", "workflows"]) {
@@ -291,7 +297,7 @@ describe("[GAP-U] deriveSetupJourney — deterministic priority", () => {
         { provider: "ZOOM", display_name: "Zoom", slug: "zoom", app_credentials_present: true, status: "VERIFIED", scopes: [], account_label: null, connected_at: null, last_verified_at: null, redirect_uri: "" },
       ] as never,
     };
-    expect(deriveSetupJourney(withTool).nextStep.title).toContain("Ingest your first conversation");
+    expect(deriveSetupJourney(withTool).nextStep.title).toContain("Run your first workflow");
   });
 
   it("unloadable truth renders honest 'couldn't check' — never invented state", () => {

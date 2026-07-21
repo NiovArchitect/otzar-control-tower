@@ -123,7 +123,7 @@ describe("Section 9 Control Tower Approvals — nav + page shell", () => {
   it("renders the page header", () => {
     renderPage();
     expect(
-      screen.getByRole("heading", { level: 1, name: /Pending Approvals/i }),
+      screen.getByRole("heading", { level: 1, name: /Action Center/i }),
     ).toBeInTheDocument();
   });
 });

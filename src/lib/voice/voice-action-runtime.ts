@@ -29,6 +29,11 @@ import {
   stripCommandWrapper,
   stripLeadingRecipient,
 } from "@/lib/work-os/message-sanitize";
+import {
+  composeMessageFromInstruction,
+  looksLikeInstructionToOtzar,
+  stripDiscourseMarkers,
+} from "@/lib/work-os/message-compose";
 
 export type VoiceActionKind =
   // Navigation
@@ -309,10 +314,51 @@ function extractBody(text: string): string | undefined {
 }
 
 // Phase 1284 Wave 2 — body for the "tell/message/let X know …" family.
-// Delegates to stripCommandWrapper so the command instruction ("Tell David,")
-// is removed and the delivered text is sentence-cased + dash-sanitized.
+// Strip the command wrapper first; if the residue is still purpose-only
+// ("for a status update") or empty, compose a professional recipient-facing
+// draft. Contentful residues ("good morning…") stay as the delivered body.
+// Never return the raw utterance as the outbound body.
 function extractTellBody(text: string, recipient: string): string | undefined {
-  return stripCommandWrapper(text, recipient);
+  const cleaned = stripDiscourseMarkers(text);
+  const stripped =
+    stripCommandWrapper(cleaned, recipient) ??
+    stripCommandWrapper(text, recipient);
+
+  const composed = composeMessageFromInstruction({
+    instruction: text,
+    recipient,
+    ...(stripped !== undefined ? { extractedBody: stripped } : {}),
+  });
+
+  // Exact dictation always wins.
+  if (composed.mode === "EXACT") return composed.body;
+
+  // No usable strip → compose from intent (ping/status/empty).
+  if (stripped === undefined || stripped.trim().length < 2) {
+    return composed.body;
+  }
+
+  // Purpose-only residue ("for a status update") is NOT message content.
+  if (looksLikeInstructionToOtzar(stripped) || isPurposeOnlyResidue(stripped)) {
+    return composed.body;
+  }
+
+  // Contentful residue after strip ("Good morning…", "the build passed") —
+  // deliver that, never the raw command and never a status template.
+  return stripped;
+}
+
+function isPurposeOnlyResidue(s: string): boolean {
+  const c = s.trim().toLowerCase().replace(/[.!?]+$/, "");
+  return (
+    /^(?:for\s+)?(?:a\s+)?(?:quick\s+)?(?:status\s+)?update(?:\s+on\s+.+)?$/.test(
+      c,
+    ) ||
+    /^(?:for|about|regarding|on)\s+(?:a\s+)?(?:status\s+)?update(?:\s+on\s+.+)?$/.test(
+      c,
+    ) ||
+    /^(?:an?\s+)?(?:quick\s+)?update(?:\s+on\s+.+)?$/.test(c)
+  );
 }
 
 // Phase 1285 — leading tokens that are NOT a teammate's name. When an

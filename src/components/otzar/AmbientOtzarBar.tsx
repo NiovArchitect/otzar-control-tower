@@ -171,6 +171,7 @@ import { buildWorkNodes } from "@/lib/work-os/work-nodes";
 import { formatPersonName } from "@/lib/identity/person-name";
 import { emitFlow } from "@/lib/stores/flow";
 import { sanitizeOutboundMessage } from "@/lib/work-os/message-sanitize";
+import { resolveDraftBody } from "@/lib/work-os/message-compose";
 import {
   detectVagueWorkIntent,
   vagueWorkQuestion,
@@ -1223,7 +1224,16 @@ export function AmbientOtzarBar(): JSX.Element {
     const external =
       channel === "slack" || isExternalMailChannel(channel);
     const recipientName = action.targetEntity;
-    const body = action.draftPayload ?? action.heard;
+    // Intent → professional draft. NEVER fall back to the raw instruction
+    // as the message body ("Yes ping david for a status update").
+    const composed = resolveDraftBody({
+      heard: action.heard,
+      ...(recipientName !== undefined ? { recipient: recipientName } : {}),
+      ...(action.draftPayload !== undefined
+        ? { draftPayload: action.draftPayload }
+        : {}),
+    });
+    const body = composed.body;
 
     // Resolve the recipient for a label + later Confirm — but DO NOT
     // create any backend object yet.
@@ -1248,7 +1258,7 @@ export function AmbientOtzarBar(): JSX.Element {
           "Resolving teammates from voice needs the org roster (not available to you here). Open Work Comms to pick the recipient.";
       }
     } else {
-      resolveNote = "Tell me who it's for, then Confirm to propose.";
+      resolveNote = "Who should this go to?";
     }
 
     // N-05 — honesty matrix for external mail / slack-as-external.
@@ -1260,24 +1270,47 @@ export function AmbientOtzarBar(): JSX.Element {
           ),
         })
       : null;
+    // Outcome language: no stacked "draft / confirm / propose".
+    const requiresApproval = action.requiresApproval === true;
     const status =
       mailState !== null
         ? outboundMailStatusLabel(mailState)
         : recipientEntityId !== undefined
-          ? "Draft. Confirm to propose"
-          : "Local draft. Pick a recipient";
+          ? requiresApproval
+            ? "This message requires approval before it is sent."
+            : "Review before sending."
+          : "Pick a recipient";
     const runtimeNote =
       mailState !== null
         ? outboundMailRuntimeNote(mailState)
         : resolveNote;
+    const purposeLine =
+      label !== undefined
+        ? composed.purpose.replace(/^Message there$/i, `Message ${label}`)
+        : composed.purpose;
+    const primaryActionLabel =
+      mailState !== null
+        ? "Save draft"
+        : requiresApproval
+          ? "Submit for approval"
+          : recipientEntityId !== undefined
+            ? "Send message"
+            : "Save draft";
 
     setPendingArtifact({
       kind: action.kind,
-      title: `${isSend ? "Send" : "Draft"} message${label !== undefined ? ` → ${label}` : ""}`,
+      title:
+        label !== undefined
+          ? `Message ${label}`
+          : isSend
+            ? "Send message"
+            : "Draft message",
       ...(label !== undefined ? { targetLabel: label } : {}),
       channel,
       body,
       status,
+      purpose: purposeLine,
+      primaryActionLabel,
       ...(recipientEntityId !== undefined ? { recipientEntityId } : {}),
       externalChannel: external,
       ...(mailState !== null ? { mailLifecycle: mailState } : {}),
@@ -1293,8 +1326,10 @@ export function AmbientOtzarBar(): JSX.Element {
       mailState !== null
         ? outboundMailOutcomeCopy(mailState)
         : recipientEntityId !== undefined
-          ? `Draft to ${label} created. Review it, then Confirm to propose. Nothing is sent yet.`
-          : "Draft created. Pick the recipient, then Confirm to propose. Nothing is sent.";
+          ? requiresApproval
+            ? `Message for ${label} is ready. This will be sent after approval.`
+            : `Message for ${label} is ready. Review before sending.`
+          : "Message draft is ready. Pick who it should go to.";
     setActionResult(msg);
     setActionStatus(status);
     appendConversationEntry({ role: "action", text: msg, at, kind: action.kind, status });
@@ -1316,7 +1351,7 @@ export function AmbientOtzarBar(): JSX.Element {
         kind: "outbound_message",
         awaiting: "recipient",
         originalText: action.heard,
-        draftMessage: composeRequestBody(action.heard),
+        draftMessage: body,
         recipients: [],
         createdAt: Date.now(),
       });
@@ -1524,9 +1559,17 @@ export function AmbientOtzarBar(): JSX.Element {
     }
 
     const message =
-      interp !== null && interp.kind === "INTERNAL_MESSAGE" && interp.recipientFacingMessage.length > 0
+      interp !== null &&
+      interp.kind === "INTERNAL_MESSAGE" &&
+      interp.recipientFacingMessage.length > 0
         ? interp.recipientFacingMessage
-        : action.heard;
+        : resolveDraftBody({
+            heard: action.heard,
+            recipient,
+            ...(action.draftPayload !== undefined
+              ? { draftPayload: action.draftPayload }
+              : {}),
+          }).body;
     await executeOutboundMessage(recipient, message, action.heard, action.kind, at);
   }
 

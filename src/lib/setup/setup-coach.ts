@@ -128,7 +128,7 @@ export function deriveSetupCoach(inputs: SetupInputs): SetupCoachRecommendation[
       label: `${plural(f.openSeeds, "suggestion from your team's real work is", "suggestions from your team's real work are")} waiting for review.`,
       whyItMatters:
         "These are operational recommendations from ingested communication — nothing applies without your review.",
-      repair: { label: "Open Organization Seeding", to: "/organization-seeding" },
+      repair: { label: "Review what Otzar found", to: "/organization-seeding" },
       blocksGoLive: false,
       source: "live review queue",
     });

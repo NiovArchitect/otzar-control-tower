@@ -146,7 +146,7 @@ export function SeedHistoryPage() {
                 "Otzar reads the trusted text and finds the decisions, commitments, and relationships inside it.",
                 `Everything is recorded as dated context${period.trim().length > 0 ? ` ("seeded history covering ${period.trim()}")` : ""} — visible in your organization's records with full lineage.`,
                 "No to-dos are created, no follow-ups are drafted, and nobody is notified — history never becomes homework.",
-                "External or client names go to Organization Seeding for review before Otzar trusts them.",
+                "External or client names go to Organization review before Otzar trusts them.",
                 "Everything created is company-owned and stays reviewable.",
               ].map((line, i) => (
                 <li key={i} className="flex items-start gap-2">
@@ -195,7 +195,7 @@ export function SeedHistoryPage() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link to="/organization-seeding">Open Organization Seeding</Link>
+              <Link to="/organization-seeding">Review what Otzar found</Link>
             </Button>
             <Button asChild variant="outline" size="sm" data-testid="seed-history-back-to-setup">
               <Link to="/setup">Back to Organization Setup</Link>

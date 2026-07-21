@@ -4,31 +4,23 @@
 //          this list so adding/removing a screen happens in one
 //          place.
 //
-// PRODUCTION ADMIN CENTER IA (approved directive):
-// Eight coherent sections, powerful underneath and calm on the
-// surface. A real customer admin should log in and immediately
-// understand what is healthy, what needs setup, what is blocked, what
-// Otzar is learning/proposing, what needs approval, and what is
-// audited — WITHOUT every implementation page being a first-class
-// destination.
+// PRODUCTION ADMIN CENTER IA (RC2 admin-coherence):
+// Administrator jobs — not Otzar's internal architecture. ~6 primary
+// areas so a customer admin never has to decide whether an approval
+// lives under "Policies & Approvals" vs "Review Center" vs "Pending
+// Approvals", or whether audit is "Audit & Activity" vs "Security".
 //
-//   1. Overview              — command landing + entitlements
-//   2. People & Roles        — who belongs, AI Twins, org seeding, onboarding
-//   3. Tools & Connections   — everything external Otzar can use/needs
-//   4. Work Graph & Memory   — the org's source-of-truth layer
-//   5. Policies & Approvals   — what Otzar may see/decide/route/execute
-//   6. Workflows & Automation — what Otzar can do operationally
-//   7. Audit & Activity      — proof of what happened
-//   8. Diagnostics           — operator/technical health only
+//   1. Overview       — readiness, what needs attention, next step
+//   2. People & AI    — people, AI Teammates (seeding/onboarding fold into setup)
+//   3. Connections    — external tools, connection health (Voice is not primary)
+//   4. Governance     — access, policies, retention, compliance
+//   5. Action Center  — everything needing admin attention (approvals + review)
+//   6. Intelligence   — reports, organization movement, health
+//   7. Security       — security posture, audit (diagnostics advanced/hidden)
 //
-// VOCABULARY DISCIPLINE:
-// Customer-admin vocabulary, NOT Foundation's internal data-model
-// names. Foundation calls things "entities, wallets, capsules,
-// twins, hives" because that's the patent-claim language; the
-// Control Tower wraps that data model in enterprise-admin terms
-// because that's what Fortune 500 and government admins recognize.
-// No raw IDs, no "connector binding"/"MCP rail"/"TAR"/"schema" as
-// primary labels — those live inside advanced/diagnostic detail only.
+// Architecture names (Work Graph, Data & Knowledge as primary, dual
+// Policy/Approval tabs, standalone Voice admin) are not primary nav.
+// Useful capabilities appear under the jobs above; routes stay registered.
 //
 // CONNECTS TO: AdminSidebar (single renderer), App.tsx routes, every
 //              page in src/pages/.
@@ -66,156 +58,262 @@ export interface NavItem {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   description: string;
   showApprovalBadge?: boolean;
-  /** Phase 1300-B — drives the Review Center "needs review" count badge. */
+  /** Drives the Action Center "needs review" count badge. */
   showReviewBadge?: boolean;
-  /** OS-style admin section (production IA — 8 sections). */
+  /** OS-style admin section (jobs model). */
   group: NavGroup;
-  /** [OTZAR-V1-LIVE-1B] Placeholder/stub screen. Hidden from the sidebar by
-   *  default so production validation never lands on a "reserved screen"; the
-   *  route stays registered (deep-link safe). Reveal with VITE_SHOW_COMING_SOON. */
+  /** Placeholder/stub screen. Hidden from the sidebar by default. */
   comingSoon?: boolean;
-  /** PROD-MODEL-P3 — route-only surface: registered in App.tsx, hidden
-   *  from the sidebar (Advanced/diagnostic tier). */
+  /** Route-only surface: registered in App.tsx, hidden from the sidebar. */
   hidden?: boolean;
 }
 
 export type NavGroup =
   | "Overview"
-  | "People & Roles"
-  | "Tools & Connections"
-  | "Work Graph & Memory"
-  | "Policies & Approvals"
-  | "Workflows & Automation"
-  | "Audit & Activity"
-  | "Diagnostics";
+  | "People & AI"
+  | "Connections"
+  | "Governance"
+  | "Action Center"
+  | "Intelligence"
+  | "Security";
 
-/** Render order for the grouped admin sidebar (production IA). */
+/** Render order for the grouped admin sidebar. */
 export const NAV_GROUP_ORDER: readonly NavGroup[] = [
   "Overview",
-  "People & Roles",
-  "Tools & Connections",
-  "Work Graph & Memory",
-  "Policies & Approvals",
-  "Workflows & Automation",
-  "Audit & Activity",
-  "Diagnostics",
+  "People & AI",
+  "Connections",
+  "Governance",
+  "Action Center",
+  "Intelligence",
+  "Security",
 ];
 
 // Production Admin Center IA. Stub screens keep comingSoon:true so the
-// sidebar hides them (routes preserved in App.tsx). The two former
-// top-level connector destinations (/connectors, /connector-rails) are
-// folded into ONE "Tools & Connections" landing (/tools-connections)
-// that composes both surfaces as tabs — their routes stay registered so
-// existing deep links never break.
+// sidebar hides them (routes preserved in App.tsx). Architecture-oriented
+// and duplicate destinations stay registered but hidden from primary nav.
 export const NAV: ReadonlyArray<NavItem> = [
   // ── 1. Overview ────────────────────────────────────────────────
   {
     label: "Home",
     to: "/",
     icon: LayoutDashboard,
-    description: "Is this organization ready to run Otzar? Readiness, what needs attention, and what's blocked — at a glance.",
+    description:
+      "Is this organization operating normally? What needs attention, what is blocked, and what to do next.",
     group: "Overview",
   },
   {
-    label: "Organization Setup",
+    // One guided activation path — readiness, people, structure, connections,
+    // governance, first workflow. Organization Seeding + Onboarding are not
+    // separate primary tabs (routes remain deep-link safe).
+    label: "Organization",
     to: "/setup",
     icon: Compass,
-    description: "A guided, read-only setup journey — what's ready, what's missing, why it matters, and the one next step.",
+    description:
+      "Organization readiness and guided setup — people, structure, AI Teammates, connections, and governance in one path.",
     group: "Overview",
   },
   {
-    // YC RC signal: commercial capacity is advanced, not first-login focus.
     label: "Billing & Entitlements",
     to: "/billing",
     icon: CreditCard,
     description: "Plan, seats, and what this organization can use.",
-    group: "Diagnostics",
+    group: "Security",
     hidden: true,
   },
 
-  // ── 2. People & Roles ──────────────────────────────────────────
+  // ── 2. People & AI ─────────────────────────────────────────────
   {
-    label: "Users",
+    label: "People",
     to: "/users",
     icon: Users,
-    description: "People in your organization — roles, teams, last activity, and access summary.",
-    group: "People & Roles",
+    description:
+      "People in your organization — roles, teams, last activity, and access summary.",
+    group: "People & AI",
   },
   {
     label: "AI Teammates",
     to: "/ai-teammates",
     icon: Bot,
-    description: "The AI Teammates working alongside your team — what each is allowed to do and where it belongs.",
-    group: "People & Roles",
+    description:
+      "The AI Teammates working alongside your team — what each is allowed to do and where it belongs.",
+    group: "People & AI",
   },
   {
+    // Folded into Organization (/setup). Route kept for deep links and
+    // in-progress discovery reviews.
     label: "Organization Seeding",
     to: "/organization-seeding",
     icon: Sparkles,
-    description: "People and context Otzar discovered from your organization's workstream — review each seed before it joins the organization. Nothing is applied automatically.",
-    group: "People & Roles",
-  },
-  {
-    label: "Onboarding",
-    to: "/onboarding",
-    icon: Compass,
-    description: "Setup preview — the out-of-the-box catalog of roles, AI Teammates, tools, and workflows to get this organization ready to run.",
-    group: "People & Roles",
-  },
-
-  // ── 3. Tools & Connections ─────────────────────────────────────
-  {
-    label: "Tools & Connections",
-    to: "/tools-connections",
-    icon: PlugZap,
-    description: "Everything external Otzar can use — connected apps, what's missing or needs authorization, and the integration policies that govern them.",
-    group: "Tools & Connections",
-  },
-  {
-    // PROD-MODEL-P3 §7 — Otzar ships with a branded default voice; the
-    // provider/vendor activation surface is Advanced setup, not everyday
-    // admin IA. Route stays registered (deep-link-safe); hidden from the
-    // sidebar like other route-only surfaces.
-    label: "Voice Providers",
-    to: "/voice-providers",
-    icon: Mic,
-    description: "Advanced voice setup — provider activation and diagnostics. Otzar's branded voice works without visiting this page.",
-    group: "Tools & Connections",
+    description:
+      "People and context Otzar discovered — review each seed before it joins. Reached from Organization setup.",
+    group: "People & AI",
     hidden: true,
   },
   {
+    // Folded into Organization (/setup). Not a competing primary tab.
+    label: "Onboarding",
+    to: "/onboarding",
+    icon: Compass,
+    description:
+      "Setup catalog — roles, AI Teammates, tools, and workflows. Reached from Organization setup.",
+    group: "People & AI",
+    hidden: true,
+  },
+
+  // ── 3. Connections ─────────────────────────────────────────────
+  {
+    label: "Connections",
+    to: "/tools-connections",
+    icon: PlugZap,
+    description:
+      "Google Workspace, communication systems, business tools, data sources, and connection health.",
+    group: "Connections",
+  },
+  {
+    // Voice is an interaction method throughout Otzar — not a primary admin page.
+    label: "Voice Providers",
+    to: "/voice-providers",
+    icon: Mic,
+    description:
+      "Advanced voice setup — provider activation and diagnostics. Otzar's branded voice works without visiting this page.",
+    group: "Connections",
+    hidden: true,
+  },
+  {
+    // Voice policy / mic diagnostics: user preferences + Governance advanced.
     label: "Voice",
     to: "/voice",
     icon: Mic,
-    description: "Otzar's voice — talk to it, and choose how it sounds for your organization. Spoken intent stays governed; voice is an interface, not a bypass.",
-    group: "Tools & Connections",
+    description:
+      "Organization voice settings. Voice itself is available throughout the product.",
+    group: "Connections",
+    hidden: true,
   },
 
-  // ── 4. Work Graph & Memory ─────────────────────────────────────
+  // ── 4. Governance ──────────────────────────────────────────────
   {
+    label: "Policies",
+    to: "/policies",
+    icon: ScrollText,
+    description:
+      "Access, autonomy, approvals, decision rights, sharing boundaries, and compliance gates.",
+    group: "Governance",
+  },
+  {
+    label: "Access",
+    to: "/access-control",
+    icon: KeyRound,
+    description:
+      "Who can see, use, and share what — org defaults, grants, revocations, and overrides.",
+    group: "Governance",
+  },
+  {
+    label: "Data retention",
+    to: "/retention",
+    icon: ScrollText,
+    description:
+      "How long data lives — memory revocation, transcript retention, legal hold, and proof.",
+    group: "Governance",
+  },
+  {
+    label: "Collaboration policy",
+    to: "/collaboration-policy",
+    icon: ScrollText,
+    description:
+      "Operating envelope for autonomous collaboration — same-team, cross-team, and sensitive domains.",
+    group: "Governance",
+    hidden: true,
+  },
+  {
+    // Architecture-oriented knowledge surface — not a primary admin job.
+    // Source connections live under Connections; retention under Governance.
     label: "Data & Knowledge",
     to: "/data-knowledge",
     icon: Database,
-    description: "What Otzar knows, where it came from, and what it affects — your organization's knowledge sources and how they connect.",
-    group: "Work Graph & Memory",
+    description:
+      "Knowledge sources and lineage. Prefer Connections and Governance for everyday admin work.",
+    group: "Governance",
+    hidden: true,
+  },
+
+  // ── 5. Action Center ───────────────────────────────────────────
+  {
+    // Single exception queue: pending approvals + high-sensitivity review.
+    // Former separate "Review Center" + "Pending Approvals" primary tabs.
+    label: "Action Center",
+    to: "/approvals",
+    icon: ClipboardCheck,
+    description:
+      "Everything needing your attention — pending approvals, access exceptions, policy and security items.",
+    group: "Action Center",
+    showApprovalBadge: true,
+    showReviewBadge: true,
   },
   {
-    // PROD-MODEL-P3 §9 — the ONE access area: permissions + grants as tabs.
-    // /access-grants stays a registered route (deep-link-safe), no longer a
-    // separate nav destination with divided access logic.
-    label: "Access Control",
-    to: "/access-control",
-    icon: KeyRound,
-    description: "One place for who can see, use, and share what — org defaults, grants, revocations, and overrides. Governed and audited.",
-    group: "Work Graph & Memory",
+    // Merged into Action Center. Route kept for deep links.
+    label: "Review Center",
+    to: "/review-center",
+    icon: ClipboardCheck,
+    description:
+      "High-sensitivity decisions. Prefer Action Center for the everyday exception queue.",
+    group: "Action Center",
+    hidden: true,
+  },
+
+  // ── 6. Intelligence ────────────────────────────────────────────
+  {
+    label: "Reports",
+    to: "/reports",
+    icon: BarChart3,
+    description:
+      "Organization movement, readiness, and activity records you can export — backed by audit evidence.",
+    group: "Intelligence",
   },
   {
-    // Advanced commercial surface. Route kept; not first-class admin IA for YC.
+    label: "Intelligence",
+    to: "/intelligence",
+    icon: Sparkles,
+    description:
+      "Curated organization-level intelligence assembled across your knowledge.",
+    group: "Intelligence",
+    comingSoon: true,
+    hidden: true,
+  },
+  {
+    label: "Analytics",
+    to: "/analytics",
+    icon: BarChart3,
+    description: "Usage trends and activity roll-ups.",
+    group: "Intelligence",
+    comingSoon: true,
+    hidden: true,
+  },
+
+  // ── 7. Security ────────────────────────────────────────────────
+  {
+    label: "Security & Audit",
+    to: "/security-audit",
+    icon: Shield,
+    description:
+      "Security posture, audit history, access reviews, and evidence of what was approved, held, or rejected.",
+    group: "Security",
+  },
+  {
+    // Advanced operations — not competing with everyday Security.
+    label: "System Health",
+    to: "/system-health",
+    icon: Activity,
+    description:
+      "Platform status and feedback loops — last run, lag, and alerts. Advanced operator view.",
+    group: "Security",
+    hidden: true,
+  },
+  {
     label: "Marketplace",
     to: "/marketplace",
     icon: Store,
     description: "Shared knowledge other organizations offer. Access stays governed.",
-    group: "Diagnostics",
+    group: "Security",
     hidden: true,
   },
   {
@@ -223,64 +321,24 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/cohorts",
     icon: Boxes,
     description: "Data cohorts and governed proofs for advanced operators.",
-    group: "Diagnostics",
+    group: "Security",
     hidden: true,
   },
   {
-    label: "Intelligence",
-    to: "/intelligence",
-    icon: Sparkles,
-    description: "Curated organization-level intelligence assembled across your knowledge.",
-    group: "Work Graph & Memory",
+    label: "Conversations",
+    to: "/conversations",
+    icon: MessagesSquare,
+    description: "Otzar conversations with audit-traceable AI activity per turn.",
+    group: "Security",
     comingSoon: true,
-    // C-03 — never a primary admin path until live.
     hidden: true,
   },
-
-  // ── 5. Policies & Approvals ────────────────────────────────────
-  {
-    label: "Policies",
-    to: "/policies",
-    icon: ScrollText,
-    description: "What Otzar may see, decide, route, and execute — active compliance frameworks and the policy gates that govern autonomy.",
-    group: "Policies & Approvals",
-  },
-  {
-    label: "Collaboration policy",
-    to: "/collaboration-policy",
-    icon: ScrollText,
-    description: "The operating envelope for autonomous collaboration — same-team, cross-team, and sensitive domains.",
-    group: "Policies & Approvals",
-    // Policy detail lives under Access / setup; hide from primary rail.
-    hidden: true,
-  },
-  {
-    label: "Review Center",
-    to: "/review-center",
-    icon: ClipboardCheck,
-    description: "High-sensitivity decisions you can see or act on. Safe projections only — no raw content.",
-    showReviewBadge: true,
-    group: "Policies & Approvals",
-  },
-  {
-    label: "Pending Approvals",
-    to: "/approvals",
-    icon: ClipboardCheck,
-    description: "Requests awaiting your sign-off — what's waiting on the admin right now.",
-    group: "Policies & Approvals",
-    showApprovalBadge: true,
-  },
-
-  // ── 6. Workflows & Automation ──────────────────────────────────
-  // Scenario Studio / Playground / Workflows — not primary admin jobs.
-  // Routes remain registered for deep links; hidden from nav so YC/admin
-  // first experience is not a technical demonstration of voice intent.
   {
     label: "Scenario Studio",
     to: "/agent-playground",
     icon: Network,
     description: "Internal experimental surface — not a primary admin workflow.",
-    group: "Workflows & Automation",
+    group: "Security",
     hidden: true,
   },
   {
@@ -288,7 +346,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/workflows",
     icon: Workflow,
     description: "Multi-step orchestrations spanning people and AI Teammates.",
-    group: "Workflows & Automation",
+    group: "Security",
     comingSoon: true,
     hidden: true,
   },
@@ -297,66 +355,16 @@ export const NAV: ReadonlyArray<NavItem> = [
     to: "/playground",
     icon: FlaskConical,
     description: "Internal experimental surface.",
-    group: "Workflows & Automation",
+    group: "Security",
     comingSoon: true,
     hidden: true,
-  },
-
-  // ── 7. Audit & Activity ────────────────────────────────────────
-  {
-    label: "Security & Audit",
-    to: "/security-audit",
-    icon: Shield,
-    description: "Proof of what happened — every action that touched data, what Otzar did, what was approved, held, or rejected, and the evidence behind it.",
-    group: "Audit & Activity",
-  },
-  {
-    label: "Reports",
-    to: "/reports",
-    icon: ScrollText,
-    description: "Readiness and activity records you can export — regulator, customer, and investor packages backed by audit evidence.",
-    group: "Audit & Activity",
-  },
-  {
-    label: "Analytics",
-    to: "/analytics",
-    icon: BarChart3,
-    description: "Usage trends, intelligence-score history, and activity roll-ups.",
-    group: "Audit & Activity",
-    comingSoon: true,
-    hidden: true,
-  },
-  {
-    label: "Conversations",
-    to: "/conversations",
-    icon: MessagesSquare,
-    description: "Otzar conversations with audit-traceable AI activity per turn.",
-    group: "Audit & Activity",
-    comingSoon: true,
-    hidden: true,
-  },
-
-  // ── 8. Diagnostics (operator/technical only) ───────────────────
-  {
-    label: "System Health",
-    to: "/system-health",
-    icon: Activity,
-    description: "Platform status and the feedback loops — last run, lag, and alerts. Operator view.",
-    group: "Diagnostics",
-  },
-  {
-    label: "Data retention",
-    to: "/retention",
-    icon: ScrollText,
-    description: "How long data lives and who controls it — memory revocation, transcript retention, legal hold, and what stays as tamper-evident proof.",
-    group: "Diagnostics",
   },
   {
     label: "Settings",
     to: "/settings",
     icon: SettingsIcon,
     description: "API keys, payouts, branding, and integration credentials.",
-    group: "Diagnostics",
+    group: "Security",
     comingSoon: true,
     hidden: true,
   },
@@ -364,8 +372,9 @@ export const NAV: ReadonlyArray<NavItem> = [
     label: "Documentation",
     to: "/documentation",
     icon: BookOpen,
-    description: "In-product runbooks and references, scoped to your organization's enabled features.",
-    group: "Diagnostics",
+    description:
+      "In-product runbooks and references, scoped to your organization's enabled features.",
+    group: "Security",
     comingSoon: true,
     hidden: true,
   },

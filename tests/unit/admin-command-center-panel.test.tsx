@@ -53,9 +53,9 @@ beforeEach(() => {
   cleanup();
 });
 
-describe("Production Admin Center IA — grouped admin navigation", () => {
-  it("every nav entry belongs to one of the eight OS sections", () => {
-    expect(NAV_GROUP_ORDER).toHaveLength(8);
+describe("Production Admin Center IA — jobs-model admin navigation", () => {
+  it("every nav entry belongs to one of the approved job sections", () => {
+    expect(NAV_GROUP_ORDER).toHaveLength(7);
     for (const item of NAV) {
       expect(NAV_GROUP_ORDER, item.label).toContain(item.group);
     }
@@ -65,27 +65,25 @@ describe("Production Admin Center IA — grouped admin navigation", () => {
     const byGroup = (g: string): string[] =>
       NAV.filter((i) => i.group === g).map((i) => i.label);
     expect(byGroup("Overview")).toEqual(
-      expect.arrayContaining(["Home", "Organization Setup"]),
+      expect.arrayContaining(["Home", "Organization"]),
     );
-    expect(byGroup("People & Roles")).toEqual(
-      expect.arrayContaining(["Users", "AI Teammates", "Organization Seeding", "Onboarding"]),
+    expect(byGroup("People & AI")).toEqual(
+      expect.arrayContaining(["People", "AI Teammates"]),
     );
-    expect(byGroup("Tools & Connections")).toEqual(
-      expect.arrayContaining(["Tools & Connections", "Voice"]),
+    expect(byGroup("Connections")).toEqual(
+      expect.arrayContaining(["Connections"]),
     );
-    expect(byGroup("Work Graph & Memory")).toEqual(
-      expect.arrayContaining(["Data & Knowledge", "Access Control"]),
+    expect(byGroup("Governance")).toEqual(
+      expect.arrayContaining(["Policies", "Access", "Data retention"]),
     );
-    expect(byGroup("Audit & Activity")).toEqual(
-      expect.arrayContaining(["Security & Audit", "Reports"]),
+    expect(byGroup("Action Center")).toEqual(
+      expect.arrayContaining(["Action Center"]),
     );
-    expect(byGroup("Diagnostics")).toEqual(
-      expect.arrayContaining([
-        "System Health",
-        "Data retention",
-        "Billing & Entitlements",
-        "Marketplace",
-      ]),
+    expect(byGroup("Intelligence")).toEqual(
+      expect.arrayContaining(["Reports"]),
+    );
+    expect(byGroup("Security")).toEqual(
+      expect.arrayContaining(["Security & Audit"]),
     );
   });
 });

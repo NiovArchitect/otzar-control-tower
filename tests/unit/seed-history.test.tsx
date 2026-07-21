@@ -56,7 +56,7 @@ describe("[CS-2] Seed organization history — confirmation-gated, honest", () =
     const copy = confirm.textContent ?? "";
     expect(copy).toContain("No to-dos are created");
     expect(copy).toContain("history never becomes homework");
-    expect(copy).toContain("go to Organization Seeding for review");
+    expect(copy).toContain("go to Organization review");
     expect(copy).toContain("company-owned");
     expect(copy).toContain('seeded history covering 2025 Q3');
     // Review happened — zero writes so far.

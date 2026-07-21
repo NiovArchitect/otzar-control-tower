@@ -77,15 +77,15 @@ const FORBIDDEN_UI_COPY = [
   "auto-approved",
 ];
 
-describe("Connectors — nav (folded into Tools & Connections)", () => {
-  it("is reached via the merged Tools & Connections destination, not a separate nav entry", () => {
+describe("Connectors — nav (folded into Connections)", () => {
+  it("is reached via the Connections destination, not a separate nav entry", () => {
     // Production IA: /connectors is no longer a top-level nav entry — it folds
-    // into the single "Tools & Connections" landing as a tab. Its ROUTE stays
-    // registered (App.tsx) so existing deep links still resolve.
+    // into the Connections landing as a tab. Its ROUTE stays registered
+    // (App.tsx) so existing deep links still resolve.
     expect(NAV.find((n) => n.to === "/connectors")).toBeUndefined();
     const merged = NAV.find((n) => n.to === "/tools-connections");
     expect(merged).toBeDefined();
-    expect(merged?.label).toBe("Tools & Connections");
+    expect(merged?.label).toBe("Connections");
   });
 });
 

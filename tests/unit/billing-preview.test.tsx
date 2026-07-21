@@ -56,7 +56,7 @@ describe("Billing Preview — nav", () => {
     const entry = NAV.find((n) => n.to === "/billing");
     expect(entry).toBeDefined();
     expect(entry?.label).toBe("Billing & Entitlements");
-    expect(entry?.group).toBe("Diagnostics");
+    expect(entry?.group).toBe("Security");
     expect(entry?.hidden).toBe(true);
   });
 });

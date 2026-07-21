@@ -213,7 +213,7 @@ export function deriveGoLiveReadiness(inputs: SetupInputs): GoLiveReadiness {
       label: "No tools connected yet",
       whyItMatters: "Fine for a first workflow — manual communications carry it.",
       severity: "warning",
-      repair: { label: "Open Tools & Connections", to: "/tools-connections" },
+      repair: { label: "Open Connections", to: "/tools-connections" },
       source: "live connections",
     });
   }
@@ -267,7 +267,7 @@ export function deriveGoLiveReadiness(inputs: SetupInputs): GoLiveReadiness {
       label: "Work is already flowing",
       whyItMatters: "Real communication has become owned, governed work — the loop is proven here.",
       severity: "ready",
-      repair: { label: "Open Organization Seeding", to: "/organization-seeding" },
+      repair: { label: "Review what Otzar found", to: "/organization-seeding" },
       source: "live work records",
     });
     if (f.openSeeds > 0) {
@@ -275,7 +275,7 @@ export function deriveGoLiveReadiness(inputs: SetupInputs): GoLiveReadiness {
         label: `${f.openSeeds} ${f.openSeeds === 1 ? "suggestion is" : "suggestions are"} waiting for review`,
         whyItMatters: "Reviewing them keeps the setup signal clean — nothing applies without you.",
         severity: "warning",
-        repair: { label: "Open Organization Seeding", to: "/organization-seeding" },
+        repair: { label: "Review what Otzar found", to: "/organization-seeding" },
         source: "live review queue",
       });
     }
@@ -330,7 +330,7 @@ export function deriveGoLiveReadiness(inputs: SetupInputs): GoLiveReadiness {
         : { title: "Help invited people finish activation", to: "/users", linkLabel: "Open Users" }
       : f.workHasFlowed
         ? f.openSeeds > 0
-          ? { title: "Review the waiting suggestions", to: "/organization-seeding", linkLabel: "Open Organization Seeding" }
+          ? { title: "Review the waiting suggestions", to: "/organization-seeding", linkLabel: "Review what Otzar found" }
           : { title: "Keep the loop running", to: "/", linkLabel: "Open Home" }
         : { title: "Run the first workflow", to: "/app/comms", linkLabel: "Open Comms" };
 

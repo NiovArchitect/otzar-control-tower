@@ -10,7 +10,8 @@
 //          coach are honestly labeled as not available yet).
 // CONNECTS TO: src/lib/setup/setup-journey.ts (pure derivation), the seven
 //          GET projections via src/lib/api.ts, route /setup + nav
-//          "Organization Setup" (Overview group).
+//          "Organization" (Overview group). Seeding review + starter-shape
+//          defaults are steps inside this path, not competing products.
 
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -115,8 +116,8 @@ export function OrgSetupPage() {
   return (
     <div className="space-y-6" data-testid="org-setup-page">
       <PageHeader
-        title="Organization Setup"
-        description="Let Otzar help you set up your organization safely — what's ready, what's missing, and the one next step that matters."
+        title="Organization"
+        description="One guided path — readiness, people, structure, AI Teammates, connections, governance, and your first workflow. Otzar proposes; you confirm."
       />
 
       {loading ? (
@@ -126,6 +127,50 @@ export function OrgSetupPage() {
         </div>
       ) : (
         <>
+          {/* Activation order — one connected intelligence flow, not four systems. */}
+          <Card data-testid="setup-activation-path">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Activation path</CardTitle>
+              <CardDescription className="text-xs">
+                Otzar already understands most of your organization. Confirm what
+                matters — you do not need to operate separate seeding or onboarding
+                products.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ol
+                className="flex flex-wrap gap-2 text-[11px] text-muted-foreground"
+                data-testid="setup-activation-steps"
+              >
+                {[
+                  "People",
+                  "Structure",
+                  "AI Teammates",
+                  "Connections",
+                  "Governance",
+                  "First workflow",
+                  "Review proposals",
+                ].map((step, i) => (
+                  <li
+                    key={step}
+                    className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-2.5 py-1"
+                  >
+                    <span className="font-medium text-foreground/80">{i + 1}</span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                  <Link to="/organization-seeding">Review what Otzar found</Link>
+                </Button>
+                <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+                  <Link to="/onboarding">Recommended starter shape</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Top summary + the ONE next best step. */}
           <Card data-testid="setup-summary">
             <CardHeader>
@@ -136,7 +181,7 @@ export function OrgSetupPage() {
               <CardDescription>
                 Otzar starts safely: minimum access first, then capability by
                 role, scope by data, authority by policy, and action by
-                approval.
+                approval. One next step — not a checklist of modules.
               </CardDescription>
             </CardHeader>
             <CardContent>
