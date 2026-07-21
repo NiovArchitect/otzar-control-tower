@@ -164,10 +164,48 @@ Until then:
 
 ## L-02 LIVE_VERIFIED (2026-07-21)
 
-* Deep smoke **10/10** on live Could not locate Gemfile
-* Spec: 
+* Deep smoke **10/10** on live `index-DDGJfPyy.js`
+* Spec: `tests/e2e/otzar-live-ai-collab-load-l02.spec.ts`
 * Concurrency/storm/loop pure harness + Collaboration card
 * **Next:** R-03 S2500 residual or V-02 messy multi-source
 * J-04 + A-08 + L-02 LIVE; R-03 S250 UNIT_PROVEN; N-02 EXTERNALLY_BLOCKED
 * Gates C/D still open required programs
+
+## R-03 S250 structural audit (2026-07-21)
+
+### Proof level split (honest)
+
+| Level | Status |
+|-------|--------|
+| dataset_generated | **proven** (250 humans + 250 twins, teams, projects, multi-day NL) |
+| foundation_provisioned | **partial** — `STRUCTURAL_CANONICAL_FIXTURE` only; **0** live Foundation entities |
+| runtime_active | **partial** — session-equivalent samples ×250 pass |
+| browser_sampled | **partial** — product surface LIVE; not 250 logins |
+| scale_measured | **partial** — in-process concurrency p50/p95/p99 |
+
+**SCALE_PROVEN = false** (hard withheld).
+
+### What was built
+
+* `proof-levels.ts` — explicit classification; `s250ScaleProven` only when all five proven
+* `validate-graph.ts` — structural counts + P0 invariants
+* `canonical-provision.ts` — fixture-tagged memberships/twins/projects/policies
+* `runtime-sample.ts` — all 250 identities + stratified deep
+* `concurrency.ts` — 50 home / 50 project / 100 collab
+* `l02-s250.ts` — L-02 against real S250 twin graph
+* `v02-messy-sources.ts` — typed multi-source accuracy
+* `acceptance-gate.ts` — structural gate vs SCALE_PROVEN residual list
+* Unit: `tests/unit/s250-structural-acceptance.test.ts` (5/5)
+
+### Blocking residuals before S2500
+
+1. Live Foundation bulk provision of 250 via org/membership/twin rails
+2. Stratified browser journeys on a provisioned S250 tenant
+3. Live DB/API/queue p99 measurement
+
+### Preserved
+
+* A-08 LIVE · L-02 LIVE · J-04 LIVE
+* N-02 EXTERNALLY_BLOCKED · Gate C Relay · Gate D compliance
+* Do not jump to S2500 headline without structural honesty
 

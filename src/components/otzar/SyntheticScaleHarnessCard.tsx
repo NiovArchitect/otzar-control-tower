@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   R03_DOCTRINE,
   R03_RESIDUAL,
+  S250_PROOF_HONESTY,
   SYNTHETIC_CHECKLIST,
   progressiveSyntheticPlans,
   syntheticHarnessStatusLabel,
@@ -33,6 +34,7 @@ export function SyntheticScaleHarnessCard({
       data-s25-status={plans.find((p) => p.level === "S25")?.status ?? ""}
       data-s250-status={plans.find((p) => p.level === "S250")?.status ?? ""}
       data-s2500-status={plans.find((p) => p.level === "S2500")?.status ?? ""}
+      data-s250-scale-proven="false"
       data-virt-mode={virt.mode}
     >
       <CardHeader className="pb-2">
@@ -102,13 +104,21 @@ export function SyntheticScaleHarnessCard({
           data-testid="r03-s250-harness-note"
           data-s250-harness="synthetic-s250"
         >
-          S250 harness: deterministic seed → 250 people + twins, ≥20 teams, ≥30
-          projects, multi-day multi-channel NL (chat/email/meeting/doc/calendar/
-          handoff/AI) with hidden oracles, provider emulator (emu://), project
-          graph coherence, failure injection, multi-category metrics, repair
-          loop + preserved failing seeds. Run{" "}
+          S250 harness: deterministic seed → structural canonical fixture
+          (memberships/twins/projects/policies tagged fixture-only) → graph
+          invariants → runtime samples ×250 → concurrency + L-02 on S250 graph
+          → V-02 messy multi-source. Multi-day NL + oracles + emu:// providers.
+          Run{" "}
           <code className="text-[10px]">npm run test:unit:s250</code>
-          . No YC credentials.
+          . No YC credentials. Not live Foundation bulk provision.
+        </p>
+
+        <p
+          className="rounded-md border border-amber-200/60 bg-amber-50/40 px-2 py-1.5 text-[11px] text-amber-950"
+          data-testid="r03-s250-proof-honesty"
+          data-scale-proven="false"
+        >
+          {S250_PROOF_HONESTY}
         </p>
 
         <p data-testid="r03-residual">{R03_RESIDUAL}</p>

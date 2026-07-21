@@ -132,5 +132,11 @@ export function syntheticHarnessStatusLabel(plans: SyntheticRunPlan[]): string {
 }
 
 export const R03_RESIDUAL =
-  "Wire continuous seed→pressure→virtualize→repair jobs at S250/S2500 in CI-safe synthetic " +
-  "tenants. Do not block on YC credentials. Real Meet/Docs volume stays N-02/R-04.";
+  "S250 is NOT SCALE_PROVEN: structural fixture + runtime samples partial; " +
+  "live Foundation provision of 250 entities, stratified browser logins, and " +
+  "live DB/API p99 remain open. S2500 only after S250 hard gate. N-02/R-04 for real Meet/Docs.";
+
+export const S250_PROOF_HONESTY =
+  "dataset_generated=proven · foundation_provisioned=partial (structural fixture, 0 live) · " +
+  "runtime_active=partial (session-equivalent ×250) · browser_sampled=partial (product surface) · " +
+  "scale_measured=partial (in-process) · SCALE_PROVEN=false";

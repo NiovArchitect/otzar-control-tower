@@ -3539,7 +3539,7 @@
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "S250 multi-day multi-channel pressure UNIT_PROVEN (250 people/twins, \u226520 teams, \u226530 projects, hidden oracles, provider emulator, project graph stage, multi-category metrics, repair + failing seed records). UI surface LIVE. S2500 planned. Full live tenant provision residual. J-04 card UNIT_PROVEN (await browser). Next: A-08 / L-02 by gate priority.",
+      "remaining_gap": "S250 structural acceptance UNIT_PROVEN: dataset-generated proven; structural canonical fixture (memberships/twins/projects/policies); graph invariants; runtime samples \u00d7250; concurrency; L-02 on S250 graph; V-02 messy multi-source. SCALE_PROVEN=false. Residuals: live Foundation provision of 250 entities, stratified browser logins on provisioned tenant, live DB/API p99. S2500 blocked until SCALE_PROVEN or structural gate + founder advance decision with explicit honesty.",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
@@ -3549,9 +3549,18 @@
         "docs/otzar/simulation/CUSTOMER_ORG_SIMULATION_PLAN.md",
         "src/lib/org/synthetic-s250/",
         "tests/unit/synthetic-s250-harness.test.ts",
-        "scripts/otzar-s250-pressure.mjs"
+        "scripts/otzar-s250-pressure.mjs",
+        "src/lib/org/synthetic-s250/proof-levels.ts",
+        "src/lib/org/synthetic-s250/validate-graph.ts",
+        "src/lib/org/synthetic-s250/canonical-provision.ts",
+        "src/lib/org/synthetic-s250/runtime-sample.ts",
+        "src/lib/org/synthetic-s250/concurrency.ts",
+        "src/lib/org/synthetic-s250/l02-s250.ts",
+        "src/lib/org/synthetic-s250/v02-messy-sources.ts",
+        "src/lib/org/synthetic-s250/acceptance-gate.ts",
+        "tests/unit/s250-structural-acceptance.test.ts"
       ],
-      "acceptance_limitations": "In-process synthetic graph + multi-day NL scenario pressure with emu:// providers \u2014 not live multi-tenant provision of 250 real accounts. Real Google volume remains R-04/N-*.",
+      "acceptance_limitations": "Structural fixture is contract-shaped and tagged structural_canonical_fixture \u2014 NOT live Foundation bulk provision. Session-equivalent runtime samples are not 250 authenticated HTTP sessions. In-process concurrency is not live pool pressure.",
       "proof_dimensions": {
         "implementation": true,
         "browser": true,
@@ -3916,17 +3925,18 @@
       "exact_requirement": "Communication ingestion at enterprise volume: multi-source, messy concurrency, lineage-preserving ETL, honest missing-provider states \u2014 simulated and bounded real.",
       "founder_intent": "Comms ingestion is core Work OS, not optional.",
       "status": "PARTIAL",
-      "proof_level": "PARTIAL",
+      "proof_level": "UNIT_PROVEN",
       "priority": "P0",
       "phase": 2,
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "K-01/K-03/N paths LIVE at demo scale; full multi-day messy concurrent ingestion sim residual.",
+      "remaining_gap": "K-01/K-03/N paths LIVE at demo scale; full multi-day messy concurrent ingestion sim residual. S250-bound messy multi-source harness UNIT_PROVEN (typed sources + oracles). Live multi-source ingestion residual.",
       "implementation_refs": [
         "docs/otzar/OTZAR_COMMUNICATION_INGESTION_MODEL.md",
         "docs/otzar/OTZAR_INBOUND_AMBIENT_INGESTION_PLAN.md",
-        "tests/e2e/otzar-live-comms-k01-k03.spec.ts"
+        "tests/e2e/otzar-live-comms-k01-k03.spec.ts",
+        "src/lib/org/synthetic-s250/v02-messy-sources.ts"
       ],
       "proof_dimensions": {
         "implementation": true,

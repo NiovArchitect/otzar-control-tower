@@ -167,19 +167,26 @@ test("R-03 deep: internal synthetic scale harness", async ({ page }) => {
   ).toLowerCase();
   rec(
     "R03-I",
-    /s250|s2500|do not block on yc|continuous/i.test(residual) ? "PASS" : "FAIL",
+    /s250|s2500|scale_proven|not scale|foundation|continuous|do not block/i.test(
+      residual,
+    )
+      ? "PASS"
+      : "FAIL",
     residual.slice(0, 70),
   );
 
   const body = ((await page.locator("body").innerText()) ?? "").toLowerCase();
   const falseClaim =
-    /2500 synthetic fully proven|scale proven at 2500|all synthetic levels proven/i.test(
+    /2500 synthetic fully proven|scale proven at 2500|all synthetic levels proven|scale_proven=true/i.test(
       body,
     );
+  const honesty =
+    (await page.getByTestId("r03-s250-proof-honesty").count()) > 0 ||
+    (await card.getAttribute("data-s250-scale-proven")) === "false";
   rec(
     "R03-J",
-    !falseClaim ? "PASS" : "FAIL",
-    `falseClaim=${falseClaim}`,
+    !falseClaim && honesty ? "PASS" : "FAIL",
+    `falseClaim=${falseClaim} honesty=${honesty}`,
   );
 
   const t = deepTotals(rows);

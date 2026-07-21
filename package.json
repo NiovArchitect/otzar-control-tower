@@ -62,7 +62,7 @@
     "test:e2e:live:n04": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-calendar-n04.spec.ts",
     "test:e2e:live:n05": "playwright test --config=playwright.live.config.ts tests/e2e/otzar-live-mail-n05.spec.ts",
     "test:e2e:live:gate-rebind": "bash scripts/otzar-gate-rebind.sh",
-    "test:unit:s250": "vitest run tests/unit/synthetic-s250-harness.test.ts"
+    "test:unit:s250": "vitest run tests/unit/synthetic-s250-harness.test.ts tests/unit/s250-structural-acceptance.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

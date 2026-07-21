@@ -29,7 +29,7 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Next internal Work OS priority:** **R-03** S2500 residual or **V-02** messy multi-source. (J-04, A-08, L-02 LIVE; R-03 S250 UNIT_PROVEN.)
+**Next internal Work OS priority:** R-03 **live Foundation S250 provision residual** (SCALE_PROVEN false; structural gate UNIT_PROVEN). Then S2500. V-02 deeper live multi-source.
 
 ---
 

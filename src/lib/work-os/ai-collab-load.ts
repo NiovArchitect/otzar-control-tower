@@ -17,8 +17,8 @@ export const L02_DEFAULTS = {
   storm_window_ms: 60_000,
   /** Max hops in an AI↔AI delegation chain before loop refuse. */
   max_chain_depth: 4,
-  /** Duplicate identical request fingerprint within window → loop risk. */
-  duplicate_fingerprint_limit: 2,
+  /** Max prior identical fingerprints allowed; 1 means second identical refuses. */
+  duplicate_fingerprint_limit: 1,
 } as const;
 
 export type CollabLoadEvent = {
@@ -131,7 +131,19 @@ export function admitCollabUnderLoad(
   const windowStart = nowMs - cfg.storm_window_ms;
   const inWindow = history.filter((e) => e.at_ms >= windowStart);
 
-  // Concurrency per principal (in-flight approx = recent without advanced_work false-complete)
+  // Duplicate fingerprint before concurrency — same request is loop risk first
+  const dups = inWindow.filter(
+    (e) => e.fingerprint === candidate.fingerprint,
+  ).length;
+  if (dups >= cfg.duplicate_fingerprint_limit) {
+    return {
+      allow: false,
+      code: "loop_duplicate",
+      reason: "Duplicate collaboration request — loop risk",
+    };
+  }
+
+  // Concurrency per principal
   const fromInflight = inWindow.filter(
     (e) => e.from_principal_id === candidate.from_principal_id,
   ).length;
@@ -148,17 +160,6 @@ export function admitCollabUnderLoad(
       allow: false,
       code: "storm_trip",
       reason: `Storm trip: ${inWindow.length} events in window`,
-    };
-  }
-
-  const dups = inWindow.filter(
-    (e) => e.fingerprint === candidate.fingerprint,
-  ).length;
-  if (dups >= cfg.duplicate_fingerprint_limit) {
-    return {
-      allow: false,
-      code: "loop_duplicate",
-      reason: "Duplicate collaboration request — loop risk",
     };
   }
 
