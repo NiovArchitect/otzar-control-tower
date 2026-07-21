@@ -42,6 +42,7 @@ import { HierarchyEditor } from "@/components/otzar/HierarchyEditor";
 import { RelationshipEdgesCard } from "@/components/otzar/RelationshipEdgesCard";
 import { PersonTypeTaxonomyCard } from "@/components/otzar/PersonTypeTaxonomyCard";
 import { EnterprisePressureCard } from "@/components/otzar/EnterprisePressureCard";
+import { DefectRegressionCard } from "@/components/otzar/DefectRegressionCard";
 import { inventoryRelationships } from "@/lib/org/relationship-edges";
 import { inventoryPersonTypes } from "@/lib/org/person-type-taxonomy";
 
@@ -491,6 +492,9 @@ export function UsersPage() {
         variant="admin"
         peopleCount={(allPeople.data ?? []).length}
       />
+
+      {/* R-02 — every discovered defect becomes regression coverage */}
+      <DefectRegressionCard variant="admin" />
 
       {/* F-02 — hierarchy editor: stage, bulk confirm, undo, keyboard + drag.
           F-04 — copy states hierarchy ≠ access/TAR. Server assign still audited.
