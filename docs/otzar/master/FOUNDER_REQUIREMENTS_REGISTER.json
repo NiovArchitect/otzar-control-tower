@@ -2877,24 +2877,36 @@
         "tests/e2e/otzar-live-docs-n03.spec.ts"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Create non-empty LIVE; append UI+API wired \u2014 provider returned APPEND_FAILED on smoke (honest gate). Full editDetected needs provider append success.",
+      "remaining_gap": "Create still not fully server-idempotent; Meet artifact none; optional role-report browser delta for latest material edit.",
       "dependencies": [],
       "priority": "P0",
       "phase": 2,
       "test_requirements": [
         "unit non-empty+edit session",
-        "live deep n03"
+        "live deep n03",
+        "live material vs formatting append"
       ],
-      "live_acceptance": "Create non-empty session or honest reconnect; append\u2192editDetected when provider allows",
+      "live_acceptance": "Create non-empty; append material + formatting; idempotent retry; foreign DOC_ARTIFACT_NOT_FOUND",
       "status": "LIVE_VERIFIED",
-      "prs": [],
-      "merge_shas": [],
-      "deployment_sha": "b6f95a2",
+      "prs": [
+        "https://github.com/NiovArchitect/niov-foundation/pull/729",
+        "https://github.com/NiovArchitect/niov-foundation/pull/730",
+        "https://github.com/NiovArchitect/niov-foundation/pull/731"
+      ],
+      "merge_shas": [
+        "52c08d26674e7d3166dc144135c33eb24632750c",
+        "6aa614e122782e3a08fe02bc9fd0ca3aa7396f51",
+        "d274a81292aec405d022858dc7b9f82975ec6732"
+      ],
+      "deployment_sha": "d274a81292aec405d022858dc7b9f82975ec6732",
       "final_proof": {
-        "live_bundle": "index-CaSyCGMQ.js",
-        "e2e": "otzar-live-docs-n03 8/8",
-        "create": "session nonempty=true",
-        "append": "honest APPEND_FAILED + Fix connection"
+        "document_id": "1-Tyn5pAkU-fXOjMmh8Tkp9AN9rtncwhj3Xa46A7emX8",
+        "create": "LIVE body_inserted",
+        "append_material": "MATERIAL + already_applied retry",
+        "append_formatting": "FORMATTING_ONLY no extra BLOCKER",
+        "foreign": "DOC_ARTIFACT_NOT_FOUND",
+        "propagation_blocker": "d44dc0ed-9bac-48b5-80e4-04f52bd56a95",
+        "harness": "scripts/otzar-r03-doc-append-propagation-proof.mjs"
       },
       "program_gates": [
         "B"

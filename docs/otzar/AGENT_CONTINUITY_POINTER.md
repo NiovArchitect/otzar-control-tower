@@ -29,7 +29,7 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Next internal Work OS priority:** Fix Google Doc append/revision propagation (APPEND_FAILED); then claim LIVE_DOCUMENT_CHANGE_PROPAGATION_PROVEN + PROJECT_LOOP_FULL_CHAIN_PROVEN. Doc+Cal live proven. Meet: no eligible artifact.
+**Next internal Work OS priority:** Optional deepen (role-report browser delta for latest material edit; create idempotency; Meet when eligible artifact exists). **Closed this arc:** Doc append + material vs formatting propagation + full project-loop chain (`LIVE_DOCUMENT_CHANGE_PROPAGATION_PROVEN`, `PROJECT_LOOP_FULL_CHAIN_PROVEN` on FND `d274a81`). Meet remains `MEET_PERMISSION_AVAILABLE_NO_ELIGIBLE_ARTIFACT`. Not unrestricted `SCALE_PROVEN`; S2500 FOUNDER_DEFERRED.
 
 ---
 

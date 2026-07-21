@@ -500,9 +500,25 @@ OAuth for R-03: **VERIFIED** (connected_at 10:41Z, verified 10:43Z). App credent
 | Intents | Doc `35aec899-…` + Cal `c2159668-…` → **EXECUTED** |
 | Classifications | `LIVE_DOC_PROVIDER_PROVEN` · `LIVE_CALENDAR_PROVIDER_PROVEN` · `BOUNDED_ENTERPRISE_WORK_OS_PROVEN` · `MEET_PERMISSION_AVAILABLE_NO_ELIGIBLE_ARTIFACT` |
 
-**Not claimed:** `LIVE_DOCUMENT_CHANGE_PROPAGATION_PROVEN` (append → `APPEND_FAILED`); `GOOGLE_MEET_ARTIFACT_PROVEN` (no eligible Meet artifact); `PROJECT_LOOP_FULL_CHAIN_PROVEN` (blocked on change-propagation).
+**Claimed (2026-07-21 post-append repair):** `LIVE_DOCUMENT_CHANGE_PROPAGATION_PROVEN` · `PROJECT_LOOP_FULL_CHAIN_PROVEN` on live API `d274a81`.
 
-**Residuals:** provider create not server-idempotent (retry minted second doc/event; primary retained; cal dup delete attempted); synthetic r03-*@ emails not valid Google share targets; append/revision path needs repair.
+**Still not claimed:** `GOOGLE_MEET_ARTIFACT_PROVEN` (no eligible Meet artifact — permission available); unrestricted `SCALE_PROVEN`; S2500 (FOUNDER_DEFERRED).
+
+#### Append root cause + repair (2026-07-21)
+
+| Item | Detail |
+| --- | --- |
+| Failure | `POST /google/docs/append` → opaque then typed `DOC_WRITE_PERMISSION_DENIED` (Docs `batchUpdate` **403**) |
+| Root cause | Create used **Drive multipart** (`drive.file` works); append used only Docs API write (403 on same OAuth). No org ownership bind → foreign demo-org could also write by document ID. |
+| Repair | **#729** typed codes + `endOfSegmentLocation` + idempotency marker; **#730** Drive export+rewrite material fallback + HTML formatting fallback; **#731** `DOCUMENT` ledger type, org ownership gate (`DOC_ARTIFACT_NOT_FOUND`), MATERIAL→one BLOCKER / FORMATTING→no noise |
+| Live SHA | `d274a81292ae…` |
+| Material | risk/dependency before Sep 18 milestone · `materiality=MATERIAL` · retry `already_applied=true` |
+| Formatting | `FORMATTING_ONLY` · blockers stayed at 1 (no extra) |
+| Propagation | BLOCKER `d44dc0ed-…` project-linked; ownership DOCUMENT `7bbde0b6-…` |
+| Cross-tenant | foreign vishesh append → `DOC_ARTIFACT_NOT_FOUND` · leak=false |
+| Artifacts | `.r03-s250-state/google-doc-change-propagation.json`, `google-provider-resume.json`, `scripts/otzar-r03-doc-append-propagation-proof.mjs` |
+
+**Residuals:** create not fully server-idempotent (historical); DOCUMENT details may scrub on GET; role-report browser re-smoke for this exact edit not re-run this slice (prior ROLE_REPORTING_BROWSER_PROVEN retained).
 
 **YC first-five re-run post-provider:** PASS.
 

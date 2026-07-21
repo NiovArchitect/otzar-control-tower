@@ -29,8 +29,10 @@ A **Gate A freeze** may be stated separately when only N-02 (and documented resi
 
 - Provider-independent project loop **PROVEN** (extraction→work→AI dep→reports→obligation→learning).
 - `LIVE_CROSS_TENANT_ZERO_LEAK` after full adversarial pack + ledger malformed-ID fix (`72c6864`).
-- Google Docs/Calendar remain **EXTERNALLY_BLOCKED** (reauth). No `PROJECT_LOOP_FULL_CHAIN_PROVEN`.
+- Google Doc + Calendar **LIVE**; document **append + selective propagation** **PROVEN** (`d274a81`).
+- `PROJECT_LOOP_FULL_CHAIN_PROVEN` — conversation→extraction→work→AI collab→real Doc→real Calendar→material doc change→BLOCKER→reports path.
 - YC first-five re-run PASS on R-03.
+- Not unrestricted `SCALE_PROVEN`; S2500 **FOUNDER_DEFERRED**.
 
 
 ## Google provider (2026-07-21)
@@ -38,6 +40,8 @@ A **Gate A freeze** may be stated separately when only N-02 (and documented resi
 - OAuth VERIFIED on R-03.
 - LIVE_DOC_PROVIDER_PROVEN — non-empty Google Doc with project/source linkage.
 - LIVE_CALENDAR_PROVIDER_PROVEN — event on 2026-09-18 (rejected 2026-09-11 excluded).
-- MEET_PERMISSION_AVAILABLE_NO_ELIGIBLE_ARTIFACT — no Meet post-meeting source.
-- Not PROJECT_LOOP_FULL_CHAIN_PROVEN until document change-propagation (append) is fixed.
+- LIVE_DOCUMENT_CHANGE_PROPAGATION_PROVEN — material append (Drive rewrite fallback), idempotent retry, formatting-only without new BLOCKER, foreign `DOC_ARTIFACT_NOT_FOUND`.
+- MEET_PERMISSION_AVAILABLE_NO_ELIGIBLE_ARTIFACT — no Meet post-meeting source (not a permission failure).
+- PROJECT_LOOP_FULL_CHAIN_PROVEN (bounded enterprise; not unrestricted scale).
 - Not unrestricted SCALE_PROVEN; S2500 FOUNDER_DEFERRED.
+- FND PRs: #729 typed append, #730 Drive rewrite, #731 org bind + DOCUMENT ledger + material BLOCKER.
