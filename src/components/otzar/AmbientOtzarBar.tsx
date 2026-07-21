@@ -472,7 +472,7 @@ export function AmbientOtzarBar(): JSX.Element {
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
-      /* pointer capture unsupported — drag still works via bubbling */
+      /* pointer capture unsupported. Drag still works via bubbling */
     }
   }
   function handleOrbPointerMove(
@@ -627,7 +627,7 @@ export function AmbientOtzarBar(): JSX.Element {
   // this surface; afterwards serverSttPreferred routes the mic button
   // straight to server STT.
   const autoSttFallbackUsedRef = useRef(false);
-  /** Capture selection on pointerdown — button click clears the selection
+  /** Capture selection on pointerdown. Button click clears the selection
    *  before click handlers run, which previously made "Add current context"
    *  silently no-op (matrix D / transcript→actions broken). */
   const pendingSelectionRef = useRef("");
@@ -811,7 +811,7 @@ export function AmbientOtzarBar(): JSX.Element {
         : "";
     const text = (live.trim().length > 0 ? live : pendingSelectionRef.current).trim();
     pendingSelectionRef.current = "";
-    if (text.length === 0) return; // nothing selected — never capture silently
+    if (text.length === 0) return; // nothing selected. Never capture silently
     provideSurfaceContext({
       type: "selected_text",
       text,
@@ -1149,7 +1149,7 @@ export function AmbientOtzarBar(): JSX.Element {
     if (a.kind === "APPROVALS_REVIEW") return "Read-only";
     if (a.kind === "ZOOM_RECORDINGS") return "Read-only";
     if (a.kind === "WORKFLOW_START" || a.kind === "MEETING_NOTES_TO_ACTIONS")
-      return "Runtime not available yet";
+      return "System not available yet";
     if (a.kind === "UNSUPPORTED") return "Blocked";
     return "Done";
   }
@@ -1248,8 +1248,8 @@ export function AmbientOtzarBar(): JSX.Element {
       mailState !== null
         ? outboundMailStatusLabel(mailState)
         : recipientEntityId !== undefined
-          ? "Draft — Confirm to propose"
-          : "Local draft — pick a recipient";
+          ? "Draft. Confirm to propose"
+          : "Local draft. Pick a recipient";
     const runtimeNote =
       mailState !== null
         ? outboundMailRuntimeNote(mailState)
@@ -1277,8 +1277,8 @@ export function AmbientOtzarBar(): JSX.Element {
       mailState !== null
         ? outboundMailOutcomeCopy(mailState)
         : recipientEntityId !== undefined
-          ? `Draft to ${label} created. Review it, then Confirm to propose — nothing is sent yet.`
-          : "Draft created. Pick the recipient, then Confirm to propose — nothing is sent.";
+          ? `Draft to ${label} created. Review it, then Confirm to propose. Nothing is sent yet.`
+          : "Draft created. Pick the recipient, then Confirm to propose. Nothing is sent.";
     setActionResult(msg);
     setActionStatus(status);
     appendConversationEntry({ role: "action", text: msg, at, kind: action.kind, status });
@@ -1449,7 +1449,7 @@ export function AmbientOtzarBar(): JSX.Element {
       status = "Sent · governed";
       result = "success";
     } else if (delivered.length > 0) {
-      msg = `Sent to ${formatRecipientList(delivered)}. I couldn't reach ${formatRecipientList(failed)} — open Collaboration to route ${failed.length > 1 ? "those" : "that"}.`;
+      msg = `Sent to ${formatRecipientList(delivered)}. I couldn't reach ${formatRecipientList(failed)}. Open Collaboration to route ${failed.length > 1 ? "those" : "that"}.`;
       status = "Partly sent";
       result = "success";
     } else {
@@ -1498,7 +1498,7 @@ export function AmbientOtzarBar(): JSX.Element {
       const msg =
         interp !== null && interp.kind === "CLARIFY"
           ? interp.recipientFacingMessage
-          : 'Tell me who this is for — e.g. "ask a teammate to review this note" — and I\'ll route a governed message.';
+          : 'Tell me who this is for, for example "ask a teammate to review this note", and I\'ll route a governed message.';
       setActionResult(msg);
       setActionStatus("Needs a teammate");
       speakConfirmation(msg);
@@ -1609,7 +1609,7 @@ export function AmbientOtzarBar(): JSX.Element {
         eventKind: "MISSING_CONTEXT",
         copy:
           ctx.clarificationQuestion ??
-          "I can save that, but I'm missing what it refers to — can you say which one?",
+          "I can save that, but I'm missing what it refers to. Can you say which one?",
         status: "Which one?",
         at,
         heard,
@@ -1656,7 +1656,7 @@ export function AmbientOtzarBar(): JSX.Element {
     const linked =
       ctx !== null && ctx.resolved ? ` linked to ${contextLabel(ctx)}` : "";
     const confirm = !ok
-      ? "I couldn't save that just now — want me to try again?"
+      ? "I couldn't save that just now. Want me to try again?"
       : kind === "SELF_REMINDER"
         ? `I saved that reminder for you${linked}.`
         : kind === "SELF_TASK"
@@ -1707,10 +1707,10 @@ export function AmbientOtzarBar(): JSX.Element {
       .map((c) => c.displayName)
       .filter((n) => n.length > 0);
     if (names.length === 2) {
-      return `I found more than one ${recipient} — do you mean ${names[0]} or ${names[1]}?`;
+      return `I found more than one ${recipient}. Do you mean ${names[0]} or ${names[1]}?`;
     }
     if (names.length > 2) {
-      return `I found a few people named ${recipient} — which one do you mean?`;
+      return `I found a few people named ${recipient}. Which one do you mean?`;
     }
     return `Which ${recipient} do you mean?`;
   }
@@ -1762,7 +1762,7 @@ export function AmbientOtzarBar(): JSX.Element {
     ) {
       surfaceOutcome({
         eventKind: "NEEDS_CLARIFICATION",
-        copy: `I couldn't find ${recipient} on your team — who do you mean?`,
+        copy: `I couldn't find ${recipient} on your team. Who do you mean?`,
         status: "Who is this for?",
         at,
         heard,
@@ -1782,7 +1782,7 @@ export function AmbientOtzarBar(): JSX.Element {
         eventKind: "MISSING_CONTEXT",
         copy:
           ctx.clarificationQuestion ??
-          "I can send that, but I'm missing what it refers to — which one do you mean?",
+          "I can send that, but I'm missing what it refers to. Which one do you mean?",
         status: "Which one?",
         at,
         heard,
@@ -1847,10 +1847,10 @@ export function AmbientOtzarBar(): JSX.Element {
           : "ACTION_FAILED";
     const why =
       res.status === 409
-        ? `That needs approval first — I've queued it for ${who} and I'll keep track of it.`
+        ? `That needs approval first. I've queued it for ${who} and I'll keep track of it.`
         : res.status === 403
-          ? `I can't reach ${who} — they're outside your organization.`
-          : `I couldn't send that to ${who} just now — want me to try again?`;
+          ? `I can't reach ${who}. They're outside your organization.`
+          : `I couldn't send that to ${who} just now. Want me to try again?`;
     surfaceOutcome({
       eventKind,
       copy: why,
@@ -2180,10 +2180,10 @@ export function AmbientOtzarBar(): JSX.Element {
         target: null,
       });
     } else {
-      updateActionStatus(a.id, "proposed"); // failed — let the user retry
+      updateActionStatus(a.id, "proposed"); // failed. Let the user retry
       surfaceOutcome({
         eventKind: "ACTION_FAILED",
-        copy: "I couldn't save that just now — want me to try again?",
+        copy: "I couldn't save that just now. Want me to try again?",
         status: "Couldn't save",
         at,
         heard: a.body,
@@ -2234,7 +2234,7 @@ export function AmbientOtzarBar(): JSX.Element {
       updateActionStatus(a.id, "proposed");
       surfaceOutcome({
         eventKind: "NEEDS_CLARIFICATION",
-        copy: `I couldn't find ${target} on your team — who do you mean?`,
+        copy: `I couldn't find ${target} on your team. Who do you mean?`,
         status: "Who is this for?",
         at,
         heard: a.body,
@@ -2270,7 +2270,7 @@ export function AmbientOtzarBar(): JSX.Element {
       updateActionStatus(a.id, "blocked");
       surfaceOutcome({
         eventKind: "APPROVAL_NEEDED",
-        copy: `That needs approval first — I've queued it for ${who} and I'll keep track of it.`,
+        copy: `That needs approval first. I've queued it for ${who} and I'll keep track of it.`,
         status: "Needs approval",
         at,
         heard: a.body,
@@ -2278,10 +2278,10 @@ export function AmbientOtzarBar(): JSX.Element {
         target: targetId,
       });
     } else {
-      updateActionStatus(a.id, "proposed"); // failed — let the user retry
+      updateActionStatus(a.id, "proposed"); // failed. Let the user retry
       surfaceOutcome({
         eventKind: "ACTION_FAILED",
-        copy: `I couldn't send that to ${who} just now — want me to try again?`,
+        copy: `I couldn't send that to ${who} just now. Want me to try again?`,
         status: "Held",
         at,
         heard: a.body,
@@ -2621,7 +2621,7 @@ export function AmbientOtzarBar(): JSX.Element {
           "Needs Google reconnect for event creation.",
         EVENT_WRITE_SCOPE_MISSING:
           "Needs Google reconnect for event creation (event-write scope).",
-        CALENDAR_PROVIDER_UNAVAILABLE: "Ready to create — create runtime pending.",
+        CALENDAR_PROVIDER_UNAVAILABLE: "Ready to create. Create step pending.",
       };
       const r = await api.connectorData.calendarEventCreate({
         title: a.title,
@@ -2683,7 +2683,7 @@ export function AmbientOtzarBar(): JSX.Element {
           : {
               runtimeNote:
                 (agreedLine !== undefined ? `${agreedLine} ` : "") +
-                "No event was created — the proposal is held at the gate above. No invite sent.",
+                "No event was created. The proposal is held at the gate above. No invite sent.",
             }),
       });
       return;
@@ -2807,7 +2807,7 @@ export function AmbientOtzarBar(): JSX.Element {
       case "BLOCKED":
         return "Blocked";
       case "RUNTIME_MISSING":
-        return "Runtime not wired";
+        return "Not connected yet";
       default:
         return "Draft · needs confirmation";
     }
@@ -2858,7 +2858,7 @@ export function AmbientOtzarBar(): JSX.Element {
         } else if (a.target_resolution === "AMBIGUOUS") {
           status = "Participant ambiguous";
           targetUnresolved = true;
-          authorityNote = `More than one teammate matches "${target}" — pick one.`;
+          authorityNote = `More than one teammate matches "${target}". Pick one.`;
         } else if (pol !== undefined) {
           status =
             action.kind === "SCHEDULE_MEETING" && proposedTime !== undefined
@@ -2870,7 +2870,7 @@ export function AmbientOtzarBar(): JSX.Element {
           const tzDisplay =
             a.target_timezone !== null
               ? displayForIana(a.target_timezone)
-              : `using org default (${displayForIana(a.org_default_timezone)}) — ${who}'s timezone not configured`;
+              : `using org default (${displayForIana(a.org_default_timezone)}). ${who}'s timezone not configured`;
           authorityNote = a.caller_is_manager_of_target
             ? `Manager authority over ${who}. ${pol.reason} ${who} local time: ${tzDisplay}.`
             : `${pol.reason} ${who} local time: ${tzDisplay}.`;
@@ -3049,7 +3049,7 @@ export function AmbientOtzarBar(): JSX.Element {
       kind: "WORK_PLAN",
       status: "Plan",
     });
-    speakConfirmation("I split that into linked actions — review each below.");
+    speakConfirmation("I split that into linked actions. Review each below.");
     recordVoiceAction({
       at,
       transcript: sourceCommand,
@@ -3071,7 +3071,7 @@ export function AmbientOtzarBar(): JSX.Element {
     setActionStatus(artifact.status);
     appendConversationEntry({
       role: "action",
-      text: `${artifact.title} — ${artifact.status}.`,
+      text: `${artifact.title}. ${artifact.status}.`,
       at,
       kind: "FOLLOW_UP_NOTE",
       status: artifact.status,
@@ -3173,7 +3173,7 @@ export function AmbientOtzarBar(): JSX.Element {
         });
       } else if (r.code === "NEEDS_SELECTED_TIME") {
         status = "Choose a time.";
-        note = "No event created — held at the gate. No invite sent.";
+        note = "No event created. Held at the gate. No invite sent.";
       } else if (
         r.code === "EVENT_WRITE_SCOPE_MISSING" ||
         r.code === "GOOGLE_RECONNECT_REQUIRED"
@@ -3182,16 +3182,16 @@ export function AmbientOtzarBar(): JSX.Element {
         note =
           (finalAgreed !== undefined
             ? finalAgreedSummary({ display: finalAgreed, created: false }) + " "
-            : "") + "No event created — held at the gate. No invite sent.";
+            : "") + "No event created. Held at the gate. No invite sent.";
       } else if (r.code === "NEEDS_PARTICIPANT_CONFIRMATION") {
         status = a.prerequisite ?? "Needs participant confirmation.";
-        note = "No event created — held at the gate. No invite sent.";
+        note = "No event created. Held at the gate. No invite sent.";
       } else {
         status = "Held at gate.";
         note =
           (finalAgreed !== undefined
             ? finalAgreedSummary({ display: finalAgreed, created: false }) + " "
-            : "") + "No event created — held at the gate. No invite sent.";
+            : "") + "No event created. Held at the gate. No invite sent.";
       }
     } else {
       // Follow-up / task: confirm as a local governed draft. No send,
@@ -3200,7 +3200,7 @@ export function AmbientOtzarBar(): JSX.Element {
         a.kind === "TASK"
           ? "Task proposal confirmed (local)"
           : "Follow-up confirmed (local draft)";
-      note = "Saved locally — no message sent, no task marked complete.";
+      note = "Saved locally. No message sent, no task marked complete.";
     }
     setPlanArtifacts((prev) =>
       prev.map((x, j) => {
@@ -3403,7 +3403,7 @@ export function AmbientOtzarBar(): JSX.Element {
         say(r.data.answer);
       } else {
         say(
-          'Otzar couldn\'t look that up as a named topic. Try naming the project or subject — for example, "What do we know about Project Phoenix?"',
+          'Otzar couldn\'t look that up as a named topic. Try naming the project or subject. For example, "What do we know about Project Phoenix?"',
         );
       }
       return;
@@ -3767,7 +3767,7 @@ export function AmbientOtzarBar(): JSX.Element {
           // Never silently fail: surface a clickable link instead.
           setExternalLinkPending(url);
           setActionResult("Tap the link below to open it in your browser.");
-          speakConfirmation("Here's the link — tap it to open in your browser.");
+          speakConfirmation("Here's the link. Tap it to open in your browser.");
           recordVoiceAction({
             at,
             transcript: text,
@@ -3998,7 +3998,7 @@ export function AmbientOtzarBar(): JSX.Element {
               ) {
                 const note =
                   a.target_resolution === "AMBIGUOUS"
-                    ? `More than one teammate matches "${action.targetEntity}" — pick one.`
+                    ? `More than one teammate matches "${action.targetEntity}". Pick one.`
                     : `I don't know which ${action.targetEntity}. Choose a teammate or enter an email/calendar.`;
                 // Unresolved → no availability, no free/busy call.
                 setPendingArtifact((prev) =>
@@ -4019,9 +4019,9 @@ export function AmbientOtzarBar(): JSX.Element {
               const tzDisplay =
                 a.target_timezone !== null
                   ? displayForIana(a.target_timezone)
-                  : `using org default (${displayForIana(a.org_default_timezone)}) — ${who}'s timezone not configured`;
+                  : `using org default (${displayForIana(a.org_default_timezone)}). ${who}'s timezone not configured`;
               const note = a.caller_is_manager_of_target
-                ? `Manager authority over ${who} — internal scheduling allowed. ${who} local time: ${tzDisplay}.`
+                ? `Manager authority over ${who}. Internal scheduling allowed. ${who} local time: ${tzDisplay}.`
                 : `${meetingPol?.reason ?? "Peer scheduling needs the teammate's confirmation."} ${who} local time: ${tzDisplay}.`;
               setPendingArtifact((prev) =>
                 prev !== null && prev.kind === "SCHEDULE_MEETING"
@@ -4044,7 +4044,7 @@ export function AmbientOtzarBar(): JSX.Element {
                     );
                     avail =
                       free.length === 0
-                        ? `Checked your calendar only — no open ${DEFAULT_MEETING_MINUTES}-min slot in tomorrow's work hours.`
+                        ? `Checked your calendar only. No open ${DEFAULT_MEETING_MINUTES}-min slot in tomorrow's work hours.`
                         : `Checked your calendar only (${who}'s calendar address not wired):\n` +
                           free.slice(0, 3).map((w) => `• ${w}`).join("\n");
                   } else if (
@@ -4093,7 +4093,7 @@ export function AmbientOtzarBar(): JSX.Element {
                 const when = rec.start_time
                   ? new Date(rec.start_time).toLocaleString()
                   : "unknown time";
-                return `• ${rec.topic} — ${when} · ${rec.duration_minutes} min`;
+                return `• ${rec.topic}. ${when} · ${rec.duration_minutes} min`;
               });
               const more =
                 recs.length > 5 ? `\n…and ${recs.length - 5} more.` : "";
@@ -4466,7 +4466,7 @@ export function AmbientOtzarBar(): JSX.Element {
       style={dockAnchorStyle}
       className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/60 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-2xl backdrop-saturate-150 text-slate-900 ring-1 ring-black/[0.04] transition-[box-shadow] duration-700 ${ring.glow}`}
     >
-      {/* Siri-like ambient color field, diffused UNDER the glass — the state
+      {/* Siri-like ambient color field, diffused UNDER the glass. The state
           color blooms through the frost, it is not a hard border. Active states
           get a slow living drift (motion-safe). */}
       <span
@@ -4499,7 +4499,7 @@ export function AmbientOtzarBar(): JSX.Element {
             title={
               quiet
                 ? "Leave quiet mode"
-                : "Quiet mode — Otzar won't speak or listen"
+                : "Quiet mode. Otzar won't speak or listen"
             }
             className="h-7 w-7"
             data-testid="ambient-quiet-toggle"
@@ -4536,7 +4536,7 @@ export function AmbientOtzarBar(): JSX.Element {
         </div>
       </div>
 
-      {/* [OTZAR-LIVE-6] Ambient memory chip — a calm, plain-language reflection
+      {/* [OTZAR-LIVE-6] Ambient memory chip. A calm, plain-language reflection
           of what Otzar is holding in working memory right now. Driven by real
           pendingClarification / draft state; disappears on resolve/cancel/expire.
           So the user can SEE that Otzar remembers what it just asked. */}
@@ -4555,10 +4555,10 @@ export function AmbientOtzarBar(): JSX.Element {
         </div>
       ) : null}
 
-      {/* [OTZAR-LIVE-6] Related work nodes — a small, REAL node cluster grounded
+      {/* [OTZAR-LIVE-6] Related work nodes. A small, REAL node cluster grounded
           only in current state (people in the request, the draft, approvals,
           replies, context, corrections). Collapsed by default; nothing renders
-          when nothing is in flight. Not a graph dashboard — a glanceable strip
+          when nothing is in flight. Not a graph dashboard. A glanceable strip
           where each chip's intensity says whether it needs the human. */}
       {workNodes.length > 0 ? (
         <details
@@ -4611,7 +4611,7 @@ export function AmbientOtzarBar(): JSX.Element {
                   ? "Otzar went quiet for your meeting."
                   : autoQuietReason !== null
                     ? "Otzar went quiet for your focus time."
-                    : "Quiet mode — Otzar won't speak or listen."}
+                    : "Quiet mode. Otzar won't speak or listen."}
               </p>
               <p>
                 Voice is paused. You can still approve or type.
@@ -4634,10 +4634,10 @@ export function AmbientOtzarBar(): JSX.Element {
               ) : null}
             </div>
           ) : null}
-          {/* Permission state line — always visible when expanded so
+          {/* Permission state line. Always visible when expanded so
               the operator knows whether the mic will actually work.
               Browser shells: micCopyFor(). Desktop shell (Phase
-              1256A): the NATIVE mic capability bridge — detection,
+              1256A): the NATIVE mic capability bridge. Detection,
               calm copy, and the real OS permission prompt. */}
           {(() => {
             const shell = detectShellMode();
@@ -4648,10 +4648,10 @@ export function AmbientOtzarBar(): JSX.Element {
                 desktopCap.state === "error" && desktopCap.errorCode !== null
                   ? transcribeErrorCopy(desktopCap.errorCode)
                   : desktopCap.state === "recording"
-                    ? "Listening on desktop — tap the mic again to send."
+                    ? "Listening on desktop. Tap the mic again to send."
                     : desktopCap.state === "transcribing"
                       ? "Transcribing your audio…"
-                      : "Desktop voice is on. Tap the mic and talk — Otzar transcribes and routes it the same way as typing.";
+                      : "Desktop voice is on. Tap the mic and talk. Otzar transcribes and routes it the same way as typing.";
               const tone =
                 desktopCap.state === "error" ? "error" : "muted";
               return (
@@ -4699,10 +4699,10 @@ export function AmbientOtzarBar(): JSX.Element {
                 desktopCap.state === "error" && desktopCap.errorCode !== null
                   ? transcribeErrorCopy(desktopCap.errorCode)
                   : desktopCap.state === "recording"
-                    ? "Listening — tap the mic again to finish."
+                    ? "Listening. Tap the mic again to finish."
                     : desktopCap.state === "transcribing"
                       ? "Transcribing your audio…"
-                      : "Voice is on. Tap the mic and talk — Otzar transcribes your words securely and puts the text here to review before sending.";
+                      : "Voice is on. Tap the mic and talk. Otzar transcribes your words securely and puts the text here to review before sending.";
               const serverTone =
                 desktopCap.state === "error" ? "error" : "muted";
               return (
@@ -4755,7 +4755,7 @@ export function AmbientOtzarBar(): JSX.Element {
             );
           })()}
 
-          {/* D-02 — voice-first work rail: mic primary, text secondary,
+          {/* D-02. Voice-first work rail: mic primary, text secondary,
               same governed path as typed. Not a decorative voice demo. */}
           <div
             className="space-y-1.5"
@@ -4845,7 +4845,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </div>
           </div>
 
-          {/* Phase 2.9 — permissioned current-surface context. The user
+          {/* Phase 2.9. Permissioned current-surface context. The user
               EXPLICITLY provides what they're looking at; it is visibly
               indicated and easy to clear. Not screen capture, not surveillance. */}
           <div className="flex items-center gap-2 text-xs">
@@ -4896,7 +4896,7 @@ export function AmbientOtzarBar(): JSX.Element {
               Voice input unavailable in this shell. Type to Otzar instead.
             </p>
           ) : null}
-          {/* P0G — honest post-transcription note + the existing server
+          {/* P0G. Honest post-transcription note + the existing server
               disclosure whenever the server engine is the active path. */}
           {serverTranscribed ? (
             <p
@@ -4946,10 +4946,10 @@ export function AmbientOtzarBar(): JSX.Element {
             </p>
           ) : null}
 
-          {/* Phase 1266 — the persistent, scrollable Otzar conversation
+          {/* Phase 1266. The persistent, scrollable Otzar conversation
               thread. Survives navigation + reloads (localStorage). Shows
               prompts, Otzar answers, Work-OS action results, and errors
-              with ordering — so messages never disappear. */}
+              with ordering. So messages never disappear. */}
           {conversation.length > 0 ? (
             <div
               className="rounded-md border border-border bg-background/60"
@@ -5007,7 +5007,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </div>
           ) : null}
 
-          {/* Phase 2.8 — compress the Voice Action Runtime into ONE calm
+          {/* Phase 2.8. Compress the Voice Action Runtime into ONE calm
               outcome. The default surface is the human result; the machinery
               (Heard / Transcription / Action / Status / Voice) collapses behind
               "Details" so it stays available for recall + proof without making
@@ -5056,7 +5056,7 @@ export function AmbientOtzarBar(): JSX.Element {
                       </span>
                     </div>
                   ) : null}
-                  {/* Only when the compact line is showing the RESULT — else the
+                  {/* Only when the compact line is showing the RESULT. Else the
                       label is already the compact outcome (avoid duplication). */}
                   {actionLabel !== null && actionResult !== null ? (
                     <div>
@@ -5097,7 +5097,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </div>
           ) : null}
 
-          {/* Phase 3A — the meeting digest. The compact counts live in the
+          {/* Phase 3A. The meeting digest. The compact counts live in the
               outcome line above; the full sections (decisions / blockers /
               follow-ups / risks / open questions) stay collapsed here, never a
               raw transcript dump. */}
@@ -5160,7 +5160,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </details>
           ) : null}
 
-          {/* Phase 3C — derived, read-only tracking. Compact answer is in the
+          {/* Phase 3C. Derived, read-only tracking. Compact answer is in the
               outcome line; the breakdown stays collapsed here. Honest: no faked
               completion, no invented staleness. */}
           {trackingSummary !== null ? (
@@ -5211,7 +5211,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </details>
           ) : null}
 
-          {/* Phase 3E — recent corrections + honest persistence status, so the
+          {/* Phase 3E. Recent corrections + honest persistence status, so the
               employee sees Otzar heard and applied their correction. Collapsed,
               calm; no raw ids, no global-learning claims. */}
           {correctionHistory.length > 0 ? (
@@ -5236,7 +5236,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </details>
           ) : null}
 
-          {/* Phase 4B — cross-session readback of saved corrections/preferences
+          {/* Phase 4B. Cross-session readback of saved corrections/preferences
               from the typed governed rail. Collapsed; loads on open; human
               labels only; no raw ids / backend enums / global-learning claims. */}
           <details
@@ -5308,7 +5308,7 @@ export function AmbientOtzarBar(): JSX.Element {
             </div>
           </details>
 
-          {/* Phase 3B — transcript-derived proposed actions, reviewed calmly:
+          {/* Phase 3B. Transcript-derived proposed actions, reviewed calmly:
               save / send / dismiss, governed, no fake completion. */}
           {transcriptActions.length > 0 ? (
             <TranscriptActionReview
@@ -5320,7 +5320,7 @@ export function AmbientOtzarBar(): JSX.Element {
             />
           ) : null}
 
-          {/* Phase 1267 — the VISIBLE, EDITABLE work artifact (draft /
+          {/* Phase 1267. The VISIBLE, EDITABLE work artifact (draft /
               proposed action / meeting proposal). No more hearsay UI. */}
           {pendingArtifact !== null ? (
             <WorkArtifactCard
@@ -5332,7 +5332,7 @@ export function AmbientOtzarBar(): JSX.Element {
             />
           ) : null}
 
-          {/* Phase 1273 — a multi-intent plan renders as several linked
+          {/* Phase 1273. A multi-intent plan renders as several linked
               cards. Confirming/cancelling one NEVER touches the others. */}
           {planArtifacts.length > 0 ? (
             <div className="space-y-1.5" data-testid="work-plan">
@@ -5422,7 +5422,7 @@ export function AmbientOtzarBar(): JSX.Element {
               <Volume2 className="h-3 w-3 mr-1" />
               Test Otzar voice
             </Button>
-            {/* Emergency Stop voice — always visible so the
+            {/* Emergency Stop voice. Always visible so the
                 operator can silence Otzar without hunting. ESC also
                 works (bound at the window level inside the hook). */}
             <Button
@@ -5438,11 +5438,11 @@ export function AmbientOtzarBar(): JSX.Element {
               <Square className="h-3 w-3 mr-1" />
               Stop voice
             </Button>
-            {/* Auto-speak toggle — OFF by default per the emergency
+            {/* Auto-speak toggle. OFF by default per the emergency
                 guard. The label is short + the title carries detail. */}
             <label
               className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer"
-              title="When on, Otzar speaks every new response once through your device's TTS. Each response is deduped — re-renders never re-speak. Off by default."
+              title="When on, Otzar speaks every new response once through your device's TTS. Each response is deduped. Re-renders never re-speak. Off by default."
             >
               <input
                 type="checkbox"
@@ -5456,7 +5456,7 @@ export function AmbientOtzarBar(): JSX.Element {
               />
               Auto-speak
             </label>
-            {/* P0H — restore the default bottom-right anchor. Only
+            {/* P0H. Restore the default bottom-right anchor. Only
                 shown once the orb has actually been moved. */}
             {orbPos !== null ? (
               <button
@@ -5507,7 +5507,7 @@ export function AmbientOtzarBar(): JSX.Element {
           </p>
 
           {/* [OTZAR-LIVE-6] Removed the bottom deep-link row (My Twin / Approvals
-              / Collaboration / Corrections / full Voice page) — it duplicated the
+              / Collaboration / Corrections / full Voice page). It duplicated the
               left nav and pointed at a debug page. The ambient surface routes by
               voice/text ("show my approvals", "open collaboration"); it is not a
               second navigation bar. */}

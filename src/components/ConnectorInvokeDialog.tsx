@@ -137,7 +137,7 @@ export function ConnectorInvokeDialog({
         binding.type === "SLACK_WRITE" && operation === "chat.postMessage"
           ? {
               channel: binding.config["default_channel"] ?? "",
-              text: `Otzar connection test — sent by an admin from Tools & Connections (${binding.display_name}).`,
+              text: `Otzar connection test. Sent by an admin from Tools & Connections (${binding.display_name}).`,
             }
           : undefined;
       return api.actions.createInvokeConnector({
@@ -157,7 +157,7 @@ export function ConnectorInvokeDialog({
         return;
       }
       if (!result.data.ok) {
-        setSubmitError("Action create failed at Foundation tier.");
+        setSubmitError("Action create failed. Try again in a moment.");
         return;
       }
       setSubmitError(null);
@@ -170,7 +170,7 @@ export function ConnectorInvokeDialog({
       });
     },
     onError: () => {
-      setSubmitError("Network error reaching Foundation. Try again in a moment.");
+      setSubmitError("Network error. Try again in a moment.");
     },
   });
 
@@ -229,8 +229,8 @@ export function ConnectorInvokeDialog({
           <DialogTitle>Test the connection: {binding.display_name}</DialogTitle>
           <DialogDescription>
             {binding.type === "SLACK_WRITE"
-              ? "Posts ONE clearly-labeled test message to the configured channel, through the same governed, approval-gated pipeline as real work — never a silent bypass. The result shows safe status only, never credentials or raw payloads."
-              : "Runs one read-only check through the governed pipeline. The result shows safe status only — never credentials, raw payloads, or message contents."}
+              ? "Posts ONE clearly-labeled test message to the configured channel, through the same governed, approval-gated pipeline as real work. Never a silent bypass. The result shows safe status only, never credentials or raw payloads."
+              : "Runs one read-only check through the governed pipeline. The result shows safe status only. Never credentials, raw payloads, or message contents."}
           </DialogDescription>
         </DialogHeader>
 
@@ -262,7 +262,7 @@ export function ConnectorInvokeDialog({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Only the operations this tool actually supports are listed —
+                Only the operations this tool actually supports are listed.
                 anything else is rejected before it reaches the tool.
               </p>
             </div>
@@ -289,7 +289,7 @@ export function ConnectorInvokeDialog({
               </Select>
               <p className="text-xs text-muted-foreground">
                 Optional: simulate a specific failure without reaching the
-                real tool — useful for checking how errors are reported.
+                real tool, useful for checking how errors are reported.
               </p>
             </div>
 
@@ -340,7 +340,7 @@ export function ConnectorInvokeDialog({
                     </div>
                   </details>
                   <p className="text-xs italic text-muted-foreground">
-                    Only safe status is shown here — never credentials, raw
+                    Only safe status is shown here: never credentials, raw
                     results, names, emails, or message contents.
                   </p>
                   {isInFlight ? (
@@ -348,7 +348,7 @@ export function ConnectorInvokeDialog({
                       className="text-xs text-muted-foreground"
                       data-testid="invoke-polling"
                     >
-                      Polling Foundation Action lifecycle…
+                      Checking action status…
                     </p>
                   ) : null}
                   {isPollTimedOut ? (

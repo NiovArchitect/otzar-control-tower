@@ -115,7 +115,7 @@ export function CollaborationWorkspaces(): JSX.Element {
       <PageHeader
         eyebrow="Third parties & teams"
         title="Collaboration Workspaces"
-        description="A workspace gathers people, decisions, commitments, and follow-ups — including clients and partners — without leaking private org memory."
+        description="A workspace gathers people, decisions, commitments, and follow-ups, including clients and partners, without leaking private org memory."
         actions={
           <Button
             size="sm"
@@ -318,7 +318,7 @@ export function CollaborationWorkspaces(): JSX.Element {
       >
         Workspaces are governed by Otzar. Internal members see what you
         explicitly share. External collaborators see only what you explicitly
-        grant — never your private memory.
+        grant, never your private memory.
       </p>
     </div>
   );

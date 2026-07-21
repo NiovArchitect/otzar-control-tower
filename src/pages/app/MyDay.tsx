@@ -336,9 +336,9 @@ export function MyDay(): JSX.Element {
                       <p className="text-muted-foreground">
                         {REASON_COPY[s.reason]}
                         {s.risk === "APPROVAL_REQUIRED"
-                          ? " — ready for your approval."
+                          ? ". Ready for your approval."
                           : s.risk === "PROJECT_BLOCKER"
-                            ? " — currently blocking progress."
+                            ? ". Currently blocking progress."
                             : ""}
                       </p>
                     </div>

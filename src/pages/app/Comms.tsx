@@ -230,7 +230,7 @@ export function Comms(): JSX.Element {
       setNeedsReconnect(reauth);
       setAmbientMessage(
         reauth
-          ? "Google Meet (or calendar) needs a reconnect before Otzar can pull meetings. Open Tools to fix it — paste remains available offline."
+          ? "Google Meet (or calendar) needs a reconnect before Otzar can pull meetings. Open Tools to fix it. Paste remains available offline."
           : msg,
       );
     }
@@ -1183,44 +1183,44 @@ function governanceGuard(
             ? `More than one person matches — did you mean ${g.evidence.alternativeCandidates.join(
                 " or ",
               )}? Clarify before sending.`
-            : "Recipient is ambiguous — clarify before sending.",
+            : "Recipient is ambiguous. Clarify before sending.",
       };
     case "cross_team_needs_approval":
       return {
         blocked: true,
         actionLabel: "Needs approval",
-        reason: "Cross-team or sensitive route — approval is required before sending.",
+        reason: "Cross-team or sensitive route. Approval is required before sending.",
       };
     case "unauthorized":
       return {
         blocked: true,
         actionLabel: "Needs approval",
-        reason: "Org policy does not permit this recipient — review or approval required.",
+        reason: "Org policy does not permit this recipient. Review or approval required.",
       };
     case "out_of_scope":
       return {
         blocked: true,
         actionLabel: "Review recipient",
         reason:
-          "This recipient isn't connected to this work — not named, not a participant, and no role/project link. Review before sending.",
+          "This recipient isn't connected to this work. Not named, not a participant, and no role/project link. Review before sending.",
       };
     case "likely":
     default:
       return {
         blocked: true,
         actionLabel: "Review recipient",
-        reason: "Recipient is likely but not confirmed — review before sending.",
+        reason: "Recipient is likely but not confirmed. Review before sending.",
       };
   }
 }
 
 const SAFETY_LABEL: Record<RecipientGovernance["recipientSafety"], string> = {
   confirmed: "Recipient confirmed",
-  likely: "Recipient likely — review",
-  ambiguous: "Recipient ambiguous — clarify",
-  cross_team_needs_approval: "Cross-team — needs approval",
-  out_of_scope: "Outside work context — review",
-  unauthorized: "Not authorized — review",
+  likely: "Recipient likely. Review",
+  ambiguous: "Recipient ambiguous. Clarify",
+  cross_team_needs_approval: "Cross-team. Needs approval",
+  out_of_scope: "Outside work context. Review",
+  unauthorized: "Not authorized. Review",
 };
 
 const LEDGER_LABEL: Record<string, string> = {
@@ -1228,7 +1228,7 @@ const LEDGER_LABEL: Record<string, string> = {
   waiting: "Waiting",
   needs_review: "Needs review",
   blocked: "Blocked",
-  draft: "Drafted — awaiting approval",
+  draft: "Drafted. Awaiting approval",
 };
 
 // Phase 7 — human-language execution mode for each work item (no developer jargon).
@@ -1335,7 +1335,7 @@ function RecipientReviewActions({
       kind: "failed",
       message:
         (!res.ok ? undefined : res.data.message) ??
-        "Otzar couldn't record that review — please try again.",
+        "Otzar couldn't record that review. Please try again.",
     });
   }
 

@@ -26,7 +26,7 @@ export interface RoleHomeCopy {
 const BY_ROLE: Record<HomeRole, RoleHomeCopy> = {
   administrator: {
     role: "administrator",
-    presenceLine: "Org shape and tools first — then what needs you.",
+    presenceLine: "Org shape and tools first, then what needs you.",
     caughtUpLine: "Org is quiet. Structure and tools stay one tap away.",
     focusLabel: "Focus · admin",
     glanceOrder: ["people", "tools", "needs", "projects", "twin", "doc"],
@@ -40,14 +40,14 @@ const BY_ROLE: Record<HomeRole, RoleHomeCopy> = {
   },
   manager: {
     role: "manager",
-    presenceLine: "Your people and stuck work — not every org signal.",
+    presenceLine: "Your people and stuck work, not every org signal.",
     caughtUpLine: "Team is clear. Otzar will surface handoffs and blockers.",
     focusLabel: "Focus · team",
     glanceOrder: ["needs", "people", "projects", "twin", "doc", "tools"],
   },
   employee: {
     role: "employee",
-    presenceLine: "What needs you — then projects and Talk.",
+    presenceLine: "What needs you, then projects and Talk.",
     caughtUpLine: "You're clear. Otzar is listening.",
     focusLabel: "Focus",
     glanceOrder: ["needs", "projects", "twin", "doc", "people", "tools"],

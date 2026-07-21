@@ -116,7 +116,7 @@ export function PeopleStructureGlance(): JSX.Element {
                 <span className="text-muted-foreground">Reports to you </span>
                 <span className="font-medium text-foreground" data-testid="people-structure-reports">
                   {structure.reports.length === 0
-                    ? "— none"
+                    ? "(none)"
                     : structure.reports
                         .map((r) => formatPersonName(r.name) || r.name)
                         .join(", ")}
@@ -247,7 +247,7 @@ function AdminReportingEditor({
         const code = r.ok ? null : r.code;
         setNotice(
           code === "CYCLE"
-            ? "That would create a loop — pick a different manager."
+            ? "That would create a loop. Pick a different manager."
             : "Could not save reporting line. Try again.",
         );
       }

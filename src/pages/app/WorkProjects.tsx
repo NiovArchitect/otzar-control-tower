@@ -119,7 +119,7 @@ export function WorkProjects() {
       <PageHeader
         eyebrow="Missions"
         title="Projects"
-        description="A project is the mission Otzar organizes around — people, work, and AI Teammate effort for one organizational goal. Open context to see that heart in one place."
+        description="A project is the mission Otzar organizes around: people, work, and AI Teammate effort for one organizational goal. Open context to see that heart in one place."
       />
 
       {/* Context first when open — never buried under create/list scroll. */}
@@ -695,7 +695,7 @@ function ProjectContextPanel({
       value:
         nextStep && nextStep.kind !== "IDLE_HEALTHY"
           ? nextStep.safe_title
-          : "No forced next step — mission is quiet",
+          : "No forced next step. Mission is quiet",
       empty: !nextStep || nextStep.kind === "IDLE_HEALTHY",
     },
   ];
@@ -1029,7 +1029,7 @@ function ProjectContextPanel({
             <h3 className="text-sm font-medium text-foreground">Suggested next</h3>
             <p className="text-sm text-slate-700">
               {nextStep.safe_title}
-              {nextStep.reason ? ` — ${nextStep.reason}` : ""}
+              {nextStep.reason ? `: ${nextStep.reason}` : ""}
             </p>
             <p className="text-[11px] text-muted-foreground">
               From live organization posture — confirm it applies to this mission.

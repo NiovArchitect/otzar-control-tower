@@ -94,7 +94,7 @@ export function MyTwinActivityPanel(): JSX.Element {
               <li data-testid="my-twin-activity-row" data-kind="twin-claims">
                 <span className="text-muted-foreground">On it now: </span>
                 {twinClaims.length === 1 && twinClaims[0] !== undefined
-                  ? `"${twinClaims[0].title}" — you do not need to duplicate this.`
+                  ? `"${twinClaims[0].title}". You do not need to duplicate this.`
                   : `${twinClaims.length} items claimed so you are not double-working.`}
               </li>
             ) : null}

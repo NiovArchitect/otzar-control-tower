@@ -581,7 +581,7 @@ describe("ActionCenter — Scheduled lane (read-only calendar meetings)", () => 
     renderPage();
     const card = await screen.findByTestId("scheduled-meeting-card");
     expect(card).toHaveTextContent("Q3 roadmap sync");
-    expect(card).toHaveTextContent("Scheduled — no action needed");
+    expect(card).toHaveTextContent("Scheduled. No action needed");
     expect(card).toHaveTextContent("Attendees were notified.");
     // Honest provenance — NOT "invited".
     expect(card).toHaveTextContent("On Google Calendar.");

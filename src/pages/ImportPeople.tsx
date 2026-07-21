@@ -68,11 +68,11 @@ export function ImportPeoplePage() {
         r.data.results.every((row) => row.code === "EMAIL_NOT_CONFIGURED");
       setEmailResult(
         allNotConfigured
-          ? "Email delivery isn't configured yet — copy the activation links above instead."
-          : `${r.data.sent} activation email${r.data.sent === 1 ? "" : "s"} sent — “sent” means our email provider accepted them${r.data.failed > 0 ? `; ${r.data.failed} couldn't be sent — copy those links instead` : ""}.`,
+          ? "Email delivery isn't configured yet. Copy the activation links above instead."
+          : `${r.data.sent} activation email${r.data.sent === 1 ? "" : "s"} sent. “sent” means our email provider accepted them${r.data.failed > 0 ? `; ${r.data.failed} couldn't be sent — copy those links instead` : ""}.`,
       );
     } else {
-      setEmailResult("The emails couldn't be sent. Nothing was delivered — copy the links above instead.");
+      setEmailResult("The emails couldn't be sent. Nothing was delivered. Copy the links above instead.");
     }
   }
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
@@ -124,7 +124,7 @@ export function ImportPeoplePage() {
         results: rows.map((row) => ({
           row,
           state: "failed",
-          detail: "The import couldn't start — nothing was created. Try again in a minute.",
+          detail: "The import couldn't start. Nothing was created. Try again in a minute.",
         })),
       });
       return;
@@ -148,7 +148,7 @@ export function ImportPeoplePage() {
           detail:
             failure?.error === "INVALID_MEMBER_INPUT"
               ? "This row was refused by the server. Check the name and email."
-              : "This person wasn't created — they may already exist. Check Users.",
+              : "This person wasn't created. They may already exist. Check Users.",
         });
         done++;
         setPhase({ kind: "importing", done, total: rows.length });
@@ -187,7 +187,7 @@ export function ImportPeoplePage() {
         state: activationUrl !== undefined ? "invited" : "created_no_link",
         detail:
           activationUrl !== undefined
-            ? "Invited with minimum access — share their activation link securely."
+            ? "Invited with minimum access. Share their activation link securely."
             : "Created, but the activation link couldn't be minted. Generate one from Users.",
         ...(activationUrl !== undefined ? { activationUrl } : {}),
         ...(managerMapped !== undefined ? { managerMapped } : {}),
@@ -206,7 +206,7 @@ export function ImportPeoplePage() {
     <div className="space-y-6" data-testid="import-people-page">
       <PageHeader
         title="Import people"
-        description="Bring your team into Otzar from a simple CSV — preview first, nothing is created until you confirm."
+        description="Bring your team into Otzar from a simple CSV. Preview first; nothing is created until you confirm."
       />
       <p className="text-xs text-muted-foreground" data-testid="import-least-access">
         New people start with minimum access. You can add roles, manager
@@ -431,7 +431,7 @@ export function ImportPeoplePage() {
                   )}
                   <span className="min-w-0">
                     <span className="font-medium">{r.row.full_name}</span> · {r.detail}
-                    {r.managerMapped === false ? " Manager mapping didn't apply — set it from Users." : ""}
+                    {r.managerMapped === false ? " Manager mapping didn't apply. Set it from Users." : ""}
                     {r.activationUrl !== undefined ? (
                       <Button
                         variant="ghost"

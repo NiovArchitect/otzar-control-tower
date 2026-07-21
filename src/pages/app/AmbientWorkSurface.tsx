@@ -834,10 +834,10 @@ export function AmbientWorkSurface(): JSX.Element {
                   Quiet mode
                 </>
               ) : dgi?.coherence_status === "NEEDS_ATTENTION" ? (
-                "One thing needs you — the rest stays quiet."
+                "One thing needs you. The rest stays quiet."
               ) : dgi?.coherence_status === "BLOCKED" ||
                 dgi?.coherence_status === "UNPAIRED" ? (
-                "Present — pairing needs a quick fix."
+                "Present. Pairing needs a quick fix."
               ) : dgi?.coherence_status === "HEALTHY" || calmCaughtUp ? (
                 homeCopy.presenceLine
               ) : (
@@ -1127,7 +1127,7 @@ export function AmbientWorkSurface(): JSX.Element {
             </GlassPanel>
           ) : (
             <p className="px-1 text-xs text-slate-400" data-testid="my-projects-empty-cta">
-              No projects yet — your manager can place you when ready.
+              No projects yet. Your manager can place you when ready.
             </p>
           )}
           {teamPeople.length > 0 ? (

@@ -331,7 +331,7 @@ export function ActionCenter(): JSX.Element {
       <PageHeader
         eyebrow="Needs you"
         title="Needs me"
-        description="Decisions, open work, blind spots, handoffs, obligations, and evidence — act here instead of hunting separate pages."
+        description="Decisions, open work, blind spots, handoffs, obligations, and evidence. Act here instead of hunting separate pages."
       />
 
       {/* Tab bar */}
@@ -714,7 +714,7 @@ function CorrectionsContextLane(): JSX.Element {
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
           <p className="text-xs text-muted-foreground">
-            Teach Otzar what it got wrong — personal learning for this org, not
+            Teach Otzar what it got wrong: personal learning for this org, not
             global model retrain.
           </p>
           <Button asChild size="sm" variant="outline" data-testid="corrections-open-form">
@@ -801,7 +801,7 @@ function OpenWorkLane(): JSX.Element {
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
-        Commitments and tasks Otzar extracted for you — open any row for the
+        Commitments and tasks Otzar extracted for you. Open any row for the
         exact item and its source.
       </p>
       {failed ? (
@@ -908,10 +908,10 @@ function rosterSummary(parts: MeetingParticipant[]): string | null {
 }
 
 // WHAT: the calm status line for a terminal MEETING row.
-// WHY: EXECUTED reads as "Scheduled — no action needed"; a historical
+// WHY: EXECUTED reads as "Scheduled. No action needed"; a historical
 //      CANCELLED row reads as "Cancelled". No raw status enum ever shown.
 function meetingStatusLine(status: string): string {
-  return status === "CANCELLED" ? "Cancelled" : "Scheduled — no action needed";
+  return status === "CANCELLED" ? "Cancelled" : "Scheduled. No action needed";
 }
 
 function ScheduledLane(): JSX.Element | null {
@@ -965,7 +965,7 @@ function ScheduledLane(): JSX.Element | null {
         <span>Scheduled</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Meetings on your calendar. Nothing to do here — just so you know.
+        Meetings on your calendar. Nothing to do here; just so you know.
       </p>
       {loading ? (
         <p className="text-sm text-muted-foreground" data-testid="scheduled-lane-loading">
@@ -1115,13 +1115,13 @@ function IncomingHandoffsLane(): JSX.Element | null {
           "code" in r && typeof r.code === "string" ? r.code : "ACK_FAILED";
         const msg =
           code === "OTZAR_HANDOFF_PRECONDITION"
-            ? "This handoff was rebound for you — try Acknowledge again. If it still fails, open Chat and acknowledge there."
+            ? "This handoff was rebound for you. Try Acknowledge again. If it still fails, open Chat and acknowledge there."
             : `Couldn't acknowledge (${code}). Try again.`;
         setAckError(msg);
         void load();
       }
     } catch {
-      setAckError("Network error — try again.");
+      setAckError("Network error. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -1143,7 +1143,7 @@ function IncomingHandoffsLane(): JSX.Element | null {
         void load();
       }
     } catch {
-      setAckError("Network error — try again.");
+      setAckError("Network error. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -1165,7 +1165,7 @@ function IncomingHandoffsLane(): JSX.Element | null {
         <span>Incoming handoffs</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Acknowledge ownership, then complete when linked work is accepted —
+        Acknowledge ownership, then complete when linked work is accepted:
         one path from receipt to done.
       </p>
       {loading ? (
@@ -1209,7 +1209,7 @@ function IncomingHandoffsLane(): JSX.Element | null {
                     ) : null}
                     {focused ? (
                       <p className="text-xs text-muted-foreground">
-                        Opened from Today — this is the handoff Otzar named next.
+                        Opened from Today. This is the handoff Otzar named next.
                       </p>
                     ) : null}
                     <Button
@@ -1337,7 +1337,7 @@ function OpenObligationsLane(): JSX.Element | null {
         <span>Open work</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Obligations that still need progress — same objects Today counts.
+        Obligations that still need progress. Same objects Today counts.
       </p>
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading open work…</p>
@@ -1367,7 +1367,7 @@ function OpenObligationsLane(): JSX.Element | null {
                   </CardHeader>
                   {focused ? (
                     <CardContent className="pt-0 text-xs text-muted-foreground">
-                      Opened from Today — this is the next-best step Otzar named.
+                      Opened from Today. This is the next-best step Otzar named.
                     </CardContent>
                   ) : null}
                 </Card>
@@ -1444,7 +1444,7 @@ function DecisionEvidenceLane(): JSX.Element | null {
       </div>
       <p className="text-xs text-muted-foreground">
         Completed decisions whose supporting evidence has since changed. Reviewing
-        keeps your record accurate — a change here doesn't mean the decision was
+        keeps your record accurate. A change here doesn't mean the decision was
         wrong.
       </p>
 

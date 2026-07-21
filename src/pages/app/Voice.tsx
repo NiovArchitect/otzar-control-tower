@@ -892,7 +892,7 @@ export function Voice() {
               <p className="text-[11px] text-muted-foreground" data-testid="voice-note-capsule-id">
                 {noteProvenance.capsule_count > 1
                   ? `Capsule ids (${noteProvenance.capsule_count}): ${noteProvenance.capsule_ids.join(", ")}`
-                  : `Capsule id: ${noteProvenance.note_id ?? "—"}`}
+                  : `Capsule id: ${noteProvenance.note_id ?? ". "}`}
               </p>
               {noteProvenance.voice_note_id !== undefined ? (
                 <p
@@ -1221,7 +1221,7 @@ export function Voice() {
                 TTS loop guard. Operator enables it explicitly. */}
             <label
               className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer ml-2"
-              title="When on, Otzar speaks every new response once through your device's TTS. Each response is deduped — re-renders never re-speak."
+              title="When on, Otzar speaks every new response once through your device's TTS. Each response is deduped. Re-renders never re-speak."
             >
               <input
                 type="checkbox"

@@ -188,7 +188,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
             {t.skills.length === 0 ? (
               <p className="text-sm text-muted-foreground" data-testid="my-twin-skills-empty">
                 No skills assigned yet. Role-templated AI Teammates get skills
-                from their template so they can act on your behalf — ask an admin
+                from their template so they can act on your behalf. Ask an admin
                 to apply the role template skills on AI Teammates.
               </p>
             ) : (
@@ -218,8 +218,8 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
         Want better help?{" "}
         <Link to="/app/my-twin/calibration" className="font-medium text-foreground underline underline-offset-2">
           Calibrate My AI Teammate
-        </Link>{" "}
-        — teach it how you like summaries, tone, reminders, and what to avoid.
+        </Link>
+        . Teach it how you like summaries, tone, reminders, and what to avoid.
       </p>
 
       <RoleScopeProfilePanel profile={t.role_scope_profile ?? null} />
@@ -230,7 +230,7 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       {/* Whole-system — portable personal wallet vs org-retained data. */}
       <WalletPortabilityPanel posture={t.wallet_portability ?? null} />
 
-      {/* [OTZAR-V1-LIVE-2B] The governed "what your Twin can — and cannot — do"
+      {/* [OTZAR-V1-LIVE-2B] The governed "what your Twin can and cannot do"
           scope view, sourced from Foundation's context-health. */}
       <TwinScopePanel />
 
@@ -479,7 +479,7 @@ function RelatedWorkPanel({ query, autoFind = false }: { query: string; autoFind
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium">Related work</span>
             <Badge variant="outline" className="text-[9px] text-muted-foreground" data-testid="ask-related-label">
-              {state.advisory ? "Advisory rerank, validated by Foundation" : "Related work, Foundation-scoped"}
+              {state.advisory ? "Advisory rerank, validated by Otzar" : "Related work, scoped to your organization"}
             </Badge>
           </div>
           {state.results.length === 0 ? (
@@ -531,8 +531,8 @@ function RelatedWorkPanel({ query, autoFind = false }: { query: string; autoFind
           )}
           <p className="text-[9px] italic text-muted-foreground" data-testid="ask-related-provenance">
             {state.advisory
-              ? "Advisory rerank by Python, validated by Foundation."
-              : "Deterministic Foundation retrieval."}{" "}
+              ? "Advisory ranking, checked by Otzar."
+              : "Matched from what you can see."}{" "}
             Scoped to what you can see. Analysis {state.status.toLowerCase()}.
           </p>
         </div>

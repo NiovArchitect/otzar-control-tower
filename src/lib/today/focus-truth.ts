@@ -27,7 +27,7 @@ export function focusApprovals(count: number): FocusTruthItem {
     title:
       count === 1 ? "1 approval is waiting" : `${count} approvals are waiting`,
     detail: null,
-    why: "From your open approval queue — Needs me.",
+    why: "From your open approval queue on Needs me.",
     to: "/app/action-center?lane=approvals",
     objectId: null,
     tone: "attention",
@@ -132,7 +132,7 @@ export function focusTwinWork(input: {
 export function focusTwinBlocked(eligibleCount: number): FocusTruthItem {
   return {
     key: "blocked",
-    title: `${eligibleCount} AI Teammates linked — pick one`,
+    title: `${eligibleCount} AI Teammates linked. Pick one`,
     detail: "Otzar will not blend them.",
     why: "Multiple Twins linked; pairing must be explicit.",
     to: "/app/my-twin",
