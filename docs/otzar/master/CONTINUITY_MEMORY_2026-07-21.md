@@ -152,3 +152,13 @@ Until then:
 * Unit 7/7 A-08; deep smoke ready
 * Status: **UNIT_PROVEN** pending live deep smoke
 
+## A-08 LIVE_VERIFIED (2026-07-21)
+
+* Deep smoke **10/10** on live `index-8r5noGUq.js`
+* Spec: `tests/e2e/otzar-live-cinematic-first-login-a08.spec.ts`
+* Walkthrough v2: org_state + provider honesty + AI action for all 5 roles
+* Commits: `c4d3f32` / `b99831d`
+* **Next internal Work OS priority:** **L-02** AI collab load/storm; R-03 S2500 residual
+* J-04 LIVE; R-03 S250 multi-day UNIT_PROVEN; N-02 EXTERNALLY_BLOCKED
+* Gates C (Relay) and D (compliance) still open required programs
+

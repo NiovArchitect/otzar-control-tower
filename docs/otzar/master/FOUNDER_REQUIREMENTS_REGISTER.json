@@ -458,15 +458,15 @@
       "group": "A",
       "exact_requirement": "Cinematic first-login walkthrough per role (admin/CEO/manager/employee/contractor): real org state pointers, purposeful restrained spatial depth, one real AI action, one provider honesty pointer, server-side completion/replay; returning users land Home.",
       "founder_intent": "YC aha is not a thin strip only \u2014 full first-login experience.",
-      "status": "IMPLEMENTED",
-      "proof_level": "UNIT_PROVEN",
+      "status": "LIVE_VERIFIED",
+      "proof_level": "LIVE_VERIFIED",
       "priority": "P0",
       "phase": 0,
       "program_gates": [
         "A",
         "B"
       ],
-      "remaining_gap": "A-08 v2 walkthrough: every role has org_state + provider honesty + AI action; cinematic inventory UNIT_PROVEN; FirstUseReveal data-a08 + restrained spatial depth. Await BROWSER_PROVEN deep smoke otzar-live-cinematic-first-login-a08. Residual: multi-role live cinematic film with real provider mutation proofs.",
+      "remaining_gap": "Deep smoke 10/10 cinematic first-login surface on index-8r5noGUq.js (v2 walkthrough, data-a08, Talk+Tools paths, restrained spatial depth). Residual: multi-account multi-role live film with real provider mutation and real AI execution proof (beyond surface + path honesty).",
       "implementation_refs": [
         "src/components/first-use/FirstUseReveal.tsx",
         "src/lib/first-use/walkthrough.ts",
@@ -475,14 +475,20 @@
         "tests/unit/cinematic-first-login-a08.test.ts",
         "tests/e2e/otzar-live-cinematic-first-login-a08.spec.ts"
       ],
-      "acceptance_limitations": "Composition of thinner rows; not a single cinematic deep smoke.",
+      "acceptance_limitations": "Unifies A-03/A-04/A-05 into v2 per-role journey with org+provider+AI steps. Not a full multi-role concurrent cinematic film with live Google mutations.",
       "proof_dimensions": {
         "implementation": true,
-        "browser": false,
+        "browser": true,
         "provider": false,
         "multi_user": false,
         "scale": false,
-        "live": false
+        "live": true
+      },
+      "last_live_proof": {
+        "bundle": "index-8r5noGUq.js",
+        "spec": "tests/e2e/otzar-live-cinematic-first-login-a08.spec.ts",
+        "result": "10/10",
+        "sha": "b99831d"
       }
     },
     {

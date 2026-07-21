@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|--------|
 | CT `origin/main` | (see latest `git log origin/main -1`) |
-| Live bundle | `index-DYGGJfKt.js` |
+| Live bundle | `index-8r5noGUq.js` |
 | Register rows | **74** (was 62 before audit) |
 | Gate status | **Gate A nearly closed**; **Gates B/C/D open** |
 
@@ -19,7 +19,7 @@
 | Gate | Name | Status |
 |------|------|--------|
 | **A** | Control Tower investor surface | Nearly closed — **N-02 EXTERNALLY_BLOCKED**; A-08/C-07 PARTIAL |
-| **B** | Otzar autonomous Work OS | **Open** — J-04 LIVE; R-03 S250 UNIT_PROVEN; A-08/L-02/V-* |
+| **B** | Otzar autonomous Work OS | **Open** — J-04+A-08 LIVE; R-03 S250 UNIT_PROVEN; L-02/V-* |
 | **C** | Otzar Relay | **Open** — T-01 boundary LIVE; T-02/T-03 DISCOVERED not built |
 | **D** | Foundation compliance | **Open** — U-01 DISCOVERED; U-02 NOT_STARTED |
 
@@ -38,9 +38,9 @@
 
 ## Active P0 (internally achievable first)
 
-1. **A-08** Unify cinematic first-login multi-role journey.  
-2. **R-03** S2500 residual / further multi-day volume (S250 multi-day UNIT_PROVEN).  
-3. **L-02** AI collab load/storm.  
+1. **L-02** AI collab load/storm.  
+2. **R-03** S2500 residual (S250 multi-day UNIT_PROVEN).  
+3. **V-02** Messy multi-source ingestion sim.  
 4. **L-02** AI collab load/storm.  
 5. **V-02** Messy multi-source ingestion sim.  
 
