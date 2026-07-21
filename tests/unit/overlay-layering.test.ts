@@ -11,14 +11,17 @@
 //          The contract this file locks:
 //            content plane (z-auto)
 //              < header chrome (relative z-40)
+//              < walkthrough coach (z-[45], pointer-events only on card)
 //              < ambient edge glow (z-[55], pointer-events-none)
 //              < ambient notification stack (z-[58])
-//              < ambient Otzar bar (z-[60])
+//              < ambient Otzar Talk (z-[65]) — above coach so guide never steals clicks
 //              < notification dropdown (portaled, fixed z-[70])
 //          A regression on any rung re-buries an overlay behind content.
+//          RC2: coach must stay BELOW Talk (45 < 65); bell above Talk (70).
 // CONNECTS TO: src/components/employee/EmployeeLayout.tsx (the header),
 //          src/components/otzar/NotificationBell.tsx (the dropdown),
-//          AmbientEdgeGlow / AmbientNotificationStack / AmbientOtzarBar.
+//          FirstUseReveal / AmbientEdgeGlow / AmbientNotificationStack /
+//          AmbientOtzarBar.
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -64,7 +67,7 @@ describe("[OVERLAY-LAYERING] employee shell stacking contract", () => {
     // Fixed-positioned (computed from the bell rect), no longer header-local absolute.
     expect(cls).toContain("fixed");
     expect(cls).not.toContain("absolute");
-    // Above the whole ambient ladder, including the Otzar orb at z-[60].
+    // Above the whole ambient ladder, including Talk at z-[65].
     expect(cls).toContain("z-[70]");
   });
 
@@ -75,11 +78,18 @@ describe("[OVERLAY-LAYERING] employee shell stacking contract", () => {
     expect(breakdown).toContain('open ? "z-30" : ""');
   });
 
-  it("the ambient overlay ladder keeps its documented order (55 < 58 < 60)", () => {
+  it("the ambient overlay ladder keeps its documented order (45 coach < 55 < 58 < 65 Talk < 70 bell)", () => {
+    expect(read("src/components/first-use/FirstUseReveal.tsx")).toContain(
+      "z-[45]",
+    );
     expect(read("src/components/otzar/AmbientEdgeGlow.tsx")).toContain("z-[55]");
     expect(read("src/components/otzar/AmbientNotificationStack.tsx")).toContain(
       "z-[58]",
     );
-    expect(read("src/components/otzar/AmbientOtzarBar.tsx")).toContain("z-[60]");
+    expect(read("src/components/otzar/AmbientOtzarBar.tsx")).toContain("z-[65]");
+    // Talk must stay above coach so the guide never intercepts Talk clicks.
+    expect(read("src/components/otzar/AmbientOtzarBar.tsx")).not.toContain(
+      "z-[60]",
+    );
   });
 });

@@ -4394,11 +4394,12 @@ export function AmbientOtzarBar(): JSX.Element {
           ? orbPositionToStyle(orbPos)
           : undefined;
     // Talk surface sits above the walkthrough coach (z-45) so the guide
-    // never steals orb clicks. See FirstUseReveal layer contract.
+    // never steals orb clicks, and below notification dropdown (z-70).
+    // Ladder: coach 45 < glow 55 < notify stack 58 < Talk 65 < bell 70.
     const orbAnchorClass =
       orbDragPoint !== null || orbPos !== null
-        ? "fixed z-[70]"
-        : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[70]";
+        ? "fixed z-[65]"
+        : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[65]";
     return (
       <div
         ref={orbWrapperRef}
@@ -4466,8 +4467,8 @@ export function AmbientOtzarBar(): JSX.Element {
       : undefined;
   const dockAnchorClass =
     orbPos !== null
-      ? "fixed z-[70]"
-      : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[70]";
+      ? "fixed z-[65]"
+      : "fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[65]";
   return (
     <div
       role="region"
