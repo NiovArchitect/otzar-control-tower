@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `5a4f71f` |
-| Live bundle | `index-CkybVteH.js` |
-| Live last-modified | 2026-07-21 E-03 complex deep **10/10** person types; F-03 10/10 |
-| Gate status | **OPEN** — E-03 LIVE; residual S-01 YC org; I-02/Q multi-tenant; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | (I-02 product shipped — LIVE prove pending) |
+| Live bundle | `index-CkybVteH.js` (pre I-02) |
+| Live last-modified | 2026-07-21 E-03 LIVE; **I-02 multi-org isolation shipped** pending complex deep |
+| Gate status | **OPEN** — I-02 product pending LIVE; residual S-01 YC; Q multi-tenant; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -62,7 +62,7 @@
 3. **C-01** Complete route/control inventory + cull.  
 4. **F-02** Drag-drop / bulk hierarchy editor.  
 5. **N-02** Meet PROVIDER_PROVEN (external).  
-6. **I-02** Multi-org memory isolation residual (H-01 + H-02/I-01 LIVE_VERIFIED same-org multi-user).  
+6. **I-02** Multi-org memory isolation product shipped — LIVE complex deep after deploy; continuous second-tenant residual.  
 7. **K / M-02** Communication lineage + time-limited grants (L-01 + M-01 LIVE_VERIFIED).  
 8. **R** Progressive enterprise pressure 25→2500.  
 9. **S** Dedicated YC synthetic org continuous unscripted.  
@@ -75,9 +75,10 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **S-01** dedicated YC synthetic org continuous walkthrough if harness credentials exist;
-2. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
-3. **R-01** enterprise pressure harness when scale credentials available;
-4. Regression + continuous re-bind of LIVE Phase 3–5 rows (E/F/G/H/L/M/S-02).
+1. **I-02 LIVE prove** after deploy (`otzar-live-multi-org-isolation-i02`);
+2. **S-01** dedicated YC synthetic org continuous walkthrough if harness credentials exist;
+3. **Q-01 / Q-02** multi-org / cross-tenant isolation when second-tenant credentials available;
+4. **R-01** enterprise pressure harness when scale credentials available;
+5. Regression + continuous re-bind of LIVE Phase 3–5 rows (E/F/G/H/L/M/S-02).
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

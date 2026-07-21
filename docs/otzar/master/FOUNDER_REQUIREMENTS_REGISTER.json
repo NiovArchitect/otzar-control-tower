@@ -1480,17 +1480,19 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "MyMemory work-style",
-        "FND work-style routes"
+        "src/components/otzar/WorkStylePolicyCard.tsx",
+        "src/lib/work-os/teach-otzar-journey.ts",
+        "src/pages/app/MyMemory.tsx ObservationConsentCard",
+        "tests/e2e/otzar-live-teach-otzar-h01.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "MULTI_USER_PROVEN isolation continuous",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Continuous multi-user isolation re-bind under H-02 suite",
       "dependencies": [],
       "priority": "P0",
       "phase": 4,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Teach Otzar end-to-end: admin policy, consent, session, approve/reject",
+      "status": "LIVE_VERIFIED",
       "prs": [
         "work-style UI commits"
       ],
@@ -1498,7 +1500,11 @@
         "781f85a"
       ],
       "deployment_sha": null,
-      "final_proof": null
+      "final_proof": {
+        "live_bundle": "index-DXhe634d.js",
+        "e2e": "otzar-live-teach-otzar-h01 10/10",
+        "notes": "admin enable \u2192 consent \u2192 signals \u2192 candidates \u2192 reject; employee blocked from org policy"
+      }
     },
     {
       "id": "H-02",
@@ -1518,19 +1524,27 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Full redaction proof suite",
+      "implementation_refs": [
+        "src/lib/work-os/portable-core.ts",
+        "src/components/otzar/PortableCoreCard.tsx",
+        "tests/e2e/otzar-live-portable-isolation-h02.spec.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Full redaction stress corpus continuous",
       "dependencies": [],
       "priority": "P0",
       "phase": 4,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Multi-user isolation of personal cores; no raw confidential export claims",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
-      "final_proof": null
+      "final_proof": {
+        "live_bundle": "index-BREL-m19.js",
+        "e2e": "otzar-live-portable-isolation-h02 10/10",
+        "notes": "employee vs admin personal cores isolated; no cross-leak fingerprints"
+      }
     },
     {
       "id": "H-03",
@@ -1595,20 +1609,27 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "OTZAR_ORG_READY_AND_PORTABLE_TWIN_DOCTRINE"
+        "src/lib/work-os/portable-core.ts",
+        "src/components/otzar/PortableCoreCard.tsx",
+        "tests/unit/portable-core.test.ts",
+        "tests/e2e/otzar-live-portable-isolation-h02.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "UI for portability boundaries incomplete",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Export transfer flow not shipped (honest)",
       "dependencies": [],
       "priority": "P1",
       "phase": 4,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Portable personal core UI on Memory",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,
-      "final_proof": null
+      "final_proof": {
+        "live_bundle": "index-BREL-m19.js",
+        "e2e": "portable-core-card with H-02 deep",
+        "notes": "doctrine, portable vs org-bound, export-not-shipped honesty"
+      }
     },
     {
       "id": "I-02",
@@ -1628,15 +1649,21 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "MULTI_USER_PROVEN multi-org isolation suite",
+      "implementation_refs": [
+        "src/lib/work-os/multi-org-memory-isolation.ts",
+        "src/components/otzar/MultiOrgMemoryIsolationCard.tsx",
+        "src/pages/app/MyMemory.tsx",
+        "tests/unit/multi-org-memory-isolation.test.ts",
+        "tests/e2e/otzar-live-multi-org-isolation-i02.spec.ts"
+      ],
+      "proof_level": "UNIT_PROVEN",
+      "remaining_gap": "Shipped product + units; LIVE complex deep after deploy; continuous second-tenant residual",
       "dependencies": [],
       "priority": "P0",
       "phase": 4,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Memory multi-org isolation card; org-bound never blends; portable not silent; client switch residual",
+      "status": "IMPLEMENTED",
       "prs": [],
       "merge_shas": [],
       "deployment_sha": null,

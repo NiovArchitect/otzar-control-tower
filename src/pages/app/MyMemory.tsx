@@ -58,6 +58,7 @@ import {
   ownershipLabel,
 } from "@/lib/work-os/portable-core";
 import { PortableCoreCard } from "@/components/otzar/PortableCoreCard";
+import { MultiOrgMemoryIsolationCard } from "@/components/otzar/MultiOrgMemoryIsolationCard";
 import { LearningAppliesCard } from "@/components/otzar/LearningAppliesCard";
 import { WindowContextShare } from "@/components/observation/WindowContextShare";
 
@@ -289,6 +290,8 @@ export function MyMemory(): JSX.Element {
       <ObservationConsentCard />
       {/* I-01 / H-02 — portable personal core vs org-bound; multi-user isolation surface */}
       <PortableCoreCard />
+      {/* I-02 — multi-org memory isolation (org-bound never blends; portable not silent) */}
+      <MultiOrgMemoryIsolationCard />
       {/* H-03 LearningAppliesCard is also nested under Teach Otzar for in-flow
           feedback; Portable core is the later-work inventory surface. */}
       {/* D-04 — selected-window share: explicit browser permission + live indicator */}

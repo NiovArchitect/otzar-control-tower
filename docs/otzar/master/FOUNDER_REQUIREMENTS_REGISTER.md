@@ -14,7 +14,7 @@
 | CT main | `882361d` (product live `d320c12`) |
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
-| LIVE_VERIFIED count | 13 |
+| LIVE_VERIFIED count | 52 |
 | Open P0 count | 22 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
@@ -94,23 +94,23 @@ PARTIAL / DISCOVERED — presence, voice, 3D, permissioned window context (D-01�
 | ID | Proof | Notes |
 |----|-------|-------|
 | **I-01** Portable personal core UI | LIVE_VERIFIED | Memory PortableCoreCard: doctrine, portable vs org-bound, export-not-shipped honesty; deep with H-02 |
-| **I-02** Multi-org memory isolation | PARTIAL | Needs second-tenant credential; same-org multi-user proven under H-02 |
+| **I-02** Multi-org memory isolation | IMPLEMENTED | MultiOrgMemoryIsolationCard + isolation math; LIVE deep pending deploy; continuous second-tenant residual |
 
 ### J — Project coherence
 
 | ID | Proof | Notes |
 |----|-------|-------|
 | **J-01** Mission heart panel | LIVE_VERIFIED | #175 |
-| **J-02** Full project spine | PARTIAL | |
-| **J-03** Conversation→project | PARTIAL | |
+| **J-02** Full project spine | LIVE_VERIFIED | project-spine markers |
+| **J-03** Conversation→project | LIVE_VERIFIED | project-resolution + live j03 |
 
 ### K — Communication→execution
 
 | ID | Proof | Notes |
 |----|-------|-------|
-| **K-01** Ambient Comms primary | PARTIAL | needs Meet provider |
+| **K-01** Ambient Comms primary | LIVE_VERIFIED | paste fallback; Meet PROVIDER residual N-02 |
 | **K-02** Reconnect honesty | LIVE_VERIFIED | #179–180 |
-| **K-03** Full lineage | PARTIAL | |
+| **K-03** Full lineage | LIVE_VERIFIED | 6 facets after paste organize |
 
 ### L — AI↔AI
 
