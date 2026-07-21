@@ -44,7 +44,8 @@ Regression anchors:
 | D-04 | 1 | Explicit window-permission product |
 | E-01 | 3 | LIVE_VERIFIED complex deep 10/10 multi-class Dandelion |
 | E-02 | 3 | LIVE_VERIFIED proposal confidence/admin confirm |
-| F-02 | 3 | Drag-drop hierarchy editor |
+| F-02 | 3 | LIVE_VERIFIED drag-drop hierarchy editor |
+| F-03 | 3 | LIVE_VERIFIED complex deep 10/10 relationship edges |
 | F-04 | 3 | Product copy separation |
 | G-02 | 5 | LIVE_VERIFIED complex deep 10/10 Foundation authority multi-role |
 | H-01 | 4 | LIVE_VERIFIED complex deep 10/10 Teach Otzar e2e |

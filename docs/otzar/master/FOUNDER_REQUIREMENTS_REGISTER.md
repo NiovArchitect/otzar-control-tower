@@ -71,7 +71,7 @@ PARTIAL / DISCOVERED — presence, voice, 3D, permissioned window context (D-01�
 |----|-------|-------|
 | **F-01** People structure glance + assign | LIVE_VERIFIED | #176 |
 | **F-02** Drag-drop hierarchy editor | LIVE_VERIFIED | bulk stage/confirm; deep 6/6 |
-| **F-03** Matrix/sponsor edges | PARTIAL | |
+| **F-03** Matrix/sponsor edges | LIVE_VERIFIED | Complex deep 10/10 on `index-STDeYBuI.js` — solid/sponsor/executive/needs_manager kinds; 8 people badges; employee isolated |
 | **F-04** Hierarchy ≠ RBAC/TAR | LIVE_VERIFIED | not-authority copy live |
 
 ### G — Role-templated AI Teammates

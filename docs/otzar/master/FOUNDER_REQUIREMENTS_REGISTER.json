@@ -1286,19 +1286,32 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Edge relationship types not full UI",
+      "implementation_refs": [
+        "src/lib/org/relationship-edges.ts",
+        "src/components/otzar/RelationshipEdgesCard.tsx",
+        "src/components/otzar/HierarchyEditor.tsx",
+        "src/pages/Users.tsx",
+        "tests/unit/relationship-edges.test.ts",
+        "tests/e2e/otzar-live-relationship-edges-f03.spec.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Durable multi-edge Foundation rail residual; matrix is label-hint today",
       "dependencies": [],
       "priority": "P1",
       "phase": 3,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Relationship edge kinds on Users hierarchy; sponsor/executive/matrix honesty",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "4bb30eb"
+      ],
+      "deployment_sha": "4bb30eb",
+      "final_proof": {
+        "live_bundle": "index-STDeYBuI.js",
+        "e2e": "otzar-live-relationship-edges-f03 10/10",
+        "notes": "solid=2 exec=1 needs=5; 8 badges; kinds needs_manager,solid_reporting,executive_no_manager"
+      }
     },
     {
       "id": "F-04",

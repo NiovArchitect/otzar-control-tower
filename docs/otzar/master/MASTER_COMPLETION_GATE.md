@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `881a32c` |
-| Live bundle | `index-B7T6sByK.js` |
-| Live last-modified | 2026-07-21 E-01 complex deep **10/10** multi-class Dandelion; S-02 10/10 |
-| Gate status | **OPEN** — E-01 LIVE; residual S-01 YC org; I-02/Q multi-tenant; F-03 matrix edges; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `4bb30eb` |
+| Live bundle | `index-STDeYBuI.js` |
+| Live last-modified | 2026-07-21 F-03 complex deep **10/10** relationship edges; E-01 10/10 |
+| Gate status | **OPEN** — F-03 LIVE; residual S-01 YC org; I-02/Q multi-tenant; E-03 person types; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **F-03** matrix/dotted-line / contractor sponsor edges (Phase 3 residual);
+1. **E-03** person-type taxonomy (employee/contractor/vendor/customer);
 2. **S-01** dedicated YC synthetic org continuous walkthrough if harness credentials exist;
 3. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
-4. **E-03** person-type taxonomy (employee/contractor/vendor/customer).
+4. **R-01** enterprise pressure harness when scale credentials available.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).
