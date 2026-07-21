@@ -448,31 +448,58 @@ Identity growth remains **closed**. Active work is product behavior on live R-03
 * Org label: R03 Synthetic Scale; no Meridian foreign label
 * Classification: **`YC_FIRST_FIVE_BROWSER_PROVEN`**
 
-### Phase 2 — Project loop (PARTIAL)
+### Phase 2 — Project loop (PARTIAL — extraction repair in flight)
 
 * Project: `9481e76b-b618-46bc-93aa-3e63d4a0ac1a` — Enterprise Customer Pilot
-* Hidden oracle: final date **2026-09-18**, rejected **2026-09-11**
-* Comms ingest: **200** with `LOCAL_FALLBACK` — conversation captured; **0 work_items** (LLM not configured; DEMO_SCRIPTED not allowed)
-* Seeded docs: PROJECT_BRIEF + DECISION_LOG **201** (ledger entries)
+* Hidden oracle: final date **2026-09-18**, rejected **2026-09-11** (model must never receive oracle)
+* **Classification remains:** `PROJECT_LOOP_PARTIAL — CAPTURE PROVEN, EXTRACTION NOT PROVEN`
+* Seeded `PROJECT_BRIEF` / `DECISION_LOG` = **test scaffolding only** — do **not** count as conversation-to-execution proof
+
+#### Exact LOCAL_FALLBACK diagnosis (2026-07-21 re-probe)
+
+| Probe | Result |
+| --- | --- |
+| `GET /admin/llm-status` | **CONFIGURED** · provider `anthropic` · model `claude-sonnet-4-5` (no secret values) |
+| `POST /otzar/comms/extract` (no force) | **LLM** · decisions/commitments include final **2026-09-18** + reject **2026-09-11** |
+| `POST /otzar/comms/ingest` (no force) | Can reach **LLM** when isolated; prior run path still produced **0 work_items** |
+| `force_mode: LOCAL_FALLBACK` | Empty extraction (control) |
+| `DEMO_SCRIPTED` | Correctly disallowed on this tenant |
+
+**Not** “API key missing on Render.” Provider is present.
+
+**Root causes of zero work items (code, fixed in FND PR #726):**
+
+1. **ISO speaker stamps** `[2026-07-21 09:12]` rejected by quality `splitSpeaker` (hyphen not allowed) → speaker=null + digit-poisoned alpha ratio → date-rich lines (final/rejected dates + ownership) mislabeled `asr_garbage` / `low_confidence` and **excluded from trustedText**.
+2. **NAME / handle patterns** `[A-Z][A-Za-z]+` rejected **R03P1**-style owners; multi-owner sentence only placed first owner.
+3. **`isPronounOrNonName`** treated digit handles as non-names → even when graph had owners, planner forced **NEEDS_OWNER** / blank owner.
+4. **Silent LOCAL_FALLBACK** had no `fallback_reason` / `extraction_outcome` → harness treated capture 200 as organizational success.
+
+**Repair PR:** https://github.com/NiovArchitect/niov-foundation/pull/726  
+**Rerun harness:** `otzar-control-tower/scripts/otzar-r03-project-loop-extract-rerun.mjs` (post-deploy live oracle re-ingest).
 
 ### Phase 3 — Google Docs/Calendar (HONEST BLOCK)
 
 * Calendar propose: **`SCOPE_REAUTH_REQUIRED` / `GOOGLE_RECONNECT_REQUIRED`**
 * Real Google Doc: **not proven** (no greenwash)
 * Does **not** claim LIVE_DOC/CALENDAR_PROVIDER_PROVEN
+* After reauth: auto Doc (non-empty) + calendar event on **2026-09-18** only (not rejected date)
 
 ### Still open in sequence
 
+* Live re-ingest after #726 deploy → work_items + oracle metrics
+* Downstream from extraction only (not seeded brief): obligations, AI-to-AI handoff, role reports
 * Material document change propagation
 * Work-style measurable improvement
 * Full live AI-to-AI scenarios with audit UI
 * Role-specific reports
-* Second-tenant zero-leak pack
+* Second-tenant zero-leak pack (conversations/extraction/projects/work)
 * Final YC rerun after repairs
 
 ### Preserved
 
-* S2500 FOUNDER_DEFERRED
+* `YC_FIRST_FIVE_BROWSER_PROVEN`
+* Live R-03 ~200 persons/twins; identity growth **closed**
+* S2500 **FOUNDER_DEFERRED**
 * N-02 Meet external
 * Relay C / Compliance D not started
 
@@ -485,15 +512,17 @@ Identity growth remains **closed**. Active work is product behavior on live R-03
 * Projects list / my-twin: **200** without foreign R-03 IDs
 * **zero_leak=true** for this pack (not full dual-org same-user suite)
 * Classification candidate: `LIVE_CROSS_TENANT_ZERO_LEAK` (bounded pack)
+* Re-run after extraction fix for conversations/extraction jobs/work artifacts
 
 ### Work-style calibration probe
 
 * YC reviewer POST `/otzar/twin/calibration` → **422 NOTHING_TO_REMEMBER**
 * Behavioral multi-task learning loop still **NOT_RUN** (requires governed task pairs + consent UX)
+* May continue in parallel only if it does not distract from extraction repair
 
-### Provider residual (blocks full project loop green)
+### Provider residual (blocks full Work OS green)
 
 * Calendar: `GOOGLE_RECONNECT_REQUIRED`
 * Real Google Doc: not proven
-* Comms extraction: LOCAL_FALLBACK only (no LLM work items on this tenant)
+* Extraction: **repair shipped to PR; live deploy + oracle re-run required before upgrading Phase 2**
 
