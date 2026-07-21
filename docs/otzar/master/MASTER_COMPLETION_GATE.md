@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `4bb30eb` |
-| Live bundle | `index-STDeYBuI.js` |
-| Live last-modified | 2026-07-21 F-03 complex deep **10/10** relationship edges; E-01 10/10 |
-| Gate status | **OPEN** — F-03 LIVE; residual S-01 YC org; I-02/Q multi-tenant; E-03 person types; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `5a4f71f` |
+| Live bundle | `index-CkybVteH.js` |
+| Live last-modified | 2026-07-21 E-03 complex deep **10/10** person types; F-03 10/10 |
+| Gate status | **OPEN** — E-03 LIVE; residual S-01 YC org; I-02/Q multi-tenant; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **E-03** person-type taxonomy (employee/contractor/vendor/customer);
-2. **S-01** dedicated YC synthetic org continuous walkthrough if harness credentials exist;
-3. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
-4. **R-01** enterprise pressure harness when scale credentials available.
+1. **S-01** dedicated YC synthetic org continuous walkthrough if harness credentials exist;
+2. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
+3. **R-01** enterprise pressure harness when scale credentials available;
+4. Regression + continuous re-bind of LIVE Phase 3–5 rows (E/F/G/H/L/M/S-02).
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

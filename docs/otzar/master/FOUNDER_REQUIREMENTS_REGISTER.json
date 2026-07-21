@@ -1162,19 +1162,32 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Person-type taxonomy not fully productized",
+      "implementation_refs": [
+        "src/lib/org/person-type-taxonomy.ts",
+        "src/components/otzar/PersonTypeTaxonomyCard.tsx",
+        "src/pages/Users.tsx",
+        "src/components/otzar/PeopleDirectory.tsx",
+        "tests/unit/person-type-taxonomy.test.ts",
+        "tests/e2e/otzar-live-person-types-e03.spec.ts"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Foundation dedicated person_type field residual; types inferred from role/title labels",
       "dependencies": [],
       "priority": "P1",
       "phase": 3,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Person type taxonomy; participation \u2260 authority; multi-role people surface",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "5a4f71f"
+      ],
+      "deployment_sha": "5a4f71f",
+      "final_proof": {
+        "live_bundle": "index-CkybVteH.js",
+        "e2e": "otzar-live-person-types-e03 10/10",
+        "notes": "4 type rows; admin+employee taxonomy; 7 badges; participation-implies-authority=false"
+      }
     },
     {
       "id": "F-01",

@@ -44,6 +44,7 @@ Regression anchors:
 | D-04 | 1 | Explicit window-permission product |
 | E-01 | 3 | LIVE_VERIFIED complex deep 10/10 multi-class Dandelion |
 | E-02 | 3 | LIVE_VERIFIED proposal confidence/admin confirm |
+| E-03 | 3 | LIVE_VERIFIED complex deep 10/10 person types + participation≠authority |
 | F-02 | 3 | LIVE_VERIFIED drag-drop hierarchy editor |
 | F-03 | 3 | LIVE_VERIFIED complex deep 10/10 relationship edges |
 | F-04 | 3 | Product copy separation |

@@ -63,7 +63,7 @@ PARTIAL / DISCOVERED — presence, voice, 3D, permissioned window context (D-01�
 |----|-------|-------|
 | **E-01** Multi-class proposals | LIVE_VERIFIED | Complex deep 10/10 on `index-B7T6sByK.js` — 7-class matrix; 5 present (people/roles/managers/projects/tools); 66 seeds; hold; employee isolated |
 | **E-02** Proposal honesty | LIVE_VERIFIED | source/confidence/alternatives; admin confirm |
-| **E-03** Participation ≠ authority | PARTIAL | person-type taxonomy not fully productized |
+| **E-03** Participation ≠ authority | LIVE_VERIFIED | Complex deep 10/10 on `index-CkybVteH.js` — employee/contractor/vendor/customer taxonomy; participation≠authority; 7 people badges |
 
 ### F — Hierarchy
 
