@@ -32,6 +32,7 @@ const DEFAULT_CAPTURE: CaptureValues = {
   first_name: "",
   last_name: "",
   role_title: "",
+  relationship_type: "employee",
   department: "",
   manager_entity_id: "",
   is_admin: false,
@@ -107,14 +108,14 @@ export function InviteWizard({ open, onOpenChange }: InviteWizardProps) {
         >
           <div className="space-y-4">
             <header className="border-b border-border pb-3">
-              <h2 className="text-lg font-semibold">Invite a member</h2>
+              <h2 className="text-lg font-semibold">Invite someone</h2>
               <p className="text-sm text-muted-foreground">
-                Step {state.step} of 3 ·{" "}
+                Step {state.step} of 3.{" "}
                 {state.step === 1
-                  ? "Capture details"
+                  ? "Who is joining and where they fit"
                   : state.step === 2
-                    ? "Review propagation"
-                    : "Confirm and send"}
+                    ? "Review placement"
+                    : "Send the invite"}
               </p>
             </header>
 

@@ -34,6 +34,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Copy signal lint (report)
+        # Soft until COPY_SIGNAL_LINT_STRICT=1 after full string cleanup.
+        run: npm run lint:copy-signal
+        env:
+          COPY_SIGNAL_LINT_SOFT: "1"
+
       - name: Test
         run: npm run test
 

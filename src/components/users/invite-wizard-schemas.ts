@@ -7,16 +7,23 @@
 
 import { z } from "zod";
 
+export const relationshipTypeSchema = z.enum([
+  "employee",
+  "contractor",
+  "consultant",
+  "external_collaborator",
+]);
+
+export type RelationshipType = z.infer<typeof relationshipTypeSchema>;
+
 export const captureSchema = z.object({
-  email: z.string().email("Enter a valid email address"),
+  email: z.string().email("Enter a valid work email"),
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   role_title: z.string().min(1, "Title is required"),
-  // PROD-MODEL-P2 — place the person in the org at creation time.
-  // Department is free text ("Engineering", "Marketing"); manager is a
-  // STABLE entity id chosen from a name+email select (duplicate display
-  // names can never mis-assign). Both optional — a top-level hire has
-  // neither.
+  // Who is joining: employee / contractor / consultant / external.
+  relationship_type: relationshipTypeSchema,
+  // Place in the org: team (department) + manager or sponsor.
   department: z.string(),
   manager_entity_id: z.string(),
   is_admin: z.boolean(),

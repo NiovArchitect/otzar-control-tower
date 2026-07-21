@@ -100,19 +100,45 @@ function CaptureFields() {
       </div>
       <FormField
         control={form.control}
+        name="relationship_type"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Relationship</FormLabel>
+            <FormControl>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                data-testid="invite-relationship-type"
+                value={field.value}
+                onChange={field.onChange}
+              >
+                <option value="employee">Employee</option>
+                <option value="contractor">Contractor</option>
+                <option value="consultant">Consultant</option>
+                <option value="external_collaborator">External collaborator</option>
+              </select>
+            </FormControl>
+            <FormDescription>
+              How they relate to the organization. This shapes their walkthrough
+              and access.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
         name="role_title"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Title</FormLabel>
             <FormControl>
-              <Input {...field} />
+              <Input {...field} placeholder="Marketing Manager" />
             </FormControl>
             <FormDescription>
-              The member's title (e.g., "Marketing Manager"). Otzar uses it
-              to prepare their AI teammate with the matching role behavior.
+              Their work title. Otzar uses it to prepare their AI Teammate.
               {resolveRoleArchetype(field.value) !== null ? (
                 <span className="block text-foreground" data-testid="invite-role-template-preview">
-                  Role template: {resolveRoleArchetype(field.value)!.display_name}
+                  Prepared as: {resolveRoleArchetype(field.value)!.display_name}
                 </span>
               ) : null}
             </FormDescription>
