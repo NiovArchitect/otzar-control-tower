@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `f417f9f` |
-| Live bundle | `index-ya6xL-aK.js` |
-| Live last-modified | 2026-07-21 R-01 complex deep **10/10** enterprise pressure harness |
-| Gate status | **OPEN** — R-01 LIVE; residual R-02 defect→regression; N-02 EXTERNALLY_BLOCKED; L2/L3 scale residual |
+| CT `origin/main` | `da23b9f` |
+| Live bundle | `index-A_zst0CK.js` |
+| Live last-modified | 2026-07-21 R-02 complex deep **10/10** defect→regression catalog |
+| Gate status | **OPEN** — Phase 6 R LIVE; residual N-02 EXTERNALLY_BLOCKED; L2/L3 scale; D-03 P2; T-01 Relay |
 
 ---
 
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **R-02** defect→regression automation (every pressure defect becomes coverage);
+1. **N-02** Meet OAuth EXTERNALLY_BLOCKED (operator reauth);
 2. Continuous L2/L3 scale residual when scale credentials available;
 3. Dedicated YC org credentials residual (S-01 multi-role LIVE on demo);
-4. N-02 Meet OAuth EXTERNALLY_BLOCKED; regression re-bind LIVE rows.
+4. **D-03** optional 3D (P2) / **T-01** Relay boundary (DISCOVERED); regression re-bind.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

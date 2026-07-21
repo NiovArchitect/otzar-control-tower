@@ -2589,18 +2589,23 @@
         "tests/unit/defect-regression.test.ts",
         "tests/e2e/otzar-live-defect-regression-r02.spec.ts"
       ],
-      "proof_level": "UNIT_PROVEN",
-      "remaining_gap": "Product shipped; LIVE deep after deploy; auto-file-from-incident residual",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Auto-file suite from production incident not shipped; catalog expands manually when pressure finds defects",
       "dependencies": [],
       "priority": "P1",
       "phase": 6,
       "test_requirements": [],
       "live_acceptance": "Defect\u2192regression catalog on Users; process steps; P0 covered mapping",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "da23b9f",
+      "final_proof": {
+        "live_bundle": "index-A_zst0CK.js",
+        "e2e": "otzar-live-defect-regression-r02 10/10",
+        "notes": "10 catalog rows; 8 covered; meet open; scale partial; R-01 pressure coexists",
+        "sha": "da23b9f"
+      }
     },
     {
       "id": "S-01",
