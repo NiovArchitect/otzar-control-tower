@@ -15,7 +15,7 @@
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
 | LIVE_VERIFIED count | 60 |
-| Open P0 count | 22 |
+| Open P0 count | 1 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
 ## Groups A–T (summary)

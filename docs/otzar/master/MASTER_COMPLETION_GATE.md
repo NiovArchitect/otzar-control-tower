@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `6cd2e8c` |
+| CT `origin/main` | `b60fab3` |
 | Live bundle | `index-By1gQYV4.js` |
-| Live last-modified | 2026-07-21 continuous gate re-bind **9/9** on `index-By1gQYV4.js` |
-| Gate status | **PRODUCT COMPLETE** — continuous re-bind green; only **N-02** EXTERNALLY_BLOCKED (operator Meet OAuth) + credential residuals |
+| Live last-modified | 2026-07-21 continuous gate re-bind **9/9**; proof matrix re-synced from register |
+| Gate status | **PRODUCT COMPLETE / FROZEN** — 60 LIVE_VERIFIED; only **N-02** EXTERNALLY_BLOCKED; no further CT product rows without operator/credentials |
 
 ---
 
