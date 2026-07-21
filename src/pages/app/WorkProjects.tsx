@@ -119,7 +119,7 @@ export function WorkProjects() {
       <PageHeader
         eyebrow="Missions"
         title="Projects"
-        description="A project is the mission Otzar organizes around: people, work, and AI Teammate effort for one organizational goal. Open context to see that heart in one place."
+        description="One place for each mission: people, open work, blockers, and the next step."
       />
 
       {/* Context first when open — never buried under create/list scroll. */}
@@ -134,7 +134,7 @@ export function WorkProjects() {
               className="mb-2 text-xs text-muted-foreground"
               data-testid="conversation-project-resolved"
             >
-              Opened from Talk — mission heart in one hop (not a multi-page maze).
+              Opened from Talk. Mission context in one place.
             </p>
           ) : null}
           <ProjectContextPanel
@@ -190,7 +190,7 @@ export function WorkProjects() {
       {selected === null ? (
         <p className="text-center text-[11px] text-muted-foreground">
           Otzar uses project membership to keep work, meetings, and AI Teammate
-          activity on the right mission — not a generic chat.
+          activity on the right mission, not a generic chat.
         </p>
       ) : null}
     </div>
@@ -247,7 +247,7 @@ function ManagerAmbientPlacement({ onPlaced }: { onPlaced: () => void }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base">People waiting for a first project</CardTitle>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Otzar noticed this — no rush. When it fits your day, put them on a
+          Otzar noticed this. No rush. When it fits your day, put them on a
           project you lead. Otzar will not nag and will not assign for you.
         </p>
       </CardHeader>
@@ -662,22 +662,22 @@ function ProjectContextPanel({
     },
     {
       id: "truth",
-      label: "Truth",
+      label: "Disagreements",
       value:
         truthConflicts > 0
-          ? `${truthConflicts} org truth conflict${truthConflicts === 1 ? "" : "s"} need review`
-          : "No open org-truth conflicts",
+          ? `${truthConflicts} item${truthConflicts === 1 ? "" : "s"} need a human decision`
+          : "No open disagreements",
       empty: truthConflicts === 0,
     },
     {
       id: "obligations",
-      label: "Obligations",
+      label: "Open work",
       value:
         openWork.length > 0
           ? `${openWork.length} open on this mission`
           : obligationCount > 0
-            ? `${obligationCount} open in your org posture`
-            : "No open obligations stamped here yet",
+            ? `${obligationCount} open nearby in the org`
+            : "Nothing open here yet",
       empty: openWork.length === 0 && obligationCount === 0,
     },
     {
@@ -719,9 +719,8 @@ function ProjectContextPanel({
               className="text-sm text-muted-foreground"
               data-testid="project-context-summary"
             >
-              Otzar organizes people, work, and AI Teammate effort around this
-              goal so the organization moves one mission forward — not scattered
-              tasks.
+              People, work, and AI Teammate effort for this goal, kept in one
+              place so the mission stays clear.
             </p>
           </div>
           <Button
@@ -772,10 +771,20 @@ function ProjectContextPanel({
           ) : null}
         </dl>
 
-        {/* J-04 — graph coherence inventory across facets */}
-        <ProjectGraphCoherenceCard inventory={graphInventory} />
+        {/* Graph inventory is power-user detail, not the default path. */}
+        <details className="text-xs">
+          <summary
+            className="cursor-pointer font-medium text-muted-foreground hover:text-foreground"
+            data-testid="project-graph-details-toggle"
+          >
+            Coverage details
+          </summary>
+          <div className="mt-2">
+            <ProjectGraphCoherenceCard inventory={graphInventory} />
+          </div>
+        </details>
 
-        {/* Pulse — one glance at the project heart */}
+        {/* Pulse: one glance */}
         <div
           className="flex flex-wrap gap-2"
           data-testid="project-context-pulse"
@@ -892,9 +901,8 @@ function ProjectContextPanel({
               className="text-sm text-muted-foreground"
               data-testid="project-work-empty"
             >
-              No work is stamped to this project yet. When Otzar links
-              commitments from communications or your AI Teammate, they appear
-              here so the mission stays coherent.
+              No open work linked to this project yet. When Otzar links
+              commitments from Talk or your AI Teammate, they show up here.
             </p>
           ) : (
             <ul className="space-y-2" data-testid="project-work-list">
@@ -1032,7 +1040,7 @@ function ProjectContextPanel({
               {nextStep.reason ? `: ${nextStep.reason}` : ""}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              From live organization posture — confirm it applies to this mission.
+              From live organization posture. Confirm it applies to this mission.
             </p>
           </section>
         ) : null}

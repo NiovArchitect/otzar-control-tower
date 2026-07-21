@@ -35,6 +35,7 @@ const DEFAULT_CAPTURE: CaptureValues = {
   relationship_type: "employee",
   department: "",
   manager_entity_id: "",
+  project_id: "",
   is_admin: false,
 };
 

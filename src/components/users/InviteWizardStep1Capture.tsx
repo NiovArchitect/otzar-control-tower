@@ -52,6 +52,15 @@ function CaptureFields() {
     },
   });
   const people = peopleQuery.data ?? [];
+  const projectsQuery = useQuery({
+    queryKey: ["otzar", "work-projects", "invite-picker"],
+    queryFn: async () => {
+      const r = await api.otzar.workProjects.list({ state: "ACTIVE", take: 100 });
+      if (!r.ok) throw new Error(r.message);
+      return r.data.projects;
+    },
+  });
+  const projects = projectsQuery.data ?? [];
   return (
     <div className="space-y-4">
       <FormField
@@ -146,7 +155,7 @@ function CaptureFields() {
           </FormItem>
         )}
       />
-      {/* PROD-MODEL-P2 — place the person in the org at creation time. */}
+      {/* Place the person in the org and optional first mission at creation. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField
           control={form.control}
@@ -188,6 +197,34 @@ function CaptureFields() {
           )}
         />
       </div>
+      <FormField
+        control={form.control}
+        name="project_id"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>First project (optional)</FormLabel>
+            <FormControl>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={field.value}
+                onChange={field.onChange}
+                data-testid="invite-project-select"
+              >
+                <option value="">Place on a project later</option>
+                {projects.map((p) => (
+                  <option key={p.project_id} value={p.project_id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </FormControl>
+            <FormDescription>
+              Puts them on a mission on day one so Home and Projects are not empty.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       <FormField
         control={form.control}
         name="is_admin"
@@ -258,6 +295,20 @@ export function InviteWizardStep1Capture({
               ok: false,
               error:
                 "The member was created, but their reporting placement couldn't be saved. Continue the invite, then set it from the Reporting structure card on Members.",
+            };
+          }
+        }
+        if (values.project_id.trim().length > 0) {
+          const pm = await api.otzar.workProjects.addMember(values.project_id.trim(), {
+            entity_id: r.data.entity_id,
+            role: "MEMBER",
+          });
+          if (!pm.ok) {
+            onCaptured(values, r.data.entity_id);
+            return {
+              ok: false,
+              error:
+                "The member was created, but project placement couldn't be saved. Continue the invite, then add them from Projects.",
             };
           }
         }

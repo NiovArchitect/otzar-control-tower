@@ -26,6 +26,8 @@ export const captureSchema = z.object({
   // Place in the org: team (department) + manager or sponsor.
   department: z.string(),
   manager_entity_id: z.string(),
+  // Optional first mission so they land with real work context.
+  project_id: z.string(),
   is_admin: z.boolean(),
 });
 
