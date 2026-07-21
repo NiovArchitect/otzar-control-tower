@@ -75,16 +75,30 @@ test.describe("PROD-UX ux-coherence — live scenario smokes", () => {
 
   test("UX-2 P0A — My Work renders the governed loop with live-only actions", async ({ page }, testInfo) => {
     await uiLogin(page);
-    // Full navigation is reliable for this surface (SPA pushState can miss
-    // route mounts under some session edges).
-    await page.goto("/app/my-work", { waitUntil: "domcontentloaded" });
+    // Session is memory-only: full page.goto drops auth. Use SPA navigation.
+    await page.evaluate(() => {
+      window.history.pushState({}, "", "/app/my-work");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await page.waitForTimeout(600);
+    // If SPA mount missed, click More/nav when present.
+    if ((await page.getByTestId("my-work-page").count()) === 0) {
+      const link = page.getByRole("link", { name: /my work/i }).first();
+      if ((await link.count()) > 0) await link.click();
+      else await page.goto("/app/my-work", { waitUntil: "domcontentloaded" });
+    }
     await expect(page.getByTestId("my-work-page")).toBeVisible({ timeout: 20_000 });
     const items = page.getByTestId("work-ledger-item");
     await expect(
       items
         .first()
         .or(page.getByTestId("my-work-empty"))
-        .or(page.getByTestId("my-work-error")),
+        .or(page.getByTestId("my-work-error"))
+        .or(page.getByTestId("my-work-loading")),
+    ).toBeVisible({ timeout: 20_000 });
+    // Wait through loading if needed.
+    await expect(
+      items.first().or(page.getByTestId("my-work-empty")).or(page.getByTestId("my-work-error")),
     ).toBeVisible({ timeout: 20_000 });
     const n = await items.count();
     ev(testInfo, `P0A: ${n} work item(s) on My Work`);

@@ -58,6 +58,7 @@ import { MeetingCaptures } from "@/pages/app/MeetingCaptures";
 import { OnboardingReadiness } from "@/pages/app/OnboardingReadiness";
 import { VoiceCaptures } from "@/pages/app/VoiceCaptures";
 import { WorkProjects } from "@/pages/app/WorkProjects";
+import { MyWork } from "@/pages/app/MyWork";
 import { InboxThread } from "@/pages/app/InboxThread";
 import { Voice } from "@/pages/app/Voice";
 
@@ -164,11 +165,8 @@ const router = createBrowserRouter(
               <Route path="onboarding-readiness" element={<OnboardingReadiness />} />
               <Route path="voice-captures" element={<VoiceCaptures />} />
               <Route path="work-projects" element={<WorkProjects />} />
-              {/* Needs-me consolidates open work + decisions. */}
-              <Route
-                path="my-work"
-                element={<Navigate to="/app/action-center" replace />}
-              />
+              {/* Human work buckets (To do / Waiting / Needs review / Done). */}
+              <Route path="my-work" element={<MyWork />} />
               <Route
                 path="team-work"
                 element={<Navigate to="/app" replace />}

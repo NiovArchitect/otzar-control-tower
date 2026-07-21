@@ -76,12 +76,13 @@ export function PersonRelationshipPreview({
     setLoading(true);
     setLoadFailed(false);
     void (async () => {
+      const deadline = Date.now() + 10_000;
       try {
         if (mode === "projects") {
           // Intersect projects the viewer is on with membership of this person.
           const list = await api.otzar.workProjects.list({
             state: "ACTIVE",
-            take: 40,
+            take: 20,
           });
           if (cancelled) return;
           if (!list.ok) {
@@ -93,6 +94,7 @@ export function PersonRelationshipPreview({
           const found: SharedProjectRow[] = [];
           // Bound fan-out: check members in small parallel batches.
           for (let i = 0; i < mine.length && found.length < 6; i += 4) {
+            if (Date.now() > deadline) break;
             const batch = mine.slice(i, i + 4);
             const rows = await Promise.all(
               batch.map(async (p) => {
