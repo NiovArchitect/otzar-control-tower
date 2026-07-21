@@ -164,10 +164,20 @@ export function OrganizationSeedingPage(): JSX.Element {
 
   return (
     <div className="space-y-6" data-testid="org-seeding-page" data-e01-surface="true">
-      {/* Dandelion operational order: Listen → Discover → Seed → Govern → Grow */}
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <Link
+          to="/setup"
+          className="font-medium text-foreground underline underline-offset-2"
+          data-testid="org-seeding-back-to-setup"
+        >
+          Organization
+        </Link>
+        <span aria-hidden>→</span>
+        <span>Review what Otzar found</span>
+      </div>
       <PageHeader
-        title="Organization Seeding"
-        description="Oversight only — Otzar already routes structure and work into the right people’s ambient Work OS. You hold, dismiss, or handle exceptions. People do not live here."
+        title="Review what Otzar found"
+        description="Proposals from real work — confirm identities, structure, and tools. Nothing applies automatically. This is one step in Organization setup, not a separate product."
       />
 
       {/* E-01 — which proposal classes Dandelion has open right now. */}

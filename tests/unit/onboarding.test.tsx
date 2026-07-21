@@ -18,6 +18,7 @@
 
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OnboardingPage } from "@/pages/Onboarding";
 import { NAV } from "@/lib/nav";
@@ -25,13 +26,16 @@ import { NAV } from "@/lib/nav";
 // The OnboardingPage now hosts a D6 admin walk card that uses
 // useMutation, which requires a QueryClientProvider ancestor. Wrap
 // every render in a fresh per-test client so tests stay isolated.
+// MemoryRouter is required for Organization breadcrumb Links.
 function renderPage() {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={qc}>
-      <OnboardingPage />
+      <MemoryRouter>
+        <OnboardingPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -64,44 +68,35 @@ const FORBIDDEN_UI_COPY = [
   "user configured",
 ];
 
-describe("ADR-0080 Wave 3 Dandelion Preview -- nav + route", () => {
-  it("registers Onboarding in the main nav at /onboarding", () => {
+describe("ADR-0080 Wave 3 — Organization starter-shape step (nav + route)", () => {
+  it("registers Onboarding route (hidden from primary nav; reached from Organization)", () => {
     const entry = NAV.find((n) => n.to === "/onboarding");
     expect(entry).toBeDefined();
     expect(entry?.label).toBe("Onboarding");
+    // RC2 jobs model: not a competing primary admin tab.
+    expect(entry?.hidden).toBe(true);
   });
 });
 
-describe("ADR-0080 Wave 3 Dandelion Preview -- shell + doctrine", () => {
-  it("renders the onboarding shell with a clear Otzar-first PageHeader", () => {
+describe("ADR-0080 Wave 3 — Organization starter-shape shell + doctrine", () => {
+  it("renders as a step inside Organization, not a separate product", () => {
     renderPage();
     expect(screen.getByTestId("onboarding-page")).toBeInTheDocument();
-    // [OTZAR-LIVE-6] The page no longer LEADS with the internal "Dandelion
-    // Preview" codename; it opens with what Otzar is.
     expect(
-      screen.getByRole("heading", { name: "Getting started with Otzar", level: 1 }),
+      screen.getByRole("heading", { name: "Recommended starter shape", level: 1 }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("onboarding-back-to-setup")).toHaveAttribute(
+      "href",
+      "/setup",
+    );
   });
 
-  it("shows the canonical Founder doctrine line at the header + doctrine card", () => {
+  it("shows calm read-only doctrine (no builder codename as the lead)", () => {
     renderPage();
-    const lines = screen.getAllByText(
-      "Dandelion suggests the starter shape; Foundation governance authorizes what may actually run.",
-    );
-    expect(lines.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("dandelion-doctrine-card")).toBeInTheDocument();
     expect(screen.getByTestId("dandelion-doctrine-line")).toHaveTextContent(
-      "Dandelion suggests the starter shape; Foundation governance authorizes what may actually run.",
+      /Recommended defaults|Nothing activates until governance/i,
     );
-  });
-
-  it("shows the activation-package doctrine line (Phase 1255 humanized copy)", () => {
-    renderPage();
-    expect(
-      screen.getByText(
-        "The value is the governed activation package — not the raw file behind it.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("declares catalog entries are not permissions", () => {
@@ -127,66 +122,13 @@ describe("ADR-0080 Wave 3 Dandelion Preview -- shell + doctrine", () => {
       ),
     ).toBeInTheDocument();
   });
-});
 
-describe("[OTZAR-LIVE-6] ambient AI Work OS doctrine hero", () => {
-  it("explains Otzar as an ambient AI Work OS — not a chatbot/dashboard/task app", () => {
+  it("does not lead with ambient builder hero or multi-system orientation", () => {
     renderPage();
-    expect(screen.getByTestId("ambient-workos-hero-title")).toHaveTextContent(
-      /ambient AI Work OS/i,
-    );
-    expect(screen.getByTestId("ambient-workos-not")).toHaveTextContent(
-      /not a chatbot\. not a dashboard\. not a task app/i,
-    );
-  });
-
-  it("frames Dandelion as governed work movement", () => {
-    renderPage();
-    expect(screen.getByTestId("ambient-workos-hero-sub")).toHaveTextContent(
-      /Dandelion turns context into governed work movement/i,
-    );
-  });
-
-  it("shows the three concept cards (seed / route / learn)", () => {
-    renderPage();
-    expect(screen.getByTestId("ambient-workos-concept-seed")).toHaveTextContent(/Seed the context/i);
-    expect(screen.getByTestId("ambient-workos-concept-route")).toHaveTextContent(/Route governed work/i);
-    expect(screen.getByTestId("ambient-workos-concept-learn")).toHaveTextContent(/Learn through correction/i);
-  });
-
-  it("frames autonomy as governed (asks/approval), not uncontrolled", () => {
-    renderPage();
-    expect(screen.getByTestId("ambient-workos-autonomy")).toHaveTextContent(
-      /routes work for approval before anything sensitive leaves/i,
-    );
-  });
-
-  it("frames the admin setup by founder-readable concepts (not a raw console)", () => {
-    renderPage();
-    const orientation = screen.getByTestId("admin-setup-orientation");
-    expect(orientation).toHaveTextContent(/Set up your organization/i);
-    expect(orientation).toHaveTextContent(/nothing is activated until you authorize it/i);
-    for (const id of ["topology", "people", "roles", "authority", "tools", "flows", "approvals", "propagation"]) {
-      expect(screen.getByTestId(`setup-concept-${id}`)).toBeInTheDocument();
-    }
-    // Propagation reads as governed root-first, never mass invites.
-    expect(screen.getByTestId("setup-concept-propagation")).toHaveTextContent(
-      /never mass invites/i,
-    );
-  });
-
-  it("uses presence-not-surveillance language and never claims permanent/global learning", () => {
-    renderPage();
-    const doctrine = screen.getByTestId("ambient-workos-doctrine");
-    expect(doctrine).toHaveTextContent(/Ambient does not mean surveillance/i);
-    expect(doctrine).toHaveTextContent(/observes the work, not the person/i);
-    expect(doctrine).toHaveTextContent(/does not pretend to learn forever/i);
-    // No surveillance / global-learning / fake-completion / mass-invite claims.
-    // (The page legitimately says it does NOT "pretend to learn forever" — assert
-    // the forbidden POSITIVE claims, not that negation.)
-    const text = doctrine.textContent ?? "";
-    expect(text).not.toMatch(/employee score|monitor (?:your|the) (?:team|employees)|surveillance is|watch (?:the|your) (?:person|employee)/i);
-    expect(text).not.toMatch(/permanent memory|remembers everything|learns everything|automate everything|set (?:it )?and forget/i);
+    expect(screen.queryByTestId("ambient-workos-doctrine")).toBeNull();
+    expect(screen.queryByTestId("admin-setup-orientation")).toBeNull();
+    expect(screen.queryByRole("heading", { name: /Getting started with Otzar/i })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /Dandelion Preview/i })).toBeNull();
   });
 });
 

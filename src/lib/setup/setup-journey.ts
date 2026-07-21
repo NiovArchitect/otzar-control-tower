@@ -127,13 +127,13 @@ export function connectorLine(row: OAuthStatusRow): SetupLine {
       }
       return {
         kind: "limit",
-        text: `${name} is connected. What Otzar can do with it is still limited — check Tools & Connections for the honest state.`,
+        text: `${name} is connected. What Otzar can do with it is still limited — check Connections for the honest state.`,
       };
     }
     case "READY_FOR_CONSENT":
       return {
         kind: "action",
-        text: `${name} is ready to connect — an organization admin authorizes it from Tools & Connections.`,
+        text: `${name} is ready to connect — an organization admin authorizes it from Connections.`,
       };
     case "ERROR_NEEDS_RECONNECT":
       return {
@@ -454,7 +454,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
           ? `${connected.length} connected`
           : "None connected",
     lines: toolLines,
-    action: { label: "Open Tools & Connections", to: "/tools-connections" },
+    action: { label: "Open Connections", to: "/tools-connections" },
     secondaryAction: { label: "How your data flows", to: "/setup/data-flow" },
   });
 
@@ -505,7 +505,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
           ? "Review policies"
           : "Safe defaults",
     lines: govLines,
-    action: { label: "Open Data & Knowledge", to: "/data-knowledge" },
+    action: { label: "Open Governance policies", to: "/policies" },
     secondaryAction: { label: "How your data flows", to: "/setup/data-flow" },
   });
 
@@ -533,7 +533,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
     if (openSeeds > 0) {
       flowLines.push({
         kind: "action",
-        text: `${plural(openSeeds, "suggestion is", "suggestions are")} waiting for review in Organization Seeding — each one is something Otzar noticed your organization may need.`,
+        text: `${plural(openSeeds, "suggestion is", "suggestions are")} waiting for your review — each one is something Otzar noticed from real work, and nothing applies until you confirm.`,
       });
     }
   }
@@ -555,7 +555,10 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
           ? "Flowing"
           : "Not started",
     lines: flowLines,
-    action: { label: "Open Organization Seeding", to: "/organization-seeding" },
+    action: {
+      label: openSeeds > 0 ? "Review what Otzar found" : "Review discoveries",
+      to: "/organization-seeding",
+    },
     secondaryAction: { label: "Go-live readiness", to: "/setup/go-live" },
   });
 
@@ -585,26 +588,31 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
     stateLabel: "In place",
     lines: foundationLines,
     action: { label: "Open Settings", to: "/settings" },
-    secondaryAction: { label: "Seed organization history", to: "/setup/seed-history" },
+    secondaryAction: {
+      label: "Review recommended starter shape",
+      to: "/onboarding",
+    },
   });
 
   // ── Next best step (deterministic; only truth-checkable steps) ───────
+  // One activation path: people → structure → AI Teammates → connections →
+  // governance defaults → first workflow → review discoveries.
   let nextStep: NextBestStep;
   if (inputs.people !== null && active.length === 0) {
     nextStep = {
       title: "Invite your first team members",
       detail:
-        "Nobody can use Otzar until someone activates. Invite people from Users and share their activation links securely.",
+        "Nobody can use Otzar until someone activates. Invite people and share their activation links securely.",
       to: "/users",
-      linkLabel: "Open Users",
+      linkLabel: "Open People",
     };
   } else if (peopleBlocked > 0) {
     nextStep = {
       title: `Help ${plural(peopleBlocked, "person", "people")} finish activation`,
       detail:
-        "They've been invited but can't use Otzar yet. Copy fresh activation links from Users and share them securely.",
+        "They've been invited but can't use Otzar yet. Copy fresh activation links and share them securely.",
       to: "/users",
-      linkLabel: "Open Users",
+      linkLabel: "Open People",
     };
   } else if (missingRole.length > 0) {
     nextStep = {
@@ -619,7 +627,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
       title: `Map managers for ${plural(missingManager.length, "person", "people")}`,
       detail: "Clarifications and approvals need to know who to ask.",
       to: "/users",
-      linkLabel: "Open Users",
+      linkLabel: "Open People",
     };
   } else if (inputs.connectors !== null && connected.length === 0) {
     nextStep = {
@@ -627,7 +635,7 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
       detail:
         "Zoom is the strongest connector today. Until a tool is connected, pasted transcripts work fine.",
       to: "/tools-connections",
-      linkLabel: "Open Tools & Connections",
+      linkLabel: "Open Connections",
     };
   } else if (twinsNeedSetup.length + twinsNotConfigured.length > 0) {
     nextStep = {
@@ -639,24 +647,25 @@ export function deriveSetupJourney(inputs: SetupInputs): SetupJourney {
     };
   } else if (!workHasFlowed) {
     nextStep = {
-      title: "Ingest your first conversation",
+      title: "Run your first workflow",
       detail:
-        "Paste a meeting transcript or ingest a Zoom recording — Otzar turns it into owned, governed work.",
+        "Paste a meeting transcript or connect a recording — Otzar turns it into owned, governed work and proposes only what you should review.",
       to: "/organization-seeding",
-      linkLabel: "Open Organization Seeding",
+      linkLabel: "Continue organization setup",
     };
   } else if (openSeeds > 0) {
     nextStep = {
-      title: `Review ${plural(openSeeds, "suggestion", "suggestions")} in Organization Seeding`,
-      detail: "Otzar noticed things your organization may need — nothing applies without your review.",
+      title: `Review ${plural(openSeeds, "suggestion", "suggestions")} Otzar found`,
+      detail:
+        "These are proposals from real work — nothing applies without your confirmation.",
       to: "/organization-seeding",
-      linkLabel: "Open Organization Seeding",
+      linkLabel: "Review what Otzar found",
     };
   } else {
     nextStep = {
-      title: "You're in good shape",
+      title: "Organization is ready",
       detail:
-        "People are active, roles are assigned, and work is flowing. Keep an eye on this page as your team grows.",
+        "People are active, roles are assigned, and work is flowing. Routine changes live in People, Connections, and Governance — not a permanent setup mode.",
       to: "/",
       linkLabel: "Open Home",
     };

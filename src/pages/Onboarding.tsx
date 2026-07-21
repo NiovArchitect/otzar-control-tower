@@ -30,6 +30,7 @@
 // FOUNDATION SOURCE: docs/ootb-catalog/* (PR #166 HEAD 86b1a4b).
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -70,7 +71,7 @@ import type {
 const CATALOG = OOTB_CATALOG_MIRROR;
 
 const PREVIEW_DOCTRINE_LINE =
-  "Dandelion suggests the starter shape; Foundation governance authorizes what may actually run.";
+  "Recommended defaults for your organization. Nothing activates until governance authorizes it — this is a preview inside Organization setup.";
 
 function priorityBadgeLabel(
   tier: ToolSummary["connector_priority_tier"],
@@ -142,10 +143,10 @@ function DoctrineCard() {
       </CardHeader>
       <CardContent className="space-y-2 text-sm text-muted-foreground">
         <p>
-          Templates describe useful defaults. Governed activation packages define
-          how those defaults may be used.
+          These are useful defaults — not live permissions, connectors, or AI
+          Teammate profiles. Nothing here changes your organization until you
+          take a governed activation step.
         </p>
-        <p>The value is the governed activation package — not the raw file behind it.</p>
         <ul className="ml-4 list-disc space-y-1">
           <li>Catalog entries are not permissions.</li>
           <li>Connector presets are not live connectors.</li>
@@ -153,131 +154,7 @@ function DoctrineCard() {
             This preview does not activate tools, users, permissions,
             workflows, or AI Teammate profiles.
           </li>
-          <li>
-            Dandelion will eventually assemble governed starter packages
-            for Foundation governance to authorize.
-          </li>
         </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-// [OTZAR-LIVE-6] Ambient AI Work OS doctrine hero — the first thing a first-time
-// user sees. Makes Otzar + Dandelion obvious and on-doctrine BEFORE the technical
-// catalog below: ambient governed work movement, not a chatbot / dashboard / task
-// app. Copy is product-doctrine (governed propagation, authority-bounded AI Twins,
-// scoped corrections) — never surveillance, never permanent/global-learning, never
-// "automate everything". Pure presentational; no data, no backend calls.
-function AmbientWorkOsDoctrine() {
-  const concepts: Array<{ id: string; title: string; body: string }> = [
-    {
-      id: "seed",
-      title: "Seed the context",
-      body: "Add what you're working on — a meeting, a thread, a note. Otzar understands it and turns it into governed work movement.",
-    },
-    {
-      id: "route",
-      title: "Route governed work",
-      body: "Otzar spreads awareness to the right people and AI Teammates — the right work to the right person at the right time, never everyone, never outside your authority.",
-    },
-    {
-      id: "learn",
-      title: "Learn through correction",
-      body: "Your corrections shape how Otzar works for you. Scoped, auditable, and revocable — it does not pretend to learn forever.",
-    },
-  ];
-  return (
-    <section className="space-y-4" data-testid="ambient-workos-doctrine">
-      <Card data-testid="ambient-workos-hero">
-        <CardHeader>
-          <CardTitle className="text-xl" data-testid="ambient-workos-hero-title">
-            Otzar is your ambient AI Work OS
-          </CardTitle>
-          <CardDescription data-testid="ambient-workos-hero-sub">
-            Dandelion turns context into governed work movement — Otzar hears the
-            organization and keeps work moving safely, inside your authority.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          <p data-testid="ambient-workos-not">
-            Not a chatbot. Not a dashboard. Not a task app. Otzar is an ambient
-            intelligence layer around your organization's work — present, calm,
-            and governed.
-          </p>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3 sm:grid-cols-3" data-testid="ambient-workos-concepts">
-        {concepts.map((c) => (
-          <Card key={c.id} data-testid={`ambient-workos-concept-${c.id}`}>
-            <CardHeader>
-              <CardTitle className="text-base">{c.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">{c.body}</CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card data-testid="ambient-workos-autonomy">
-        <CardHeader>
-          <CardTitle className="text-base">Autonomous, not uncontrolled</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>
-            Otzar prepares, coordinates, and recommends inside your scope. It asks
-            one focused question when context is missing, and routes work for
-            approval before anything sensitive leaves. It never crosses authority
-            boundaries and never routes to people outside your visibility.
-          </p>
-          <p data-testid="ambient-workos-trust">
-            Ambient does not mean surveillance. Your current context is explicit
-            and yours to clear at any time — Otzar observes the work, not the
-            person. It never fakes a completion and never sends on your behalf
-            without your authority.
-          </p>
-        </CardContent>
-      </Card>
-    </section>
-  );
-}
-
-// [OTZAR-LIVE-6] Founder-readable orientation for the admin setup below. The
-// catalog/activation cards are a real, truthful admin console; this frames them
-// by the concepts an admin actually reasons about — topology, people, roles,
-// authority, tools, governed flows, approvals, propagation — so the dense
-// technical surface reads as an organized setup, not a raw console. Presentational
-// only; no data, no activation.
-function AdminSetupOrientation() {
-  const concepts: Array<{ id: string; label: string; body: string }> = [
-    { id: "topology", label: "Topology", body: "The shape of your org — departments, teams, and how work flows between them." },
-    { id: "people", label: "People", body: "The members and the AI Teammates that work alongside them." },
-    { id: "roles", label: "Roles", body: "What each role is responsible for and allowed to do." },
-    { id: "authority", label: "Authority", body: "Who can approve, escalate, and act — the governance boundaries." },
-    { id: "tools", label: "Tools", body: "The connectors and sources Otzar may use, once you authorize them." },
-    { id: "flows", label: "Governed flows", body: "The work paths Otzar can move along — safe by default, gated where sensitive." },
-    { id: "approvals", label: "Approvals", body: "Where human judgment is required before work proceeds." },
-    { id: "propagation", label: "Propagation", body: "How Dandelion spreads awareness root-first to the right people — never mass invites." },
-  ];
-  return (
-    <Card data-testid="admin-setup-orientation">
-      <CardHeader>
-        <CardTitle className="text-base">Set up your organization</CardTitle>
-        <CardDescription>
-          Otzar routes work through the organization you define. Below is the
-          governed setup, organized by what you actually decide. Nothing is
-          activated until you authorize it.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-          {concepts.map((c) => (
-            <div key={c.id} data-testid={`setup-concept-${c.id}`}>
-              <dt className="text-sm font-medium text-foreground">{c.label}</dt>
-              <dd className="text-xs text-muted-foreground">{c.body}</dd>
-            </div>
-          ))}
-        </dl>
       </CardContent>
     </Card>
   );
@@ -1884,17 +1761,27 @@ export function OnboardingPage() {
   if (CATALOG.role_summaries.length === 0) {
     return (
       <div className="space-y-6" data-testid="onboarding-page">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <Link
+            to="/setup"
+            className="font-medium text-foreground underline underline-offset-2"
+          >
+            Organization
+          </Link>
+          <span aria-hidden>→</span>
+          <span>Recommended starter shape</span>
+        </div>
         <PageHeader
-          title="Dandelion Preview"
+          title="Recommended starter shape"
           description={PREVIEW_DOCTRINE_LINE}
         />
         <Card data-testid="dandelion-empty-state">
           <CardHeader>
-            <CardTitle className="text-base">Catalog unavailable</CardTitle>
+            <CardTitle className="text-base">Defaults unavailable</CardTitle>
             <CardDescription>
-              The Wave 2 catalog could not be loaded for preview. No
-              tools have been connected and no permissions have been
-              granted. Refresh to try again.
+              Recommended defaults could not be loaded. No tools have been
+              connected and no permissions have been granted. Refresh to try
+              again, or return to Organization setup.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -1904,12 +1791,21 @@ export function OnboardingPage() {
 
   return (
     <div className="space-y-6" data-testid="onboarding-page">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <Link
+          to="/setup"
+          className="font-medium text-foreground underline underline-offset-2"
+          data-testid="onboarding-back-to-setup"
+        >
+          Organization
+        </Link>
+        <span aria-hidden>→</span>
+        <span>Recommended starter shape</span>
+      </div>
       <PageHeader
-        title="Getting started with Otzar"
-        description={PREVIEW_DOCTRINE_LINE}
+        title="Recommended starter shape"
+        description="Roles, AI Teammates, tools, and workflows Otzar can prepare — review only. Activation stays governed. Part of Organization setup."
       />
-      <AmbientWorkOsDoctrine />
-      <AdminSetupOrientation />
       <DoctrineCard />
       <DandelionActivationCard />
       <TeamActivationCard />

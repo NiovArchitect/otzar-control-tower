@@ -111,7 +111,7 @@ function connectorRow(row: OAuthStatusRow): DataFlowRow {
     visibility:
       "Work created from this source follows normal work visibility — owners, their managers for team patterns, and admins for audit. Never broad by default.",
     retention: RETENTION_HONEST,
-    repair: { label: "Open Tools & Connections", to: "/tools-connections" },
+    repair: { label: "Open Connections", to: "/tools-connections" },
   };
 }
 
@@ -134,7 +134,7 @@ export function deriveDataFlows(connectors: OAuthStatusRow[] | null): DataFlowRo
     visibility:
       "The work goes to its owners and their team surfaces. Source excerpts appear only as proof on the work they support.",
     retention: RETENTION_HONEST,
-    repair: { label: "Open Organization Seeding", to: "/organization-seeding" },
+    repair: { label: "Review what Otzar found", to: "/organization-seeding" },
   });
 
   for (const c of connectors ?? []) rows.push(connectorRow(c));

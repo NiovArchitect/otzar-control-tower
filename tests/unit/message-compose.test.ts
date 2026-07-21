@@ -15,10 +15,13 @@ import { interpretAmbientOutboundWork } from "@/lib/work-os/ambient-outbound";
 import { classifyVoiceAction } from "@/lib/voice/voice-action-runtime";
 import type { AuthCapabilities } from "@/lib/stores/auth";
 
-const EMPLOYEE = {
-  role: "EMPLOYEE",
-  can_admin: false,
-} as AuthCapabilities;
+const EMPLOYEE: AuthCapabilities = {
+  can_read_capsules: true,
+  can_write_capsules: true,
+  can_share_capsules: false,
+  can_admin_org: false,
+  can_admin_niov: false,
+};
 
 describe("stripDiscourseMarkers", () => {
   it("strips Yes/Ok affirmations to Otzar", () => {
