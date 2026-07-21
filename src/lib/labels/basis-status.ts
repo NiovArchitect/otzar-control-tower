@@ -8,7 +8,7 @@
 //
 // VOCABULARY + TONE DISCIPLINE (founder §O — MANDATORY):
 //   - NEVER claim a decision was wrong merely because its evidence changed.
-//   - Use these EXACT phrases: "Evidence changed — review required";
+//   - Use these EXACT phrases: "Evidence changed. Review required";
 //     "Source was superseded"; "Source is no longer available";
 //     "Decision basis remains current".
 //   - Historical captured evidence and the live current status are DISTINCT.
@@ -37,7 +37,7 @@ export const BASIS_STATUS_LABELS: Record<BasisStatus, string> = {
 // uses the mandated review phrase; `none` stays quiet (no basis captured yet).
 export const BASIS_STATUS_HEADLINE: Record<BasisStatus, string> = {
   current: "Decision basis remains current.",
-  stale: "Evidence changed — review required",
+  stale: "Evidence changed. Review required",
   none: "No decision basis recorded yet.",
 } as const;
 
@@ -63,7 +63,7 @@ export function getBasisStatusSeverity(status: BasisStatus): EvidenceSeverity {
 // non-accusatory and uses the mandated exact phrases where they apply.
 export const CURRENT_SOURCE_STATUS_LABELS: Record<CurrentSourceStatus, string> = {
   unchanged: "Basis unchanged",
-  changed: "Evidence changed — review required",
+  changed: "Evidence changed. Review required",
   superseded: "Source was superseded",
   retracted: "Source is no longer available",
   unavailable: "Source is no longer available",

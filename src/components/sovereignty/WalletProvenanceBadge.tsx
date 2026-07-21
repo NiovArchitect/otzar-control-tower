@@ -82,7 +82,7 @@ function resolveVariant(
   }
   if (walletType === "PERSONAL" && entityType === "PERSON") {
     return {
-      label: "Personal wallet — yours, not the company's",
+      label: "Personal wallet. Yours, not the company's",
       tone: "border-purple-300 bg-purple-50 text-purple-800",
       tooltip:
         "Held in the employee's personal wallet — personal work memory, not a company record. Designed to travel with the employee in the future; export is not yet available.",

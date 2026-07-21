@@ -181,7 +181,7 @@ describe("Ask your Twin — Find related work (advisory, scoped)", () => {
     await userEvent.click(screen.getByTestId("ask-related-find"));
     await waitFor(() => expect(screen.getByTestId("ask-related-results")).toBeInTheDocument());
     expect(calls.some((c) => c === "POST /api/v1/work-os/semantic-retrieval/query")).toBe(true);
-    expect(screen.getByTestId("ask-related-label").textContent).toBe("Advisory rerank, validated by Foundation");
+    expect(screen.getByTestId("ask-related-label").textContent).toBe("Advisory rerank, validated by Otzar");
     const item = screen.getByTestId("ask-related-item");
     expect(within(item).getByText("Onboarding copy decision")).toBeInTheDocument();
     expect(item.textContent).toContain("Samiksha Rao");
@@ -204,7 +204,7 @@ describe("Ask your Twin — Find related work (advisory, scoped)", () => {
     await askSelfQuestion();
     await userEvent.click(screen.getByTestId("ask-related-find"));
     await waitFor(() => expect(screen.getByTestId("ask-related-label")).toBeInTheDocument());
-    expect(screen.getByTestId("ask-related-label").textContent).toBe("Related work, Foundation-scoped");
+    expect(screen.getByTestId("ask-related-label").textContent).toBe("Related work, scoped to your organization");
     expect(screen.getByTestId("ask-related-provenance").textContent).toMatch(/unhealthy/);
   });
 

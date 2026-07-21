@@ -34,8 +34,8 @@ export function EmployeeHome() {
         title="Your Otzar workspace"
         description={
           entity
-            ? `Signed in as ${entity.email}. This is your employee Otzar surface — separate from the org-admin Control Tower.`
-            : "This is your employee Otzar surface — separate from the org-admin Control Tower."
+            ? `Signed in as ${entity.email}. This is your employee Otzar surface, separate from the org-admin Control Tower.`
+            : "This is your employee Otzar surface, separate from the org-admin Control Tower."
         }
       />
 
@@ -61,7 +61,7 @@ export function EmployeeHome() {
           to="/app/observe"
           title="Observe"
           icon={<Eye className="h-4 w-4" aria-hidden />}
-          description="Submit context — a note, message, or meeting — for Otzar to learn from."
+          description="Submit context (a note, message, or meeting) for Otzar to learn from."
         />
         <LiveCard
           to="/app/corrections"
@@ -108,7 +108,7 @@ export function EmployeeHome() {
             to="/app"
             title="Today"
             icon={<Sparkles className="h-4 w-4" aria-hidden />}
-            description="Ambient home — what needs you and the next step."
+            description="Ambient home: what needs you and the next step."
           />
         </div>
       </section>

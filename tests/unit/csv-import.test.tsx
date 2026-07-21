@@ -247,7 +247,7 @@ describe("[GAP-U SLICE-2] Import people page — preview-first, confirmation-gat
     // One-time links present; failure row reads as repair, not stack trace.
     expect(screen.getAllByTestId("import-copy-link").length).toBe(2);
     const rows = screen.getByTestId("import-result-rows").textContent ?? "";
-    expect(rows).toContain("they may already exist. Check Users.");
+    expect(rows).toContain("They may already exist. Check Users.");
     expect(rows).not.toContain("EMAIL_ALREADY_EXISTS");
     // Back to setup journey.
     expect(screen.getByTestId("import-back-to-setup")).toBeInTheDocument();

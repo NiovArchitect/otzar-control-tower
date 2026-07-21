@@ -223,7 +223,7 @@ export function CollaborationWorkspaceDetail(): JSX.Element {
                   <p className="text-[10px] text-muted-foreground">
                     {m.role_label}
                     {m.responsibility_summary !== null
-                      ? ` — ${m.responsibility_summary}`
+                      ? `: ${m.responsibility_summary}`
                       : null}
                   </p>
                 </div>
@@ -402,8 +402,8 @@ export function CollaborationWorkspaceDetail(): JSX.Element {
         <CardContent>
           {externals.length === 0 ? (
             <p className="text-[10px] text-muted-foreground">
-              No external stakeholders tracked here. External collaborators —
-              clients, vendors, partners — can be tracked without giving them
+              No external stakeholders tracked here. External collaborators
+              (clients, vendors, partners) can be tracked without giving them
               access to Otzar.
             </p>
           ) : (

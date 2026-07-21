@@ -128,7 +128,7 @@ describe("DecisionEvidenceLane — stale surfacing in the Action Center", () => 
     expect(within(card).getByText("Confirm the vendor migration plan")).toBeInTheDocument();
     expect(within(card).getByTestId("decision-evidence-lane-badge")).toHaveTextContent("Review required");
     expect(within(card).getByTestId("decision-evidence-lane-headline")).toHaveTextContent(
-      "Evidence changed — review required",
+      "Evidence changed. Review required",
     );
     // The framing is review, not blame: the card headline is the mandated
     // "review required" phrase (asserted above), never an "error"/"invalid" verdict.
@@ -176,7 +176,7 @@ describe("DecisionEvidenceDrawer — captured vs live, recheck, safety", () => {
     const snap = await screen.findByTestId("decision-evidence-snapshot");
     // Live status (separate projection) uses the mandated review copy.
     expect(within(snap).getByTestId("decision-evidence-live-status")).toHaveTextContent(
-      "Evidence changed — review required",
+      "Evidence changed. Review required",
     );
     // Captured basis classifications are humanized, shown as history.
     expect(within(snap).getByText("Authorized Decision")).toBeInTheDocument(); // truth_class
@@ -211,7 +211,7 @@ describe("DecisionEvidenceDrawer — captured vs live, recheck, safety", () => {
     const btn = await screen.findByTestId("decision-evidence-recheck");
     await userEvent.click(btn);
     const result = await screen.findByTestId("decision-evidence-recheck-remediation");
-    expect(result).toHaveTextContent("Evidence changed — review required");
+    expect(result).toHaveTextContent("Evidence changed. Review required");
     expect(screen.getByTestId("decision-evidence-remediation-id")).toHaveTextContent("rem-42");
     // Server reconciliation: onRechecked bubbled so the lane refetches.
     expect(h.onRechecked()).toBeGreaterThanOrEqual(1);

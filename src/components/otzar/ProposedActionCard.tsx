@@ -106,7 +106,7 @@ function ToneAdvisoryPanel({
       <div className="flex items-center justify-between">
         <span className="font-medium">Tone check</span>
         <span className="text-[10px] text-muted-foreground" data-testid="ctx-tone-advisory-label">
-          {advisory ? "Advisory (Python)" : "Foundation (deterministic)"}
+          {advisory ? "Advisory (Python)" : "Otzar (checked)"}
         </span>
       </div>
 
@@ -168,7 +168,7 @@ function ToneAdvisoryPanel({
         </>
       ) : (
         <div className="mt-1.5 text-muted-foreground" data-testid="ctx-tone-nochange">
-          No tone change suggested — your draft reads clearly.
+          No tone change suggested. Your draft reads clearly.
         </div>
       )}
 
@@ -181,7 +181,7 @@ function ToneAdvisoryPanel({
         </div>
       ) : null}
       <div className="mt-1 text-[10px] text-muted-foreground" data-testid="ctx-tone-provenance">
-        {advisory ? "Advisory analysis by Python, validated by Foundation." : "Deterministic Foundation analysis."}
+        {advisory ? "Advisory analysis by Python, checked by Otzar." : "Checked by Otzar."}
         {envelope ? ` Analysis ${envelope.status.toLowerCase()}.` : ""}
       </div>
     </div>
@@ -366,7 +366,7 @@ export function ProposedActionCard({
                 },
                 {
                   label: "Risk + permission",
-                  body: "Internal note — low risk. Otzar cannot send to anyone outside your org roster.",
+                  body: "Internal note. Low risk. Otzar cannot send to anyone outside your org roster.",
                 },
               ],
               confidence: "HIGH",
@@ -518,14 +518,14 @@ function friendlyErrorCopy(code: string): string {
       return "Otzar created the action, but your organization has not configured who can approve this type of internal note yet. Ask an admin to set up an approver or enable auto-approve for low-risk internal notes.";
     case "POLICY_BLOCKED":
     case "POLICY_FORBIDDEN":
-      return "Otzar cannot send this — your organization's policy blocks this action.";
+      return "Otzar cannot send this. Your organization's policy blocks this action.";
     case "SESSION_INVALID":
     case "SESSION_EXPIRED":
     case "SESSION_REVOKED":
       return "Your session is no longer valid. Please sign in again.";
     case "INVALID_FIELD":
     case "INVALID_REQUEST":
-      return "Otzar could not send that — the request shape is invalid. This is a wiring issue; please report it.";
+      return "Otzar could not send that. The request shape is invalid. This is a wiring issue; please report it.";
     case "RECIPIENT_NOT_IN_ROSTER":
       return "Otzar can only send to people in your org roster. The recipient was not recognized.";
     default:

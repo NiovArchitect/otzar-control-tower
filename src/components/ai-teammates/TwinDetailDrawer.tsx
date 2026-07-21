@@ -357,7 +357,7 @@ export function TwinDetailDrawer({
                         ownerEntityId ? (
                           <code className="text-xs">{ownerEntityId}</code>
                         ) : (
-                          "—"
+                          ". "
                         )
                       }
                     />
@@ -375,8 +375,8 @@ export function TwinDetailDrawer({
                       label="Skills (from template)"
                       value={
                         skills.length > 0
-                          ? `${skills.length} assigned — acts with role capabilities under policy`
-                          : "None yet — apply role template skills on the Skills tab"
+                          ? `${skills.length} assigned. Acts with role capabilities under policy`
+                          : "None yet. Apply role template skills on the Skills tab"
                       }
                     />
                     <ProfileField
@@ -446,7 +446,7 @@ export function TwinDetailDrawer({
                 emptyState={{
                   title: "No skills assigned yet",
                   description:
-                    "Apply role template skills above so this AI Teammate can act on the member's behalf — or pick an extra SkillPackage.",
+                    "Apply role template skills above so this AI Teammate can act on the member's behalf. Or pick an extra SkillPackage.",
                 }}
                 pageSize={10}
                 onRetry={() => void detail.refetch()}

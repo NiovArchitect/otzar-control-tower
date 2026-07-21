@@ -21,7 +21,7 @@ export function staleLabel(
   nowMs: number = Date.now(),
 ): string | null {
   if (!isStaleOpenWork(updatedAt, nowMs)) return null;
-  return "Stale — still open, needs a decision";
+  return "Stale. Still open, needs a decision";
 }
 
 /**

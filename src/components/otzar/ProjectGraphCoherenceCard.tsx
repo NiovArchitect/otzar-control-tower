@@ -29,18 +29,18 @@ export function ProjectGraphCoherenceCard({
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Network className="h-4 w-4" aria-hidden />
-          Project graph coherence
+          Mission coverage
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 text-xs text-muted-foreground">
         <p data-testid="j04-doctrine">{J04_DOCTRINE}</p>
         {!inventory ? (
-          <p data-testid="j04-empty">Select a project to inventory the graph.</p>
+          <p data-testid="j04-empty">Select a project to see coverage.</p>
         ) : (
           <>
             <p data-testid="j04-score" className="font-medium text-foreground">
               Coverage {Math.round((health?.score ?? 0) * 100)}% ·{" "}
-              {health?.ok ? "coherent enough" : "disconnects need attention"}
+              {health?.ok ? "enough to work from" : "gaps need attention"}
             </p>
             <ul className="grid gap-1 sm:grid-cols-2" data-testid="j04-facet-list">
               {PROJECT_GRAPH_FACETS.map((f) => {
@@ -75,7 +75,7 @@ export function ProjectGraphCoherenceCard({
                 ))}
               </ul>
             ) : (
-              <p data-testid="j04-no-disconnects">No P0 graph disconnects detected.</p>
+              <p data-testid="j04-no-disconnects">No critical gaps detected.</p>
             )}
           </>
         )}

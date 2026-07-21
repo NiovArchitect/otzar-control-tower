@@ -189,7 +189,7 @@ export function Collaboration() {
     <div className="space-y-6" data-testid="collaboration-page" data-l01-surface="true">
       <PageHeader
         title="People & Collaboration"
-        description="Who reports to whom, who you can work with, and how to ask for help — without org-wide noise."
+        description="Who reports to whom, who you can work with, and how to ask for help, without org-wide noise."
       />
 
       {/* L-01 — AI↔AI collaboration is a governed, fail-closed envelope. */}
@@ -761,9 +761,9 @@ function assignErrorCopy(code: string): string {
       return "That project or workspace no longer exists.";
     case "TARGET_NOT_ACTIVE":
     case "PROJECT_ARCHIVED":
-      return "That destination isn't active anymore — pick another one.";
+      return "That destination isn't active anymore. Pick another one.";
     default:
-      return "Otzar couldn't complete the assignment — please try again.";
+      return "Otzar couldn't complete the assignment. Please try again.";
   }
 }
 

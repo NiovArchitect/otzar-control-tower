@@ -476,7 +476,7 @@ function SeedCard({
         {actionable && seed.possible_matches !== undefined && seed.possible_matches.length > 0 ? (
           <div className="space-y-1.5 rounded-md border border-border/60 p-2" data-testid="org-seed-possible-matches">
             <p className="text-[11px] font-medium text-foreground">
-              Possible existing collaborator — review before linking.
+              Possible existing collaborator. Review before linking.
               <span className="font-normal text-muted-foreground"> Otzar will not merge this automatically.</span>
             </p>
             {seed.possible_matches.map((m) => (

@@ -137,7 +137,7 @@ export function ConnectorHealth(): JSX.Element {
       r.ok
         ? "Couldn't open connect flow."
         : r.code === "APP_CREDENTIALS_MISSING"
-          ? "Your org still needs app credentials — ask an admin."
+          ? "Your org still needs app credentials. Ask an admin."
           : "Couldn't start connect right now.",
     );
   }
@@ -168,7 +168,7 @@ export function ConnectorHealth(): JSX.Element {
       setNotice("Request sent. An admin can enable this in Tools & Connections.");
       void load();
     } else if (r.code === "ALREADY_OPEN") {
-      setNotice("You already asked for this — your admin still has the request.");
+      setNotice("You already asked for this. Your admin still has the request.");
     } else {
       setNotice("Couldn't send the request right now.");
     }
@@ -207,7 +207,7 @@ export function ConnectorHealth(): JSX.Element {
     >
       <PageHeader
         title="Your tools"
-        description="Pick what you need for work — calendars, documents, Meet, chat. Connect or reconnect when scopes go stale. Otzar never writes without policy."
+        description="Pick what you need for work: calendars, documents, Meet, chat. Connect or reconnect when scopes go stale. Otzar never writes without policy."
       />
       {/* O-01 — capability-first framing; MCP is not the employee primary path. */}
       <p
@@ -234,7 +234,7 @@ export function ConnectorHealth(): JSX.Element {
           <CardContent className="space-y-3 py-4 text-sm">
             <p className="font-medium text-amber-950" data-testid="tools-reconnect-headline">
               {fromComms
-                ? "Comms could not pull Google Meet — scopes may be stale"
+                ? "Comms could not pull Google Meet. Scopes may be stale"
                 : "A tool needs reconnect before Otzar can use it"}
             </p>
             <p className="text-xs text-amber-900/90">

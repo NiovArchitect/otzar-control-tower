@@ -60,12 +60,12 @@ export function TwinScopePanel(): JSX.Element | null {
       ? externalApprovalRequired
         ? "Act on external systems only after you approve it"
         : "Act on external systems beyond your organization's set policy"
-      : "Reach external systems on its own — that stays off unless you grant it",
-    "See anything outside your authority — it can only access what you can access",
+      : "Reach external systems on its own. That stays off unless you grant it",
+    "See anything outside your authority. It can only access what you can access",
     "Share your private data with people who aren't authorized to see it",
   ];
   if (id.safety.no_raw_audio_storage) {
-    cannotDo.push("Store your raw audio — only the transcript text is kept");
+    cannotDo.push("Store your raw audio. Only the transcript text is kept");
   }
 
   return (

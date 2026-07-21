@@ -142,7 +142,7 @@ describe("ProposedActionCard — advisory draft tone", () => {
     renderCard();
     await userEvent.click(screen.getByTestId("ctx-improve-tone-button"));
     await waitFor(() => expect(screen.getByTestId("ctx-tone-advisory-label")).toBeInTheDocument());
-    expect(screen.getByTestId("ctx-tone-advisory-label").textContent).toBe("Foundation (deterministic)");
+    expect(screen.getByTestId("ctx-tone-advisory-label").textContent).toBe("Otzar (checked)");
     expect(screen.getByTestId("ctx-tone-provenance").textContent).toMatch(/unhealthy/);
   });
 

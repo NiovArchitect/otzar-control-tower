@@ -161,7 +161,7 @@ describe("MyMemory — ownership boundary (GAP-S S-1)", () => {
       expect(screen.getByTestId("my-memory-boundary")).toBeInTheDocument(),
     );
     const boundary = screen.getByTestId("my-memory-boundary");
-    expect(boundary).toHaveTextContent("Personal wallet — yours, not the company's");
+    expect(boundary).toHaveTextContent("Personal wallet. Yours, not the company's");
     expect(boundary).toHaveTextContent("Your personal work memory");
     expect(boundary).toHaveTextContent("Company-owned work data");
     expect(boundary).toHaveTextContent("stay with the company");

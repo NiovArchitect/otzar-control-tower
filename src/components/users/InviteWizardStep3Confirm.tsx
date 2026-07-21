@@ -40,7 +40,7 @@ export function InviteWizardStep3Confirm({
   const targetDescription = `${newDisplayName} (${newEmail}) as ${isAdmin ? "an admin" : "a team member"}`;
   const confirmationDescription = `This will invite ${newDisplayName} (${newEmail}) as ${
     isAdmin ? "an admin" : "a team member"
-  }. An AI Teammate is minted and a one-time activation link is issued for you to share securely — no email is sent.`;
+  }. An AI Teammate is prepared and a one-time activation link is issued for you to share securely. No email is sent.`;
 
   if (activation !== null) {
     return (
@@ -48,12 +48,12 @@ export function InviteWizardStep3Confirm({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {newDisplayName} is invited — share their activation link
+              {newDisplayName} is invited. Share their activation link
             </CardTitle>
             <CardDescription>
               Share this securely with the invitee. This link expires{" "}
               {new Date(activation.expiresAt).toLocaleDateString()} and can
-              only be used once. It won&apos;t be shown again — you can
+              only be used once. It won&apos;t be shown again. You can
               generate a new one from the Users list if needed.
             </CardDescription>
           </CardHeader>
@@ -96,8 +96,8 @@ export function InviteWizardStep3Confirm({
         <CardHeader>
           <CardTitle className="text-base">Ready to invite</CardTitle>
           <CardDescription>
-            Confirming mints the AI Teammate and creates a one-time
-            activation link you can copy and share securely — no email is
+            Confirming prepares their AI Teammate and creates a one-time
+            activation link you can copy and share securely. No email is
             sent.
           </CardDescription>
         </CardHeader>
@@ -111,31 +111,44 @@ export function InviteWizardStep3Confirm({
             {newEmail}
           </p>
           <p>
-            <span className="font-medium">Role: </span>
+            <span className="font-medium">Access: </span>
             {isAdmin ? "Organization admin" : "Team member"}
           </p>
-          {/* PROD-MODEL-P2 — the placement this invite prepared. */}
           {captured !== null ? (
             <div className="space-y-1" data-testid="invite-placement-summary">
+              <p>
+                <span className="font-medium">Relationship: </span>
+                {captured.relationship_type.replace(/_/g, " ")}
+              </p>
               <p>
                 <span className="font-medium">Title: </span>
                 {captured.role_title}
               </p>
               {captured.department.trim().length > 0 ? (
                 <p>
-                  <span className="font-medium">Department: </span>
+                  <span className="font-medium">Team: </span>
                   {captured.department}
                 </p>
               ) : null}
+              {captured.project_id.trim().length > 0 ? (
+                <p data-testid="invite-project-placement-line">
+                  <span className="font-medium">First project: </span>
+                  placed on a mission (Projects)
+                </p>
+              ) : (
+                <p className="text-muted-foreground" data-testid="invite-project-placement-none">
+                  No first project yet. You can place them from Projects after they join.
+                </p>
+              )}
               {resolveRoleArchetype(captured.role_title) !== null ? (
                 <p data-testid="invite-role-template-line">
-                  <span className="font-medium">Role template: </span>
+                  <span className="font-medium">Prepared as: </span>
                   {resolveRoleArchetype(captured.role_title)!.display_name}
                 </p>
               ) : null}
               <p className="text-muted-foreground">
-                Their AI teammate is prepared with this role when the invite
-                is confirmed, and every step is recorded in the audit trail.
+                Their AI Teammate is prepared with this role when the invite
+                is confirmed.
               </p>
             </div>
           ) : null}

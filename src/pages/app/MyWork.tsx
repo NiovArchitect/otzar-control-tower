@@ -80,7 +80,7 @@ export function MyWork(): JSX.Element {
       <PageHeader
         eyebrow="Execution"
         title="My Work"
-        description="Durable work Otzar extracted and is tracking for you — what you own, what's waiting, and what's blocked."
+        description="Durable work Otzar extracted and is tracking for you: what you own, what's waiting, and what's blocked."
       />
 
       {failed ? (

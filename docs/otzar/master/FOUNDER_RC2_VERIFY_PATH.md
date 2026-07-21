@@ -47,3 +47,11 @@ Do not mark `FOUNDER_EXPERIENCE_APPROVED` until you complete this path yourself.
 ## After you approve
 
 Tell the agent to set `FOUNDER_EXPERIENCE_APPROVED` and tag `OTZAR_YC_RC2`.
+
+## Agent progress (not founder approval)
+
+| Date | Change | Measured |
+|------|--------|----------|
+| 2026-07-21 | PR #199 high-traffic plain-language + project calm + invite first project | copy-signal residual 354→179 soft; employee priority paths dash-clean; not FOUNDER_EXPERIENCE_APPROVED |
+
+Still required: full founder path above before any YC_RC2 ready claim.

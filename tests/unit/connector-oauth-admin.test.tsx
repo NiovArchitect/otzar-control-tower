@@ -130,7 +130,7 @@ describe("Phase 1261 — OAuth connections admin surface", () => {
     // Humanized copy renders…
     expect(text).toContain("Ready to connect");
     expect(text).toContain("Needs app credentials");
-    expect(text).toContain("Connected — verify to confirm");
+    expect(text).toContain("Connected. Verify to confirm");
     expect(text).toContain("Verified");
     // …raw enum text never does.
     expect(text).not.toContain("READY_FOR_CONSENT");

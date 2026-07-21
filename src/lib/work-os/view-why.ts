@@ -164,7 +164,7 @@ export function viewWhyFromLedger(entry: WorkLedgerEntryView): ViewWhyModel {
         entry.seeded_origin?.validation_state_label !== undefined
           ? `${entry.seeded_origin.validation_state_label}${
               entry.seeded_origin.validation_guidance !== undefined
-                ? ` — ${entry.seeded_origin.validation_guidance}`
+                ? `. ${entry.seeded_origin.validation_guidance}`
                 : ""
             }`
           : null,

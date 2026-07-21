@@ -2,7 +2,7 @@
 // PURPOSE: Phase 1282 — the WorkLedgerItem View/Why drawer surfaces the
 //          advisory Python enrichment truth honestly: signals when present,
 //          an explicit "not used" degrade line otherwise, and the
-//          "Foundation decides" advisory framing. Never claims execution.
+//          "Otzar decides" advisory framing. Never claims execution.
 // CONNECTS TO: src/components/work-os/WorkLedgerItem.tsx
 
 import { describe, expect, it } from "vitest";
@@ -54,7 +54,7 @@ describe("WorkLedgerItem Python enrichment surfacing", () => {
     expect(block.textContent).toContain("2 signals");
     expect(block.textContent).toContain("multi-intent");
     expect(block.textContent?.toLowerCase()).toContain("delegation");
-    expect(block.textContent).toContain("Foundation decides ownership and policy");
+    expect(block.textContent).toContain("Otzar decides ownership and policy");
   });
 
   it("shows an honest 'not used' line when Python was not used", () => {

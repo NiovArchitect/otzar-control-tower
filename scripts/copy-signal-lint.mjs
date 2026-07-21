@@ -109,18 +109,23 @@ function scanFile(abs) {
     while ((m = re.exec(line)) !== null) {
       strings.push(m[2]);
     }
+    // data-testid / testId attribute lines are engineering ids, not user copy
+    const isTestIdLine =
+      /\bdata-testid\b/.test(line) ||
+      /\btestId\s*:/.test(line) ||
+      /\btest_id\b/.test(line);
+
     for (const s of strings) {
       if (s.length < 2) continue;
-      // Skip technical paths and test ids
-      if (
+      // Skip technical paths, pure enums, and kebab test ids (no spaces)
+      const isCodey =
         s.startsWith("/") ||
         s.startsWith("http") ||
         s.includes("data-") ||
-        s.includes("_") && s === s.toUpperCase()
-      ) {
-        // still check SCALE_PROVEN etc in all caps strings that are UI
-      }
-      if (DASH_RE.test(s)) {
+        (s.includes("_") && s === s.toUpperCase()) ||
+        (/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(s) && !/\s/.test(s)) ||
+        isTestIdLine;
+      if (DASH_RE.test(s) && !isCodey) {
         hits.push({
           file: rel,
           line: i + 1,
@@ -129,11 +134,13 @@ function scanFile(abs) {
           suggest: "Use a period, comma, or colon",
         });
       }
-      const lower = s.toLowerCase();
+      if (isCodey) continue;
       for (const p of PROHIBITED) {
         if (p.class === "contextual") continue; // advisory only for now
-        const needle = p.term.toLowerCase();
-        if (lower.includes(needle)) {
+        // Word-boundary match so "Acknowledging" does not hit "DGI", etc.
+        const escaped = p.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(`(?:^|[^A-Za-z0-9_])${escaped}(?:[^A-Za-z0-9_]|$)`, "i");
+        if (re.test(s)) {
           // Skip when clearly a code identifier path
           if (s.includes("/") || s.includes(".")) continue;
           hits.push({

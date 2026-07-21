@@ -194,7 +194,7 @@ export function DecisionEvidenceDrawer({
                 data-testid="decision-evidence-recheck-remediation"
               >
                 <p className="font-medium text-amber-600 dark:text-amber-400">
-                  Evidence changed — review required
+                  Evidence changed. Review required
                 </p>
                 {recheckResult.remediation_obligation_id !== null ? (
                   <p className="mt-1 text-xs text-muted-foreground">

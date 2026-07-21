@@ -381,7 +381,7 @@ describe("MyDay — Phase 1234 intelligence card", () => {
     const items = screen.getAllByTestId("my-day-intelligence-item");
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent("Review your pending approvals");
-    expect(items[0]).toHaveTextContent("ready for your approval");
+    expect(items[0]).toHaveTextContent("Ready for your approval");
     expect(items[1]).toHaveTextContent("waiting on your reply");
   });
 

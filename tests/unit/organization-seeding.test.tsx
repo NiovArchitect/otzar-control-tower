@@ -347,7 +347,7 @@ describe("Organization Seeding — external possible-match chooser (T-3C)", () =
     mockSeeds([extSeed()]);
     renderPage();
     const block = await screen.findByTestId("org-seed-possible-matches");
-    expect(block.textContent).toContain("Possible existing collaborator — review before linking.");
+    expect(block.textContent).toContain("Possible existing collaborator. Review before linking.");
     expect(block.textContent).toContain("Otzar will not merge this automatically.");
     expect(block.textContent).toContain("Jordan Vale · Acme (Client)");
     expect(block.textContent).toContain("Similar name in this account");

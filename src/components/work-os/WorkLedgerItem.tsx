@@ -156,7 +156,7 @@ export function WorkLedgerItem({
   function clarificationStateLine(p: NonNullable<ClarityProjectionView["pending_clarification"]>): string {
     switch (p.status) {
       case "PENDING":
-        return `Clarification requested from ${p.clarifier_display_name} — waiting.`;
+        return `Clarification requested from ${p.clarifier_display_name}. Waiting.`;
       case "APPROVED":
         return `Clarified by ${p.clarifier_display_name}.`;
       case "REJECTED":
@@ -212,11 +212,11 @@ export function WorkLedgerItem({
     const r = await api.workOs.ledgerExecute(entry.ledger_entry_id);
     setExecBusy(false);
     if (r.ok && r.data.ok && r.data.outcome === "action_created") {
-      setExecMsg("Otzar has this — it's routed for approval.");
+      setExecMsg("Otzar has this. It's routed for approval.");
       emitWorkStateChanged({ type: "LEDGER_UPDATED", ledger_entry_id: entry.ledger_entry_id });
       onChanged?.();
     } else if (r.ok && r.data.outcome === "blocked_setup_required") {
-      setExecMsg(`Can't yet — ${exec.connectorLabel ?? "the tool"} needs connecting.`);
+      setExecMsg(`Can't yet. ${exec.connectorLabel ?? "the tool"} needs connecting.`);
       onChanged?.();
     } else {
       setExecMsg(
@@ -451,7 +451,7 @@ export function WorkLedgerItem({
               variant="outline"
               className="border-amber-600/70 text-[9px] text-amber-800"
               data-testid="work-ledger-item-twin-verify"
-              title="Accuracy-critical — verify before complete"
+              title="Accuracy-critical. Verify before complete"
             >
               Needs verify
             </Badge>
@@ -593,13 +593,13 @@ export function WorkLedgerItem({
               {candidates.map((c) => (
                 <div key={c.ledger_entry_id} className="mt-0.5" data-testid="context-candidate">
                   <div>
-                    “{c.title_label}” — {c.status_label}
+                    “{c.title_label}”: {c.status_label}
                   </div>
                   <div className="text-muted-foreground">{c.reason_label}</div>
                   {c.validation_state_label !== undefined ? (
                     <div data-testid="context-candidate-validated">
                       {c.validation_state_label}
-                      {c.validation_guidance !== undefined ? ` — ${c.validation_guidance}` : ""}
+                      {c.validation_guidance !== undefined ? `. ${c.validation_guidance}` : ""}
                     </div>
                   ) : null}
                   <ContextValidationChoices
@@ -635,7 +635,7 @@ export function WorkLedgerItem({
                     data-testid="work-ledger-item-clarifier"
                   >
                     <span>
-                      Ask {c.display_name} —{" "}
+                      Ask {c.display_name}:{" "}
                       {c.reason.charAt(0).toLowerCase() + c.reason.slice(1)}
                     </span>
                     {/* [CE-2] governed request — clarification, not approval. */}
@@ -672,7 +672,7 @@ export function WorkLedgerItem({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void askAboutWork();
                   }}
-                  placeholder="Ask about this work — e.g. where did this come from?"
+                  placeholder="Ask about this work. E.g. Where did this come from?"
                   aria-label="Ask about this work"
                   className="w-full rounded border border-border/70 bg-background px-1.5 py-0.5 text-[11px]"
                   data-testid="work-ledger-item-ask-input"
@@ -744,7 +744,7 @@ export function WorkLedgerItem({
                   ))}
                 </div>
               ) : null}
-              <div className="text-[10px] italic">Advisory only — Foundation decides ownership and policy.</div>
+              <div className="text-[10px] italic">Advisory only. Otzar decides ownership and policy.</div>
             </div>
           ) : null}
 
@@ -809,7 +809,7 @@ export function WorkLedgerItem({
             ) : null}
           </div>
 
-          <div className="italic">Inspect only — nothing is sent or executed.</div>
+          <div className="italic">Inspect only. Nothing is sent or executed.</div>
         </div>
       ) : null}
     </div>

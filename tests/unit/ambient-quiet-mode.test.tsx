@@ -60,7 +60,7 @@ describe("AmbientOtzarBar — quiet mode (Phase 1235b)", () => {
 
     const banner = screen.getByTestId("ambient-quiet-banner");
     expect(banner).toHaveTextContent(
-      "Quiet mode — Otzar won't speak or listen.",
+      "Quiet mode. Otzar won't speak or listen.",
     );
     expect(banner).toHaveTextContent(
       "Connect your calendar to make quiet mode automatic.",

@@ -53,7 +53,7 @@ import type {
 const OAUTH_STATUS_COPY: Record<OAuthConnectionStatus, string> = {
   APP_CREDENTIALS_MISSING: "Needs app credentials",
   READY_FOR_CONSENT: "Ready to connect",
-  CONNECTED_UNVERIFIED: "Connected — verify to confirm",
+  CONNECTED_UNVERIFIED: "Connected. Verify to confirm",
   VERIFIED: "Verified",
   ERROR_NEEDS_RECONNECT: "Needs reconnect",
   REVOKED: "Revoked",

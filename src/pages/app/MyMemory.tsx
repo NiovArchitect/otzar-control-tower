@@ -92,7 +92,7 @@ export function MyMemory(): JSX.Element {
         <PageHeader
           eyebrow="Portability"
           title="My Digital Work Wallet"
-          description="How you work, what your AI Teammate has learned, and what moves with you — your portable work identity."
+          description="How you work, what your AI Teammate has learned, and what moves with you: your portable work identity."
         />
         <Card>
           <CardContent className="py-4 text-sm text-muted-foreground">
@@ -109,7 +109,7 @@ export function MyMemory(): JSX.Element {
         <PageHeader
           eyebrow="Portability"
           title="My Digital Work Wallet"
-          description="How you work, what your AI Teammate has learned, and what moves with you — your portable work identity."
+          description="How you work, what your AI Teammate has learned, and what moves with you: your portable work identity."
         />
         <Card className="border-rose-400/40 bg-rose-500/5">
           <CardContent className="py-4 text-sm">
@@ -130,13 +130,13 @@ export function MyMemory(): JSX.Element {
       <PageHeader
         eyebrow="Portability"
         title="My Digital Work Wallet"
-        description="How you work, what your AI Teammate has learned, and what moves with you. Your methods, skills, and preferences are YOURS — your organization's records stay with the organization."
+        description="How you work, what your AI Teammate has learned, and what moves with you. Your methods, skills, and preferences are YOURS. Your organization's records stay with the organization."
       />
 
       {/* [GAP-S S-1] The ownership boundary, rendered where the wallet
           already appears. Existing truth only: this wallet IS the personal
           wallet; company data lives in the organization's enterprise wallet.
-          No export exists — future language is marked as future. */}
+          No export exists. Future language is marked as future. */}
       <div className="space-y-2" data-testid="my-memory-boundary">
         <WalletProvenanceBadge walletType="PERSONAL" entityType="PERSON" />
         <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
@@ -144,14 +144,14 @@ export function MyMemory(): JSX.Element {
             <p className="font-medium text-foreground">Your personal work memory</p>
             <p>
               Your work style, preferences, personal learning, and reusable
-              methods live here — they are yours, not the company&apos;s.
+              methods live here. They are yours, not the company&apos;s.
             </p>
           </div>
           <div className="rounded-md border border-border/60 p-2">
             <p className="font-medium text-foreground">Company-owned work data</p>
             <p>
               Company sources, meeting records, decisions, approvals, and
-              audit history stay with the company — they are never part of
+              audit history stay with the company. They are never part of
               this wallet.
             </p>
           </div>
@@ -262,7 +262,7 @@ export function MyMemory(): JSX.Element {
               <p className="font-medium text-foreground">What your AI Teammate may do</p>
               <p className="text-muted-foreground">
                 Set by your organization's role and access policies. Teach and
-                correct your AI Teammate any time — granting or removing authority is
+                correct your AI Teammate any time. Granting or removing authority is
                 an admin decision, recorded in the audit trail.
               </p>
             </div>
@@ -310,7 +310,7 @@ export function MyMemory(): JSX.Element {
         </Badge>
         Your memory and permissions are yours. Every grant is revocable; every
         action is recorded; nothing leaves your organization without your
-        approval. This page is your control surface — Otzar follows it.
+        approval. This page is your control surface. Otzar follows it.
       </p>
     </div>
   );
@@ -618,7 +618,7 @@ function ObservationConsentCard(): JSX.Element {
           {progressLabel}
         </p>
         <p className="text-muted-foreground" data-testid="work-style-benefit">
-          Over time you should explain less — Otzar reflects your professional
+          Over time you should explain less. Otzar reflects your professional
           methods in later work, without absorbing company-confidential data,
           silently expanding authority, or trapping learning inside one employer.
         </p>
@@ -671,7 +671,7 @@ function ObservationConsentCard(): JSX.Element {
         ) : phase === "idle" ? (
           <div className="space-y-2" data-testid="observation-idle">
             <label className="block text-muted-foreground">
-              Task you&apos;re doing (methods only — not confidential content)
+              Task you&apos;re doing (methods only, not confidential content)
               <input
                 className="mt-1 w-full rounded border border-border bg-background px-2 py-1"
                 value={taskLabel}
@@ -688,7 +688,7 @@ function ObservationConsentCard(): JSX.Element {
               />
               <span>
                 I consent to a visible learning session. Otzar will propose
-                method preferences for my review — never company secrets, never
+                method preferences for my review: never company secrets, never
                 new permissions.
               </span>
             </label>
@@ -776,8 +776,8 @@ function ObservationConsentCard(): JSX.Element {
                 data-decision-kind={lastDecision.kind}
               >
                 {lastDecision.kind === "approve"
-                  ? `Approved — will shape later work: “${lastDecision.plain.slice(0, 120)}”`
-                  : `Rejected — will never apply: “${lastDecision.plain.slice(0, 120)}”`}
+                  ? `Approved. Will shape later work: “${lastDecision.plain.slice(0, 120)}”`
+                  : `Rejected. Will never apply: “${lastDecision.plain.slice(0, 120)}”`}
               </p>
             ) : null}
             <Button
@@ -801,7 +801,7 @@ function ObservationConsentCard(): JSX.Element {
             data-h03-approved-list="true"
           >
             <p className="font-medium text-foreground">
-              Approved preferences ({approved.length}) — apply to later work
+              Approved preferences ({approved.length}): apply to later work
             </p>
             <ul className="mt-1 space-y-1 text-muted-foreground">
               {approved.slice(0, 8).map((p) => {
@@ -833,7 +833,7 @@ function ObservationConsentCard(): JSX.Element {
             data-rejected-count={String(rejectedSession.length)}
           >
             <p className="font-medium text-foreground">
-              Rejected this session ({rejectedSession.length}) — never apply
+              Rejected this session ({rejectedSession.length}): never apply
             </p>
             <ul className="mt-1 list-inside list-disc text-muted-foreground">
               {rejectedSession.slice(0, 6).map((r) => (

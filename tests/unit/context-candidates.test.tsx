@@ -49,7 +49,7 @@ function candidate(over: Partial<ContextCandidateView> = {}): ContextCandidateVi
     title_label: "Phoenix escalation runbook",
     origin_label: "Seeded document context · Process / SOP",
     covering_period_label: "Covers 2026",
-    status_label: "May relate to this work — needs confirmation",
+    status_label: "May relate to this work. Needs confirmation",
     reason_label:
       "Possible context: the names in both items match; it covers the same time period. Background until confirmed.",
     signal_labels: ["The names in both items match", "It covers the same time period"],
@@ -97,7 +97,7 @@ describe("[AIX-3] possible background context — derived, confirmation-first, s
     const block = await screen.findByTestId("work-ledger-item-context-candidates");
     expect(block.textContent).toContain("Possible background context:");
     expect(block.textContent).toContain("Phoenix escalation runbook");
-    expect(block.textContent).toContain("May relate to this work — needs confirmation");
+    expect(block.textContent).toContain("May relate to this work. Needs confirmation");
     expect(block.textContent).toContain("Background until confirmed");
     expect(block.textContent).toContain("the names in both items match");
 
@@ -135,7 +135,7 @@ describe("[AIX-3] possible background context — derived, confirmation-first, s
     );
     await renderOpen(entry());
     const validated = await screen.findByTestId("context-candidate-validated");
-    expect(validated.textContent).toBe("Confirmed current — Confirmed as current by your team.");
+    expect(validated.textContent).toBe("Confirmed current. Confirmed as current by your team.");
     // Re-validation stays possible (people change their minds; AIX-2 is
     // latest-wins) — the choices still render.
     expect(screen.getByTestId("candidate-validation-led-seed-9-stale")).toBeTruthy();
