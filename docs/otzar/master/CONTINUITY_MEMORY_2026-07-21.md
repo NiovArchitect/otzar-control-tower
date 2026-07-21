@@ -132,3 +132,15 @@ Until then:
 * Unit: 6/6 in `tests/unit/synthetic-s250-harness.test.ts`
 * Still not SCALE_PROVEN at provisioned live tenant; S2500 planned
 
+## J-04 LIVE_VERIFIED (2026-07-21)
+
+* Deep smoke **10/10** on live `index-DYGGJfKt.js`
+* Spec: `tests/e2e/otzar-live-project-graph-j04.spec.ts`
+* Product: ProjectGraphCoherenceCard on WorkProjects project heart
+* Commits: `4132b41` (impl), `9db04ab` (R-03 depth co-deployed)
+* Residual: federated multi-object graph + provider doc-edit propagation
+* **Next internal Work OS priority:** **A-08** cinematic first-login multi-role (or L-02 if A-08 blocked)
+* R-03 S250 multi-day still UNIT_PROVEN (not live provision)
+* N-02 still EXTERNALLY_BLOCKED
+* Gates C/D still open required programs
+

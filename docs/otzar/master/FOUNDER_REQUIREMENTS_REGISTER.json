@@ -2326,14 +2326,14 @@
       "group": "J",
       "exact_requirement": "Canonical project graph: people, teams, AI Teammates, conversations, documents, meetings, decisions, obligations, handoffs, actions, provider proof, reports \u2014 one browser-visible project context; material document edits propagate.",
       "founder_intent": "Full project-centered coherence beyond spine panel.",
-      "status": "IMPLEMENTED",
-      "proof_level": "UNIT_PROVEN",
+      "status": "LIVE_VERIFIED",
+      "proof_level": "LIVE_VERIFIED",
       "priority": "P0",
       "phase": 1,
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "Project graph inventory + disconnect detection UNIT_PROVEN; WorkProjects coherence card wired (J-04). Await BROWSER_PROVEN deep smoke otzar-live-project-graph-j04; full multi-object provider doc-edit propagation residual.",
+      "remaining_gap": "Browser deep smoke 10/10 project graph coherence card on live index-DYGGJfKt.js. Residual: full multi-object federated graph store + provider doc-edit propagation deep proof (adjacent N-*/J rows).",
       "implementation_refs": [
         "src/pages/app/WorkProjects.tsx",
         "tests/e2e/otzar-live-project-context.spec.ts",
@@ -2345,13 +2345,19 @@
       ],
       "proof_dimensions": {
         "implementation": true,
-        "browser": false,
+        "browser": true,
         "provider": false,
         "multi_user": false,
         "scale": false,
-        "live": false
+        "live": true
       },
-      "acceptance_limitations": "Inventory from project context ledger + coherence API samples \u2014 not a full federated multi-object graph store. Doc edit propagation across providers not yet deep-proven in this row."
+      "acceptance_limitations": "Inventory from project context ledger + coherence samples \u2014 not a full federated multi-object graph store. Doc edit propagation residual.",
+      "last_live_proof": {
+        "bundle": "index-DYGGJfKt.js",
+        "spec": "tests/e2e/otzar-live-project-graph-j04.spec.ts",
+        "result": "10/10",
+        "sha": "9db04ab"
+      }
     },
     {
       "id": "K-01",

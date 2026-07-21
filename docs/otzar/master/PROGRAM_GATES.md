@@ -15,7 +15,7 @@
 | Gate | Status | Notes |
 |------|--------|-------|
 | **A** | **Nearly closed** | N-02 EXTERNALLY_BLOCKED (Meet OAuth); A-08 cinematic walkthrough PARTIAL composition |
-| **B** | **Open** | R-03 S250 UNIT_PROVEN (S2500 residual); J-04 project graph UNIT_PROVEN (await live deep smoke); L-02 collab load PARTIAL; V-01/V-02 PARTIAL |
+| **B** | **Open** | R-03 S250 UNIT_PROVEN (S2500 residual); J-04 project graph LIVE_VERIFIED 10/10; L-02 collab load PARTIAL; V-01/V-02 PARTIAL |
 | **C** | **Open / separate program** | T-01 boundary LIVE; T-02/T-03 DISCOVERED not built |
 | **D** | **Open / deferred substrate** | U-01 DISCOVERED; U-02 NOT_STARTED; primitives exist in Foundation/CT |
 
