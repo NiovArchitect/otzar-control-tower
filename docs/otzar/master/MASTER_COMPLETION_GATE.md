@@ -7,8 +7,8 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | (post-audit register expand) |
-| Live bundle | `index-By1gQYV4.js` (last re-bind 9/9) |
+| CT `origin/main` | `cdadd1d` |
+| Live bundle | `index-CDUr8iyt.js` |
 | Register rows | **74** (was 62 before audit) |
 | Gate status | **Gate A nearly closed**; **Gates B/C/D open** |
 
