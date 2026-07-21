@@ -380,3 +380,59 @@ Do **not** provision S2500. Do **not** continue stressing production solely to h
 * Home/project coherence, AI behavior, provider honesty
 * Do **not** auto-resume 250 or S2500
 
+## R-03 product proof on live tenant (2026-07-21) — identity growth closed
+
+### Exact reconciliation
+
+| Metric | Exact |
+|--------|------:|
+| human_entities | **200** |
+| ACTIVE | **196** |
+| SUSPENDED | **4** |
+| ai_twins | **200** |
+| hierarchy_edge_records | **440** |
+| org | `d7a270ed-d772-41f1-95bd-a8281bf0b2af` |
+| run | `r20260721b` |
+
+### All-identity runtime (live Foundation)
+
+* Script: `scripts/otzar-r03-live-product-proof.mjs --runtime`
+* **200/200** after correct scoring:
+  * 4× SUSPENDED → login **403** (expected refuse)
+  * Employees: `GET /org/hierarchy` **403** is least-privilege (not a failure)
+  * `my-twin` + context-health succeed for active cast
+* Twin list owner field incomplete for 1 pair; person-35 `my-twin` proves pairing
+
+### Concurrent runtime load (not provision endpoints)
+
+| Workload | p50 | p95 | p99 | errors | 429 |
+|----------|----:|----:|----:|-------:|----:|
+| 50× hierarchy (admin) | ~222ms | ~422ms | ~484ms | 0 | 0 |
+| 50× person list | ~204ms | ~442ms | outlier slow | 0 | 0 |
+| 100× my-twin | ~262ms | ~418ms | ~616ms | — | 0 |
+
+### Stratified browser
+
+* Spec: `tests/e2e/otzar-live-r03-stratified-browser.spec.ts` **PASS**
+* Admin Home + CEO/exec/managers/employees/contractor/consultant samples
+* No Meridian leakage; no admin leak on employee/contractor
+
+### Classification
+
+* `S250_STRUCTURAL_PROVEN`
+* `S250_SIMULATION_PROVEN`
+* `LIVE_FOUNDATION_200_PROVISIONED`
+* `LIVE_RUNTIME_ALL_IDENTITY_PROVEN` (rescored)
+* `LIVE_RUNTIME_LOAD_PROVEN` (bounded)
+* `LIVE_MULTI_ROLE_BROWSER_PROVEN` (stratified)
+* `BOUNDED_ENTERPRISE_SCALE_PROVEN`
+* `S2500` — **FOUNDER_DEFERRED**
+* unrestricted `SCALE_PROVEN` — **false**
+
+### Next product gate (not more identities)
+
+* YC first-five-minute deep on live R-03 reviewer account
+* Project-centered full loop with provider proof
+* Work-style learning improvement metrics
+* Second-tenant adversarial zero-leak pack
+

@@ -3539,7 +3539,7 @@
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "FOUNDER STOP 2026-07-21: no S2500; no further live push to arbitrary 250 amid 429s. Layers: STRUCTURAL_PROVEN (S250 graph/invariants/runtime samples); SIMULATION_PROVEN (multi-day NL, concurrency, L-02, V-02); LIVE_PROVISIONED_200_PERSONS + 200 Twins on dedicated org d7a270ed\u2026 (run r20260721b; local cast file tracked first 100; live list reconciled 200 ACTIVE-ish). S2500=FOUNDER_DEFERRED. Not unrestricted SCALE_PROVEN. Next: browser-stratified + runtime proof on live tenant; product gates over vanity counts.",
+      "remaining_gap": "Exact live: 200 humans (196 ACTIVE, 4 SUSPENDED), 200 AI Twins on org d7a270ed\u2026 S250_STRUCTURAL_PROVEN + S250_SIMULATION_PROVEN. LIVE_FOUNDATION_200_PROVISIONED. All-identity runtime: 200/200 after scoring (4 suspended login refusals correct; employee hierarchy 403=least privilege). LIVE_RUNTIME_LOAD: 50 Home p95~422ms 0 err, 50 person-list p95~442ms, 100 my-twin p95~418ms, 0\u00d7429. LIVE_MULTI_ROLE_BROWSER_PROVEN stratified admin+cast sample PASS. S2500 FOUNDER_DEFERRED. Remaining: full YC first-5 deep loop, project-centered provider artifact, work-style learning improvement metrics, second-tenant adversarial pack.",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
@@ -3562,9 +3562,12 @@
         "scripts/otzar-r03-s250-live-provision.mjs",
         "src/lib/org/synthetic-s250/live-cast.ts",
         "tests/unit/s250-live-cast.test.ts",
-        ".r03-s250-state/founder-stop-summary.json"
+        ".r03-s250-state/founder-stop-summary.json",
+        "scripts/otzar-r03-live-product-proof.mjs",
+        "tests/e2e/otzar-live-r03-stratified-browser.spec.ts",
+        ".r03-s250-state/live-reconcile-latest.json"
       ],
-      "acceptance_limitations": "Do not claim 250 or 2500 live accounts. Live count is reconciled ~200 persons/Twins on synthetic-scale org only. Provisioning endpoints returned 429; backoff worked. Provider volume remains emulated at synthetic S250. N-02 Meet still external.",
+      "acceptance_limitations": "Not unrestricted SCALE_PROVEN. Not 250 or 2500 live. Projects list empty via admin API path used (project deep loop residual). One twin list/orphan quirk under investigation (person-35 my-twin OK).",
       "proof_dimensions": {
         "implementation": true,
         "browser": true,
@@ -3600,7 +3603,18 @@
           "date": "2026-07-21",
           "decision": "STOP live provisioning; no S2500; preserve population; honest layers"
         }
-      ]
+      ],
+      "last_live_proof": {
+        "humans": 200,
+        "active": 196,
+        "suspended": 4,
+        "twins": 200,
+        "org": "d7a270ed-d772-41f1-95bd-a8281bf0b2af",
+        "runtime_pass": "200/200_rescored",
+        "browser": "stratified_PASS",
+        "load": "50+50+100_no_429",
+        "commit": "pending"
+      }
     },
     {
       "id": "R-04",
