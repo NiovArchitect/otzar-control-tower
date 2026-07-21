@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **H-02 / I** multi-user isolation + portable core UI (Phase 4 residual after H-01 LIVE);
-2. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
-3. **Q-01/Q-02** cross-tenant isolation continuous (Phase 6) — when multi-tenant credentials available;
+1. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
+2. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
+3. **G-02** Twin authority live multi-role (Phase 5) if not blocked;
 4. **K/L/M** communication lineage + AI↔AI + autonomy full proof.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).
