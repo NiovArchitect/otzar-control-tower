@@ -6,9 +6,9 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `9a742df` |
-| Live bundle | `index-By9mE18P.js` |
-| Live last-modified | 2026-07-21 H-02 redaction residual **10/10** + gate re-bind suite expanded |
+| CT `origin/main` | `6cd2e8c` |
+| Live bundle | `index-By1gQYV4.js` |
+| Live last-modified | 2026-07-21 continuous gate re-bind **9/9** on `index-By1gQYV4.js` |
 | Gate status | **PRODUCT COMPLETE** — continuous re-bind green; only **N-02** EXTERNALLY_BLOCKED (operator Meet OAuth) + credential residuals |
 
 ---
@@ -51,7 +51,7 @@
 
 ---
 
-## Continuous re-bind (2026-07-21)
+## Continuous re-bind (latest)
 
 Command: `npm run test:e2e:live:gate-rebind` (`scripts/otzar-gate-rebind.sh`)
 
@@ -60,13 +60,14 @@ Command: `npm run test:e2e:live:gate-rebind` (`scripts/otzar-gate-rebind.sh`)
 | N-02 meet residual honesty | PASS |
 | T-01 relay boundary | PASS |
 | D-03 spatial readiness | PASS |
-| R-02 defect→regression | PASS |
+| R-02 defect→regression (incl. memory-redaction-corpus P0) | PASS |
 | R-01 enterprise pressure | PASS |
 | Q-01/Q-02 cross-tenant | PASS |
 | I-02 multi-org isolation | PASS |
 | E-03 person types | PASS |
+| H-02 memory redaction residual | PASS |
 
-**Totals: 8 passed · 0 failed** on `index-Bq4gB3kV.js` (~1.9m).
+**Totals: 9 passed · 0 failed** on `index-By1gQYV4.js` (~2.2m).
 
 ---
 

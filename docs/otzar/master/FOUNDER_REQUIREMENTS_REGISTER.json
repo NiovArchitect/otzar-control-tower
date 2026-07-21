@@ -2627,7 +2627,7 @@
         "package.json test:e2e:live:gate-rebind"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Auto-file from production incident not shipped; continuous gate-rebind suite LIVE (8/8 on index-Bq4gB3kV.js)",
+      "remaining_gap": "Auto-file from production incident not shipped; continuous gate-rebind 9/9 LIVE on index-By1gQYV4.js",
       "dependencies": [],
       "priority": "P1",
       "phase": 6,
@@ -2642,7 +2642,8 @@
         "e2e": "otzar-live-defect-regression-r02 10/10",
         "notes": "10 catalog rows; 8 covered; meet open; scale partial; R-01 pressure coexists",
         "sha": "da23b9f",
-        "gate_rebind": "8/8 pass 2026-07-21 index-Bq4gB3kV.js"
+        "gate_rebind": "9/9 pass 2026-07-21 index-By1gQYV4.js",
+        "catalog_rows": 11
       }
     },
     {
