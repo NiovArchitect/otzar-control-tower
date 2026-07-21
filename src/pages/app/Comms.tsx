@@ -29,6 +29,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { RelayBoundaryCard } from "@/components/otzar/RelayBoundaryCard";
+import { MeetOperationalResidualCard } from "@/components/otzar/MeetOperationalResidualCard";
 import {
   AlertCircle,
   Brain,
@@ -387,6 +388,12 @@ export function Comms(): JSX.Element {
 
       {/* T-01 — Comms is CT Work OS capture, not Otzar Relay messaging */}
       <RelayBoundaryCard variant="employee" />
+
+      {/* N-02 — Meet operational residual (EXTERNALLY_BLOCKED until operator OAuth) */}
+      <MeetOperationalResidualCard
+        variant="comms"
+        needsReconnect={needsReconnect}
+      />
 
       {/* [PROD-UX-BUGB] Durable pending follow-ups — shown in every phase so a
           customer who leaves Comms and returns still sees the cards Otzar

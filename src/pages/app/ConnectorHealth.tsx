@@ -25,6 +25,7 @@ import {
   CAPABILITY_FIRST_DETAIL,
   CAPABILITY_FIRST_HEADLINE,
 } from "@/lib/connectors/capability-first-tools";
+import { MeetOperationalResidualCard } from "@/components/otzar/MeetOperationalResidualCard";
 
 type ProviderRow = {
   provider: string;
@@ -218,6 +219,12 @@ export function ConnectorHealth(): JSX.Element {
         </span>{" "}
         {CAPABILITY_FIRST_DETAIL}
       </p>
+
+      {/* N-02 — Meet operational residual honesty (operator OAuth) */}
+      <MeetOperationalResidualCard
+        variant="tools"
+        needsReconnect={needReconnect}
+      />
 
       {needReconnect ? (
         <Card
