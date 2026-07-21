@@ -39,6 +39,10 @@ import {
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
 import { FirstUseReveal } from "@/components/first-use/FirstUseReveal";
+import {
+  SpatialPresenceLayer,
+  SpatialReadinessNote,
+} from "@/components/ambient/SpatialPresenceLayer";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import {
   focusApprovals,
@@ -758,13 +762,19 @@ export function AmbientWorkSurface(): JSX.Element {
       data-s02-journey="true"
       data-s01-walkthrough="true"
       data-s01-primary-paths="login_home,needs_me,talk,twin,memory"
+      data-d03-spatial="true"
     >
       {/* One-shot hero — presence + optional first-use strip (not a second page). */}
-      <section className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6">
+      <section
+        className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6"
+        data-testid="ambient-spatial-stage"
+      >
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="otzar-aurora-layer opacity-80" />
           <div className="otzar-grain opacity-[0.03]" />
         </div>
+        {/* D-03 — optional purposeful CSS depth; reduced-motion → flat 2D */}
+        <SpatialPresenceLayer depthEnabled={!quiet} showReadinessNote />
         <div className="relative flex items-center gap-4">
           <OtzarMark size="lg" active={!quiet} />
           <div className="min-w-0 flex-1">
@@ -1055,6 +1065,10 @@ export function AmbientWorkSurface(): JSX.Element {
           </Link>
         ) : null}
       </div>
+
+      {/* D-03 — spatial readiness note (below glance; not Focus path) */}
+      <SpatialReadinessNote />
+
       {docError !== null ? (
         <p className="px-1 text-[11px] text-amber-800" data-testid="google-doc-create-error">
           {docError}{" "}
