@@ -27,20 +27,26 @@
 5. Engineering scale/test copy on admin Users
 6. Billing / Marketplace / Federation too prominent
 
-## RC2 repairs in progress / shipped this branch
+## RC2 repairs shipped
 
 | Item | Status |
 |------|--------|
-| Persistent walkthrough (v3), CTA does not complete | Implemented |
-| Shell-level mount across routes | Implemented |
-| Step progress local + server best-effort | Implemented |
-| People hover previews | Implemented |
-| Hide scale/pressure harness from Users | Implemented |
-| Hide Billing/Marketplace/Federation from admin nav | Implemented |
-| Collaboration envelope copy plain language | Partial |
-| Full copy dash lint + prohibited register | Open |
-| Invite flow redesign | Open |
-| Fresh tester protocol | Open |
+| Persistent walkthrough (v3), CTA does not complete | Live (`9e50ceb` wave) |
+| Shell-level mount across routes | Live |
+| People hover previews | Live |
+| Hide scale/pressure harness from Users | Live |
+| Hide Billing/Marketplace/Federation from admin nav | Live |
+| Collaboration plain language | Live |
+| Human Home bands (needs / changed / handled / waiting / next) | In this branch |
+| Human work state model | In this branch |
+| Invite relationship + placement language | In this branch |
+| Copy signal lint script + CI soft report | In this branch |
+| Plain language register | In this branch |
+| Founder verify path | `FOUNDER_RC2_VERIFY_PATH.md` |
+| Strict dash/language CI | Soft until full cleanup |
+| Project composition redesign | Partial (bands + project glance remain) |
+| Fresh tester protocol execution | Open (requires humans) |
+| `FOUNDER_EXPERIENCE_APPROVED` | **Not claimed** until founder re-login |
 
 ## Refreeze rule
 

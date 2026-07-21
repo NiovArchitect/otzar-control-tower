@@ -181,7 +181,7 @@ describe("InviteWizard — org placement at creation (P2)", () => {
     await user.type(screen.getByLabelText(/Last name/i), "Hire");
     await user.type(screen.getByLabelText(/^Title$/i), "Marketing Manager");
     // The title previews its role template in human words.
-    expect(await screen.findByTestId("invite-role-template-preview")).toHaveTextContent(/Role template:/);
+    expect(await screen.findByTestId("invite-role-template-preview")).toHaveTextContent(/Prepared as:/);
     await user.type(screen.getByTestId("invite-department"), "Marketing");
     // Two managers share a display name — the VALUE is the stable id.
     await user.selectOptions(screen.getByTestId("invite-manager-select"), "p-mgr-2");

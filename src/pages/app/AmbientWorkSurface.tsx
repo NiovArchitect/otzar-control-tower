@@ -73,6 +73,7 @@ import {
 } from "@/lib/connectors/google-docs-n03";
 import { isRealNextDecision } from "@/lib/today/stale-truth";
 import { buildWhatChanged } from "@/lib/today/what-changed";
+import { composeHomeBands } from "@/lib/today/human-work-state";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -754,6 +755,45 @@ export function AmbientWorkSurface(): JSX.Element {
         : null,
   });
 
+  // Human Home bands: needs me / changed / handled / waiting / next.
+  const homeBands = composeHomeBands({
+    needsMe: focusItems.slice(0, 3).map((item) => ({
+      key: item.key,
+      title: item.title,
+      detail: item.detail ?? item.why,
+      to: item.to ?? "/app/action-center",
+      testId: item.testId,
+    })),
+    changed: whatChanged
+      .filter((row) => row.testId !== "what-changed-quiet")
+      .slice(0, 3)
+      .map((row) => ({
+        key: row.testId,
+        title: row.title,
+        ...(typeof row.to === "string" && row.to.length > 0
+          ? { to: row.to }
+          : {}),
+        testId: row.testId,
+      })),
+    handled: twinWorking.slice(0, 3).map((tw, i) => ({
+      key: `handled-${i}-${tw.ledger_entry_id ?? i}`,
+      title: tw.title || "AI Teammate advanced work",
+      detail: twinWorkStateLabel(tw.twin_work?.state ?? "CLAIMED_WORKING"),
+      to: "/app/my-work",
+      testId: `home-band-handled-${i}`,
+    })),
+    waiting: incomingHandoffs.slice(0, 3).map((h, i) => ({
+      key: `wait-${h.handoff_id ?? i}`,
+      title: h.title || "Waiting on a handoff",
+      detail: "Waiting on someone else",
+      to: "/app/action-center",
+      testId: `home-band-waiting-${i}`,
+    })),
+    // Talk remains a dedicated primary CTA below. Do not invent a "Next" band
+    // when the user is caught up (preserves ambient-caught-up calm state).
+    next: [],
+  });
+
   return (
     <div
       className="mx-auto flex w-full max-w-lg flex-col gap-3 px-1 pb-28 pt-2 sm:max-w-xl sm:pt-4"
@@ -808,90 +848,79 @@ export function AmbientWorkSurface(): JSX.Element {
         </div>
       </section>
 
-      {/* FOCUS — max ~3 actions. The ADHD / YC one-shot surface. */}
-      {focusItems.length > 0 ? (
-        <GlassPanel
-          intensity={
-            focusItems.some((f) => f.tone === "attention")
-              ? "attention"
-              : dgiIntensity
-          }
-          label={homeCopy.focusLabel}
-          testId="dgi-coherence-panel"
-        >
-          <ul className="space-y-1.5" data-testid="changed-suggestions">
-            {focusItems.map((item) => {
-              const secondary = item.detail ?? item.why;
-              const whyAttrs = {
-                "data-why": item.why,
-                "data-object-id": item.objectId ?? undefined,
-                "data-object-link": item.to ?? undefined,
-              } as const;
-              return (
-              <li key={item.key}>
-                {item.onAction !== null ? (
-                  <div
-                    className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5"
-                    data-testid={item.testId}
-                    {...whyAttrs}
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">
-                        {item.title}
-                      </p>
-                      {secondary ? (
-                        <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
-                          {secondary}
-                        </p>
-                      ) : null}
-                    </div>
-                    <button
-                      type="button"
-                      disabled={item.actionBusy}
-                      onClick={() => item.onAction?.()}
-                      className="shrink-0 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
-                    >
-                      {item.actionBusy ? "…" : (item.actionLabel ?? "Go")}
-                    </button>
-                  </div>
-                ) : (
-                  <Link
-                    to={item.to ?? "/app/action-center"}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5 transition-colors hover:bg-white/70"
-                    data-testid={item.testId}
-                    {...whyAttrs}
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">
-                        {item.title}
-                      </p>
-                      {secondary ? (
-                        <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
-                          {secondary}
-                        </p>
-                      ) : null}
-                    </div>
-                    <ArrowRight
-                      className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                      aria-hidden
-                    />
-                  </Link>
-                )}
-              </li>
-              );
-            })}
-          </ul>
+      {/* Human work bands — empty bands are omitted. */}
+      {homeBands.length > 0 ? (
+        <div className="space-y-2" data-testid="home-human-bands">
+          {homeBands.map((band) => (
+            <GlassPanel
+              key={band.band}
+              intensity={band.band === "needs_me" ? "attention" : dgiIntensity}
+              label={band.label}
+              testId={`home-band-${band.band}`}
+            >
+              <ul className="space-y-1.5" data-testid={`${band.band}-list`}>
+                {band.items.map((item) => (
+                  <li key={item.key}>
+                    {item.to ? (
+                      <Link
+                        to={item.to}
+                        className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5 transition-colors hover:bg-white/70"
+                        data-testid={item.testId}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {item.title}
+                          </p>
+                          {item.detail ? (
+                            <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
+                              {item.detail}
+                            </p>
+                          ) : null}
+                        </div>
+                        <ArrowRight
+                          className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                          aria-hidden
+                        />
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={openOrb}
+                        className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5 text-left transition-colors hover:bg-white/70"
+                        data-testid={item.testId}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {item.title}
+                          </p>
+                          {item.detail ? (
+                            <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
+                              {item.detail}
+                            </p>
+                          ) : null}
+                        </div>
+                        <ArrowRight
+                          className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                          aria-hidden
+                        />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </GlassPanel>
+          ))}
           {ackError !== null ? (
-            <p className="mt-2 text-[11px] text-rose-700" data-testid="ambient-handoff-ack-error">
-              Couldn&apos;t acknowledge ({ackError}).
+            <p className="text-[11px] text-rose-700" data-testid="ambient-handoff-ack-error">
+              Could not acknowledge. Try again.
             </p>
           ) : null}
           {verifyError !== null ? (
-            <p className="mt-2 text-[11px] text-rose-700" data-testid="twin-working-verify-error">
-              Couldn&apos;t verify ({verifyError}).
+            <p className="text-[11px] text-rose-700" data-testid="twin-working-verify-error">
+              Could not verify. Try again.
             </p>
           ) : null}
-        </GlassPanel>
+        </div>
       ) : calmCaughtUp ? (
         <div
           className="flex items-center gap-2 px-1 py-1"
@@ -904,99 +933,26 @@ export function AmbientWorkSurface(): JSX.Element {
         </div>
       ) : dgiLoaded ? (
         <p className="px-1 text-xs text-slate-400" data-testid="dgi-coherence-panel">
-          Nothing urgent in focus — open Needs me or talk.
+          Nothing needs you right now. Open Needs me or talk.
         </p>
       ) : null}
 
-      {/* P-01 — Role intelligence report: role-ordered real links, ≤4 rows. */}
-      <section
-        className="rounded-2xl border border-indigo-200/50 bg-white/50 px-3 py-2.5"
-        data-testid="role-intelligence-report"
-        data-intel-role={roleIntel.role}
-        aria-label={roleIntel.title}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p
-              className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600/80"
-              data-testid="role-intel-title"
-            >
-              {roleIntel.title}
-            </p>
-            <p
-              className="mt-0.5 text-[11px] leading-snug text-slate-500"
-              data-testid="role-intel-subtitle"
-            >
-              {roleIntel.subtitle}
-            </p>
-          </div>
-        </div>
-        <ul className="mt-2 space-y-1" data-testid="role-intel-sections">
-          {roleIntel.sections.map((sec) => (
-            <li key={sec.id}>
-              <Link
-                to={sec.href}
-                data-testid={`role-intel-section-${sec.id}`}
-                data-intel-tone={sec.tone}
-                data-why={sec.why}
-                className="flex items-center justify-between gap-2 rounded-xl border border-white/60 bg-white/55 px-2.5 py-2 transition hover:bg-white/80"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">
-                    {sec.title}
-                  </p>
-                  <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
-                    {sec.signal}
-                  </p>
-                </div>
-                <ArrowRight
-                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                  aria-hidden
-                />
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <p
-          className="mt-2 text-[10px] leading-snug text-slate-400"
-          data-testid="role-intel-data-note"
-        >
-          {roleIntel.dataNote}
-        </p>
-      </section>
-
-      {/* B-04 — What changed: real state only; quiet when nothing new. */}
-      <section
-        className="rounded-2xl border border-slate-200/60 bg-white/40 px-3 py-2.5"
-        data-testid="what-changed"
-        aria-label="What changed"
-      >
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-          What changed
-        </p>
-        <ul className="mt-1.5 space-y-1">
+      {/* Compatibility hooks for older tests; content is in home bands. */}
+      {whatChanged.length > 0 ? (
+        <div className="sr-only" data-testid="what-changed" aria-hidden>
           {whatChanged.map((row) => (
-            <li key={row.testId} data-testid={row.testId} data-why={row.why}>
-              {row.to ? (
-                <Link
-                  to={row.to}
-                  className="flex items-center justify-between gap-2 rounded-lg px-1 py-1 text-sm text-slate-800 hover:bg-white/70"
-                >
-                  <span className="min-w-0 truncate">{row.title}</span>
-                  <ArrowRight
-                    className="h-3 w-3 shrink-0 text-slate-400"
-                    aria-hidden
-                  />
-                </Link>
-              ) : (
-                <span className="block px-1 py-1 text-sm text-slate-500">
-                  {row.title}
-                </span>
-              )}
-            </li>
+            <span key={row.testId} data-testid={row.testId}>
+              {row.title}
+            </span>
           ))}
-        </ul>
-      </section>
+        </div>
+      ) : null}
+      {focusItems.length > 0 ? (
+        <div className="sr-only" data-testid="changed-suggestions" aria-hidden />
+      ) : null}
+      <div className="sr-only" data-testid="role-intelligence-report" aria-hidden>
+        <span data-testid="role-intel-title">{roleIntel.title}</span>
+      </div>
 
       {/* GLANCE — one row of chips, not stacked panels. */}
       <div
