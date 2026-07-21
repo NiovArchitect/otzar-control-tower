@@ -42,7 +42,6 @@ export type A08RoleJourney = {
 export function inventoryA08Journey(role: WalkthroughRole): A08RoleJourney {
   const steps = walkthroughStepsFor(role);
   const paths = steps.map((s) => s.ctaTo);
-  const bodies = steps.map((s) => `${s.title} ${s.body}`.toLowerCase()).join(" ");
   const has_org_state = steps.some(
     (s) =>
       s.ctaTo.includes("collaboration") ||

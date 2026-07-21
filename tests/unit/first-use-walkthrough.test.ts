@@ -126,12 +126,11 @@ describe("versioned completion keys (A-04)", () => {
     markWalkthroughComplete(email);
     expect(hasCompletedWalkthrough(email)).toBe(true);
     clearWalkthrough(email);
-    // v2+ does not satisfy from A-03 legacy key alone (version bumps re-show)
-    if (WALKTHROUGH_VERSION === "v1") {
-      expect(hasCompletedWalkthrough(email)).toBe(true);
-    } else {
-      expect(hasCompletedWalkthrough(email)).toBe(false);
-    }
+    // Versioned key cleared — incomplete again (v2+ no longer greened by A-03 legacy alone)
+    expect(hasCompletedWalkthrough(email)).toBe(false);
+    // Explicit v1 still dual-writes legacy key for A-03 readers
+    markWalkthroughComplete(email, "v1");
+    expect(hasCompletedWalkthrough(email, "v1")).toBe(true);
     clearFirstUse(email);
     expect(hasCompletedWalkthrough(email)).toBe(false);
   });
