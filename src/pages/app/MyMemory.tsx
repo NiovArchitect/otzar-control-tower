@@ -53,6 +53,11 @@ import {
   journeyProgressLabel,
   type TeachJourneyState,
 } from "@/lib/work-os/teach-otzar-journey";
+import {
+  classifyPreferenceSummary,
+  ownershipLabel,
+} from "@/lib/work-os/portable-core";
+import { PortableCoreCard } from "@/components/otzar/PortableCoreCard";
 import { WindowContextShare } from "@/components/observation/WindowContextShare";
 
 export function MyMemory(): JSX.Element {
@@ -281,6 +286,8 @@ export function MyMemory(): JSX.Element {
           observation. Lives here because it is about YOUR portable work
           identity and how your Twin learns you. It captures NOTHING today. */}
       <ObservationConsentCard />
+      {/* I-01 / H-02 — portable personal core vs org-bound; multi-user isolation surface */}
+      <PortableCoreCard />
       {/* D-04 — selected-window share: explicit browser permission + live indicator */}
       <WindowContextShare />
 
@@ -748,12 +755,23 @@ function ObservationConsentCard(): JSX.Element {
             <p className="font-medium text-foreground">
               Approved preferences ({approved.length})
             </p>
-            <ul className="mt-1 list-inside list-disc text-muted-foreground">
-              {approved.slice(0, 8).map((p) => (
-                <li key={p.correction_id}>
-                  {p.safe_summary.replace(/^\[(portable|org-bound)\]\s*/, "")}
-                </li>
-              ))}
+            <ul className="mt-1 space-y-1 text-muted-foreground">
+              {approved.slice(0, 8).map((p) => {
+                const c = classifyPreferenceSummary(p.safe_summary);
+                return (
+                  <li
+                    key={p.correction_id}
+                    className="flex items-start gap-2"
+                    data-testid="work-style-approved-item"
+                    data-ownership={c.ownership}
+                  >
+                    <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                      {ownershipLabel(c.ownership)}
+                    </span>
+                    <span>{c.plain}</span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : null}
