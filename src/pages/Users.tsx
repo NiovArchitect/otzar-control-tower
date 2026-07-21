@@ -40,7 +40,9 @@ import type { Entity, EntityMembership, EntityStatus } from "@/lib/types/foundat
 import { buildOrgMap, type OrgMapPerson } from "@/lib/org/org-map";
 import { HierarchyEditor } from "@/components/otzar/HierarchyEditor";
 import { RelationshipEdgesCard } from "@/components/otzar/RelationshipEdgesCard";
+import { PersonTypeTaxonomyCard } from "@/components/otzar/PersonTypeTaxonomyCard";
 import { inventoryRelationships } from "@/lib/org/relationship-edges";
+import { inventoryPersonTypes } from "@/lib/org/person-type-taxonomy";
 
 const PAGE_SIZE = 25;
 
@@ -463,6 +465,23 @@ export function UsersPage() {
             };
           });
           return inventoryRelationships(people);
+        })()}
+      />
+
+      {/* E-03 — employee/contractor/vendor/customer; participation ≠ authority. */}
+      <PersonTypeTaxonomyCard
+        variant="admin"
+        inventory={(() => {
+          const people = (allPeople.data ?? []).map((p) => {
+            const mem = membershipByPerson.get(p.entity_id);
+            return {
+              entity_id: p.entity_id,
+              display_name: p.display_name,
+              role_title: mem?.role_title ?? null,
+              department: mem?.department ?? null,
+            };
+          });
+          return inventoryPersonTypes(people);
         })()}
       />
 

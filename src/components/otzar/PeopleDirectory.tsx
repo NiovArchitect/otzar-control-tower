@@ -30,6 +30,12 @@ import { api } from "@/lib/api";
 import { formatPersonName } from "@/lib/identity/person-name";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 import { PersonCockpit } from "@/components/otzar/PersonCockpit";
+import { PersonTypeTaxonomyCard } from "@/components/otzar/PersonTypeTaxonomyCard";
+import {
+  classifyPersonType,
+  inventoryPersonTypes,
+  personTypeLabel,
+} from "@/lib/org/person-type-taxonomy";
 
 type RosterPeer =
   ContextHealthResponse["identity"]["org_roster"][number];
@@ -150,7 +156,20 @@ export function PeopleDirectory({
     return a.display_name.localeCompare(b.display_name);
   });
 
+  const typeInventory = inventoryPersonTypes(
+    sorted.map((p) => ({
+      entity_id: p.entity_id,
+      display_name: p.display_name,
+      title: p.title,
+      role_title: p.title,
+    })),
+  );
+
   return (
+    <div className="space-y-4" data-testid="people-directory-wrap">
+      {/* E-03 — person types + participation ≠ authority (employee-safe). */}
+      <PersonTypeTaxonomyCard variant="employee" inventory={typeInventory} />
+
     <Card data-testid="people-directory">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
@@ -171,12 +190,14 @@ export function PeopleDirectory({
         >
           {sorted.map((p) => {
             const open = openId === p.entity_id;
+            const pType = classifyPersonType({ title: p.title, role_title: p.title });
             return (
               <li
                 key={p.entity_id}
                 className={`rounded border bg-card ${open ? "sm:col-span-2" : ""}`}
                 data-testid="people-directory-card"
                 data-entity-id={p.entity_id}
+                data-e03-person-type={pType}
               >
                 <button
                   type="button"
@@ -197,6 +218,14 @@ export function PeopleDirectory({
                       {humanizeTitle(p.title)}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px]"
+                        data-testid="people-person-type-badge"
+                        data-person-type={pType}
+                      >
+                        {personTypeLabel(pType)}
+                      </Badge>
                       {p.shared_project_count > 0 ? (
                         <Badge variant="outline" className="text-[10px]">
                           {p.shared_project_count} shared project
@@ -232,9 +261,10 @@ export function PeopleDirectory({
         <p className="mt-3 text-[10px] text-muted-foreground">
           Otzar can route collaboration requests to any of these teammates.
           Cross-team or sensitive requests still go through your organization's
-          policy.
+          policy. Participation counts are not authority.
         </p>
       </CardContent>
     </Card>
+    </div>
   );
 }
