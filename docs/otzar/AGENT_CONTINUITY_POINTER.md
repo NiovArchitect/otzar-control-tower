@@ -29,7 +29,7 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Next internal Work OS priority:** R-03 live S250 blocked on **PLATFORM_OPERATOR_ENTITIES_ABSENT** (census can_admin_niov=0). Founder-gated: FND `bootstrap-niov-operator.ts`. Provisioner diagnostics improved. SCALE_PROVEN=false.
+**Next internal Work OS priority:** R-03 **BOUNDED** (live ~200 + S250 sim; S2500 FOUNDER_DEFERRED). Prefer browser/product coherence on sim tenant — do not escalate live identity count.
 
 ---
 

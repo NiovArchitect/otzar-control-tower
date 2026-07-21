@@ -3533,13 +3533,13 @@
       "exact_requirement": "Internally simulatable enterprise pressure: seeded replayable org generation at progressive sizes (25\u2192250\u21922500 where safe), communication generation, concurrency, hierarchy scaling, UI virtualization, authorization attacks, chaos/replay, performance percentiles \u2014 without requiring YC or production Google credentials.",
       "founder_intent": "Scale is core Work OS proof, not optional curiosity.",
       "status": "PARTIAL",
-      "proof_level": "UNIT_PROVEN",
+      "proof_level": "BOUNDED_ENTERPRISE_SCALE_PROVEN",
       "priority": "P0",
       "phase": 6,
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "Structural gate UNIT_PROVEN. Live provisioner ready. Auth investigation complete: Phase-0 fails at POST /api/v1/auth/login (not platform/orgs). class=PLATFORM_OPERATOR_ENTITIES_ABSENT_OR_STALE_SECRET. Live DB read-only: ACTIVE can_admin_niov census=0; niov-operator-1/2 ABSENT; smoke-admin/meridian-admin ABSENT; Meridian+Smoke org IDs ABSENT; only COMPANY=NIOV Labs (forbidden host); 8 PERSON demo cast. Bootstrap secrets present but map to non-existent principals. SCALE_PROVEN=false. S2500 blocked. Recovery is founder-gated zero-root bootstrap-niov-operator.ts (not automatic password paste).",
+      "remaining_gap": "FOUNDER STOP 2026-07-21: no S2500; no further live push to arbitrary 250 amid 429s. Layers: STRUCTURAL_PROVEN (S250 graph/invariants/runtime samples); SIMULATION_PROVEN (multi-day NL, concurrency, L-02, V-02); LIVE_PROVISIONED_200_PERSONS + 200 Twins on dedicated org d7a270ed\u2026 (run r20260721b; local cast file tracked first 100; live list reconciled 200 ACTIVE-ish). S2500=FOUNDER_DEFERRED. Not unrestricted SCALE_PROVEN. Next: browser-stratified + runtime proof on live tenant; product gates over vanity counts.",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
@@ -3561,9 +3561,10 @@
         "tests/unit/s250-structural-acceptance.test.ts",
         "scripts/otzar-r03-s250-live-provision.mjs",
         "src/lib/org/synthetic-s250/live-cast.ts",
-        "tests/unit/s250-live-cast.test.ts"
+        "tests/unit/s250-live-cast.test.ts",
+        ".r03-s250-state/founder-stop-summary.json"
       ],
-      "acceptance_limitations": "Live provision residual is EXTERNALLY_BLOCKED on NIOV operator dual-control credentials and dedicated R-03 scale admin. Structural fixture remains partial foundation_provisioned. Do not use Meridian or demo org for 250-user scale.",
+      "acceptance_limitations": "Do not claim 250 or 2500 live accounts. Live count is reconciled ~200 persons/Twins on synthetic-scale org only. Provisioning endpoints returned 429; backoff worked. Provider volume remains emulated at synthetic S250. N-02 Meet still external.",
       "proof_dimensions": {
         "implementation": true,
         "browser": true,
@@ -3593,18 +3594,11 @@
         }
       },
       "deployment_sha": "cdadd1d",
-      "external_blocks": [
+      "external_blocks": [],
+      "founder_decisions": [
         {
-          "code": "PLATFORM_OPERATOR_ENTITIES_ABSENT",
-          "plain": "No ACTIVE can_admin_niov entities on live DB; operator emails not in entities"
-        },
-        {
-          "code": "NO_DEDICATED_R03_ORG",
-          "plain": "No SYNTHETIC_SCALE simulation company; cannot use NIOV Labs or Meridian"
-        },
-        {
-          "code": "FOUNDER_GATED_OPERATOR_BOOTSTRAP",
-          "plain": "Zero-root recovery requires FND bootstrap-niov-operator.ts + confirm phrase"
+          "date": "2026-07-21",
+          "decision": "STOP live provisioning; no S2500; preserve population; honest layers"
         }
       ]
     },

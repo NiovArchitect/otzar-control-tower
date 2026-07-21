@@ -89,6 +89,25 @@ async function api(method, path, { token, body } = {}) {
   return { status: res.status, json, text };
 }
 
+/** Retry on RATE_LIMIT_EXCEEDED / 429 with server retry_after. */
+async function apiRetry(method, path, opts = {}, maxAttempts = 6) {
+  let last = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    last = await api(method, path, opts);
+    if (last.status !== 429) return last;
+    const waitSec =
+      Number(last.json?.retry_after_seconds) ||
+      Number(last.json?.retry_after) ||
+      30;
+    const waitMs = Math.min(120_000, Math.max(5_000, waitSec * 1000 + 500));
+    console.warn(
+      `[rate-limit] ${method} ${path} attempt=${attempt} sleep_ms=${waitMs}`,
+    );
+    await sleep(waitMs);
+  }
+  return last;
+}
+
 /**
  * Classify auth failures without printing secrets.
  * @returns {{ class: string, status: number, code: string|null, has_token: boolean, ops: string[]|null }}
@@ -556,7 +575,7 @@ async function phase0CreateOrg() {
 }
 
 async function assertTenancy(token, expectedOrgId) {
-  const h = await api("GET", "/org/hierarchy", { token });
+  const h = await apiRetry("GET", "/org/hierarchy", { token });
   if (h.status !== 200) throw new Error(`hierarchy ${h.status}`);
   const orgId = h.json.org_entity_id;
   if (orgId !== expectedOrgId) {
@@ -571,10 +590,10 @@ async function assertTenancy(token, expectedOrgId) {
 }
 
 async function reconcile(token, state) {
-  const entities = await api("GET", "/org/entities?type=PERSON&take=250", {
+  const entities = await apiRetry("GET", "/org/entities?type=PERSON&take=250", {
     token,
   });
-  const twins = await api("GET", "/org/ai-teammates?take=250", { token });
+  const twins = await apiRetry("GET", "/org/ai-teammates?take=250", { token });
   const peopleCount = (entities.json?.items ?? []).length;
   const twinCount = (twins.json?.items ?? []).length;
   const planned = Object.keys(state.people).length;
@@ -593,8 +612,8 @@ async function provisionOne(adminToken, person, state) {
     return { skipped: true, ...state.people[person.origin_key] };
   }
 
-  // Try create member
-  const created = await api("POST", "/org/members", {
+  // Try create member (rate-limit aware)
+  const created = await apiRetry("POST", "/org/members", {
     token: adminToken,
     body: {
       email: person.email,
@@ -630,16 +649,15 @@ async function provisionOne(adminToken, person, state) {
 
   // Invite + activate (canonical onboarding) — may 400 if already active
   let password = `R03-${RUN_VERSION}-${person.index}-Pass1!`;
-  const invited = await api("POST", "/org/onboarding/invite", {
+  const invited = await apiRetry("POST", "/org/onboarding/invite", {
     token: adminToken,
     body: { entity_id: entityId },
   });
   if (invited.status === 200 && invited.json?.activation_token) {
-    const act = await api("POST", "/auth/activate", {
+    const act = await apiRetry("POST", "/auth/activate", {
       body: { token: invited.json.activation_token, password },
     });
     if (act.status !== 200 && act.status !== 409) {
-      // continue — twin ensure still useful
       console.warn("[warn] activate", person.index, act.status);
     }
   }
@@ -649,7 +667,7 @@ async function provisionOne(adminToken, person, state) {
     const mgrKey = originKey(person.manager_index);
     const mgr = state.people[mgrKey];
     if (mgr?.entity_id) {
-      const edge = await api("POST", "/org/hierarchy/assign", {
+      const edge = await apiRetry("POST", "/org/hierarchy/assign", {
         token: adminToken,
         body: {
           person_entity_id: entityId,
@@ -665,7 +683,7 @@ async function provisionOne(adminToken, person, state) {
   }
 
   // Ensure twin
-  const twin = await api("POST", `/org/members/${entityId}/ensure-twin`, {
+  const twin = await apiRetry("POST", `/org/members/${entityId}/ensure-twin`, {
     token: adminToken,
     body: {},
   });
@@ -673,7 +691,7 @@ async function provisionOne(adminToken, person, state) {
 
   // Optional suspend sample
   if (person.suspend) {
-    await api("PATCH", `/org/entities/${entityId}`, {
+    await apiRetry("PATCH", `/org/entities/${entityId}`, {
       token: adminToken,
       body: { status: "SUSPENDED" },
     });
@@ -733,7 +751,8 @@ async function provisionTo(target) {
       } else {
         process.stdout.write(`s`);
       }
-      await sleep(350);
+      // Conservative pacing — live member create is aggressively rate-limited
+      await sleep(2000);
     }
     saveState(state);
     const rec = await reconcile(adminToken, state);

@@ -331,3 +331,52 @@ node scripts/otzar-r03-s250-live-provision.mjs --target=5
 
 Do **not** host S250 on NIOV Labs demo company.
 
+## R-03 founder stop — no S2500 (2026-07-21)
+
+### Decision
+
+Do **not** provision S2500. Do **not** continue stressing production solely to hit 250 live identities amid `429`s. Preserve successful population; finish product-facing proof.
+
+### Live tenant (dedicated, never_customer)
+
+| Field | Value |
+|-------|--------|
+| org_entity_id | `d7a270ed-d772-41f1-95bd-a8281bf0b2af` |
+| run | `r20260721b` |
+| admin | `r03-scale-admin+r20260721b@niovlabs.com` |
+| live persons (reconciled list) | **200** (196 ACTIVE, 4 SUSPENDED samples) |
+| live Twins | **200** |
+| local cast file tracked | 100 (SIGINT mid level-250 after further creates) |
+| Meridian | not used |
+| NIOV Labs founder org | not used |
+
+### Proof layers
+
+| Layer | Classification |
+|-------|----------------|
+| S250 structural model | **STRUCTURAL_PROVEN** |
+| S250 workload simulation | **SIMULATION_PROVEN** |
+| Live Foundation provisioning | **LIVE_PROVISIONED_200_PERSONS** (not 250, not 2500) |
+| Enterprise scale | **BOUNDED_ENTERPRISE_SCALE_PROVEN** |
+| Unrestricted SCALE_PROVEN | **false** |
+| S2500 | **FOUNDER_DEFERRED — unnecessary for current investor-ready scope** |
+
+### Rate limits (useful evidence)
+
+* `429 RATE_LIMIT_EXCEEDED` on member create, invite, activate, hierarchy assign, ensure-twin
+* Backoff honored (`retry_after_seconds`); retries succeeded; no bypass
+* Provisioner stopped by founder decision, not failure
+
+### Operators
+
+* Zero-root recovered via sanctioned `bootstrap-niov-operator.ts` with founder phrase
+* Dual-control Phase-0 succeeded for R-03 org
+* Secrets only in gitignored bootstrap files (never chat)
+
+### Next (product over vanity count)
+
+* Stratified browser journeys on live sim tenant
+* Runtime sampling of live identities
+* Home/project coherence, AI behavior, provider honesty
+* Do **not** auto-resume 250 or S2500
+

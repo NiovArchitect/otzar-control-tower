@@ -19,7 +19,8 @@
 | Gate | Name | Status |
 |------|------|--------|
 | **A** | Control Tower investor surface | Nearly closed — **N-02 EXTERNALLY_BLOCKED**; A-08/C-07 PARTIAL |
-| **B** | Otzar autonomous Work OS | **Open** — J-04+A-08 LIVE; R-03 S250 UNIT_PROVEN; L-02/V-* |
+| **B** | Otzar autonomous Work OS | **Open** — R-03 bounded enterprise scale (live ~200 + S250 sim); S2500 deferred |
+| **B-old** | Otzar autonomous Work OS | **Open** — J-04+A-08 LIVE; R-03 S250 UNIT_PROVEN; L-02/V-* |
 | **C** | Otzar Relay | **Open** — T-01 boundary LIVE; T-02/T-03 DISCOVERED not built |
 | **D** | Foundation compliance | **Open** — U-01 DISCOVERED; U-02 NOT_STARTED |
 
@@ -73,3 +74,12 @@ A freeze is appropriate only when:
 
 `npm run test:e2e:live:gate-rebind` — 9/9 last PASS on `index-By1gQYV4.js`.  
 Useful for Gate A regression; **not** proof that Gates B/C/D are complete.
+
+
+## R-03 founder stop (2026-07-21)
+
+* **No S2500.** FOUNDER_DEFERRED.
+* Live org `d7a270ed-d772-41f1-95bd-a8281bf0b2af` — ~**200** persons / ~**200** Twins reconciled.
+* S250 structural + simulation proven in-process.
+* Unrestricted `SCALE_PROVEN` **not** claimed.
+* Next Gate B: browser-stratified + product coherence on live sim tenant — not more rows.
