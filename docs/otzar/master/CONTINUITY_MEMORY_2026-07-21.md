@@ -476,3 +476,24 @@ Identity growth remains **closed**. Active work is product behavior on live R-03
 * N-02 Meet external
 * Relay C / Compliance D not started
 
+### Cross-tenant canary (demo → R-03)
+
+* Foreign principal: `vishesh@niovlabs.com` (demo tenant)
+* Target: R-03 org `d7a270ed…`, project `9481e76b…`, cast person/twin IDs
+* Entity/twin/hierarchy/people list: **403** (no content)
+* Project deep-get: **404**
+* Projects list / my-twin: **200** without foreign R-03 IDs
+* **zero_leak=true** for this pack (not full dual-org same-user suite)
+* Classification candidate: `LIVE_CROSS_TENANT_ZERO_LEAK` (bounded pack)
+
+### Work-style calibration probe
+
+* YC reviewer POST `/otzar/twin/calibration` → **422 NOTHING_TO_REMEMBER**
+* Behavioral multi-task learning loop still **NOT_RUN** (requires governed task pairs + consent UX)
+
+### Provider residual (blocks full project loop green)
+
+* Calendar: `GOOGLE_RECONNECT_REQUIRED`
+* Real Google Doc: not proven
+* Comms extraction: LOCAL_FALLBACK only (no LLM work items on this tenant)
+
