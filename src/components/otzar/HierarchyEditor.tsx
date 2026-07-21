@@ -2,7 +2,9 @@
 // PURPOSE: F-02 — Admin hierarchy editor with stage → bulk confirm → undo,
 //          keyboard parity (arrow focus + manager select), optional HTML5
 //          drag-drop reparent, a11y. F-04 — hierarchy ≠ authority copy.
-// CONNECTS TO: Users.tsx, hierarchy-editor.ts, api.org.hierarchy.assign.
+//          F-03 — relationship edge kind badges (sponsor / executive top /
+//          needs manager / matrix hint).
+// CONNECTS TO: Users.tsx, hierarchy-editor.ts, relationship-edges.ts.
 
 import { useCallback, useMemo, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ import {
   type HierarchyPerson,
   type HierarchyUndoEntry,
 } from "@/lib/org/hierarchy-editor";
+import { classifyPersonRelationship } from "@/lib/org/relationship-edges";
 
 export function HierarchyEditor({
   people,
@@ -176,6 +179,7 @@ export function HierarchyEditor({
       className="rounded-lg border border-border bg-card p-4"
       data-testid="hierarchy-editor"
       data-f02="true"
+      data-f03="true"
       data-hierarchy-not-authority="true"
       aria-label="Hierarchy editor"
     >
@@ -188,10 +192,10 @@ export function HierarchyEditor({
       >
         {HIERARCHY_NOT_AUTHORITY_COPY}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Keyboard: ↑/↓ focus rows · change Manager · Stage · Confirm all · Undo.
-        Drag a person onto another to stage “reports to”. Virtualized when the
-        roster is large.
+      <p className="mt-1 text-xs text-muted-foreground" data-testid="hierarchy-f03-hint">
+        F-03 edge kinds: solid reporting, contractor sponsor (manager), executive
+        without manager, needs manager, and matrix/dotted-line hints from role
+        labels. Keyboard: ↑/↓ · Manager · Stage · Confirm · Undo. Drag to reparent.
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -277,6 +281,14 @@ export function HierarchyEditor({
           const focused = index === focusIndex;
           const eff = effectiveManager(p.entity_id, managers, drafts);
           const staged = drafts.some((d) => d.person_entity_id === p.entity_id);
+          const rel = classifyPersonRelationship({
+            entity_id: p.entity_id,
+            display_name: p.display_name,
+            manager_entity_id: eff,
+            role_title: p.role_title ?? null,
+            department: p.department ?? null,
+          });
+          const isContractor = rel.kind === "contractor_sponsor";
           return (
             <div
               key={p.entity_id}
@@ -285,6 +297,8 @@ export function HierarchyEditor({
               data-testid="hierarchy-person-row"
               data-entity-id={p.entity_id}
               data-staged={staged ? "true" : "false"}
+              data-f03-kind={rel.kind}
+              data-f03-matrix-hint={rel.matrix_hint ? "true" : "false"}
               draggable
               onDragStart={() => setDragPersonId(p.entity_id)}
               onDragEnd={() => setDragPersonId(null)}
@@ -310,26 +324,47 @@ export function HierarchyEditor({
                   </span>
                 ) : null}
               </span>
+              <span
+                className="shrink-0 rounded-full border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] text-foreground"
+                data-testid="hierarchy-edge-kind-badge"
+                data-kind={rel.kind}
+              >
+                {rel.kind_label}
+                {rel.matrix_hint ? " · matrix" : ""}
+              </span>
               <label className="sr-only" htmlFor={`mgr-${p.entity_id}`}>
-                Manager for {p.display_name}
+                {isContractor
+                  ? `Sponsor for ${p.display_name}`
+                  : `Manager for ${p.display_name}`}
               </label>
               <select
                 id={`mgr-${p.entity_id}`}
                 className="max-w-[14rem] rounded-md border border-input bg-background px-2 py-1 text-xs"
                 value={eff ?? ""}
-                aria-label={`Manager for ${p.display_name}`}
+                aria-label={
+                  isContractor
+                    ? `Sponsor for ${p.display_name}`
+                    : `Manager for ${p.display_name}`
+                }
                 data-testid="hierarchy-manager-select"
+                data-f03-select={isContractor ? "sponsor" : "manager"}
                 onChange={(e) => {
                   const v = e.target.value;
                   stageManager(p.entity_id, v.length === 0 ? null : v);
                 }}
                 onFocus={() => setFocusIndex(index)}
               >
-                <option value="">No manager (top level)</option>
+                <option value="">
+                  {rel.kind === "executive_no_manager" ||
+                  rel.kind === "needs_manager"
+                    ? "No manager (top level / executive OK)"
+                    : "No manager (top level)"}
+                </option>
                 {people
                   .filter((x) => x.entity_id !== p.entity_id)
                   .map((x) => (
                     <option key={x.entity_id} value={x.entity_id}>
+                      {isContractor ? "Sponsor: " : ""}
                       {x.display_name}
                       {x.email ? ` (${x.email})` : ""}
                     </option>

@@ -8,6 +8,9 @@ export interface HierarchyPerson {
   entity_id: string;
   display_name: string;
   email?: string | null;
+  /** Optional role/department for F-03 edge-kind classification. */
+  role_title?: string | null;
+  department?: string | null;
 }
 
 /** Current reporting edge for a person (null manager = top-level). */

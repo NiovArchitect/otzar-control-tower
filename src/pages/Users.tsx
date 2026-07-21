@@ -39,6 +39,8 @@ import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type { Entity, EntityMembership, EntityStatus } from "@/lib/types/foundation";
 import { buildOrgMap, type OrgMapPerson } from "@/lib/org/org-map";
 import { HierarchyEditor } from "@/components/otzar/HierarchyEditor";
+import { RelationshipEdgesCard } from "@/components/otzar/RelationshipEdgesCard";
+import { inventoryRelationships } from "@/lib/org/relationship-edges";
 
 const PAGE_SIZE = 25;
 
@@ -425,14 +427,59 @@ export function UsersPage() {
         people={allPeople.data ?? []}
       />
 
+      {/* F-03 — relationship edge kinds (solid / sponsor / executive top / matrix). */}
+      <RelationshipEdgesCard
+        inventory={(() => {
+          if (!hierarchy.data) return null;
+          const orgId = hierarchy.data.org_entity_id;
+          const byPerson = new Map<
+            string,
+            { manager: string | null; role: string | null; dept: string | null }
+          >();
+          for (const m of hierarchy.data.memberships) {
+            if (!m.is_active) continue;
+            const isManagerEdge = m.parent_id !== orgId;
+            const cur = byPerson.get(m.child_id);
+            const manager = isManagerEdge
+              ? m.parent_id
+              : (cur?.manager ?? null);
+            byPerson.set(m.child_id, {
+              manager:
+                cur === undefined || (isManagerEdge && cur.manager === null)
+                  ? manager
+                  : cur.manager,
+              role: m.role_title ?? cur?.role ?? null,
+              dept: m.department ?? cur?.dept ?? null,
+            });
+          }
+          const people = (allPeople.data ?? []).map((p) => {
+            const h = byPerson.get(p.entity_id);
+            return {
+              entity_id: p.entity_id,
+              display_name: p.display_name,
+              manager_entity_id: h?.manager ?? null,
+              role_title: h?.role ?? null,
+              department: h?.dept ?? null,
+            };
+          });
+          return inventoryRelationships(people);
+        })()}
+      />
+
       {/* F-02 — hierarchy editor: stage, bulk confirm, undo, keyboard + drag.
-          F-04 — copy states hierarchy ≠ access/TAR. Server assign still audited. */}
+          F-04 — copy states hierarchy ≠ access/TAR. Server assign still audited.
+          F-03 — edge-kind badges on rows. */}
       <HierarchyEditor
-        people={(allPeople.data ?? []).map((p) => ({
-          entity_id: p.entity_id,
-          display_name: p.display_name,
-          email: p.email,
-        }))}
+        people={(allPeople.data ?? []).map((p) => {
+          const mem = membershipByPerson.get(p.entity_id);
+          return {
+            entity_id: p.entity_id,
+            display_name: p.display_name,
+            email: p.email,
+            role_title: mem?.role_title ?? null,
+            department: mem?.department ?? null,
+          };
+        })}
         edges={
           hierarchy.data
             ? (() => {
