@@ -998,18 +998,23 @@
         "tests/unit/spatial-readiness.test.ts",
         "tests/e2e/otzar-live-spatial-d03.spec.ts"
       ],
-      "proof_level": "UNIT_PROVEN",
-      "remaining_gap": "Product shipped; LIVE deep after deploy; immersive WebGL walkthrough residual",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "Immersive WebGL / 3D walkthrough residual (not shipped); CSS depth + 2D fallback proven",
       "dependencies": [],
       "priority": "P2",
       "phase": 1,
       "test_requirements": [],
       "live_acceptance": "Spatial layer + reduced-motion 2D; readiness note; immersive not shipped",
-      "status": "IMPLEMENTED",
+      "status": "LIVE_VERIFIED",
       "prs": [],
       "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "7125122",
+      "final_proof": {
+        "live_bundle": "index-BQpyBPT2.js",
+        "e2e": "otzar-live-spatial-d03 10/10",
+        "notes": "depth_css mode; reduced-motion\u2192flat_2d; 4 rules; immersive not shipped; Focus ADHD-safe",
+        "sha": "7125122"
+      }
     },
     {
       "id": "D-04",

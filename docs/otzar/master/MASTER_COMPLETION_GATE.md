@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `da23b9f` |
-| Live bundle | `index-A_zst0CK.js` |
-| Live last-modified | 2026-07-21 R-02 complex deep **10/10** defect→regression catalog |
-| Gate status | **OPEN** — Phase 6 R LIVE; residual N-02 EXTERNALLY_BLOCKED; L2/L3 scale; D-03 P2; T-01 Relay |
+| CT `origin/main` | `7125122` |
+| Live bundle | `index-BQpyBPT2.js` |
+| Live last-modified | 2026-07-21 D-03 complex deep **10/10** spatial readiness |
+| Gate status | **OPEN** — D-03 LIVE; residual N-02 EXTERNALLY_BLOCKED; T-01 Relay DISCOVERED; scale/YC credential residuals |
 
 ---
 
@@ -76,8 +76,8 @@
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
 1. **N-02** Meet OAuth EXTERNALLY_BLOCKED (operator reauth);
-2. Continuous L2/L3 scale residual when scale credentials available;
-3. Dedicated YC org credentials residual (S-01 multi-role LIVE on demo);
-4. **D-03** optional 3D (P2) / **T-01** Relay boundary (DISCOVERED); regression re-bind.
+2. **T-01** Relay boundary DISCOVERED (preserve separate app — no CT merge);
+3. Continuous L2/L3 scale + dedicated YC org credentials when available;
+4. Regression re-bind of LIVE rows; immersive 3D residual under D-03.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

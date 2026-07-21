@@ -14,7 +14,7 @@
 | CT main | `882361d` (product live `d320c12`) |
 | Live bundle | `index-CqgWhZAo.js` |
 | Live as of | 2026-07-20 07:47:37 UTC |
-| LIVE_VERIFIED count | 58 |
+| LIVE_VERIFIED count | 59 |
 | Open P0 count | 22 |
 | EXTERNALLY_BLOCKED | N-02 (Meet operational) |
 
@@ -55,7 +55,7 @@
 
 ### D — Ambient
 
-PARTIAL / DISCOVERED — presence, voice, 3D, permissioned window context (D-01–D-04).
+D-01–D-04 LIVE_VERIFIED (D-03: optional CSS depth + reduced-motion 2D; immersive residual).
 
 ### E — Dandelion
 
