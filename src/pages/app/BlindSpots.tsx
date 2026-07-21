@@ -304,7 +304,7 @@ export function BlindSpots({
           {runtimeIssues.length > 0 ? (
             <div className="space-y-1.5" data-testid="blind-spots-runtime-issues">
               <h2 className="text-xs font-semibold text-amber-600">
-                Runtime / verification issues ({runtimeIssues.length})
+                Needs a closer look ({runtimeIssues.length})
               </h2>
               {triageBlindSpots(runtimeIssues)
                 .slice(0, showAllRuntime ? undefined : TRIAGE_INITIAL_COUNT)
