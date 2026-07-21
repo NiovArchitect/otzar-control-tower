@@ -103,9 +103,11 @@ export function SyntheticScaleHarnessCard({
           data-s250-harness="synthetic-s250"
         >
           S250 harness: deterministic seed → 250 people + twins, ≥20 teams, ≥30
-          projects, 40 multi-day NL scenarios with hidden oracles, failure
-          injection, metrics, repair loop. Run{" "}
-          <code className="text-[10px]">npx vitest run tests/unit/synthetic-s250-harness.test.ts</code>
+          projects, multi-day multi-channel NL (chat/email/meeting/doc/calendar/
+          handoff/AI) with hidden oracles, provider emulator (emu://), project
+          graph coherence, failure injection, multi-category metrics, repair
+          loop + preserved failing seeds. Run{" "}
+          <code className="text-[10px]">npm run test:unit:s250</code>
           . No YC credentials.
         </p>
 

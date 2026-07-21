@@ -3513,7 +3513,7 @@
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "S250 seeded pressure UNIT_PROVEN (250 people/twins, 40 scenarios, oracles, metrics, repair). UI surface LIVE. S2500 planned. Full multi-day provider-emulated volume + live tenant provision residual. Next Gate B candidates: J-04 project graph, then A-08/L-02.",
+      "remaining_gap": "S250 multi-day multi-channel pressure UNIT_PROVEN (250 people/twins, \u226520 teams, \u226530 projects, hidden oracles, provider emulator, project graph stage, multi-category metrics, repair + failing seed records). UI surface LIVE. S2500 planned. Full live tenant provision residual. J-04 card UNIT_PROVEN (await browser). Next: A-08 / L-02 by gate priority.",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
@@ -3525,7 +3525,7 @@
         "tests/unit/synthetic-s250-harness.test.ts",
         "scripts/otzar-s250-pressure.mjs"
       ],
-      "acceptance_limitations": "In-process synthetic graph + NL scenario pressure \u2014 not live multi-tenant provision of 250 real accounts. Provider volume remains R-04/N-*.",
+      "acceptance_limitations": "In-process synthetic graph + multi-day NL scenario pressure with emu:// providers \u2014 not live multi-tenant provision of 250 real accounts. Real Google volume remains R-04/N-*.",
       "proof_dimensions": {
         "implementation": true,
         "browser": true,

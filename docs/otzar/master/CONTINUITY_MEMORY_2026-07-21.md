@@ -121,3 +121,14 @@ Until then:
 * R-03 S250 remains UNIT_PROVEN (first slice); do not drop S2500 residual
 * **Next after J-04 browser proof:** A-08 cinematic first-login OR deepen R-03 multi-day volume metrics — use register priority
 
+## R-03 S250 depth slice 2 (multi-day multi-channel)
+
+* Multi-day `day_events` across chat/email/meeting/doc/calendar/handoff/ai_collab
+* Hidden oracles expanded (report cues, handoff team, twin attribution)
+* Provider emulator (`emu://`) — no real Google at scale
+* Pipeline stages: decision, handoff, twin_attribution, provider_execution, project_graph (J-04), role_report, persistence, calendar
+* Multi-category metrics (understanding/collab/execution/coherence/security/perf)
+* Failing seed records preserved on every run
+* Unit: 6/6 in `tests/unit/synthetic-s250-harness.test.ts`
+* Still not SCALE_PROVEN at provisioned live tenant; S2500 planned
+

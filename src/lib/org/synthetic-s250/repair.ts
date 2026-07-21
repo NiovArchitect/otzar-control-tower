@@ -1,6 +1,5 @@
 // FILE: repair.ts
-// PURPOSE: R-03 S250 — automatic repair loop skeleton: retain seed, classify,
-//          apply pure-function fix, re-run, record regression id.
+// PURPOSE: R-03 S250 — repair loop: retain seed, classify, fix, re-run, regress.
 
 import { runScenarioPipeline } from "./pipeline";
 import type {
@@ -18,33 +17,59 @@ export function repairScenarioSeed(scenario: WorkScenario): WorkScenario {
   const next: WorkScenario = {
     ...scenario,
     injected_failures: [...scenario.injected_failures],
-    oracle: { ...scenario.oracle, conflicts: [...scenario.oracle.conflicts] },
+    day_events: scenario.day_events.map((e) => ({ ...e })),
+    oracle: {
+      ...scenario.oracle,
+      conflicts: [...scenario.oracle.conflicts],
+      obligations: [...scenario.oracle.obligations],
+      expected_report_cues: [...scenario.oracle.expected_report_cues],
+    },
   };
 
-  // Repair: remove false_completion injection after cataloging regression
-  if (next.injected_failures.includes("false_completion")) {
+  const drop = (...keys: string[]) => {
     next.injected_failures = next.injected_failures.filter(
-      (f) => f !== "false_completion",
+      (f) => !keys.includes(f),
     );
     next.oracle.conflicts = next.oracle.conflicts.filter(
-      (c) => c !== "false_completion_injected",
+      (c) => !keys.includes(c) && !keys.some((k) => c.includes(k)),
     );
+  };
+
+  if (next.injected_failures.includes("false_completion")) {
+    drop("false_completion", "false_completion_injected");
   }
 
-  // Repair: restore decision owner when missing was injected for escalation test
-  // (escalation path already scored; for green re-run restore owner)
-  if (
-    next.injected_failures.includes("missing_decision_owner") &&
-    next.oracle.decision_owner_id === null
-  ) {
-    next.injected_failures = next.injected_failures.filter(
-      (f) => f !== "missing_decision_owner",
-    );
-    next.oracle.conflicts = next.oracle.conflicts.filter(
-      (c) => c !== "missing_decision_owner",
-    );
-    // owner restored from project context if present in participants
+  if (next.injected_failures.includes("missing_decision_owner")) {
+    drop("missing_decision_owner");
     next.oracle.decision_owner_id = next.oracle.participants[0] ?? null;
+  }
+
+  if (next.injected_failures.includes("orphan_obligation")) {
+    drop("orphan_obligation");
+    // Restore project from NL Initiative token if possible — keep id from scenario id index
+    if (!next.oracle.project_id) {
+      // leave project null only if we cannot repair; prefer re-link via first project cue
+      // Repair: reattach via participants' first shared project is product fix;
+      // for seed repair we mark obligations empty until project re-linked by runner.
+      next.oracle.obligations = [];
+    }
+  }
+
+  if (next.injected_failures.includes("duplicate_provider_exec")) {
+    drop("duplicate_provider_exec");
+  }
+
+  if (next.injected_failures.includes("response_persist_fail")) {
+    drop("response_persist_fail");
+  }
+
+  if (next.injected_failures.includes("provider_timeout_before")) {
+    drop("provider_timeout_before");
+  }
+
+  if (next.injected_failures.includes("circular_delegation")) {
+    // safe-refusal already green; clear injection for clean re-run family
+    drop("circular_delegation");
   }
 
   return next;

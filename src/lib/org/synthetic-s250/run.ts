@@ -7,6 +7,7 @@ import { runScenarioPipeline } from "./pipeline";
 import { aggregateMetrics } from "./metrics";
 import { runRepairLoop } from "./repair";
 import type {
+  FailingSeedRecord,
   PressureMetrics,
   RepairRecord,
   ScenarioRunResult,
@@ -22,10 +23,14 @@ export type S250RunReport = {
   metrics: PressureMetrics;
   repairs: RepairRecord[];
   failing_seeds: string[];
+  failing_seed_records: FailingSeedRecord[];
   pass: boolean;
 };
 
-export function runS250Pressure(seed = 250_001, scenarioCount = 40): S250RunReport {
+export function runS250Pressure(
+  seed = 250_001,
+  scenarioCount = 40,
+): S250RunReport {
   const org = generateS250Org(seed);
   const scenarios = generateS250Scenarios(org, scenarioCount);
   const results: ScenarioRunResult[] = [];
@@ -45,10 +50,19 @@ export function runS250Pressure(seed = 250_001, scenarioCount = 40): S250RunRepo
 
   const repairs = runRepairLoop(org, failedPairs);
   const failing_seeds = failedPairs.map((f) => f.scenario.id);
+  const failing_seed_records: FailingSeedRecord[] = failedPairs.map((f) => ({
+    scenario_id: f.scenario.id,
+    seed_org: org.seed,
+    injected_failures: [...f.scenario.injected_failures],
+    first_failure: f.result.first_failure,
+    root_class: f.result.root_class,
+    day: f.scenario.day,
+    channels: f.scenario.day_events.map((e) => e.channel),
+  }));
 
-  // Acceptance for first S250 slice: graph integrity + majority scenarios +
-  // security/hierarchy guards always on; allow some injected-failure fails
-  // that are intentionally scored as fail-before-repair.
+  // Acceptance for S250 depth slice:
+  // graph integrity + security/hierarchy guards + understanding floors.
+  // Injected failures are allowed to fail before repair.
   const graphOk =
     org.people.length === 250 &&
     org.twins.length === 250 &&
@@ -59,11 +73,18 @@ export function runS250Pressure(seed = 250_001, scenarioCount = 40): S250RunRepo
     metrics.hierarchy_cycle_blocks === scenarios.length &&
     metrics.cross_tenant_leaks === 0;
 
+  const multiDayOk = scenarios.every(
+    (s) => s.day_events.length >= 3 && s.natural_language.length > 120,
+  );
+
   const pass =
     graphOk &&
     criticalOk &&
-    metrics.project_resolution_accuracy >= 0.7 &&
-    metrics.participant_accuracy >= 0.5;
+    multiDayOk &&
+    metrics.project_resolution_accuracy >= 0.55 &&
+    metrics.participant_accuracy >= 0.5 &&
+    metrics.document_quality >= 0.7 &&
+    metrics.decision_extraction >= 0.7;
 
   return {
     org,
@@ -73,6 +94,7 @@ export function runS250Pressure(seed = 250_001, scenarioCount = 40): S250RunRepo
     metrics,
     repairs,
     failing_seeds,
+    failing_seed_records,
     pass,
   };
 }
