@@ -1399,21 +1399,32 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "Twin authority grants",
-        "TAR"
+        "src/lib/work-os/twin-authority-binding.ts",
+        "src/components/otzar/TwinAuthorityBindingCard.tsx",
+        "src/pages/app/MyTwin.tsx",
+        "src/pages/AITeammates.tsx",
+        "src/components/ai-teammates/TwinDetailDrawer.tsx",
+        "tests/unit/twin-authority-binding.test.ts",
+        "tests/e2e/otzar-live-twin-authority-g02.spec.ts"
       ],
-      "proof_level": "PARTIAL",
+      "proof_level": "LIVE_VERIFIED",
       "remaining_gap": "",
       "dependencies": [],
       "priority": "P0",
       "phase": 5,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Twin authority binding card multi-role; drawer Foundation note; no template-grants-authority",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "2ede547"
+      ],
+      "deployment_sha": "2ede547",
+      "final_proof": {
+        "live_bundle": "index-DpvdFWKT.js",
+        "e2e": "otzar-live-twin-authority-g02 10/10",
+        "notes": "admin+employee+manager binding; template recommendation-only; preference\u2260authority"
+      }
     },
     {
       "id": "H-01",

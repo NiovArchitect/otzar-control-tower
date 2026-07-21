@@ -72,7 +72,10 @@ PARTIAL — growth card + seeding; full source-driven proposal classes open (E-0
 
 ### G — Role-templated AI Teammates
 
-PARTIAL — templates/authority substrate exist; distinct first sessions incomplete.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **G-01** Role template skills | LIVE_VERIFIED | Skills tab apply; act-on-behalf |
+| **G-02** Authority from Foundation not template | LIVE_VERIFIED | Complex deep 10/10 on `index-DpvdFWKT.js` — admin + employee + manager binding cards; template recommendation-only; preference ≠ authority |
 
 ### H — Memory / work-style
 

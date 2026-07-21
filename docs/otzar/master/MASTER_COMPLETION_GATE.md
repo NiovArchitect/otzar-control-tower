@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `d162655` |
-| Live bundle | `index-BREL-m19.js` |
-| Live last-modified | 2026-07-21 H-02/I complex deep **10/10**; H-01 10/10; E-02/F-02/G-01 complex deep |
-| Gate status | **OPEN** — H-01 + H-02/I-01 LIVE_VERIFIED; Phase 4 residual I-02 multi-org; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `2ede547` |
+| Live bundle | `index-DpvdFWKT.js` |
+| Live last-modified | 2026-07-21 G-02 complex deep **10/10** multi-role; H-01/H-02/I-01 LIVE |
+| Gate status | **OPEN** — G-02 LIVE_VERIFIED; Phase 5 residual L/M; I-02 multi-org; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -75,9 +75,9 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
-2. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
-3. **G-02** Twin authority live multi-role (Phase 5) if not blocked;
-4. **K/L/M** communication lineage + AI↔AI + autonomy full proof.
+1. **M-01** graduated autonomy observe→draft→confirm→execute product ladder (Phase 5 P0);
+2. **L-01** governed AI↔AI collaboration envelope deep proof (Phase 5);
+3. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
+4. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).
