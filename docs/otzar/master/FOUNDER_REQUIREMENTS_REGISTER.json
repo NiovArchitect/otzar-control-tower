@@ -458,26 +458,29 @@
       "group": "A",
       "exact_requirement": "Cinematic first-login walkthrough per role (admin/CEO/manager/employee/contractor): real org state pointers, purposeful restrained spatial depth, one real AI action, one provider honesty pointer, server-side completion/replay; returning users land Home.",
       "founder_intent": "YC aha is not a thin strip only \u2014 full first-login experience.",
-      "status": "PARTIAL",
-      "proof_level": "PARTIAL",
+      "status": "IMPLEMENTED",
+      "proof_level": "UNIT_PROVEN",
       "priority": "P0",
       "phase": 0,
       "program_gates": [
         "A",
         "B"
       ],
-      "remaining_gap": "A-03/A-04/A-05/S-01 cover pieces (strip, server completion, multi-role first5). Not yet unified as one cinematic multi-step per-role live journey with provider+AI action proofs.",
+      "remaining_gap": "A-08 v2 walkthrough: every role has org_state + provider honesty + AI action; cinematic inventory UNIT_PROVEN; FirstUseReveal data-a08 + restrained spatial depth. Await BROWSER_PROVEN deep smoke otzar-live-cinematic-first-login-a08. Residual: multi-role live cinematic film with real provider mutation proofs.",
       "implementation_refs": [
         "src/components/first-use/FirstUseReveal.tsx",
         "src/lib/first-use/walkthrough.ts",
-        "tests/e2e/otzar-live-multi-role-first5.spec.ts"
+        "tests/e2e/otzar-live-multi-role-first5.spec.ts",
+        "src/lib/first-use/cinematic-first-login.ts",
+        "tests/unit/cinematic-first-login-a08.test.ts",
+        "tests/e2e/otzar-live-cinematic-first-login-a08.spec.ts"
       ],
       "acceptance_limitations": "Composition of thinner rows; not a single cinematic deep smoke.",
       "proof_dimensions": {
         "implementation": true,
-        "browser": true,
+        "browser": false,
         "provider": false,
-        "multi_user": true,
+        "multi_user": false,
         "scale": false,
         "live": false
       }

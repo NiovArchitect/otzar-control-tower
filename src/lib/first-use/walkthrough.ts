@@ -1,10 +1,10 @@
 // FILE: walkthrough.ts
-// PURPOSE: A-04 — versioned, role-aware first-use walkthrough plan.
-//          Completion is dual-written: localStorage + Twin PREFERENCE
-//          correction (server-side marker) so version bumps re-show.
-// CONNECTS TO: FirstUseReveal, correctionMemory API, FOUNDER register A-04.
+// PURPOSE: A-04/A-08 — versioned, role-aware first-use walkthrough plan.
+//          A-08 v2: every role includes org-state pointer, provider honesty,
+//          and one real AI action (≤3 steps). Dual completion local+server.
+// CONNECTS TO: FirstUseReveal, correctionMemory API, FOUNDER A-04/A-08.
 
-export const WALKTHROUGH_VERSION = "v1" as const;
+export const WALKTHROUGH_VERSION = "v2" as const;
 
 export type WalkthroughRole =
   | "administrator"
@@ -21,6 +21,8 @@ export interface WalkthroughStep {
   ctaLabel: string;
   ctaTo: string;
   testId: string;
+  /** A-08 facet tags for proof inventory. */
+  facets?: Array<"org_state" | "ai_action" | "provider_honesty">;
 }
 
 export function resolveWalkthroughRole(input: {
@@ -40,97 +42,87 @@ export function resolveWalkthroughRole(input: {
   return "employee";
 }
 
-/** Max 3 steps — ADHD one-shot, not a tour maze. */
-export function walkthroughStepsFor(role: WalkthroughRole): WalkthroughStep[] {
-  const commonTalk: WalkthroughStep = {
-    id: "talk",
-    title: "Talk to Otzar",
-    body: "Ask what needs you, what’s blocked, or draft a follow-up. You approve what leaves.",
-    ctaLabel: "Open Talk",
-    ctaTo: "/app/voice",
-    testId: "walkthrough-step-talk",
-  };
+const AI_ACTION: WalkthroughStep = {
+  id: "ai_action",
+  title: "One real AI action",
+  body: "Open Talk and ask what needs you or draft a follow-up. You approve what leaves — Otzar does not freestyle outbound.",
+  ctaLabel: "Open Talk",
+  ctaTo: "/app/voice",
+  testId: "walkthrough-step-talk",
+  facets: ["ai_action"],
+};
 
+const PROVIDER_HONESTY: WalkthroughStep = {
+  id: "provider_honesty",
+  title: "Provider honesty",
+  body: "Tools shows Google Meet, Calendar, and Docs connection state. Stale scopes are honest — reconnect when needed.",
+  ctaLabel: "Open Tools",
+  ctaTo: "/app/connector-health",
+  testId: "walkthrough-step-tools",
+  facets: ["provider_honesty"],
+};
+
+/**
+ * A-08 cinematic plan: ≤3 steps, every role has org_state + provider + AI.
+ * ADHD one-shot, not a tour maze.
+ */
+export function walkthroughStepsFor(role: WalkthroughRole): WalkthroughStep[] {
   switch (role) {
     case "administrator":
       return [
         {
           id: "org",
           title: "See how work reports",
-          body: "People shows your reporting structure — who reports to whom — so Otzar routes work correctly.",
+          body: "People shows your real reporting structure — who reports to whom — so Otzar routes work correctly.",
           ctaLabel: "Open People",
           ctaTo: "/app/collaboration",
           testId: "walkthrough-step-org",
+          facets: ["org_state"],
         },
-        {
-          id: "tools",
-          title: "Connect tools",
-          body: "Google Meet, Calendar, and Docs power Comms and Today. Reconnect if scopes go stale.",
-          ctaLabel: "Open Tools",
-          ctaTo: "/app/connector-health",
-          testId: "walkthrough-step-tools",
-        },
-        commonTalk,
+        PROVIDER_HONESTY,
+        AI_ACTION,
       ];
     case "executive":
       return [
         {
           id: "today",
           title: "Today is your command surface",
-          body: "Focus holds at most a few decisions. Glance chips open projects, AI work, and Needs me.",
+          body: "Focus holds at most a few decisions from live org state. Glance chips open projects, AI work, and Needs me.",
           ctaLabel: "Stay on Today",
           ctaTo: "/app",
           testId: "walkthrough-step-today",
+          facets: ["org_state"],
         },
-        {
-          id: "people",
-          title: "Organizational shape",
-          body: "Open People to see structure and who can collaborate — without a SaaS admin maze.",
-          ctaLabel: "Open People",
-          ctaTo: "/app/collaboration",
-          testId: "walkthrough-step-people",
-        },
-        commonTalk,
+        PROVIDER_HONESTY,
+        AI_ACTION,
       ];
     case "manager":
       return [
         {
           id: "team",
           title: "Your people and open work",
-          body: "People shows reporting lines. Needs me holds approvals and stuck work for your team.",
+          body: "People shows reporting lines from live org state. Needs me holds approvals and stuck work for your team.",
           ctaLabel: "Open People",
           ctaTo: "/app/collaboration",
           testId: "walkthrough-step-people",
+          facets: ["org_state"],
         },
-        {
-          id: "needs",
-          title: "What needs you",
-          body: "Approvals, handoffs, and blockers land in Needs me — not a generic inbox.",
-          ctaLabel: "Open Needs me",
-          ctaTo: "/app/action-center",
-          testId: "walkthrough-step-needs",
-        },
-        commonTalk,
+        PROVIDER_HONESTY,
+        AI_ACTION,
       ];
     case "contractor":
       return [
         {
           id: "needs",
           title: "Your scoped work",
-          body: "Needs me shows only what you’re allowed to act on. Otzar stays inside your boundaries.",
+          body: "Needs me shows only what you’re allowed to act on from live org state. Otzar stays inside your boundaries.",
           ctaLabel: "Open Needs me",
           ctaTo: "/app/action-center",
           testId: "walkthrough-step-needs",
+          facets: ["org_state"],
         },
-        {
-          id: "projects",
-          title: "Projects you’re on",
-          body: "Open a project to see the mission pulse — people, open work, blockers — in one place.",
-          ctaLabel: "Open Projects",
-          ctaTo: "/app/work-projects",
-          testId: "walkthrough-step-projects",
-        },
-        commonTalk,
+        PROVIDER_HONESTY,
+        AI_ACTION,
       ];
     case "employee":
     default:
@@ -138,20 +130,14 @@ export function walkthroughStepsFor(role: WalkthroughRole): WalkthroughStep[] {
         {
           id: "needs",
           title: "What needs you",
-          body: "Approvals, replies, and stuck items land in Needs me — start here when in doubt.",
+          body: "Approvals, replies, and stuck items from live org state land in Needs me — start here when in doubt.",
           ctaLabel: "Open Needs me",
           ctaTo: "/app/action-center",
           testId: "walkthrough-step-needs",
+          facets: ["org_state"],
         },
-        {
-          id: "projects",
-          title: "Project mission",
-          body: "Projects group people and work so Otzar keeps one mission coherent.",
-          ctaLabel: "Open Projects",
-          ctaTo: "/app/work-projects",
-          testId: "walkthrough-step-projects",
-        },
-        commonTalk,
+        PROVIDER_HONESTY,
+        AI_ACTION,
       ];
   }
 }

@@ -1,8 +1,8 @@
 // FILE: FirstUseReveal.tsx
-// PURPOSE: A-04 — versioned multi-step first-use walkthrough (≤3 steps).
-//          Role-aware paths; real product deep links; skip/replay-friendly;
-//          reduced-motion safe. Dual completion: local + server PREFERENCE.
-// CONNECTS TO: AmbientWorkSurface, first-use/state, walkthrough.ts.
+// PURPOSE: A-04/A-08 — versioned multi-step first-use walkthrough (≤3 steps).
+//          A-08: cinematic role journey with org state, provider honesty, AI action;
+//          restrained spatial depth; skip/replay; dual completion local+server.
+// CONNECTS TO: AmbientWorkSurface, first-use/state, walkthrough.ts, cinematic-first-login.
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -22,6 +22,11 @@ import {
   walkthroughStepsFor,
   WALKTHROUGH_VERSION,
 } from "@/lib/first-use/walkthrough";
+import {
+  A08_DOCTRINE,
+  a08JourneyOk,
+  inventoryA08Journey,
+} from "@/lib/first-use/cinematic-first-login";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 
 function openOrb(): void {
@@ -104,6 +109,8 @@ export function FirstUseReveal(): JSX.Element | null {
   );
   const steps = useMemo(() => walkthroughStepsFor(walkRole), [walkRole]);
   const step = steps[Math.min(stepIndex, steps.length - 1)]!;
+  const a08 = useMemo(() => inventoryA08Journey(walkRole), [walkRole]);
+  const a08Ok = a08JourneyOk(a08);
 
   if (hydrating) return null;
   if (dismissed) return null;
@@ -126,16 +133,28 @@ export function FirstUseReveal(): JSX.Element | null {
     setStepIndex((i) => i + 1);
   }
 
+  // A-08 restrained spatial depth (not a 3D toy) — soft layer + parallax-free lift
+  const spatial = reduceMotion
+    ? "shadow-sm"
+    : "shadow-[0_8px_30px_rgba(79,70,229,0.08)] ring-1 ring-indigo-100/60";
+
   return (
     <div
-      className={`mt-3 rounded-2xl border border-indigo-200/50 bg-white/55 px-3 py-2.5 backdrop-blur-sm ${
-        reduceMotion ? "" : "transition-opacity duration-200"
+      className={`mt-3 rounded-2xl border border-indigo-200/50 bg-gradient-to-br from-white/70 via-white/55 to-indigo-50/40 px-3 py-2.5 backdrop-blur-sm ${spatial} ${
+        reduceMotion ? "" : "transition-all duration-300"
       }`}
       data-testid="first-use-reveal"
+      data-a08="true"
+      data-a08-ok={a08Ok ? "true" : "false"}
       data-role={walkRole}
       data-walkthrough-version={WALKTHROUGH_VERSION}
       data-step={step.id}
+      data-step-facets={(step.facets ?? []).join(",")}
+      data-spatial-depth={reduceMotion ? "reduced" : "restrained"}
     >
+      <p className="sr-only" data-testid="a08-doctrine">
+        {A08_DOCTRINE}
+      </p>
       <div className="flex items-start gap-2.5">
         <Sparkles
           className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500"

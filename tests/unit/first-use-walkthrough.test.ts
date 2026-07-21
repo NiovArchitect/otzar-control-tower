@@ -126,8 +126,12 @@ describe("versioned completion keys (A-04)", () => {
     markWalkthroughComplete(email);
     expect(hasCompletedWalkthrough(email)).toBe(true);
     clearWalkthrough(email);
-    // legacy key still set by markWalkthroughComplete
-    expect(hasCompletedWalkthrough(email)).toBe(true);
+    // v2+ does not satisfy from A-03 legacy key alone (version bumps re-show)
+    if (WALKTHROUGH_VERSION === "v1") {
+      expect(hasCompletedWalkthrough(email)).toBe(true);
+    } else {
+      expect(hasCompletedWalkthrough(email)).toBe(false);
+    }
     clearFirstUse(email);
     expect(hasCompletedWalkthrough(email)).toBe(false);
   });

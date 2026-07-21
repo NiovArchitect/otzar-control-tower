@@ -144,3 +144,11 @@ Until then:
 * N-02 still EXTERNALLY_BLOCKED
 * Gates C/D still open required programs
 
+## A-08 progress (in flight)
+
+* Walkthrough **v2**: every role = org_state + provider honesty + AI action (≤3 steps)
+* `cinematic-first-login.ts` pure inventory + all-roles gate
+* FirstUseReveal: data-a08, doctrine, restrained spatial depth
+* Unit 7/7 A-08; deep smoke ready
+* Status: **UNIT_PROVEN** pending live deep smoke
+
