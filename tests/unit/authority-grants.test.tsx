@@ -6,6 +6,7 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
 import { AuthorityGrants } from "@/pages/app/AuthorityGrants";
@@ -31,9 +32,11 @@ function setAuth() {
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={qc}>
-      <AuthorityGrants />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={qc}>
+        <AuthorityGrants />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
