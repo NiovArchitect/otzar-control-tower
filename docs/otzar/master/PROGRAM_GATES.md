@@ -23,3 +23,11 @@
 
 A **whole-product freeze** is only valid when A–D each have explicit status and every founder requirement is registered.  
 A **Gate A freeze** may be stated separately when only N-02 (and documented residuals) remain.
+
+
+## Work OS project loop (2026-07-21)
+
+- Provider-independent project loop **PROVEN** (extraction→work→AI dep→reports→obligation→learning).
+- `LIVE_CROSS_TENANT_ZERO_LEAK` after full adversarial pack + ledger malformed-ID fix (`72c6864`).
+- Google Docs/Calendar remain **EXTERNALLY_BLOCKED** (reauth). No `PROJECT_LOOP_FULL_CHAIN_PROVEN`.
+- YC first-five re-run PASS on R-03.

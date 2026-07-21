@@ -470,9 +470,26 @@ Identity growth remains **closed**. Active work is product behavior on live R-03
 
 **Oracle metrics (extraction):** final_date_accuracy **true**; rejected_date_suppression **true**; owner_accuracy both **true**; correction_recognition **true**; invented_content_rate **0**.
 
-**Residuals:** full cross-tenant adversarial needs foreign password env; collab duplicate not hard-deduped; COMMITMENT rows lack `conversation_id` column (capture in details).
+#### Internal residuals closed (2026-07-21 continued)
 
-**Harnesses:** `scripts/otzar-r03-project-loop-extract-rerun.mjs`, `scripts/otzar-r03-project-loop-downstream.mjs`
+| Classification | Evidence |
+| --- | --- |
+| Ledger 404 diagnosis | Random UUID `00000000-…0099` = **EXPECTED_NOT_FOUND** (harness control, not UI deep-link). Malformed `not-a-uuid` was **P2023 500** trust defect → fixed FND **#728** / live **`72c6864`** now **404 NOT_FOUND**. Real work ID still **200**. |
+| `LIVE_CROSS_TENANT_ZERO_LEAK` | Full adversarial pack via `vishesh@niovlabs.com` (demo_pw): 0 content leaks; real R-03 ledgers/obligations/intents **404**; collab create **CROSS_ORG_DENIED**; random/malformed **404**; artifact `cross-tenant-adversarial-full.json` |
+| `LIVE_PROJECT_UI_RECONCILED` | Role projections: CEO/Manager/Employee/Contractor; P1 **EXECUTED** not in open work (0 open); project present; intents BLOCKED |
+| `OBLIGATION_UI_RECONCILED` | Employee my-work open **0**; completed ledger visible as EXECUTED, not open |
+| `WORK_STYLE_UI_PROVEN` | policy enabled; 1 approved preference; 0 pending candidates on R03P1 |
+| `ROLE_REPORTING_BROWSER_PROVEN` | Role report surfaces from extracted state (API projections) |
+| YC first-five re-run | **PASS** 12/12 (~24s) on R-03 reviewer after internal chain |
+| Provider resume unit | `tests/unit/provider-intent-resume.test.ts` **6/6** (auth, duplicate, supersede, revoke, reconcile) |
+
+**Still residual (honest):** Google Docs/Calendar/Meet provider objects; `PROJECT_LOOP_FULL_CHAIN_PROVEN` not claimed; collab duplicate policy; COMMITMENT `conversation_id` column still optional (capture in details).
+
+**Live Foundation SHA:** `72c6864` (ledger ID guard) atop `8c3047c` extraction path.
+
+**Harnesses:** `otzar-r03-project-loop-extract-rerun.mjs`, `otzar-r03-project-loop-downstream.mjs`, `otzar-r03-cross-tenant-adversarial.mjs`, `otzar-r03-project-loop-ui-reconcile.mjs`
+
+**Google sole external blocker:** Reconnect Google Workspace so Otzar can update Google Docs and access approved Google Meet artifacts.
 
 #### Exact LOCAL_FALLBACK diagnosis (was NOT missing API key)
 
