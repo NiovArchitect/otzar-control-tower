@@ -28,6 +28,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { RelayBoundaryCard } from "@/components/otzar/RelayBoundaryCard";
 import {
   AlertCircle,
   Brain,
@@ -383,6 +384,9 @@ export function Comms(): JSX.Element {
         title="Comms"
         description="Otzar pulls meetings and messages from your connected tools, then turns them into owned work. Manual paste is a fallback."
       />
+
+      {/* T-01 — Comms is CT Work OS capture, not Otzar Relay messaging */}
+      <RelayBoundaryCard variant="employee" />
 
       {/* [PROD-UX-BUGB] Durable pending follow-ups — shown in every phase so a
           customer who leaves Comms and returns still sees the cards Otzar
