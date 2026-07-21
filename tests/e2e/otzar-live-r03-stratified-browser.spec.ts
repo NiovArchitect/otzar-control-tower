@@ -92,9 +92,7 @@ test("R-03 stratified browser: admin + sample cast", async ({ page }) => {
   );
 
   // Sample cast users
-  let i = 0;
   for (const s of SAMPLE) {
-    i++;
     const email = `r03-s250+${RUN}-${s.index}@niovlabs.com`;
     const password = `R03-${RUN}-${s.index}-Pass1!`;
     try {
