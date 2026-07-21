@@ -254,3 +254,80 @@ Until then:
 2. Re-run `node scripts/otzar-r03-s250-live-provision.mjs --phase0`
 3. Then `--target=5` canary → 20 → 50 → 100 → 250 automatically
 
+## R-03 401 auth investigation (2026-07-21) — complete
+
+### Exact failing request
+
+| Field | Value |
+|-------|--------|
+| Method | `POST` |
+| Endpoint | `/api/v1/auth/login` |
+| Auth method | email + password JSON body |
+| Next (never reached) | `POST /api/v1/platform/orgs` Bearer + dual-control |
+| HTTP | **401** |
+| code | `INVALID_CREDENTIALS` |
+| Auth vs authz | **Authentication failed before authorization** |
+| Source selected | `bootstrap/operator-1` (present=true, rejected) |
+
+### Credential sources (presence only)
+
+| Source | Present | Probe |
+|--------|---------|--------|
+| bootstrap/operator-1 | yes | CREDENTIAL_REJECTED 401 |
+| bootstrap/operator-2 | yes | not re-sprayed after op1 fail |
+| bootstrap/smoke-admin | yes | CREDENTIAL_REJECTED 401 |
+| bootstrap/meridian-admin | yes | CREDENTIAL_REJECTED 401 |
+| tmp/demo_pw_val | yes | AUTH_OK for sadeil (admin_org) + vishesh — **demo org only** |
+| OTZAR_SMOKE_ADMIN_PASSWORD env | no | — |
+| OTZAR_CUSTSIM_ADMIN_PASSWORD env | no | — |
+| R03_SCALE_ADMIN_PASSWORD env | no | — |
+| CT .env.local | keys only VITE_FOUNDATION_API_URL | no secrets |
+
+### Live DB read-only (Render PG connection-info)
+
+* `can_admin_niov` ACTIVE census = **0**
+* `niov-operator-1@` / `niov-operator-2@` → **ABSENT** from `entities`
+* `smoke-admin@` / `meridian-admin@` → **ABSENT**
+* Meridian org `69c07a00…` / Smoke org `ad9515e2…` → **ABSENT**
+* Only COMPANY: **NIOV Labs** `a4ddc200…` (forbidden S250 host)
+* PERSON count: **8** (demo cast: sadeil, vishesh, annie, david, …)
+* No R-03 / Synthetic Scale company
+
+### Authority split
+
+* **Phase-0** org create → platform operators + dual control (**blocked**: no operators)
+* **Member provision** → org admin rails sufficient **after** Phase-0 (**no R-03 org yet**)
+* **Not** requiring platform for every batch once org admin exists
+
+### Historical customer-sim path
+
+* Used `meridian-admin@` + `POST /org/members` → invite → activate on Meridian
+* That principal and org **do not exist on this live database**
+* Cannot reuse without re-bootstrap
+
+### Residual classification
+
+`PLATFORM_OPERATOR_ENTITIES_ABSENT_OR_STALE_SECRET`  
+(not mere “password missing from file”)
+
+### Founder action (single, sanctioned — no password paste into chat)
+
+Zero-root operator recovery on live DB (FND), then re-run Phase-0:
+
+```bash
+cd niov-foundation
+# With live DATABASE_URL from Render connection-info (ops path)
+ALLOW_FOUNDER_BOOTSTRAP=true FOUNDER_BOOTSTRAP_CONFIRM="I AUTHORIZE NIOV OPERATOR BOOTSTRAP" npx tsx scripts/bootstrap-niov-operator.ts --email niov-operator-1@niovlabs.com --apply
+# then operator-2 when census=1
+```
+
+Then:
+
+```bash
+cd otzar-control-tower
+node scripts/otzar-r03-s250-live-provision.mjs --phase0
+node scripts/otzar-r03-s250-live-provision.mjs --target=5
+```
+
+Do **not** host S250 on NIOV Labs demo company.
+

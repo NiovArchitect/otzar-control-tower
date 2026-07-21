@@ -89,12 +89,66 @@ async function api(method, path, { token, body } = {}) {
   return { status: res.status, json, text };
 }
 
+/**
+ * Classify auth failures without printing secrets.
+ * @returns {{ class: string, status: number, code: string|null, has_token: boolean, ops: string[]|null }}
+ */
+function classifyLoginResult(status, json) {
+  const code = json?.code ?? null;
+  if (status === 200 && json?.token) {
+    const ops = json.allowed_operations ?? [];
+    if (ops.includes("admin_niov") || ops.includes("can_admin_niov")) {
+      return { class: "AUTH_OK_PLATFORM", status, code, has_token: true, ops };
+    }
+    if (ops.includes("admin_org") || ops.includes("write")) {
+      return { class: "ORG_ADMIN_SUFFICIENT", status, code, has_token: true, ops };
+    }
+    return { class: "AUTH_OK_LIMITED", status, code, has_token: true, ops };
+  }
+  if (status === 401) {
+    return {
+      class: "CREDENTIAL_REJECTED",
+      status,
+      code: code ?? "INVALID_CREDENTIALS",
+      has_token: false,
+      ops: null,
+    };
+  }
+  if (status === 403) {
+    return {
+      class: code === "DUAL_CONTROL_REQUIRED" || /dual/i.test(JSON.stringify(json))
+        ? "DUAL_CONTROL_REQUIRED"
+        : "PLATFORM_ROLE_MISSING",
+      status,
+      code,
+      has_token: false,
+      ops: null,
+    };
+  }
+  if (status === 0 || status >= 500) {
+    return {
+      class: "AUTH_SERVICE_UNAVAILABLE",
+      status,
+      code,
+      has_token: false,
+      ops: null,
+    };
+  }
+  return { class: "CREDENTIAL_REJECTED", status, code, has_token: false, ops: null };
+}
+
 async function login(email, password, ops = ["read", "write", "admin_org"]) {
   const r = await api("POST", "/auth/login", {
     body: { email, password, requested_operations: ops },
   });
+  const cls = classifyLoginResult(r.status, r.json);
   if (r.status !== 200) {
-    throw new Error(`login failed ${email} status=${r.status} ${JSON.stringify(r.json)}`);
+    const err = new Error(
+      `login failed email=${email} class=${cls.class} status=${r.status} code=${cls.code}`,
+    );
+    err.authClass = cls.class;
+    err.httpStatus = r.status;
+    throw err;
   }
   return r.json.token;
 }
@@ -102,6 +156,33 @@ async function login(email, password, ops = ["read", "write", "admin_org"]) {
 async function loginNiov(email, password) {
   // platform ops need can_admin_niov — request admin ops broadly
   return login(email, password, ["read", "write", "admin_org", "admin_niov"]);
+}
+
+/** Probe login once; never logs secrets. */
+async function probeLogin(source, email, password, ops) {
+  if (!password) {
+    return {
+      source,
+      email,
+      present: false,
+      class: "CREDENTIAL_SOURCE_MISSING",
+      status: null,
+      code: null,
+    };
+  }
+  const r = await api("POST", "/auth/login", {
+    body: { email, password, requested_operations: ops },
+  });
+  const cls = classifyLoginResult(r.status, r.json);
+  return {
+    source,
+    email,
+    present: true,
+    class: cls.class,
+    status: cls.status,
+    code: cls.code,
+    ops: cls.ops,
+  };
 }
 
 function statePath() {
@@ -183,14 +264,74 @@ function buildCast(count) {
 
 async function preflight() {
   const secrets = loadBootstrapSecrets();
-  // Live otzar-api exposes GET /api/v1/health
   const health = await api("GET", "/health");
+
+  let demoPresent = !!process.env.DEMO_SHARED_PASSWORD;
+  try {
+    if (!demoPresent && existsSync("/tmp/demo_pw_val")) {
+      demoPresent = readFileSync("/tmp/demo_pw_val", "utf8").trim().length > 0;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const credential_sources = [
+    { name: "bootstrap/operator-1", present: !!secrets["niov-operator-1@niovlabs.com"], type: "password", role: "platform_operator" },
+    { name: "bootstrap/operator-2", present: !!secrets["niov-operator-2@niovlabs.com"], type: "password", role: "platform_operator" },
+    { name: "bootstrap/smoke-admin", present: !!secrets["smoke-admin@niovlabs.com"], type: "password", role: "org_admin_smoke" },
+    { name: "bootstrap/meridian-admin", present: !!secrets["meridian-admin@niovlabs.com"], type: "password", role: "org_admin_meridian_forbidden" },
+    { name: "tmp/demo_pw_val|DEMO_SHARED_PASSWORD", present: demoPresent, type: "password", role: "demo_org_shared" },
+    { name: "env OTZAR_SMOKE_ADMIN_PASSWORD", present: !!process.env.OTZAR_SMOKE_ADMIN_PASSWORD, type: "password", role: "org_admin_smoke" },
+    { name: "env OTZAR_CUSTSIM_ADMIN_PASSWORD", present: !!process.env.OTZAR_CUSTSIM_ADMIN_PASSWORD, type: "password", role: "org_admin_meridian_forbidden" },
+    { name: "env R03_SCALE_ADMIN_PASSWORD", present: !!process.env.R03_SCALE_ADMIN_PASSWORD, type: "password", role: "org_admin_r03" },
+  ];
+
+  const probes = [];
+  if (secrets["niov-operator-1@niovlabs.com"]) {
+    probes.push(
+      await probeLogin(
+        "bootstrap/operator-1",
+        "niov-operator-1@niovlabs.com",
+        secrets["niov-operator-1@niovlabs.com"],
+        ["read", "write", "admin_org", "admin_niov"],
+      ),
+    );
+  } else {
+    probes.push({
+      source: "bootstrap/operator-1",
+      email: "niov-operator-1@niovlabs.com",
+      present: false,
+      class: "CREDENTIAL_SOURCE_MISSING",
+    });
+  }
+
+  const st = loadState();
+  let orgAdminProbe = null;
+  if (st?.admin_email && st?.admin_password) {
+    orgAdminProbe = await probeLogin(
+      "state/r03-scale-admin",
+      st.admin_email,
+      st.admin_password,
+      ["read", "write", "admin_org"],
+    );
+  }
+
   const report = {
     at: new Date().toISOString(),
     api: API,
-    health: health.json,
+    failing_request_if_phase0: {
+      method: "POST",
+      endpoint: "/api/v1/auth/login",
+      auth_method: "email_password_json_body",
+      next_after_token: "POST /api/v1/platform/orgs (Bearer + dual-control)",
+      note: "401 occurs at login BEFORE platform authorization",
+    },
+    health: {
+      ok: health.json?.ok,
+      database: health.json?.database,
+      git_commit: health.json?.git_commit,
+    },
     foundation_live_sha: health.json?.git_commit ?? null,
-    database: health.json?.database ?? null,
     run_version: RUN_VERSION,
     markers: {
       environment_class: "SYNTHETIC_SCALE",
@@ -199,45 +340,80 @@ async function preflight() {
       cleanup_group: RUN_VERSION,
       never_customer: true,
     },
-    forbidden_orgs: { meridian: MERIDIAN_ORG },
+    forbidden_orgs: {
+      meridian: MERIDIAN_ORG,
+      niov_labs_company: "a4ddc200-b651-4215-a3b3-e25ad8d97032",
+    },
     max_records: 250,
     rate: { batch_size: 5, delay_ms: 400, concurrency: 1 },
-    estimated_requests_at_250:
-      "≈250 members + 250 invites + 250 activates + 250 ensure-twin + ~230 hierarchy + rights",
     state_file: statePath(),
-    existing_state: loadState(),
-    operators_present: {
-      op1: !!secrets["niov-operator-1@niovlabs.com"],
-      op2: !!secrets["niov-operator-2@niovlabs.com"],
-      smoke_admin: !!secrets["smoke-admin@niovlabs.com"],
-    },
+    existing_state: st
+      ? { org_entity_id: st.org_entity_id, people: Object.keys(st.people || {}).length }
+      : null,
+    credential_sources,
+    auth_probes: probes,
+    org_admin_probe: orgAdminProbe,
     env_overrides: {
       R03_SCALE_ORG_ENTITY_ID: process.env.R03_SCALE_ORG_ENTITY_ID ?? null,
       R03_SCALE_ADMIN_EMAIL: process.env.R03_SCALE_ADMIN_EMAIL ?? null,
     },
+    authority_split: {
+      phase0_org_create: "requires can_admin_niov + dual control (two distinct operators)",
+      member_provision: "org admin sufficient after Phase-0: members→invite→activate→hierarchy→ensure-twin",
+    },
+    live_db_investigation: {
+      method: "Render postgres connection-info + read-only SELECT",
+      findings: [
+        "ACTIVE can_admin_niov census = 0",
+        "niov-operator-1/2 entities ABSENT from entities table",
+        "smoke-admin / meridian-admin entities ABSENT",
+        "Meridian + NIOV Smoke Org entity_ids ABSENT on this live DB",
+        "Only COMPANY: NIOV Labs (founder org — forbidden S250 host)",
+        "Only 8 PERSON rows (demo cast); no R-03 simulation org",
+        "Bootstrap passwords present but map to non-existent principals → 401 CREDENTIAL_REJECTED",
+      ],
+      recovery:
+        "FND scripts/bootstrap-niov-operator.ts zero-root (founder confirm phrase) then dual-control Phase-0",
+    },
   };
 
-  // Local CT SHA
   try {
     const { execSync } = await import("node:child_process");
-    report.ct_main_sha = execSync("git rev-parse HEAD", { cwd: ROOT })
-      .toString()
-      .trim();
+    report.ct_main_sha = execSync("git rev-parse HEAD", { cwd: ROOT }).toString().trim();
   } catch {
     report.ct_main_sha = null;
+  }
+
+  const op1 = probes[0];
+  if (op1?.class === "AUTH_OK_PLATFORM") {
+    report.auth_residual_class = null;
+    report.auth_ready_for_phase0 = true;
+  } else if (op1?.class === "CREDENTIAL_SOURCE_MISSING") {
+    report.auth_residual_class = "CREDENTIAL_SOURCE_MISSING";
+    report.auth_ready_for_phase0 = false;
+  } else if (op1?.class === "CREDENTIAL_REJECTED") {
+    report.auth_residual_class = "PLATFORM_OPERATOR_ENTITIES_ABSENT_OR_STALE_SECRET";
+    report.auth_ready_for_phase0 = false;
+  } else {
+    report.auth_residual_class = op1?.class ?? "AUTHENTICATION_PATH_UNRESOLVED";
+    report.auth_ready_for_phase0 = false;
   }
 
   console.log(JSON.stringify(report, null, 2));
 
   if (health.status !== 200 || health.json?.ok !== true) {
-    console.error("PREFLIGHT FAIL: API health");
+    console.error("PREFLIGHT FAIL: AUTH_SERVICE_UNAVAILABLE or health");
     process.exit(2);
   }
   if (health.json?.database !== "connected") {
     console.error("PREFLIGHT FAIL: database not connected");
     process.exit(2);
   }
-  console.log("PREFLIGHT OK");
+  if (!report.auth_ready_for_phase0) {
+    console.error(`PREFLIGHT AUTH class=${report.auth_residual_class} — Phase-0 not ready (not a code gap)`);
+  } else {
+    console.log("PREFLIGHT OK");
+  }
   return report;
 }
 
@@ -268,8 +444,42 @@ async function phase0CreateOrg() {
   };
 
   console.log("[phase0] login operators…");
-  const t1 = await loginNiov(op1Email, op1Pw);
-  const t2 = await loginNiov(op2Email, op2Pw);
+  let t1;
+  let t2;
+  try {
+    t1 = await loginNiov(op1Email, op1Pw);
+  } catch (e) {
+    const cls = e.authClass ?? "CREDENTIAL_REJECTED";
+    console.error(
+      JSON.stringify({
+        step: "phase0_op1_login",
+        source: "bootstrap/operator-1",
+        present: true,
+        endpoint: "POST /api/v1/auth/login",
+        class: cls,
+        status: e.httpStatus ?? 401,
+        hint:
+          cls === "CREDENTIAL_REJECTED"
+            ? "Password rejected or operator entity absent on live DB. Check can_admin_niov census; recovery: FND bootstrap-niov-operator.ts (founder confirm)."
+            : cls,
+      }),
+    );
+    throw e;
+  }
+  try {
+    t2 = await loginNiov(op2Email, op2Pw);
+  } catch (e) {
+    console.error(
+      JSON.stringify({
+        step: "phase0_op2_login",
+        source: "bootstrap/operator-2",
+        present: true,
+        class: e.authClass ?? "CREDENTIAL_REJECTED",
+        status: e.httpStatus ?? 401,
+      }),
+    );
+    throw e;
+  }
 
   console.log("[phase0] initiate POST /platform/orgs (expect dual-control 403)…");
   let r = await api("POST", "/platform/orgs", { token: t1, body });

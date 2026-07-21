@@ -3539,7 +3539,7 @@
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "Structural gate UNIT_PROVEN (3e3f98b). Live Foundation S250 provisioner implemented (scripts/otzar-r03-s250-live-provision.mjs) with Phase-0 dual-control path, tenancy guard, origin keys, canary\u2192250 escalation. PREFLIGHT OK on live api.otzar.ai (git_commit 18295678, database connected). Phase-0 BLOCKED: niov-operator-1/2 and smoke-admin bootstrap credentials return 401 INVALID_CREDENTIALS. Cannot create dedicated never_customer R-03 org or mutate live tenants without fresh operator/admin secrets. SCALE_PROVEN=false. S2500 blocked. Meridian forbidden. Demo org (sadeil) has admin_org but must not host S250.",
+      "remaining_gap": "Structural gate UNIT_PROVEN. Live provisioner ready. Auth investigation complete: Phase-0 fails at POST /api/v1/auth/login (not platform/orgs). class=PLATFORM_OPERATOR_ENTITIES_ABSENT_OR_STALE_SECRET. Live DB read-only: ACTIVE can_admin_niov census=0; niov-operator-1/2 ABSENT; smoke-admin/meridian-admin ABSENT; Meridian+Smoke org IDs ABSENT; only COMPANY=NIOV Labs (forbidden host); 8 PERSON demo cast. Bootstrap secrets present but map to non-existent principals. SCALE_PROVEN=false. S2500 blocked. Recovery is founder-gated zero-root bootstrap-niov-operator.ts (not automatic password paste).",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
@@ -3595,12 +3595,16 @@
       "deployment_sha": "cdadd1d",
       "external_blocks": [
         {
-          "code": "R03_PHASE0_OPERATOR_CREDENTIALS",
-          "plain": "niov-operator-1/2 bootstrap passwords invalid on live API (401)"
+          "code": "PLATFORM_OPERATOR_ENTITIES_ABSENT",
+          "plain": "No ACTIVE can_admin_niov entities on live DB; operator emails not in entities"
         },
         {
-          "code": "R03_SCALE_ADMIN_CREDENTIALS",
-          "plain": "No dedicated R-03 scale org admin credentials; smoke-admin bootstrap also 401"
+          "code": "NO_DEDICATED_R03_ORG",
+          "plain": "No SYNTHETIC_SCALE simulation company; cannot use NIOV Labs or Meridian"
+        },
+        {
+          "code": "FOUNDER_GATED_OPERATOR_BOOTSTRAP",
+          "plain": "Zero-root recovery requires FND bootstrap-niov-operator.ts + confirm phrase"
         }
       ]
     },
