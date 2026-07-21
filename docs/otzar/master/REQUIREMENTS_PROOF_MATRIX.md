@@ -48,6 +48,7 @@ Regression anchors:
 | G-02 | 5 | LIVE_VERIFIED complex deep 10/10 Foundation authority multi-role |
 | H-01 | 4 | LIVE_VERIFIED complex deep 10/10 Teach Otzar e2e |
 | H-02 | 4 | LIVE_VERIFIED complex deep 10/10 multi-user isolation |
+| H-03 | 4 | LIVE_VERIFIED complex deep 10/10 approved applies / rejected never |
 | I-01 | 4 | LIVE_VERIFIED portable core UI (with H-02 deep) |
 | I-02 | 4 | Multi-org memory isolation (open — needs 2nd tenant) |
 | K-01 | 2 | Meet provider after N-02 |

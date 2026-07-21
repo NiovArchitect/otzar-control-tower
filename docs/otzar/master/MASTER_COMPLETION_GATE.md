@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `04d68c3` |
-| Live bundle | `index-DiTdcg9T.js` |
-| Live last-modified | 2026-07-21 M-02 complex deep **10/10**; L-01 10/10; M-01 10/10 |
-| Gate status | **OPEN** — Phase 5 core LIVE (G-02/L-01/M-01/M-02); I-02 multi-org; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `ac78095` |
+| Live bundle | `index-ZpL1xYAm.js` |
+| Live last-modified | 2026-07-21 H-03 complex deep **10/10**; M-02 10/10; L-01 10/10 |
+| Gate status | **OPEN** — H-03 LIVE; Phase 5 core LIVE; residual I-02 multi-org; S-01 YC org; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -77,7 +77,7 @@
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
 1. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
 2. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available;
-3. **K-03** communication lineage residual (Phase 2);
-4. **J-02** full project spine residual (Phase 1).
+3. **S-02** upgrade investor journey BROWSER→LIVE continuous re-bind;
+4. **E-01 / F-03** Dandelion proposal classes / matrix edges residuals.
 
 **Do not outrank with OPS-02.** N-02 remains EXTERNALLY_BLOCKED (Meet OAuth).

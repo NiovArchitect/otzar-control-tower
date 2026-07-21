@@ -83,6 +83,7 @@ PARTIAL — growth card + seeding; full source-driven proposal classes open (E-0
 |----|-------|-------|
 | **H-01** Teach Otzar end-to-end | LIVE_VERIFIED | Complex deep 10/10 on `index-DXhe634d.js` — admin enable → consent → 4 signals → 5 candidates → reject branch; employee blocked from org policy |
 | **H-02** Multi-user isolation | LIVE_VERIFIED | Complex deep 10/10 on `index-BREL-m19.js` — employee vs admin personal cores isolated (8 vs 10 fingerprints, no cross-leak) |
+| **H-03** Approved learning applies later | LIVE_VERIFIED | Complex deep 10/10 on `index-ZpL1xYAm.js` — reject never in approved; approve→later surfaces; Preferences cross-path |
 
 ### I — Portability
 
