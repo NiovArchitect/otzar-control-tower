@@ -7,8 +7,8 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `cdadd1d` |
-| Live bundle | `index-CDUr8iyt.js` |
+| CT `origin/main` | (see latest `git log origin/main -1`) |
+| Live bundle | (re-bind after deploy) |
 | Register rows | **74** (was 62 before audit) |
 | Gate status | **Gate A nearly closed**; **Gates B/C/D open** |
 
@@ -19,7 +19,7 @@
 | Gate | Name | Status |
 |------|------|--------|
 | **A** | Control Tower investor surface | Nearly closed — **N-02 EXTERNALLY_BLOCKED**; A-08/C-07 PARTIAL |
-| **B** | Otzar autonomous Work OS | **Open** — R-03 synthetic scale P0; J-04; L-02; V-* |
+| **B** | Otzar autonomous Work OS | **Open** — R-03 S250 UNIT_PROVEN; J-04 UNIT_PROVEN; L-02; V-* |
 | **C** | Otzar Relay | **Open** — T-01 boundary LIVE; T-02/T-03 DISCOVERED not built |
 | **D** | Foundation compliance | **Open** — U-01 DISCOVERED; U-02 NOT_STARTED |
 
@@ -38,8 +38,8 @@
 
 ## Active P0 (internally achievable first)
 
-1. **R-03** Progressive **internal synthetic** enterprise pressure 25→250→2500 (no YC creds required).  
-2. **J-04** Canonical project graph deep proof.  
+1. **J-04** Canonical project graph — ship LIVE deep smoke (card UNIT_PROVEN).  
+2. **R-03** Deepen S250 multi-day volume / S2500 residual (first slice UNIT_PROVEN).  
 3. **A-08** Unify cinematic first-login multi-role journey.  
 4. **L-02** AI collab load/storm.  
 5. **V-02** Messy multi-source ingestion sim.  
