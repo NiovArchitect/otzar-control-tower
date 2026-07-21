@@ -1,7 +1,7 @@
 // FILE: tests/unit/work-ledger-item-clarity.test.tsx
 // PURPOSE: [CE-1] the read-only "Who can clarify" block inside View/Why:
 //          lazy-loaded only when the detail opens, calm candidate copy
-//          ("Ask Eve — they sent the Slack message this came from."),
+//          ("Ask Eve: they sent the Slack message this came from."),
 //          honest empty state when Otzar lacks context, and NO mutation —
 //          opening the detail never POSTs, never creates an action or
 //          escalation, never adds a Review Center item.
@@ -87,9 +87,9 @@ describe("[CE-1] WorkLedgerItem — Who can clarify (read-only, lazy)", () => {
     expect(hits).toBe(1);
     const clarifiers = screen.getAllByTestId("work-ledger-item-clarifier");
     expect(clarifiers[0]!.textContent).toContain(
-      "Ask Eve — they sent the Slack message this work came from.",
+      "Ask Eve: they sent the Slack message this work came from.",
     );
-    expect(clarifiers[1]!.textContent).toContain("Ask David — they own this work.");
+    expect(clarifiers[1]!.textContent).toContain("Ask David: they own this work.");
     // Raw ids and backend role enums never render.
     const block = screen.getByTestId("work-ledger-item-clarity").textContent ?? "";
     expect(block).not.toContain("u-eve");
@@ -144,7 +144,7 @@ describe("[CE-1] WorkLedgerItem — Who can clarify (read-only, lazy)", () => {
       expect(screen.getByTestId("work-ledger-item-clarification-state")).toBeInTheDocument(),
     );
     expect(screen.getByTestId("work-ledger-item-clarification-state").textContent).toBe(
-      "Clarification requested from Eve — waiting.",
+      "Clarification requested from Eve. Waiting.",
     );
     expect(posted).not.toBeNull();
     expect((posted!.body as Record<string, unknown>).clarifier_entity_id).toBe("u-eve");

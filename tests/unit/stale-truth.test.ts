@@ -16,7 +16,7 @@ describe("B-03 stale-truth", () => {
   it("labels open work older than 7 days as stale", () => {
     const old = new Date(now - STALE_AFTER_MS - 1000).toISOString();
     expect(isStaleOpenWork(old, now)).toBe(true);
-    expect(staleLabel(old, now)).toBe("Stale — still open, needs a decision");
+    expect(staleLabel(old, now)).toBe("Stale. Still open, needs a decision");
   });
 
   it("fresh work is not stale", () => {

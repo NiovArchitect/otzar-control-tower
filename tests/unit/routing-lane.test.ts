@@ -91,7 +91,7 @@ describe("routing-lane — why panel", () => {
     );
     expect(why).not.toBeNull();
     expect(why!.reason).toMatch(/Needs your approval before Otzar posts to Slack/);
-    expect(why!.risk).toBe("High risk — a person stays in the loop");
+    expect(why!.risk).toBe("High risk. A person stays in the loop");
     expect(why!.nextBestAction).toBe("Approve or edit the draft");
   });
 

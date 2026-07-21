@@ -77,7 +77,7 @@ describe("WorkLedgerItem — routing decision surface (P0R)", () => {
     await userEvent.click(screen.getByTestId("work-ledger-item-view"));
     const why = await screen.findByTestId("work-ledger-item-routing-why");
     expect(why).toHaveTextContent(/Needs your approval before Otzar posts to Slack/);
-    expect(why).toHaveTextContent(/High risk — a person stays in the loop/);
+    expect(why).toHaveTextContent(/High risk. A person stays in the loop/);
     expect(why).toHaveTextContent(/Next: Approve or edit the draft/);
   });
 

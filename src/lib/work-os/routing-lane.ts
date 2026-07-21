@@ -52,7 +52,7 @@ export function routingLaneChip(
 const RISK_LINE: Readonly<Record<RoutingDecisionView["risk"], string>> = {
   low: "Low risk",
   medium: "Medium risk",
-  high: "High risk — a person stays in the loop",
+  high: "High risk. A person stays in the loop",
 };
 
 // PROD-MODEL-P5 §19 — the card's ambient left edge, driven by the SAME lane

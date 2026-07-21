@@ -42,7 +42,7 @@ test("T1 employee: Digital Work Wallet states the boundary calmly — no export,
   await page.getByTestId("my-memory-boundary").waitFor({ state: "visible", timeout: 30_000 });
 
   const boundary = (await page.getByTestId("my-memory-boundary").textContent()) ?? "";
-  expect(boundary).toContain("Personal wallet — yours, not the company's");
+  expect(boundary).toContain("Personal wallet. Yours, not the company's");
   expect(boundary).toContain("Your personal work memory");
   expect(boundary).toContain("Company-owned work data");
 

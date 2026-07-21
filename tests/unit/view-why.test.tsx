@@ -436,7 +436,7 @@ describe("viewWhyFromLedger — seeded origin (AIX-1)", () => {
       validated.rows.filter((r) => r.value !== null).map((r) => [r.label, r.value]),
     );
     expect(byLabel["Validation"]).toBe(
-      "Confirmed current — Confirmed as current by your team.",
+      "Confirmed current. Confirmed as current by your team.",
     );
     const raw = JSON.stringify(validated);
     expect(raw).not.toMatch(/context_relevance|human_validation|confirmed_by|wrong_scope/);

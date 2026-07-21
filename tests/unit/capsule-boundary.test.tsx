@@ -81,7 +81,7 @@ describe("[GAP-S S-1] WalletProvenanceBadge — honest owner, future marked as f
   it("personal wallet states employee ownership WITHOUT claiming shipped portability", () => {
     render(<WalletProvenanceBadge walletType="PERSONAL" entityType="PERSON" />);
     expect(
-      screen.getByText(/Personal wallet — yours, not the company's/),
+      screen.getByText(/Personal wallet. Yours, not the company's/),
     ).toBeInTheDocument();
     // The old label claimed present-tense travel; that claim must be gone.
     expect(screen.queryByText(/travels with employee/)).toBeNull();
