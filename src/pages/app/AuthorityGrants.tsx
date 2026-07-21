@@ -26,8 +26,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GraduatedAutonomyLadderCard } from "@/components/otzar/GraduatedAutonomyLadderCard";
+import { TimeLimitedAuthorityCard } from "@/components/otzar/TimeLimitedAuthorityCard";
 import { api } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
+import {
+  durationLabel,
+  isTransparentPurpose,
+  summarizeGrants,
+} from "@/lib/work-os/time-limited-authority";
 import type {
   CreateAuthorityGrantRequest,
   TwinAuthorityDurationClass,
@@ -73,24 +79,7 @@ const SCOPE_TYPES: ReadonlyArray<TwinAuthorityScopeType> = [
 ];
 
 function labelDuration(value: TwinAuthorityDurationClass): string {
-  switch (value) {
-    case "ONE_TIME":
-      return "One time";
-    case "SESSION":
-      return "Session";
-    case "SHORT_TERM":
-      return "Short term";
-    case "PROJECT_SCOPED":
-      return "Project scoped";
-    case "LONG_TERM":
-      return "Long term";
-    case "INDEFINITE":
-      return "Indefinite";
-    case "UNTIL_REVOKED":
-      return "Until revoked";
-    case "SENSITIVE_CASE_BY_CASE":
-      return "Sensitive — case by case";
-  }
+  return durationLabel(value);
 }
 
 function labelSensitivity(value: TwinAuthoritySensitivityClass): string {
@@ -139,6 +128,15 @@ export function AuthorityGrants() {
       {/* M-01 — grants sit on the confirm→execute rungs; ladder is visible. */}
       <GraduatedAutonomyLadderCard variant="employee" autonomyMode={null} />
 
+      {/* M-02 — multi-class time-limited authority + revoke + transparent reason. */}
+      <TimeLimitedAuthorityCard
+        inventory={
+          list.data && list.data.ok
+            ? summarizeGrants(list.data.data.grants)
+            : null
+        }
+      />
+
       <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
         <p className="font-medium text-foreground">A few honest reminders</p>
         <ul className="mt-1 list-disc space-y-1 pl-5">
@@ -161,7 +159,7 @@ export function AuthorityGrants() {
         })}
       />
 
-      <Card>
+      <Card data-testid="active-grants-card" data-m02-list="true">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Active grants</CardTitle>
         </CardHeader>
@@ -220,8 +218,8 @@ function CreateAuthorityGrantForm({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (purposeSummary.trim().length === 0) {
-      setError("Purpose summary is required.");
+    if (!isTransparentPurpose(purposeSummary)) {
+      setError("Purpose summary is required — every grant needs a transparent reason.");
       return;
     }
     const body: CreateAuthorityGrantRequest = {
@@ -236,26 +234,28 @@ function CreateAuthorityGrantForm({
   }
 
   return (
-    <Card data-testid="create-authority-grant-form">
+    <Card data-testid="create-authority-grant-form" data-m02-create="true">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">Grant a new authority</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-4">
           <Field
-            label="Purpose"
+            label="Purpose (transparent reason)"
             id="grant-purpose"
-            description="Plain-language reason for this authority."
+            description="Required. Plain-language reason so you always know why this authority exists."
           >
             <textarea
               id="grant-purpose"
               data-testid="grant-purpose"
+              data-m02-purpose="true"
               value={purposeSummary}
               onChange={(e) => setPurposeSummary(e.target.value)}
               maxLength={500}
               rows={2}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               placeholder="Draft follow-up emails for me until Friday."
+              required
             />
           </Field>
 
@@ -290,7 +290,7 @@ function CreateAuthorityGrantForm({
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
                 {DURATION_CLASSES.map((d) => (
-                  <option key={d} value={d}>
+                  <option key={d} value={d} data-duration-class={d}>
                     {labelDuration(d)}
                   </option>
                 ))}
@@ -427,17 +427,34 @@ function GrantRow({
     <li
       className="rounded-md border border-border bg-card px-4 py-3"
       data-testid={`grant-row-${grant.grant_id}`}
+      data-m02-grant="true"
+      data-duration-class={grant.duration_class}
+      data-scope-type={grant.scope_type}
+      data-revocable={grant.revocable ? "true" : "false"}
+      data-has-purpose={
+        isTransparentPurpose(grant.purpose_summary) ? "true" : "false"
+      }
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Badge>{labelDuration(grant.duration_class)}</Badge>
+        <Badge data-testid="grant-duration-badge">
+          {labelDuration(grant.duration_class)}
+        </Badge>
         <Badge variant="outline">{labelSensitivity(grant.sensitivity_class)}</Badge>
         <Badge variant="outline">{grant.scope_type.replace(/_/g, " ")}</Badge>
         <span className="text-xs text-muted-foreground">
           {labelState(grant.state)}
         </span>
       </div>
-      <p className="mt-2 text-sm text-foreground">{grant.purpose_summary}</p>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p
+        className="mt-2 text-sm text-foreground"
+        data-testid="grant-purpose-text"
+      >
+        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          Why ·{" "}
+        </span>
+        {grant.purpose_summary}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground" data-testid="grant-timing">
         Granted {formatRelativeTime(grant.created_at)}
         {grant.expires_at &&
           ` · expires ${formatRelativeTime(grant.expires_at)}`}
@@ -456,6 +473,7 @@ function GrantRow({
             disabled={revoke.isPending}
             onClick={() => revoke.mutate()}
             data-testid={`grant-revoke-${grant.grant_id}`}
+            data-m02-revoke="true"
           >
             {revoke.isPending ? "Revoking…" : "Revoke"}
           </Button>
