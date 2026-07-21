@@ -524,6 +524,24 @@ OAuth for R-03: **VERIFIED** (connected_at 10:41Z, verified 10:43Z). App credent
 
 Artifact: `.r03-s250-state/google-provider-resume.json`
 
+#### CT build failure recovery (2026-07-21)
+
+| Item | Detail |
+| --- | --- |
+| Failed SHA | `4deab19` — memory claim for full-chain; **Render build_failed** on `tsc -b` |
+| Root cause | `src/lib/org/provider-intent-resume.ts` TS2367: after early terminal handling of `EXECUTED`, later branches still compared `intent.status === "EXECUTED"` (unreachable under narrowing) at ~L109/L180/L184 |
+| Repair | Handle **EXECUTED pre-state first** (`resumeWhenAlreadyExecuted`); active path never compares to `EXECUTED`; no casts / no `any` |
+| PR | [#196](https://github.com/NiovArchitect/otzar-control-tower/pull/196) |
+| Merge / deploy SHA | `80e36b4e1bc5694fb68b134cbb971411e7ca86fe` |
+| Local build | `npm ci && npm run build` exit 0 → local `index-D5JTtwM7.js` + `index-CyE4kMZQ.css` |
+| Render | otzar-app `srv-d8t1qpj7uimc73db2il0` deploy `dep-d9fp39njqk9s73eleht0` **live** commit `80e36b4` |
+| Live bundle | HTML 200 · JS `/assets/index-D8TMNmma.js` 200 · CSS `/assets/index-CyE4kMZQ.css` 200 |
+| Unit | `provider-intent-resume` **16/16** |
+| Browser | YC reviewer login → `/app` R-03 shell green; no application-error |
+| API re-proof | material `already_applied`; formatting no blocker noise; foreign `DOC_ARTIFACT_NOT_FOUND` |
+| Classifications | Backend proof retained; `CT_FULL_CHAIN_UI_LIVE_VERIFIED` after this deploy |
+| Security residual | npm audit **11** vulns (not addressed this PR; no `audit fix --force`) |
+
 #### Exact LOCAL_FALLBACK diagnosis (was NOT missing API key)
 
 | Probe | Result |
