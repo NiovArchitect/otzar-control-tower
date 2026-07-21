@@ -1917,22 +1917,33 @@
       ],
       "architecture": "",
       "implementation_refs": [
-        "TAR",
-        "authority grants",
-        "escalations"
+        "src/lib/work-os/graduated-autonomy.ts",
+        "src/components/otzar/GraduatedAutonomyLadderCard.tsx",
+        "src/pages/app/MyTwin.tsx",
+        "src/pages/app/AuthorityGrants.tsx",
+        "src/pages/AITeammates.tsx",
+        "tests/unit/graduated-autonomy.test.ts",
+        "tests/e2e/otzar-live-graduated-autonomy-m01.spec.ts"
       ],
-      "proof_level": "PARTIAL",
-      "remaining_gap": "Full graduated ladder product UX",
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "M-02 multi-class continuous; execute-path provider proofs residual",
       "dependencies": [],
       "priority": "P0",
       "phase": 5,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "PARTIAL",
+      "live_acceptance": "Graduated autonomy ladder on My Twin/Grants/AI Teammates; deep multi-step confirm path",
+      "status": "LIVE_VERIFIED",
       "prs": [],
-      "merge_shas": [],
-      "deployment_sha": null,
-      "final_proof": null
+      "merge_shas": [
+        "557acd1",
+        "15c430c"
+      ],
+      "deployment_sha": "15c430c",
+      "final_proof": {
+        "live_bundle": "index-CzDer3IR.js",
+        "e2e": "otzar-live-graduated-autonomy-m01 10/10",
+        "notes": "ladder stages; Needs me confirm path; grants reminder; admin ladder; prefRaise=false"
+      }
     },
     {
       "id": "M-02",

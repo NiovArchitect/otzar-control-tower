@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `2ede547` |
-| Live bundle | `index-DpvdFWKT.js` |
-| Live last-modified | 2026-07-21 G-02 complex deep **10/10** multi-role; H-01/H-02/I-01 LIVE |
-| Gate status | **OPEN** — G-02 LIVE_VERIFIED; Phase 5 residual L/M; I-02 multi-org; N-02 EXTERNALLY_BLOCKED |
+| CT `origin/main` | `15c430c` |
+| Live bundle | `index-CzDer3IR.js` |
+| Live last-modified | 2026-07-21 M-01 complex deep **10/10**; G-02 10/10; H/I LIVE |
+| Gate status | **OPEN** — M-01 + G-02 LIVE_VERIFIED; Phase 5 residual L-01/M-02; I-02; N-02 EXTERNALLY_BLOCKED |
 
 ---
 
@@ -75,8 +75,8 @@
 **A-06 LIVE_VERIFIED.** Phase 0 P0/P1 trust gate closed for org-switch isolation (honest residual: server multi-org switch token).
 
 **Highest next internal product (YC / investor gate):** recompute — candidates by impact:
-1. **M-01** graduated autonomy observe→draft→confirm→execute product ladder (Phase 5 P0);
-2. **L-01** governed AI↔AI collaboration envelope deep proof (Phase 5);
+1. **L-01** governed AI↔AI collaboration envelope deep proof (Phase 5);
+2. **M-02** one-time/session/project grants continuous multi-class proof;
 3. **S-01** dedicated YC synthetic org continuous walkthrough (Phase 7 P0) if harness credentials exist;
 4. **I-02 / Q-01** multi-org / cross-tenant isolation when second-tenant credentials available.
 

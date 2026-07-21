@@ -113,7 +113,10 @@ PARTIAL — collab envelope exists; load/storm proofs open.
 
 ### M — Autonomy
 
-PARTIAL — TAR/grants/escalations; graduated product ladder open.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **M-01** Graduated autonomy ladder | LIVE_VERIFIED | Complex deep 10/10 on `index-CzDer3IR.js` — observe→draft→confirm→execute; Needs me + grants; preference ≠ authority |
+| **M-02** Time-limited auth classes | PARTIAL | continuous multi-class proof open |
 
 ### N — Providers
 
