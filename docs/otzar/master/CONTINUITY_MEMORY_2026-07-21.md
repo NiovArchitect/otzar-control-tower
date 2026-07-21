@@ -448,13 +448,31 @@ Identity growth remains **closed**. Active work is product behavior on live R-03
 * Org label: R03 Synthetic Scale; no Meridian foreign label
 * Classification: **`YC_FIRST_FIVE_BROWSER_PROVEN`**
 
-### Phase 2 — Project loop (PARTIAL — extraction now live-proven; full chain open)
+### Phase 2 — Project loop (PARTIAL — extraction + downstream proven; Google open)
 
 * Project: `9481e76b-b618-46bc-93aa-3e63d4a0ac1a` — Enterprise Customer Pilot
 * Hidden oracle: final date **2026-09-18**, rejected **2026-09-11** (model never received oracle)
-* **Whole Phase 2 still open for:** obligations completion UI, AI-to-AI from extracted dependency, role reports, Home reconcile, Google
-* **Communication→extraction→owned work:** **`PROJECT_LOOP_EXTRACTION_PROVEN`** on live `8c3047c` (2026-07-21)
-* Seeded `PROJECT_BRIEF` / `DECISION_LOG` = **scaffolding only** — not extraction proof
+* Live SHA: **`8c3047c613f6…`**
+* Seeded `PROJECT_BRIEF` / `DECISION_LOG` = **scaffolding only**
+
+#### Downstream proven (2026-07-21 autonomous continuation)
+
+| Classification | Evidence |
+| --- | --- |
+| `EXTRACTION_LIVE_PROVEN` | LLM · `EXTRACTION_COMPLETED_WITH_SIGNALS` · capture `4108a803-…` |
+| `EXTRACTED_WORK_VALIDATED` | R03P1+R03P4 PROPOSED→READY_TO_EXECUTE; Team NEEDS_OWNER held for review |
+| `EXTRACTED_AI_DEPENDENCY_PROVEN` | collab `970804f2-…` BLOCKER_RESOLUTION R03P1→R03P4 → ACCEPTED → **COMPLETED** (requester completes) |
+| `EXTRACTED_ROLE_REPORTING_PROVEN` | CEO/Manager/Employee/Contractor reports from extracted state (not seeded brief) |
+| `OBLIGATION_LIFECYCLE_RECONCILED` | obligation `77fba32c-…` ACTION_CONFIRMATION + ledger `9dc38bd3-…` **EXECUTED** → obligation **COMPLETED**; open work 1→0 |
+| `PROJECT_LOOP_PROVIDER_INDEPENDENT_PROVEN` | doc intent `35aec899-…` + cal intent `c2159668-…` status **WAITING_FOR_PROVIDER_AUTH** date **2026-09-18** |
+| `WORK_STYLE_BEHAVIORALLY_PROVEN` | session + 2 candidates; approve 1 / reject 1 on R03P1 |
+| `GOOGLE_PROVIDER_EXTERNALLY_BLOCKED` | calendar propose `SCOPE_REAUTH_REQUIRED` |
+
+**Oracle metrics (extraction):** final_date_accuracy **true**; rejected_date_suppression **true**; owner_accuracy both **true**; correction_recognition **true**; invented_content_rate **0**.
+
+**Residuals:** full cross-tenant adversarial needs foreign password env; collab duplicate not hard-deduped; COMMITMENT rows lack `conversation_id` column (capture in details).
+
+**Harnesses:** `scripts/otzar-r03-project-loop-extract-rerun.mjs`, `scripts/otzar-r03-project-loop-downstream.mjs`
 
 #### Exact LOCAL_FALLBACK diagnosis (was NOT missing API key)
 
