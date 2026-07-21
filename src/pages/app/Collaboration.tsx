@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PeopleDirectory } from "@/components/otzar/PeopleDirectory";
 import { PeopleStructureGlance } from "@/components/otzar/PeopleStructureGlance";
 import { AiCollabEnvelopeCard } from "@/components/otzar/AiCollabEnvelopeCard";
+import { AiCollabLoadCard } from "@/components/otzar/AiCollabLoadCard";
 import { Sprout } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
@@ -193,6 +194,8 @@ export function Collaboration() {
 
       {/* L-01 — AI↔AI collaboration is a governed, fail-closed envelope. */}
       <AiCollabEnvelopeCard />
+      {/* L-02 — load / storm / loop protection beyond single envelope. */}
+      <AiCollabLoadCard />
 
       {/* First-use one-shot: structure + people, then collab. Growth is secondary. */}
       <PeopleStructureGlance />
