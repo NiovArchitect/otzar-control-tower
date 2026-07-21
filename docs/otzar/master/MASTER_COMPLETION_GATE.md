@@ -6,10 +6,10 @@
 
 | Field | Value |
 |-------|--------|
-| CT `origin/main` | `c875bc6` |
+| CT `origin/main` | `618783b` |
 | Live bundle | `index-Bq4gB3kV.js` |
-| Live last-modified | 2026-07-21 N-02 honesty residual complex deep **10/10** (status still EXTERNALLY_BLOCKED) |
-| Gate status | **PRODUCT COMPLETE** for CT shippable rows — only **N-02** EXTERNALLY_BLOCKED (operator Meet OAuth) + credential residuals |
+| Live last-modified | 2026-07-21 continuous gate re-bind **8/8** deep smokes PASS |
+| Gate status | **PRODUCT COMPLETE** — continuous re-bind green; only **N-02** EXTERNALLY_BLOCKED (operator Meet OAuth) + credential residuals |
 
 ---
 
@@ -51,10 +51,29 @@
 
 ---
 
+## Continuous re-bind (2026-07-21)
+
+Command: `npm run test:e2e:live:gate-rebind` (`scripts/otzar-gate-rebind.sh`)
+
+| Spec | Result |
+|------|--------|
+| N-02 meet residual honesty | PASS |
+| T-01 relay boundary | PASS |
+| D-03 spatial readiness | PASS |
+| R-02 defect→regression | PASS |
+| R-01 enterprise pressure | PASS |
+| Q-01/Q-02 cross-tenant | PASS |
+| I-02 multi-org isolation | PASS |
+| E-03 person types | PASS |
+
+**Totals: 8 passed · 0 failed** on `index-Bq4gB3kV.js` (~1.9m).
+
+---
+
 ## Next slice
 
 1. **Operator:** reauth Meet OAuth → re-run ambient Comms sync → promote N-02 to PROVIDER_PROVEN / LIVE_VERIFIED when continuous.  
 2. Optional credential harnesses: L2/L3 scale, dedicated YC org.  
-3. Regression re-bind of LIVE rows as needed.  
+3. Re-run `npm run test:e2e:live:gate-rebind` after deploys.  
 
 **Do not claim N-02 LIVE operational without operator OAuth proof.**

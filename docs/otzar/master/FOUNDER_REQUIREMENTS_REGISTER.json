@@ -2612,10 +2612,12 @@
         "src/components/otzar/DefectRegressionCard.tsx",
         "src/pages/Users.tsx",
         "tests/unit/defect-regression.test.ts",
-        "tests/e2e/otzar-live-defect-regression-r02.spec.ts"
+        "tests/e2e/otzar-live-defect-regression-r02.spec.ts",
+        "scripts/otzar-gate-rebind.sh",
+        "package.json test:e2e:live:gate-rebind"
       ],
       "proof_level": "LIVE_VERIFIED",
-      "remaining_gap": "Auto-file suite from production incident not shipped; catalog expands manually when pressure finds defects",
+      "remaining_gap": "Auto-file from production incident not shipped; continuous gate-rebind suite LIVE (8/8 on index-Bq4gB3kV.js)",
       "dependencies": [],
       "priority": "P1",
       "phase": 6,
@@ -2629,7 +2631,8 @@
         "live_bundle": "index-A_zst0CK.js",
         "e2e": "otzar-live-defect-regression-r02 10/10",
         "notes": "10 catalog rows; 8 covered; meet open; scale partial; R-01 pressure coexists",
-        "sha": "da23b9f"
+        "sha": "da23b9f",
+        "gate_rebind": "8/8 pass 2026-07-21 index-Bq4gB3kV.js"
       }
     },
     {
