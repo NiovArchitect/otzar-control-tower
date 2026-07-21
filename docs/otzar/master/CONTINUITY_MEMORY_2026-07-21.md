@@ -436,3 +436,43 @@ Do **not** provision S2500. Do **not** continue stressing production solely to h
 * Work-style learning improvement metrics
 * Second-tenant adversarial zero-leak pack
 
+## Work OS acceptance sequence started (2026-07-21)
+
+Identity growth remains **closed**. Active work is product behavior on live R-03 org.
+
+### Phase 1 — YC first-five
+
+* Reviewer: `r03-yc-reviewer+r20260721b@niovlabs.com` (one designated account)
+* Spec: `tests/e2e/otzar-live-r03-yc-first5.spec.ts` **PASS** (~21.8s)
+* Walkthrough present/advanced; Home coherent; Talk; Projects; provider honesty; return Home
+* Org label: R03 Synthetic Scale; no Meridian foreign label
+* Classification: **`YC_FIRST_FIVE_BROWSER_PROVEN`**
+
+### Phase 2 — Project loop (PARTIAL)
+
+* Project: `9481e76b-b618-46bc-93aa-3e63d4a0ac1a` — Enterprise Customer Pilot
+* Hidden oracle: final date **2026-09-18**, rejected **2026-09-11**
+* Comms ingest: **200** with `LOCAL_FALLBACK` — conversation captured; **0 work_items** (LLM not configured; DEMO_SCRIPTED not allowed)
+* Seeded docs: PROJECT_BRIEF + DECISION_LOG **201** (ledger entries)
+
+### Phase 3 — Google Docs/Calendar (HONEST BLOCK)
+
+* Calendar propose: **`SCOPE_REAUTH_REQUIRED` / `GOOGLE_RECONNECT_REQUIRED`**
+* Real Google Doc: **not proven** (no greenwash)
+* Does **not** claim LIVE_DOC/CALENDAR_PROVIDER_PROVEN
+
+### Still open in sequence
+
+* Material document change propagation
+* Work-style measurable improvement
+* Full live AI-to-AI scenarios with audit UI
+* Role-specific reports
+* Second-tenant zero-leak pack
+* Final YC rerun after repairs
+
+### Preserved
+
+* S2500 FOUNDER_DEFERRED
+* N-02 Meet external
+* Relay C / Compliance D not started
+

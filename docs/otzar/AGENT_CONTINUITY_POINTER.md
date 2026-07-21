@@ -29,7 +29,7 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Next internal Work OS priority:** Product on live R-03 (200 humans/Twins): YC first-5 deep, project loop, work-style learning, cross-tenant pack. **Do not grow identity count.** S2500 FOUNDER_DEFERRED.
+**Next internal Work OS priority:** Complete Work OS sequence on live R-03: project loop with LLM/Google (honest), work-style learning, AI collab, role reports, second-tenant zero-leak. **No more identity growth.** YC first-five browser PROVEN.
 
 ---
 
