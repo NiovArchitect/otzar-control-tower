@@ -2548,23 +2548,32 @@
         "niov-foundation"
       ],
       "architecture": "",
-      "implementation_refs": [],
-      "proof_level": "BROWSER_PROVEN",
-      "remaining_gap": "",
+      "implementation_refs": [
+        "src/lib/work-os/investor-journey.ts",
+        "tests/e2e/otzar-live-investor-journey-s02.spec.ts",
+        "tests/unit/investor-journey.test.ts",
+        "src/pages/app/AmbientWorkSurface.tsx data-s02-journey"
+      ],
+      "proof_level": "LIVE_VERIFIED",
+      "remaining_gap": "S-01 dedicated YC org still open",
       "dependencies": [],
       "priority": "P0",
       "phase": 7,
       "test_requirements": [],
-      "live_acceptance": "",
-      "status": "BROWSER_PROVEN",
+      "live_acceptance": "Investor continuous deep journey fail=0 on live app without staged fakes",
+      "status": "LIVE_VERIFIED",
       "prs": [
         "acceptance investor"
       ],
       "merge_shas": [
-        "5c3c998 era"
+        "d8ee7e0"
       ],
-      "deployment_sha": null,
-      "final_proof": null
+      "deployment_sha": "d8ee7e0",
+      "final_proof": {
+        "live_bundle": "index-ZpL1xYAm.js",
+        "e2e": "otzar-live-investor-journey-s02 10/10",
+        "notes": "founder multi-surface; 82 ledger; 10 projects compose; no staged fakes"
+      }
     },
     {
       "id": "T-01",

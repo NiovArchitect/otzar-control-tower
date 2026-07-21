@@ -59,8 +59,8 @@ Regression anchors:
 | N-03 | 2 | Docs append live |
 | O-01 | 2 | Capability-first domain provision |
 | Q-01/Q-02 | 6 | Cross-tenant suite + credential |
-| S-01 | 7 | Dedicated YC org |
-| S-02 | 7 | Re-bind continuous investor journey |
+| S-01 | 7 | Dedicated YC org (open — needs harness credentials) |
+| S-02 | 7 | LIVE_VERIFIED complex deep 10/10 investor continuous journey |
 
 ## Phase exit checklist (abbreviated)
 

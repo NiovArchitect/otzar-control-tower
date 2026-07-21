@@ -152,7 +152,10 @@ PARTIAL — level1/2 harnesses exist; progressive scale continuous open.
 
 ### S — YC investor
 
-PARTIAL / BROWSER_PROVEN prior — dedicated continuous YC org open.
+| ID | Proof | Notes |
+|----|-------|-------|
+| **S-01** Dedicated synthetic YC org | PARTIAL | Needs dedicated YC org credentials; multi-role first5 + S-02 continuous on demo org |
+| **S-02** Investor browser journey | LIVE_VERIFIED | Complex deep 10/10 on `index-ZpL1xYAm.js` — 10 surfaces; 82 ledger items; 10 projects compose; no staged fakes |
 
 ### T — Relay
 
