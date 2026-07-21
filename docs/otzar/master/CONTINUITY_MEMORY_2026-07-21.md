@@ -524,6 +524,17 @@ OAuth for R-03: **VERIFIED** (connected_at 10:41Z, verified 10:43Z). App credent
 
 Artifact: `.r03-s250-state/google-provider-resume.json`
 
+#### YC release-candidate hardening (2026-07-21)
+
+| Residual | Outcome |
+| --- | --- |
+| A Create idempotency | FND **#732** `afe1491` — doc create double-call same key → identical `document_id`, `already_applied=true` live |
+| B Intent ledger 404 | Classified **party-scope + null project_id** (not deleted). Project-member read + manager `project_id` patch; reviewer GET **200** on `35aec899` / `c2159668` after re-link |
+| C npm audit 11 | Assessed in `YC_RC_SECURITY_ASSESSMENT.md`; **no** `audit fix --force`; residual accepted for RC |
+| D Meet | Preserved `MEET_PERMISSION_AVAILABLE_NO_ELIGIBLE_ARTIFACT` |
+| Walkthrough | Unscripted YC reviewer: **0 FAIL** (login, nav, isolation shell); chat free-text SKIP on action shells |
+| Freeze | Tags `OTZAR_YC_RC1` on FND+CT · `YC_RELEASE_CANDIDATE_READY` · packet `YC_PROOF_PACKET.md` · freeze `YC_RC1_FREEZE.md` |
+
 #### CT build failure recovery (2026-07-21)
 
 | Item | Detail |

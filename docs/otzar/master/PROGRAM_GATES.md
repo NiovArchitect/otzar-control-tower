@@ -46,3 +46,4 @@ A **Gate A freeze** may be stated separately when only N-02 (and documented resi
 - Not unrestricted SCALE_PROVEN; S2500 FOUNDER_DEFERRED.
 - FND PRs: #729 typed append, #730 Drive rewrite, #731 org bind + DOCUMENT ledger + material BLOCKER.
 - CT deploy recovery: failed SHA `4deab19` (TS2367 provider-intent resume narrowing) → repair PR [#196](https://github.com/NiovArchitect/otzar-control-tower/pull/196) merge `80e36b4` live on otzar-app (`dep-d9fp39njqk9s73eleht0`, bundle `index-D8TMNmma.js`). `CT_FULL_CHAIN_UI_LIVE_VERIFIED` after browser shell proof.
+- **YC RC1 frozen** tag `OTZAR_YC_RC1` — FND `afe1491` (create idempotency + intent visibility #732), CT `c57052a`, `YC_RELEASE_CANDIDATE_READY`. See `YC_RC1_FREEZE.md` + `YC_PROOF_PACKET.md`.
