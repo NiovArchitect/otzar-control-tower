@@ -25,6 +25,7 @@ import { WalletPortabilityPanel } from "@/components/employee/WalletPortabilityP
 import { TwinScopePanel } from "@/components/employee/TwinScopePanel";
 import { MyTwinSidecarsPanel } from "@/components/employee/MyTwinSidecarsPanel";
 import { MyTwinActivityPanel } from "@/components/employee/MyTwinActivityPanel";
+import { TwinAuthorityBindingCard } from "@/components/otzar/TwinAuthorityBindingCard";
 import { api } from "@/lib/api";
 import type { ApiResult } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -32,6 +33,7 @@ import {
   labelAutonomyMode,
   labelConversationStatus,
 } from "@/lib/labels/conversation";
+import { roleTemplateLabel } from "@/lib/labels/role-template";
 import type {
   MyTwinResponse,
   ConversationMessageResponse,
@@ -230,6 +232,22 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       {/* [OTZAR-V1-LIVE-2B] The governed "what your Twin can — and cannot — do"
           scope view, sourced from Foundation's context-health. */}
       <TwinScopePanel />
+
+      {/* G-02 — authority from Foundation (human/org/team/projects/grants),
+          not from the role template. Preference ≠ authority. */}
+      <TwinAuthorityBindingCard
+        owner_label="You (the human owner)"
+        autonomy_label={labelAutonomyMode(t.autonomy_mode)}
+        role_template_label={
+          t.role_template ? roleTemplateLabel(t.role_template) : null
+        }
+        active_grant_count={t.active_authority_summary?.active_grant_count ?? null}
+        active_project_count={
+          t.project_context_summary?.active_project_count ?? null
+        }
+        skill_count={t.skills.length}
+        variant="employee"
+      />
 
       <MyTwinSidecarsPanel twin={t} />
     </div>

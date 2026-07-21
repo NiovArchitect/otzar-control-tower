@@ -57,6 +57,7 @@ import {
 } from "@/lib/labels/twin-authority";
 import { twinDisplayLabel, twinOwnerLabel } from "@/lib/labels/twin-identity";
 import { lastActiveLabel, toolReadinessLabel } from "@/lib/labels/twin-operations";
+import { TwinAuthorityBindingCard } from "@/components/otzar/TwinAuthorityBindingCard";
 import type {
   AITeammateListItem,
   EntityStatus,
@@ -325,6 +326,20 @@ export function AITeammatesPage() {
       />
 
       <DataSovereigntyInline />
+
+      {/* G-02 — authority is Foundation-enforced; templates recommend only. */}
+      <TwinAuthorityBindingCard
+        org_name="This organization"
+        autonomy_label={
+          list.data?.twin_autonomy_ceiling &&
+          list.data.twin_autonomy_ceiling in AUTONOMY_LEVEL_LABELS
+            ? getAutonomyLevelLabel(
+                list.data.twin_autonomy_ceiling as TwinAutonomyLevel,
+              )
+            : "Org autonomy ceiling (Foundation-enforced)"
+        }
+        variant="admin"
+      />
 
       <BulkActionsBar
         selectedIds={idsArray}

@@ -82,6 +82,11 @@ import {
   AUTONOMY_LEVEL_LABELS,
   getAutonomyLevelLabel,
 } from "@/lib/labels/autonomy-levels";
+import {
+  authorityStatusLabel,
+  recommendedAutonomyLabel,
+} from "@/lib/labels/twin-authority";
+import { AUTHORITY_FROM_FOUNDATION } from "@/lib/work-os/twin-authority-binding";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
   AITeammateListItem,
@@ -318,56 +323,74 @@ export function TwinDetailDrawer({
                 </p>
               )}
               {detail.data && (
-                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ProfileField
-                    label="Display name"
-                    value={detail.data.entity.display_name}
-                  />
-                  <ProfileField
-                    label="Behavior Policy"
-                    value={getAutonomyLevelLabel(
-                      detail.data.twin_config.autonomy_level,
-                    )}
-                  />
-                  <ProfileField
-                    label="Owner"
-                    value={
-                      ownerEntityId ? (
-                        <code className="text-xs">{ownerEntityId}</code>
-                      ) : (
-                        "—"
-                      )
-                    }
-                  />
-                  <ProfileField
-                    label="Role template"
-                    value={
-                      detail.data.twin_config.role_template
-                        ? roleTemplateLabel(
-                            detail.data.twin_config.role_template,
-                          )
-                        : "Not set yet"
-                    }
-                  />
-                  <ProfileField
-                    label="Skills (from template)"
-                    value={
-                      skills.length > 0
-                        ? `${skills.length} assigned — acts with role capabilities under policy`
-                        : "None yet — apply role template skills on the Skills tab"
-                    }
-                  />
-                  <ProfileField
-                    label="Created"
-                    value={formatRelativeTime(detail.data.entity.created_at)}
-                  />
-                  <ProfileField
-                    label="Last updated"
-                    value={formatRelativeTime(
-                      detail.data.twin_config.updated_at,
-                    )}
-                  />
-                </dl>
+                <>
+                  <p
+                    className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground"
+                    data-testid="g02-drawer-authority-note"
+                    data-g02="true"
+                    data-template-grants-authority="false"
+                  >
+                    {AUTHORITY_FROM_FOUNDATION}
+                  </p>
+                  <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <ProfileField
+                      label="Display name"
+                      value={detail.data.entity.display_name}
+                    />
+                    <ProfileField
+                      label="Behavior Policy"
+                      value={getAutonomyLevelLabel(
+                        detail.data.twin_config.autonomy_level,
+                      )}
+                    />
+                    <ProfileField
+                      label="Authority status"
+                      value={authorityStatusLabel(detail.data.twin_config)}
+                    />
+                    <ProfileField
+                      label="Template recommendation"
+                      value={recommendedAutonomyLabel(detail.data.twin_config)}
+                    />
+                    <ProfileField
+                      label="Owner"
+                      value={
+                        ownerEntityId ? (
+                          <code className="text-xs">{ownerEntityId}</code>
+                        ) : (
+                          "—"
+                        )
+                      }
+                    />
+                    <ProfileField
+                      label="Role template"
+                      value={
+                        detail.data.twin_config.role_template
+                          ? roleTemplateLabel(
+                              detail.data.twin_config.role_template,
+                            )
+                          : "Not set yet"
+                      }
+                    />
+                    <ProfileField
+                      label="Skills (from template)"
+                      value={
+                        skills.length > 0
+                          ? `${skills.length} assigned — acts with role capabilities under policy`
+                          : "None yet — apply role template skills on the Skills tab"
+                      }
+                    />
+                    <ProfileField
+                      label="Created"
+                      value={formatRelativeTime(detail.data.entity.created_at)}
+                    />
+                    <ProfileField
+                      label="Last updated"
+                      value={formatRelativeTime(
+                        detail.data.twin_config.updated_at,
+                      )}
+                    />
+                  </dl>
+                </>
               )}
             </TabsContent>
 
