@@ -58,6 +58,7 @@ import {
 import { twinDisplayLabel, twinOwnerLabel } from "@/lib/labels/twin-identity";
 import { lastActiveLabel, toolReadinessLabel } from "@/lib/labels/twin-operations";
 import { TwinAuthorityBindingCard } from "@/components/otzar/TwinAuthorityBindingCard";
+import { GraduatedAutonomyLadderCard } from "@/components/otzar/GraduatedAutonomyLadderCard";
 import type {
   AITeammateListItem,
   EntityStatus,
@@ -339,6 +340,12 @@ export function AITeammatesPage() {
             : "Org autonomy ceiling (Foundation-enforced)"
         }
         variant="admin"
+      />
+
+      {/* M-01 — org ceiling maps to the graduated ladder for admins. */}
+      <GraduatedAutonomyLadderCard
+        variant="admin"
+        autonomyMode={list.data?.twin_autonomy_ceiling ?? "APPROVAL_REQUIRED"}
       />
 
       <BulkActionsBar

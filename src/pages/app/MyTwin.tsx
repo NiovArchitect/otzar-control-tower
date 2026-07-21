@@ -26,6 +26,7 @@ import { TwinScopePanel } from "@/components/employee/TwinScopePanel";
 import { MyTwinSidecarsPanel } from "@/components/employee/MyTwinSidecarsPanel";
 import { MyTwinActivityPanel } from "@/components/employee/MyTwinActivityPanel";
 import { TwinAuthorityBindingCard } from "@/components/otzar/TwinAuthorityBindingCard";
+import { GraduatedAutonomyLadderCard } from "@/components/otzar/GraduatedAutonomyLadderCard";
 import { api } from "@/lib/api";
 import type { ApiResult } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
@@ -232,6 +233,12 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
       {/* [OTZAR-V1-LIVE-2B] The governed "what your Twin can — and cannot — do"
           scope view, sourced from Foundation's context-health. */}
       <TwinScopePanel />
+
+      {/* M-01 — observe → draft → confirm → execute (Foundation ceiling). */}
+      <GraduatedAutonomyLadderCard
+        autonomyMode={t.autonomy_mode}
+        variant="employee"
+      />
 
       {/* G-02 — authority from Foundation (human/org/team/projects/grants),
           not from the role template. Preference ≠ authority. */}

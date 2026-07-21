@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GraduatedAutonomyLadderCard } from "@/components/otzar/GraduatedAutonomyLadderCard";
 import { api } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
@@ -135,6 +136,9 @@ export function AuthorityGrants() {
         description="Choose what your AI Teammate may do for you, for how long, and revoke it whenever you want. Org policy, memory scope, audit, and approvals still apply."
       />
 
+      {/* M-01 — grants sit on the confirm→execute rungs; ladder is visible. */}
+      <GraduatedAutonomyLadderCard variant="employee" autonomyMode={null} />
+
       <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
         <p className="font-medium text-foreground">A few honest reminders</p>
         <ul className="mt-1 list-disc space-y-1 pl-5">
@@ -145,6 +149,9 @@ export function AuthorityGrants() {
           </li>
           <li>You can revoke this later.</li>
           <li>Connector writes may still be blocked by org policy.</li>
+          <li data-testid="m01-grants-preference-reminder">
+            Preferences are not authority — learning never raises this ladder.
+          </li>
         </ul>
       </div>
 
