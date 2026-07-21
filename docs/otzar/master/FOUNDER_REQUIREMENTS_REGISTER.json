@@ -3539,7 +3539,7 @@
       "program_gates": [
         "B"
       ],
-      "remaining_gap": "S250 structural acceptance UNIT_PROVEN: dataset-generated proven; structural canonical fixture (memberships/twins/projects/policies); graph invariants; runtime samples \u00d7250; concurrency; L-02 on S250 graph; V-02 messy multi-source. SCALE_PROVEN=false. Residuals: live Foundation provision of 250 entities, stratified browser logins on provisioned tenant, live DB/API p99. S2500 blocked until SCALE_PROVEN or structural gate + founder advance decision with explicit honesty.",
+      "remaining_gap": "Structural gate UNIT_PROVEN (3e3f98b). Live Foundation S250 provisioner implemented (scripts/otzar-r03-s250-live-provision.mjs) with Phase-0 dual-control path, tenancy guard, origin keys, canary\u2192250 escalation. PREFLIGHT OK on live api.otzar.ai (git_commit 18295678, database connected). Phase-0 BLOCKED: niov-operator-1/2 and smoke-admin bootstrap credentials return 401 INVALID_CREDENTIALS. Cannot create dedicated never_customer R-03 org or mutate live tenants without fresh operator/admin secrets. SCALE_PROVEN=false. S2500 blocked. Meridian forbidden. Demo org (sadeil) has admin_org but must not host S250.",
       "implementation_refs": [
         "src/lib/org/synthetic-scale-harness.ts",
         "src/components/otzar/SyntheticScaleHarnessCard.tsx",
@@ -3558,9 +3558,12 @@
         "src/lib/org/synthetic-s250/l02-s250.ts",
         "src/lib/org/synthetic-s250/v02-messy-sources.ts",
         "src/lib/org/synthetic-s250/acceptance-gate.ts",
-        "tests/unit/s250-structural-acceptance.test.ts"
+        "tests/unit/s250-structural-acceptance.test.ts",
+        "scripts/otzar-r03-s250-live-provision.mjs",
+        "src/lib/org/synthetic-s250/live-cast.ts",
+        "tests/unit/s250-live-cast.test.ts"
       ],
-      "acceptance_limitations": "Structural fixture is contract-shaped and tagged structural_canonical_fixture \u2014 NOT live Foundation bulk provision. Session-equivalent runtime samples are not 250 authenticated HTTP sessions. In-process concurrency is not live pool pressure.",
+      "acceptance_limitations": "Live provision residual is EXTERNALLY_BLOCKED on NIOV operator dual-control credentials and dedicated R-03 scale admin. Structural fixture remains partial foundation_provisioned. Do not use Meridian or demo org for 250-user scale.",
       "proof_dimensions": {
         "implementation": true,
         "browser": true,
@@ -3589,7 +3592,17 @@
           "live_bundle_hint": "index-3wOHHe2X.js or later"
         }
       },
-      "deployment_sha": "cdadd1d"
+      "deployment_sha": "cdadd1d",
+      "external_blocks": [
+        {
+          "code": "R03_PHASE0_OPERATOR_CREDENTIALS",
+          "plain": "niov-operator-1/2 bootstrap passwords invalid on live API (401)"
+        },
+        {
+          "code": "R03_SCALE_ADMIN_CREDENTIALS",
+          "plain": "No dedicated R-03 scale org admin credentials; smoke-admin bootstrap also 401"
+        }
+      ]
     },
     {
       "id": "R-04",

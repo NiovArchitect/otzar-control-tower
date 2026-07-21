@@ -209,3 +209,48 @@ Until then:
 * N-02 EXTERNALLY_BLOCKED · Gate C Relay · Gate D compliance
 * Do not jump to S2500 headline without structural honesty
 
+## R-03 live Foundation provision attempt (2026-07-21)
+
+### Preflight (PASS)
+
+* API `https://api.otzar.ai/api/v1` health ok
+* Live Foundation SHA: `18295678aac102e8026135a12eb9f08003b88c88`
+* Database: connected
+* CT SHA at attempt: `3e3f98b`
+* Markers: `environment_class=SYNTHETIC_SCALE`, `test_program=R-03`, `scale_level=S250`, `never_customer=true`
+* Meridian org id blocked for mutation
+* Rate plan: batch 5, delay 350–400ms, concurrency 1
+
+### Phase-0 (BLOCKED)
+
+* Script: `scripts/otzar-r03-s250-live-provision.mjs --phase0`
+* Dual-control path: operator-1 POST `/platform/orgs` → operator-2 approve escalation → re-POST
+* **Result:** `niov-operator-1@niovlabs.com` login **401 INVALID_CREDENTIALS** (bootstrap secrets stale)
+* smoke-admin bootstrap also 401
+* meridian-admin bootstrap also 401
+* Demo shared password works for sadeil/vishesh only — **must not** host S250 scale
+
+### Provisioner ready (code)
+
+* Deterministic cast + origin keys `R03:S250:<run>:<index>`
+* Idempotent state under `.r03-s250-state/` (gitignored; may hold admin password)
+* Escalation ladder 5→20→50→100→250 with reconcile
+* Canonical rails: `/org/members` → invite → activate → hierarchy/assign → ensure-twin
+* Tenancy guard refuses Meridian and mismatched org_entity_id
+
+### Exact proof levels (unchanged honesty)
+
+* dataset_generated=proven
+* foundation_provisioned=partial (fixture only; live count 0)
+* runtime_active=partial (session-equivalent)
+* browser_sampled=partial
+* scale_measured=partial
+* **SCALE_PROVEN=false**
+* S2500 not started
+
+### Operator action required (external)
+
+1. Rotate/restore `niov-operator-1` + `niov-operator-2` live passwords in bootstrap
+2. Re-run `node scripts/otzar-r03-s250-live-provision.mjs --phase0`
+3. Then `--target=5` canary → 20 → 50 → 100 → 250 automatically
+

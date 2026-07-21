@@ -42,3 +42,6 @@ screenshots/
 # Temp
 tmp/
 .tmp/
+
+# R-03 live provision state (may contain admin passwords)
+.r03-s250-state/

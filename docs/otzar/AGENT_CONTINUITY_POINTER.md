@@ -29,7 +29,7 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Next internal Work OS priority:** R-03 **live Foundation S250 provision residual** (SCALE_PROVEN false; structural gate UNIT_PROVEN). Then S2500. V-02 deeper live multi-source.
+**Next internal Work OS priority:** R-03 live S250 **blocked on operator dual-control credentials** (provisioner ready). After secrets: Phase-0 dedicated org → canary 5→250. S2500 blocked. SCALE_PROVEN=false.
 
 ---
 

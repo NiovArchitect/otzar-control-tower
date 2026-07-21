@@ -37,3 +37,9 @@ export {
   S250_ACCEPTANCE_TARGETS,
 } from "./acceptance-gate";
 export type { S250AcceptanceReport } from "./acceptance-gate";
+export {
+  R03_MARKERS,
+  buildLiveCast,
+  syntheticEmail,
+} from "./live-cast";
+export type { LiveCastPerson } from "./live-cast";
