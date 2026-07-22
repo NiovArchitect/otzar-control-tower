@@ -20,7 +20,7 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { usePresenceStore } from "@/lib/stores/presence";
 import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 import { GlassPanel } from "@/components/ambient/GlassPanel";
-import { OtzarMark } from "@/components/ambient/OtzarMark";
+import { OtzarBrandLogo } from "@/components/ambient/OtzarBrandLogo";
 import { GLASS_CTA } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import type {
@@ -809,7 +809,7 @@ export function AmbientWorkSurface(): JSX.Element {
 
       {/* One-shot hero — presence + optional first-use strip (not a second page). */}
       <section
-        className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6"
+        className="otzar-stage otzar-atari-frame relative px-4 py-5 sm:px-6 sm:py-6"
         data-testid="ambient-spatial-stage"
       >
         <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -819,9 +819,18 @@ export function AmbientWorkSurface(): JSX.Element {
         {/* D-03 — optional purposeful CSS depth; reduced-motion → flat 2D */}
         <SpatialPresenceLayer depthEnabled={!quiet} showReadinessNote={false} />
         <div className="relative flex items-center gap-4">
-          <OtzarMark size="lg" active={!quiet} />
+          {/* Official logo — dimensional polish, not generic orb.
+              data-testid otzar-mark kept for spatial presence live smokes. */}
+          <span data-testid="otzar-mark" className="inline-flex">
+            <OtzarBrandLogo
+              size="xl"
+              tone="brand"
+              polish
+              presence={quiet ? "QUIET" : "IDLE"}
+            />
+          </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-500/80">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-500/85">
               Today
             </p>
             <h1 className="otzar-text-luminous mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">

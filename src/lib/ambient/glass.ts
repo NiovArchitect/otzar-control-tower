@@ -1,14 +1,14 @@
 // FILE: glass.ts
-// PURPOSE: Phase-F ambient glass material language — the ONE shared surface
+// PURPOSE: Phase-F ambient glass material language — ONE shared surface
 //          system for shell, work surfaces, panels, login, Control Tower.
-//          Premium luminous depth; never flat SaaS gray. Glow only with state.
-// CONNECTS TO: EmployeeLayout, AmbientNav, GlassPanel, Login, Layout.
+//          Year-3000 enterprise depth · Atari edge precision · never flat SaaS.
+// CONNECTS TO: EmployeeLayout, AmbientNav, GlassPanel, Login, Layout, Card.
 
 import type { PresenceIntensity } from "@/lib/stores/presence";
 
 /** Primary frosted surface — translucent pearl with dimensional lift. */
 export const GLASS_SURFACE =
-  "rounded-2xl border border-white/70 bg-gradient-to-br from-white/80 to-white/50 supports-[backdrop-filter]:from-white/65 supports-[backdrop-filter]:to-white/40 backdrop-blur-2xl backdrop-saturate-150 ring-1 ring-slate-900/[0.04] shadow-[0_16px_56px_-22px_rgba(15,23,42,0.32),0_1px_0_0_rgba(255,255,255,0.72)_inset]";
+  "otzar-glass-card otzar-edge-trace rounded-2xl";
 
 /** Quieter chip for inline state (lane / status / count). */
 export const GLASS_CHIP =
@@ -16,7 +16,7 @@ export const GLASS_CHIP =
 
 /**
  * Living ambient field — cool multi-stop atmosphere behind every shell.
- * Light-first for enterprise readability; depth without darkness.
+ * Light-first enterprise readability; cinematic depth without darkness.
  */
 export const AMBIENT_FIELD =
   "bg-[radial-gradient(140%_90%_at_50%_-18%,#ede9fe_0%,#e0f2fe_22%,#f0f4ff_48%,#e8eef8_72%,#f8fafc_100%)]";
@@ -28,17 +28,16 @@ export const AMBIENT_AURORA = "pointer-events-none absolute inset-0 overflow-hid
 export const GLASS_CTA =
   "rounded-2xl border border-white/70 bg-white/85 supports-[backdrop-filter]:bg-white/65 backdrop-blur-2xl ring-1 ring-slate-900/[0.05] shadow-[0_16px_44px_-16px_rgba(15,23,42,0.32),0_1px_0_0_rgba(255,255,255,0.75)_inset] transition-[box-shadow,transform,filter] duration-200 hover:shadow-[0_20px_52px_-14px_rgba(79,70,229,0.28)] active:scale-[0.99]";
 
-/** Slim chrome (header / nav rail). */
+/** Slim chrome (header / nav rail) — glass + fine edge. */
 export const GLASS_CHROME =
-  "border-white/55 bg-white/45 supports-[backdrop-filter]:bg-white/35 backdrop-blur-2xl backdrop-saturate-160";
+  "border-white/60 bg-white/50 supports-[backdrop-filter]:bg-white/40 backdrop-blur-2xl backdrop-saturate-160 shadow-[0_1px_0_0_rgba(255,255,255,0.55)_inset]";
 
 /** Active nav pill — indigo presence, not harsh solid. */
 export const GLASS_NAV_ACTIVE =
-  "bg-gradient-to-b from-white/95 to-indigo-50/90 text-indigo-950 shadow-[0_6px_20px_-6px_rgba(79,70,229,0.35)] ring-1 ring-indigo-500/15";
+  "bg-gradient-to-b from-white/95 to-indigo-50/90 text-indigo-950 shadow-[0_6px_20px_-6px_rgba(79,70,229,0.35)] ring-1 ring-indigo-500/20";
 
-/** Hero stage (Today, Login) — elevated presence plane. */
-export const GLASS_STAGE =
-  "otzar-stage relative overflow-hidden";
+/** Hero stage (Today, Login) — elevated presence plane + Atari frame hooks. */
+export const GLASS_STAGE = "otzar-stage otzar-atari-frame relative overflow-hidden";
 
 // Per-intensity left accent for a glass panel (priority visible, not flat).
 export function panelAccent(intensity: PresenceIntensity): string {

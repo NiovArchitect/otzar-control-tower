@@ -1,6 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Otzar glass card — year-3000 enterprise surface by default.
+ * Not flat SaaS gray. Override with className only when needed.
+ */
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -8,7 +12,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      "otzar-glass-card otzar-edge-trace text-card-foreground",
       className,
     )}
     {...props}
@@ -34,7 +38,10 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
+    className={cn(
+      "text-xl font-semibold leading-none tracking-tight text-slate-900",
+      className,
+    )}
     {...props}
   />
 ));
@@ -46,7 +53,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-slate-500", className)}
     {...props}
   />
 ));

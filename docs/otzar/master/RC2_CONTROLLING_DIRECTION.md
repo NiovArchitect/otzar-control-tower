@@ -114,20 +114,22 @@ Action Center = exception queue only (no essays).
 
 **Emotional target:** Enterprise intelligence from year 3000; Black Mirror sophistication; Siri-like ambient presence; subtle Atari edge DNA (geometry, not arcade).
 
-**Official logo (do not invent another):**
+**Official logo (must stand out — WOAH / 3D 4K polish):**
 
 - Product: https://www.otzar.ai/  
 - Brand gallery: https://www.behance.net/gallery/252799665/OTZAR  
-- Repo assets: `public/brand/otzar-logo.svg`, `otzar-logo.png`, `SOURCE.md`  
-- Component: `src/components/ambient/OtzarBrandLogo.tsx`
+- Repo assets: `public/brand/otzar-logo.png` (1080² hero), `otzar-logo.svg` (mono chrome), `SOURCE.md`  
+- Component: `src/components/ambient/OtzarBrandLogo.tsx` — glass sphere, spectral bloom, Atari corner ticks, float on hero  
+- Surfaces: Login hero · Today · AmbientNav · Control Tower sidebar · employee header  
 
-**Ambient edge:**
+**Ambient edge + Atari DNA:**
 
 - Presence-driven rim: listening / thinking / speaking / attention / blocked / complete.  
-- Implementation: `AmbientEdgeGlow` + CSS `.otzar-ambient-rim`.  
-- Idle nearly invisible; active = restrained spectral travel (cyan/indigo/violet).  
-- Not: RGB gaming, cyberpunk, vaporwave, pixel fonts, confetti.  
-- Reduced motion: static state colors, no travel animation.  
+- Implementation: `AmbientEdgeGlow` + CSS `.otzar-ambient-rim` + always-on idle rim + shell corner brackets.  
+- Active = restrained spectral travel (cyan/indigo/violet). Idle = barely-there silver/cyan.  
+- Atari = precise L-corner geometry + edge ticks — **not** arcade RGB, pixel fonts, vaporwave.  
+- Glass cards: `.otzar-glass-card` default on shadcn `Card`. Stages: `.otzar-stage` + `.otzar-atari-frame`.  
+- Reduced motion: static state colors, no travel/float animation.  
 - Performance: CSS first; no WebGL for atmosphere only.
 
 **Founder must approve visual system live** before freeze.

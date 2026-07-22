@@ -58,7 +58,7 @@ export function OrgDiscoveryFoundCard({
   return (
     <Card
       data-testid="org-discovery-found"
-      className="otzar-edge-trace border-white/60 bg-white/55 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.28)] backdrop-blur-xl"
+      className="otzar-atari-frame border-white/70 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.28)]"
     >
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
         <div className="min-w-0 space-y-1">

@@ -57,12 +57,12 @@ export function EmployeeLayout() {
               className="group flex min-w-0 items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
               aria-label="Otzar home"
             >
-              <OtzarBrandLogo size="sm" tone="brand" />
+              <OtzarBrandLogo size="md" tone="brand" polish />
               <div className="min-w-0 leading-tight">
-                <span className="block text-sm font-semibold tracking-tight text-slate-900">
+                <span className="otzar-text-luminous block text-sm font-semibold tracking-tight">
                   Otzar
                 </span>
-                <span className="hidden text-[10px] font-medium uppercase tracking-[0.12em] text-indigo-500/70 sm:block">
+                <span className="hidden text-[10px] font-medium uppercase tracking-[0.14em] text-indigo-500/80 sm:block">
                   Work OS
                 </span>
               </div>

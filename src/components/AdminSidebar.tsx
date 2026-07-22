@@ -32,12 +32,12 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
       className="flex h-full flex-col border-r border-white/55 bg-gradient-to-b from-white/70 to-white/45 shadow-[12px_0_40px_-20px_rgba(67,56,202,0.22)] backdrop-blur-2xl backdrop-saturate-150"
     >
       <div className="flex items-center gap-3 border-b border-white/40 px-4 py-5">
-        <OtzarBrandLogo size="md" tone="brand" />
+        <OtzarBrandLogo size="lg" tone="brand" polish />
         <div>
-          <div className="text-sm font-semibold leading-tight tracking-tight text-slate-900">
+          <div className="otzar-text-luminous text-sm font-semibold leading-tight tracking-tight">
             Otzar
           </div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-500/75">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-500/80">
             Control Tower
           </div>
         </div>
