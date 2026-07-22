@@ -18,37 +18,37 @@ interface EdgeVisual {
 
 const EDGE_VISUALS: Record<OtzarPresenceState, EdgeVisual> = {
   IDLE: {
-    strip: "opacity-40 bg-gradient-to-r from-transparent via-indigo-400/35 to-transparent",
-    aura: "opacity-20 bg-indigo-400/15",
-    frame: "shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)]",
+    strip: "opacity-40 bg-gradient-to-r from-transparent via-[#a855f7]/40 to-transparent",
+    aura: "opacity-22 bg-[#B124E8]/15",
+    frame: "shadow-[inset_0_0_0_1px_rgba(229,231,236,0.16)]",
   },
   LISTENING: {
     strip:
-      "opacity-95 bg-gradient-to-r from-sky-400/0 via-sky-400/85 to-sky-400/0 motion-safe:animate-edge-pulse",
-    aura: "opacity-65 bg-sky-400/30 motion-safe:animate-edge-breathe",
+      "opacity-95 bg-gradient-to-r from-[#405DE6]/0 via-[#405DE6]/85 to-[#405DE6]/0 motion-safe:animate-edge-pulse",
+    aura: "opacity-65 bg-[#405DE6]/30 motion-safe:animate-edge-breathe",
     frame:
-      "shadow-[inset_0_0_0_1.5px_rgba(56,189,248,0.45),inset_0_0_48px_-12px_rgba(56,189,248,0.32)] motion-safe:animate-edge-breathe",
+      "shadow-[inset_0_0_0_1.5px_rgba(64,93,230,0.5),inset_0_0_48px_-12px_rgba(64,93,230,0.32)] motion-safe:animate-edge-breathe",
   },
   THINKING: {
     strip:
-      "opacity-80 bg-gradient-to-r from-indigo-400/0 via-indigo-400/75 to-indigo-400/0 motion-safe:animate-edge-breathe",
-    aura: "opacity-45 bg-indigo-400/28 motion-safe:animate-edge-breathe",
+      "opacity-85 bg-gradient-to-r from-[#B124E8]/0 via-[#B124E8]/80 to-[#B124E8]/0 motion-safe:animate-edge-breathe",
+    aura: "opacity-50 bg-[#B124E8]/28 motion-safe:animate-edge-breathe",
     frame:
-      "shadow-[inset_0_0_0_1.5px_rgba(129,140,248,0.4),inset_0_0_48px_-14px_rgba(129,140,248,0.28)] motion-safe:animate-edge-breathe",
+      "shadow-[inset_0_0_0_1.5px_rgba(177,36,232,0.45),inset_0_0_48px_-14px_rgba(177,36,232,0.3)] motion-safe:animate-edge-breathe",
   },
   RECOMMENDATION: {
     strip:
-      "opacity-65 bg-gradient-to-r from-teal-400/0 via-teal-400/65 to-teal-400/0",
-    aura: "opacity-35 bg-teal-400/22",
+      "opacity-70 bg-gradient-to-r from-[#a855f7]/0 via-[#a855f7]/70 to-[#a855f7]/0",
+    aura: "opacity-38 bg-[#a855f7]/24",
     frame:
-      "shadow-[inset_0_0_0_1.5px_rgba(45,212,191,0.35),inset_0_0_44px_-14px_rgba(45,212,191,0.26)]",
+      "shadow-[inset_0_0_0_1.5px_rgba(168,85,247,0.4),inset_0_0_44px_-14px_rgba(168,85,247,0.28)]",
   },
   APPROVAL_REQUIRED: {
     strip:
-      "opacity-95 bg-gradient-to-r from-amber-400/0 via-amber-400/85 to-amber-400/0 motion-safe:animate-edge-pulse",
-    aura: "opacity-55 bg-amber-400/28 motion-safe:animate-edge-pulse",
+      "opacity-95 bg-gradient-to-r from-[#F77737]/0 via-[#F77737]/85 to-[#F77737]/0 motion-safe:animate-edge-pulse",
+    aura: "opacity-55 bg-[#F77737]/28 motion-safe:animate-edge-pulse",
     frame:
-      "shadow-[inset_0_0_0_2px_rgba(251,191,36,0.48),inset_0_0_52px_-12px_rgba(251,191,36,0.34)] motion-safe:animate-edge-pulse",
+      "shadow-[inset_0_0_0_2px_rgba(247,119,55,0.5),inset_0_0_52px_-12px_rgba(247,119,55,0.34)] motion-safe:animate-edge-pulse",
   },
   SUCCESS: {
     strip:

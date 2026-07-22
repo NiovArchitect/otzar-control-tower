@@ -14,9 +14,9 @@ function stateClasses(state: ActivationStep["state"]): string {
     case "ready":
       return "border-emerald-400/30 bg-emerald-500/10 text-emerald-100";
     case "current":
-      return "border-sky-400/40 bg-sky-500/15 text-sky-50 ring-1 ring-sky-400/25";
+      return "border-[#B124E8]/45 bg-[#B124E8]/15 text-[#E5E7EC] ring-1 ring-[#a855f7]/35";
     case "needs_attention":
-      return "border-amber-400/30 bg-amber-500/10 text-amber-50";
+      return "border-[#F77737]/35 bg-[#F77737]/12 text-amber-50";
     case "unknown":
     default:
       return "border-white/10 bg-white/[0.04] text-slate-200";
@@ -31,10 +31,10 @@ export function SetupActivationPath({
   const focus = path.steps.find((s) => s.id === path.focusStepId) ?? path.steps[0]!;
 
   return (
-    <Card data-testid="setup-activation-path" className="otzar-atari-frame">
+    <Card data-testid="setup-activation-path" className="otzar-atari-frame rounded-[1.35rem]">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm text-slate-50">
-          <Compass className="h-4 w-4 text-sky-300" aria-hidden />
+        <CardTitle className="flex items-center gap-2 text-sm text-[#E5E7EC]">
+          <Compass className="h-4 w-4 text-[#a855f7]" aria-hidden />
           Setup path
         </CardTitle>
         <CardDescription className="text-xs text-slate-300">
@@ -85,11 +85,11 @@ export function SetupActivationPath({
         </ol>
 
         <div
-          className="flex flex-col gap-2 rounded-xl border border-sky-400/25 bg-sky-500/10 p-3 sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-2 rounded-2xl border border-[#B124E8]/30 bg-[#B124E8]/12 p-3 sm:flex-row sm:items-center sm:justify-between"
           data-testid="setup-activation-focus"
         >
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#a855f7]">
               Focus now
             </p>
             <p className="text-sm font-medium text-slate-50">

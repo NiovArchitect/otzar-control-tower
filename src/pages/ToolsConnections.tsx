@@ -626,7 +626,7 @@ export function ToolsConnectionsPage(): JSX.Element {
                 className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5"
                 data-testid={`connections-step-${s.n}`}
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#a855f7]">
                   {s.n}. {s.title}
                 </p>
                 <p className="mt-1 text-xs text-slate-300">{s.detail}</p>

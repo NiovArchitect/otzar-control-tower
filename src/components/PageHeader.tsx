@@ -30,7 +30,7 @@ export function PageHeader({
     >
       <div className="min-w-0 space-y-1.5">
         {eyebrow ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-300/90">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a855f7]/90">
             {eyebrow}
           </p>
         ) : null}
@@ -38,7 +38,7 @@ export function PageHeader({
           {title}
         </h1>
         {description ? (
-          <p className="max-w-2xl text-sm leading-relaxed text-slate-300">
+          <p className="max-w-2xl text-sm leading-relaxed text-[#E5E7EC]/80">
             {description}
           </p>
         ) : null}

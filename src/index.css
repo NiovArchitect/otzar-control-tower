@@ -3,76 +3,91 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   OTZAR PHASE-F VISUAL SYSTEM
-   Ambient enterprise Work OS — luminous depth, not flat SaaS gray.
-   Doctrine: presence without noise · glass over field · glanceable hierarchy.
+   OTZAR BRAND VISUAL SYSTEM — Behance identity × product shell
+   Palette (designer gallery + otzar.ai):
+     #B124E8 brand purple · #a855f7 mid purple · #405DE6 brand blue
+     #1e1b4b void indigo · #E5E7EC silver · #F77737 accent orange · #0a0612 near-black
+   Doctrine: sleek pop · glass over void · beveled depth · enterprise, not neon club.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   /*
-   * Product default = year-3000 DARK (Black Mirror void + luminous color).
+   * Product default = Behance dark brand field.
    * Light pearl tokens retained under .otzar-light for rare print/export.
    */
   :root {
-    --background: 230 48% 5%;
-    --foreground: 210 40% 98%;
-    --card: 232 40% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 232 40% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 226 100% 72%;
-    --primary-foreground: 232 48% 8%;
-    --secondary: 232 28% 12%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 232 28% 14%;
-    /* Secondary copy must stay readable on dark void (was too dim at 68%). */
-    --muted-foreground: 215 22% 82%;
-    --accent: 232 32% 14%;
-    --accent-foreground: 210 40% 98%;
+    /* Near-black void + silver text (pops without glare) */
+    --background: 260 50% 5%;
+    --foreground: 223 16% 94%;
+    --card: 244 40% 10%;
+    --card-foreground: 223 16% 94%;
+    --popover: 244 40% 10%;
+    --popover-foreground: 223 16% 94%;
+    /* Primary = brand purple #B124E8 */
+    --primary: 283 81% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 244 35% 14%;
+    --secondary-foreground: 223 16% 94%;
+    --muted: 244 30% 14%;
+    /* Silver-readable secondary on dark (#E5E7EC family) */
+    --muted-foreground: 223 14% 78%;
+    --accent: 244 32% 16%;
+    --accent-foreground: 223 16% 94%;
     --destructive: 0 72% 52%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 230 22% 22%;
-    --input: 230 22% 18%;
-    --ring: 199 92% 55%;
-    --radius: 1rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: 244 24% 22%;
+    --input: 244 28% 16%;
+    /* Focus ring = brand blue #405DE6 */
+    --ring: 230 77% 58%;
+    /* Designer curve language — generous continuous radii (Behance soft geometry) */
+    --radius: 1.15rem;
 
-    /* Signature Otzar spectrum — electric but enterprise-restrained */
-    --otzar-void: 232 52% 5%;
-    --otzar-indigo: 243 75% 62%;
-    --otzar-violet: 263 70% 62%;
-    --otzar-sky: 199 92% 55%;
-    --otzar-teal: 172 76% 42%;
-    --otzar-amber: 38 96% 55%;
+    /* Official Behance brand spectrum */
+    --otzar-void: 260 50% 5%;
+    --otzar-void-indigo: 244 47% 20%;
+    --otzar-brand: 283 81% 53%;
+    --otzar-purple: 271 91% 65%;
+    --otzar-blue: 230 77% 58%;
+    --otzar-silver: 223 16% 91%;
+    --otzar-orange: 20 92% 59%;
+    /* Legacy aliases → brand (keep call-sites stable) */
+    --otzar-indigo: 230 77% 58%;
+    --otzar-violet: 283 81% 53%;
+    --otzar-sky: 230 77% 62%;
+    --otzar-teal: 230 60% 48%;
+    --otzar-amber: 20 92% 59%;
     --otzar-rose: 346 84% 58%;
     --otzar-emerald: 160 72% 42%;
-    --otzar-glow: 238 100% 72%;
-    --otzar-rim-cyan: 199 92% 58%;
-    --otzar-rim-violet: 263 70% 64%;
-    --otzar-rim-indigo: 238 72% 62%;
-    --otzar-rim-magenta: 300 55% 62%;
-    --otzar-rim-silver: 220 20% 78%;
+    --otzar-glow: 271 91% 68%;
+    /* Spectral rim — purple → blue → silver (sleek, not rainbow) */
+    --otzar-rim-cyan: 230 77% 62%;
+    --otzar-rim-violet: 283 81% 56%;
+    --otzar-rim-indigo: 230 77% 58%;
+    --otzar-rim-magenta: 271 91% 62%;
+    --otzar-rim-silver: 223 16% 88%;
+    --otzar-rim-orange: 20 92% 59%;
   }
 
   .otzar-light {
-    --background: 230 40% 97%;
-    --foreground: 228 48% 10%;
+    --background: 223 20% 97%;
+    --foreground: 244 40% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 228 48% 10%;
+    --card-foreground: 244 40% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 228 48% 10%;
-    --primary: 238 72% 48%;
-    --primary-foreground: 210 40% 99%;
-    --secondary: 230 36% 95%;
-    --secondary-foreground: 228 48% 12%;
-    --muted: 230 28% 94%;
-    --muted-foreground: 225 14% 40%;
-    --accent: 230 48% 95%;
-    --accent-foreground: 228 48% 12%;
+    --popover-foreground: 244 40% 12%;
+    --primary: 283 81% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 244 24% 95%;
+    --secondary-foreground: 244 40% 14%;
+    --muted: 223 16% 94%;
+    --muted-foreground: 244 14% 38%;
+    --accent: 271 40% 96%;
+    --accent-foreground: 244 40% 14%;
     --destructive: 0 78% 52%;
-    --destructive-foreground: 210 40% 99%;
-    --border: 228 24% 88%;
-    --input: 228 24% 88%;
-    --ring: 238 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 223 16% 88%;
+    --input: 223 16% 88%;
+    --ring: 283 81% 48%;
   }
 }
 
@@ -111,8 +126,8 @@
   }
 
   ::selection {
-    background: hsl(199 90% 45% / 0.45);
-    color: hsl(210 40% 98%);
+    background: hsl(283 81% 53% / 0.42);
+    color: hsl(0 0% 100%);
   }
 
   /*
@@ -170,15 +185,16 @@
     border-color: rgba(255, 255, 255, 0.14) !important;
   }
 
-  /* Form fields on dark */
+  /* Form fields on dark — soft curve + brand focus */
   .otzar-dark-field input,
   .otzar-dark-field textarea,
   .otzar-dark-field select,
   [data-testid="ambient-otzar-bar"] input,
   [data-testid="ambient-otzar-bar"] textarea {
-    color: #f8fafc;
-    background-color: rgba(8, 12, 24, 0.75);
-    border-color: rgba(255, 255, 255, 0.16);
+    color: #e5e7ec;
+    background-color: rgba(10, 6, 18, 0.78);
+    border-color: rgba(229, 231, 236, 0.16);
+    border-radius: 0.9rem;
   }
   .otzar-dark-field input::placeholder,
   .otzar-dark-field textarea::placeholder,
@@ -187,16 +203,26 @@
     color: #94a3b8;
     opacity: 1;
   }
+  .otzar-dark-field input:focus-visible,
+  .otzar-dark-field textarea:focus-visible,
+  [data-testid="ambient-otzar-bar"] input:focus-visible,
+  [data-testid="ambient-otzar-bar"] textarea:focus-visible {
+    outline: none;
+    border-color: rgba(177, 36, 232, 0.45);
+    box-shadow: 0 0 0 3px rgba(177, 36, 232, 0.22);
+  }
 
-  /* Floating Talk dock — never light-gray glass that hides labels */
+  /* Floating Talk dock — brand void glass, purple rim, soft enterprise curve */
   [data-testid="ambient-otzar-bar"] {
-    background: rgba(10, 14, 28, 0.92) !important;
-    color: #f8fafc !important;
-    border-color: rgba(148, 163, 184, 0.22) !important;
+    background: rgba(10, 6, 18, 0.94) !important;
+    color: #e5e7ec !important;
+    border-color: rgba(177, 36, 232, 0.28) !important;
+    border-radius: 1.75rem !important;
     box-shadow:
-      0 18px 48px -16px rgba(0, 0, 0, 0.65),
-      0 0 0 1px rgba(56, 189, 248, 0.12),
-      0 0 32px -12px rgba(99, 102, 241, 0.35) !important;
+      0 18px 48px -16px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(177, 36, 232, 0.18),
+      0 0 40px -10px rgba(177, 36, 232, 0.4),
+      0 1px 0 0 rgba(229, 231, 236, 0.12) inset !important;
   }
   [data-testid="ambient-otzar-bar"] .text-muted-foreground {
     color: #cbd5e1 !important;
@@ -240,13 +266,13 @@
     0%,
     100% {
       box-shadow:
-        0 0 0 0 rgba(129, 140, 248, 0.35),
-        0 0 24px 4px rgba(56, 189, 248, 0.2);
+        0 0 0 0 rgba(177, 36, 232, 0.4),
+        0 0 28px 4px rgba(64, 93, 230, 0.22);
     }
     50% {
       box-shadow:
-        0 0 0 8px rgba(129, 140, 248, 0),
-        0 0 36px 8px rgba(167, 139, 250, 0.35);
+        0 0 0 8px rgba(177, 36, 232, 0),
+        0 0 40px 8px rgba(168, 85, 247, 0.4);
     }
   }
 
@@ -259,43 +285,43 @@
     }
   }
 
-  /* Multi-layer living atmosphere — dark void + incredible spectral color */
+  /* Multi-layer living atmosphere — Behance purple void + brand blue glow */
   .otzar-aurora-layer {
     position: absolute;
     inset: -25%;
     background:
-      radial-gradient(42% 40% at 18% 10%, rgba(99, 102, 241, 0.45), transparent 68%),
-      radial-gradient(48% 44% at 82% 16%, rgba(56, 189, 248, 0.38), transparent 70%),
-      radial-gradient(40% 46% at 48% 82%, rgba(45, 212, 191, 0.22), transparent 72%),
-      radial-gradient(55% 50% at 55% 42%, rgba(167, 139, 250, 0.28), transparent 68%),
-      radial-gradient(32% 34% at 10% 72%, rgba(236, 72, 153, 0.16), transparent 70%);
-    filter: blur(44px);
+      radial-gradient(46% 42% at 16% 8%, rgba(177, 36, 232, 0.48), transparent 70%),
+      radial-gradient(50% 46% at 84% 14%, rgba(64, 93, 230, 0.36), transparent 72%),
+      radial-gradient(42% 44% at 50% 86%, rgba(168, 85, 247, 0.22), transparent 74%),
+      radial-gradient(58% 52% at 52% 40%, rgba(30, 27, 75, 0.55), transparent 68%),
+      radial-gradient(30% 32% at 12% 74%, rgba(247, 119, 55, 0.1), transparent 72%);
+    filter: blur(48px);
     will-change: transform, opacity;
   }
 
-  /* Siri-like ambient scan lines — restrained, not arcade */
+  /* Ambient scan lines — brand purple / blue, soft curved mask */
   .otzar-ambient-lines {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.35;
+    opacity: 0.32;
     background:
       linear-gradient(
         90deg,
         transparent 0%,
-        rgba(56, 189, 248, 0.07) 48%,
-        rgba(167, 139, 250, 0.09) 50%,
-        rgba(56, 189, 248, 0.07) 52%,
+        rgba(64, 93, 230, 0.07) 46%,
+        rgba(177, 36, 232, 0.11) 50%,
+        rgba(64, 93, 230, 0.07) 54%,
         transparent 100%
       ),
       repeating-linear-gradient(
         180deg,
         transparent 0,
-        transparent 48px,
-        rgba(148, 163, 184, 0.035) 48px,
-        rgba(148, 163, 184, 0.035) 49px
+        transparent 52px,
+        rgba(229, 231, 236, 0.028) 52px,
+        rgba(229, 231, 236, 0.028) 53px
       );
-    mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 75%);
+    mask-image: radial-gradient(ellipse 85% 72% at 50% 42%, #000 18%, transparent 78%);
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -352,29 +378,29 @@
     transform-style: preserve-3d;
   }
   .otzar-spatial-depth .otzar-spatial-plane-far {
-    opacity: 0.35;
+    opacity: 0.38;
     background: radial-gradient(
-      55% 50% at 30% 20%,
-      rgba(139, 92, 246, 0.16),
-      transparent 70%
+      58% 52% at 28% 18%,
+      rgba(177, 36, 232, 0.2),
+      transparent 72%
     );
     transform: translateZ(-40px) scale(1.08);
   }
   .otzar-spatial-depth .otzar-spatial-plane-mid {
-    opacity: 0.28;
+    opacity: 0.3;
     background: radial-gradient(
-      45% 40% at 78% 30%,
-      rgba(56, 189, 248, 0.14),
-      transparent 72%
+      48% 42% at 78% 28%,
+      rgba(64, 93, 230, 0.16),
+      transparent 74%
     );
     transform: translateZ(-18px) scale(1.04);
   }
   .otzar-spatial-depth .otzar-spatial-plane-near {
-    opacity: 0.18;
+    opacity: 0.16;
     background: radial-gradient(
-      40% 35% at 50% 80%,
-      rgba(45, 212, 191, 0.1),
-      transparent 70%
+      42% 36% at 50% 82%,
+      rgba(168, 85, 247, 0.12),
+      transparent 72%
     );
     transform: translateZ(0);
   }
@@ -415,55 +441,58 @@
     }
   }
 
-  /* Hero title gradient — luminous on dark void */
+  /* Hero title gradient — silver → brand purple → blue (pops, stays sleek) */
   .otzar-text-luminous {
     background: linear-gradient(
-      120deg,
-      #f8fafc 0%,
-      #c7d2fe 42%,
-      #67e8f9 78%,
-      #a78bfa 100%
+      118deg,
+      #e5e7ec 0%,
+      #c084fc 38%,
+      #a855f7 62%,
+      #405de6 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  /* Premium CTA gradient fill */
+  /* Premium CTA — brand purple fill, soft pill curve */
   .otzar-cta-fill {
+    border-radius: 1.125rem;
     background: linear-gradient(
       135deg,
-      hsl(238 72% 48%) 0%,
-      hsl(263 70% 52%) 55%,
-      hsl(243 75% 55%) 100%
+      #b124e8 0%,
+      #a855f7 48%,
+      #405de6 100%
     );
     color: white;
     box-shadow:
-      0 12px 32px -12px rgba(79, 70, 229, 0.55),
-      0 1px 0 0 rgba(255, 255, 255, 0.25) inset;
+      0 14px 36px -12px rgba(177, 36, 232, 0.55),
+      0 1px 0 0 rgba(255, 255, 255, 0.28) inset,
+      0 -1px 0 0 rgba(30, 27, 75, 0.25) inset;
   }
 
   .otzar-cta-fill:hover {
-    filter: brightness(1.05);
+    filter: brightness(1.06) saturate(1.05);
   }
 
-  /* Soft glass stage on dark field */
+  /* Soft glass stage — designer curves + brand bevel */
   .otzar-stage {
-    border-radius: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1.75rem;
+    border: 1px solid rgba(229, 231, 236, 0.14);
     background: linear-gradient(
       155deg,
-      rgba(255, 255, 255, 0.09) 0%,
-      rgba(99, 102, 241, 0.08) 48%,
-      rgba(15, 23, 42, 0.35) 100%
+      rgba(229, 231, 236, 0.1) 0%,
+      rgba(177, 36, 232, 0.1) 42%,
+      rgba(30, 27, 75, 0.42) 100%
     );
     box-shadow:
-      0 24px 64px -28px rgba(0, 0, 0, 0.55),
-      0 0 40px -16px rgba(56, 189, 248, 0.18),
-      0 1px 0 0 rgba(255, 255, 255, 0.1) inset,
-      0 0 0 1px rgba(129, 140, 248, 0.08);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
+      0 28px 68px -28px rgba(0, 0, 0, 0.6),
+      0 0 48px -14px rgba(177, 36, 232, 0.28),
+      0 1px 0 0 rgba(229, 231, 236, 0.14) inset,
+      0 -1px 0 0 rgba(30, 27, 75, 0.35) inset,
+      0 0 0 1px rgba(177, 36, 232, 0.1);
+    backdrop-filter: blur(30px) saturate(165%);
+    -webkit-backdrop-filter: blur(30px) saturate(165%);
   }
 
   /*
@@ -487,13 +516,13 @@
     padding: 1.5px;
     background: conic-gradient(
       from var(--otzar-rim-angle),
-      hsl(var(--otzar-rim-cyan) / 0) 0%,
-      hsl(var(--otzar-rim-cyan) / 0.55) 12%,
-      hsl(var(--otzar-rim-indigo) / 0.5) 28%,
-      hsl(var(--otzar-rim-violet) / 0.55) 44%,
-      hsl(var(--otzar-rim-magenta) / 0.28) 58%,
-      hsl(var(--otzar-rim-cyan) / 0) 72%,
-      hsl(var(--otzar-rim-cyan) / 0) 100%
+      hsl(var(--otzar-rim-violet) / 0) 0%,
+      hsl(var(--otzar-rim-violet) / 0.65) 14%,
+      hsl(var(--otzar-rim-indigo) / 0.55) 30%,
+      hsl(var(--otzar-rim-magenta) / 0.5) 46%,
+      hsl(var(--otzar-rim-silver) / 0.35) 58%,
+      hsl(var(--otzar-rim-violet) / 0) 74%,
+      hsl(var(--otzar-rim-violet) / 0) 100%
     );
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
@@ -529,17 +558,40 @@
       animation: none !important;
       background: linear-gradient(
         135deg,
-        hsl(var(--otzar-rim-cyan) / 0.35),
-        hsl(var(--otzar-rim-violet) / 0.3)
+        hsl(var(--otzar-rim-violet) / 0.4),
+        hsl(var(--otzar-rim-indigo) / 0.32)
       );
     }
   }
 
-  /* Fine luminous geometric edge — micro retro-future trace */
+  /*
+   * Beveled edge trace — silver highlight top-left, void shadow bottom-right.
+   * Gives enterprise metal/glass depth (designer Behance chrome language).
+   */
   .otzar-edge-trace {
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.55) inset,
-      0 0 0 1px rgba(15, 23, 42, 0.04);
+      0 1px 0 0 rgba(229, 231, 236, 0.22) inset,
+      0 -1px 0 0 rgba(10, 6, 18, 0.45) inset,
+      1px 0 0 0 rgba(229, 231, 236, 0.08) inset,
+      -1px 0 0 0 rgba(10, 6, 18, 0.25) inset,
+      0 0 0 1px rgba(177, 36, 232, 0.12);
+  }
+
+  /* Soft designer curve scale — generous, continuous radii (not sharp SaaS boxes) */
+  .otzar-curve-sm {
+    border-radius: 0.875rem;
+  }
+  .otzar-curve-md {
+    border-radius: 1.25rem;
+  }
+  .otzar-curve-lg {
+    border-radius: 1.75rem;
+  }
+  .otzar-curve-xl {
+    border-radius: 2.25rem;
+  }
+  .otzar-curve-pill {
+    border-radius: 9999px;
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -551,11 +603,11 @@
 
   .otzar-logo-bloom {
     background:
-      radial-gradient(circle at 35% 28%, rgba(167, 139, 250, 0.55), transparent 52%),
-      radial-gradient(circle at 68% 62%, rgba(56, 189, 248, 0.38), transparent 55%),
-      radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.22), transparent 70%);
-    filter: blur(10px);
-    opacity: 0.9;
+      radial-gradient(circle at 35% 28%, rgba(177, 36, 232, 0.58), transparent 52%),
+      radial-gradient(circle at 68% 62%, rgba(64, 93, 230, 0.36), transparent 55%),
+      radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.28), transparent 70%);
+    filter: blur(12px);
+    opacity: 0.92;
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -579,22 +631,23 @@
   }
 
   .otzar-logo-sphere-polish {
+    border-radius: 50%;
     background:
       linear-gradient(
         145deg,
-        rgba(255, 255, 255, 0.22) 0%,
-        rgba(99, 102, 241, 0.25) 38%,
-        rgba(15, 23, 42, 0.55) 100%
+        rgba(229, 231, 236, 0.28) 0%,
+        rgba(177, 36, 232, 0.32) 40%,
+        rgba(10, 6, 18, 0.62) 100%
       );
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(229, 231, 236, 0.32);
     box-shadow:
-      0 18px 48px -12px rgba(56, 189, 248, 0.45),
-      0 0 40px -8px rgba(167, 139, 250, 0.5),
-      0 6px 16px -6px rgba(0, 0, 0, 0.5),
-      0 1px 0 0 rgba(255, 255, 255, 0.45) inset,
-      0 -1px 0 0 rgba(99, 102, 241, 0.25) inset;
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
+      0 18px 52px -12px rgba(177, 36, 232, 0.5),
+      0 0 44px -8px rgba(168, 85, 247, 0.55),
+      0 6px 16px -6px rgba(0, 0, 0, 0.55),
+      0 1px 0 0 rgba(229, 231, 236, 0.5) inset,
+      0 -1px 0 0 rgba(64, 93, 230, 0.3) inset;
+    backdrop-filter: blur(12px) saturate(185%);
+    -webkit-backdrop-filter: blur(12px) saturate(185%);
   }
 
   .otzar-logo-sphere-flat {
@@ -618,7 +671,7 @@
   }
 
   .otzar-logo-mark {
-    filter: drop-shadow(0 2px 6px rgba(67, 56, 202, 0.25));
+    filter: drop-shadow(0 2px 8px rgba(177, 36, 232, 0.35));
   }
 
   /* Atari DNA on logo disc — four precise corner ticks, not pixels */
@@ -648,19 +701,19 @@
   }
 
   .otzar-logo-presence-listening {
-    filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.55));
+    filter: drop-shadow(0 0 16px rgba(64, 93, 230, 0.55));
   }
   .otzar-logo-presence-thinking {
-    filter: drop-shadow(0 0 14px rgba(129, 140, 248, 0.5));
+    filter: drop-shadow(0 0 16px rgba(177, 36, 232, 0.55));
   }
   .otzar-logo-presence-approval {
-    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.5));
+    filter: drop-shadow(0 0 16px rgba(247, 119, 55, 0.5));
   }
   .otzar-logo-presence-success {
     filter: drop-shadow(0 0 12px rgba(52, 211, 153, 0.45));
   }
   .otzar-logo-presence-blocked {
-    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
+    filter: drop-shadow(0 0 12px rgba(247, 119, 55, 0.45));
   }
   .otzar-logo-presence-failure {
     filter: drop-shadow(0 0 12px rgba(244, 63, 94, 0.4));
@@ -677,28 +730,31 @@
   .otzar-atari-frame::after {
     content: "";
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     pointer-events: none;
     z-index: 2;
-    border-color: rgba(129, 140, 248, 0.45);
+    border-color: rgba(177, 36, 232, 0.5);
     border-style: solid;
     border-width: 0;
+    border-radius: 3px 0 0 0;
   }
   .otzar-atari-frame::before {
-    top: 6px;
-    left: 6px;
+    top: 8px;
+    left: 8px;
     border-top-width: 1.5px;
     border-left-width: 1.5px;
+    border-radius: 4px 0 0 0;
   }
   .otzar-atari-frame::after {
-    top: 6px;
-    right: 6px;
+    top: 8px;
+    right: 8px;
     border-top-width: 1.5px;
     border-right-width: 1.5px;
+    border-radius: 0 4px 0 0;
   }
 
-  /* Full viewport Atari corners for shell perimeter */
+  /* Full viewport brand corners for shell perimeter — soft curve ticks */
   .otzar-atari-shell-corners {
     pointer-events: none;
     position: fixed;
@@ -707,73 +763,79 @@
   }
   .otzar-atari-shell-corners span {
     position: absolute;
-    width: 22px;
-    height: 22px;
-    border-color: rgba(56, 189, 248, 0.45);
+    width: 24px;
+    height: 24px;
+    border-color: rgba(177, 36, 232, 0.5);
     border-style: solid;
-    filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.35));
+    filter: drop-shadow(0 0 8px rgba(177, 36, 232, 0.4));
   }
   .otzar-atari-shell-corners .c-tl {
-    top: 10px;
-    left: 10px;
+    top: 12px;
+    left: 12px;
     border-width: 1.5px 0 0 1.5px;
+    border-top-left-radius: 6px;
   }
   .otzar-atari-shell-corners .c-tr {
-    top: 10px;
-    right: 10px;
+    top: 12px;
+    right: 12px;
     border-width: 1.5px 1.5px 0 0;
+    border-top-right-radius: 6px;
   }
   .otzar-atari-shell-corners .c-bl {
-    bottom: 10px;
-    left: 10px;
+    bottom: 12px;
+    left: 12px;
     border-width: 0 0 1.5px 1.5px;
+    border-bottom-left-radius: 6px;
   }
   .otzar-atari-shell-corners .c-br {
-    bottom: 10px;
-    right: 10px;
+    bottom: 12px;
+    right: 12px;
     border-width: 0 1.5px 1.5px 0;
+    border-bottom-right-radius: 6px;
   }
 
-  /* Glass card material — dark enterprise glass */
+  /* Glass card — brand-tinted enterprise glass + designer curve */
   .otzar-glass-card {
-    border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.35rem;
+    border: 1px solid rgba(229, 231, 236, 0.12);
     background: linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(30, 27, 75, 0.35) 55%,
-      rgba(8, 12, 24, 0.55) 100%
+      158deg,
+      rgba(229, 231, 236, 0.1) 0%,
+      rgba(177, 36, 232, 0.09) 38%,
+      rgba(30, 27, 75, 0.42) 72%,
+      rgba(10, 6, 18, 0.58) 100%
     );
     box-shadow:
-      0 16px 48px -24px rgba(0, 0, 0, 0.55),
-      0 0 28px -18px rgba(56, 189, 248, 0.2),
-      0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-      0 0 0 1px rgba(99, 102, 241, 0.06);
-    backdrop-filter: blur(22px) saturate(150%);
-    -webkit-backdrop-filter: blur(22px) saturate(150%);
-    color: hsl(210 40% 98%);
+      0 18px 52px -24px rgba(0, 0, 0, 0.6),
+      0 0 36px -16px rgba(177, 36, 232, 0.28),
+      0 1px 0 0 rgba(229, 231, 236, 0.14) inset,
+      0 -1px 0 0 rgba(10, 6, 18, 0.4) inset,
+      0 0 0 1px rgba(177, 36, 232, 0.08);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    color: #e5e7ec;
   }
 
   .otzar-glass-card .text-slate-900,
   .otzar-glass-card .text-foreground {
-    color: hsl(210 40% 98%);
+    color: #e5e7ec;
   }
   .otzar-glass-card .text-slate-500,
   .otzar-glass-card .text-slate-400,
   .otzar-glass-card .text-muted-foreground {
-    color: hsl(220 14% 68%);
+    color: hsl(223 14% 72%);
   }
 
-  /* Idle ambient rim — barely there so edge DNA always reads */
+  /* Idle ambient rim — brand purple whisper */
   .otzar-ambient-rim-idle {
-    opacity: 0.28;
+    opacity: 0.32;
     padding: 1px;
     background: conic-gradient(
       from 210deg,
       hsl(var(--otzar-rim-silver) / 0) 0%,
-      hsl(var(--otzar-rim-cyan) / 0.25) 18%,
-      hsl(var(--otzar-rim-indigo) / 0.22) 40%,
-      hsl(var(--otzar-rim-violet) / 0.2) 58%,
+      hsl(var(--otzar-rim-violet) / 0.3) 18%,
+      hsl(var(--otzar-rim-indigo) / 0.24) 40%,
+      hsl(var(--otzar-rim-magenta) / 0.22) 58%,
       hsl(var(--otzar-rim-silver) / 0) 78%,
       hsl(var(--otzar-rim-silver) / 0) 100%
     );

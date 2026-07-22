@@ -128,7 +128,7 @@ export function OrgDiscoveryFoundCard({
                     <li key={cat.id}>
                       <Link
                         to={cat.to}
-                        className="group flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition hover:border-indigo-400/30 hover:bg-white/[0.06]"
+                        className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition hover:border-[#B124E8]/35 hover:bg-white/[0.06]"
                         data-testid={`org-discovery-category-${cat.id}`}
                         data-count={cat.count}
                       >

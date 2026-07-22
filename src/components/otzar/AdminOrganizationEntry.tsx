@@ -76,9 +76,9 @@ export function AdminOrganizationEntry(): JSX.Element | null {
     <Link
       to="/setup"
       data-testid="admin-organization-entry"
-      className="otzar-edge-trace otzar-glass-card group flex items-center gap-3 rounded-2xl px-3.5 py-3 transition hover:border-sky-400/30"
+      className="otzar-edge-trace otzar-glass-card group flex items-center gap-3 rounded-[1.35rem] px-3.5 py-3 transition hover:border-[#B124E8]/40"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#B124E8]/18 text-[#a855f7]">
         <Building2 className="h-4 w-4" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
