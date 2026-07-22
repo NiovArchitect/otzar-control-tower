@@ -83,7 +83,7 @@ export function AmbientNav(): JSX.Element {
           className="mb-3 flex flex-col items-center gap-1 rounded-2xl px-1 py-2 transition-opacity hover:opacity-90"
           aria-label="Otzar home"
         >
-          <OtzarBrandLogo size="md" tone="brand" />
+          <OtzarBrandLogo size="lg" tone="brand" polish />
         </Link>
         {PRIMARY.map((p) => (
           <NavLink

@@ -72,7 +72,7 @@ export function Layout() {
             <AppBackButton fallback="/" />
             {isMobile ? (
               <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
-                <OtzarBrandLogo size="sm" tone="brand" />
+                <OtzarBrandLogo size="md" tone="brand" polish />
                 Control Tower
               </span>
             ) : null}

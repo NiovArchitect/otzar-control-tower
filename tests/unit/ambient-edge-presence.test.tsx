@@ -173,7 +173,12 @@ describe("D-01 — human presence language (5 states)", () => {
     expect(screen.getByTestId("ambient-edge-glow").getAttribute("data-spectral")).toBe(
       "false",
     );
-    expect(screen.queryByTestId("otzar-ambient-rim")).toBeNull();
+    // Idle still shows restrained ambient rim + Atari corners (year-3000 DNA).
+    expect(screen.getByTestId("otzar-ambient-rim")).toHaveAttribute(
+      "data-rim-state",
+      "idle",
+    );
+    expect(screen.getByTestId("otzar-atari-corners")).toBeInTheDocument();
   });
 
   it("edge glow exposes data-presence-human", () => {
