@@ -45,7 +45,7 @@ export const SEED_QUEUES: readonly SeedQueueDef[] = [
     id: "tool_setup",
     label: "Tools Otzar noticed you need",
     description:
-      "Connections discovered from real work — connect them in Tools & Connections. Approve creates a setup step; access is never granted automatically.",
+      "Connections discovered from real work — connect them under Connections. Approve creates a setup step; access is never granted automatically.",
   },
   {
     id: "external_review",

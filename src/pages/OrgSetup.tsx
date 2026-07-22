@@ -10,17 +10,20 @@
 //          coach are honestly labeled as not available yet).
 // CONNECTS TO: src/lib/setup/setup-journey.ts (pure derivation), the seven
 //          GET projections via src/lib/api.ts, route /setup + nav
-//          "Organization" (Overview group). Seeding review + starter-shape
-//          defaults are steps inside this path, not competing products.
+//          "Organization" (Overview group). Dandelion discovery appears as
+//          "Otzar found" with full review capability preserved at
+//          /organization-seeding — combined journey, not deleted capability.
 
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, CircleDashed, Compass } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OrgDiscoveryFoundCard } from "@/components/otzar/OrgDiscoveryFoundCard";
 import { api } from "@/lib/api";
 import {
   deriveSetupJourney,
@@ -28,6 +31,7 @@ import {
   type SetupSection,
 } from "@/lib/setup/setup-journey";
 import { deriveSetupCoach } from "@/lib/setup/setup-coach";
+import { deriveOrgDiscovery } from "@/lib/setup/org-discovery";
 
 function stateBadge(section: SetupSection) {
   const variant =
@@ -44,6 +48,9 @@ function stateBadge(section: SetupSection) {
 }
 
 export function OrgSetupPage() {
+  const queryClient = useQueryClient();
+  const [syncBusy, setSyncBusy] = useState(false);
+
   // Seven existing GET projections — nothing else. A failure in any one
   // renders that section's honest "couldn't check" state, never a guess.
   const people = useQuery({
@@ -112,12 +119,30 @@ export function OrgSetupPage() {
   };
   const journey = deriveSetupJourney(inputs);
   const coaching = deriveSetupCoach(inputs).slice(0, 3);
+  const discovery = deriveOrgDiscovery({
+    people: inputs.people,
+    memberships: inputs.memberships,
+    seeds: inputs.seeds,
+    orgEntityId: inputs.orgEntityId,
+  });
+
+  async function refreshStructureSignals(): Promise<void> {
+    setSyncBusy(true);
+    // Preserve full Dandelion syncFromGrowth capability from the setup surface.
+    const r = await api.otzar.dandelionSeeds.syncFromGrowth();
+    setSyncBusy(false);
+    if (r.ok) {
+      await queryClient.invalidateQueries({ queryKey: ["org", "dandelion", "seeds"] });
+      await queryClient.invalidateQueries({ queryKey: ["org", "hierarchy"] });
+      await queryClient.invalidateQueries({ queryKey: ["org", "entities"] });
+    }
+  }
 
   return (
     <div className="space-y-6" data-testid="org-setup-page">
       <PageHeader
         title="Organization"
-        description="One guided path — readiness, people, structure, AI Teammates, connections, governance, and your first workflow. Otzar proposes; you confirm."
+        description="Otzar discovers people, structure, and work relationships. You confirm exceptions and finish what only a human can."
       />
 
       {loading ? (
@@ -127,14 +152,20 @@ export function OrgSetupPage() {
         </div>
       ) : (
         <>
-          {/* Activation order — one connected intelligence flow, not four systems. */}
+          {/* Dandelion intelligence — human findings, not a separate product. */}
+          <OrgDiscoveryFoundCard
+            discovery={discovery}
+            onRefreshSignals={() => void refreshStructureSignals()}
+            refreshBusy={syncBusy}
+          />
+
+          {/* Activation order — one connected intelligence flow. */}
           <Card data-testid="setup-activation-path">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Activation path</CardTitle>
+              <CardTitle className="text-sm">Setup path</CardTitle>
               <CardDescription className="text-xs">
-                Otzar already understands most of your organization. Confirm what
-                matters — you do not need to operate separate seeding or onboarding
-                products.
+                What Otzar found → what needs confirmation → what is missing →
+                what happens next.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -145,11 +176,12 @@ export function OrgSetupPage() {
                 {[
                   "People",
                   "Structure",
+                  "Projects",
                   "AI Teammates",
                   "Connections",
                   "Governance",
                   "First workflow",
-                  "Review proposals",
+                  "Ready",
                 ].map((step, i) => (
                   <li
                     key={step}
@@ -161,9 +193,11 @@ export function OrgSetupPage() {
                 ))}
               </ol>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                  <Link to="/organization-seeding">Review what Otzar found</Link>
-                </Button>
+                {discovery.reviewCta !== null ? (
+                  <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                    <Link to={discovery.reviewCta.to}>{discovery.reviewCta.label}</Link>
+                  </Button>
+                ) : null}
                 <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
                   <Link to="/onboarding">Recommended starter shape</Link>
                 </Button>

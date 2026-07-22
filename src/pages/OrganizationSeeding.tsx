@@ -177,19 +177,19 @@ export function OrganizationSeedingPage(): JSX.Element {
       </div>
       <PageHeader
         title="Review what Otzar found"
-        description="Proposals from real work — confirm identities, structure, and tools. Nothing applies automatically. This is one step in Organization setup, not a separate product."
+        description="Confirm people, structure, projects, and tools Otzar discovered from real work. Full approve, hold, and correct actions stay here — this is the Organization discovery queue, not a separate product."
       />
 
-      {/* E-01 — which proposal classes Dandelion has open right now. */}
+      {/* E-01 — multi-class proposal coverage (capability preserved). */}
       <DandelionProposalClassMatrix inventory={classInventory} />
 
       <Card data-testid="dandelion-order-strip">
         <CardContent className="space-y-3 py-4 text-sm">
           <p className="text-xs leading-relaxed text-muted-foreground">
-            <span className="font-medium text-foreground">Ambient path:</span>{" "}
-            Otzar listens → discovers gaps → lands quiet work on the manager or
-            lead → they act when it fits. This page is for policy signals (tools,
-            identity, hold/dismiss), not daily placement.
+            <span className="font-medium text-foreground">What you do here:</span>{" "}
+            Confirm identities, managers, teams, projects, and tool needs Otzar
+            proposed. Placement can stay ambient for managers; hierarchy and
+            access exceptions need your confirmation.
           </p>
           <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
             <Button
