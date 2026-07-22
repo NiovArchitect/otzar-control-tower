@@ -9,16 +9,17 @@ export const EMPLOYEE_TOOLS_PATH = "/app/connector-health";
 /** Admin inventory path — capability inventory before MCP advanced. */
 export const ADMIN_TOOLS_PATH = "/tools-connections";
 
-/** Ordered admin tabs: primary → secondary → advanced (MCP last). */
+/** Ordered admin tabs: connect first (plug-and-play) → inventory → advanced last. */
 export const ADMIN_TOOLS_TAB_ORDER = [
-  "inventory",
   "connected",
+  "inventory",
   "advanced",
 ] as const;
 
 export type AdminToolsTab = (typeof ADMIN_TOOLS_TAB_ORDER)[number];
 
-export const DEFAULT_ADMIN_TOOLS_TAB: AdminToolsTab = "inventory";
+/** Default lands on Connect tools (plug-and-play), not inventory KPIs. */
+export const DEFAULT_ADMIN_TOOLS_TAB: AdminToolsTab = "connected";
 
 export const CAPABILITY_FIRST_HEADLINE =
   "Connect by capability — calendar, documents, Meet, chat.";
@@ -27,9 +28,9 @@ export const CAPABILITY_FIRST_DETAIL =
   "Pick what work needs. Otzar does not ask you to configure MCP protocols for daily use.";
 
 export const MCP_ADVANCED_ONLY_COPY =
-  "MCP and protocol rails live here for technical administrators only. Ordinary org setup does not require this tab.";
+  "Protocol rails live here for technical administrators only. Ordinary org setup does not require this tab.";
 
-export const MCP_TAB_LABEL = "Advanced (MCP / developers)";
+export const MCP_TAB_LABEL = "Advanced (developers only)";
 
 /** True when a path is the employee capability-first surface. */
 export function isEmployeeCapabilityFirstPath(pathname: string): boolean {
@@ -72,7 +73,8 @@ export function adminToolsTabFingerprint(
 
 export function isValidAdminTabOrder(tabs: ReadonlyArray<string>): boolean {
   if (tabs.length < 3) return false;
-  const inv = tabs.indexOf("inventory");
+  const connected = tabs.indexOf("connected");
   const adv = tabs.indexOf("advanced");
-  return inv === 0 && adv === tabs.length - 1;
+  // Connect tools first; advanced always last.
+  return connected === 0 && adv === tabs.length - 1;
 }

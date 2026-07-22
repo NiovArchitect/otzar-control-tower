@@ -131,9 +131,33 @@ beforeEach(() => {
   vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
+async function openInventoryTab(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> {
+  await user.click(await screen.findByTestId("tab-tools-inventory"));
+  await screen.findByTestId("tools-inventory-panel");
+}
+
 describe("Tools & Connections — Phase E.2 inventory actions", () => {
-  it("shows KPIs, people, pending requests, and accuracy strip", async () => {
+  it("defaults to plug-and-play Connect tools path", async () => {
     renderPage();
+    expect(await screen.findByTestId("connections-plug-play-path")).toBeInTheDocument();
+    expect(screen.getByTestId("tools-connections-page")).toHaveAttribute(
+      "data-plug-and-play",
+      "true",
+    );
+    const tabs = screen.getByTestId("tools-admin-tablist");
+    expect(tabs).toHaveAttribute("data-tab-order", "connected>inventory>advanced");
+    expect(screen.getByTestId("tab-connected-tools")).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("shows KPIs, people, pending requests, and accuracy strip", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openInventoryTab(user);
     expect(await screen.findByTestId("tools-inventory-panel")).toBeInTheDocument();
     expect(screen.getByTestId("kpi-pending")).toHaveTextContent("1");
     expect(screen.getByTestId("tools-pending-row")).toHaveTextContent(/David/);
@@ -169,6 +193,7 @@ describe("Tools & Connections — Phase E.2 inventory actions", () => {
     );
     const user = userEvent.setup();
     renderPage();
+    await openInventoryTab(user);
     await screen.findByTestId("tools-request-approve");
     await user.click(screen.getByTestId("tools-request-approve"));
     await waitFor(() =>
@@ -186,6 +211,7 @@ describe("Tools & Connections — Phase E.2 inventory actions", () => {
     );
     const user = userEvent.setup();
     renderPage();
+    await openInventoryTab(user);
     await screen.findByTestId("tools-oauth-revoke");
     await user.click(screen.getByTestId("tools-oauth-revoke"));
     await waitFor(() => expect(slug).toBe("google"));
