@@ -1054,6 +1054,26 @@ describe("AmbientOtzarBar — Work OS commands", () => {
     expect(recordedBodies.length).toBe(0); // no Twin chat
   });
 
+  it("'Yes, ping David for a status update' shows a professional draft — never the raw command (RC2 Talk path)", async () => {
+    // Founder defect gate: instruction to Otzar must not appear as the
+    // recipient-facing body on the work artifact card.
+    await speak("Yes, ping David for a status update");
+    await waitFor(() =>
+      expect(screen.getByTestId("work-artifact-card")).toBeInTheDocument(),
+    );
+    const body = screen.getByTestId("work-artifact-body").textContent ?? "";
+    expect(body.toLowerCase()).not.toContain("ping david");
+    expect(body.toLowerCase()).not.toMatch(/^yes[,.]?\s*ping/);
+    expect(body).toMatch(/Hi David|Hey David/i);
+    expect(body.toLowerCase()).toMatch(
+      /status update|quick update|what is complete|blocked|need from me/,
+    );
+    expect(screen.getByTestId("work-artifact-card").textContent).toMatch(/David/);
+    // Local draft only until Confirm — no gated Action, no Twin chat.
+    expect(actionPosts.length).toBe(0);
+    expect(recordedBodies.length).toBe(0);
+  });
+
   it("Confirm on the draft delivers via the human-authority path (no external send, no gated Action)", async () => {
     await speak("Draft a message to David saying we need to review this.");
     await waitFor(() =>

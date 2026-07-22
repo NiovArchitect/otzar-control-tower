@@ -172,7 +172,7 @@ Post-merge: verify deploy SHA == main; bundle on app.otzar.ai.
 10. Full visual system + ambient presence (**#205** + founder approve)  
 11. Capability-preservation regression — **coded** unit gate (`capability-preservation-regression.test.ts`)  
 12. Fresh admin + employee comprehension — **protocol coded** `RC2_COMPREHENSION_PROTOCOL.md` (live run still open)  
-13. Full Work OS regression  
+13. Full Work OS regression — **checklist coded** `RC2_WORK_OS_REGRESSION.md` (live run still open)  
 14. Founder live review  
 
 Comprehension protocol: `docs/otzar/master/RC2_COMPREHENSION_PROTOCOL.md` 
@@ -181,7 +181,7 @@ Comprehension protocol: `docs/otzar/master/RC2_COMPREHENSION_PROTOCOL.md`
 
 ## 7. Open defects (do not mark closed without proof)
 
-- Talk “ping David” professional draft: **live Talk artifact path** still needs LIVE_ROUTE_VERIFIED  
+- Talk “ping David” professional draft: **unit/card path coded** (`message-compose` + ambient bar test); **LIVE_ROUTE_VERIFIED** still open — see `RC2_TALK_PING_DAVID_PROOF.md`  
 - Residual copy: engine/codename “Dandelion” may remain in APIs/tests; **primary UI** scrubbed toward Connections / Otzar found / activation path  
 - Bootstrap sadeil password stale — use working admin smoke carefully; do not lock founder  
 - Employee People previews / speak-back / mic — deploy-verify separately  
