@@ -3,54 +3,54 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   OTZAR BRAND VISUAL SYSTEM — Behance enterprise product shell
-   Source: https://www.behance.net/gallery/252799665/OTZAR
-   Palette: #B124E8 · #a855f7 · #405DE6 · #1e1b4b · #E5E7EC · #F77737 · #FFFFFF
-   Doctrine: BRIGHT enterprise · soft semi-gradients · floating 3D light shadows
-             · designer curves · white cards over lavender field · not black void.
+   OTZAR BRAND VISUAL SYSTEM — Behance identity × product shell
+   Palette (designer gallery + otzar.ai):
+     #B124E8 brand purple · #a855f7 mid purple · #405DE6 brand blue
+     #1e1b4b void indigo · #E5E7EC silver · #F77737 accent orange · #0a0612 near-black
+   Doctrine: sleek pop · glass over void · beveled depth · enterprise, not neon club.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   /*
-   * Product default = Behance bright enterprise (silver field + purple brand).
-   * Optional deep brand stage under .otzar-dark for marketing moments only.
+   * Product default = Behance dark brand field.
+   * Light pearl tokens retained under .otzar-light for rare print/export.
    */
   :root {
-    /* Silver field #E5E7EC family + brand-dark ink #1e1b4b */
-    --background: 223 16% 93%;
-    --foreground: 244 47% 20%;
-    --card: 0 0% 100%;
-    --card-foreground: 244 47% 18%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 244 47% 18%;
+    /* Near-black void + silver text (pops without glare) */
+    --background: 260 50% 5%;
+    --foreground: 223 16% 94%;
+    --card: 244 40% 10%;
+    --card-foreground: 223 16% 94%;
+    --popover: 244 40% 10%;
+    --popover-foreground: 223 16% 94%;
     /* Primary = brand purple #B124E8 */
     --primary: 283 81% 53%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 271 45% 96%;
-    --secondary-foreground: 244 47% 22%;
-    --muted: 250 30% 95%;
-    --muted-foreground: 244 18% 40%;
-    --accent: 271 55% 96%;
-    --accent-foreground: 283 70% 36%;
+    --secondary: 244 35% 14%;
+    --secondary-foreground: 223 16% 94%;
+    --muted: 244 30% 14%;
+    /* Silver-readable secondary on dark (#E5E7EC family) */
+    --muted-foreground: 223 14% 78%;
+    --accent: 244 32% 16%;
+    --accent-foreground: 223 16% 94%;
     --destructive: 0 72% 52%;
     --destructive-foreground: 0 0% 100%;
-    --border: 250 20% 88%;
-    --input: 250 18% 90%;
-    --ring: 283 81% 53%;
-    /* Designer curve language — soft continuous radii */
-    --radius: 1.125rem;
+    --border: 244 24% 22%;
+    --input: 244 28% 16%;
+    /* Focus ring = brand blue #405DE6 */
+    --ring: 230 77% 58%;
+    /* Designer curve language — generous continuous radii (Behance soft geometry) */
+    --radius: 1.15rem;
 
     /* Official Behance brand spectrum */
-    --otzar-void: 244 47% 20%;
+    --otzar-void: 260 50% 5%;
     --otzar-void-indigo: 244 47% 20%;
     --otzar-brand: 283 81% 53%;
     --otzar-purple: 271 91% 65%;
     --otzar-blue: 230 77% 58%;
     --otzar-silver: 223 16% 91%;
     --otzar-orange: 20 92% 59%;
-    --otzar-pearl: 250 40% 98%;
-    --otzar-lavender: 268 55% 94%;
-    /* Legacy aliases → brand */
+    /* Legacy aliases → brand (keep call-sites stable) */
     --otzar-indigo: 230 77% 58%;
     --otzar-violet: 283 81% 53%;
     --otzar-sky: 230 77% 62%;
@@ -59,51 +59,35 @@
     --otzar-rose: 346 84% 58%;
     --otzar-emerald: 160 72% 42%;
     --otzar-glow: 271 91% 68%;
+    /* Spectral rim — purple → blue → silver (sleek, not rainbow) */
     --otzar-rim-cyan: 230 77% 62%;
     --otzar-rim-violet: 283 81% 56%;
     --otzar-rim-indigo: 230 77% 58%;
     --otzar-rim-magenta: 271 91% 62%;
     --otzar-rim-silver: 223 16% 88%;
     --otzar-rim-orange: 20 92% 59%;
-
-    /* Floating 3D light-shadow system (Behance module language) */
-    --otzar-shadow-float:
-      0 1px 2px rgba(30, 27, 75, 0.04),
-      0 8px 24px -8px rgba(30, 27, 75, 0.12),
-      0 28px 56px -20px rgba(177, 36, 232, 0.16);
-    --otzar-shadow-float-lg:
-      0 2px 4px rgba(30, 27, 75, 0.04),
-      0 12px 32px -10px rgba(30, 27, 75, 0.14),
-      0 36px 72px -24px rgba(177, 36, 232, 0.2);
-    --otzar-shadow-btn:
-      0 1px 0 rgba(255, 255, 255, 0.28) inset,
-      0 6px 16px -4px rgba(177, 36, 232, 0.45),
-      0 2px 6px rgba(30, 27, 75, 0.12);
-    --otzar-shadow-btn-hover:
-      0 1px 0 rgba(255, 255, 255, 0.32) inset,
-      0 10px 28px -6px rgba(177, 36, 232, 0.55),
-      0 4px 10px rgba(30, 27, 75, 0.14);
   }
 
-  /* Deep brand stage (hero moments only — not product default) */
-  .otzar-dark {
-    --background: 244 47% 14%;
-    --foreground: 223 16% 96%;
-    --card: 244 40% 16%;
-    --card-foreground: 223 16% 96%;
-    --popover: 244 40% 16%;
-    --popover-foreground: 223 16% 96%;
-    --primary: 271 91% 65%;
+  .otzar-light {
+    --background: 223 20% 97%;
+    --foreground: 244 40% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 244 40% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 244 40% 12%;
+    --primary: 283 81% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 244 30% 22%;
-    --secondary-foreground: 223 16% 96%;
-    --muted: 244 28% 20%;
-    --muted-foreground: 223 14% 78%;
-    --accent: 244 32% 22%;
-    --accent-foreground: 223 16% 96%;
-    --border: 244 24% 28%;
-    --input: 244 28% 22%;
-    --ring: 271 91% 65%;
+    --secondary: 244 24% 95%;
+    --secondary-foreground: 244 40% 14%;
+    --muted: 223 16% 94%;
+    --muted-foreground: 244 14% 38%;
+    --accent: 271 40% 96%;
+    --accent-foreground: 244 40% 14%;
+    --destructive: 0 78% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 223 16% 88%;
+    --input: 223 16% 88%;
+    --ring: 283 81% 48%;
   }
 }
 
@@ -147,78 +131,105 @@
   }
 
   /*
-   * BRIGHT BRAND FIELD — form fields + Talk dock float like Behance chrome.
-   * Soft curves, light shadows, brand-purple focus. Not dark-void remaps.
+   * DARK CONTRAST SAFETY NET
+   * Many screens still use light-theme slate/white utilities. On the year-3000
+   * dark field those hide text. Remap them to readable light values product-wide.
+   * Scoped to dark shells + ambient Talk dock (fixed, still a descendant).
    */
-  .otzar-brand-field,
-  .otzar-dark-field {
-    color: #1e1b4b;
+  .otzar-dark-field .text-slate-950,
+  .otzar-dark-field .text-slate-900,
+  .otzar-dark-field .text-slate-800,
+  [data-testid="ambient-otzar-bar"] .text-slate-950,
+  [data-testid="ambient-otzar-bar"] .text-slate-900,
+  [data-testid="ambient-otzar-bar"] .text-slate-800 {
+    color: #f8fafc !important;
+  }
+  .otzar-dark-field .text-slate-700,
+  .otzar-dark-field .text-slate-600,
+  [data-testid="ambient-otzar-bar"] .text-slate-700,
+  [data-testid="ambient-otzar-bar"] .text-slate-600 {
+    color: #e2e8f0 !important;
+  }
+  .otzar-dark-field .text-slate-500,
+  .otzar-dark-field .text-slate-400,
+  [data-testid="ambient-otzar-bar"] .text-slate-500,
+  [data-testid="ambient-otzar-bar"] .text-slate-400 {
+    color: #cbd5e1 !important;
+  }
+  .otzar-dark-field .text-slate-300,
+  [data-testid="ambient-otzar-bar"] .text-slate-300 {
+    color: #e2e8f0 !important;
   }
 
-  .otzar-brand-field input,
-  .otzar-brand-field textarea,
-  .otzar-brand-field select,
+  /* Light frosted pills/rows that washed out secondary copy */
+  .otzar-dark-field .bg-white\/40,
+  .otzar-dark-field .bg-white\/45,
+  .otzar-dark-field .bg-white\/50,
+  .otzar-dark-field .bg-white\/55,
+  .otzar-dark-field .bg-white\/60,
+  .otzar-dark-field .bg-white\/70,
+  .otzar-dark-field .bg-white\/80,
+  [data-testid="ambient-otzar-bar"].bg-white\/55,
+  [data-testid="ambient-otzar-bar"].bg-white\/70 {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f1f5f9;
+  }
+  .otzar-dark-field .hover\:bg-white\/70:hover,
+  .otzar-dark-field .hover\:bg-white\/80:hover,
+  .otzar-dark-field .hover\:bg-white\/50:hover {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+  }
+  .otzar-dark-field .border-white\/50,
+  .otzar-dark-field .border-white\/60,
+  .otzar-dark-field .border-white\/70 {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+  }
+
+  /* Form fields on dark — soft curve + brand focus */
   .otzar-dark-field input,
   .otzar-dark-field textarea,
   .otzar-dark-field select,
   [data-testid="ambient-otzar-bar"] input,
   [data-testid="ambient-otzar-bar"] textarea {
-    color: #1e1b4b;
-    background-color: rgba(255, 255, 255, 0.92);
-    border-color: rgba(30, 27, 75, 0.12);
-    border-radius: 0.95rem;
-    box-shadow:
-      0 1px 2px rgba(30, 27, 75, 0.04),
-      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    color: #e5e7ec;
+    background-color: rgba(10, 6, 18, 0.78);
+    border-color: rgba(229, 231, 236, 0.16);
+    border-radius: 0.9rem;
   }
-  .otzar-brand-field input::placeholder,
-  .otzar-brand-field textarea::placeholder,
   .otzar-dark-field input::placeholder,
   .otzar-dark-field textarea::placeholder,
   [data-testid="ambient-otzar-bar"] input::placeholder,
   [data-testid="ambient-otzar-bar"] textarea::placeholder {
-    color: #6b6a85;
+    color: #94a3b8;
     opacity: 1;
   }
-  .otzar-brand-field input:focus-visible,
-  .otzar-brand-field textarea:focus-visible,
   .otzar-dark-field input:focus-visible,
   .otzar-dark-field textarea:focus-visible,
   [data-testid="ambient-otzar-bar"] input:focus-visible,
   [data-testid="ambient-otzar-bar"] textarea:focus-visible {
     outline: none;
-    border-color: rgba(177, 36, 232, 0.5);
-    box-shadow:
-      0 0 0 3px rgba(177, 36, 232, 0.18),
-      0 8px 20px -10px rgba(177, 36, 232, 0.25);
+    border-color: rgba(177, 36, 232, 0.45);
+    box-shadow: 0 0 0 3px rgba(177, 36, 232, 0.22);
   }
 
-  /* Floating Talk dock — white glass, soft 3D lift, brand rim (Behance module) */
+  /* Floating Talk dock — brand void glass, purple rim, soft enterprise curve */
   [data-testid="ambient-otzar-bar"] {
-    background: rgba(255, 255, 255, 0.92) !important;
-    color: #1e1b4b !important;
-    border-color: rgba(177, 36, 232, 0.16) !important;
-    border-radius: 1.85rem !important;
+    background: rgba(10, 6, 18, 0.94) !important;
+    color: #e5e7ec !important;
+    border-color: rgba(177, 36, 232, 0.28) !important;
+    border-radius: 1.75rem !important;
     box-shadow:
-      0 1px 2px rgba(30, 27, 75, 0.04),
-      0 12px 32px -10px rgba(30, 27, 75, 0.14),
-      0 32px 64px -24px rgba(177, 36, 232, 0.22),
-      0 1px 0 0 rgba(255, 255, 255, 0.95) inset !important;
+      0 18px 48px -16px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(177, 36, 232, 0.18),
+      0 0 40px -10px rgba(177, 36, 232, 0.4),
+      0 1px 0 0 rgba(229, 231, 236, 0.12) inset !important;
   }
-  [data-testid="ambient-otzar-bar"] .text-muted-foreground,
-  [data-testid="ambient-otzar-bar"] .text-slate-400,
-  [data-testid="ambient-otzar-bar"] .text-slate-500 {
-    color: #5c5a78 !important;
+  [data-testid="ambient-otzar-bar"] .text-muted-foreground {
+    color: #cbd5e1 !important;
   }
-  [data-testid="ambient-otzar-bar"] .text-slate-50,
-  [data-testid="ambient-otzar-bar"] .text-slate-100,
-  [data-testid="ambient-otzar-bar"] .text-slate-200,
-  [data-testid="ambient-otzar-bar"] .text-slate-300 {
-    color: #1e1b4b !important;
-  }
-  [data-testid="ambient-otzar-bar"] .border-white\/10,
+  [data-testid="ambient-otzar-bar"] .border-black\/\[0\.06\],
   [data-testid="ambient-otzar-bar"] .border-black\/\[0\.06\] {
-    border-color: rgba(30, 27, 75, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
   }
 }
 
@@ -274,64 +285,43 @@
     }
   }
 
-  /*
-   * Soft ribbon atmosphere — Behance brand curves on a bright field.
-   * Soft purple / lavender washes (not dark nebula).
-   */
+  /* Multi-layer living atmosphere — Behance purple void + brand blue glow */
   .otzar-aurora-layer {
     position: absolute;
-    inset: -20%;
+    inset: -25%;
     background:
-      radial-gradient(58% 48% at 88% 8%, rgba(177, 36, 232, 0.2), transparent 62%),
-      radial-gradient(50% 42% at 8% 18%, rgba(168, 85, 247, 0.14), transparent 60%),
-      radial-gradient(46% 40% at 70% 88%, rgba(64, 93, 230, 0.1), transparent 65%),
-      radial-gradient(70% 55% at 40% 50%, rgba(255, 255, 255, 0.55), transparent 70%);
-    filter: blur(40px);
+      radial-gradient(46% 42% at 16% 8%, rgba(177, 36, 232, 0.48), transparent 70%),
+      radial-gradient(50% 46% at 84% 14%, rgba(64, 93, 230, 0.36), transparent 72%),
+      radial-gradient(42% 44% at 50% 86%, rgba(168, 85, 247, 0.22), transparent 74%),
+      radial-gradient(58% 52% at 52% 40%, rgba(30, 27, 75, 0.55), transparent 68%),
+      radial-gradient(30% 32% at 12% 74%, rgba(247, 119, 55, 0.1), transparent 72%);
+    filter: blur(48px);
     will-change: transform, opacity;
   }
 
-  /* Soft brand ribbon curves (designer 3D ribbon language, CSS-only) */
-  .otzar-brand-ribbons {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.85;
-    background:
-      radial-gradient(ellipse 90% 55% at 105% 0%, rgba(177, 36, 232, 0.14), transparent 55%),
-      radial-gradient(ellipse 70% 45% at -5% 100%, rgba(168, 85, 247, 0.12), transparent 50%),
-      conic-gradient(
-        from 210deg at 80% 30%,
-        transparent 0deg,
-        rgba(177, 36, 232, 0.08) 40deg,
-        transparent 90deg,
-        rgba(168, 85, 247, 0.06) 160deg,
-        transparent 220deg
-      );
-  }
-
-  /* Ambient grid — barely-there enterprise structure on silver field */
+  /* Ambient scan lines — brand purple / blue, soft curved mask */
   .otzar-ambient-lines {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.22;
+    opacity: 0.32;
     background:
       linear-gradient(
-        115deg,
+        90deg,
         transparent 0%,
-        rgba(177, 36, 232, 0.05) 46%,
-        rgba(168, 85, 247, 0.08) 50%,
-        rgba(177, 36, 232, 0.05) 54%,
+        rgba(64, 93, 230, 0.07) 46%,
+        rgba(177, 36, 232, 0.11) 50%,
+        rgba(64, 93, 230, 0.07) 54%,
         transparent 100%
       ),
       repeating-linear-gradient(
         180deg,
         transparent 0,
-        transparent 56px,
-        rgba(30, 27, 75, 0.03) 56px,
-        rgba(30, 27, 75, 0.03) 57px
+        transparent 52px,
+        rgba(229, 231, 236, 0.028) 52px,
+        rgba(229, 231, 236, 0.028) 53px
       );
-    mask-image: radial-gradient(ellipse 90% 75% at 50% 40%, #000 15%, transparent 80%);
+    mask-image: radial-gradient(ellipse 85% 72% at 50% 42%, #000 18%, transparent 78%);
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -351,29 +341,8 @@
     }
   }
 
-  .otzar-dark-field,
-  .otzar-brand-field {
-    color: #1e1b4b;
-  }
-
-  /*
-   * Primary product field — Behance semi-gradient (YC-visible experience).
-   * Silver → soft lavender → pearl. Brighter enterprise, not black void.
-   */
-  .otzar-semi-gradient-field {
-    background-color: #e5e7ec;
-    background-image:
-      radial-gradient(120% 90% at 100% -10%, rgba(177, 36, 232, 0.18) 0%, transparent 55%),
-      radial-gradient(90% 70% at -10% 100%, rgba(168, 85, 247, 0.14) 0%, transparent 50%),
-      radial-gradient(70% 50% at 50% 40%, rgba(255, 255, 255, 0.75) 0%, transparent 65%),
-      linear-gradient(
-        165deg,
-        #f8f7fc 0%,
-        #efeaf8 28%,
-        #e5e7ec 58%,
-        #ebe4f7 82%,
-        #f4f1fb 100%
-      );
+  .otzar-dark-field {
+    color: hsl(210 40% 98%);
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -472,80 +441,56 @@
     }
   }
 
-  /* Hero title — brand purple luminous on bright field (Behance wordmark energy) */
+  /*
+   * Wordmark — solid enterprise silver, no rainbow gradient text.
+   * Brand energy lives in the mark + CTA, not multicolor type.
+   */
   .otzar-text-luminous {
-    background: linear-gradient(
-      118deg,
-      #1e1b4b 0%,
-      #b124e8 42%,
-      #a855f7 72%,
-      #405de6 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #e5e7ec;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    letter-spacing: -0.03em;
   }
 
-  /*
-   * Premium CTA — solid brand purple, floating 3D light shadow (Behance buttons).
-   * Sized for touch: min height via padding; soft pill curve; lift on hover.
-   */
+  /* Premium CTA — brand purple fill, soft pill curve */
   .otzar-cta-fill {
-    border-radius: 9999px;
-    background: linear-gradient(180deg, #c44ef0 0%, #b124e8 48%, #9b1fd0 100%);
-    color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    box-shadow: var(--otzar-shadow-btn);
-    transition:
-      transform 180ms ease,
-      box-shadow 180ms ease,
-      filter 180ms ease;
+    border-radius: 1.125rem;
+    background: linear-gradient(
+      135deg,
+      #b124e8 0%,
+      #a855f7 48%,
+      #405de6 100%
+    );
+    color: white;
+    box-shadow:
+      0 14px 36px -12px rgba(177, 36, 232, 0.55),
+      0 1px 0 0 rgba(255, 255, 255, 0.28) inset,
+      0 -1px 0 0 rgba(30, 27, 75, 0.25) inset;
   }
 
   .otzar-cta-fill:hover {
-    filter: brightness(1.05) saturate(1.04);
-    transform: translateY(-1px);
-    box-shadow: var(--otzar-shadow-btn-hover);
+    filter: brightness(1.06) saturate(1.05);
   }
 
-  .otzar-cta-fill:active {
-    transform: translateY(0) scale(0.98);
-    filter: brightness(0.98);
-  }
-
-  /* Secondary floating button — white surface, brand ink, soft lift */
-  .otzar-cta-ghost {
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.95);
-    color: #1e1b4b;
-    border: 1px solid rgba(30, 27, 75, 0.1);
-    box-shadow:
-      0 1px 2px rgba(30, 27, 75, 0.04),
-      0 8px 20px -8px rgba(30, 27, 75, 0.12);
-    transition:
-      transform 180ms ease,
-      box-shadow 180ms ease;
-  }
-  .otzar-cta-ghost:hover {
-    transform: translateY(-1px);
-    box-shadow:
-      0 2px 4px rgba(30, 27, 75, 0.05),
-      0 14px 28px -10px rgba(177, 36, 232, 0.18);
-  }
-
-  /* Soft glass stage — white floating panel on semi-gradient field */
+  /* Soft glass stage — designer curves + brand bevel */
   .otzar-stage {
     border-radius: 1.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(229, 231, 236, 0.14);
     background: linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.96) 0%,
-      rgba(248, 247, 252, 0.94) 55%,
-      rgba(239, 234, 248, 0.9) 100%
+      155deg,
+      rgba(229, 231, 236, 0.1) 0%,
+      rgba(177, 36, 232, 0.1) 42%,
+      rgba(30, 27, 75, 0.42) 100%
     );
-    box-shadow: var(--otzar-shadow-float-lg);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    box-shadow:
+      0 28px 68px -28px rgba(0, 0, 0, 0.6),
+      0 0 48px -14px rgba(177, 36, 232, 0.28),
+      0 1px 0 0 rgba(229, 231, 236, 0.14) inset,
+      0 -1px 0 0 rgba(30, 27, 75, 0.35) inset,
+      0 0 0 1px rgba(177, 36, 232, 0.1);
+    backdrop-filter: blur(30px) saturate(165%);
+    -webkit-backdrop-filter: blur(30px) saturate(165%);
   }
 
   /*
@@ -618,13 +563,16 @@
   }
 
   /*
-   * Soft float edge — white highlight + light brand shadow (Behance chrome).
-   * Cards lift off the semi-gradient field without dark bevels.
+   * Beveled edge trace — silver highlight top-left, void shadow bottom-right.
+   * Gives enterprise metal/glass depth (designer Behance chrome language).
    */
   .otzar-edge-trace {
     box-shadow:
-      var(--otzar-shadow-float),
-      0 1px 0 0 rgba(255, 255, 255, 0.9) inset;
+      0 1px 0 0 rgba(229, 231, 236, 0.22) inset,
+      0 -1px 0 0 rgba(10, 6, 18, 0.45) inset,
+      1px 0 0 0 rgba(229, 231, 236, 0.08) inset,
+      -1px 0 0 0 rgba(10, 6, 18, 0.25) inset,
+      0 0 0 1px rgba(177, 36, 232, 0.12);
   }
 
   /* Soft designer curve scale — generous, continuous radii (not sharp SaaS boxes) */
@@ -651,13 +599,15 @@
     isolation: isolate;
   }
 
+  /* Soft brand halo — restrained purple only, not multi-color glow */
   .otzar-logo-bloom {
-    background:
-      radial-gradient(circle at 35% 28%, rgba(177, 36, 232, 0.58), transparent 52%),
-      radial-gradient(circle at 68% 62%, rgba(64, 93, 230, 0.36), transparent 55%),
-      radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.28), transparent 70%);
-    filter: blur(12px);
-    opacity: 0.92;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(177, 36, 232, 0.28),
+      transparent 62%
+    );
+    filter: blur(14px);
+    opacity: 0.7;
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -680,24 +630,17 @@
     }
   }
 
+  /* Clean brand disc — solid, quiet depth (enterprise mark, not disco orb) */
   .otzar-logo-sphere-polish {
     border-radius: 50%;
-    background:
-      linear-gradient(
-        145deg,
-        rgba(229, 231, 236, 0.28) 0%,
-        rgba(177, 36, 232, 0.32) 40%,
-        rgba(10, 6, 18, 0.62) 100%
-      );
-    border: 1px solid rgba(229, 231, 236, 0.32);
+    background: #0a0612;
+    border: 1px solid rgba(177, 36, 232, 0.35);
     box-shadow:
-      0 18px 52px -12px rgba(177, 36, 232, 0.5),
-      0 0 44px -8px rgba(168, 85, 247, 0.55),
-      0 6px 16px -6px rgba(0, 0, 0, 0.55),
-      0 1px 0 0 rgba(229, 231, 236, 0.5) inset,
-      0 -1px 0 0 rgba(64, 93, 230, 0.3) inset;
-    backdrop-filter: blur(12px) saturate(185%);
-    -webkit-backdrop-filter: blur(12px) saturate(185%);
+      0 10px 28px -10px rgba(0, 0, 0, 0.55),
+      0 0 24px -10px rgba(177, 36, 232, 0.35),
+      0 1px 0 0 rgba(255, 255, 255, 0.08) inset;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .otzar-logo-sphere-flat {
@@ -705,23 +648,17 @@
   }
 
   .otzar-logo-specular {
-    background:
-      radial-gradient(
-        80% 55% at 32% 22%,
-        rgba(255, 255, 255, 0.75) 0%,
-        rgba(255, 255, 255, 0.15) 38%,
-        transparent 60%
-      ),
-      linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.2) 0%,
-        transparent 45%
-      );
+    /* Minimal top highlight — no plastic gloss stack */
+    background: radial-gradient(
+      70% 45% at 35% 22%,
+      rgba(255, 255, 255, 0.14) 0%,
+      transparent 55%
+    );
     mix-blend-mode: soft-light;
   }
 
   .otzar-logo-mark {
-    filter: drop-shadow(0 2px 8px rgba(177, 36, 232, 0.35));
+    filter: none;
   }
 
   /* Atari DNA on logo disc — four precise corner ticks, not pixels */
@@ -844,47 +781,36 @@
     border-bottom-right-radius: 6px;
   }
 
-  /*
-   * Floating white card — Behance product chrome.
-   * Soft 3D light shadow, generous curve, brand-ink type on pearl surface.
-   */
+  /* Glass card — brand-tinted enterprise glass + designer curve */
   .otzar-glass-card {
-    border-radius: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 1.35rem;
+    border: 1px solid rgba(229, 231, 236, 0.12);
     background: linear-gradient(
-      165deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(252, 251, 255, 0.96) 48%,
-      rgba(245, 241, 252, 0.94) 100%
+      158deg,
+      rgba(229, 231, 236, 0.1) 0%,
+      rgba(177, 36, 232, 0.09) 38%,
+      rgba(30, 27, 75, 0.42) 72%,
+      rgba(10, 6, 18, 0.58) 100%
     );
-    box-shadow: var(--otzar-shadow-float);
-    backdrop-filter: blur(20px) saturate(155%);
-    -webkit-backdrop-filter: blur(20px) saturate(155%);
-    color: #1e1b4b;
+    box-shadow:
+      0 18px 52px -24px rgba(0, 0, 0, 0.6),
+      0 0 36px -16px rgba(177, 36, 232, 0.28),
+      0 1px 0 0 rgba(229, 231, 236, 0.14) inset,
+      0 -1px 0 0 rgba(10, 6, 18, 0.4) inset,
+      0 0 0 1px rgba(177, 36, 232, 0.08);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    color: #e5e7ec;
   }
 
   .otzar-glass-card .text-slate-900,
-  .otzar-glass-card .text-slate-50,
   .otzar-glass-card .text-foreground {
-    color: #1e1b4b;
+    color: #e5e7ec;
   }
   .otzar-glass-card .text-slate-500,
   .otzar-glass-card .text-slate-400,
   .otzar-glass-card .text-muted-foreground {
-    color: #5c5a78;
-  }
-  .otzar-glass-card .text-slate-300,
-  .otzar-glass-card .text-slate-200,
-  .otzar-glass-card .text-slate-100 {
-    color: #3d3b5c;
-  }
-
-  /* Page content spacing rhythm for bright enterprise shell */
-  .otzar-page {
-    @apply mx-auto w-full max-w-6xl space-y-6;
-  }
-  .otzar-page-narrow {
-    @apply mx-auto w-full max-w-2xl space-y-5;
+    color: hsl(223 14% 72%);
   }
 
   /* Idle ambient rim — brand purple whisper */

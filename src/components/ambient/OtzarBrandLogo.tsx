@@ -1,18 +1,17 @@
 // FILE: OtzarBrandLogo.tsx
-// PURPOSE: Official Otzar brand mark with year-3000 3D/4K polish.
+// PURPOSE: Official Otzar brand mark — clean enterprise presentation.
 //          Sourced from otzar.ai + Behance — never invent a replacement.
-//          Dimensional glass orb, spectral bloom, Atari-precise edge —
-//          the logo is the WOAH moment of the product.
+//          Restrained: solid mark, soft purple halo, no disco gradients.
 // CONNECTS TO: Login, AdminSidebar, EmployeeLayout, AmbientNav, OtzarMark.
 
 import type { OtzarPresenceState } from "@/lib/stores/presence";
 
 const SIZE: Record<"sm" | "md" | "lg" | "xl" | "hero", string> = {
   sm: "h-7 w-7",
-  md: "h-10 w-10",
-  lg: "h-14 w-14",
-  xl: "h-[4.5rem] w-[4.5rem]",
-  hero: "h-28 w-28 sm:h-32 sm:w-32",
+  md: "h-9 w-9",
+  lg: "h-11 w-11",
+  xl: "h-16 w-16",
+  hero: "h-20 w-20 sm:h-24 sm:w-24",
 };
 
 const RING: Partial<Record<OtzarPresenceState, string>> = {
@@ -25,8 +24,7 @@ const RING: Partial<Record<OtzarPresenceState, string>> = {
 };
 
 /**
- * Official Otzar mark as a dimensional, high-polish presence jewel.
- * Uses 1080² PNG for brand/hero (4K-class sharpness); SVG for monochrome chrome.
+ * Official Otzar mark — crisp brand asset on a quiet dark disc.
  */
 export function OtzarBrandLogo({
   size = "md",
@@ -38,9 +36,9 @@ export function OtzarBrandLogo({
   size?: "sm" | "md" | "lg" | "xl" | "hero";
   presence?: OtzarPresenceState;
   className?: string;
-  /** ink/silver = monochrome SVG; brand = full-color 3D polished mark. */
+  /** ink/silver = monochrome SVG; brand = full-color official mark. */
   tone?: "ink" | "silver" | "brand";
-  /** When false: compact mark without bloom (dense tables only). */
+  /** When false: mark only, no halo disc (dense tables). */
   polish?: boolean;
 }): JSX.Element {
   const ring = RING[presence] ?? "";
@@ -48,7 +46,7 @@ export function OtzarBrandLogo({
   const useRaster = tone === "brand";
   const mono =
     tone === "silver"
-      ? "text-[#E8EAF0]"
+      ? "text-[#E5E7EC]"
       : tone === "ink"
         ? "text-slate-900"
         : "";
@@ -64,45 +62,19 @@ export function OtzarBrandLogo({
       aria-hidden
     >
       {polish ? (
-        <>
-          {/* Outer spectral bloom — year-3000 atmosphere */}
-          <span
-            className={`otzar-logo-bloom pointer-events-none absolute rounded-full ${
-              isHero ? "inset-[-42%]" : "inset-[-34%]"
-            }`}
-            aria-hidden
-          />
-          {/* Soft ground contact shadow for float depth */}
-          <span
-            className={`otzar-logo-ground pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-[50%] bg-indigo-950/25 blur-md ${
-              isHero
-                ? "bottom-[-14%] h-[18%] w-[72%]"
-                : "bottom-[-10%] h-[16%] w-[68%]"
-            }`}
-            aria-hidden
-          />
-        </>
+        <span
+          className={`otzar-logo-bloom pointer-events-none absolute rounded-full ${
+            isHero ? "inset-[-28%]" : "inset-[-22%]"
+          }`}
+          aria-hidden
+        />
       ) : null}
 
-      {/* Glass sphere body */}
       <span
         className={`otzar-logo-sphere relative flex h-full w-full items-center justify-center overflow-hidden rounded-full ${
           polish ? "otzar-logo-sphere-polish" : "otzar-logo-sphere-flat"
         }`}
       >
-        {/* Atari DNA — fine geometric corner ticks on the disc */}
-        {polish ? (
-          <span className="otzar-logo-atari-ticks pointer-events-none absolute inset-0" aria-hidden />
-        ) : null}
-
-        {/* Specular dome highlight */}
-        {polish ? (
-          <span
-            className="otzar-logo-specular pointer-events-none absolute inset-0 rounded-full"
-            aria-hidden
-          />
-        ) : null}
-
         {useRaster ? (
           <img
             src="/brand/otzar-logo.png"
@@ -111,7 +83,7 @@ export function OtzarBrandLogo({
             height={1080}
             decoding="async"
             className={`otzar-logo-mark relative z-[1] object-contain ${
-              isHero ? "h-[78%] w-[78%]" : "h-[80%] w-[80%]"
+              isHero ? "h-[86%] w-[86%]" : "h-[88%] w-[88%]"
             }`}
             draggable={false}
           />
@@ -119,35 +91,19 @@ export function OtzarBrandLogo({
           <img
             src="/brand/otzar-logo.svg"
             alt=""
-            width={46}
-            height={46}
-            className="otzar-logo-mark relative z-[1] h-[78%] w-[78%] object-contain"
+            width={128}
+            height={128}
+            decoding="async"
+            className="otzar-logo-mark relative z-[1] h-[88%] w-[88%] object-contain"
             draggable={false}
           />
         )}
-
-        {/* Inner luminous rim */}
-        {polish ? (
-          <span
-            className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/55"
-            aria-hidden
-          />
-        ) : null}
       </span>
-
-      {/* Spectral travel ring on active presence */}
-      {polish && presence !== "IDLE" && presence !== "QUIET" ? (
-        <span
-          className="otzar-ambient-rim pointer-events-none absolute inset-[-3px] rounded-full opacity-90"
-          data-rim-state={presence.toLowerCase()}
-          aria-hidden
-        />
-      ) : null}
     </span>
   );
 }
 
-/** Wordmark + logo for chrome headers. */
+/** Wordmark + logo for chrome headers — solid silver type, not gradient. */
 export function OtzarBrandLockup({
   size = "md",
   subtitle,
@@ -165,7 +121,7 @@ export function OtzarBrandLockup({
           Otzar
         </span>
         {subtitle !== undefined ? (
-          <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-indigo-500/80">
+          <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-[#a855f7]/85">
             {subtitle}
           </span>
         ) : null}

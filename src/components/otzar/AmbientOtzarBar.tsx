@@ -4473,8 +4473,8 @@ export function AmbientOtzarBar(): JSX.Element {
           onPointerMove={handleOrbPointerMove}
           onPointerUp={handleOrbPointerUp}
           onPointerCancel={handleOrbPointerCancel}
-          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-white/80 bg-white/95 supports-[backdrop-filter]:bg-white/90 ${ring.glow} px-5 py-3.5 text-sm font-semibold text-[#1e1b4b] ring-1 ring-[#B124E8]/20 shadow-[0_12px_36px_-12px_rgba(177,36,232,0.35),0_4px_12px_-4px_rgba(30,27,75,0.12)] backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow,transform,background-color] duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_-12px_rgba(177,36,232,0.4)] focus:outline-none focus:ring-2 focus:ring-[#B124E8]/40 ${
-            quiet ? "px-4 py-2 text-xs text-[#5c5a78]" : ""
+          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-white/20 bg-[#0a0612]/94 supports-[backdrop-filter]:bg-[#0a0612]/88 ${ring.glow} px-5 py-3 text-sm font-semibold text-[#E5E7EC] ring-1 ring-[#B124E8]/25 backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow,background-color] duration-700 hover:bg-[#1e1b4b]/90 focus:outline-none focus:ring-2 focus:ring-[#B124E8]/45 ${
+            quiet ? "px-4 py-2 text-xs text-[#E5E7EC]/90" : ""
           }`}
         >
           <span
@@ -4529,7 +4529,7 @@ export function AmbientOtzarBar(): JSX.Element {
       data-drives-work="true"
       data-orb-edge={orbPos?.edge ?? "right"}
       style={dockAnchorStyle}
-      className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.85rem] border border-white/90 bg-white/95 supports-[backdrop-filter]:bg-white/92 backdrop-blur-2xl backdrop-saturate-150 text-[#1e1b4b] ring-1 ring-[#B124E8]/18 shadow-[0_24px_64px_-20px_rgba(30,27,75,0.18),0_12px_32px_-12px_rgba(177,36,232,0.22)] transition-[box-shadow,transform] duration-300 ${ring.glow}`}
+      className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.85rem] border border-white/15 bg-[#0a0612]/95 supports-[backdrop-filter]:bg-[#0a0612]/90 backdrop-blur-2xl backdrop-saturate-150 text-[#E5E7EC] ring-1 ring-[#B124E8]/25 transition-[box-shadow] duration-700 ${ring.glow}`}
     >
       {/* Siri-like ambient color field, diffused UNDER the glass. The state
           color blooms through the frost, it is not a hard border. Active states
