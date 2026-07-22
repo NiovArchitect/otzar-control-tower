@@ -166,7 +166,7 @@ Post-merge: verify deploy SHA == main; bundle on app.otzar.ai.
 4. Access contextual + Governance overview — **coded** `/governance` hub (Access/Policies/Retention tabs; deep routes preserved)  
 5. Policies under Governance — **via hub tab** (full route `/policies` preserved)  
 6. Data & retention under Governance — **via hub tab** (full route `/retention` preserved)  
-7. Action Center = real exception queue  
+7. Action Center = real exception queue — **coded** `/approvals` hub (approvals + sensitive reviews; deep routes preserved)  
 8. Reports into Intelligence  
 9. Security/audit cleanup  
 10. Full visual system + ambient presence (**#205** + founder approve)  

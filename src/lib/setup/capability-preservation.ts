@@ -95,10 +95,17 @@ export const CAPABILITY_PRESERVATION_MAP: readonly CapabilityMapEntry[] = [
     status: "RECOMPOSED",
   },
   {
-    oldScreen: "Pending Approvals / Review Center",
-    capability: "Dual-control approval queue; high-sensitivity review",
-    newSurface: "Action Center",
-    fullCapabilityRoute: "/approvals",
+    oldScreen: "Pending Approvals",
+    capability: "Dual-control escalation approve/deny queue",
+    newSurface: "Action Center → Approvals tab (/approvals?tab=approvals)",
+    fullCapabilityRoute: "/approvals-queue",
+    status: "RECOMPOSED",
+  },
+  {
+    oldScreen: "Review Center",
+    capability: "High-sensitivity data review approve/deny/revoke",
+    newSurface: "Action Center → Sensitive reviews tab (/approvals?tab=reviews)",
+    fullCapabilityRoute: "/review-center",
     status: "RECOMPOSED",
   },
   {

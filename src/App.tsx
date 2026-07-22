@@ -91,6 +91,7 @@ import RetentionPage from "@/pages/Retention";
 import { DocumentationPage } from "@/pages/Documentation";
 import { IntelligencePage } from "@/pages/Intelligence";
 import { ApprovalsPage } from "@/pages/Approvals";
+import { ActionCenterAdminPage } from "@/pages/ActionCenterAdmin";
 import { ReviewCenterPage } from "@/pages/ReviewCenter";
 import { MarketplaceDiscoveryPage } from "@/pages/MarketplaceDiscovery";
 import { CohortGovernancePage } from "@/pages/CohortGovernance";
@@ -262,8 +263,10 @@ const router = createBrowserRouter(
               <Route path="marketplace" element={<MarketplaceDiscoveryPage />} />
               <Route path="cohorts" element={<CohortGovernancePage />} />
               <Route path="access-grants" element={<AccessGrantsPage />} />
-              {/* Side-section: badge-driven Pending Approvals */}
-              <Route path="approvals" element={<ApprovalsPage />} />
+              {/* RC2 Action Center — ONE exception queue (approvals + reviews).
+                  /review-center and /approvals-queue stay registered for deep links. */}
+              <Route path="approvals" element={<ActionCenterAdminPage />} />
+              <Route path="approvals-queue" element={<ApprovalsPage />} />
               {/* Catch-all inside the chrome so the sidebar still works */}
               <Route path="*" element={<NotFoundPage />} />
             </Route>
