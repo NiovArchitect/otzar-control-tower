@@ -171,6 +171,9 @@ describe("[GAP-U] Organization Setup — guided read-only journey", () => {
     renderPage();
     const next = await screen.findByTestId("setup-next-step");
     expect(next.textContent).toContain("Invite your first team members");
+    // Discovery surface preserves Dandelion findings path (not deleted).
+    expect(await screen.findByTestId("org-discovery-found")).toBeInTheDocument();
+    expect(screen.getByTestId("org-discovery-found").textContent).toMatch(/Otzar found/i);
     // All seven sections render.
     for (const key of ["foundation", "people", "roles", "twins", "tools", "governance", "workflows"]) {
       expect(screen.getByTestId(`setup-section-${key}`)).toBeInTheDocument();

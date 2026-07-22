@@ -1,3 +1,17 @@
+## RC2 / founder direction (load first)
+
+For experience, admin IA, Organization setup, Connections, or visual work:
+
+1. Read **`docs/otzar/master/RC2_CONTROLLING_DIRECTION.md`** (controlling).  
+2. Read **`docs/otzar/AGENT_CONTINUITY_POINTER.md`**.  
+3. Principle: **preserve working intelligence; recompose human surfaces** — never delete Dandelion/seeding capability.  
+4. Status: coded ≠ PR ≠ merged ≠ deployed ≠ LIVE_ROUTE_VERIFIED ≠ FOUNDER_VISIBLE.  
+5. Logo: official assets from https://www.otzar.ai/ and Behance gallery `252799665/OTZAR` — `public/brand/`.  
+
+Do not claim RC2 ready without founder live confirmation.
+
+---
+
 ## Section 12 in progress · operational rules
 
 Currently building Section 12 (Otzar Control Tower frontend). The discipline cadence is non-negotiable.

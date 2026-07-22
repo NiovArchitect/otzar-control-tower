@@ -145,6 +145,6 @@ export function inventoryProposalClasses(
 }
 
 export const E01_DOCTRINE =
-  "Dandelion discovers structure from real work — people, roles, managers, " +
-  "teams, projects, and externals — and proposes only. Nothing applies until " +
-  "an admin confirms. Empty classes mean no open signal, not a fake row.";
+  "Otzar discovers structure from real work — people, roles, managers, " +
+  "teams, projects, and outside collaborators — and proposes only. Nothing " +
+  "applies until you confirm. Empty classes mean no open signal, not a fake row.";

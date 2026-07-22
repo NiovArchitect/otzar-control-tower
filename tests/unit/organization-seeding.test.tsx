@@ -170,8 +170,8 @@ describe("Organization Seeding — admin seed queue", () => {
     mockSeeds([]);
     renderPage();
     const strip = await screen.findByTestId("dandelion-order-strip");
-    expect(strip.textContent).toMatch(/Ambient path/i);
-    expect(strip.textContent).toMatch(/manager or lead/i);
+    expect(strip.textContent).toMatch(/What you do here/i);
+    expect(strip.textContent).toMatch(/ambient for managers|hierarchy/i);
     expect(screen.getByTestId("dandelion-sync-growth")).toHaveTextContent(
       /Refresh structure signals/i,
     );

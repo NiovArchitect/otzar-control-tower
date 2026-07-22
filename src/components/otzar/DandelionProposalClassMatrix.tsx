@@ -27,7 +27,7 @@ export function DandelionProposalClassMatrix({
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Sprout className="h-4 w-4" aria-hidden />
-          Proposal classes discovered
+          What Otzar is proposing
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-xs text-muted-foreground">
@@ -56,18 +56,12 @@ export function DandelionProposalClassMatrix({
                 </span>
               </p>
               <p className="mt-0.5 text-[11px]">{r.plain}</p>
-              {r.seed_types_seen.length > 0 ? (
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  Types: {r.seed_types_seen.join(", ")}
-                </p>
-              ) : null}
             </li>
           ))}
         </ul>
         {inventory.unknown_seed_types.length > 0 ? (
           <p className="text-[11px]" data-testid="e01-unknown-types">
-            Unclassified seed types (still proposed, not mapped yet):{" "}
-            {inventory.unknown_seed_types.join(", ")}
+            Additional proposals awaiting classification ({inventory.unknown_seed_types.length}).
           </p>
         ) : null}
       </CardContent>

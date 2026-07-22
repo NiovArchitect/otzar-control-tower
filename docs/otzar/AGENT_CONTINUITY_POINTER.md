@@ -4,19 +4,23 @@
 
 Before any Otzar product implementation, status claim, or “slice complete” assertion, read:
 
-0. **`docs/otzar/master/CONTINUITY_MEMORY_2026-07-21.md`** — **current program memory** (audit correction: Gate A ≠ full Otzar freeze)  
-1. **`docs/otzar/master/MASTER_COMPLETION_CONTRACT.md`** — controlling rules  
-2. **`docs/otzar/master/MASTER_COMPLETION_GATE.md`** — multi-gate status + open P0  
-3. **`docs/otzar/master/PROGRAM_GATES.md`** — Gates A/B/C/D  
-4. **`docs/otzar/master/REGISTER_COMPLETENESS_AUDIT.md`** — what was missing from the 60-row subset  
-5. **`docs/otzar/master/FOUNDER_REQUIREMENTS_REGISTER.json`** — machine register (**74 rows** post-audit)  
-6. **`docs/otzar/master/REQUIREMENTS_PROOF_MATRIX.md`** — proof levels  
+0. **`docs/otzar/master/RC2_CONTROLLING_DIRECTION.md`** — **FOUNDER CONTROLLING DIRECTION (2026-07-22)**  
+   Preserve capabilities · recompose surfaces · Dandelion in Organization · year-3000 visual · live truth gates  
+1. **`docs/otzar/master/CONTINUITY_MEMORY_2026-07-21.md`** — program memory (Gate A ≠ full Otzar freeze)  
+2. **`docs/otzar/master/MASTER_COMPLETION_CONTRACT.md`** — controlling rules  
+3. **`docs/otzar/master/MASTER_COMPLETION_GATE.md`** — multi-gate status + open P0  
+4. **`docs/otzar/master/PROGRAM_GATES.md`** — Gates A/B/C/D  
+5. **`docs/otzar/master/REGISTER_COMPLETENESS_AUDIT.md`** — what was missing from the 60-row subset  
+6. **`docs/otzar/master/FOUNDER_REQUIREMENTS_REGISTER.json`** — machine register (**74 rows** post-audit)  
+7. **`docs/otzar/master/REQUIREMENTS_PROOF_MATRIX.md`** — proof levels  
 
 **Rule:** Every task maps to a stable requirement ID.  
 **Rule:** Do not mark CLOSED from code existence alone.  
 **Rule:** Do **not** declare the complete Otzar program frozen because Gate A is green.  
 **Rule:** Relay (T-02/T-03), compliance (U-*), and internal synthetic scale (R-03) are **required programs**, not optional.  
-**Rule:** Do not long-wait Render; short poll then **MANUAL DEPLOY** signal (`docs/RENDER_DEPLOY_NOTES.md`).
+**Rule:** Do not long-wait Render; short poll then **MANUAL DEPLOY** signal (`docs/RENDER_DEPLOY_NOTES.md`).  
+**Rule:** **Preserve, do not delete** working intelligence — recompose UI only after capability map + full-route proof.  
+**Rule:** Never claim fixed/shipped/live unless merge SHA = deploy SHA = authenticated route proof.
 
 ---
 
@@ -29,15 +33,23 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Active phase:** **`YC_RC1_REOPENED_FOR_SIGNAL_AND_FIRST_USE_REPAIR`** (RC2 signal audit).  
+**Active phase:** **`YC_RC1_REOPENED_FOR_SIGNAL_AND_FIRST_USE_REPAIR`** (RC2 experience + coherence).  
 
-`YC_RELEASE_CANDIDATE_READY` is **off** until walkthrough + copy + utility gate pass.  
+`YC_RELEASE_CANDIDATE_READY` is **off**. Do not claim RC2 ready.
 
 **Backend proof preserved:** full project chain, docs/calendar, change propagation, isolation, bounded enterprise.  
 
-**RC2 focus:** persistent walkthrough (v3), strip eng proof from UI, plain language, People hover, admin nav calm. See `YC_RC2_STATUS.md` · `YC_RC2_SIGNAL_DESIGN_MAPS.md`.  
+**RC2 focus (controlling):**  
+1. Dandelion discovery **inside** Organization setup (not deleted) — PR #204  
+2. Admin jobs nav; Connections plug-and-play; Governance/Access recomposed  
+3. Year-3000 visual + official logo (otzar.ai / Behance) — PR #205  
+4. Live truth: merge → Render SHA → route proof → founder confirm  
 
-**Pins (backend):** FND `afe1491` · CT full-chain UI `80e36b4` lineage.  
+Canonical direction: **`docs/otzar/master/RC2_CONTROLLING_DIRECTION.md`**.  
+
+**Pins (backend):** FND `afe1491` · CT lineage via main (re-check `git rev-parse origin/main`).  
+
+**Open experience PRs (re-check):** #204 restore Dandelion into Org · #205 logo + ambient rim.
 
 **Do not:** scale reboot, Relay, or unrelated feature work while signal repair is open.
 
