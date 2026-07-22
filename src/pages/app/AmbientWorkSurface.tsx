@@ -837,7 +837,7 @@ export function AmbientWorkSurface(): JSX.Element {
               {greetingFor(new Date().getHours(), name)}
             </h1>
             <p
-              className="mt-1 text-xs leading-snug text-slate-500"
+              className="mt-1 text-xs leading-snug text-slate-300"
               data-testid="ambient-presence-line"
             >
               {quiet ? (
@@ -876,21 +876,21 @@ export function AmbientWorkSurface(): JSX.Element {
                     {item.to ? (
                       <Link
                         to={item.to}
-                        className="flex items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5 transition-colors hover:bg-white/70"
+                        className="flex items-center justify-between gap-2 rounded-xl border border-white/12 bg-white/[0.07] px-3 py-2.5 transition-colors hover:bg-white/[0.12]"
                         data-testid={item.testId}
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-slate-900">
+                          <p className="truncate text-sm font-medium text-slate-50">
                             {item.title}
                           </p>
                           {item.detail ? (
-                            <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
+                            <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-300">
                               {item.detail}
                             </p>
                           ) : null}
                         </div>
                         <ArrowRight
-                          className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                          className="h-3.5 w-3.5 shrink-0 text-slate-300"
                           aria-hidden
                         />
                       </Link>
@@ -898,21 +898,21 @@ export function AmbientWorkSurface(): JSX.Element {
                       <button
                         type="button"
                         onClick={openOrb}
-                        className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/50 bg-white/45 px-3 py-2.5 text-left transition-colors hover:bg-white/70"
+                        className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/12 bg-white/[0.07] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.12]"
                         data-testid={item.testId}
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-slate-900">
+                          <p className="truncate text-sm font-medium text-slate-50">
                             {item.title}
                           </p>
                           {item.detail ? (
-                            <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">
+                            <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-300">
                               {item.detail}
                             </p>
                           ) : null}
                         </div>
                         <ArrowRight
-                          className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                          className="h-3.5 w-3.5 shrink-0 text-slate-300"
                           aria-hidden
                         />
                       </button>
@@ -983,7 +983,7 @@ export function AmbientWorkSurface(): JSX.Element {
                 data-testid={g.testId}
                 disabled={docBusy}
                 onClick={() => void createWorkingDoc()}
-                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/55 px-2.5 py-1 text-[11px] font-medium text-slate-700 backdrop-blur-sm transition hover:bg-white/80 disabled:opacity-60"
+                className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-slate-100 backdrop-blur-sm transition hover:bg-white/[0.14] disabled:opacity-60"
               >
                 <FileText className="h-3 w-3 text-slate-500" aria-hidden />
                 {docBusy ? "…" : g.label}
@@ -995,7 +995,7 @@ export function AmbientWorkSurface(): JSX.Element {
                 target={g.key === "doc" ? "_blank" : undefined}
                 rel={g.key === "doc" ? "noreferrer" : undefined}
                 data-testid={g.testId}
-                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/55 px-2.5 py-1 text-[11px] font-medium text-slate-700 backdrop-blur-sm transition hover:bg-white/80"
+                className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-slate-100 backdrop-blur-sm transition hover:bg-white/[0.14]"
               >
                 {g.label}
               </a>
@@ -1004,7 +1004,7 @@ export function AmbientWorkSurface(): JSX.Element {
                 key={g.key}
                 to={g.to}
                 data-testid={g.testId}
-                className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/55 px-2.5 py-1 text-[11px] font-medium text-slate-700 backdrop-blur-sm transition hover:bg-white/80"
+                className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-slate-100 backdrop-blur-sm transition hover:bg-white/[0.14]"
               >
                 {g.key === "projects" ? (
                   <FolderKanban className="h-3 w-3 text-slate-500" aria-hidden />
@@ -1099,10 +1099,10 @@ export function AmbientWorkSurface(): JSX.Element {
           <Mic className="h-4 w-4 text-white" aria-hidden />
         </span>
         <span className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-900">
+          <span className="block text-sm font-semibold text-slate-50">
             Talk to Otzar
           </span>
-          <span className="block text-[11px] text-slate-500">
+          <span className="block text-[11px] text-slate-300">
             What matters · what needs me · open work
           </span>
         </span>
@@ -1110,9 +1110,9 @@ export function AmbientWorkSurface(): JSX.Element {
 
       {/* Power-user detail only — not the default scroll path. */}
       <details className="group px-1" data-testid="today-more-details">
-        <summary className="cursor-pointer list-none text-[11px] font-medium text-slate-400 hover:text-slate-600">
+        <summary className="cursor-pointer list-none text-[11px] font-medium text-slate-300 hover:text-slate-100">
           More detail
-          <span className="ml-1 opacity-50 group-open:hidden">
+          <span className="ml-1 text-slate-400 group-open:hidden">
             · projects, team, context
           </span>
         </summary>

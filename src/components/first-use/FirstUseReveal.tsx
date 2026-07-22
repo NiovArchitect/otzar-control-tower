@@ -223,7 +223,7 @@ export function FirstUseReveal(): JSX.Element | null {
           </button>
           <button
             type="button"
-            className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="shrink-0 rounded p-0.5 text-slate-300 hover:bg-white/10 hover:text-slate-50"
             aria-label="Pause guide"
             data-testid="walkthrough-pause"
             onClick={() => setPaused(true)}
@@ -328,7 +328,7 @@ export function FirstUseReveal(): JSX.Element | null {
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-slate-50"
                   aria-label="Pause guide"
                   data-testid="walkthrough-pause"
                   onClick={() => setPaused(true)}
@@ -337,7 +337,7 @@ export function FirstUseReveal(): JSX.Element | null {
                 </button>
                 <button
                   type="button"
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-slate-50"
                   aria-label="Skip guide"
                   data-testid="first-use-review-work"
                   onClick={() => complete()}
@@ -351,13 +351,13 @@ export function FirstUseReveal(): JSX.Element | null {
               data-testid="first-use-recognition"
             >
               <span className="font-semibold">Welcome, {firstName}.</span>{" "}
-              <span className="text-slate-500">
+              <span className="text-slate-300">
                 {orgName}
                 {roleTitle ? ` · ${roleTitle}` : ""}
               </span>
             </p>
             <p
-              className="mt-1.5 text-sm font-medium text-slate-900"
+              className="mt-1.5 text-sm font-medium text-slate-50"
               data-testid="walkthrough-step-title"
             >
               {step.title}
@@ -368,7 +368,7 @@ export function FirstUseReveal(): JSX.Element | null {
             >
               {step.body}
             </p>
-            <p className="mt-1 text-[11px] text-slate-500" data-testid="walkthrough-why">
+            <p className="mt-1 text-[11px] text-slate-300" data-testid="walkthrough-why">
               Why it matters: {step.why}
             </p>
             <p className="text-[11px] font-medium text-indigo-700" data-testid="walkthrough-do-next">
@@ -376,7 +376,7 @@ export function FirstUseReveal(): JSX.Element | null {
             </p>
             {signal && safeIndex === 0 ? (
               <span
-                className="mt-1 block text-xs text-slate-500"
+                className="mt-1 block text-xs text-slate-300"
                 data-testid="first-use-org"
               >
                 Live now: {signal}

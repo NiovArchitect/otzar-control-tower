@@ -146,10 +146,10 @@ export function LoginPage() {
         className={`relative z-10 w-full max-w-sm border-0 bg-transparent shadow-none ${GLASS_SURFACE}`}
       >
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold tracking-tight text-slate-900">
+          <CardTitle className="text-base font-semibold tracking-tight text-slate-50">
             Sign in
           </CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardDescription className="text-slate-300">
             Use your work account. Every action is recorded in your
             organization&apos;s audit trail.
           </CardDescription>
@@ -166,7 +166,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="h-11 rounded-xl border-white/70 bg-white/70 shadow-inner backdrop-blur-sm focus-visible:ring-indigo-400/40"
+                className="h-11 rounded-xl border-white/15 bg-[#0a1020]/80 text-slate-50 shadow-inner backdrop-blur-sm placeholder:text-slate-400 focus-visible:ring-sky-400/40"
               />
             </div>
             <div className="space-y-2">
@@ -188,7 +188,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="h-11 rounded-xl border-white/70 bg-white/70 shadow-inner backdrop-blur-sm focus-visible:ring-indigo-400/40"
+                className="h-11 rounded-xl border-white/15 bg-[#0a1020]/80 text-slate-50 shadow-inner backdrop-blur-sm placeholder:text-slate-400 focus-visible:ring-sky-400/40"
               />
             </div>
             {loginError && (

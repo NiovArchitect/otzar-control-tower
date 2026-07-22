@@ -36,12 +36,12 @@ export function GlassPanel({
                 : ""
             }`}
           />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500/90">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-200/90">
             {label}
           </h2>
         </div>
       ) : null}
-      <div className="text-slate-800">{children}</div>
+      <div className="text-slate-100">{children}</div>
     </section>
   );
 }
