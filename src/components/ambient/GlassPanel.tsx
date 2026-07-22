@@ -36,7 +36,7 @@ export function GlassPanel({
                 : ""
             }`}
           />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#B124E8]">
+          <h2 className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#5c5a78]">
             {label}
           </h2>
         </div>

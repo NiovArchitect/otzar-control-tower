@@ -126,7 +126,7 @@ export function LoginPage() {
 
       <div className="relative z-10 mb-10 flex max-w-lg flex-col items-center text-center">
         <OtzarBrandLogo size="hero" tone="brand" polish />
-        <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#B124E8]">
+        <p className="mt-6 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5c5a78]">
           Ambient Work OS
         </p>
         <h1 className="otzar-text-luminous mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">

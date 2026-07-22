@@ -63,7 +63,7 @@ export function EmployeeLayout() {
                 <span className="otzar-text-luminous block text-sm font-semibold tracking-tight">
                   Otzar
                 </span>
-                <span className="hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B124E8] sm:block">
+                <span className="hidden text-[10px] font-medium uppercase tracking-[0.14em] text-[#5c5a78] sm:block">
                   Work OS
                 </span>
               </div>
