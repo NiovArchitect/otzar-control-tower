@@ -6,8 +6,8 @@
 //          setup-required action, it never grants access. Human language, no raw
 //          IDs, no graph jargon, backend truth only.
 
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,8 @@ const statusLabel = (s: string): string => STATUS_LABEL[s] ?? s.replace(/^SEED_/
 const isPending = (s: OrgSeed): boolean => s.status === "SEED_PROPOSED" || s.status === "SEED_NEEDS_REVIEW";
 
 export function OrganizationSeedingPage(): JSX.Element {
+  const [searchParams] = useSearchParams();
+  const classFilter = (searchParams.get("class") ?? "").trim() || null;
   const [seeds, setSeeds] = useState<OrgSeed[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -158,7 +160,13 @@ export function OrganizationSeedingPage(): JSX.Element {
 
   // Cluster duplicate suggestions for the same person/target into ONE card and
   // organize into root-first Dandelion queues (people → structure → tools).
-  const grouped = groupSeeds(seeds ?? []);
+  // Optional ?class=managers filter from Organization category deep links.
+  const filteredSeeds = useMemo(() => {
+    const all = seeds ?? [];
+    if (classFilter === null) return all;
+    return all.filter((s) => classForSeedType(s.seed_type) === classFilter);
+  }, [seeds, classFilter]);
+  const grouped = groupSeeds(filteredSeeds);
   // E-01 — multi-class coverage inventory (people/roles/managers/teams/projects/externals).
   const classInventory = inventoryProposalClasses(seeds ?? []);
 
@@ -174,6 +182,21 @@ export function OrganizationSeedingPage(): JSX.Element {
         </Link>
         <span aria-hidden>→</span>
         <span>Review what Otzar found</span>
+        {classFilter !== null ? (
+          <>
+            <span aria-hidden>→</span>
+            <span data-testid="org-seeding-class-filter" data-class={classFilter}>
+              {classFilter}
+            </span>
+            <Link
+              to="/organization-seeding"
+              className="underline underline-offset-2"
+              data-testid="org-seeding-clear-filter"
+            >
+              Show all
+            </Link>
+          </>
+        ) : null}
       </div>
       <PageHeader
         title="Review what Otzar found"

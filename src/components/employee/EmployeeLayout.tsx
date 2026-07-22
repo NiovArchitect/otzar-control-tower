@@ -41,6 +41,7 @@ export function EmployeeLayout() {
       {/* Atmospheric depth + grain */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="otzar-aurora-layer opacity-90" />
+        <div className="otzar-ambient-lines" />
         <div className="otzar-grain" />
       </div>
 
@@ -49,7 +50,7 @@ export function EmployeeLayout() {
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Always-in-viewport chrome: Otzar · Work OS · Talk · notifications.
             shrink-0 so main scrolls; never leave the visual viewport. */}
-        <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-slate-200/70 bg-white/95 px-4 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/90 sm:h-16 sm:px-6" data-testid="employee-shell-header">
+        <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1020]/85 px-4 backdrop-blur-xl backdrop-saturate-150 sm:h-16 sm:px-6" data-testid="employee-shell-header">
           <div className="flex min-w-0 items-center gap-2.5">
             <AppBackButton fallback="/app" />
             <Link
@@ -62,7 +63,7 @@ export function EmployeeLayout() {
                 <span className="otzar-text-luminous block text-sm font-semibold tracking-tight">
                   Otzar
                 </span>
-                <span className="hidden text-[10px] font-medium uppercase tracking-[0.14em] text-indigo-500/80 sm:block">
+                <span className="hidden text-[10px] font-medium uppercase tracking-[0.14em] text-sky-300/80 sm:block">
                   Work OS
                 </span>
               </div>
@@ -91,9 +92,9 @@ export function EmployeeLayout() {
                 aria-label="Open Control Tower · Organization"
                 title="Control Tower · Organization"
                 data-testid="header-open-control-tower"
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-white hover:text-slate-900"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 shadow-sm transition-colors hover:bg-white/10 hover:text-white"
               >
-                <PanelsTopLeft className="h-3.5 w-3.5 text-indigo-500" aria-hidden />
+                <PanelsTopLeft className="h-3.5 w-3.5 text-sky-300" aria-hidden />
                 <span className="hidden sm:inline">Organization</span>
               </Link>
             ) : null}
@@ -102,7 +103,7 @@ export function EmployeeLayout() {
               onClick={() => void handleLogout()}
               aria-label={entity ? `Log out (${entity.email})` : "Log out"}
               title="Log out"
-              className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-700"
+              className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-slate-100"
             >
               <LogOut className="h-4 w-4" aria-hidden />
             </button>

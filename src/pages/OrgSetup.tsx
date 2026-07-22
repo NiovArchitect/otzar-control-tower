@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrgDiscoveryFoundCard } from "@/components/otzar/OrgDiscoveryFoundCard";
+import { OrgDiscoveryReviewQueue } from "@/components/otzar/OrgDiscoveryReviewQueue";
 import { api } from "@/lib/api";
 import {
   deriveSetupJourney,
@@ -138,6 +139,12 @@ export function OrgSetupPage() {
     }
   }
 
+  async function invalidateDiscovery(): Promise<void> {
+    await queryClient.invalidateQueries({ queryKey: ["org", "dandelion", "seeds"] });
+    await queryClient.invalidateQueries({ queryKey: ["org", "hierarchy"] });
+    await queryClient.invalidateQueries({ queryKey: ["org", "entities"] });
+  }
+
   return (
     <div className="space-y-6" data-testid="org-setup-page">
       <PageHeader
@@ -152,11 +159,18 @@ export function OrgSetupPage() {
         </div>
       ) : (
         <>
-          {/* Dandelion intelligence — human findings, not a separate product. */}
+          {/* Dandelion intelligence — category breakdown, not one opaque number. */}
           <OrgDiscoveryFoundCard
             discovery={discovery}
             onRefreshSignals={() => void refreshStructureSignals()}
             refreshBusy={syncBusy}
+          />
+
+          {/* Inline confirm / hold / reject — discovery is not report-only. */}
+          <OrgDiscoveryReviewQueue
+            items={discovery.actionableItems}
+            openCount={discovery.openSeedCount}
+            onChanged={() => void invalidateDiscovery()}
           />
 
           {/* Activation order — one connected intelligence flow. */}

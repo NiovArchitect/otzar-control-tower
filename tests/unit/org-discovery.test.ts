@@ -95,6 +95,20 @@ describe("deriveOrgDiscovery", () => {
     expect(d.reviewCta?.to).toBe("/organization-seeding");
     expect(d.findings.some((f) => /people/i.test(f.label))).toBe(true);
     expect(d.findings.some((f) => f.kind === "review")).toBe(true);
+    // Category breakdown — not one unexplained number
+    expect(d.reviewCategories.length).toBeGreaterThanOrEqual(2);
+    expect(d.reviewCategories.some((c) => c.id === "managers" && c.count === 1)).toBe(
+      true,
+    );
+    expect(d.reviewCategories.some((c) => c.id === "people" && c.count === 1)).toBe(
+      true,
+    );
+    expect(d.reviewCategories.every((c) => c.to.includes("/"))).toBe(true);
+    // Inline actionable items for confirm/reject
+    expect(d.actionableItems.length).toBe(2);
+    expect(d.actionableItems[0]!.seedId).toBeTruthy();
+    expect(d.actionableItems[0]!.title.length).toBeGreaterThan(0);
+    expect(d.actionableItems[0]!.confirmLabel.length).toBeGreaterThan(0);
   });
 
   it("does not invent findings when all projections are null", () => {

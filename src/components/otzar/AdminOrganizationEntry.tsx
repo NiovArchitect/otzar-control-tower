@@ -76,23 +76,23 @@ export function AdminOrganizationEntry(): JSX.Element | null {
     <Link
       to="/setup"
       data-testid="admin-organization-entry"
-      className="otzar-edge-trace group flex items-center gap-3 rounded-2xl border border-white/60 bg-white/55 px-3.5 py-3 shadow-[0_12px_36px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl transition hover:bg-white/75"
+      className="otzar-edge-trace otzar-glass-card group flex items-center gap-3 rounded-2xl px-3.5 py-3 transition hover:border-sky-400/30"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300">
         <Building2 className="h-4 w-4" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold tracking-tight text-slate-900">
+        <span className="block text-sm font-semibold tracking-tight text-slate-100">
           Otzar found
         </span>
         <span
-          className="mt-0.5 block truncate text-xs text-slate-500"
+          className="mt-0.5 block truncate text-xs text-slate-400"
           data-testid="admin-organization-entry-signal"
         >
           {signalLine}
         </span>
       </span>
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-medium text-white">
+      <span className="otzar-cta-fill inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-medium">
         Organization
         <ArrowRight
           className="h-3 w-3 transition group-hover:translate-x-0.5"
