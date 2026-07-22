@@ -327,7 +327,7 @@ function intensityDot(intensity: PresenceIntensity): string {
 function chipIntensityClass(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":
-      return "bg-[#B124E8]/20 text-[#E5E7EC] ring-1 ring-[#a855f7]/40 shadow-sm";
+      return "bg-[#B124E8]/10 text-[#1e1b4b] ring-1 ring-[#B124E8]/25 shadow-sm";
     case "critical":
       return "bg-rose-500/20 text-rose-100 ring-1 ring-rose-400/40";
     case "working":
@@ -4473,8 +4473,8 @@ export function AmbientOtzarBar(): JSX.Element {
           onPointerMove={handleOrbPointerMove}
           onPointerUp={handleOrbPointerUp}
           onPointerCancel={handleOrbPointerCancel}
-          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-white/20 bg-[#0a0612]/94 supports-[backdrop-filter]:bg-[#0a0612]/88 ${ring.glow} px-5 py-3 text-sm font-semibold text-[#E5E7EC] ring-1 ring-[#B124E8]/25 backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow,background-color] duration-700 hover:bg-[#1e1b4b]/90 focus:outline-none focus:ring-2 focus:ring-[#B124E8]/45 ${
-            quiet ? "px-4 py-2 text-xs text-[#E5E7EC]/90" : ""
+          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-[#1e1b4b]/08 bg-white/95 supports-[backdrop-filter]:bg-white/90 ${ring.glow} px-5 py-3.5 text-sm font-semibold text-[#1e1b4b] shadow-[0_8px_28px_-10px_rgba(30,27,75,0.14),0_4px_12px_-4px_rgba(177,36,232,0.12)] backdrop-blur-xl transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#B124E8]/35 ${
+            quiet ? "px-4 py-2 text-xs text-[#5c5a78]" : ""
           }`}
         >
           <span
@@ -4529,7 +4529,7 @@ export function AmbientOtzarBar(): JSX.Element {
       data-drives-work="true"
       data-orb-edge={orbPos?.edge ?? "right"}
       style={dockAnchorStyle}
-      className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.85rem] border border-white/15 bg-[#0a0612]/95 supports-[backdrop-filter]:bg-[#0a0612]/90 backdrop-blur-2xl backdrop-saturate-150 text-[#E5E7EC] ring-1 ring-[#B124E8]/25 transition-[box-shadow] duration-700 ${ring.glow}`}
+      className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-2xl border border-[#1e1b4b]/08 bg-white/96 supports-[backdrop-filter]:bg-white/94 backdrop-blur-xl text-[#1e1b4b] shadow-[0_20px_50px_-16px_rgba(30,27,75,0.16),0_8px_24px_-10px_rgba(177,36,232,0.12)] transition-[box-shadow] duration-200 ${ring.glow}`}
     >
       {/* Siri-like ambient color field, diffused UNDER the glass. The state
           color blooms through the frost, it is not a hard border. Active states
@@ -4550,7 +4550,7 @@ export function AmbientOtzarBar(): JSX.Element {
                 : "motion-safe:animate-pulse"
             }`}
           />
-          <span className="text-sm font-semibold text-slate-50">Talk to Otzar</span>
+          <span className="text-sm font-semibold text-[#1e1b4b]">Talk to Otzar</span>
           <span className={`text-xs text-slate-300 truncate ${statusClass}`}>{status}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -4630,7 +4630,7 @@ export function AmbientOtzarBar(): JSX.Element {
           className="group relative border-b border-black/[0.06]"
           data-testid="ambient-work-nodes"
         >
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-[11px] text-slate-300 hover:text-slate-50">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-[11px] text-[#5c5a78] hover:text-[#1e1b4b]">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#a855f7]/85" aria-hidden />
             <span className="font-medium">Work nodes</span>
             <span className="text-slate-400">· {workNodes.length}</span>
