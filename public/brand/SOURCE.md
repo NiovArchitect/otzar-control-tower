@@ -2,34 +2,38 @@
 
 Official mark sourced from:
 
-- Product site: https://www.otzar.ai/ (`/_astro/logo.*.svg`, `/_astro/Logo.*.png`)
+- Product site: https://www.otzar.ai/
 - Brand identity gallery: https://www.behance.net/gallery/252799665/OTZAR
+- Key module (floating UI / soft light): https://www.behance.net/gallery/252799665/OTZAR/modules/1469274733
 
 Do not invent a replacement logo.
 
 | Asset | Use |
 |-------|-----|
-| `otzar-logo.png` (1080²) | Brand / hero 3D polished mark (4K-class sharpness) |
+| `otzar-logo.png` (1080²) | Brand / hero 3D polished mark |
 | `otzar-logo.svg` | Monochrome ink/silver chrome only |
 | `otzar-mark.jpg` | Legacy raster reference only |
 
-## Official palette (Behance designer)
+## Official palette
 
 | Token | Hex | Role |
 |-------|-----|------|
-| Brand purple | `#B124E8` | Primary CTA, focus, active nav, glow |
-| Mid purple | `#a855f7` | Eyebrows, secondary accent, luminous mid |
-| Brand blue | `#405DE6` | Listening / ring / secondary spectrum |
-| Void indigo | `#1e1b4b` | Ambient field mid, glass tint |
-| Near-black | `#0a0612` | Shell void, chrome base |
-| Silver | `#E5E7EC` | Primary text, bevel highlight |
-| Accent orange | `#F77737` | Attention / approval energy (sparse) |
+| Brand purple | `#B124E8` | Primary CTA, focus, active nav |
+| Mid purple | `#a855f7` | Secondary accent, luminous mid |
+| Brand blue | `#405DE6` | Listening / secondary spectrum |
+| Brand dark | `#1e1b4b` | Primary text / ink |
+| Silver | `#E5E7EC` | Semi-gradient field base |
+| White | `#FFFFFF` | Floating cards, chrome |
+| Accent orange | `#F77737` | Attention only (sparse) |
 
-## Material language
+## Product UI doctrine (complete overhaul)
 
-- **Glass** over purple void — frosted panels with silver top bevel + void bottom bevel
-- **Curves** — generous continuous radii (`1.15rem`–`1.85rem`, pills for chrome actions); not sharp SaaS boxes
-- **Depth** — brand-purple bloom, soft outer glow, enterprise restraint (no neon club RGB)
-- **Pop for today** — high-contrast silver on void, vivid purple CTAs, one accent at a time
+From Behance comps — **bright enterprise**, not black void:
 
-Visual system: Behance identity × product shell · sleek · enterprise · ambient presence
+1. **Semi-gradient field** — silver → soft lavender → pearl with purple ribbon washes (YC-visible brand experience)
+2. **Floating white cards** — soft multi-layer light shadows, generous curves (`1.5rem`+)
+3. **3D buttons** — solid purple CTAs with lift shadow; ghost white secondary pills
+4. **Sizing** — touch-friendly `h-11` / `h-12` controls, pill radii, airy page spacing
+5. **Type** — brand-dark ink on pearl; purple eyebrows; luminous purple titles
+
+Materials live in `src/index.css` + `src/lib/ambient/glass.ts`.

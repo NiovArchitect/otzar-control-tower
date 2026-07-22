@@ -40,9 +40,9 @@ export function Layout() {
       data-testid="admin-shell"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="otzar-aurora-layer opacity-85" />
+        <div className="otzar-brand-ribbons" />
+        <div className="otzar-aurora-layer opacity-75" />
         <div className="otzar-ambient-lines" />
-        <div className="otzar-grain" />
       </div>
       {/* Year-3000 ambient perimeter — presence-driven, non-blocking */}
       <AmbientEdgeGlow />
@@ -72,7 +72,7 @@ export function Layout() {
             )}
             <AppBackButton fallback="/" />
             {isMobile ? (
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-50">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-[#1e1b4b]">
                 <OtzarBrandLogo size="md" tone="brand" polish />
                 Control Tower
               </span>
@@ -84,7 +84,7 @@ export function Layout() {
               <Button
                 asChild
                 size="sm"
-                className="otzar-cta-fill hidden gap-1 rounded-full border-0 sm:inline-flex"
+                className="otzar-cta-fill hidden gap-1 border-0 sm:inline-flex"
               >
                 <Link to="/app/voice-ready">
                   <Mic className="h-4 w-4" />
@@ -93,18 +93,13 @@ export function Layout() {
               </Button>
             )}
             {isEmployee(capabilities) && (
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="rounded-full border-white/15 bg-white/[0.08] text-slate-100 shadow-sm backdrop-blur-sm hover:bg-white/[0.14]"
-              >
+              <Button asChild variant="outline" size="sm">
                 <Link to="/app">Open Otzar</Link>
               </Button>
             )}
             {entity && (
               <span
-                className="hidden max-w-[160px] truncate text-slate-500 md:inline"
+                className="hidden max-w-[160px] truncate text-[#5c5a78] md:inline"
                 aria-label="Logged in as"
               >
                 {entity.email}
@@ -116,7 +111,6 @@ export function Layout() {
               size="sm"
               onClick={() => void handleLogout()}
               aria-label="Log out"
-              className="rounded-full"
             >
               <LogOut className="mr-0 h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Log out</span>
@@ -124,8 +118,10 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-7">
+          <div className="otzar-page">
+            <Outlet />
+          </div>
         </main>
 
         <footer

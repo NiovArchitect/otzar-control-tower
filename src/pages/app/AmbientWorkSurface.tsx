@@ -830,7 +830,7 @@ export function AmbientWorkSurface(): JSX.Element {
             />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a855f7]/90">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B124E8]">
               Today
             </p>
             <h1 className="otzar-text-luminous mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">

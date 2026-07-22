@@ -38,19 +38,21 @@ export function EmployeeLayout() {
       className={`fixed inset-0 flex h-[100dvh] max-h-[100dvh] w-full overflow-hidden pt-[env(safe-area-inset-top,0px)] ${AMBIENT_FIELD}`}
       data-testid="employee-shell"
     >
-      {/* Atmospheric depth + grain */}
+      {/* Behance atmosphere — soft ribbons on bright semi-gradient */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="otzar-aurora-layer opacity-90" />
+        <div className="otzar-brand-ribbons" />
+        <div className="otzar-aurora-layer opacity-80" />
         <div className="otzar-ambient-lines" />
-        <div className="otzar-grain" />
       </div>
 
       <AmbientNav />
 
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Always-in-viewport chrome: Otzar · Work OS · Talk · notifications.
-            shrink-0 so main scrolls; never leave the visual viewport. */}
-        <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#0a0612]/88 px-4 backdrop-blur-xl backdrop-saturate-150 sm:h-16 sm:px-6" data-testid="employee-shell-header">
+        {/* Frosted white chrome over semi-gradient — always in viewport */}
+        <header
+          className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-[#1e1b4b]/08 bg-white/75 px-4 shadow-[0_8px_28px_-18px_rgba(30,27,75,0.12)] backdrop-blur-2xl backdrop-saturate-150 sm:h-16 sm:px-6"
+          data-testid="employee-shell-header"
+        >
           <div className="flex min-w-0 items-center gap-2.5">
             <AppBackButton fallback="/app" />
             <Link
@@ -63,14 +65,13 @@ export function EmployeeLayout() {
                 <span className="otzar-text-luminous block text-sm font-semibold tracking-tight">
                   Otzar
                 </span>
-                <span className="hidden text-[10px] font-medium uppercase tracking-[0.14em] text-[#a855f7]/90 sm:block">
+                <span className="hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B124E8]/85 sm:block">
                   Work OS
                 </span>
               </div>
             </Link>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
-            {/* A-06 — active org context; switch resets to Home without blend */}
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <OrgContextBadge />
             <button
               type="button"
@@ -79,7 +80,7 @@ export function EmployeeLayout() {
                   window.dispatchEvent(new CustomEvent("otzar:open"));
                 }
               }}
-              className="otzar-cta-fill hidden items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium sm:inline-flex"
+              className="otzar-cta-fill hidden items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold sm:inline-flex"
               data-testid="header-talk-otzar"
             >
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
@@ -92,9 +93,9 @@ export function EmployeeLayout() {
                 aria-label="Open Control Tower · Organization"
                 title="Control Tower · Organization"
                 data-testid="header-open-control-tower"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#B124E8]/25 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-[#E5E7EC] shadow-sm transition-colors hover:bg-[#B124E8]/15 hover:text-white"
+                className="otzar-cta-ghost inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-[#1e1b4b]"
               >
-                <PanelsTopLeft className="h-3.5 w-3.5 text-[#a855f7]" aria-hidden />
+                <PanelsTopLeft className="h-3.5 w-3.5 text-[#B124E8]" aria-hidden />
                 <span className="hidden sm:inline">Organization</span>
               </Link>
             ) : null}
@@ -103,7 +104,7 @@ export function EmployeeLayout() {
               onClick={() => void handleLogout()}
               aria-label={entity ? `Log out (${entity.email})` : "Log out"}
               title="Log out"
-              className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-slate-100"
+              className="rounded-full p-2.5 text-[#5c5a78] transition-colors hover:bg-[#B124E8]/10 hover:text-[#B124E8]"
             >
               <LogOut className="h-4 w-4" aria-hidden />
             </button>
@@ -111,10 +112,12 @@ export function EmployeeLayout() {
         </header>
 
         <main
-          className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-8 sm:py-6"
+          className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5 pb-24 sm:px-8 sm:py-7 sm:pb-8"
           data-testid="employee-shell-main"
         >
-          <Outlet />
+          <div className="otzar-page">
+            <Outlet />
+          </div>
         </main>
       </div>
 

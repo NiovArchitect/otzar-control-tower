@@ -24,7 +24,7 @@ export function GlassPanel({
     <section
       data-testid={testId}
       data-intensity={intensity}
-      className={`${GLASS_SURFACE} ${panelAccent(intensity)} px-4 py-4 transition-shadow duration-300 hover:shadow-[0_20px_56px_-24px_rgba(15,23,42,0.28)] sm:px-5 sm:py-5 ${className}`}
+      className={`${GLASS_SURFACE} ${panelAccent(intensity)} px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_-18px_rgba(177,36,232,0.22)] sm:px-5 sm:py-5 ${className}`}
     >
       {label !== undefined ? (
         <div className="mb-2.5 flex items-center gap-2">
@@ -36,7 +36,7 @@ export function GlassPanel({
                 : ""
             }`}
           />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-200/90">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#B124E8]">
             {label}
           </h2>
         </div>
