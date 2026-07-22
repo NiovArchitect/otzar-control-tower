@@ -29,7 +29,10 @@ const MUST_STAY_REGISTERED = [
   "/voice-providers",
   "/review-center",
   "/agent-playground",
+  "/governance",
   "/policies",
+  "/access-control",
+  "/retention",
   "/system-health",
   "/setup",
   "/approvals",
@@ -37,15 +40,14 @@ const MUST_STAY_REGISTERED = [
 ];
 
 // Primary-visible destinations under the jobs model (comingSoon + hidden filtered).
+// Governance is ONE job surface; Access/Policies/Retention stay deep-link only.
 const MUST_BE_SIDEBAR_VISIBLE = [
   "/",
   "/setup",
   "/users",
   "/ai-teammates",
   "/tools-connections",
-  "/policies",
-  "/access-control",
-  "/retention",
+  "/governance",
   "/approvals",
   "/reports",
   "/security-audit",
@@ -90,6 +92,9 @@ describe("admin nav — placeholder (comingSoon) hiding (LIVE-1B)", () => {
       "/data-knowledge",
       "/review-center",
       "/system-health",
+      "/policies",
+      "/access-control",
+      "/retention",
     ]) {
       expect(sidebar).not.toContain(hidden);
     }

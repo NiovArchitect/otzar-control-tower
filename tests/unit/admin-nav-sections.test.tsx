@@ -57,9 +57,12 @@ describe("Admin Center IA — jobs model (RC2 coherence)", () => {
     expect(visible.map((n) => n.label)).not.toContain("Voice");
   });
 
-  it("Governance = Policies + Access + Data retention", () => {
-    expect(routesIn("Governance")).toEqual(
-      ["/access-control", "/policies", "/retention"].sort(),
+  it("Governance = one hub (Access/Policies/Retention deep links hidden)", () => {
+    expect(routesIn("Governance")).toEqual(["/governance"]);
+    // Full capability routes stay registered, not primary sidebar.
+    const allGov = NAV.filter((n) => n.group === "Governance").map((n) => n.to);
+    expect(allGov).toEqual(
+      expect.arrayContaining(["/governance", "/access-control", "/policies", "/retention"]),
     );
   });
 

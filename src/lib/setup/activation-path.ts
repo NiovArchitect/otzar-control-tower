@@ -164,7 +164,10 @@ export function deriveActivationPath(
         gov?.lines.find((l) => l.kind === "action")?.text ??
         gov?.lines[0]?.text ??
         "Approvals, audit, and data boundaries stay on by default.",
-      action: gov?.action ?? { label: "Open Policies", to: "/policies" },
+      action: gov?.action ?? {
+        label: "Open Governance",
+        to: "/governance",
+      },
     },
     {
       id: "first-workflow",

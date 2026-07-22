@@ -19,7 +19,7 @@ import { AccessGrantsPage } from "@/pages/AccessGrants";
 
 export function AccessHubPage(): JSX.Element {
   return (
-    <div className="space-y-6" data-testid="access-hub-page">
+    <div className="space-y-4" data-testid="access-hub-page">
       <Tabs defaultValue="permissions" className="space-y-4">
         <TabsList>
           <TabsTrigger value="permissions" data-testid="tab-access-permissions">
@@ -29,11 +29,9 @@ export function AccessHubPage(): JSX.Element {
             Grants &amp; sharing
           </TabsTrigger>
         </TabsList>
-        {/* Who can see and do what across your organization today. */}
         <TabsContent value="permissions" data-testid="panel-access-permissions">
           <AccessControlPage />
         </TabsContent>
-        {/* Grants, revocations, and what contributors have shared. */}
         <TabsContent value="grants" data-testid="panel-access-grants">
           <AccessGrantsPage />
         </TabsContent>

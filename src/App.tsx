@@ -67,6 +67,7 @@ import { HomePage } from "@/pages/Home";
 import { UsersPage } from "@/pages/Users";
 import { AITeammatesPage } from "@/pages/AITeammates";
 import { AccessHubPage } from "@/pages/AccessHub";
+import { GovernancePage } from "@/pages/Governance";
 import { DataKnowledgePage } from "@/pages/Data";
 import { SecurityPage } from "@/pages/Security";
 import { AnalyticsPage } from "@/pages/Analytics";
@@ -212,7 +213,10 @@ const router = createBrowserRouter(
               <Route path="setup/company-profile" element={<CompanyProfilePage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="ai-teammates" element={<AITeammatesPage />} />
-              {/* PROD-MODEL-P3 §9 — ONE Access Control destination (tabs);
+              {/* RC2 — ONE Governance job surface; deep Access/Policies/Retention
+                  routes stay registered so capability is never deleted. */}
+              <Route path="governance" element={<GovernancePage />} />
+              {/* PROD-MODEL-P3 §9 — Access Control destination (tabs);
                   /access-grants below stays registered for deep links. */}
               <Route path="access-control" element={<AccessHubPage />} />
               <Route path="data-knowledge" element={<DataKnowledgePage />} />
