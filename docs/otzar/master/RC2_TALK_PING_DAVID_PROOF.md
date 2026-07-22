@@ -51,6 +51,7 @@ Use a private window on **app.otzar.ai** after deploy of the commit that include
 | Date | Environment | Result |
 |------|-------------|--------|
 | 2026-07-22 | unit | message-compose + ambient bar card for “Yes, ping David…” — **coded** (ping/notify → draft card, not auto-send) |
-| — | app.otzar.ai | not run in this agent session — still need LIVE_ROUTE_VERIFIED |
+| 2026-07-22 | origin/main | **merged** #222 · SHA `f564227` |
+| 2026-07-22 | app.otzar.ai | HTML last-modified ~08:15 UTC · asset `index-DmQQIMEk.js` contains `Review it and Confirm` + ping\|notify path markers — **deployed candidate**; authenticated L1–L5 **not** run in agent session → still need LIVE_ROUTE_VERIFIED |
 
 Do **not** claim FOUNDER_EXPERIENCE_APPROVED from this doc alone.

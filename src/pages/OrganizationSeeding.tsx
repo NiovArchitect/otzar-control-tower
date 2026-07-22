@@ -915,7 +915,7 @@ function MeetingIngestCard(): JSX.Element | null {
           <p className="text-xs text-amber-700" data-testid="meeting-ingest-not-connected">
             Zoom isn&apos;t connected for your organization yet.{" "}
             <Link to="/tools-connections" className="underline">
-              Connect it in Tools &amp; Connections
+              Connect it in Connections
             </Link>{" "}
             and recordings will appear here.
           </p>

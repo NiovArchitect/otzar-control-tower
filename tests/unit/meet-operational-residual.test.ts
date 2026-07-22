@@ -13,16 +13,20 @@ import {
 } from "@/lib/work-os/meet-operational-residual";
 
 describe("N-02 Meet operational residual", () => {
-  it("states externally blocked doctrine and operator steps", () => {
+  it("states honest reconnect doctrine and operator steps (human copy)", () => {
     expect(N02_STATUS).toBe("EXTERNALLY_BLOCKED");
-    expect(N02_DOCTRINE).toMatch(/oauth|never claim|paste/i);
+    expect(N02_DOCTRINE).toMatch(/reconnect|paste|not claim|permissions/i);
+    expect(N02_DOCTRINE).not.toMatch(/EXTERNALLY_BLOCKED|PROVIDER_PROVEN/i);
     expect(N02_OPERATOR_STEPS.map((s) => s.id)).toEqual([
       "open_tools",
       "reauth_scopes",
       "verify_ambient",
       "paste_fallback",
     ]);
-    expect(N02_RESIDUAL_COPY).toMatch(/EXTERNALLY_BLOCKED|operator/i);
+    expect(N02_OPERATOR_STEPS[0]?.plain).toMatch(/Connections/i);
+    expect(N02_OPERATOR_STEPS[0]?.plain).not.toMatch(/Tools & Connections/i);
+    expect(N02_RESIDUAL_COPY).toMatch(/paste|reconnect|not claim|transcript/i);
+    expect(N02_RESIDUAL_COPY).not.toMatch(/EXTERNALLY_BLOCKED|N-02/i);
   });
 
   it("resolves modes without false provider proven by default", () => {
@@ -33,7 +37,9 @@ describe("N-02 Meet operational residual", () => {
     expect(resolveMeetOperationalMode({ providerProven: true })).toBe(
       "provider_proven",
     );
-    expect(meetModeLabel("externally_blocked")).toMatch(/blocked|oauth/i);
+    expect(meetModeLabel("externally_blocked")).toMatch(
+      /not fully connected|finish google|setup/i,
+    );
   });
 
   it("flags false complete Meet claims", () => {
@@ -41,7 +47,7 @@ describe("N-02 Meet operational residual", () => {
       claimsMeetFullyOperational("Meet transcripts fully operational"),
     ).toBe(true);
     expect(
-      claimsMeetFullyOperational("Reconnect Google Meet in Tools"),
+      claimsMeetFullyOperational("Reconnect Google Meet in Connections"),
     ).toBe(false);
   });
 });

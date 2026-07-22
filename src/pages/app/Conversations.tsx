@@ -72,19 +72,18 @@ export function Conversations() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Conversation sessions"
-        description="Your ambient console sessions with Otzar — session metadata for continuity."
+        title="Your sessions"
+        description="Past Talk sessions with Otzar — for continuity. Full message transcripts are not shown here."
       />
 
-      {/* Persistent transcript-governance boundary. */}
+      {/* Honest boundary: list is session history, not full transcripts. */}
       <div
         className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground"
         role="note"
         data-testid="transcript-notice"
       >
-        This page shows session metadata only. Transcript retrieval is not
-        active yet — full transcript access requires enterprise transcript
-        governance and scoped access rules.
+        This list is session history only — when you talked, from where, and
+        status. Full message transcripts are not available on this page yet.
       </div>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filter sessions">
@@ -136,11 +135,11 @@ export function Conversations() {
             data-testid="conversations-empty"
           >
             <p className="font-medium text-foreground">
-              No conversation sessions yet.
+              No sessions yet.
             </p>
             <p>
-              Session metadata appears here when you start or continue work with
-              your AI teammate — one row per session, for continuity.
+              Sessions appear here after you talk with Otzar — one row per
+              conversation, for continuity.
             </p>
             <div className="flex flex-wrap gap-2 pt-1" data-testid="conversations-empty-actions">
               <Button asChild size="sm" variant="default">

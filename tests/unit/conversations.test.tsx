@@ -47,8 +47,38 @@ beforeEach(() => setAuth());
 
 describe("Conversations (employee Otzar)", () => {
   it("renders session metadata with Active and Closed labels", async () => {
+    // Explicit list fixture — do not rely on shared MSW order under parallel load.
+    server.use(
+      http.get(`${API_BASE}/otzar/conversations`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [
+            {
+              conversation_id: "conv-active-0001",
+              twin_id: "twin-self-0001",
+              source_type: "CHAT",
+              status: "ACTIVE",
+              message_count: 4,
+              started_at: new Date(Date.now() - 3_600_000).toISOString(),
+              closed_at: null,
+            },
+            {
+              conversation_id: "conv-closed-0001",
+              twin_id: "twin-self-0001",
+              source_type: "CHAT",
+              status: "CLOSED",
+              message_count: 9,
+              started_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+              closed_at: new Date(Date.now() - 2 * 86_400_000 + 1_800_000).toISOString(),
+            },
+          ],
+          total: 2,
+          has_more: false,
+        }),
+      ),
+    );
     renderConversations();
-    const list = await screen.findByTestId("conversations-list");
+    const list = await screen.findByTestId("conversations-list", {}, { timeout: 15_000 });
     expect(within(list).getByText("Active")).toBeInTheDocument();
     expect(within(list).getByText("Closed")).toBeInTheDocument();
     expect(list).toHaveTextContent(/Chat console/);
@@ -57,7 +87,7 @@ describe("Conversations (employee Otzar)", () => {
   it("shows the persistent transcript-not-active notice", async () => {
     renderConversations();
     expect(await screen.findByTestId("transcript-notice")).toHaveTextContent(
-      /Transcript retrieval is not active yet/i,
+      /session history only|Full message transcripts are not available/i,
     );
   });
 
@@ -111,9 +141,9 @@ describe("Conversations (employee Otzar)", () => {
     renderConversations();
     const empty = await screen.findByTestId("conversations-empty");
 
-    // Guides without overclaiming: it is honest that this is session METADATA,
-    // not saved transcripts/history (the page's governance notice forbids that).
-    expect(empty).toHaveTextContent(/session metadata appears here/i);
+    // Guides without overclaiming: sessions appear after Talk; full transcripts
+    // are not promised on this empty state (page notice covers that).
+    expect(empty).toHaveTextContent(/Sessions appear here after you talk/i);
     expect(empty).not.toHaveTextContent(/conversation history will appear/i);
     expect(empty).not.toHaveTextContent(/transcript/i);
     // Does not pretend voice works (Whisper/STT is blocked elsewhere).

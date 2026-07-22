@@ -6,33 +6,35 @@
 //          FOUNDER N-02 EXTERNALLY_BLOCKED.
 
 export const N02_DOCTRINE =
-  "Google Meet operational meeting artifacts and transcripts require live " +
-  "provider OAuth and scopes. Until an operator reconnects Meet successfully, " +
-  "Otzar must never claim meetings are fully pulling or that transcripts are " +
-  "complete. Paste fallback and Tools reconnect stay honest.";
+  "Meeting notes and transcripts from Google Meet need a successful Google " +
+  "reconnect with the right permissions. Until then, Otzar will not claim " +
+  "meetings are fully automatic. You can still paste a transcript.";
 
 export const N02_STATUS = "EXTERNALLY_BLOCKED" as const;
 
 export const N02_OPERATOR_STEPS = [
   {
     id: "open_tools",
-    label: "Open Tools reconnect",
-    plain: "Use Connector Health / Tools & Connections for Google Meet (or Calendar with Meet).",
+    label: "Open Connections",
+    plain:
+      "Use Connections or Connector Health for Google Meet (or Calendar with Meet).",
   },
   {
     id: "reauth_scopes",
-    label: "Complete OAuth with Meet scopes",
-    plain: "Operator signs in and grants the scopes required for meeting artifacts/transcripts.",
+    label: "Finish Google sign-in",
+    plain:
+      "Sign in and grant the permissions needed for meeting notes and transcripts.",
   },
   {
     id: "verify_ambient",
-    label: "Re-prove ambient sync",
-    plain: "Comms Sync connected sources must return real meetings — not false green.",
+    label: "Confirm meetings appear",
+    plain:
+      "Comms sync should return real meetings — not a green light with empty data.",
   },
   {
     id: "paste_fallback",
-    label: "Paste remains available",
-    plain: "Until Meet is operational, paste/import is the offline capture path.",
+    label: "Paste stays available",
+    plain: "Until Meet is connected, paste or import is the offline capture path.",
   },
 ] as const;
 
@@ -71,16 +73,15 @@ export function resolveMeetOperationalMode(opts: {
 export function meetModeLabel(mode: MeetOperationalMode): string {
   switch (mode) {
     case "provider_proven":
-      return "Meet provider proven — ambient pull operational";
+      return "Meet connected — automatic pull is working";
     case "reconnect_needed":
-      return "Reconnect needed — tools signal reauth/scopes";
+      return "Reconnect needed — sign in again with Meet access";
     case "externally_blocked":
     default:
-      return "Externally blocked — operator OAuth residual";
+      return "Not fully connected — finish Google setup for Meet";
   }
 }
 
 export const N02_RESIDUAL_COPY =
-  "N-02 stays EXTERNALLY_BLOCKED until operator Meet OAuth succeeds and ambient " +
-  "sync is re-proven on live. Product honesty (reconnect + paste) is shipped; " +
-  "operational transcripts are not claimed.";
+  "Until Meet is reconnected and verified, paste or import stays available. " +
+  "We do not claim full automatic transcripts yet.";
