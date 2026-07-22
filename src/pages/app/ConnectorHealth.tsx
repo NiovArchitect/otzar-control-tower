@@ -165,7 +165,7 @@ export function ConnectorHealth(): JSX.Element {
     });
     setBusyKey(null);
     if (r.ok) {
-      setNotice("Request sent. An admin can enable this in Tools & Connections.");
+      setNotice("Request sent. An admin can enable this in Connections.");
       void load();
     } else if (r.code === "ALREADY_OPEN") {
       setNotice("You already asked for this. Your admin still has the request.");

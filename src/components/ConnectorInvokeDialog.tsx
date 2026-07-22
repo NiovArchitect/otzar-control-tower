@@ -137,7 +137,7 @@ export function ConnectorInvokeDialog({
         binding.type === "SLACK_WRITE" && operation === "chat.postMessage"
           ? {
               channel: binding.config["default_channel"] ?? "",
-              text: `Otzar connection test. Sent by an admin from Tools & Connections (${binding.display_name}).`,
+              text: `Otzar connection test. Sent by an admin from Connections (${binding.display_name}).`,
             }
           : undefined;
       return api.actions.createInvokeConnector({

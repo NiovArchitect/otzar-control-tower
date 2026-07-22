@@ -131,6 +131,46 @@ export const CAPABILITY_PRESERVATION_MAP: readonly CapabilityMapEntry[] = [
   },
 ] as const;
 
+/** Primary admin job hubs after RC2 recomposition (sidebar destinations). */
+export const RC2_PRIMARY_HUB_ROUTES = [
+  "/setup",
+  "/tools-connections",
+  "/governance",
+  "/approvals",
+  "/intelligence",
+  "/security-audit",
+] as const;
+
 export function capabilityMapNeedsWork(): CapabilityMapEntry[] {
   return CAPABILITY_PRESERVATION_MAP.filter((e) => e.status === "NEEDS_WORK");
+}
+
+/** Every deep-link / full capability route that must stay registered. */
+export function capabilityFullRoutes(): string[] {
+  return [
+    ...new Set(CAPABILITY_PRESERVATION_MAP.map((e) => e.fullCapabilityRoute)),
+  ].sort();
+}
+
+/**
+ * Rows that claim RECOMPOSED/PRESERVED but still say NEEDS_WORK — always empty
+ * when the map is healthy.
+ */
+export function capabilityMapHealthIssues(): string[] {
+  const issues: string[] = [];
+  for (const row of CAPABILITY_PRESERVATION_MAP) {
+    if (row.status === "NEEDS_WORK") {
+      issues.push(`NEEDS_WORK: ${row.oldScreen}`);
+    }
+    if (!row.fullCapabilityRoute.startsWith("/")) {
+      issues.push(`route missing leading slash: ${row.oldScreen}`);
+    }
+    if (row.capability.trim().length < 8) {
+      issues.push(`capability too thin: ${row.oldScreen}`);
+    }
+    if (row.newSurface.trim().length < 3) {
+      issues.push(`newSurface empty: ${row.oldScreen}`);
+    }
+  }
+  return issues;
 }

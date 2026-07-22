@@ -484,7 +484,7 @@ export function WorkLedgerItem({
               title={
                 exec.connectorLabel !== null
                   ? `Connect ${exec.connectorLabel} so Otzar can help with this`
-                  : "Open Tools & Connections"
+                  : "Open Connections"
               }
             >
               {exec.connectorLabel !== null
