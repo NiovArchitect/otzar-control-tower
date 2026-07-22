@@ -17,17 +17,20 @@
 //   stub-0 throughout 12B-12D (decision #24).
 
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { ArrowRight, BarChart3, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommandCenterPanel } from "@/components/CommandCenterPanel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
+import { OrgDiscoveryFoundCard } from "@/components/otzar/OrgDiscoveryFoundCard";
 import { api } from "@/lib/api";
 import { usePendingApprovals } from "@/hooks/use-pending-approvals";
 import { getAuditEventLabel } from "@/lib/audit/event-types";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
+import { deriveOrgDiscovery } from "@/lib/setup/org-discovery";
 import type {
   AuditEvent,
   OrgAnalytics,
@@ -37,6 +40,9 @@ const RECENT_ACTIVITY_LIMIT = 8;
 const RECENT_ACTIVITY_FETCH_TAKE = 50;
 
 export function HomePage() {
+  const queryClient = useQueryClient();
+  const [syncBusy, setSyncBusy] = useState(false);
+
   const analytics = useQuery({
     queryKey: ["org", "analytics"],
     queryFn: () => api.org.analytics(),
@@ -48,6 +54,36 @@ export function HomePage() {
     queryFn: () =>
       api.org.audit.list({ take: RECENT_ACTIVITY_FETCH_TAKE }),
     refetchInterval: 60_000,
+  });
+
+  // Same discovery projections as Organization /setup — founder-visible on Command Center.
+  const people = useQuery({
+    queryKey: ["org", "entities", "home-discovery"],
+    queryFn: async () => {
+      const r = await api.org.entities.list({ type: "PERSON", take: 250 });
+      return r.ok ? r.data.items : null;
+    },
+  });
+  const hierarchy = useQuery({
+    queryKey: ["org", "hierarchy"],
+    queryFn: async () => {
+      const r = await api.org.hierarchy.get();
+      return r.ok ? r.data : null;
+    },
+  });
+  const seeds = useQuery({
+    queryKey: ["org", "dandelion", "seeds", "home-discovery"],
+    queryFn: async () => {
+      const r = await api.otzar.dandelionSeeds.list();
+      return r.ok ? r.data.seeds : null;
+    },
+  });
+
+  const discovery = deriveOrgDiscovery({
+    people: people.data ?? null,
+    memberships: hierarchy.data?.memberships ?? null,
+    seeds: seeds.data ?? null,
+    orgEntityId: hierarchy.data?.org_entity_id ?? null,
   });
 
   const value: OrgAnalytics | null =
@@ -62,6 +98,17 @@ export function HomePage() {
       .slice(0, RECENT_ACTIVITY_LIMIT);
   })();
 
+  async function refreshStructureSignals(): Promise<void> {
+    setSyncBusy(true);
+    const r = await api.otzar.dandelionSeeds.syncFromGrowth();
+    setSyncBusy(false);
+    if (r.ok) {
+      await queryClient.invalidateQueries({ queryKey: ["org", "dandelion", "seeds"] });
+      await queryClient.invalidateQueries({ queryKey: ["org", "hierarchy"] });
+      await queryClient.invalidateQueries({ queryKey: ["org", "entities"] });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -69,14 +116,21 @@ export function HomePage() {
         description="Run and govern your organization from one place — what needs attention, what blocks go-live, and what to do next. Ask Otzar (⌘K) to go anywhere."
       />
 
+      {/* Founder-visible discovery — same "Otzar found" as Organization /setup. */}
+      <OrgDiscoveryFoundCard
+        discovery={discovery}
+        onRefreshSignals={() => void refreshStructureSignals()}
+        refreshBusy={syncBusy}
+      />
+
       {/* [GAP-U SLICE-1] one calm pointer to the guided setup journey —
           reduces page-hunting for admins still standing the org up. */}
       <p className="text-xs text-muted-foreground" data-testid="home-setup-pointer">
-        Still setting up?{" "}
+        Full activation path:{" "}
         <Link to="/setup" className="font-medium text-foreground underline underline-offset-2">
-          Organization Setup
+          Organization
         </Link>{" "}
-        shows what's ready, what's missing, and the one next step.
+        — what Otzar found, what needs confirmation, what is missing.
       </p>
 
       {/* ── Phase 1255 slice 2 — Command Center panel ──────────── */}
