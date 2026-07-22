@@ -116,10 +116,10 @@ const FORBIDDEN_NO_LEAK_TOKENS = [
 ];
 
 describe("Section 7 Security & Audit — nav + page shell", () => {
-  it("registers Security & Audit in the main nav at /security-audit", () => {
+  it("registers Security hub in the main nav at /security-audit", () => {
     const entry = NAV.find((n) => n.to === "/security-audit");
     expect(entry).toBeDefined();
-    expect(entry?.label).toBe("Security & Audit");
+    expect(entry?.label).toBe("Security");
   });
 
   it("renders the page header", () => {

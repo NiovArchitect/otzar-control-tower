@@ -70,6 +70,7 @@ import { AccessHubPage } from "@/pages/AccessHub";
 import { GovernancePage } from "@/pages/Governance";
 import { DataKnowledgePage } from "@/pages/Data";
 import { SecurityPage } from "@/pages/Security";
+import { SecurityHubPage } from "@/pages/SecurityHub";
 import { AnalyticsPage } from "@/pages/Analytics";
 import { ConversationsPage } from "@/pages/Conversations";
 import { WorkflowsPage } from "@/pages/Workflows";
@@ -90,6 +91,7 @@ import VoiceProvidersPage from "@/pages/VoiceProviders";
 import RetentionPage from "@/pages/Retention";
 import { DocumentationPage } from "@/pages/Documentation";
 import { IntelligencePage } from "@/pages/Intelligence";
+import { IntelligenceHubPage } from "@/pages/IntelligenceHub";
 import { ApprovalsPage } from "@/pages/Approvals";
 import { ActionCenterAdminPage } from "@/pages/ActionCenterAdmin";
 import { ReviewCenterPage } from "@/pages/ReviewCenter";
@@ -221,7 +223,8 @@ const router = createBrowserRouter(
                   /access-grants below stays registered for deep links. */}
               <Route path="access-control" element={<AccessHubPage />} />
               <Route path="data-knowledge" element={<DataKnowledgePage />} />
-              <Route path="security-audit" element={<SecurityPage />} />
+              <Route path="security-audit" element={<SecurityHubPage />} />
+              <Route path="security-audit-log" element={<SecurityPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="conversations" element={<ConversationsPage />} />
               <Route path="workflows" element={<WorkflowsPage />} />
@@ -258,7 +261,9 @@ const router = createBrowserRouter(
               <Route path="connector-rails" element={<ConnectorRailsAdmin />} />
               <Route path="voice" element={<VoiceTwinPage />} />
               <Route path="documentation" element={<DocumentationPage />} />
-              <Route path="intelligence" element={<IntelligencePage />} />
+              <Route path="intelligence" element={<IntelligenceHubPage />} />
+              {/* Legacy placeholder route kept for tests that import IntelligencePage. */}
+              <Route path="intelligence-placeholder" element={<IntelligencePage />} />
               <Route path="review-center" element={<ReviewCenterPage />} />
               <Route path="marketplace" element={<MarketplaceDiscoveryPage />} />
               <Route path="cohorts" element={<CohortGovernancePage />} />

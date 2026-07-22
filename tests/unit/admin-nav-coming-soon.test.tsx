@@ -8,12 +8,11 @@
 import { describe, expect, it } from "vitest";
 import { NAV } from "@/lib/nav";
 
-// The seven placeholder screens identified by the OTZAR-V1-LIVE-0 audit.
+// Placeholder screens still marked comingSoon (Intelligence is now a live hub).
 const EXPECTED_COMING_SOON = [
   "/analytics",
   "/conversations",
   "/documentation",
-  "/intelligence",
   "/playground",
   "/settings",
   "/workflows",
@@ -36,11 +35,13 @@ const MUST_STAY_REGISTERED = [
   "/system-health",
   "/setup",
   "/approvals",
+  "/intelligence",
+  "/reports",
   "/security-audit",
 ];
 
 // Primary-visible destinations under the jobs model (comingSoon + hidden filtered).
-// Governance is ONE job surface; Access/Policies/Retention stay deep-link only.
+// Hubs are primary; detail routes stay deep-link only.
 const MUST_BE_SIDEBAR_VISIBLE = [
   "/",
   "/setup",
@@ -49,12 +50,12 @@ const MUST_BE_SIDEBAR_VISIBLE = [
   "/tools-connections",
   "/governance",
   "/approvals",
-  "/reports",
+  "/intelligence",
   "/security-audit",
 ];
 
 describe("admin nav — placeholder (comingSoon) hiding (LIVE-1B)", () => {
-  it("marks exactly the seven placeholder routes comingSoon", () => {
+  it("marks exactly the six placeholder routes comingSoon", () => {
     const comingSoon = NAV.filter((n) => n.comingSoon === true)
       .map((n) => n.to)
       .sort();
@@ -70,7 +71,7 @@ describe("admin nav — placeholder (comingSoon) hiding (LIVE-1B)", () => {
     }
   });
 
-  it("the default-visible nav (comingSoon filtered) drops all seven placeholders", () => {
+  it("the default-visible nav (comingSoon filtered) drops all placeholders", () => {
     const defaultVisible = NAV.filter((n) => n.comingSoon !== true).map((n) => n.to);
     for (const route of EXPECTED_COMING_SOON) {
       expect(defaultVisible).not.toContain(route);

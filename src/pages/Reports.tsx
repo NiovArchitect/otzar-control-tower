@@ -44,7 +44,7 @@ export default function Reports(): JSX.Element {
             <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </Link>
           <Link
-            to="/onboarding"
+            to="/setup"
             className="flex items-center justify-between rounded-xl border border-border/70 p-3 hover:border-primary/40"
           >
             <span>
@@ -52,7 +52,7 @@ export default function Reports(): JSX.Element {
                 Readiness report
               </span>{" "}
               — the live truth of what is ready, blocked, or waiting on
-              credentials, straight from the readiness check.
+              credentials, straight from Organization setup.
             </span>
             <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </Link>

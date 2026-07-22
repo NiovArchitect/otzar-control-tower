@@ -273,6 +273,15 @@ export const NAV: ReadonlyArray<NavItem> = [
   },
 
   // ── 6. Intelligence ────────────────────────────────────────────
+  // ONE job: Reports live under Intelligence hub. Deep /reports preserved.
+  {
+    label: "Intelligence",
+    to: "/intelligence",
+    icon: Sparkles,
+    description:
+      "Governed reports and organization movement — readiness, compliance packages, activity proof.",
+    group: "Intelligence",
+  },
   {
     label: "Reports",
     to: "/reports",
@@ -280,15 +289,6 @@ export const NAV: ReadonlyArray<NavItem> = [
     description:
       "Organization movement, readiness, and activity records you can export — backed by audit evidence.",
     group: "Intelligence",
-  },
-  {
-    label: "Intelligence",
-    to: "/intelligence",
-    icon: Sparkles,
-    description:
-      "Curated organization-level intelligence assembled across your knowledge.",
-    group: "Intelligence",
-    comingSoon: true,
     hidden: true,
   },
   {
@@ -302,12 +302,13 @@ export const NAV: ReadonlyArray<NavItem> = [
   },
 
   // ── 7. Security ────────────────────────────────────────────────
+  // ONE job: audit evidence + advanced health. Deep routes preserved.
   {
-    label: "Security & Audit",
+    label: "Security",
     to: "/security-audit",
     icon: Shield,
     description:
-      "Security posture, audit history, access reviews, and evidence of what was approved, held, or rejected.",
+      "Audit evidence and platform health — what was approved, held, or rejected.",
     group: "Security",
   },
   {

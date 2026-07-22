@@ -74,13 +74,13 @@ describe("Admin Center IA — jobs model (RC2 coherence)", () => {
     expect(labels).not.toContain("Policies & Approvals");
   });
 
-  it("Intelligence = Reports (Work Graph not primary)", () => {
-    expect(routesIn("Intelligence")).toEqual(["/reports"]);
+  it("Intelligence = one hub (Reports deep link hidden)", () => {
+    expect(routesIn("Intelligence")).toEqual(["/intelligence"]);
     const groupNames = [...NAV_GROUP_ORDER];
     expect(groupNames).not.toContain("Work Graph & Memory");
   });
 
-  it("Security = Security & Audit primary (System Health advanced)", () => {
+  it("Security = one hub (System Health advanced deep link)", () => {
     expect(routesIn("Security")).toEqual(["/security-audit"]);
     expect(visible.map((n) => n.to)).not.toContain("/system-health");
   });
@@ -113,7 +113,6 @@ describe("Admin Center IA — jobs model (RC2 coherence)", () => {
       "/analytics",
       "/conversations",
       "/documentation",
-      "/intelligence",
       "/playground",
       "/settings",
       "/workflows",
@@ -123,9 +122,12 @@ describe("Admin Center IA — jobs model (RC2 coherence)", () => {
       "/data-knowledge",
       "/review-center",
       "/system-health",
+      "/reports",
     ]) {
       expect(visibleRoutes).not.toContain(stub);
     }
+    // Intelligence hub is primary; Reports is deep-link only.
+    expect(visibleRoutes).toContain("/intelligence");
   });
 
   it("keeps deep-link routes registered for folded destinations", () => {
