@@ -24,14 +24,15 @@
     --primary-foreground: 232 48% 8%;
     --secondary: 232 28% 12%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 232 28% 12%;
-    --muted-foreground: 220 14% 68%;
+    --muted: 232 28% 14%;
+    /* Secondary copy must stay readable on dark void (was too dim at 68%). */
+    --muted-foreground: 215 22% 82%;
     --accent: 232 32% 14%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 72% 52%;
     --destructive-foreground: 210 40% 98%;
-    --border: 230 24% 16%;
-    --input: 230 24% 16%;
+    --border: 230 22% 22%;
+    --input: 230 22% 18%;
     --ring: 199 92% 55%;
     --radius: 1rem;
 
@@ -110,8 +111,99 @@
   }
 
   ::selection {
-    background: hsl(238 90% 88% / 0.9);
-    color: hsl(228 48% 10%);
+    background: hsl(199 90% 45% / 0.45);
+    color: hsl(210 40% 98%);
+  }
+
+  /*
+   * DARK CONTRAST SAFETY NET
+   * Many screens still use light-theme slate/white utilities. On the year-3000
+   * dark field those hide text. Remap them to readable light values product-wide.
+   * Scoped to dark shells + ambient Talk dock (fixed, still a descendant).
+   */
+  .otzar-dark-field .text-slate-950,
+  .otzar-dark-field .text-slate-900,
+  .otzar-dark-field .text-slate-800,
+  [data-testid="ambient-otzar-bar"] .text-slate-950,
+  [data-testid="ambient-otzar-bar"] .text-slate-900,
+  [data-testid="ambient-otzar-bar"] .text-slate-800 {
+    color: #f8fafc !important;
+  }
+  .otzar-dark-field .text-slate-700,
+  .otzar-dark-field .text-slate-600,
+  [data-testid="ambient-otzar-bar"] .text-slate-700,
+  [data-testid="ambient-otzar-bar"] .text-slate-600 {
+    color: #e2e8f0 !important;
+  }
+  .otzar-dark-field .text-slate-500,
+  .otzar-dark-field .text-slate-400,
+  [data-testid="ambient-otzar-bar"] .text-slate-500,
+  [data-testid="ambient-otzar-bar"] .text-slate-400 {
+    color: #cbd5e1 !important;
+  }
+  .otzar-dark-field .text-slate-300,
+  [data-testid="ambient-otzar-bar"] .text-slate-300 {
+    color: #e2e8f0 !important;
+  }
+
+  /* Light frosted pills/rows that washed out secondary copy */
+  .otzar-dark-field .bg-white\/40,
+  .otzar-dark-field .bg-white\/45,
+  .otzar-dark-field .bg-white\/50,
+  .otzar-dark-field .bg-white\/55,
+  .otzar-dark-field .bg-white\/60,
+  .otzar-dark-field .bg-white\/70,
+  .otzar-dark-field .bg-white\/80,
+  [data-testid="ambient-otzar-bar"].bg-white\/55,
+  [data-testid="ambient-otzar-bar"].bg-white\/70 {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f1f5f9;
+  }
+  .otzar-dark-field .hover\:bg-white\/70:hover,
+  .otzar-dark-field .hover\:bg-white\/80:hover,
+  .otzar-dark-field .hover\:bg-white\/50:hover {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+  }
+  .otzar-dark-field .border-white\/50,
+  .otzar-dark-field .border-white\/60,
+  .otzar-dark-field .border-white\/70 {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+  }
+
+  /* Form fields on dark */
+  .otzar-dark-field input,
+  .otzar-dark-field textarea,
+  .otzar-dark-field select,
+  [data-testid="ambient-otzar-bar"] input,
+  [data-testid="ambient-otzar-bar"] textarea {
+    color: #f8fafc;
+    background-color: rgba(8, 12, 24, 0.75);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+  .otzar-dark-field input::placeholder,
+  .otzar-dark-field textarea::placeholder,
+  [data-testid="ambient-otzar-bar"] input::placeholder,
+  [data-testid="ambient-otzar-bar"] textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+  }
+
+  /* Floating Talk dock — never light-gray glass that hides labels */
+  [data-testid="ambient-otzar-bar"] {
+    background: rgba(10, 14, 28, 0.92) !important;
+    color: #f8fafc !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    box-shadow:
+      0 18px 48px -16px rgba(0, 0, 0, 0.65),
+      0 0 0 1px rgba(56, 189, 248, 0.12),
+      0 0 32px -12px rgba(99, 102, 241, 0.35) !important;
+  }
+  [data-testid="ambient-otzar-bar"] .text-muted-foreground {
+    color: #cbd5e1 !important;
+  }
+  [data-testid="ambient-otzar-bar"] .border-black\/\[0\.06\],
+  [data-testid="ambient-otzar-bar"] .border-black\/\[0\.06\] {
+    border-color: rgba(255, 255, 255, 0.1) !important;
   }
 }
 

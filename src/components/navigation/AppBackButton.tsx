@@ -44,7 +44,7 @@ export function AppBackButton({ fallback }: AppBackButtonProps) {
       aria-label="Go back"
       title="Back"
       data-testid="app-back-button"
-      className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/50 px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm backdrop-blur-md transition-colors hover:bg-white/70 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+      className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.08] px-3 py-1.5 text-sm font-medium text-slate-100 shadow-sm backdrop-blur-md transition-colors hover:bg-white/[0.14] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40"
     >
       <ArrowLeft className="h-4 w-4" aria-hidden />
       Back

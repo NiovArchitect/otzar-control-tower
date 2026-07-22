@@ -72,7 +72,7 @@ export function Layout() {
             )}
             <AppBackButton fallback="/" />
             {isMobile ? (
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-50">
                 <OtzarBrandLogo size="md" tone="brand" polish />
                 Control Tower
               </span>
@@ -97,7 +97,7 @@ export function Layout() {
                 asChild
                 variant="outline"
                 size="sm"
-                className="rounded-full border-white/70 bg-white/55 shadow-sm backdrop-blur-sm hover:bg-white/80"
+                className="rounded-full border-white/15 bg-white/[0.08] text-slate-100 shadow-sm backdrop-blur-sm hover:bg-white/[0.14]"
               >
                 <Link to="/app">Open Otzar</Link>
               </Button>

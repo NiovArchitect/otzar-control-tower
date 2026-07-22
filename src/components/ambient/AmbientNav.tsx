@@ -133,7 +133,7 @@ export function AmbientNav(): JSX.Element {
           >
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold tracking-tight text-slate-900">
+                <h2 className="text-base font-semibold tracking-tight text-slate-50">
                   More
                 </h2>
                 <p className="mt-0.5 text-[11px] text-slate-500">
@@ -144,7 +144,7 @@ export function AmbientNav(): JSX.Element {
                 type="button"
                 aria-label="Close"
                 onClick={() => setMoreOpen(false)}
-                className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-700"
+                className="rounded-full p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-slate-50"
               >
                 <X className="h-4 w-4" aria-hidden />
               </button>
@@ -164,7 +164,7 @@ export function AmbientNav(): JSX.Element {
                   }
                   className="rounded-2xl border border-white/60 bg-white/50 px-3.5 py-3 text-sm text-slate-700 shadow-sm transition-all hover:bg-white/85 hover:shadow-md"
                 >
-                  <span className="font-medium text-slate-900">{item.label}</span>
+                  <span className="font-medium text-slate-50">{item.label}</span>
                   {item.description ? (
                     <span className="mt-1 block text-[10px] leading-snug text-slate-500 line-clamp-2">
                       {item.description}

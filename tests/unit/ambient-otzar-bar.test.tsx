@@ -167,10 +167,10 @@ describe("AmbientOtzarBar — ambient node surface", () => {
     const dock = screen.getByTestId("ambient-otzar-bar");
     expect(dock).toHaveAttribute("data-presence");
     // Ambient enterprise GLASS: translucent frosted material, not a black slab
-    // and not the old opaque SaaS card.
+    // Year-3000 dark glass dock — readable on dark field, not opaque SaaS card.
     expect(dock.className).toMatch(/backdrop-blur/);
-    expect(dock.className).toMatch(/bg-white\//);
-    expect(dock.className).not.toMatch(/bg-slate-950/);
+    expect(dock.className).toMatch(/bg-\[#0c1222\]/);
+    expect(dock.className).toMatch(/text-slate-50/);
   });
 
   it("does NOT render the redundant bottom nav-link row (fewer clicks)", async () => {
