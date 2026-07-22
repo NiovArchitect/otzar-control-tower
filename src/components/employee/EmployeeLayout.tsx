@@ -50,7 +50,7 @@ export function EmployeeLayout() {
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Always-in-viewport chrome: Otzar · Work OS · Talk · notifications.
             shrink-0 so main scrolls; never leave the visual viewport. */}
-        <header className={`relative z-40 flex h-14 shrink-0 items-center justify-between border-b px-4 sm:h-16 sm:px-6 ${"border-white/10 bg-[#0b1020]/85 backdrop-blur-xl backdrop-saturate-150"}`} data-testid="employee-shell-header">
+        <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1020]/85 px-4 backdrop-blur-xl backdrop-saturate-150 sm:h-16 sm:px-6" data-testid="employee-shell-header">
           <div className="flex min-w-0 items-center gap-2.5">
             <AppBackButton fallback="/app" />
             <Link
