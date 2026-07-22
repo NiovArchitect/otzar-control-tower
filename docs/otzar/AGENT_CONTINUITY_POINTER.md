@@ -33,15 +33,23 @@ Before any Otzar product implementation, status claim, or “slice complete” a
 | **C** Relay | Open required program (boundary T-01 only LIVE) |
 | **D** Compliance | Open (U-01/U-02) |
 
-**Active phase:** **`YC_RC1_REOPENED_FOR_SIGNAL_AND_FIRST_USE_REPAIR`** (RC2 signal audit).  
+**Active phase:** **`YC_RC1_REOPENED_FOR_SIGNAL_AND_FIRST_USE_REPAIR`** (RC2 experience + coherence).  
 
-`YC_RELEASE_CANDIDATE_READY` is **off** until walkthrough + copy + utility gate pass.  
+`YC_RELEASE_CANDIDATE_READY` is **off**. Do not claim RC2 ready.
 
 **Backend proof preserved:** full project chain, docs/calendar, change propagation, isolation, bounded enterprise.  
 
-**RC2 focus:** persistent walkthrough (v3), strip eng proof from UI, plain language, People hover, admin nav calm. See `YC_RC2_STATUS.md` · `YC_RC2_SIGNAL_DESIGN_MAPS.md`.  
+**RC2 focus (controlling):**  
+1. Dandelion discovery **inside** Organization setup (not deleted) — PR #204  
+2. Admin jobs nav; Connections plug-and-play; Governance/Access recomposed  
+3. Year-3000 visual + official logo (otzar.ai / Behance) — PR #205  
+4. Live truth: merge → Render SHA → route proof → founder confirm  
 
-**Pins (backend):** FND `afe1491` · CT full-chain UI `80e36b4` lineage.  
+Canonical direction: **`docs/otzar/master/RC2_CONTROLLING_DIRECTION.md`**.  
+
+**Pins (backend):** FND `afe1491` · CT lineage via main (re-check `git rev-parse origin/main`).  
+
+**Open experience PRs (re-check):** #204 restore Dandelion into Org · #205 logo + ambient rim.
 
 **Do not:** scale reboot, Relay, or unrelated feature work while signal repair is open.
 
