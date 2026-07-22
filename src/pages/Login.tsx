@@ -29,7 +29,7 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { landingPathFor } from "@/lib/auth/capabilities";
 import { resolvePostLoginDestination } from "@/lib/auth/post-login-destination";
 import { AMBIENT_FIELD, GLASS_SURFACE } from "@/lib/ambient/glass";
-import { OtzarMark } from "@/components/ambient/OtzarMark";
+import { OtzarBrandLogo } from "@/components/ambient/OtzarBrandLogo";
 
 // WHAT: Local-dev-only demo accounts produced by
 //        niov-foundation/scripts/demo-seed.ts (PR #300 substrate).
@@ -127,7 +127,7 @@ export function LoginPage() {
       </div>
 
       <div className="relative z-10 mb-10 flex max-w-lg flex-col items-center text-center">
-        <OtzarMark size="xl" active />
+        <OtzarBrandLogo size="xl" tone="brand" className="drop-shadow-[0_12px_40px_rgba(79,70,229,0.35)]" />
         <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-500/80">
           Ambient Work OS
         </p>

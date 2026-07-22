@@ -19,7 +19,7 @@ import { EMPLOYEE_NAV } from "@/lib/nav-employee";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { GLASS_SURFACE, GLASS_NAV_ACTIVE, GLASS_CHROME } from "@/lib/ambient/glass";
-import { OtzarMark } from "@/components/ambient/OtzarMark";
+import { OtzarBrandLogo } from "@/components/ambient/OtzarBrandLogo";
 
 interface PrimaryItem {
   label: string;
@@ -83,7 +83,7 @@ export function AmbientNav(): JSX.Element {
           className="mb-3 flex flex-col items-center gap-1 rounded-2xl px-1 py-2 transition-opacity hover:opacity-90"
           aria-label="Otzar home"
         >
-          <OtzarMark size="md" active />
+          <OtzarBrandLogo size="md" tone="brand" />
         </Link>
         {PRIMARY.map((p) => (
           <NavLink

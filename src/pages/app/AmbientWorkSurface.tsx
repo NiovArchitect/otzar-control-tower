@@ -43,6 +43,7 @@ import {
   SpatialPresenceLayer,
 } from "@/components/ambient/SpatialPresenceLayer";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
+import { AdminOrganizationEntry } from "@/components/otzar/AdminOrganizationEntry";
 import {
   focusApprovals,
   focusBlindSpots,
@@ -803,6 +804,9 @@ export function AmbientWorkSurface(): JSX.Element {
       data-s01-primary-paths="login_home,needs_me,talk,twin,memory"
       data-d03-spatial="true"
     >
+      {/* Org admins: login lands here — surface "Otzar found" without hunting Control Tower. */}
+      {isOrgAdmin(capabilities) ? <AdminOrganizationEntry /> : null}
+
       {/* One-shot hero — presence + optional first-use strip (not a second page). */}
       <section
         className="otzar-stage relative px-4 py-5 sm:px-6 sm:py-6"

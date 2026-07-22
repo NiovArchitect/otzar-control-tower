@@ -8,11 +8,12 @@ import { Link, Outlet } from "react-router-dom";
 import { LogOut, Menu, Mic } from "lucide-react";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { AMBIENT_FIELD, GLASS_CHROME } from "@/lib/ambient/glass";
-import { OtzarMark } from "@/components/ambient/OtzarMark";
+import { OtzarBrandLogo } from "@/components/ambient/OtzarBrandLogo";
 import { AdminCommandLayer } from "@/components/AdminCommandLayer";
 import { AppBackButton } from "@/components/navigation/AppBackButton";
 import { NavigationGuard } from "@/components/navigation/NavigationGuard";
 import { AmbientOtzarBar } from "@/components/otzar/AmbientOtzarBar";
+import { AmbientEdgeGlow } from "@/components/otzar/AmbientEdgeGlow";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import { DataSovereigntyBadge } from "@/components/DataSovereigntyBadge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,8 @@ export function Layout() {
         <div className="otzar-aurora-layer opacity-70" />
         <div className="otzar-grain" />
       </div>
+      {/* Year-3000 ambient perimeter — presence-driven, non-blocking */}
+      <AmbientEdgeGlow />
 
       {!isMobile && (
         <aside className="relative z-10 w-64 shrink-0">
@@ -69,7 +72,7 @@ export function Layout() {
             <AppBackButton fallback="/" />
             {isMobile ? (
               <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
-                <OtzarMark size="sm" active={false} />
+                <OtzarBrandLogo size="sm" tone="brand" />
                 Control Tower
               </span>
             ) : null}
