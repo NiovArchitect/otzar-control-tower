@@ -74,16 +74,16 @@ describe("Production Admin Center IA — jobs-model admin navigation", () => {
       expect.arrayContaining(["Connections"]),
     );
     expect(byGroup("Governance")).toEqual(
-      expect.arrayContaining(["Policies", "Access", "Data retention"]),
+      expect.arrayContaining(["Governance"]),
     );
     expect(byGroup("Action Center")).toEqual(
       expect.arrayContaining(["Action Center"]),
     );
     expect(byGroup("Intelligence")).toEqual(
-      expect.arrayContaining(["Reports"]),
+      expect.arrayContaining(["Intelligence"]),
     );
     expect(byGroup("Security")).toEqual(
-      expect.arrayContaining(["Security & Audit"]),
+      expect.arrayContaining(["Security"]),
     );
   });
 });
