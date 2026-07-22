@@ -1,45 +1,43 @@
 // FILE: glass.ts
-// PURPOSE: Phase-F ambient glass material language — ONE shared surface
-//          system for shell, work surfaces, panels, login, Control Tower.
-//          Year-3000 enterprise depth · Atari edge precision · never flat SaaS.
-// CONNECTS TO: EmployeeLayout, AmbientNav, GlassPanel, Login, Layout, Card.
+// PURPOSE: Year-3000 dark ambient material language — Black Mirror depth,
+//          Siri-like luminous lines, Atari edge precision, incredible color
+//          without RGB gaming. Shared by shells, cards, login, Control Tower.
+// CONNECTS TO: EmployeeLayout, AmbientNav, Login, Layout, Card, index.css.
 
 import type { PresenceIntensity } from "@/lib/stores/presence";
 
-/** Primary frosted surface — translucent pearl with dimensional lift. */
+/** Primary frosted surface — dark glass over void. */
 export const GLASS_SURFACE =
   "otzar-glass-card otzar-edge-trace rounded-2xl";
 
-/** Quieter chip for inline state (lane / status / count). */
+/** Quieter chip for inline state. */
 export const GLASS_CHIP =
-  "rounded-full border border-white/75 bg-white/70 supports-[backdrop-filter]:bg-white/55 backdrop-blur-xl ring-1 ring-slate-900/[0.03] shadow-[0_1px_0_0_rgba(255,255,255,0.55)_inset]";
+  "rounded-full border border-white/15 bg-white/[0.06] supports-[backdrop-filter]:bg-white/[0.05] backdrop-blur-xl ring-1 ring-white/[0.06] shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]";
 
 /**
- * Living ambient field — cool multi-stop atmosphere behind every shell.
- * Light-first enterprise readability; cinematic depth without darkness.
+ * Living ambient field — dark void with cyan/indigo/violet nebula.
+ * Year-3000 enterprise; not flat SaaS white.
  */
 export const AMBIENT_FIELD =
-  "bg-[radial-gradient(140%_90%_at_50%_-18%,#ede9fe_0%,#e0f2fe_22%,#f0f4ff_48%,#e8eef8_72%,#f8fafc_100%)]";
+  "otzar-dark-field bg-[radial-gradient(120%_90%_at_50%_-10%,#1e1b4b_0%,#0c1222_38%,#070b14_72%,#05070f_100%)]";
 
-/** Secondary atmospheric bloom wrapper. */
 export const AMBIENT_AURORA = "pointer-events-none absolute inset-0 overflow-hidden";
 
 /** Hero primary CTA. */
 export const GLASS_CTA =
-  "rounded-2xl border border-white/70 bg-white/85 supports-[backdrop-filter]:bg-white/65 backdrop-blur-2xl ring-1 ring-slate-900/[0.05] shadow-[0_16px_44px_-16px_rgba(15,23,42,0.32),0_1px_0_0_rgba(255,255,255,0.75)_inset] transition-[box-shadow,transform,filter] duration-200 hover:shadow-[0_20px_52px_-14px_rgba(79,70,229,0.28)] active:scale-[0.99]";
+  "rounded-2xl border border-white/20 bg-white/10 supports-[backdrop-filter]:bg-white/[0.08] backdrop-blur-2xl ring-1 ring-indigo-400/20 shadow-[0_16px_44px_-16px_rgba(56,189,248,0.25),0_1px_0_0_rgba(255,255,255,0.12)_inset] transition-[box-shadow,transform,filter] duration-200 hover:shadow-[0_20px_52px_-14px_rgba(129,140,248,0.35)] active:scale-[0.99]";
 
-/** Slim chrome (header / nav rail) — glass + fine edge. */
+/** Slim chrome (header / nav rail). */
 export const GLASS_CHROME =
-  "border-white/60 bg-white/50 supports-[backdrop-filter]:bg-white/40 backdrop-blur-2xl backdrop-saturate-160 shadow-[0_1px_0_0_rgba(255,255,255,0.55)_inset]";
+  "border-white/10 bg-[#0b1020]/72 supports-[backdrop-filter]:bg-[#0b1020]/55 backdrop-blur-2xl backdrop-saturate-160 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]";
 
-/** Active nav pill — indigo presence, not harsh solid. */
+/** Active nav pill. */
 export const GLASS_NAV_ACTIVE =
-  "bg-gradient-to-b from-white/95 to-indigo-50/90 text-indigo-950 shadow-[0_6px_20px_-6px_rgba(79,70,229,0.35)] ring-1 ring-indigo-500/20";
+  "bg-gradient-to-b from-indigo-500/25 to-sky-500/10 text-indigo-50 shadow-[0_6px_20px_-6px_rgba(56,189,248,0.4)] ring-1 ring-indigo-400/35";
 
-/** Hero stage (Today, Login) — elevated presence plane + Atari frame hooks. */
+/** Hero stage + Atari frame. */
 export const GLASS_STAGE = "otzar-stage otzar-atari-frame relative overflow-hidden";
 
-// Per-intensity left accent for a glass panel (priority visible, not flat).
 export function panelAccent(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":

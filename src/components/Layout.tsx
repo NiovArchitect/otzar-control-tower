@@ -40,7 +40,8 @@ export function Layout() {
       data-testid="admin-shell"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="otzar-aurora-layer opacity-70" />
+        <div className="otzar-aurora-layer opacity-85" />
+        <div className="otzar-ambient-lines" />
         <div className="otzar-grain" />
       </div>
       {/* Year-3000 ambient perimeter — presence-driven, non-blocking */}

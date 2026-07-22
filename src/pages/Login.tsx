@@ -122,20 +122,21 @@ export function LoginPage() {
       {/* Cinematic atmosphere — Otzar is present before you sign in. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="otzar-aurora-layer" />
+        <div className="otzar-ambient-lines" />
         <div className="otzar-grain" />
-        <div className="absolute inset-0 bg-[radial-gradient(50%_40%_at_50%_35%,rgba(255,255,255,0.65),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(50%_40%_at_50%_35%,rgba(56,189,248,0.12),transparent_70%)]" />
       </div>
 
       <div className="relative z-10 mb-10 flex max-w-lg flex-col items-center text-center">
         {/* Official mark — 3D/4K polish; the product WOAH moment */}
         <OtzarBrandLogo size="hero" tone="brand" polish />
-        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-500/85">
+        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/85">
           Ambient Work OS
         </p>
         <h1 className="otzar-text-luminous mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
           Otzar
         </h1>
-        <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-500">
+        <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">
           Communication is the OS. Your AI Teammate executes.
           Governed enough to trust — calm enough to stay out of the way.
         </p>

@@ -29,15 +29,15 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
     <nav
       aria-label="Otzar Admin navigation"
       // Phase-F — luminous glass rail over ambient field; never flat SaaS panel.
-      className="flex h-full flex-col border-r border-white/55 bg-gradient-to-b from-white/70 to-white/45 shadow-[12px_0_40px_-20px_rgba(67,56,202,0.22)] backdrop-blur-2xl backdrop-saturate-150"
+      className="flex h-full flex-col border-r border-white/10 bg-gradient-to-b from-[#12182c]/90 to-[#0b1020]/75 shadow-[12px_0_40px_-20px_rgba(56,189,248,0.2)] backdrop-blur-2xl backdrop-saturate-150"
     >
-      <div className="flex items-center gap-3 border-b border-white/40 px-4 py-5">
+      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-5">
         <OtzarBrandLogo size="lg" tone="brand" polish />
         <div>
           <div className="otzar-text-luminous text-sm font-semibold leading-tight tracking-tight">
             Otzar
           </div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-500/80">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
             Control Tower
           </div>
         </div>
@@ -52,7 +52,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           if (itemsInGroup.length === 0) return null;
           return (
           <div key={group} data-testid="admin-nav-group" data-group={group}>
-            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-400/80">
+            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300/70">
               {group}
             </p>
             <ul className="space-y-1">
@@ -68,8 +68,8 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     cn(
                       "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
                       isActive
-                        ? "bg-gradient-to-r from-white/95 to-indigo-50/90 font-medium text-indigo-950 shadow-[0_6px_18px_-6px_rgba(79,70,229,0.28)] ring-1 ring-indigo-500/10"
-                        : "text-slate-500 hover:bg-white/55 hover:text-slate-800",
+                        ? "bg-gradient-to-r from-indigo-500/25 to-sky-500/10 font-medium text-indigo-50 shadow-[0_6px_18px_-6px_rgba(56,189,248,0.35)] ring-1 ring-indigo-400/25"
+                        : "text-slate-400 hover:bg-white/5 hover:text-slate-100",
                     )
                   }
                 >
