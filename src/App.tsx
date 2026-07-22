@@ -243,6 +243,13 @@ const router = createBrowserRouter(
               <Route path="tools-connections" element={<ToolsConnectionsPage />} />
               <Route path="connectors" element={<ConnectorsAdminPage />} />
               <Route path="organization-seeding" element={<OrganizationSeedingPage />} />
+              {/* Legacy aliases → Organization activation surfaces (capability preserved). */}
+              <Route path="seeding" element={<Navigate to="/organization-seeding" replace />} />
+              <Route path="dandelion" element={<Navigate to="/organization-seeding" replace />} />
+              <Route path="organization" element={<Navigate to="/setup" replace />} />
+              <Route path="org-setup" element={<Navigate to="/setup" replace />} />
+              <Route path="setup/coach" element={<Navigate to="/setup" replace />} />
+              <Route path="organization-coach" element={<Navigate to="/setup" replace />} />
               <Route path="connector-rails" element={<ConnectorRailsAdmin />} />
               <Route path="voice" element={<VoiceTwinPage />} />
               <Route path="documentation" element={<DocumentationPage />} />

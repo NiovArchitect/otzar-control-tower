@@ -25,6 +25,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrgDiscoveryFoundCard } from "@/components/otzar/OrgDiscoveryFoundCard";
 import { OrgDiscoveryReviewQueue } from "@/components/otzar/OrgDiscoveryReviewQueue";
+import { SetupActivationPath } from "@/components/otzar/SetupActivationPath";
 import { api } from "@/lib/api";
 import {
   deriveSetupJourney,
@@ -33,6 +34,7 @@ import {
 } from "@/lib/setup/setup-journey";
 import { deriveSetupCoach } from "@/lib/setup/setup-coach";
 import { deriveOrgDiscovery } from "@/lib/setup/org-discovery";
+import { deriveActivationPath } from "@/lib/setup/activation-path";
 
 function stateBadge(section: SetupSection) {
   const variant =
@@ -126,6 +128,7 @@ export function OrgSetupPage() {
     seeds: inputs.seeds,
     orgEntityId: inputs.orgEntityId,
   });
+  const activationPath = deriveActivationPath(journey, discovery);
 
   async function refreshStructureSignals(): Promise<void> {
     setSyncBusy(true);
@@ -173,51 +176,20 @@ export function OrgSetupPage() {
             onChanged={() => void invalidateDiscovery()}
           />
 
-          {/* Activation order — one connected intelligence flow. */}
-          <Card data-testid="setup-activation-path">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Setup path</CardTitle>
-              <CardDescription className="text-xs">
-                What Otzar found → what needs confirmation → what is missing →
-                what happens next.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ol
-                className="flex flex-wrap gap-2 text-[11px] text-muted-foreground"
-                data-testid="setup-activation-steps"
-              >
-                {[
-                  "People",
-                  "Structure",
-                  "Projects",
-                  "AI Teammates",
-                  "Connections",
-                  "Governance",
-                  "First workflow",
-                  "Ready",
-                ].map((step, i) => (
-                  <li
-                    key={step}
-                    className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-2.5 py-1"
-                  >
-                    <span className="font-medium text-foreground/80">{i + 1}</span>
-                    {step}
-                  </li>
-                ))}
-              </ol>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {discovery.reviewCta !== null ? (
-                  <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                    <Link to={discovery.reviewCta.to}>{discovery.reviewCta.label}</Link>
-                  </Button>
-                ) : null}
-                <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-                  <Link to="/onboarding">Recommended starter shape</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Live 9-step activation path — state + one action each. */}
+          <SetupActivationPath path={activationPath} />
+
+          <div className="flex flex-wrap gap-2" data-testid="setup-secondary-doors">
+            <Button asChild size="sm" variant="outline" className="h-8 rounded-full text-xs">
+              <Link to="/onboarding">Recommended starter shape</Link>
+            </Button>
+            <Button asChild size="sm" variant="ghost" className="h-8 rounded-full text-xs">
+              <Link to="/setup/go-live">Go-live readiness</Link>
+            </Button>
+            <Button asChild size="sm" variant="ghost" className="h-8 rounded-full text-xs">
+              <Link to="/setup/seed-history">Seed history</Link>
+            </Button>
+          </div>
 
           {/* Top summary + the ONE next best step. */}
           <Card data-testid="setup-summary">
