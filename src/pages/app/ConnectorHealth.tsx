@@ -310,7 +310,7 @@ export function ConnectorHealth(): JSX.Element {
             </span>
             <Button asChild size="sm" variant="outline">
               <Link to="/tools-connections" data-testid="open-tools-connections">
-                Tools &amp; Connections
+                Connections
                 <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden />
               </Link>
             </Button>
