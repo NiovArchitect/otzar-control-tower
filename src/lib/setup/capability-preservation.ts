@@ -111,16 +111,23 @@ export const CAPABILITY_PRESERVATION_MAP: readonly CapabilityMapEntry[] = [
   {
     oldScreen: "Reports",
     capability: "Exportable readiness/activity packages",
-    newSurface: "Intelligence → Reports",
+    newSurface: "Intelligence → Reports tab (/intelligence?tab=reports)",
     fullCapabilityRoute: "/reports",
-    status: "DEEP_LINK_ONLY",
+    status: "RECOMPOSED",
   },
   {
     oldScreen: "Security & Audit",
     capability: "Security posture and audit evidence",
-    newSurface: "Security",
-    fullCapabilityRoute: "/security-audit",
-    status: "PRESERVED_IN_PLACE",
+    newSurface: "Security hub → Audit tab (/security-audit?tab=audit)",
+    fullCapabilityRoute: "/security-audit-log",
+    status: "RECOMPOSED",
+  },
+  {
+    oldScreen: "System Health",
+    capability: "Platform health, runtimes, voice substrate status",
+    newSurface: "Security hub → System health tab (/security-audit?tab=health)",
+    fullCapabilityRoute: "/system-health",
+    status: "RECOMPOSED",
   },
 ] as const;
 
