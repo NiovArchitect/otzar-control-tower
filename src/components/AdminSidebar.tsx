@@ -29,7 +29,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
     <nav
       aria-label="Otzar Admin navigation"
       // Phase-F — luminous glass rail over ambient field; never flat SaaS panel.
-      className="flex h-full flex-col border-r border-white/10 bg-gradient-to-b from-[#12182c]/90 to-[#0b1020]/75 shadow-[12px_0_40px_-20px_rgba(56,189,248,0.2)] backdrop-blur-2xl backdrop-saturate-150"
+      className="flex h-full flex-col border-r border-white/10 bg-gradient-to-b from-[#1e1b4b]/88 to-[#0a0612]/78 shadow-[12px_0_40px_-18px_rgba(177,36,232,0.28)] backdrop-blur-2xl backdrop-saturate-150"
     >
       <div className="flex items-center gap-3 border-b border-white/10 px-4 py-5">
         <OtzarBrandLogo size="lg" tone="brand" polish />
@@ -37,7 +37,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <div className="otzar-text-luminous text-sm font-semibold leading-tight tracking-tight">
             Otzar
           </div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a855f7]/90">
             Control Tower
           </div>
         </div>
@@ -52,10 +52,10 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           if (itemsInGroup.length === 0) return null;
           return (
           <div key={group} data-testid="admin-nav-group" data-group={group}>
-            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300/70">
+            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a855f7]/75">
               {group}
             </p>
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {itemsInGroup.map((item) => {
             const Icon = item.icon;
             return (
@@ -66,10 +66,10 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
+                      "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
                       isActive
-                        ? "bg-gradient-to-r from-indigo-500/25 to-sky-500/10 font-medium text-indigo-50 shadow-[0_6px_18px_-6px_rgba(56,189,248,0.35)] ring-1 ring-indigo-400/25"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-100",
+                        ? "bg-gradient-to-r from-[#B124E8]/28 to-[#405DE6]/12 font-medium text-[#E5E7EC] shadow-[0_6px_20px_-6px_rgba(177,36,232,0.4)] ring-1 ring-[#B124E8]/35"
+                        : "text-slate-400 hover:bg-white/5 hover:text-[#E5E7EC]",
                     )
                   }
                 >

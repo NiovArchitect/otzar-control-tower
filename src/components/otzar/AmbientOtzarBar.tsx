@@ -310,14 +310,14 @@ function bloomShouldLive(intensity: PresenceIntensity): boolean {
 function intensityDot(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":
-      return "bg-amber-400";
+      return "bg-[#F77737]";
     case "critical":
       return "bg-rose-400";
     case "working":
-      return "bg-sky-400";
+      return "bg-[#405DE6]";
     case "ambient":
     default:
-      return "bg-slate-300";
+      return "bg-[#a855f7]/80";
   }
 }
 
@@ -327,7 +327,7 @@ function intensityDot(intensity: PresenceIntensity): string {
 function chipIntensityClass(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":
-      return "bg-sky-400/20 text-sky-50 ring-1 ring-sky-300/35 shadow-sm";
+      return "bg-[#B124E8]/20 text-[#E5E7EC] ring-1 ring-[#a855f7]/40 shadow-sm";
     case "critical":
       return "bg-rose-500/20 text-rose-100 ring-1 ring-rose-400/40";
     case "working":
@@ -4419,15 +4419,15 @@ export function AmbientOtzarBar(): JSX.Element {
             : "Talk to Otzar";
     const orbHalo =
       presenceState === "APPROVAL_REQUIRED"
-        ? "bg-amber-400/30 motion-safe:animate-edge-pulse"
+        ? "bg-[#F77737]/30 motion-safe:animate-edge-pulse"
         : presenceState === "LISTENING"
-          ? "bg-sky-400/30 motion-safe:animate-edge-breathe"
+          ? "bg-[#405DE6]/30 motion-safe:animate-edge-breathe"
           : presenceState === "THINKING"
-            ? "bg-indigo-400/25 motion-safe:animate-edge-breathe"
+            ? "bg-[#B124E8]/28 motion-safe:animate-edge-breathe"
             : presenceState === "FAILURE"
               ? "bg-rose-400/25"
               : presenceState === "RECOMMENDATION"
-                ? "bg-teal-400/20"
+                ? "bg-[#a855f7]/22"
                 : "bg-transparent";
     // P0H — the wrapper is content-sized (never a full-width strip) and
     // the halo is pointer-events-none, so nothing outside the visible
@@ -4473,8 +4473,8 @@ export function AmbientOtzarBar(): JSX.Element {
           onPointerMove={handleOrbPointerMove}
           onPointerUp={handleOrbPointerUp}
           onPointerCancel={handleOrbPointerCancel}
-          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-white/20 bg-[#0c1222]/92 supports-[backdrop-filter]:bg-[#0c1222]/85 ${ring.glow} px-5 py-3 text-sm font-semibold text-slate-50 ring-1 ring-sky-400/15 backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow,background-color] duration-700 hover:bg-[#121a30]/95 focus:outline-none focus:ring-2 focus:ring-sky-400/40 ${
-            quiet ? "px-4 py-2 text-xs text-slate-200" : ""
+          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-white/20 bg-[#0a0612]/94 supports-[backdrop-filter]:bg-[#0a0612]/88 ${ring.glow} px-5 py-3 text-sm font-semibold text-[#E5E7EC] ring-1 ring-[#B124E8]/25 backdrop-blur-2xl backdrop-saturate-150 transition-[box-shadow,background-color] duration-700 hover:bg-[#1e1b4b]/90 focus:outline-none focus:ring-2 focus:ring-[#B124E8]/45 ${
+            quiet ? "px-4 py-2 text-xs text-[#E5E7EC]/90" : ""
           }`}
         >
           <span
@@ -4529,7 +4529,7 @@ export function AmbientOtzarBar(): JSX.Element {
       data-drives-work="true"
       data-orb-edge={orbPos?.edge ?? "right"}
       style={dockAnchorStyle}
-      className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.4rem] border border-white/15 bg-[#0c1222]/94 supports-[backdrop-filter]:bg-[#0c1222]/88 backdrop-blur-2xl backdrop-saturate-150 text-slate-50 ring-1 ring-sky-400/15 transition-[box-shadow] duration-700 ${ring.glow}`}
+      className={`group ${dockAnchorClass} flex max-h-[88vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-[1.85rem] border border-white/15 bg-[#0a0612]/95 supports-[backdrop-filter]:bg-[#0a0612]/90 backdrop-blur-2xl backdrop-saturate-150 text-[#E5E7EC] ring-1 ring-[#B124E8]/25 transition-[box-shadow] duration-700 ${ring.glow}`}
     >
       {/* Siri-like ambient color field, diffused UNDER the glass. The state
           color blooms through the frost, it is not a hard border. Active states
@@ -4631,7 +4631,7 @@ export function AmbientOtzarBar(): JSX.Element {
           data-testid="ambient-work-nodes"
         >
           <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-[11px] text-slate-300 hover:text-slate-50">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-300/80" aria-hidden />
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#a855f7]/85" aria-hidden />
             <span className="font-medium">Work nodes</span>
             <span className="text-slate-400">· {workNodes.length}</span>
             <ChevronDown

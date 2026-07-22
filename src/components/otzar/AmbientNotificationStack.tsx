@@ -245,7 +245,7 @@ export function AmbientNotificationStack(): JSX.Element | null {
           <button
             type="button"
             aria-label={`Dismiss: ${card.text}`}
-            className="shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50"
+            className="shrink-0 rounded-full p-0.5 text-slate-400 hover:text-[#E5E7EC] focus:outline-none focus:ring-2 focus:ring-[#B124E8]/50"
             onClick={() =>
               setDismissed((prev) => new Set(prev).add(card.kind))
             }

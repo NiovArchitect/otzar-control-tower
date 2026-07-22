@@ -2,8 +2,8 @@
 // PURPOSE: [OTZAR-LIVE-6] Ambient Node Interface — prove the orb's frosted edge
 //          ring is STATE-MEANINGFUL, never decoration: every one of the nine
 //          presence states maps to a distinct, coherent glow/border/dot, and the
-//          colors match the shared edge-glow language (sky=listening,
-//          indigo=thinking, teal=recommendation, amber=approval/blocked,
+//          colors match Behance brand edge language (blue=listening,
+//          purple=thinking, mid-purple=recommendation, orange=approval,
 //          emerald=success, rose=failure). If a state had no backing color it
 //          would be cosmetic — this locks the mapping.
 // CONNECTS TO: src/lib/ambient/presence-ring.ts (presenceRing),
@@ -37,11 +37,11 @@ describe("presenceRing — every glow means a state", () => {
     }
   });
 
-  it("maps the action states to their canonical edge-glow colors", () => {
-    expect(presenceRing("LISTENING").dot).toContain("sky");
-    expect(presenceRing("THINKING").dot).toContain("indigo");
-    expect(presenceRing("RECOMMENDATION").dot).toContain("teal");
-    expect(presenceRing("APPROVAL_REQUIRED").dot).toContain("amber");
+  it("maps the action states to their canonical Behance brand colors", () => {
+    expect(presenceRing("LISTENING").dot).toContain("405DE6");
+    expect(presenceRing("THINKING").dot).toContain("B124E8");
+    expect(presenceRing("RECOMMENDATION").dot).toContain("a855f7");
+    expect(presenceRing("APPROVAL_REQUIRED").dot).toContain("F77737");
     expect(presenceRing("SUCCESS").dot).toContain("emerald");
     expect(presenceRing("FAILURE").dot).toContain("rose");
   });

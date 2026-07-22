@@ -169,8 +169,8 @@ describe("AmbientOtzarBar — ambient node surface", () => {
     // Ambient enterprise GLASS: translucent frosted material, not a black slab
     // Year-3000 dark glass dock — readable on dark field, not opaque SaaS card.
     expect(dock.className).toMatch(/backdrop-blur/);
-    expect(dock.className).toMatch(/bg-\[#0c1222\]/);
-    expect(dock.className).toMatch(/text-slate-50/);
+    expect(dock.className).toMatch(/bg-\[#0a0612\]/);
+    expect(dock.className).toMatch(/text-\[#E5E7EC\]/);
   });
 
   it("does NOT render the redundant bottom nav-link row (fewer clicks)", async () => {
