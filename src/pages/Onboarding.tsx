@@ -204,7 +204,7 @@ function CatalogCountsCard() {
             </dd>
           </div>
           <div data-testid="count-dandelion-flows">
-            <dt className="text-xs text-muted-foreground">Dandelion flows</dt>
+            <dt className="text-xs text-muted-foreground">Activation paths</dt>
             <dd className="text-2xl font-semibold">
               {CATALOG.counts.dandelion_flows}
             </dd>
@@ -641,7 +641,7 @@ function DandelionFlowPreview() {
   return (
     <Card data-testid="dandelion-flow-preview">
       <CardHeader>
-        <CardTitle className="text-base">Dandelion flow</CardTitle>
+        <CardTitle className="text-base">Activation path</CardTitle>
         <CardDescription>
           Three-tier governed onboarding (preview only — does not run).
         </CardDescription>
@@ -949,7 +949,7 @@ function GovernedEnvelopePanel() {
 // ────────────────────────────────────────────────────────────────
 
 const ACTIVATION_DOCTRINE_LINE =
-  "Run the smallest viable starter pilot setup. Every step is audit-logged and reversible. Foundation governance authorizes activation — Dandelion suggests, Foundation governs.";
+  "Run the smallest viable starter pilot setup. Every step is audit-logged and reversible. Otzar proposes the shape; governance authorizes activation.";
 
 const ACTIVATION_OUT_OF_SCOPE_LINE =
   "This action records the activation lineage at the audit tier. Live connectors, live workflow execution, and the team / business / enterprise rollout packages follow in later product slices.";
