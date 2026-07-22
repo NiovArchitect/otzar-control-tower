@@ -18,7 +18,6 @@ import { api } from "@/lib/api";
 import {
   CAPABILITY_FIRST_DETAIL,
   CAPABILITY_FIRST_HEADLINE,
-  DEFAULT_ADMIN_TOOLS_TAB,
   MCP_ADVANCED_ONLY_COPY,
   MCP_TAB_LABEL,
 } from "@/lib/connectors/capability-first-tools";
