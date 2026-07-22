@@ -29,33 +29,29 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
     <nav
       aria-label="Otzar Admin navigation"
       // Phase-F — luminous glass rail over ambient field; never flat SaaS panel.
-      className="flex h-full flex-col border-r border-white/10 bg-gradient-to-b from-[#1e1b4b]/88 to-[#0a0612]/78 shadow-[12px_0_40px_-18px_rgba(177,36,232,0.28)] backdrop-blur-2xl backdrop-saturate-150"
+      className="flex h-full flex-col border-r border-[#1e1b4b]/08 bg-white/90 shadow-[4px_0_24px_-12px_rgba(30,27,75,0.08)] backdrop-blur-xl"
     >
-      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-5">
+      <div className="flex items-center gap-3 border-b border-[#1e1b4b]/08 px-4 py-5">
         <OtzarBrandLogo size="lg" tone="brand" polish />
         <div>
           <div className="otzar-text-luminous text-sm font-semibold leading-tight tracking-tight">
             Otzar
           </div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a855f7]/90">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B124E8]">
             Control Tower
           </div>
         </div>
       </div>
       <ScrollArea className="flex-1 px-2 pb-4">
-        {/* Phase 1255 slice 2 — OS-style sections: the admin governs
-            an enterprise, not a flat list of pages. */}
         {NAV_GROUP_ORDER.map((group) => {
           const itemsInGroup = visibleNav.filter((item) => item.group === group);
-          // A section whose only members are hidden stubs renders nothing —
-          // no bare header. Keeps the production surface calm.
           if (itemsInGroup.length === 0) return null;
           return (
           <div key={group} data-testid="admin-nav-group" data-group={group}>
-            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a855f7]/75">
+            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B124E8]/80">
               {group}
             </p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-1">
               {itemsInGroup.map((item) => {
             const Icon = item.icon;
             return (
@@ -66,10 +62,10 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
+                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-150",
                       isActive
-                        ? "bg-gradient-to-r from-[#B124E8]/28 to-[#405DE6]/12 font-medium text-[#E5E7EC] shadow-[0_6px_20px_-6px_rgba(177,36,232,0.4)] ring-1 ring-[#B124E8]/35"
-                        : "text-slate-400 hover:bg-white/5 hover:text-[#E5E7EC]",
+                        ? "bg-[#B124E8]/10 font-semibold text-[#1e1b4b] shadow-[0_4px_14px_-6px_rgba(177,36,232,0.25)] ring-1 ring-[#B124E8]/20"
+                        : "text-[#5c5a78] hover:bg-[#B124E8]/06 hover:text-[#1e1b4b]",
                     )
                   }
                 >

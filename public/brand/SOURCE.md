@@ -1,34 +1,28 @@
 # Otzar brand assets
 
-Official mark sourced from:
-
-- Product site: https://www.otzar.ai/
-- Brand identity gallery: https://www.behance.net/gallery/252799665/OTZAR
+Official mark: https://www.otzar.ai/ · https://www.behance.net/gallery/252799665/OTZAR
 
 Do not invent a replacement logo.
 
-| Asset | Use |
-|-------|-----|
-| `otzar-logo.png` (1080²) | Brand mark (clean disc presentation) |
-| `otzar-logo.svg` | Monochrome silver/ink chrome only |
-| `otzar-mark.jpg` | Legacy raster reference only |
+## Palette
 
-## Official palette
+| Token | Hex | Role |
+|-------|-----|------|
+| Brand purple | `#B124E8` | Primary CTAs, active states |
+| Mid purple | `#a855f7` | Soft accent |
+| Brand blue | `#405DE6` | Secondary / listening |
+| Brand ink | `#1e1b4b` | Primary text |
+| White | `#FFFFFF` | Cards, chrome |
+| Pearl field | `#F7F6FC` | App background (not gray sludge, not black void) |
 
-| Token | Hex | Product role |
-|-------|-----|----------------|
-| Brand purple | `#B124E8` | CTAs, active states, soft glow |
-| Mid purple | `#a855f7` | Secondary accent |
-| Brand blue | `#405DE6` | Listening / ring |
-| Void indigo | `#1e1b4b` | Ambient field mid-tone |
-| Near-black | `#0a0612` / `#08060f` | Shell void |
-| Silver | `#E5E7EC` | Primary text on dark |
-| Accent orange | `#F77737` | Attention only (sparse) |
+## Product doctrine — YC / enterprise light
 
-## Product doctrine (restored)
+**Premium light enterprise Work OS** that investors and IT buyers recognize:
 
-**Dark enterprise Work OS** — deep void field, brand-tinted glass panels,
-silver type, purple CTAs. **Not** light gray SaaS, **not** rainbow gradient
-wordmarks, **not** plastic logo orbs.
+- Pearl white field with soft brand purple atmosphere (not dark void)
+- White cards with quiet elevation
+- Solid brand purple CTAs (no rainbow gradients)
+- Brand-dark ink type (no multicolor wordmarks)
+- Clean official logo on a white disc
 
 Materials: `src/index.css` + `src/lib/ambient/glass.ts`.

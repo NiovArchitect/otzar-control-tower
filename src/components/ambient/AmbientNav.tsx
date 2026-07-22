@@ -50,10 +50,10 @@ export function AmbientNav(): JSX.Element {
   );
 
   const railLink = (active: boolean): string =>
-    `flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[10px] font-medium transition-all duration-200 ${
+    `flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[10px] font-semibold transition-all duration-150 ${
       active
         ? `${GLASS_NAV_ACTIVE}`
-        : "text-slate-400 hover:bg-white/50 hover:text-slate-700"
+        : "text-[#5c5a78] hover:bg-[#B124E8]/08 hover:text-[#1e1b4b]"
     }`;
 
   function MoreButton({ className }: { className: string }): JSX.Element {
@@ -133,10 +133,10 @@ export function AmbientNav(): JSX.Element {
           >
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold tracking-tight text-slate-50">
+                <h2 className="text-base font-semibold tracking-tight text-[#1e1b4b]">
                   More
                 </h2>
-                <p className="mt-0.5 text-[11px] text-slate-500">
+                <p className="mt-0.5 text-[11px] text-[#5c5a78]">
                   Secondary tools — everyday work stays on the rail.
                 </p>
               </div>
@@ -144,7 +144,7 @@ export function AmbientNav(): JSX.Element {
                 type="button"
                 aria-label="Close"
                 onClick={() => setMoreOpen(false)}
-                className="rounded-full p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-slate-50"
+                className="rounded-full p-2 text-[#5c5a78] transition-colors hover:bg-[#B124E8]/08 hover:text-[#B124E8]"
               >
                 <X className="h-4 w-4" aria-hidden />
               </button>
@@ -162,11 +162,11 @@ export function AmbientNav(): JSX.Element {
                         ? "more-projects"
                         : undefined
                   }
-                  className="rounded-2xl border border-white/60 bg-white/50 px-3.5 py-3 text-sm text-slate-700 shadow-sm transition-all hover:bg-white/85 hover:shadow-md"
+                  className="rounded-xl border border-[#1e1b4b]/08 bg-white px-3.5 py-3 text-sm text-[#1e1b4b] shadow-[0_4px_14px_-6px_rgba(30,27,75,0.1)] transition-all hover:shadow-[0_8px_22px_-8px_rgba(177,36,232,0.18)]"
                 >
-                  <span className="font-medium text-slate-50">{item.label}</span>
+                  <span className="font-semibold text-[#1e1b4b]">{item.label}</span>
                   {item.description ? (
-                    <span className="mt-1 block text-[10px] leading-snug text-slate-500 line-clamp-2">
+                    <span className="mt-1 block text-[10px] leading-snug text-[#5c5a78] line-clamp-2">
                       {item.description}
                     </span>
                   ) : null}
