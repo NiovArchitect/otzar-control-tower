@@ -31,9 +31,9 @@ export const GLASS_CTA =
 export const GLASS_CHROME =
   "border-[#1e1b4b]/08 bg-white/85 supports-[backdrop-filter]:bg-white/75 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.9)_inset,0_4px_16px_-8px_rgba(30,27,75,0.08)]";
 
-/** Active nav — soft purple wash on white rail. */
+/** Active nav — quiet ink wash (not loud purple). */
 export const GLASS_NAV_ACTIVE =
-  "bg-[#B124E8]/10 text-[#1e1b4b] shadow-[0_4px_14px_-6px_rgba(177,36,232,0.25)] ring-1 ring-[#B124E8]/20";
+  "bg-[#1e1b4b]/06 text-[#1e1b4b] ring-1 ring-[#1e1b4b]/08";
 
 /** Stage panel. */
 export const GLASS_STAGE =

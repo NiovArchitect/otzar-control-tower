@@ -37,7 +37,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <div className="otzar-text-luminous text-sm font-semibold leading-tight tracking-tight">
             Otzar
           </div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B124E8]">
+          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#5c5a78]">
             Control Tower
           </div>
         </div>
@@ -48,7 +48,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           if (itemsInGroup.length === 0) return null;
           return (
           <div key={group} data-testid="admin-nav-group" data-group={group}>
-            <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B124E8]/80">
+            <p className="px-3 pb-1.5 pt-5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#5c5a78]">
               {group}
             </p>
             <ul className="space-y-1">
@@ -64,8 +64,8 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     cn(
                       "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-150",
                       isActive
-                        ? "bg-[#B124E8]/10 font-semibold text-[#1e1b4b] shadow-[0_4px_14px_-6px_rgba(177,36,232,0.25)] ring-1 ring-[#B124E8]/20"
-                        : "text-[#5c5a78] hover:bg-[#B124E8]/06 hover:text-[#1e1b4b]",
+                        ? "bg-[#1e1b4b]/06 font-semibold text-[#1e1b4b] ring-1 ring-[#1e1b4b]/08"
+                        : "text-[#5c5a78] hover:bg-[#1e1b4b]/04 hover:text-[#1e1b4b]",
                     )
                   }
                 >
