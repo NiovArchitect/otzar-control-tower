@@ -25,7 +25,7 @@ export const CAPABILITY_FIRST_HEADLINE =
   "Connect by capability — calendar, documents, Meet, chat.";
 
 export const CAPABILITY_FIRST_DETAIL =
-  "Pick what work needs. Otzar does not ask you to configure protocols for daily use.";
+  "Pick what work needs. Otzar does not ask you to configure MCP protocols for daily use.";
 
 export const MCP_ADVANCED_ONLY_COPY =
   "Protocol rails live here for technical administrators only. Ordinary org setup does not require this tab.";
