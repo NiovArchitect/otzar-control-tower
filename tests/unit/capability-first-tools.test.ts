@@ -24,15 +24,15 @@ describe("O-01 capability-first tools contract", () => {
     expect(EMPLOYEE_TOOLS_PATH.toLowerCase()).not.toMatch(/mcp|rails/);
   });
 
-  it("admin default tab is inventory; advanced is last", () => {
-    expect(DEFAULT_ADMIN_TOOLS_TAB).toBe("inventory");
-    expect(ADMIN_TOOLS_TAB_ORDER[0]).toBe("inventory");
+  it("admin default tab is connect tools (plug-and-play); advanced is last", () => {
+    expect(DEFAULT_ADMIN_TOOLS_TAB).toBe("connected");
+    expect(ADMIN_TOOLS_TAB_ORDER[0]).toBe("connected");
     expect(ADMIN_TOOLS_TAB_ORDER[ADMIN_TOOLS_TAB_ORDER.length - 1]).toBe(
       "advanced",
     );
     expect(isValidAdminTabOrder([...ADMIN_TOOLS_TAB_ORDER])).toBe(true);
     expect(adminToolsTabFingerprint([...ADMIN_TOOLS_TAB_ORDER])).toBe(
-      "inventory>connected>advanced",
+      "connected>inventory>advanced",
     );
   });
 

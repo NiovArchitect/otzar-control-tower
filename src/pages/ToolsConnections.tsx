@@ -588,29 +588,72 @@ export function ToolsConnectionsPage(): JSX.Element {
       data-testid="tools-connections-page"
       data-capability-first="true"
       data-mcp-advanced-only="true"
+      data-plug-and-play="true"
     >
       <PageHeader
-        title="Connect the tools your company already uses"
-        description="Employees pick a capability and connect in a few clicks when you enable it. You keep inventory, decide access requests, and can revoke. Otzar never posts without policy — and nobody needs MCP jargon for daily setup."
+        title="Connections"
+        description="Find a tool → Connect → it works under your permissions. Employees connect from Work OS when work needs a tool. You approve requests and can revoke anytime."
       />
-      <p
-        className="text-sm text-muted-foreground"
-        data-testid="tools-capability-first-banner"
-      >
-        <span className="font-medium text-foreground">
-          {CAPABILITY_FIRST_HEADLINE}
-        </span>{" "}
-        {CAPABILITY_FIRST_DETAIL}
-      </p>
+
+      {/* Plug-and-play path — human steps, no protocol jargon. */}
+      <Card data-testid="connections-plug-play-path" className="otzar-atari-frame">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-slate-50">How connection works</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol
+            className="grid gap-2 sm:grid-cols-3"
+            data-testid="connections-plug-play-steps"
+          >
+            {[
+              {
+                n: "1",
+                title: "Find the tool",
+                detail: "Calendar, documents, Meet, chat — by capability, not protocol.",
+              },
+              {
+                n: "2",
+                title: "Connect once",
+                detail: "Org or employee OAuth under your rules. Nothing posts by default.",
+              },
+              {
+                n: "3",
+                title: "Works under permissions",
+                detail: "Writes stay gated. You can revoke. Audit keeps the trail.",
+              },
+            ].map((s) => (
+              <li
+                key={s.n}
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5"
+                data-testid={`connections-step-${s.n}`}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-300">
+                  {s.n}. {s.title}
+                </p>
+                <p className="mt-1 text-xs text-slate-300">{s.detail}</p>
+              </li>
+            ))}
+          </ol>
+          <p
+            className="mt-3 text-sm text-slate-300"
+            data-testid="tools-capability-first-banner"
+          >
+            <span className="font-medium text-slate-50">
+              {CAPABILITY_FIRST_HEADLINE}
+            </span>{" "}
+            {CAPABILITY_FIRST_DETAIL}
+          </p>
+        </CardContent>
+      </Card>
 
       {/* O-01 — default inventory; MCP/protocol only under Advanced (last). */}
-      <Tabs defaultValue={DEFAULT_ADMIN_TOOLS_TAB} className="space-y-4">
-        <TabsList data-testid="tools-admin-tablist" data-tab-order="inventory>connected>advanced">
-          <TabsTrigger value="inventory" data-testid="tab-tools-inventory">
-            Inventory &amp; KPIs
-          </TabsTrigger>
+      <Tabs defaultValue="connected" className="space-y-4">
+        <TabsList data-testid="tools-admin-tablist" data-tab-order="connected>inventory>advanced">
           <TabsTrigger value="connected" data-testid="tab-connected-tools">
-            Your tools
+            Connect tools
+          </TabsTrigger>
+          <TabsTrigger value="inventory" data-testid="tab-tools-inventory">
+            Inventory &amp; requests
           </TabsTrigger>
           <TabsTrigger
             value="advanced"
@@ -620,11 +663,11 @@ export function ToolsConnectionsPage(): JSX.Element {
             {MCP_TAB_LABEL}
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="inventory" data-testid="panel-tools-inventory" data-capability-primary="true">
-          <InventoryPanel />
-        </TabsContent>
         <TabsContent value="connected" data-testid="panel-connected-tools" data-capability-primary="true">
           <ConnectorsAdminPage />
+        </TabsContent>
+        <TabsContent value="inventory" data-testid="panel-tools-inventory" data-capability-primary="true">
+          <InventoryPanel />
         </TabsContent>
         <TabsContent
           value="advanced"
@@ -632,7 +675,7 @@ export function ToolsConnectionsPage(): JSX.Element {
           data-mcp-advanced-only="true"
         >
           <p
-            className="mb-3 text-sm text-muted-foreground"
+            className="mb-3 text-sm text-slate-300"
             data-testid="tools-mcp-advanced-copy"
           >
             {MCP_ADVANCED_ONLY_COPY}

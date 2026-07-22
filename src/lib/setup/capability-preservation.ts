@@ -68,9 +68,10 @@ export const CAPABILITY_PRESERVATION_MAP: readonly CapabilityMapEntry[] = [
   {
     oldScreen: "Tools & Connections",
     capability: "OAuth connect/reconnect; provider inventory; connector health",
-    newSurface: "Connections (nav) — plug-and-play redesign pending",
+    newSurface:
+      "Connections — plug-and-play path (Find → Connect → permissions); MCP advanced-only",
     fullCapabilityRoute: "/tools-connections",
-    status: "DEEP_LINK_ONLY",
+    status: "RECOMPOSED",
   },
   {
     oldScreen: "Access Control",
