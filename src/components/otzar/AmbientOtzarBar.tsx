@@ -3684,13 +3684,38 @@ export function AmbientOtzarBar(): JSX.Element {
             at0,
           );
           if (!rerouted) {
-            await executeOutboundMessage(
-              outbound.recipient,
-              outbound.recipientFacingMessage,
-              text,
-              "ASK_TWIN",
-              at0,
-            );
+            // RC2: ping/notify (status) must open a reviewable professional
+            // draft card — never auto-send and never use the raw command as body.
+            // Other ambient internal messages keep the governed one-shot rail.
+            const isPingNotify =
+              /\b(?:ping|notify)\b/i.test(text) &&
+              !/\b(?:slack|email|e-mail|calendar)\b/i.test(text);
+            if (isPingNotify) {
+              void executeMessageAction(
+                {
+                  kind: "SEND_REQUIRES_APPROVAL",
+                  heard: text,
+                  actionLabel: `Message → ${outbound.recipient}`,
+                  spoken: `Drafted a message to ${outbound.recipient}. Review it and Confirm to deliver — internal Otzar message only.`,
+                  route: COMMS_ROUTE,
+                  connector: "internal",
+                  targetEntity: outbound.recipient,
+                  draftPayload: outbound.recipientFacingMessage,
+                  backendActionType: "SEND_INTERNAL_NOTIFICATION",
+                  requiresApproval: false,
+                  needsConfirmation: false,
+                },
+                at0,
+              );
+            } else {
+              await executeOutboundMessage(
+                outbound.recipient,
+                outbound.recipientFacingMessage,
+                text,
+                "ASK_TWIN",
+                at0,
+              );
+            }
           }
         } else {
           // CLARIFY — ask for the missing detail, never fabricate a send.
