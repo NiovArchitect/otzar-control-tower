@@ -32,7 +32,7 @@
     --ring: 238 72% 48%;
     --radius: 1rem;
 
-    /* Signature Otzar spectrum */
+    /* Signature Otzar spectrum — brand-derived (logo + marketing identity) */
     --otzar-void: 232 52% 8%;
     --otzar-indigo: 243 75% 59%;
     --otzar-violet: 263 70% 58%;
@@ -42,6 +42,12 @@
     --otzar-rose: 346 84% 56%;
     --otzar-emerald: 160 72% 40%;
     --otzar-glow: 238 100% 72%;
+    /* Year-3000 ambient rim (restrained spectral, not RGB gaming) */
+    --otzar-rim-cyan: 199 92% 55%;
+    --otzar-rim-violet: 263 70% 62%;
+    --otzar-rim-indigo: 238 72% 58%;
+    --otzar-rim-magenta: 300 45% 58%;
+    --otzar-rim-silver: 220 14% 88%;
   }
 
   .dark {
@@ -315,5 +321,81 @@
       0 0 0 1px rgba(15, 23, 42, 0.03);
     backdrop-filter: blur(28px) saturate(160%);
     -webkit-backdrop-filter: blur(28px) saturate(160%);
+  }
+
+  /*
+   * Otzar ambient rim — thin spectral perimeter.
+   * Year-3000 / Black Mirror sophistication + Siri-like activation spirit.
+   * Atari DNA = edge precision, not pixel nostalgia.
+   * No rainbow cycling, no neon club effects, low GPU (CSS only).
+   */
+  @keyframes otzar-rim-travel {
+    0% {
+      --otzar-rim-angle: 0deg;
+    }
+    100% {
+      --otzar-rim-angle: 360deg;
+    }
+  }
+
+  .otzar-ambient-rim {
+    --otzar-rim-angle: 0deg;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--otzar-rim-angle),
+      hsl(var(--otzar-rim-cyan) / 0) 0%,
+      hsl(var(--otzar-rim-cyan) / 0.55) 12%,
+      hsl(var(--otzar-rim-indigo) / 0.5) 28%,
+      hsl(var(--otzar-rim-violet) / 0.55) 44%,
+      hsl(var(--otzar-rim-magenta) / 0.28) 58%,
+      hsl(var(--otzar-rim-cyan) / 0) 72%,
+      hsl(var(--otzar-rim-cyan) / 0) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .otzar-ambient-rim {
+      animation: otzar-rim-travel 9s linear infinite;
+    }
+    .otzar-ambient-rim[data-rim-state="listening"] {
+      animation-duration: 5.5s;
+      opacity: 0.95;
+    }
+    .otzar-ambient-rim[data-rim-state="thinking"] {
+      animation-duration: 14s;
+      opacity: 0.7;
+    }
+    .otzar-ambient-rim[data-rim-state="approval_required"] {
+      animation-duration: 7s;
+      filter: hue-rotate(-18deg) saturate(1.05);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .otzar-ambient-rim {
+      animation: none !important;
+      background: linear-gradient(
+        135deg,
+        hsl(var(--otzar-rim-cyan) / 0.35),
+        hsl(var(--otzar-rim-violet) / 0.3)
+      );
+    }
+  }
+
+  /* Fine luminous geometric edge — micro retro-future trace */
+  .otzar-edge-trace {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.55) inset,
+      0 0 0 1px rgba(15, 23, 42, 0.04);
   }
 }

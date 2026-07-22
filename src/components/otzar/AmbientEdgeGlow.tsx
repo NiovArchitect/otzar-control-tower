@@ -1,25 +1,21 @@
 // FILE: AmbientEdgeGlow.tsx
-// PURPOSE: Phase 1251 — Otzar's edge presence made visible. A
-//          pointer-events-none halo along the top edge of the
-//          viewport plus a soft corner aura above the orb. The tint
-//          and motion speak the presence state:
+// PURPOSE: Otzar ambient edge — year-3000 enterprise presence with subtle
+//          retro-future perimeter geometry (Atari DNA as edge precision,
+//          not arcade). Spectral rim travels calmly (Siri-like spirit,
+//          original to Otzar). Not RGB gaming, not cyberpunk neon.
 //
-//            IDLE            barely-there neutral shimmer
-//            LISTENING       cool breathing pulse (voice is live)
-//            THINKING        slow breathe (working, not demanding)
-//            RECOMMENDATION  gentle teal presence (something useful)
+//            IDLE            barely-there neutral edge
+//            LISTENING       spectral edge awakens (voice is live)
+//            THINKING        slow circulation (working, not demanding)
+//            RECOMMENDATION  gentle teal presence
 //            APPROVAL_REQUIRED warmer amber pulse (needs a decision)
-//            SUCCESS         brief emerald shimmer, then collapses
-//            BLOCKED         soft amber, static (needs setup)
-//            QUIET           muted, nearly off (meeting/focus)
+//            SUCCESS         brief cool resolution
+//            BLOCKED         soft amber, static
+//            QUIET           muted, nearly off
 //            FAILURE         calm rose, static (truthful, not scary)
 //
-//          It never covers content, never captures clicks, respects
-//          prefers-reduced-motion, and disappears entirely when idle
-//          enough — Otzar is felt, not watched.
-// CONNECTS TO: src/lib/stores/presence.ts, EmployeeLayout,
-//          src/index.css (edge-* keyframes),
-//          tests/unit/ambient-edge-presence.test.tsx.
+//          pointer-events-none · no layout shift · reduced-motion safe.
+// CONNECTS TO: presence store, EmployeeLayout, Layout, index.css.
 
 import {
   humanPresenceState,
@@ -97,27 +93,45 @@ const EDGE_VISUALS: Record<OtzarPresenceState, EdgeVisual> = {
   },
 };
 
+/** Spectral travel is only for active presence — never rainbow idle. */
+const SPECTRAL_ACTIVE = new Set<OtzarPresenceState>([
+  "LISTENING",
+  "THINKING",
+  "APPROVAL_REQUIRED",
+  "SUCCESS",
+]);
+
 export function AmbientEdgeGlow(): JSX.Element {
   const state = usePresenceState();
   const human = humanPresenceState(state);
   const visual = EDGE_VISUALS[state];
+  const spectral = SPECTRAL_ACTIVE.has(state);
   return (
     <div
       aria-hidden
       data-testid="ambient-edge-glow"
       data-presence={state}
       data-presence-human={human}
+      data-spectral={spectral ? "true" : "false"}
       className="pointer-events-none fixed inset-0 z-[55]"
     >
-      {/* Full-perimeter behavioral border — the whole surface glows the state. */}
+      {/* Full-perimeter behavioral border — thin luminous edge geometry. */}
       <div
         className={`absolute inset-0 transition-[box-shadow] duration-1000 ${visual.frame}`}
       />
-      {/* Top edge halo strip. */}
+      {/* Year-3000 spectral perimeter (restrained cyan→violet→indigo travel). */}
+      {spectral ? (
+        <div
+          className="otzar-ambient-rim absolute inset-0 opacity-80 motion-reduce:opacity-40"
+          data-testid="otzar-ambient-rim"
+          data-rim-state={state.toLowerCase()}
+        />
+      ) : null}
+      {/* Top edge halo strip — Atari-derived fine luminous outline. */}
       <div
-        className={`absolute inset-x-0 top-0 h-[3px] transition-opacity duration-700 ${visual.strip}`}
+        className={`absolute inset-x-0 top-0 h-[2px] transition-opacity duration-700 ${visual.strip}`}
       />
-      {/* Corner aura above the orb (bottom-right), heavily blurred. */}
+      {/* Corner aura near Talk presence (bottom-right), heavily blurred. */}
       <div
         className={`absolute -bottom-16 -right-16 h-56 w-56 rounded-full blur-3xl transition-opacity duration-700 ${visual.aura}`}
       />

@@ -6,7 +6,7 @@
 import { Link, Outlet } from "react-router-dom";
 import { LogOut, PanelsTopLeft, Sparkles } from "lucide-react";
 import { AmbientNav } from "@/components/ambient/AmbientNav";
-import { OtzarMark } from "@/components/ambient/OtzarMark";
+import { OtzarBrandLogo } from "@/components/ambient/OtzarBrandLogo";
 import { AppBackButton } from "@/components/navigation/AppBackButton";
 import { NavigationGuard } from "@/components/navigation/NavigationGuard";
 import { FlowTraceOverlay } from "@/components/ambient/FlowTraceOverlay";
@@ -57,7 +57,7 @@ export function EmployeeLayout() {
               className="group flex min-w-0 items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
               aria-label="Otzar home"
             >
-              <OtzarMark size="sm" active />
+              <OtzarBrandLogo size="sm" tone="brand" />
               <div className="min-w-0 leading-tight">
                 <span className="block text-sm font-semibold tracking-tight text-slate-900">
                   Otzar

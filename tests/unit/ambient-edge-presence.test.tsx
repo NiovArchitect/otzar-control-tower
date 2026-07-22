@@ -156,6 +156,26 @@ describe("D-01 — human presence language (5 states)", () => {
     }
   });
 
+  it("LISTENING enables spectral ambient rim (year-3000 edge, not idle rainbow)", () => {
+    usePresenceStore.getState().setSignals(signals({ listening: true }));
+    render(<AmbientEdgeGlow />);
+    const glow = screen.getByTestId("ambient-edge-glow");
+    expect(glow.getAttribute("data-spectral")).toBe("true");
+    expect(screen.getByTestId("otzar-ambient-rim")).toHaveAttribute(
+      "data-rim-state",
+      "listening",
+    );
+  });
+
+  it("IDLE keeps spectral rim off (no gaming RGB cycle)", () => {
+    usePresenceStore.getState().setSignals(signals());
+    render(<AmbientEdgeGlow />);
+    expect(screen.getByTestId("ambient-edge-glow").getAttribute("data-spectral")).toBe(
+      "false",
+    );
+    expect(screen.queryByTestId("otzar-ambient-rim")).toBeNull();
+  });
+
   it("edge glow exposes data-presence-human", () => {
     usePresenceStore.getState().setSignals({ listening: true });
     render(<AmbientEdgeGlow />);
