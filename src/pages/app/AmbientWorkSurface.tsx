@@ -441,7 +441,7 @@ export function AmbientWorkSurface(): JSX.Element {
         const code = "code" in r ? String(r.code) : "CREATE_FAILED";
         if (code === "GOOGLE_RECONNECT_REQUIRED" || code === "DOC_WRITE_SCOPE_MISSING") {
           setDocError(
-            "Reconnect Google in Tools & Connections and allow document create.",
+            "Reconnect Google in Connections and allow document create.",
           );
         } else if (code === "SESSION_INVALID") {
           setDocError("Sign in again to create a document.");

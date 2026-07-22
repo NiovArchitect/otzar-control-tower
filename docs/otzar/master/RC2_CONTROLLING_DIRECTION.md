@@ -170,7 +170,7 @@ Post-merge: verify deploy SHA == main; bundle on app.otzar.ai.
 8. Reports into Intelligence — **coded** `/intelligence` hub (Reports tab; `/reports` deep link)  
 9. Security/audit cleanup — **coded** `/security-audit` hub (Audit + System health; deep links preserved)  
 10. Full visual system + ambient presence (**#205** + founder approve)  
-11. Capability-preservation regression  
+11. Capability-preservation regression — **coded** unit gate (`capability-preservation-regression.test.ts`)  
 12. Fresh admin + employee comprehension  
 13. Full Work OS regression  
 14. Founder live review  

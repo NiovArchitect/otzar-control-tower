@@ -247,7 +247,7 @@ export function AITeammatesPage() {
               className="text-xs text-muted-foreground underline-offset-2 hover:underline"
               data-testid="twin-next-step-link"
             >
-              Open Tools &amp; Connections
+              Open Connections
             </a>
           ) : (
             <span className="text-muted-foreground">—</span>
