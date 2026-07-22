@@ -1,51 +1,56 @@
 // FILE: glass.ts
-// PURPOSE: Behance brand material language — purple void, silver bevels,
-//          soft designer curves, enterprise glass depth that pops sleek.
-//          Palette: #B124E8 · #a855f7 · #405DE6 · #1e1b4b · #E5E7EC · #F77737
-// CONNECTS TO: EmployeeLayout, AmbientNav, Login, Layout, Card, index.css.
+// PURPOSE: Behance brand material language — complete product UI overhaul.
+//          Bright semi-gradient field, floating white cards, soft 3D purple CTAs.
+//          Palette: #B124E8 · #a855f7 · #405DE6 · #1e1b4b · #E5E7EC · #FFFFFF
+// CONNECTS TO: EmployeeLayout, Layout, AmbientNav, Login, Card, index.css.
 
 import type { PresenceIntensity } from "@/lib/stores/presence";
 
-/** Primary frosted surface — brand-tinted dark glass, designer radius. */
+/** Floating white surface — designer radius + soft light shadow. */
 export const GLASS_SURFACE =
-  "otzar-glass-card otzar-edge-trace rounded-[1.35rem]";
+  "otzar-glass-card otzar-edge-trace rounded-[1.5rem]";
 
-/** Quieter chip for inline state — soft pill curve. */
+/** Quiet chip / pill on bright field. */
 export const GLASS_CHIP =
-  "rounded-full border border-white/12 bg-white/[0.06] supports-[backdrop-filter]:bg-white/[0.05] backdrop-blur-xl ring-1 ring-[#B124E8]/15 shadow-[0_1px_0_0_rgba(229,231,236,0.12)_inset]";
+  "rounded-full border border-[#1e1b4b]/08 bg-white/90 backdrop-blur-xl shadow-[0_4px_14px_-6px_rgba(30,27,75,0.12)] ring-1 ring-[#B124E8]/10";
 
 /**
- * Living ambient field — Behance void indigo → near-black.
- * Brand purple depth; not flat SaaS white or generic cyan.
+ * Living ambient field — Behance semi-gradient (YC-visible brand experience).
+ * Silver → soft lavender → pearl with brand purple washes. NOT black void.
  */
 export const AMBIENT_FIELD =
-  "otzar-dark-field bg-[radial-gradient(125%_95%_at_50%_-12%,#1e1b4b_0%,#140f28_36%,#0a0612_70%,#06040c_100%)]";
+  "otzar-brand-field otzar-dark-field otzar-semi-gradient-field";
 
 export const AMBIENT_AURORA = "pointer-events-none absolute inset-0 overflow-hidden";
 
-/** Hero primary CTA — brand purple glass, soft curve. */
+/** Atmospheric layers for shells (ribbons + soft aurora). */
+export const AMBIENT_ATMOSPHERE =
+  "pointer-events-none absolute inset-0 overflow-hidden";
+
+/** Hero / primary CTA — floating 3D brand purple (use with otzar-cta-fill). */
 export const GLASS_CTA =
-  "rounded-[1.25rem] border border-white/18 bg-white/10 supports-[backdrop-filter]:bg-white/[0.08] backdrop-blur-2xl ring-1 ring-[#B124E8]/25 shadow-[0_16px_44px_-16px_rgba(177,36,232,0.35),0_1px_0_0_rgba(229,231,236,0.14)_inset] transition-[box-shadow,transform,filter] duration-200 hover:shadow-[0_20px_52px_-14px_rgba(168,85,247,0.4)] active:scale-[0.99]";
+  "otzar-cta-fill inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition-[transform,box-shadow,filter] duration-200";
 
-/** Slim chrome (header / nav rail) — void glass + purple whisper. */
+/** Slim chrome (header / nav rail) — frosted white over semi-gradient. */
 export const GLASS_CHROME =
-  "border-white/10 bg-[#0a0612]/75 supports-[backdrop-filter]:bg-[#0a0612]/58 backdrop-blur-2xl backdrop-saturate-160 shadow-[0_1px_0_0_rgba(229,231,236,0.08)_inset]";
+  "border-[#1e1b4b]/08 bg-white/75 supports-[backdrop-filter]:bg-white/65 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_1px_0_0_rgba(255,255,255,0.9)_inset,0_8px_24px_-16px_rgba(30,27,75,0.1)]";
 
-/** Active nav pill — brand purple gradient, soft curve. */
+/** Active nav pill — soft purple lift on bright rail. */
 export const GLASS_NAV_ACTIVE =
-  "bg-gradient-to-b from-[#B124E8]/30 to-[#405DE6]/12 text-[#E5E7EC] shadow-[0_6px_22px_-6px_rgba(177,36,232,0.45)] ring-1 ring-[#B124E8]/40";
+  "bg-gradient-to-b from-[#B124E8]/14 to-[#a855f7]/08 text-[#1e1b4b] shadow-[0_8px_20px_-8px_rgba(177,36,232,0.35)] ring-1 ring-[#B124E8]/25";
 
-/** Hero stage + brand corner frame, generous curve. */
-export const GLASS_STAGE = "otzar-stage otzar-atari-frame relative overflow-hidden rounded-[1.75rem]";
+/** Hero stage — white floating panel, generous curve. */
+export const GLASS_STAGE =
+  "otzar-stage otzar-atari-frame relative overflow-hidden rounded-[1.75rem]";
 
 export function panelAccent(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":
-      return "border-l-[3px] border-l-[#F77737]/85";
+      return "border-l-[3px] border-l-[#F77737]";
     case "critical":
-      return "border-l-[3px] border-l-rose-400/85";
+      return "border-l-[3px] border-l-rose-500";
     case "working":
-      return "border-l-[3px] border-l-[#405DE6]/75";
+      return "border-l-[3px] border-l-[#405DE6]";
     case "ambient":
     default:
       return "";
@@ -55,13 +60,13 @@ export function panelAccent(intensity: PresenceIntensity): string {
 export function intensityDot(intensity: PresenceIntensity): string {
   switch (intensity) {
     case "attention":
-      return "bg-[#F77737] shadow-[0_0_8px_rgba(247,119,55,0.55)]";
+      return "bg-[#F77737] shadow-[0_0_8px_rgba(247,119,55,0.45)]";
     case "critical":
-      return "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.55)]";
+      return "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]";
     case "working":
-      return "bg-[#405DE6] shadow-[0_0_8px_rgba(64,93,230,0.5)]";
+      return "bg-[#405DE6] shadow-[0_0_8px_rgba(64,93,230,0.4)]";
     case "ambient":
     default:
-      return "bg-[#a855f7]/85";
+      return "bg-[#a855f7]";
   }
 }

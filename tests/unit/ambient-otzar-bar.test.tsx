@@ -166,11 +166,10 @@ describe("AmbientOtzarBar — ambient node surface", () => {
     await user.click(screen.getByRole("region", { name: /Talk to Otzar/i }));
     const dock = screen.getByTestId("ambient-otzar-bar");
     expect(dock).toHaveAttribute("data-presence");
-    // Ambient enterprise GLASS: translucent frosted material, not a black slab
-    // Year-3000 dark glass dock — readable on dark field, not opaque SaaS card.
+    // Behance floating white glass dock — soft light shadow, brand ink.
     expect(dock.className).toMatch(/backdrop-blur/);
-    expect(dock.className).toMatch(/bg-\[#0a0612\]/);
-    expect(dock.className).toMatch(/text-\[#E5E7EC\]/);
+    expect(dock.className).toMatch(/bg-white/);
+    expect(dock.className).toMatch(/text-\[#1e1b4b\]/);
   });
 
   it("does NOT render the redundant bottom nav-link row (fewer clicks)", async () => {

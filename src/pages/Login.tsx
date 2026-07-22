@@ -119,37 +119,35 @@ export function LoginPage() {
       className={`relative flex min-h-screen flex-col items-center justify-center px-4 py-12 ${AMBIENT_FIELD}`}
       data-testid="login-page"
     >
-      {/* Cinematic atmosphere — Otzar is present before you sign in. */}
+      {/* Behance bright field — soft ribbons, semi-gradient, enterprise calm */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="otzar-brand-ribbons" />
         <div className="otzar-aurora-layer" />
         <div className="otzar-ambient-lines" />
-        <div className="otzar-grain" />
-        <div className="absolute inset-0 bg-[radial-gradient(55%_42%_at_50%_32%,rgba(177,36,232,0.16),transparent_72%)]" />
       </div>
 
       <div className="relative z-10 mb-10 flex max-w-lg flex-col items-center text-center">
-        {/* Official mark — 3D/4K polish; the product WOAH moment */}
         <OtzarBrandLogo size="hero" tone="brand" polish />
-        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a855f7]/90">
+        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#B124E8]">
           Ambient Work OS
         </p>
         <h1 className="otzar-text-luminous mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
           Otzar
         </h1>
-        <p className="mt-3 max-w-sm text-sm leading-relaxed text-[#E5E7EC]/75">
+        <p className="mt-3 max-w-sm text-sm leading-relaxed text-[#5c5a78]">
           Communication is the OS. Your AI Teammate executes.
           Governed enough to trust — calm enough to stay out of the way.
         </p>
       </div>
 
       <Card
-        className={`relative z-10 w-full max-w-sm border-0 bg-transparent shadow-none ${GLASS_SURFACE}`}
+        className={`relative z-10 w-full max-w-sm ${GLASS_SURFACE}`}
       >
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold tracking-tight text-[#E5E7EC]">
+          <CardTitle className="text-base font-semibold tracking-tight text-[#1e1b4b]">
             Sign in
           </CardTitle>
-          <CardDescription className="text-[#E5E7EC]/75">
+          <CardDescription className="text-[#5c5a78]">
             Use your work account. Every action is recorded in your
             organization&apos;s audit trail.
           </CardDescription>
@@ -157,7 +155,7 @@ export function LoginPage() {
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4" aria-label="Login form">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-[#1e1b4b]">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -166,15 +164,15 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="h-11 rounded-2xl border-white/15 bg-[#0a0612]/85 text-[#E5E7EC] shadow-inner backdrop-blur-sm placeholder:text-slate-400 focus-visible:ring-[#B124E8]/45"
+                className="h-12 rounded-2xl border-[#1e1b4b]/12 bg-white text-[#1e1b4b] shadow-[0_4px_14px_-8px_rgba(30,27,75,0.1)] placeholder:text-[#6b6a85] focus-visible:ring-[#B124E8]/40"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-[#1e1b4b]">Password</Label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-[#a855f7] underline underline-offset-2 hover:text-[#B124E8]"
+                  className="text-xs font-medium text-[#B124E8] underline underline-offset-2 hover:text-[#9b1fd0]"
                   data-testid="login-forgot-password"
                 >
                   Forgot password?
@@ -188,7 +186,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="h-11 rounded-2xl border-white/15 bg-[#0a0612]/85 text-[#E5E7EC] shadow-inner backdrop-blur-sm placeholder:text-slate-400 focus-visible:ring-[#B124E8]/45"
+                className="h-12 rounded-2xl border-[#1e1b4b]/12 bg-white text-[#1e1b4b] shadow-[0_4px_14px_-8px_rgba(30,27,75,0.1)] placeholder:text-[#6b6a85] focus-visible:ring-[#B124E8]/40"
               />
             </div>
             {loginError && (
@@ -215,14 +213,15 @@ export function LoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="otzar-cta-fill h-11 w-full rounded-xl border-0 text-sm font-medium"
+              size="lg"
+              className="otzar-cta-fill h-12 w-full border-0 text-sm font-semibold"
             >
               {isLoading ? "Signing in…" : "Sign in"}
             </Button>
           </form>
           {import.meta.env.DEV ? (
-            <div className="mt-6 space-y-3 border-t border-white/50 pt-4">
-              <p className="text-xs text-slate-500">
+            <div className="mt-6 space-y-3 border-t border-[#1e1b4b]/08 pt-4">
+              <p className="text-xs text-[#5c5a78]">
                 Local dev only — seeded demo accounts from
                 <code className="ml-1">scripts/demo-seed.ts</code>:
               </p>
