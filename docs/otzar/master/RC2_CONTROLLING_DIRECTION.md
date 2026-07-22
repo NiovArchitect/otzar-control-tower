@@ -163,9 +163,9 @@ Post-merge: verify deploy SHA == main; bundle on app.otzar.ai.
 1. Restore Dandelion into Organization setup (**#204**)  
 2. Consolidate setup/onboarding correctly (no capability loss)  
 3. Connections plug-and-play  
-4. Access contextual + Governance overview  
-5. Policies under Governance  
-6. Data & retention under Governance  
+4. Access contextual + Governance overview — **coded** `/governance` hub (Access/Policies/Retention tabs; deep routes preserved)  
+5. Policies under Governance — **via hub tab** (full route `/policies` preserved)  
+6. Data & retention under Governance — **via hub tab** (full route `/retention` preserved)  
 7. Action Center = real exception queue  
 8. Reports into Intelligence  
 9. Security/audit cleanup  

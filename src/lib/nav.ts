@@ -191,6 +191,15 @@ export const NAV: ReadonlyArray<NavItem> = [
   },
 
   // ── 4. Governance ──────────────────────────────────────────────
+  // ONE human job: Access + Policies + Retention. Deep routes stay live.
+  {
+    label: "Governance",
+    to: "/governance",
+    icon: Shield,
+    description:
+      "Access, policies, and retention — who may act, what Otzar may do, how long data lives.",
+    group: "Governance",
+  },
   {
     label: "Policies",
     to: "/policies",
@@ -198,6 +207,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     description:
       "Access, autonomy, approvals, decision rights, sharing boundaries, and compliance gates.",
     group: "Governance",
+    hidden: true,
   },
   {
     label: "Access",
@@ -206,6 +216,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     description:
       "Who can see, use, and share what — org defaults, grants, revocations, and overrides.",
     group: "Governance",
+    hidden: true,
   },
   {
     label: "Data retention",
@@ -214,6 +225,7 @@ export const NAV: ReadonlyArray<NavItem> = [
     description:
       "How long data lives — memory revocation, transcript retention, legal hold, and proof.",
     group: "Governance",
+    hidden: true,
   },
   {
     label: "Collaboration policy",
