@@ -36,6 +36,20 @@ export const CAPABILITY_PRESERVATION_MAP: readonly CapabilityMapEntry[] = [
     status: "RECOMPOSED",
   },
   {
+    oldScreen: "Legacy /seeding and /dandelion URLs",
+    capability: "Reach full Dandelion review queue without dead links",
+    newSurface: "Redirect → /organization-seeding",
+    fullCapabilityRoute: "/organization-seeding",
+    status: "RECOMPOSED",
+  },
+  {
+    oldScreen: "Legacy /organization, /org-setup, /setup/coach",
+    capability: "Reach Organization activation + setup coach",
+    newSurface: "Redirect → /setup",
+    fullCapabilityRoute: "/setup",
+    status: "RECOMPOSED",
+  },
+  {
     oldScreen: "Onboarding (Dandelion Preview)",
     capability:
       "OOTB catalog preview; starter/team/business/enterprise activation packages",
