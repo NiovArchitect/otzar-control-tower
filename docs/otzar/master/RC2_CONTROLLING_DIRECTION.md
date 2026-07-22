@@ -181,8 +181,8 @@ Comprehension protocol: `docs/otzar/master/RC2_COMPREHENSION_PROTOCOL.md`
 
 ## 7. Open defects (do not mark closed without proof)
 
-- Talk “ping David” professional draft: **unit/card path coded** (`message-compose` + ambient bar test); **LIVE_ROUTE_VERIFIED** still open — see `RC2_TALK_PING_DAVID_PROOF.md`  
-- Residual copy: engine/codename “Dandelion” may remain in APIs/tests; **primary UI** scrubbed toward Connections / Otzar found / activation path  
+- Talk “ping David” professional draft: **merged #222** (`f564227`); live asset after merge `index-DmQQIMEk.js` (2026-07-22); **LIVE_ROUTE_VERIFIED** still needs authenticated L1–L5 — see `RC2_TALK_PING_DAVID_PROOF.md`  
+- Residual copy: engine/codename “Dandelion” may remain in APIs/tests/billing catalog; employee Meet residual + Conversations + Meeting Captures primary copy scrubbed toward human Connections language  
 - Bootstrap sadeil password stale — use working admin smoke carefully; do not lock founder  
 - Employee People previews / speak-back / mic — deploy-verify separately  
 - Visual system — not FOUNDER_VISIBLE until founder says so  

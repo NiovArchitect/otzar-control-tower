@@ -44,17 +44,17 @@ const PROVIDERS: ReadonlyArray<{
   {
     value: "GOOGLE_MEET",
     label: "Google Meet",
-    hint: "Real Google Meet ingest activates when Google Workspace is connected (Phase 1224).",
+    hint: "Automatic Meet pull works when Google Workspace is connected in Connections.",
   },
   {
     value: "ZOOM",
     label: "Zoom",
-    hint: "Real Zoom ingest activates when the Zoom connector is set up (later phase).",
+    hint: "Automatic Zoom pull works when the Zoom connector is set up in Connections.",
   },
   {
     value: "MICROSOFT_TEAMS",
     label: "Microsoft Teams",
-    hint: "Real Teams ingest activates when the Microsoft 365 connector is set up.",
+    hint: "Automatic Teams pull works when Microsoft 365 is connected in Connections.",
   },
 ];
 

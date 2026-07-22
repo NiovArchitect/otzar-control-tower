@@ -47,7 +47,7 @@ export function MeetOperationalResidualCard({
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Unplug className="h-4 w-4" aria-hidden />
-          Google Meet operational residual
+          Google Meet needs a reconnect
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-xs text-muted-foreground">
@@ -63,7 +63,7 @@ export function MeetOperationalResidualCard({
             <p className="font-medium text-foreground" data-testid="n02-mode-label">
               {meetModeLabel(mode)}
             </p>
-            <p data-testid="n02-status-code">Status: {N02_STATUS}</p>
+            {/* Status code stays in data attributes only — never primary UI copy. */}
           </div>
         </div>
 
@@ -87,12 +87,12 @@ export function MeetOperationalResidualCard({
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm" variant="outline" data-testid="n02-open-tools">
             <Link to="/app/connector-health?need=reconnect&from=n02">
-              Open Tools reconnect
+              Open Connections
             </Link>
           </Button>
           {variant === "comms" ? (
             <Button asChild size="sm" variant="ghost" data-testid="n02-paste-fallback-hint">
-              <Link to="/app/comms">Paste fallback on Comms</Link>
+              <Link to="/app/comms">Paste on Comms</Link>
             </Button>
           ) : null}
         </div>

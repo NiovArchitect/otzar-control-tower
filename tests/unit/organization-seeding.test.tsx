@@ -249,7 +249,7 @@ describe("Organization Seeding — meeting ingest card (CX-SLICE-3)", () => {
     expect(document.body.textContent).not.toMatch(/download_url|Bearer|access_token/);
   });
 
-  it("Zoom not connected → honest copy + Tools & Connections deep link", async () => {
+  it("Zoom not connected → honest copy + Connections deep link", async () => {
     seedsEmpty();
     server.use(
       http.get(`${API_BASE}/zoom/recordings`, () =>
@@ -259,6 +259,8 @@ describe("Organization Seeding — meeting ingest card (CX-SLICE-3)", () => {
     render(<MemoryRouter><OrganizationSeedingPage /></MemoryRouter>);
     const state = await screen.findByTestId("meeting-ingest-not-connected");
     expect(state).toHaveTextContent(/isn't connected/i);
+    expect(state).toHaveTextContent(/Connect it in Connections/i);
+    expect(state).not.toHaveTextContent(/Tools & Connections/i);
     expect(state.querySelector("a")).toHaveAttribute("href", "/tools-connections");
   });
 

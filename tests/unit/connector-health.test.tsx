@@ -158,13 +158,12 @@ describe("ConnectorHealth — Phase E.1 click-and-play", () => {
     );
   });
 
-  it("admins see link to Tools & Connections", async () => {
+  it("admins see link to Connections", async () => {
     setAuth(true);
     renderPage();
-    expect(await screen.findByTestId("open-tools-connections")).toHaveAttribute(
-      "href",
-      "/tools-connections",
-    );
+    const link = await screen.findByTestId("open-tools-connections");
+    expect(link).toHaveAttribute("href", "/tools-connections");
+    expect(link).toHaveTextContent(/^Connections$/);
   });
 });
 
