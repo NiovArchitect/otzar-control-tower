@@ -76,17 +76,17 @@ export function AdminOrganizationEntry(): JSX.Element | null {
     <Link
       to="/setup"
       data-testid="admin-organization-entry"
-      className="otzar-edge-trace otzar-glass-card group flex items-center gap-3 rounded-[1.5rem] px-4 py-3.5 transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-18px_rgba(177,36,232,0.28)]"
+      className="otzar-edge-trace otzar-glass-card group flex items-center gap-3 rounded-[1.35rem] px-3.5 py-3 transition hover:border-[#B124E8]/40"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#B124E8]/12 text-[#B124E8] shadow-[0_6px_16px_-8px_rgba(177,36,232,0.35)]">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#B124E8]/18 text-[#a855f7]">
         <Building2 className="h-4 w-4" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold tracking-tight text-[#1e1b4b]">
+        <span className="block text-sm font-semibold tracking-tight text-slate-100">
           Otzar found
         </span>
         <span
-          className="mt-0.5 block truncate text-xs text-[#5c5a78]"
+          className="mt-0.5 block truncate text-xs text-slate-400"
           data-testid="admin-organization-entry-signal"
         >
           {signalLine}
