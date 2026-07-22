@@ -53,7 +53,6 @@ export function deriveActivationPath(
   const tools = sectionByKey(journey, "tools");
   const gov = sectionByKey(journey, "governance");
   const workflows = sectionByKey(journey, "workflows");
-  const foundation = sectionByKey(journey, "foundation");
 
   const open = discovery.openSeedCount;
   const orgState: ActivationStepState =
