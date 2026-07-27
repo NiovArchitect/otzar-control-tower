@@ -17,21 +17,19 @@ describe("C-03 primary path integrity", () => {
     expect(assertNoComingSoonInPrimaryEmployee()).toEqual([]);
     const labels = employeePrimaryNavItems().map((i) => i.label);
     expect(labels).toContain("Today");
-    expect(labels).toContain("Talk");
     expect(labels).toContain("Needs me");
+    expect(labels).not.toContain("Talk");
   });
 
-  it("AmbientNav primary loop is Today · Talk · Needs me · People · Memory", () => {
+  it("AmbientNav primary loop is Today · Needs me · People · Memory", () => {
     expect(AMBIENT_PRIMARY_PATHS.map((p) => p.label)).toEqual([
       "Today",
-      "Talk",
       "Needs me",
       "People",
       "Memory",
     ]);
     expect(AMBIENT_PRIMARY_PATHS.map((p) => p.to)).toEqual([
       "/app",
-      "/app/voice",
       "/app/action-center",
       "/app/collaboration",
       "/app/my-memory",

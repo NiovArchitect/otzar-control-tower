@@ -107,7 +107,6 @@ import {
 } from "@/lib/voice/voice-approval-safety";
 import {
   TEXT_SECONDARY_LABEL,
-  VOICE_FIRST_HEADLINE,
   VOICE_PAGE_DESCRIPTION,
   VOICE_PAGE_TITLE,
   VOICE_WORK_PATH_COPY,
@@ -145,6 +144,7 @@ function toneIcon(tone: "ok" | "warn" | "error" | "muted"): typeof ShieldCheck {
 }
 
 export function Voice() {
+  // Secondary workspace: floating Talk is primary. This page is history + tools.
   const recognition = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
   const intent = useOtzarVoiceIntent();
@@ -568,16 +568,16 @@ export function Voice() {
     >
       <PageHeader title={VOICE_PAGE_TITLE} description={VOICE_PAGE_DESCRIPTION} />
 
-      {/* D-02 — work path banner: not a decorative mic demo */}
+      {/* Secondary workspace note: floating Talk is primary */}
       <div
-        className="rounded-lg border border-teal-500/30 bg-teal-500/5 px-3 py-2 space-y-1"
+        className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 space-y-1"
         data-testid="voice-work-path-banner"
       >
         <p className="text-sm font-medium text-foreground" data-testid="voice-first-headline">
-          {VOICE_FIRST_HEADLINE}
+          Use the floating Talk button for everyday questions
         </p>
         <p className="text-xs text-muted-foreground" data-testid="voice-work-path-copy">
-          {VOICE_WORK_PATH_COPY}
+          {VOICE_WORK_PATH_COPY} This page is for longer history and voice tools.
         </p>
         <div className="flex flex-wrap gap-3 pt-1 text-xs">
           <Link

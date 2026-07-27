@@ -47,8 +47,10 @@ export interface EmployeeNavItem {
 }
 
 /**
- * WAVE-1 primary loop (experience-first):
- *   Today · Talk · Needs me · People · Memory
+ * Primary loop (founder Talk contract):
+ *   Today · Needs me · People · Memory
+ * Day-to-day Talk = floating Talk control (AmbientOtzarBar).
+ * Full conversation workspace lives under More — not a competing primary.
  * Manager-only: Team (capacity view).
  */
 export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
@@ -56,14 +58,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     label: "Today",
     to: "/app",
     icon: Sun,
-    description: "What needs you — one calm surface.",
-    group: "primary",
-  },
-  {
-    label: "Talk",
-    to: "/app/voice",
-    icon: Mic,
-    description: "Ask Otzar by voice or text. You approve what leaves.",
+    description: "What needs you - one calm surface.",
     group: "primary",
   },
   {
@@ -77,7 +72,7 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     label: "People",
     to: "/app/collaboration",
     icon: Users,
-    description: "Teammates and shared work — the right people, not everyone.",
+    description: "Teammates and shared work - the right people, not everyone.",
     group: "primary",
   },
   {
@@ -97,6 +92,14 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
   },
 
   // ── More — rare, not the daily path ───────────────────────────
+  {
+    label: "Conversation history",
+    to: "/app/voice",
+    icon: Mic,
+    description:
+      "Longer Talk history and voice tools. Day to day: use the floating Talk button.",
+    group: "more",
+  },
   {
     label: "My AI Teammate",
     to: "/app/my-twin",

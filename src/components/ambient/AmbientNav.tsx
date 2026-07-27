@@ -9,7 +9,6 @@ import { NavLink, Link } from "react-router-dom";
 import {
   Home,
   Inbox,
-  Mic,
   Users,
   Brain,
   MoreHorizontal,
@@ -28,10 +27,12 @@ interface PrimaryItem {
   end?: boolean;
 }
 
-/** C-03 / WAVE-1: same five as EMPLOYEE_NAV primary — no dead / fake destinations. */
+/**
+ * Primary rail matches EMPLOYEE_NAV primary (no competing Talk page).
+ * Day-to-day Talk is the floating AmbientOtzarBar control.
+ */
 const PRIMARY: PrimaryItem[] = [
   { label: "Today", to: "/app", icon: Home, end: true },
-  { label: "Talk", to: "/app/voice", icon: Mic },
   { label: "Needs me", to: "/app/action-center", icon: Inbox },
   { label: "People", to: "/app/collaboration", icon: Users },
   { label: "Memory", to: "/app/my-memory", icon: Brain },

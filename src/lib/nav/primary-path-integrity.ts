@@ -20,7 +20,6 @@ export const AMBIENT_PRIMARY_PATHS: ReadonlyArray<{
   to: string;
 }> = [
   { label: "Today", to: "/app" },
-  { label: "Talk", to: "/app/voice" },
   { label: "Needs me", to: "/app/action-center" },
   { label: "People", to: "/app/collaboration" },
   { label: "Memory", to: "/app/my-memory" },

@@ -28,6 +28,10 @@ import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatPersonName } from "@/lib/identity/person-name";
+import {
+  coworkerDisplayLabel,
+  isSyntheticPrincipal,
+} from "@/lib/identity/synthetic-principal";
 import type { ContextHealthResponse } from "@/lib/types/foundation";
 import { PersonCockpit } from "@/components/otzar/PersonCockpit";
 import { PersonRelationshipPreview } from "@/components/otzar/PersonRelationshipPreview";
@@ -147,15 +151,24 @@ export function PeopleDirectory({
 
   // Sort identical to Foundation's preamble ordering:
   // shared_project_count DESC, recent_collab_count DESC, name ASC.
-  const sorted = [...roster].sort((a, b) => {
-    if (b.shared_project_count !== a.shared_project_count) {
-      return b.shared_project_count - a.shared_project_count;
-    }
-    if (b.recent_collab_count !== a.recent_collab_count) {
-      return b.recent_collab_count - a.recent_collab_count;
-    }
-    return a.display_name.localeCompare(b.display_name);
-  });
+  // Hide synthetic RC2 / pressure principals from coworker-facing directory.
+  const sorted = [...roster]
+    .filter(
+      (p) =>
+        !isSyntheticPrincipal({
+          email: p.email,
+          display_name: p.display_name,
+        }),
+    )
+    .sort((a, b) => {
+      if (b.shared_project_count !== a.shared_project_count) {
+        return b.shared_project_count - a.shared_project_count;
+      }
+      if (b.recent_collab_count !== a.recent_collab_count) {
+        return b.recent_collab_count - a.recent_collab_count;
+      }
+      return a.display_name.localeCompare(b.display_name);
+    });
 
   const typeInventory = inventoryPersonTypes(
     sorted.map((p) => ({
@@ -211,10 +224,20 @@ export function PeopleDirectory({
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
                     aria-hidden
                   >
-                    {initials(p.display_name)}
+                    {initials(
+                      coworkerDisplayLabel({
+                        display_name: p.display_name,
+                        email: p.email,
+                      }),
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{formatPersonName(p.display_name)}</p>
+                    <p className="truncate text-sm font-medium">
+                      {coworkerDisplayLabel({
+                        display_name: p.display_name,
+                        email: p.email,
+                      })}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {humanizeTitle(p.title)}
                     </p>

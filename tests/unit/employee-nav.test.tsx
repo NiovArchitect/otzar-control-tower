@@ -1,6 +1,7 @@
 // FILE: tests/unit/employee-nav.test.tsx
-// PURPOSE: Locks EmployeeNav WAVE-1 IA:
-//          Primary: Today · Talk · Needs me · People · Memory (+ Team admin)
+// PURPOSE: Locks EmployeeNav IA:
+//          Primary: Today · Needs me · People · Memory (+ Team admin)
+//          Talk is floating-primary; Conversation history is More.
 //          More: curated secondary only — no SaaS tab farm.
 // CONNECTS TO:
 //   - src/lib/nav-employee.ts (source of truth)
@@ -48,16 +49,16 @@ async function openMore(): Promise<void> {
 }
 
 describe("nav-employee.ts — primary / more groupings", () => {
-  it("primary group is the WAVE-1 everyday loop", () => {
+  it("primary group is the everyday loop without competing Talk page", () => {
     const labels = PRIMARY_EMPLOYEE_NAV.map((i) => i.label);
     expect(labels).toEqual([
       "Today",
-      "Talk",
       "Needs me",
       "People",
       "Memory",
       "Team",
     ]);
+    expect(labels).not.toContain("Talk");
   });
 
   it("more group is curated secondary surfaces — no admin/diagnostic junk", () => {
@@ -65,6 +66,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
     const visible = MORE_EMPLOYEE_NAV.filter((i) => i.hidden !== true).map(
       (i) => i.label,
     );
+    expect(visible).toContain("Conversation history");
     expect(visible).toContain("Projects");
     expect(visible).toContain("My AI Teammate");
     expect(visible).toContain("Account & Security");

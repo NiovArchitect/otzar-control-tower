@@ -11,16 +11,19 @@ import type { VoiceActionKind } from "@/lib/voice/voice-action-runtime";
 
 /** Primary framing — speak first; type is always available as fallback. */
 export const VOICE_FIRST_HEADLINE =
-  "Speak to drive work — type when you prefer.";
+  "Speak to drive work - type when you prefer.";
 
 /** Honest secondary line: one runtime, not a voice-only sandbox. */
 export const VOICE_WORK_PATH_COPY =
-  "Voice and text share the same governed work path — actions, Needs me, and approvals. No raw audio is stored.";
+  "Voice and text share the same governed work path - actions, Needs me, and approvals. No raw audio is stored.";
 
-/** /app/voice page is the full Talk surface, not a mic test toy. */
-export const VOICE_PAGE_TITLE = "Talk to Otzar";
+/**
+ * /app/voice is the secondary Conversation history workspace.
+ * Day-to-day Talk is the floating control (AmbientOtzarBar).
+ */
+export const VOICE_PAGE_TITLE = "Conversation history";
 export const VOICE_PAGE_DESCRIPTION =
-  "Drive real work by voice. Type is secondary. Otzar uses the same governed path as the Talk dock.";
+  "Review longer Talk history, sources, and voice tools here. For everyday questions, use the floating Talk button - it is the same conversation and the same governed path.";
 
 /** Text-input affordance when voice is primary. */
 export const TEXT_SECONDARY_PLACEHOLDER = "Or type…";

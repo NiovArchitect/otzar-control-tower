@@ -1,7 +1,7 @@
 // FILE: tests/unit/ambient-nav.test.tsx
 // PURPOSE: [OTZAR-LIVE-6 / WAVE-1] Employee ambient nav is a calm primary
-//          loop (Today / Talk / Needs me / People / Memory + More), not a
-//          SaaS sidebar. Secondary surfaces stay out of the default rail.
+//          loop (Today / Needs me / People / Memory + More), not a
+//          SaaS sidebar. Talk is floating-primary. Secondary under More.
 // CONNECTS TO: src/components/ambient/AmbientNav.tsx.
 
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
@@ -42,10 +42,11 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
     const rails = screen.getAllByTestId("ambient-nav");
     expect(rails.length).toBeGreaterThanOrEqual(1);
     const rail = rails[0]!;
-    // C-03 / WAVE-1: Today · Talk · Needs me · People · Memory (+ More).
-    for (const label of ["Today", "Talk", "Needs me", "People", "Memory"]) {
+    // Today · Needs me · People · Memory (+ More). Talk = floating control.
+    for (const label of ["Today", "Needs me", "People", "Memory"]) {
       expect(within(rail).getAllByText(label).length).toBeGreaterThan(0);
     }
+    expect(within(rail).queryByText("Talk")).toBeNull();
     expect(within(rail).queryByText("Comms")).toBeNull();
     expect(within(rail).getAllByText("More").length).toBeGreaterThan(0);
   });

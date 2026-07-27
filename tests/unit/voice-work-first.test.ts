@@ -18,12 +18,14 @@ import {
 import type { VoiceActionKind } from "../../src/lib/voice/voice-action-runtime";
 
 describe("D-02 voice-work-first contract", () => {
-  it("frames voice as primary work driver, not a demo toy", () => {
+  it("frames floating Talk as primary; /app/voice as history workspace", () => {
     expect(VOICE_FIRST_HEADLINE.toLowerCase()).toMatch(/speak|voice/);
     expect(VOICE_FIRST_HEADLINE.toLowerCase()).toMatch(/work|type/);
     expect(VOICE_WORK_PATH_COPY.toLowerCase()).toMatch(/same governed work path|actions|needs me|approval/);
-    expect(VOICE_PAGE_DESCRIPTION.toLowerCase()).toMatch(/drive real work|type is secondary/);
-    expect(VOICE_PAGE_TITLE).toMatch(/Talk to Otzar/i);
+    expect(VOICE_PAGE_DESCRIPTION.toLowerCase()).toMatch(
+      /floating talk|conversation|history|governed path/,
+    );
+    expect(VOICE_PAGE_TITLE).toMatch(/Conversation history/i);
     expect(TEXT_SECONDARY_LABEL.toLowerCase()).toMatch(/type|secondary/);
     expect(TEXT_SECONDARY_PLACEHOLDER.toLowerCase()).toMatch(/type/);
   });

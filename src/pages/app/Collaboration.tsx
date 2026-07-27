@@ -188,11 +188,11 @@ export function Collaboration() {
   return (
     <div className="space-y-6" data-testid="collaboration-page" data-l01-surface="true">
       <PageHeader
-        title="People & Collaboration"
-        description="Who reports to whom, who you can work with, and how to ask for help, without org-wide noise."
+        title="People"
+        description="Your teammates and how to work with them. Reporting structure is optional - open it only when you need it."
       />
 
-      {/* Structure first — must land in viewport for first-use (RC2 F6). */}
+      {/* Optional reporting structure - collapsed by default (founder rejection). */}
       <PeopleStructureGlance />
 
       <PeopleDirectory
