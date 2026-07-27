@@ -36,6 +36,33 @@ describe("classifyAskTwin — Work OS questions route deterministically", () => 
     expect(r.kind).toBe("WORK_OS_ROUTE");
     if (r.kind === "WORK_OS_ROUTE") expect(r.route).toBe("/app/team-work");
   });
+
+  it("routes natural team-status phrasings to /app/team-work (RC2 grounded Twin)", () => {
+    for (const q of [
+      "What is my team up to?",
+      "what's my team working on?",
+      "how is my team doing",
+      "team status",
+      "what is everyone working on?",
+    ]) {
+      const r = classifyAskTwin(q);
+      expect(r.kind, q).toBe("WORK_OS_ROUTE");
+      if (r.kind === "WORK_OS_ROUTE") expect(r.route).toBe("/app/team-work");
+    }
+  });
+
+  it("routes approval and what-changed to durable surfaces (not blank chat)", () => {
+    const approval = classifyAskTwin("what needs my approval?");
+    expect(approval.kind).toBe("WORK_OS_ROUTE");
+    if (approval.kind === "WORK_OS_ROUTE") {
+      expect(approval.route).toBe("/app/action-center");
+    }
+    const changed = classifyAskTwin("what changed since I was last here?");
+    expect(changed.kind).toBe("WORK_OS_ROUTE");
+    if (changed.kind === "WORK_OS_ROUTE") {
+      expect(changed.route).toBe("/app");
+    }
+  });
 });
 
 describe("classifyAskTwin — another person's Twin is disabled-honest", () => {

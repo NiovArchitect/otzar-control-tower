@@ -161,7 +161,25 @@ const ACTION_DESTINATIONS: ReadonlyArray<{
   { keywords: ["projects"], route: "/app/work-projects", label: "Projects", admin_only: false },
   // ── Work OS cockpits (Phase 1279 durable Work Ledger) ─────────
   { keywords: ["my work", "what do i owe", "what i owe", "what is waiting on me", "what's waiting on me", "what do i need to do"], route: "/app/my-work", label: "My Work", admin_only: false },
-  { keywords: ["team work", "team's work", "what does my team owe", "who is waiting on whom"], route: "/app/team-work", label: "Team Work", admin_only: false },
+  {
+    keywords: [
+      "team work",
+      "team's work",
+      "what does my team owe",
+      "who is waiting on whom",
+      "what is my team up to",
+      "what's my team up to",
+      "what is my team working on",
+      "what's my team working on",
+      "what is the team working on",
+      "team status",
+      "team momentum",
+      "how is my team doing",
+    ],
+    route: "/app/team-work",
+    label: "Team Work",
+    admin_only: false,
+  },
   { keywords: ["blind spots", "blind spot", "what am i missing", "what's blocked", "what is blocked", "what is slipping", "what's slipping"], route: "/app/blind-spots", label: "Blind Spots", admin_only: false },
   { keywords: ["work comms"], route: COMMS_ROUTE, label: "Work Comms", admin_only: false },
   { keywords: ["action center", "approvals"], route: "/app/action-center", label: "Action Center", admin_only: false },
@@ -488,9 +506,26 @@ export const WORK_OS_QUERIES: ReadonlyArray<{
     label: "Blind Spots",
   },
   {
-    patterns: /\b(team work|what does my team owe|who is waiting on whom)\b/,
+    // RC2 grounded Twin: team-status questions open durable Team Work
+    // (open obligations/handoffs), never a blank LLM "nothing found".
+    patterns:
+      /\b(team work|what does my team owe|who is waiting on whom|what(?:'s| is) my team (up to|working on)|what(?:'s| is) the team working on|team status|team momentum|how is my team doing|what is (?:everyone|the team) (?:doing|working on))\b/,
     route: "/app/team-work",
     label: "Team Work",
+  },
+  {
+    // "What needs my approval" → Action Center (Needs me), not generic chat.
+    patterns:
+      /\b(what needs my approval|what(?:'s| is) waiting (?:for|on) (?:my )?approval|approvals? (?:for me|waiting)|what do i need to approve)\b/,
+    route: "/app/action-center",
+    label: "Needs me",
+  },
+  {
+    // "What changed" → Today (real state bands), not a fake feed prompt.
+    patterns:
+      /\b(what changed( since (i was )?last here)?|what(?:'s| is) new( today)?|what happened (while i was away|since last time))\b/,
+    route: "/app",
+    label: "Today",
   },
 ];
 

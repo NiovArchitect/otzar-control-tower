@@ -5,7 +5,7 @@
 //          as Control Tower Users). Never invents edges.
 // CONNECTS TO: Collaboration page, api.org.hierarchy, personal-structure.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Network } from "lucide-react";
@@ -29,6 +29,7 @@ export function PeopleStructureGlance(): JSX.Element {
   const email = useAuthStore((s) => s.entity?.email ?? null);
   const capabilities = useAuthStore((s) => s.capabilities);
   const admin = isOrgAdmin(capabilities);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const hierarchy = useQuery({
     queryKey: ["org", "hierarchy", "people-glance"],
@@ -58,29 +59,52 @@ export function PeopleStructureGlance(): JSX.Element {
     (hierarchy.data && !hierarchy.data.ok) ||
     (people.data && !people.data.ok);
 
+  // RC2 F6: structure glance must land in viewport on People (first-use).
+  useEffect(() => {
+    if (loading) return;
+    const el = rootRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const inView =
+      rect.top >= 0 &&
+      rect.top < (typeof window !== "undefined" ? window.innerHeight * 0.75 : 600);
+    if (!inView) {
+      el.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }, [loading, structure, denied]);
+
   if (loading) {
     return (
-      <Card data-testid="people-structure-loading">
-        <CardContent className="py-4">
-          <Skeleton className="h-16 w-full" />
-        </CardContent>
-      </Card>
+      <div ref={rootRef} className="scroll-mt-4">
+        <Card data-testid="people-structure-loading">
+          <CardContent className="py-4">
+            <Skeleton className="h-16 w-full" />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (denied || structure === null) {
     return (
-      <Card data-testid="people-structure-unavailable">
-        <CardContent className="py-3 text-sm text-muted-foreground">
-          Reporting structure is not available on this account yet.
-        </CardContent>
-      </Card>
+      <div ref={rootRef} className="scroll-mt-4">
+        <Card data-testid="people-structure-unavailable">
+          <CardContent className="py-3 text-sm text-muted-foreground">
+            Reporting structure is not available on this account yet.
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   const trees = structure.trees.slice(0, 6);
 
   return (
+    <div
+      ref={rootRef}
+      className="scroll-mt-4 sticky top-0 z-10 -mx-1 bg-background/95 px-1 pb-1 backdrop-blur-sm"
+      data-testid="people-structure-anchor"
+    >
     <Card data-testid="people-structure-glance">
       <CardHeader className="space-y-1 pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
@@ -88,7 +112,7 @@ export function PeopleStructureGlance(): JSX.Element {
           How work reports
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Otzar routes reviews and escalations along this structure — not a flat
+          Otzar routes reviews and escalations along this structure - not a flat
           list of names.
         </p>
       </CardHeader>
@@ -206,6 +230,7 @@ export function PeopleStructureGlance(): JSX.Element {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
 

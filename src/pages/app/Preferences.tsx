@@ -24,6 +24,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/lib/stores/auth";
+import {
+  clearWalkthrough,
+  hasCompletedWalkthrough,
+} from "@/lib/first-use/state";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
   CreateCorrectionRequest,
@@ -110,6 +115,8 @@ function labelScope(value: TwinCorrectionScopeType): string {
 
 export function Preferences() {
   const queryClient = useQueryClient();
+  const email = useAuthStore((s) => s.entity?.email ?? null);
+  const [guideNote, setGuideNote] = useState<string | null>(null);
   const list = useQuery({
     queryKey: ["otzar", "correction-memory", "active"],
     queryFn: () => api.otzar.correctionMemory.list({ state: "ACTIVE" }),
@@ -122,11 +129,43 @@ export function Preferences() {
         description="Help your AI Teammate understand how you work. Personal preferences, tone, project context, sensitivity boundaries, and ask-before-acting rules. Personal items stay personal; team/org candidates are candidates only."
       />
 
+      <Card data-testid="preferences-walkthrough-card">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Getting started guide</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            {hasCompletedWalkthrough(email)
+              ? "You finished the first-hour guide. Restart anytime - it will not force every feature."
+              : "Resume or restart the first-hour guide from Today. Skip never deletes your progress."}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="preferences-walkthrough-restart"
+            onClick={() => {
+              clearWalkthrough(email);
+              setGuideNote(
+                "Guide reset. Open Today - the walkthrough coach will appear again.",
+              );
+            }}
+          >
+            Restart walkthrough
+          </Button>
+          {guideNote ? (
+            <p className="w-full text-xs text-indigo-700" data-testid="preferences-walkthrough-note">
+              {guideNote}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
       <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
         <p className="font-medium text-foreground">How this works</p>
         <ul className="mt-1 list-disc space-y-1 pl-5">
           <li>Personal items stay personal unless you share them.</li>
-          <li>Team / org candidates are candidates only — they do not auto-promote.</li>
+          <li>Team / org candidates are candidates only - they do not auto-promote.</li>
           <li>This is not a performance record.</li>
           <li>You can revoke any item later.</li>
         </ul>

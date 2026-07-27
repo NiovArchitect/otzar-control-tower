@@ -15,6 +15,7 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import {
+  clearWalkthrough,
   getWalkthroughStepIndex,
   hasCompletedWalkthrough,
   hydrateWalkthroughFromServer,
@@ -159,7 +160,37 @@ export function FirstUseReveal(): JSX.Element | null {
     (step.ctaTo !== "/app" && location.pathname.startsWith(step.ctaTo));
 
   if (hydrating) return null;
-  if (dismissed) return null;
+
+  // Completed: keep a calm "Show guide again" affordance (RC2 restart).
+  // Does not auto-restart; never covers Talk (bottom-left chip).
+  if (dismissed) {
+    return (
+      <div
+        className="pointer-events-none fixed bottom-4 left-4 z-[45] sm:bottom-6 sm:left-6"
+        data-testid="first-use-reveal-restart"
+        data-coach-mode="restart"
+      >
+        <button
+          type="button"
+          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-md backdrop-blur hover:border-indigo-200 hover:text-indigo-700"
+          data-testid="walkthrough-restart"
+          onClick={() => {
+            clearWalkthrough(email);
+            setStepIndex(0);
+            setWalkthroughStepIndex(email, 0, undefined, {
+              persistServer: false,
+            });
+            setPaused(false);
+            setDismissed(false);
+            setConfirmNote(null);
+          }}
+        >
+          <Sparkles className="h-3.5 w-3.5" aria-hidden />
+          Restart walkthrough
+        </button>
+      </div>
+    );
+  }
 
   const coachMode: WalkthroughCoachMode =
     talkOpen && !pinFullWhileTalk
@@ -168,7 +199,7 @@ export function FirstUseReveal(): JSX.Element | null {
         ? "confirmation"
         : "anchored";
 
-  // Paused chip: bottom-LEFT so it never covers default Talk (bottom-right).
+  // Paused / Skip for now: bottom-LEFT so it never covers default Talk (bottom-right).
   if (paused) {
     return (
       <div
@@ -183,7 +214,7 @@ export function FirstUseReveal(): JSX.Element | null {
           onClick={() => setPaused(false)}
         >
           <Sparkles className="h-3.5 w-3.5" aria-hidden />
-          Continue guide
+          Continue walkthrough
         </button>
       </div>
     );
@@ -338,9 +369,16 @@ export function FirstUseReveal(): JSX.Element | null {
                 <button
                   type="button"
                   className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-slate-50"
-                  aria-label="Skip guide"
+                  aria-label="Skip for now"
+                  title="Skip for now — you can continue later"
                   data-testid="first-use-review-work"
-                  onClick={() => complete()}
+                  data-skip-for-now="true"
+                  onClick={() => {
+                    // RC2: Skip does NOT complete. Pause keeps progress;
+                    // Continue walkthrough chip restores the coach.
+                    setWalkthroughStepIndex(email, safeIndex);
+                    setPaused(true);
+                  }}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -447,6 +485,17 @@ export function FirstUseReveal(): JSX.Element | null {
                 onClick={() => next()}
               >
                 {safeIndex + 1 >= steps.length ? "Finish" : "Next"}
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white"
+                data-testid="walkthrough-skip-for-now"
+                onClick={() => {
+                  setWalkthroughStepIndex(email, safeIndex);
+                  setPaused(true);
+                }}
+              >
+                Skip for now
               </button>
               <button
                 type="button"

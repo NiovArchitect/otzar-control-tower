@@ -164,4 +164,18 @@ describe("versioned completion keys (A-04)", () => {
     expect(hasCompletedWalkthrough(email, "v2")).toBe(false);
     clearFirstUse(email);
   });
+
+  it("restart clears completion so the coach can return (RC2)", () => {
+    clearWalkthrough(email);
+    markWalkthroughComplete(email);
+    expect(hasCompletedWalkthrough(email)).toBe(true);
+    clearWalkthrough(email);
+    expect(hasCompletedWalkthrough(email)).toBe(false);
+    setWalkthroughStepIndex(email, 1, WALKTHROUGH_VERSION, {
+      persistServer: false,
+    });
+    expect(getWalkthroughStepIndex(email)).toBe(1);
+    // In-progress step is not completion — Skip for now must leave this intact.
+    expect(hasCompletedWalkthrough(email)).toBe(false);
+  });
 });
