@@ -59,8 +59,12 @@ function humanizeTitle(title: string): string {
       return "Go-to-Market Lead";
     case "PRODUCT LEAD":
       return "Product Lead";
+    case "CPO":
+      return "CPO";
     case "RISK & COMPLIANCE LEAD":
       return "Risk & Compliance Lead";
+    case "SENIOR ENGINEER AND RESEARCHER":
+      return "Senior Engineer and Researcher";
     case "MEDIA LEAD":
       return "Media Lead";
     case "MEMBER":
