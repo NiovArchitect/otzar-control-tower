@@ -10,6 +10,12 @@ import type {
   TwinCollaborationState,
 } from "@/lib/types/foundation";
 
+export interface CollaborationJourneyStep {
+  label: string;
+  detail: string;
+  done: boolean;
+}
+
 export interface CollaborationReceiptView {
   collaboration_id: string;
   /** Short human title — never a UUID. */
@@ -24,6 +30,8 @@ export interface CollaborationReceiptView {
   is_ai_teammate: boolean;
   /** Link into Action Center / People for progressive disclosure. */
   proof_path: string;
+  /** Human-readable journey from gap → result (no agent chatter). */
+  journey: CollaborationJourneyStep[];
 }
 
 /**
@@ -82,6 +90,44 @@ export function buildCollaborationReceipt(
   }
 
   const elapsed = formatElapsed(item.created_at, item.completed_at);
+  const completed = item.state === "COMPLETED";
+  const accepted =
+    completed ||
+    item.state === "ACCEPTED" ||
+    item.state === "IN_PROGRESS" ||
+    item.state === "REQUESTED";
+  const journey: CollaborationJourneyStep[] = [
+    {
+      label: "Work gap detected",
+      detail: "Authorized context or evidence was missing for the active review.",
+      done: true,
+    },
+    {
+      label: "Minimum request",
+      detail: why,
+      done: true,
+    },
+    {
+      label: "Target AI Teammate / human responds",
+      detail:
+        item.state === "NEEDS_APPROVAL"
+          ? "Waiting for acceptance under policy."
+          : "Routed to the owning teammate under organization policy.",
+      done: accepted || completed,
+    },
+    {
+      label: "Result applied",
+      detail: completed
+        ? "Accepted summary is available for dependent work and Talk."
+        : "Result not yet finalized.",
+      done: completed,
+    },
+    {
+      label: "Private memory excluded",
+      detail: "Only the safe summary and allowed work context were shared.",
+      done: true,
+    },
+  ];
 
   return {
     collaboration_id: item.collaboration_id,
@@ -97,6 +143,7 @@ export function buildCollaborationReceipt(
     state: item.state,
     is_ai_teammate: isAi,
     proof_path: `/app/collaboration?focus=${encodeURIComponent(item.collaboration_id)}`,
+    journey,
   };
 }
 

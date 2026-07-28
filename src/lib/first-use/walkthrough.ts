@@ -1,10 +1,11 @@
 // FILE: walkthrough.ts
-// PURPOSE: Role-aware first-use walkthrough plan (v3).
-//          Persistent, route-aware steps. Plain language only.
-//          No long dashes. No internal engineering terms.
+// PURPOSE: Role-aware first-use walkthrough plan (v4).
+//          Full YC Labs journey: ingest → understanding → destinations →
+//          AI collab → disagreement → human exception → final agreement →
+//          management result. Plain language only.
 // CONNECTS TO: FirstUseReveal, correctionMemory API.
 
-export const WALKTHROUGH_VERSION = "v3" as const;
+export const WALKTHROUGH_VERSION = "v4" as const;
 
 export type WalkthroughRole =
   | "administrator"
@@ -37,7 +38,7 @@ export function resolveWalkthroughRole(input: {
 }): WalkthroughRole {
   if (input.isOrgAdmin) return "administrator";
   const t = `${input.title ?? ""} ${input.orgRole ?? ""}`.toLowerCase();
-  if (/\b(ceo|founder|executive|vp|chief|cfo|coo|cto)\b/.test(t)) {
+  if (/\b(ceo|founder|executive|vp|chief|cfo|coo|cto|partner)\b/.test(t)) {
     return "executive";
   }
   if (/\b(manager|lead|director|head|owner)\b/.test(t)) return "manager";
@@ -47,12 +48,11 @@ export function resolveWalkthroughRole(input: {
   return "employee";
 }
 
-/** Product-demo path: ingest → understanding → collab/decision → exception-only. */
-const PROBLEM_VALUE: WalkthroughStep = {
-  id: "problem_value",
-  title: "Application review fragments across conversations",
-  body: "Partner notes, diligence calls, and chat scatter decisions. Paste a real transcript so Otzar keeps people, commitments, risks, and disagreements connected.",
-  why: "You should not reconstruct context by hand for every application.",
+const STEP_INGEST: WalkthroughStep = {
+  id: "ingest",
+  title: "Bring in a real review conversation",
+  body: "Application reviews fragment across meetings and chat. Paste or upload a HelioGrid transcript so Otzar preserves the source.",
+  why: "Ingestion is the start of organizational understanding.",
   doNext: "Open Bring in a transcript and paste or upload a review discussion.",
   ctaLabel: "Bring in a transcript",
   ctaTo: "/app/observe",
@@ -61,50 +61,112 @@ const PROBLEM_VALUE: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-const HANDLED_PROOF: WalkthroughStep = {
-  id: "handled_proof",
-  title: "See what Otzar understood and where it went",
-  body: "Otzar shows decisions, commitments, risks, and destinations — Today, projects, people, and Talk — without raw pipeline noise. AI Teammates can close routine dependencies under policy.",
-  why: "Results and proof matter more than inspecting Otzar's machinery.",
-  doNext: "Review completed work or a collaboration receipt for this application.",
-  ctaLabel: "Open completed work",
-  ctaTo: "/app/action-center?tab=completed",
-  testId: "walkthrough-step-completed",
-  targetContract: ["[data-testid='action-center'], [data-testid='collaboration-page']"],
+const STEP_UNDERSTAND: WalkthroughStep = {
+  id: "understand",
+  title: "See what Otzar understood",
+  body: "People, decisions, commitments, risks, and disagreements appear in plain language — not as pipeline events.",
+  why: "Understanding without living in machinery.",
+  doNext: "Read decisions, commitments, and risks on the result card.",
+  ctaLabel: "Review understanding",
+  ctaTo: "/app/observe",
+  testId: "walkthrough-step-understand",
+  targetContract: ["[data-testid='observe-read']"],
+  facets: ["org_state"],
+};
+
+const STEP_DESTINATIONS: WalkthroughStep = {
+  id: "destinations",
+  title: "See where the information went",
+  body: "The same truth projects to Today, projects, people, Talk, and Memory — role-appropriate, not duplicated noise.",
+  why: "You should always know where work landed.",
+  doNext: "Use Where this went links after a successful read.",
+  ctaLabel: "Open Today",
+  ctaTo: "/app",
+  testId: "walkthrough-step-destinations",
+  targetContract: ["[data-testid='ambient-work-surface'], [data-testid='employee-shell-main']"],
+  facets: ["org_state"],
+};
+
+const STEP_COLLAB: WalkthroughStep = {
+  id: "ai_collab",
+  title: "AI Teammates close evidence gaps",
+  body: "When one review function needs another’s proof, AI Teammates request only authorized context and leave a readable receipt — not agent chat.",
+  why: "Coordination without status meetings.",
+  doNext: "Open People and open a completed collaboration receipt.",
+  ctaLabel: "Open collaboration",
+  ctaTo: "/app/collaboration",
+  testId: "walkthrough-step-collab",
+  targetContract: ["[data-testid='collaboration-page'], [data-testid='collab-receipt-card']"],
   facets: ["ai_action"],
 };
 
-const EXCEPTION_ONLY: WalkthroughStep = {
-  id: "exception_only",
-  title: "You only join when judgment is required",
-  body: "Disagreements and high-stakes calls land in Needs me with a clear why. Routine organization stays out of that queue.",
-  why: "At scale, raw review counts fail. Exceptions must be rare and clear.",
-  doNext: "Open Needs me and resolve only the material disagreement or authority question.",
-  ctaLabel: "Open exceptions",
+const STEP_EXCEPTION: WalkthroughStep = {
+  id: "exception",
+  title: "Only material judgment enters Needs me",
+  body: "HelioGrid advance-or-hold and security gates need humans. Routine organization does not fill this queue.",
+  why: "Exception-only attention scales.",
+  doNext: "Open Needs me and confirm the disagreement or authority item.",
+  ctaLabel: "Open Needs me",
   ctaTo: "/app/action-center?tab=pending",
-  testId: "walkthrough-step-exceptions",
+  testId: "walkthrough-step-exception",
   targetContract: ["[data-testid='action-center']"],
   facets: ["org_state"],
 };
 
+const STEP_AGREEMENT: WalkthroughStep = {
+  id: "final_agreement",
+  title: "Resolve disagreement into a current decision",
+  body: "When security evidence is enough, the final governed recommendation becomes current. Older positions stay historical.",
+  why: "Detection without closure is not the product.",
+  doNext: "Open completed work and the HelioGrid report for the current decision.",
+  ctaLabel: "Open completed work",
+  ctaTo: "/app/action-center?tab=completed",
+  testId: "walkthrough-step-agreement",
+  targetContract: ["[data-testid='action-center']"],
+  facets: ["ai_action"],
+};
+
+const STEP_MANAGEMENT: WalkthroughStep = {
+  id: "management",
+  title: "See the management result",
+  body: "One compact HelioGrid review board: recommendation, evidence, work completed, AI collabs, human decisions, open risk, proof.",
+  why: "Executives need signal, not activity vanity.",
+  doNext: "Open the HelioGrid review board.",
+  ctaLabel: "Open HelioGrid report",
+  ctaTo: "/app/heliogrid-report",
+  testId: "walkthrough-step-management",
+  targetContract: ["[data-testid='heliogrid-report']"],
+  facets: ["org_state"],
+};
+
+const STEP_TALK: WalkthroughStep = {
+  id: "talk",
+  title: "Ask Otzar anything about the review",
+  body: "Talk answers from grounded work — even with typos. Ask what changed, who owes work, or what was decided.",
+  why: "Exploration without rebuilding context.",
+  doNext: "Open Talk and ask about HelioGrid.",
+  ctaLabel: "Open Talk",
+  ctaTo: "/app/chat",
+  testId: "walkthrough-step-talk",
+  targetContract: ["[data-testid='employee-shell-main']"],
+  facets: ["provider_honesty"],
+};
+
 /**
- * Role-specific paths. ≤3 steps. Product demonstration, not feature tour.
+ * Full YC application-review journey for all roles.
+ * Compact enough for first-use; complete enough for product story.
  */
-export function walkthroughStepsFor(role: WalkthroughRole): WalkthroughStep[] {
-  // All roles: product demonstration sequence, not a feature tour.
-  // Max 3 steps. Connections only when role is administrator (setup hygiene).
-  switch (role) {
-    case "administrator":
-      return [PROBLEM_VALUE, HANDLED_PROOF, EXCEPTION_ONLY];
-    case "executive":
-      return [PROBLEM_VALUE, HANDLED_PROOF, EXCEPTION_ONLY];
-    case "manager":
-      return [PROBLEM_VALUE, HANDLED_PROOF, EXCEPTION_ONLY];
-    case "contractor":
-    case "employee":
-    default:
-      return [PROBLEM_VALUE, HANDLED_PROOF, EXCEPTION_ONLY];
-  }
+export function walkthroughStepsFor(_role: WalkthroughRole): WalkthroughStep[] {
+  return [
+    STEP_INGEST,
+    STEP_UNDERSTAND,
+    STEP_DESTINATIONS,
+    STEP_COLLAB,
+    STEP_EXCEPTION,
+    STEP_AGREEMENT,
+    STEP_MANAGEMENT,
+    STEP_TALK,
+  ];
 }
 
 export function walkthroughMarker(version: string = WALKTHROUGH_VERSION): string {
