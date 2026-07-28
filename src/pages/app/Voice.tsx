@@ -225,8 +225,10 @@ export function Voice() {
         ? intent.response.speech_ready_text
         : intent.response.response;
     lastAutoSpokenKeyRef.current = responseKey;
-    void speakWithOtzarVoice(sayable, (t) =>
-      synthesis.speak(t, { source: "auto", force: false }),
+    void speakWithOtzarVoice(
+      sayable,
+      (t) => synthesis.speak(t, { source: "auto", force: false }),
+      { allowDeviceFallback: false },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSpeak, responseKey]);
@@ -287,9 +289,11 @@ export function Voice() {
   function handleTestVoice(): void {
     // force=true bypasses auto-speak dedupe; the in-flight check
     // inside the hook still prevents queue duplication from rapid
-    // clicks.
-    void speakWithOtzarVoice(TEST_VOICE_PHRASE, (t) =>
-      synthesis.speak(t, { source: "test", force: true }),
+    // clicks. Premium Orion only — no silent browser robot.
+    void speakWithOtzarVoice(
+      TEST_VOICE_PHRASE,
+      (t) => synthesis.speak(t, { source: "test", force: true }),
+      { allowDeviceFallback: false },
     );
   }
 
@@ -299,8 +303,10 @@ export function Voice() {
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
-    void speakWithOtzarVoice(sayable, (t) =>
-      synthesis.speak(t, { source: "replay", force: true }),
+    void speakWithOtzarVoice(
+      sayable,
+      (t) => synthesis.speak(t, { source: "replay", force: true }),
+      { allowDeviceFallback: false },
     );
   }
 
@@ -1293,14 +1299,11 @@ export function Voice() {
                   : "text only"}{" "}
               ·
               Voice output:{" "}
-              {synthesis.supported
-                ? synthesis.muted
-                  ? "muted"
-                  : "browser/device TTS"
-                : "speech-ready text"}
-              {response !== null && !response.voice_output_supported ? (
-                <span> · Live Sesame voice not enabled yet.</span>
-              ) : null}{" "}
+              {synthesis.muted
+                ? "muted"
+                : response !== null && response.voice_output_supported
+                  ? "premium Orion"
+                  : "premium voice when available"}{" "}
               · No raw audio is stored.
             </p>
           </CardContent>

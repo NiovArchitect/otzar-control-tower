@@ -95,8 +95,12 @@ export default function VoiceProviders(): JSX.Element {
     "PREMIUM" | "FALLBACK" | null
   >(null);
   async function handleHearIt(): Promise<void> {
-    const outcome = await speakWithOtzarVoice(PRONUNCIATION_PHRASE, (t) =>
-      synthesis.speak(t, { source: "test", force: true }),
+    // Premium Orion first. Device only if admin explicitly needs a
+    // labeled fallback after premium fails (accessibility / offline).
+    const outcome = await speakWithOtzarVoice(
+      PRONUNCIATION_PHRASE,
+      (t) => synthesis.speak(t, { source: "test", force: true }),
+      { allowDeviceFallback: true },
     );
     setLastVoice(outcome.kind === "PREMIUM" ? "PREMIUM" : "FALLBACK");
   }
