@@ -81,7 +81,13 @@ import { buildFounderSignalLanes } from "@/lib/today/founder-signal-hierarchy";
 function greetingFor(hour: number, name: string | null): string {
   const base =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  return name === null ? base : `${base}, ${name.split(" ")[0]}`;
+  if (name === null || name.trim().length === 0) return base;
+  // Demo/org greetings may be multi-word ("Y Combinator"); keep full phrase.
+  const trimmed = name.trim();
+  if (/\s/.test(trimmed) && /combinator|labs|partners/i.test(trimmed)) {
+    return `${base}, ${trimmed}`;
+  }
+  return `${base}, ${trimmed.split(" ")[0]}`;
 }
 
 /** Local friendly action type — never raw DUAL_CONTROL or UUIDs on Today. */
@@ -129,6 +135,9 @@ export function AmbientWorkSurface(): JSX.Element {
   // B-05 — role title from context-health (viewer), not a second dashboard.
   const [viewerTitle, setViewerTitle] = useState<string | null>(null);
   const [viewerOrgRole, setViewerOrgRole] = useState<string | null>(null);
+  const [viewerDisplayName, setViewerDisplayName] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -148,6 +157,8 @@ export function AmbientWorkSurface(): JSX.Element {
         const v = r.data.identity?.viewer;
         setViewerTitle(v?.title ?? null);
         setViewerOrgRole(v?.org_role ?? null);
+        const dn = v?.display_name?.trim();
+        if (dn && dn.length > 0) setViewerDisplayName(dn);
       })
       .catch(() => undefined);
     return () => {
@@ -155,7 +166,10 @@ export function AmbientWorkSurface(): JSX.Element {
     };
   }, []);
 
-  const name = nameFromEmail(entity?.email ?? null);
+  // Prefer governed identity display name (demo: "Y Combinator") over email local-part.
+  const name =
+    viewerDisplayName ??
+    nameFromEmail(entity?.email ?? null);
   const ctxActive = surfaceContext !== null && surfaceContext.active;
   const ctxLabel = ctxActive
     ? surfaceContext.title ?? surfaceContext.summary ?? "Current context"

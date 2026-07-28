@@ -47,26 +47,26 @@ export function resolveWalkthroughRole(input: {
   return "employee";
 }
 
-/** Product-demo path: fragmented work → understanding → execution → proof. */
+/** Product-demo path: ingest → understanding → collab/decision → exception-only. */
 const PROBLEM_VALUE: WalkthroughStep = {
   id: "problem_value",
-  title: "Work gets fragmented. Otzar turns it into governed execution",
-  body: "Messages, meetings, and tools scatter commitments. Otzar observes authorized sources, organizes work, and keeps humans in control of what AI can know.",
-  why: "The product is ambient value — not a dashboard you live in.",
-  doNext: "Open Today and scan what Otzar completed vs what needs you.",
-  ctaLabel: "Open Today",
-  ctaTo: "/app/today",
-  testId: "walkthrough-step-today",
-  targetContract: ["[data-testid='ambient-work-surface'], [data-testid='employee-shell-main']"],
+  title: "Application review fragments across conversations",
+  body: "Partner notes, diligence calls, and chat scatter decisions. Paste a real transcript so Otzar keeps people, commitments, risks, and disagreements connected.",
+  why: "You should not reconstruct context by hand for every application.",
+  doNext: "Open Bring in a transcript and paste or upload a review discussion.",
+  ctaLabel: "Bring in a transcript",
+  ctaTo: "/app/observe",
+  testId: "walkthrough-step-ingest",
+  targetContract: ["[data-testid='observe-read'], [data-testid='observe-read-text']"],
   facets: ["org_state"],
 };
 
 const HANDLED_PROOF: WalkthroughStep = {
   id: "handled_proof",
-  title: "See what Otzar already handled",
-  body: "Low-risk work can complete within policy with proof. AI Teammates collaborate without interrupting you for every step.",
+  title: "See what Otzar understood and where it went",
+  body: "Otzar shows decisions, commitments, risks, and destinations — Today, projects, people, and Talk — without raw pipeline noise. AI Teammates can close routine dependencies under policy.",
   why: "Results and proof matter more than inspecting Otzar's machinery.",
-  doNext: "Open Needs me completed or a collaboration receipt.",
+  doNext: "Review completed work or a collaboration receipt for this application.",
   ctaLabel: "Open completed work",
   ctaTo: "/app/action-center?tab=completed",
   testId: "walkthrough-step-completed",
@@ -77,9 +77,9 @@ const HANDLED_PROOF: WalkthroughStep = {
 const EXCEPTION_ONLY: WalkthroughStep = {
   id: "exception_only",
   title: "You only join when judgment is required",
-  body: "Routine work stays out of your exception queue. When Otzar needs you, it says why — not every extracted line.",
+  body: "Disagreements and high-stakes calls land in Needs me with a clear why. Routine organization stays out of that queue.",
   why: "At scale, raw review counts fail. Exceptions must be rare and clear.",
-  doNext: "Open Needs me and check that the lane is exception-only.",
+  doNext: "Open Needs me and resolve only the material disagreement or authority question.",
   ctaLabel: "Open exceptions",
   ctaTo: "/app/action-center?tab=pending",
   testId: "walkthrough-step-exceptions",

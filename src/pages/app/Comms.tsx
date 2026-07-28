@@ -132,6 +132,27 @@ const DEMO_SCRIPT: ReadonlyArray<DemoLine> = [
 
 const DEMO_TITLE = "Launch Follow-Up Meeting";
 
+/** YC Labs application-review sample — human-like, not fixture jargon. */
+const HELIOGRID_TRANSCRIPT = `Title: HelioGrid application review — partner diligence round
+
+Jordan Hale (Product Partner): Let's walk HelioGrid. Grid-edge orchestration for industrial sites. They want the next batch.
+
+Ava Chen (Application Review Lead): Strong technical founder. Weak on enterprise security proof. Sam, what's diligence saying?
+
+Sam Rivera (Technical Diligence Lead): Architecture is credible. Commitment: I will deliver the competitive architecture brief by Thursday. Risk: if that brief is late, Morgan cannot finish the public narrative pack.
+
+Casey Nguyen (Security & Enterprise Readiness): I disagree with a soft yes this week. Without the security checklist green, we should not advance HelioGrid. That's a material risk for enterprise customers.
+
+Riley Okonkwo (Go-to-Market Reviewer): GTM loves the ICP clarity. Commitment: I will confirm two reference customers by Friday.
+
+Morgan Lee (Narrative & Media Reviewer): I can draft the partner one-pager once Sam's brief lands. Dependency is explicit.
+
+Jordan Hale: Decision on the table: do we advance HelioGrid to interview after security gate, or hold?
+
+Ava Chen: I recommend hard hold until Casey's checklist is complete. Jordan prefers advancing with a soft freeze on messaging only. We have a real disagreement.
+
+Jordan Hale: Capture the disagreement. Routine notes can organize under policy. The advance-or-hold call needs human judgment.`;
+
 function buildCapturedText(
   lines: ReadonlyArray<{ speaker: string; text: string }>,
 ): string {
@@ -494,12 +515,24 @@ export function Comms(): JSX.Element {
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="default"
                 size="sm"
                 onClick={() => setShowImport(true)}
                 data-testid="comms-show-import"
               >
                 Paste transcript
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowImport(true);
+                  setImportText(HELIOGRID_TRANSCRIPT);
+                }}
+                data-testid="comms-heliogrid-sample"
+              >
+                Load HelioGrid sample
               </Button>
             </div>
           </CardContent>
@@ -595,18 +628,28 @@ export function Comms(): JSX.Element {
           {showImport ? (
             <div className="space-y-2">
               <p className="text-muted-foreground">
-                Fallback only — when connected tools did not capture the
-                conversation. Prefer Sync connected sources (Google Meet)
-                above.
+                Paste an application-review transcript. Otzar preserves the
+                source, organizes decisions and commitments, and creates
+                owned follow-ups under policy. Connected tools remain the
+                automatic path when available.
               </p>
               <textarea
-                className="h-32 w-full rounded border bg-background p-2 text-xs"
+                className="h-40 w-full rounded border bg-background p-2 text-xs"
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
-                placeholder="Paste meeting notes or transcript here…"
+                placeholder="Paste HelioGrid or other application-review transcript…"
                 data-testid="comms-import-textarea"
               />
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setImportText(HELIOGRID_TRANSCRIPT)}
+                  data-testid="comms-load-heliogrid"
+                >
+                  Load HelioGrid sample
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -622,7 +665,7 @@ export function Comms(): JSX.Element {
                   disabled={importText.trim().length === 0}
                   data-testid="comms-import-submit"
                 >
-                  Organize notes
+                  Organize transcript
                 </Button>
               </div>
             </div>

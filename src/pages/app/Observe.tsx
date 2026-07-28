@@ -20,8 +20,15 @@
 //   - Blocked providers show friendly setup copy — no fake OCR.
 //   - No developer vocabulary in user-facing copy.
 
-import { useEffect, useState } from "react";
-import { BookOpenCheck, Loader2, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  BookOpenCheck,
+  FileUp,
+  Loader2,
+  MapPin,
+  Sparkles,
+} from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -95,6 +102,8 @@ export function Observe() {
   const [attachWorkspaceId, setAttachWorkspaceId] = useState<string>("");
   const [attaching, setAttaching] = useState(false);
   const [attachNote, setAttachNote] = useState<string | null>(null);
+  const [readTitle, setReadTitle] = useState("Application review transcript");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,7 +148,7 @@ export function Observe() {
         : {
             provider: "PLAIN_TEXT",
             source_type: "PLAIN_TEXT_SOURCE",
-            title: "Pasted text",
+            title: readTitle.trim() || "Application review transcript",
             plain_text: readText,
           },
     );
@@ -152,6 +161,37 @@ export function Observe() {
     }
     setCapture(r.data.capture);
     if (!opts.sample) setReadText("");
+  }
+
+  function onPickTranscriptFile(file: File | null): void {
+    if (file === null) return;
+    const name = file.name.toLowerCase();
+    if (
+      !name.endsWith(".txt") &&
+      !name.endsWith(".md") &&
+      file.type !== "text/plain" &&
+      file.type !== ""
+    ) {
+      setReadError("Use a plain text transcript (.txt or .md).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      if (text.trim().length === 0) {
+        setReadError("That file was empty.");
+        return;
+      }
+      setReadError(null);
+      setReadText(text);
+      if (!readTitle.trim() || readTitle === "Application review transcript") {
+        setReadTitle(file.name.replace(/\.(txt|md)$/i, ""));
+      }
+    };
+    reader.onerror = () => {
+      setReadError("Could not read that file. Paste the text instead.");
+    };
+    reader.readAsText(file);
   }
 
   async function attach(): Promise<void> {
@@ -203,8 +243,8 @@ export function Observe() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Observe"
-        description="Otzar can understand the work you already see on screen — any document, any tool, any system — without a separate integration for each one. You choose what it reads; everything stays governed."
+        title="Bring in a transcript"
+        description="Paste or upload an application-review transcript. Otzar preserves the source, understands people and decisions, and shows where the work went — without you living inside Otzar."
       />
 
       {/* Phase 1251 — the shared-screen story, progressive
@@ -279,15 +319,39 @@ export function Observe() {
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="read-text">Paste text from any document</Label>
+            <Label htmlFor="read-title">Source title</Label>
+            <input
+              id="read-title"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              value={readTitle}
+              onChange={(e) => setReadTitle(e.target.value)}
+              placeholder="HelioGrid partner review — round 1"
+              data-testid="observe-read-title"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="read-text">Paste transcript text</Label>
             <Textarea
               id="read-text"
               value={readText}
               onChange={(e) => setReadText(e.target.value)}
-              placeholder="Paste meeting notes, a photo transcription, an email thread…"
-              rows={5}
+              placeholder="Paste an application-review transcript, partner discussion, or diligence notes…"
+              rows={8}
+              data-testid="observe-read-text"
             />
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,text/plain"
+            className="sr-only"
+            data-testid="observe-read-file"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              onPickTranscriptFile(f);
+              e.target.value = "";
+            }}
+          />
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => void runRead({ sample: false })}
@@ -304,12 +368,27 @@ export function Observe() {
               )}
             </Button>
             <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={reading}
+              data-testid="observe-read-upload"
+            >
+              <FileUp className="mr-2 h-4 w-4" aria-hidden />
+              Upload .txt
+            </Button>
+            <Button
               variant="outline"
               onClick={() => void runRead({ sample: true })}
               disabled={reading}
               data-testid="observe-read-sample"
             >
               Try a sample
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/app/comms" data-testid="observe-open-comms">
+                Full meeting capture
+              </Link>
             </Button>
           </div>
 
@@ -357,6 +436,83 @@ export function Observe() {
                 </ul>
               </div>
             ) : null}
+
+            {Array.isArray(extraction.risks_or_blockers) &&
+            extraction.risks_or_blockers.length > 0 ? (
+              <div data-testid="observe-read-risks">
+                <p className="font-medium">Risks and disagreements</p>
+                <ul className="list-disc pl-5 text-muted-foreground">
+                  {extraction.risks_or_blockers.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div
+              className="rounded-lg border border-border/70 bg-muted/20 p-3"
+              data-testid="observe-where-went"
+            >
+              <p className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <MapPin className="h-4 w-4" aria-hidden />
+                Where this went
+              </p>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Source preserved for your organization. Understanding appears in
+                the places below — not as raw system events.
+              </p>
+              <ul className="grid gap-2 text-sm sm:grid-cols-2">
+                <li>
+                  <Link className="text-primary underline-offset-2 hover:underline" to="/app">
+                    Today — what matters next
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="text-primary underline-offset-2 hover:underline"
+                    to="/app/action-center?tab=pending"
+                  >
+                    Needs me — only when judgment is required
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="text-primary underline-offset-2 hover:underline"
+                    to="/app/collaboration"
+                  >
+                    People — collaboration and ownership
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="text-primary underline-offset-2 hover:underline"
+                    to="/app/chat"
+                  >
+                    Talk — ask what was decided
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="text-primary underline-offset-2 hover:underline"
+                    to="/app/work-projects"
+                  >
+                    Projects — application and launch work
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="text-primary underline-offset-2 hover:underline"
+                    to="/app/memory"
+                  >
+                    Memory — what Otzar learned (optional depth)
+                  </Link>
+                </li>
+              </ul>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                Capture kept privately for your organization
+                {capture.title ? ` · ${capture.title}` : ""}.
+              </p>
+            </div>
 
             {extraction.suggested_actions.length > 0 ? (
               <div className="space-y-2" data-testid="observe-read-followups">
