@@ -173,7 +173,7 @@ function RecentActionsTile({
   return (
     <Tile
       label="Recent actions"
-      primary={`${summary.recent_action_count} recorded`}
+      primary={`${Number(summary.recent_action_count ?? 0)} recorded`}
       secondary={
         summary.most_recent_at
           ? `Most recent ${formatRelativeTime(summary.most_recent_at)}`
@@ -192,7 +192,7 @@ function MemoryScopeTile({
   return (
     <Tile
       label="Memory scope"
-      primary={`${summary.active_scope_count} active`}
+      primary={`${Number(summary.active_scope_count ?? 0)} active`}
       secondary={
         summary.most_recent_at
           ? `Most recent ${formatRelativeTime(summary.most_recent_at)}`
@@ -209,8 +209,8 @@ function ActiveGrantsTile({
   summary: TwinActiveGrantsSummary;
 }) {
   const total =
-    summary.active_consent_grants_count +
-    summary.active_team_delegations_count;
+    Number(summary.active_consent_grants_count ?? 0) +
+    Number(summary.active_team_delegations_count ?? 0);
   return (
     <Tile
       label="Active consents and delegations"
@@ -245,7 +245,7 @@ function ActiveAuthorityTile({
   return (
     <Tile
       label="Authority you have granted your AI Teammate"
-      primary={`${summary.active_grant_count} grants`}
+      primary={`${Number(summary.active_grant_count ?? 0)} grants`}
       secondary={detail.length > 0 ? detail.join(" · ") : undefined}
       testId="sidecar-active-authority"
     />
