@@ -13,14 +13,15 @@
 //     the previous: aborts the in-flight premium fetch, stops the
 //     playing premium <audio>, AND silences the global device
 //     speechSynthesis.
-//   - PREMIUM FIRST. The device voice fires ONLY after premium fails
-//     or times out — and ONLY if this utterance is still the current
-//     one (a newer prompt cancels the older's fallback so the robot
-//     voice never speaks "second").
+//   - PREMIUM FIRST via POST /otzar/voice/speak (xAI Orion). Device
+//     SpeechSynthesis is NEVER the silent primary path. Browser fallback
+//     runs ONLY when callers pass allowDeviceFallback: true (explicit
+//     accessibility / labeled test) AND premium fails/times out AND
+//     this utterance is still current.
 //   - INSTRUMENTED. getLastVoicePath() records which path actually
 //     spoke: premium_voice / fallback_device_voice / muted / failed.
-//     Diagnostics carry provider + byte count only — never the key,
-//     never anything beyond the text the caller chose to speak.
+//     Diagnostics carry provider + voice id + byte count only — never
+//     the key, never anything beyond the text the caller chose to speak.
 // CONNECTS TO: premium-tts.ts (re-exports), AmbientOtzarBar,
 //          VoiceProviders, tests/unit/voice-playback-controller.test.ts.
 
@@ -29,9 +30,12 @@ import { useAuthStore } from "@/lib/stores/auth";
 const BASE =
   import.meta.env.VITE_FOUNDATION_API_URL ?? "http://localhost:3000/api/v1";
 
-/** Premium fetch is abandoned after this long so a hung provider can
- *  never strand the user in silence — the device fallback takes over. */
-const PREMIUM_TIMEOUT_MS = 7000;
+/** Canonical production TTS route (tts-preview is an alias on Foundation). */
+const PREMIUM_SPEAK_ROUTE = "/otzar/voice/speak";
+
+/** Premium fetch window. 7s was too short for cold Orion and forced
+ *  silent browser robot voice — Founder P0 Orion identity defect. */
+const PREMIUM_TIMEOUT_MS = 20_000;
 
 export type PremiumSpeakOutcome =
   | { kind: "PREMIUM"; provider: string }
@@ -138,7 +142,7 @@ async function playPremium(
     }
   }, PREMIUM_TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE}/otzar/voice/tts-preview`, {
+    const res = await fetch(`${BASE}${PREMIUM_SPEAK_ROUTE}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -161,6 +165,7 @@ async function playPremium(
       return { kind: "FALLBACK_NEEDED", reason };
     }
     const provider = res.headers.get("X-Voice-Provider") ?? "PROVIDER";
+    const voiceId = res.headers.get("X-Voice-Id") ?? "unknown";
     const blob = await res.blob();
     if (myGen !== generation)
       return { kind: "FALLBACK_NEEDED", reason: "UNAVAILABLE" };
@@ -192,11 +197,11 @@ async function playPremium(
     } catch {
       /* listener must never break playback */
     }
-    // Safe diagnostic: provider + size only — never the key, never
-    // user text beyond what the caller chose to speak.
+    // Safe diagnostic: provider + voice id + size — never the key.
     console.info("[otzar-voice]", {
       voice_playback_provider: provider,
-      route_called: "tts-preview",
+      voice_id: voiceId,
+      route_called: "speak",
       fallback_used: false,
       audio_bytes: blob.size,
     });
@@ -236,16 +241,20 @@ export interface PlaybackEvents {
 export interface SpeakOptions extends PlaybackEvents {
   /** When true, do not speak at all (premium OR device). */
   muted?: boolean;
+  /**
+   * Explicit accessibility / labeled-test opt-in for browser
+   * SpeechSynthesis. Default false: production never silently claims
+   * Orion while speaking a robotic device voice (Founder P0).
+   */
+  allowDeviceFallback?: boolean;
 }
 
-// WHAT: THE voice-output utility. Premium provider audio first; the
-//       device voice ONLY as an explicit, caller-supplied fallback —
-//       and only when this utterance is still the current one.
-// INPUT: text + the device-voice fallback the caller owns + options.
-// OUTPUT: what the premium path returned (so callers can label), with
-//         the device fallback already invoked when appropriate.
-// WHY: one queue, one active utterance, premium-first, no robot-voice
-//      race. Every speak site routes through here.
+// WHAT: THE voice-output utility. Premium (Orion) first; browser device
+//       voice ONLY when allowDeviceFallback is true AND premium fails
+//       AND this utterance is still current.
+// INPUT: text + optional device-voice callback + options.
+// OUTPUT: premium outcome; device fallback only when explicitly allowed.
+// WHY: one queue, one active utterance, no silent robot-voice substitution.
 export async function speakWithOtzarVoice(
   text: string,
   deviceFallback: (text: string) => void,
@@ -268,10 +277,23 @@ export async function speakWithOtzarVoice(
     lastPath = "premium_voice";
     return outcome;
   }
+  // Default: fail closed to silence + honest path label. Never pretend
+  // browser speech is Orion.
+  if (options.allowDeviceFallback !== true) {
+    lastPath = "failed";
+    console.info("[otzar-voice]", {
+      voice_playback_provider: "none",
+      route_called: "speak",
+      fallback_used: false,
+      reason: outcome.reason,
+      device_fallback_blocked: true,
+    });
+    return outcome;
+  }
   lastPath = "fallback_device_voice";
   console.info("[otzar-voice]", {
     voice_playback_provider: "device",
-    route_called: "tts-preview",
+    route_called: "speak",
     fallback_used: true,
     reason: outcome.reason,
   });

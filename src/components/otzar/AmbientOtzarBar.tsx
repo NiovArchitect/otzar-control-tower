@@ -923,11 +923,11 @@ export function AmbientOtzarBar(): JSX.Element {
     // effect mount-stable.
   }, []);
 
-  // Phase 1264 — assistant speech goes through the single
-  // VoicePlaybackController: ONE active utterance, premium-first, the
-  // device voice only as a labeled fallback AFTER premium fails, and a
-  // newer prompt cancels the older one (no double-speak, no robot
-  // voice "second"). premiumSpeaking drives the honest orb state.
+  // Phase 1264 + Founder P0 Orion identity — assistant speech goes
+  // through VoicePlaybackController: ONE active utterance, premium
+  // Orion first via /voice/speak. Browser SpeechSynthesis is NOT used
+  // as a silent fallback (would misrepresent as Orion). Device path
+  // remains available only for explicit labeled tests.
   function speakAssistant(
     rawText: string,
     opts: { source: "auto" | "replay" | "manual"; force: boolean },
@@ -939,6 +939,8 @@ export function AmbientOtzarBar(): JSX.Element {
       (t) => synthesis.speak(t, opts),
       {
         muted: synthesisRef.current.muted,
+        // Production path: premium only. Never silent browser robot.
+        allowDeviceFallback: false,
         onPremiumStart: () => setPremiumSpeaking(true),
         onPremiumEnd: () => setPremiumSpeaking(false),
       },
@@ -1075,18 +1077,16 @@ export function AmbientOtzarBar(): JSX.Element {
   }
 
   function handleTestVoice(): void {
-    // Browser speechSynthesis requires a user gesture in many
-    // browsers; the click on this button satisfies that. Force=true
-    // bypasses the auto-speak dedupe so a deliberate re-test
-    // succeeds; but the in-flight-utterance check inside the hook
-    // still prevents queue duplication from rapid clicks.
-    void speakWithOtzarVoice(TEST_VOICE_PHRASE, (t) =>
-      synthesis.speak(t, { source: "test", force: true }),
+    // User gesture click. Premium Orion only — no silent browser robot.
+    void speakWithOtzarVoice(
+      TEST_VOICE_PHRASE,
+      (t) => synthesis.speak(t, { source: "test", force: true }),
+      { allowDeviceFallback: false },
     );
   }
 
-  // Speak a confirmation through the single controller (premium-first,
-  // device fallback labeled), and record which path spoke.
+  // Speak a confirmation through the single controller (premium Orion
+  // only; device never silent-substitutes).
   function speakConfirmation(text: string): void {
     if (text.length === 0) return;
     void speakWithOtzarVoice(
@@ -1094,6 +1094,7 @@ export function AmbientOtzarBar(): JSX.Element {
       (t) => synthesis.speak(t, { source: "manual", force: true }),
       {
         muted: synthesisRef.current.muted,
+        allowDeviceFallback: false,
         onPremiumStart: () => setPremiumSpeaking(true),
         onPremiumEnd: () => setPremiumSpeaking(false),
       },
@@ -5593,7 +5594,7 @@ export function AmbientOtzarBar(): JSX.Element {
             Voice output:{" "}
             {synthesis.muted
               ? "muted"
-              : "premium voice · device fallback only if premium fails"}
+              : "premium Orion · text shown if premium unavailable"}
             {" · "}
             No raw audio is stored.
           </p>

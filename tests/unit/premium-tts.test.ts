@@ -125,13 +125,26 @@ describe("Phase 1259B — runtime voice-path locks", () => {
     expect(offenders, offenders.join("\n")).toEqual([]);
   });
 
-  it("speakWithOtzarVoice fires the device fallback ONLY on premium failure", async () => {
+  it("speakWithOtzarVoice does not silent-fire device voice on premium failure", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     const { speakWithOtzarVoice } = await import(
       "../../src/lib/voice/premium-tts"
     );
     const fallback = vi.fn();
     const outcome = await speakWithOtzarVoice("hello", fallback);
+    expect(outcome.kind).toBe("FALLBACK_NEEDED");
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it("speakWithOtzarVoice fires device only when allowDeviceFallback is true", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const { speakWithOtzarVoice } = await import(
+      "../../src/lib/voice/premium-tts"
+    );
+    const fallback = vi.fn();
+    const outcome = await speakWithOtzarVoice("hello", fallback, {
+      allowDeviceFallback: true,
+    });
     expect(outcome.kind).toBe("FALLBACK_NEEDED");
     expect(fallback).toHaveBeenCalledWith("hello");
   });

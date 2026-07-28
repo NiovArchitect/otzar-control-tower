@@ -126,6 +126,7 @@ export function Welcome(): JSX.Element {
                 onboarding?.greeting ??
                   "Welcome. I'm Otzar. What should I call you?",
                 (t) => synthesis.speak(t, { source: "manual", force: true }),
+                { allowDeviceFallback: false },
               )
             }
             data-testid="welcome-hear-greeting"

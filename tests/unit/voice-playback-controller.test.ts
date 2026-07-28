@@ -77,13 +77,40 @@ describe("Phase 1264 — VoicePlaybackController", () => {
     expect(getLastVoicePath()).toBe("premium_voice");
   });
 
-  it("falls back to the device voice ONLY on premium failure and labels it", async () => {
+  it("does NOT silently use device voice on premium failure (Founder P0 Orion identity)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     const fallback = vi.fn();
     const outcome = await speakWithOtzarVoice("hello", fallback);
     expect(outcome.kind).toBe("FALLBACK_NEEDED");
+    expect(fallback).not.toHaveBeenCalled();
+    expect(getLastVoicePath()).toBe("failed");
+  });
+
+  it("device voice only when allowDeviceFallback is explicit", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const fallback = vi.fn();
+    const outcome = await speakWithOtzarVoice("hello", fallback, {
+      allowDeviceFallback: true,
+    });
+    expect(outcome.kind).toBe("FALLBACK_NEEDED");
     expect(fallback).toHaveBeenCalledWith("hello");
     expect(getLastVoicePath()).toBe("fallback_device_voice");
+  });
+
+  it("calls the canonical /otzar/voice/speak route", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        "X-Voice-Provider": "XAI",
+        "X-Voice-Id": "orion",
+      }),
+      blob: async () => new Blob([new Uint8Array([1, 2, 3])]),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await speakWithOtzarVoice("hello", vi.fn());
+    expect(fetchMock).toHaveBeenCalled();
+    const url = String(fetchMock.mock.calls[0]?.[0] ?? "");
+    expect(url).toMatch(/\/otzar\/voice\/speak$/);
   });
 
   it("respects muted: no premium, no device, records muted", async () => {
