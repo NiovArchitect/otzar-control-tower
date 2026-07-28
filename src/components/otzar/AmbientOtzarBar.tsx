@@ -231,8 +231,6 @@ import {
   detectShellMode,
   llmErrorCopy,
   micCopyFor,
-  SERVER_STT_DISCLOSURE,
-  SERVER_STT_TRANSCRIBED_NOTE,
   shouldAutoFallbackToServerStt,
   speechRecognitionErrorCopy,
   transcribeErrorCopy,
@@ -251,7 +249,6 @@ import {
   type OrbPosition,
   type OrbSize,
 } from "@/lib/ambient/orb-position";
-import { describeAmbientVoiceMode } from "@/lib/voice/ambient-voice-capture";
 import {
   TEXT_SECONDARY_PLACEHOLDER,
   VOICE_FIRST_HEADLINE,
@@ -268,9 +265,6 @@ import {
  * The ambient Otzar dock. Mount once per authenticated employee
  * shell. No props — it reads its own state from React hooks.
  */
-const TEST_VOICE_PHRASE =
-  "Otzar voice is active. I can speak responses back to you.";
-
 function toneClass(tone: "ok" | "warn" | "error" | "muted"): string {
   switch (tone) {
     case "ok":
@@ -665,7 +659,7 @@ export function AmbientOtzarBar(): JSX.Element {
   const [actionHeard, setActionHeard] = useState<string | null>(null);
   const [actionLabel, setActionLabel] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<string | null>(null);
-  const [actionVoicePath, setActionVoicePath] = useState<string | null>(null);
+  const [_actionVoicePath, setActionVoicePath] = useState<string | null>(null);
   // Phase 3A — the transcript/meeting digest, shown compactly (counts) with the
   // full sections collapsed behind "View digest".
   const [transcriptDigest, setTranscriptDigest] =
@@ -750,7 +744,7 @@ export function AmbientOtzarBar(): JSX.Element {
   }
   // Which STT engine produced the spoken command's transcript
   // (desktop path only): "openai-whisper" or "deepgram".
-  const [transcriptionProvider, setTranscriptionProvider] = useState<
+  const [_transcriptionProvider, setTranscriptionProvider] = useState<
     string | null
   >(null);
   // When a desktop external-link open can't hand off automatically, we
@@ -1103,15 +1097,6 @@ export function AmbientOtzarBar(): JSX.Element {
     if (!autoSpeak) setAutoSpeak(true);
     recognition.reset();
     recognition.start();
-  }
-
-  function handleTestVoice(): void {
-    // User gesture click. Premium Orion only — no silent browser robot.
-    void speakWithOtzarVoice(
-      TEST_VOICE_PHRASE,
-      (t) => synthesis.speak(t, { source: "test", force: true }),
-      { allowDeviceFallback: false },
-    );
   }
 
   // Speak a confirmation through the single controller (premium Orion
@@ -1909,12 +1894,6 @@ export function AmbientOtzarBar(): JSX.Element {
           : `Routed to ${who}`,
         requestType === "APPROVAL_REQUEST" ? "attention" : "working",
       );
-      const kindword =
-        requestType === "REVIEW_REQUEST"
-          ? "review request"
-          : requestType === "APPROVAL_REQUEST"
-            ? "approval request"
-            : "follow-up";
       const forCtx =
         ctx !== null && ctx.resolved ? ` for ${contextLabel(ctx)}` : "";
       surfaceOutcome({
@@ -4453,7 +4432,6 @@ export function AmbientOtzarBar(): JSX.Element {
       </Link>
     ) : null;
   // Correct Otzar lives under More / answer actions — not a permanent primary chip.
-  const correctionBadge = null;
 
   // ────────────────────────────────────────────────────────────
   // COLLAPSED — the Otzar orb (Phase 1251). A presence, not a
@@ -5434,8 +5412,7 @@ export function AmbientOtzarBar(): JSX.Element {
               </div>
               <div className="flex flex-wrap items-center gap-1 pt-1">
                 {/* Operational badges only — never raw ANSWERED lifecycle chips. */}
-                {response.next_step !== "ANSWERED" &&
-                response.next_step !== "CLARIFY" ? (
+                {response.next_step !== "ANSWERED" ? (
                   <Badge variant="outline">{response.next_step}</Badge>
                 ) : null}
                 {approvalBadge}
