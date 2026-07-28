@@ -204,6 +204,11 @@ export function MyDay(): JSX.Element {
   const orgName = state.identity?.identity.org.name ?? null;
   const twinName = state.identity?.identity.twin.display_name ?? null;
   const twinActive = state.identity?.identity.twin.active === true;
+  // Prefer multi-word demo greetings (e.g. "Y Combinator") over first token only.
+  const greetName =
+    /\s/.test(displayName) && /combinator|labs|partners/i.test(displayName)
+      ? displayName
+      : displayName.split(" ")[0] || displayName;
 
   return (
     <div className="space-y-6" data-testid="my-day-page">
@@ -211,12 +216,14 @@ export function MyDay(): JSX.Element {
         title={
           state.loading
             ? "Loading your day…"
-            : `${greeting()}, ${displayName}`
+            : `${greeting()}, ${greetName}`
         }
         description={
           state.loading
             ? "Otzar is preparing your workspace."
-            : "Here's what needs your attention today."
+            : orgName
+              ? `${orgName} — what needs your attention today.`
+              : "Here's what needs your attention today."
         }
       />
 
