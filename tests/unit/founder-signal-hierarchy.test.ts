@@ -85,4 +85,29 @@ describe("buildFounderSignalLanes", () => {
     expect(learn?.items[0]?.testId).toBe("founder-repeatable-win");
     expect(learn?.items[0]?.title).toMatch(/2.*0/);
   });
+
+  it("keeps pattern-only repeatable-win visible without secondary activity", () => {
+    const lanes = buildFounderSignalLanes({
+      ...base,
+      communicationReplyCount: 0,
+      repeatableWin: {
+        firstRunInterventions: 2,
+        secondRunInterventions: 0,
+        patternLabel: "Annie owns product-launch research",
+        evidenceLevel: "pattern_only",
+      },
+    });
+    const learn = lanes.find((l) => l.lane === "learning_improvement");
+    expect(learn?.items[0]?.testId).toBe("founder-repeatable-win");
+    expect(learn?.items[0]?.detail).toMatch(/still loading|not listed/i);
+  });
+
+  it("hides repeatable-win when no pattern is provided", () => {
+    const lanes = buildFounderSignalLanes({
+      ...base,
+      communicationReplyCount: 0,
+      repeatableWin: null,
+    });
+    expect(lanes.find((l) => l.lane === "learning_improvement")).toBeUndefined();
+  });
 });
