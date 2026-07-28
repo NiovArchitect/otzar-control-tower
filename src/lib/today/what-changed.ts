@@ -10,6 +10,9 @@ export type WhatChangedKind =
   | "twin"
   | "integration"
   | "truth"
+  | "correction"
+  | "completion"
+  | "collaboration"
   | "quiet";
 
 export interface WhatChangedItem {
@@ -31,11 +34,20 @@ export interface WhatChangedInput {
   toolsReconnectLabel: string | null;
   truthConflictCount: number;
   teamOpenSample: string | null;
+  /** Recent successful action sample title (SAFE summary). */
+  completedActionSample?: string | null;
+  /** Recent completed AI collaboration sample. */
+  completedCollabSample?: string | null;
+  /** Correction / role-truth change sample (e.g. Annie title). */
+  correctionSample?: string | null;
+  /** Failed action sample — honest, never as completion. */
+  failedActionSample?: string | null;
 }
 
 /**
- * Build ≤4 real change lines. Quiet when nothing real changed.
+ * Build ≤5 real change lines. Quiet when nothing real changed.
  * Integration lines always name the specific reconnect need when present.
+ * Completions and corrections are real backend state — never invented.
  */
 export function buildWhatChanged(input: WhatChangedInput): WhatChangedItem[] {
   const out: WhatChangedItem[] = [];
@@ -47,6 +59,46 @@ export function buildWhatChanged(input: WhatChangedInput): WhatChangedItem[] {
       why: "OAuth/catalog reports reconnect needed — not a fake Connected status.",
       to: "/app/connector-health?need=reconnect&from=today",
       testId: "what-changed-integration",
+    });
+  }
+
+  if (input.correctionSample) {
+    out.push({
+      kind: "correction",
+      title: input.correctionSample,
+      why: "Accepted correction / current role truth — not the superseded statement.",
+      to: "/app/corrections",
+      testId: "what-changed-correction",
+    });
+  }
+
+  if (input.completedActionSample) {
+    out.push({
+      kind: "completion",
+      title: `Completed: ${input.completedActionSample}`,
+      why: "Action status SUCCEEDED from the action list (terminal, verified).",
+      to: "/app/action-center?tab=completed",
+      testId: "what-changed-completed-action",
+    });
+  }
+
+  if (input.completedCollabSample) {
+    out.push({
+      kind: "collaboration",
+      title: `AI collaboration: ${input.completedCollabSample}`,
+      why: "Completed TwinCollaborationRequest — human-readable receipt on People.",
+      to: "/app/collaboration",
+      testId: "what-changed-collab",
+    });
+  }
+
+  if (input.failedActionSample && out.length < 4) {
+    out.push({
+      kind: "blocker",
+      title: `Failed: ${input.failedActionSample}`,
+      why: "Action status FAILED — not marked complete; retry/correction path on Needs me.",
+      to: "/app/action-center?tab=blocked",
+      testId: "what-changed-failed-action",
     });
   }
 
@@ -115,7 +167,7 @@ export function buildWhatChanged(input: WhatChangedInput): WhatChangedItem[] {
     });
   }
 
-  if (input.teamOpenSample && out.length < 4) {
+  if (input.teamOpenSample && out.length < 5) {
     out.push({
       kind: "handoff",
       title: `Team: ${input.teamOpenSample}`,
@@ -135,5 +187,5 @@ export function buildWhatChanged(input: WhatChangedInput): WhatChangedItem[] {
     });
   }
 
-  return out.slice(0, 4);
+  return out.slice(0, 5);
 }

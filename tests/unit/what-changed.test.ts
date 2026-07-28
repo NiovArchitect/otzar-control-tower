@@ -45,7 +45,7 @@ describe("B-04 buildWhatChanged", () => {
     expect(items.every((i) => i.kind !== "quiet")).toBe(true);
   });
 
-  it("never invents more than 4 lines", () => {
+  it("never invents more than 5 lines", () => {
     const items = buildWhatChanged({
       openHandoffCount: 3,
       handoffSampleTitles: ["A"],
@@ -55,7 +55,33 @@ describe("B-04 buildWhatChanged", () => {
       toolsReconnectLabel: "Reconnect Slack",
       truthConflictCount: 1,
       teamOpenSample: "Maya has open work",
+      completedActionSample: "Recorded proof capsule",
+      completedCollabSample: "Research handoff",
     });
-    expect(items.length).toBeLessThanOrEqual(4);
+    expect(items.length).toBeLessThanOrEqual(5);
+  });
+
+  it("surfaces completed actions and collaborations from real samples", () => {
+    const items = buildWhatChanged({
+      ...empty,
+      completedActionSample: "Recorded proof capsule",
+      completedCollabSample: "Validated research for launch",
+    });
+    expect(items.some((i) => i.testId === "what-changed-completed-action")).toBe(
+      true,
+    );
+    expect(items.some((i) => i.testId === "what-changed-collab")).toBe(true);
+    expect(items.every((i) => i.kind !== "quiet")).toBe(true);
+  });
+
+  it("surfaces failed actions honestly (not as completion)", () => {
+    const items = buildWhatChanged({
+      ...empty,
+      failedActionSample: "Internal notification",
+    });
+    expect(items.some((i) => i.testId === "what-changed-failed-action")).toBe(
+      true,
+    );
+    expect(items[0]?.title).toMatch(/^Failed:/);
   });
 });
