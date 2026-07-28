@@ -164,7 +164,10 @@ function MyTwinPanel({ data }: { data: MyTwinResponse }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Behavior mode" value={labelAutonomyMode(t.autonomy_mode)} />
+            <Field
+              label="Behavior mode"
+              value={labelAutonomyMode(t.autonomy_mode ?? "")}
+            />
             <Field
               label="Team coordination setting"
               value={t.swarm_enabled ? "Enabled" : "Not enabled"}

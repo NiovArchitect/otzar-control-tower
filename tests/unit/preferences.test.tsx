@@ -116,13 +116,11 @@ describe("Preferences page (EDX-5)", () => {
     renderPage();
     await screen.findByText("Active — can remove");
     expect(
-      screen.getByTestId(`pref-revoke-${CORRECTION_FIXTURE.correction_id}`),
+      screen.getByTestId("pref-revoke"),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId(
-        "pref-revoke-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-      ),
-    ).not.toBeInTheDocument();
+    // Non-revocable rows do not render a Remove control.
+    expect(screen.getAllByTestId("pref-row").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByTestId("pref-revoke")).toHaveLength(1);
   });
 
   it("never includes performance / score / monitoring / mistake / surveillance copy", async () => {

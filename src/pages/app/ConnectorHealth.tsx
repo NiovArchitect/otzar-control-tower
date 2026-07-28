@@ -217,6 +217,26 @@ export function ConnectorHealth(): JSX.Element {
         {CAPABILITY_FIRST_HEADLINE} {CAPABILITY_FIRST_DETAIL}
       </p>
 
+      {/* Honest calendar capability levels — Connected ≠ full execute. */}
+      <Card data-testid="calendar-capability-truth" className="border-border/70">
+        <CardContent className="space-y-2 py-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">Google Calendar — proven levels</p>
+          <p>
+            When connected, Otzar can <strong className="text-foreground">View</strong>{" "}
+            authorized events and <strong className="text-foreground">Understand</strong>{" "}
+            them for commitments. Create and execute are not enabled unless
+            separately proven and approved.
+          </p>
+          <p data-testid="calendar-capability-levels">
+            Available: View · Understand · Not enabled: Create · Execute
+          </p>
+          <p className="text-[11px]">
+            Documents remain not proven for write/execute until a live authorized
+            document path is verified.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* N-02 — Meet residual honesty only when reconnect is needed */}
       {needReconnect ? (
         <MeetOperationalResidualCard

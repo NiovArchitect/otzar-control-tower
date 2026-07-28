@@ -38,7 +38,14 @@ export function labelConversationSource(source: string): string {
 }
 
 // WHAT: Product label for a twin's autonomy mode.
-export function labelAutonomyMode(mode: string): string {
+// Never render raw "undefined" / empty tokens in the product surface.
+export function labelAutonomyMode(mode: string | null | undefined): string {
+  if (mode === null || mode === undefined || mode.trim().length === 0) {
+    return "Not set";
+  }
+  if (mode === "undefined" || mode === "null") {
+    return "Not set";
+  }
   switch (mode) {
     case "APPROVAL_REQUIRED":
       return "Approval required";
