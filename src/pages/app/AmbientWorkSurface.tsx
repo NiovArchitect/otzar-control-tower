@@ -932,15 +932,17 @@ export function AmbientWorkSurface(): JSX.Element {
         openHandoffCount: incomingHandoffs.length,
         handoffTitle: incomingHandoffs[0]?.title ?? null,
         communicationReplyCount: actionUnreadCount,
-        // Grounded last verified live proof (2→0) only when pattern is ACTIVE.
-        repeatableWin:
-          learnedPatternLabel &&
-          recentSucceeded.length > 0 &&
-          completedCollabs.length > 0
+        // Pattern-only is enough for visibility (progressive states).
+        // Secondary APIs (actions/collab) enrich detail but must not hide the card.
+        repeatableWin: learnedPatternLabel
             ? {
                 firstRunInterventions: 2,
                 secondRunInterventions: 0,
                 patternLabel: learnedPatternLabel,
+                evidenceLevel:
+                  recentSucceeded.length > 0 && completedCollabs.length > 0
+                    ? ("full" as const)
+                    : ("pattern_only" as const),
               }
             : null,
         teamSamples: teamPeople.slice(0, 5).map((p) => ({

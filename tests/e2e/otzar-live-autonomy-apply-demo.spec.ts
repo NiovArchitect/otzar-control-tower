@@ -95,27 +95,38 @@ async function runTimedDemo(page: Page, runIndex: number): Promise<number> {
   await page.waitForTimeout(1000);
   await shot(page, `run${runIndex}-05-corrections`);
 
-  // Talk (one question on run 1 only for speed on 2/3 — still all timed)
+  // Talk (run 1): stable test IDs — ambient-talk → ambient-text-secondary → ambient-send
   if (runIndex === 1) {
     await page.goto(`${BASE}/app/today`, {
       waitUntil: "domcontentloaded",
       timeout: 30_000,
     });
     await page.waitForTimeout(800);
+    const openTalk = page.getByTestId("ambient-talk");
+    if ((await openTalk.count()) > 0) {
+      await openTalk.first().click().catch(() => undefined);
+      await page.waitForTimeout(700);
+    }
+    // Bar may already be visible on Today
     const talkInput = page
-      .getByPlaceholder(/ask|message|talk|type/i)
-      .or(page.locator("textarea").first())
-      .or(page.getByRole("textbox").first());
-    if ((await talkInput.count()) > 0) {
+      .getByTestId("ambient-text-secondary")
+      .or(page.getByLabel(/^message to otzar$/i));
+    await talkInput.first().waitFor({ state: "visible", timeout: 15_000 }).catch(() => undefined);
+    if ((await talkInput.count()) > 0 && (await talkInput.first().isVisible())) {
       await talkInput.first().fill("What did Otzar learn from the first run?");
-      const send = page.getByRole("button", { name: /send|ask|go/i });
+      const send = page.getByTestId("ambient-send").or(page.getByLabel(/^send$/i));
       if ((await send.count()) > 0) {
         await send.first().click().catch(() => undefined);
       } else {
         await talkInput.first().press("Enter").catch(() => undefined);
       }
-      // Wait for a non-empty assistant response (bounded)
-      await page.waitForTimeout(18_000);
+      // Bounded wait for conversation entry (not infinite Thinking)
+      await page
+        .getByTestId("otzar-conversation-entry")
+        .first()
+        .waitFor({ state: "visible", timeout: 45_000 })
+        .catch(() => undefined);
+      await page.waitForTimeout(2_000);
       await shot(page, `run${runIndex}-06-talk`);
     }
   }

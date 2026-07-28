@@ -49,11 +49,14 @@ export interface FounderSignalInput {
   /**
    * Optional founder-visible repeatable-win comparison (2→0 interventions).
    * Only pass when live learning pattern is confirmed; never invent metrics.
+   * evidenceLevel: full = pattern + supporting activity; pattern_only = card
+   * still visible when secondary action/collab lists are empty or loading.
    */
   repeatableWin?: {
     firstRunInterventions: number;
     secondRunInterventions: number;
     patternLabel: string;
+    evidenceLevel?: "full" | "pattern_only";
   } | null;
 }
 
@@ -217,10 +220,15 @@ export function buildFounderSignalLanes(
     rw.secondRunInterventions < rw.firstRunInterventions &&
     rw.firstRunInterventions >= 0
   ) {
+    const level = rw.evidenceLevel ?? "full";
+    const supportNote =
+      level === "pattern_only"
+        ? " Supporting activity is still loading or not listed yet."
+        : "";
     learning.push({
       key: "learning-repeatable-win",
       title: `First run ${rw.firstRunInterventions} interventions → second run ${rw.secondRunInterventions}`,
-      detail: `Corrected pattern reused: ${rw.patternLabel}. Error not repeated. Authority unchanged.`,
+      detail: `Corrected pattern reused: ${rw.patternLabel}. Error not repeated. Authority unchanged.${supportNote}`,
       to: "/app/corrections",
       testId: "founder-repeatable-win",
       lane: "learning_improvement",
