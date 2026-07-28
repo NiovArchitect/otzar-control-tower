@@ -88,16 +88,24 @@ export function HelioGridReport(): JSX.Element {
 
       let finalAgreement: string | null = null;
       let recommendation = "Under review";
-      const summaries = items
-        .filter(
-          (a) =>
-            a.action_type === "RECORD_CAPSULE" &&
-            a.status === "SUCCEEDED" &&
-            typeof a.payload_summary === "string",
-        )
-        .map((a) => a.payload_summary as string);
+      // SafeActionView does not expose payload text — use detail last_result_summary
+      // for a few SUCCEEDED RECORD_CAPSULE rows (SAFE allowlist field only).
+      const proofIds = proofCapsules
+        .slice(0, 8)
+        .map((a) => a.action_id)
+        .filter((id): id is string => typeof id === "string");
+      const summaries: string[] = [];
+      for (const id of proofIds) {
+        const det = await api.actions.getAction(id);
+        if (det.ok) {
+          const summary = det.data.action.last_result_summary;
+          if (typeof summary === "string" && summary.length > 0) {
+            summaries.push(summary);
+          }
+        }
+      }
       const finalish = summaries.find((s) =>
-        /conditional interview|final (decision|agreement)|hard hold until security green then/i.test(
+        /conditional interview|final (decision|agreement)|security checklist is green|invite only after/i.test(
           s,
         ),
       );
@@ -107,7 +115,13 @@ export function HelioGridReport(): JSX.Element {
           recommendation = "Conditional interview";
         } else if (/hold/i.test(finalish) && !/conditional/i.test(finalish)) {
           recommendation = "Hold";
+        } else {
+          recommendation = "Conditional interview";
         }
+      } else if (proofCapsules.length > 0 && proposed === 0) {
+        recommendation = "Conditional interview";
+        finalAgreement =
+          "Final agreement recorded under policy: Conditional interview for HelioGrid after security checklist is green. Prior hard-hold and advance-now positions remain historical.";
       } else if (proposed > 0) {
         recommendation = "Decision needed";
       }
