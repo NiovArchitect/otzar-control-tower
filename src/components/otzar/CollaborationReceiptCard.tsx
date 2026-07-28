@@ -76,6 +76,31 @@ export function CollaborationReceiptCard({
           label="What was excluded"
           value={receipt.what_was_excluded}
         />
+        {receipt.journey.length > 0 ? (
+          <div data-testid="collab-receipt-journey" className="space-y-1.5">
+            <p className="font-medium text-foreground">Journey</p>
+            <ol className="space-y-1.5">
+              {receipt.journey.map((step) => (
+                <li
+                  key={step.label}
+                  className="flex gap-2 text-muted-foreground"
+                  data-done={step.done ? "true" : "false"}
+                >
+                  <CheckCircle2
+                    className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                      step.done ? "text-emerald-600" : "opacity-30"
+                    }`}
+                    aria-hidden
+                  />
+                  <div>
+                    <p className="font-medium text-foreground/90">{step.label}</p>
+                    <p>{step.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
         <div className="flex items-start gap-1.5 text-foreground">
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <div>

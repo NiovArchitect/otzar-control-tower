@@ -41,6 +41,7 @@ import { EmployeeGuard } from "@/components/employee/EmployeeGuard";
 import { EmployeeLayout } from "@/components/employee/EmployeeLayout";
 import { Chat } from "@/pages/app/Chat";
 import { Observe } from "@/pages/app/Observe";
+import { HelioGridReport } from "@/pages/app/HelioGridReport";
 import { Corrections } from "@/pages/app/Corrections";
 import { ActionCenter } from "@/pages/app/ActionCenter";
 import { Comms } from "@/pages/app/Comms";
@@ -138,6 +139,7 @@ const router = createBrowserRouter(
               <Route path="workspace" element={<Navigate to="/app" replace />} />
               <Route path="chat" element={<Chat />} />
               <Route path="observe" element={<Observe />} />
+              <Route path="heliogrid-report" element={<HelioGridReport />} />
               <Route path="welcome" element={<Navigate to="/app" replace />} />
               <Route path="corrections" element={<Corrections />} />
               <Route
