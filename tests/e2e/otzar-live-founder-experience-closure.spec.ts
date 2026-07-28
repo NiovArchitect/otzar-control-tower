@@ -7,7 +7,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { liveUiLogin, ensureLoggedOut } from "./live-login";
+import { liveUiLogin } from "./live-login";
 
 const BASE = process.env.OTZAR_SMOKE_BASE_URL ?? "https://app.otzar.ai";
 const PW =
@@ -179,11 +179,6 @@ test.beforeAll(() => {
 });
 
 test.afterAll(() => {
-  const out = path.join(
-    process.cwd(),
-    "../../niov-foundation/docs/testing/OTZAR_AUTHENTICATED_BROWSER_RESULTS.json",
-  );
-  // Prefer absolute
   const abs = path.resolve(
     "/Users/genghishameha/dev/NIOV Labs/github/niov-foundation/docs/testing/OTZAR_AUTHENTICATED_BROWSER_RESULTS.json",
   );
