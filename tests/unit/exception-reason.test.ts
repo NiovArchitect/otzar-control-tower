@@ -48,11 +48,11 @@ describe("explainActionException", () => {
   });
 
   it("marks stuck PROPOSED without escalation as owner/route exception", () => {
+    // exactOptionalPropertyTypes: omit escalation_id rather than set undefined
     const e = explainActionException(
       action({
         status: "PROPOSED",
         risk_tier: "MEDIUM",
-        escalation_id: undefined,
       }),
     );
     expect(e.is_exception).toBe(true);

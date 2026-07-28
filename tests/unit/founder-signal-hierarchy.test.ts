@@ -67,4 +67,22 @@ describe("buildFounderSignalLanes", () => {
     expect(collapseCommunicationSignal(19)).toMatch(/secondary|grouped/i);
     expect(collapseCommunicationSignal(19)).not.toBe("19 replies to review");
   });
+
+  it("surfaces grounded repeatable-win comparison under What improved", () => {
+    const lanes = buildFounderSignalLanes({
+      ...base,
+      completedActionTitle: "Recorded proof capsule",
+      completedCollabTitle: "Annie research",
+      communicationReplyCount: 0,
+      repeatableWin: {
+        firstRunInterventions: 2,
+        secondRunInterventions: 0,
+        patternLabel: "Annie owns product-launch research",
+      },
+    });
+    const learn = lanes.find((l) => l.lane === "learning_improvement");
+    expect(learn).toBeDefined();
+    expect(learn?.items[0]?.testId).toBe("founder-repeatable-win");
+    expect(learn?.items[0]?.title).toMatch(/2.*0/);
+  });
 });

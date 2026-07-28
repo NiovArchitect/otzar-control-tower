@@ -6,6 +6,7 @@
 export type FounderSignalLane =
   | "primary_objective"
   | "otzar_handled"
+  | "learning_improvement"
   | "needs_founder"
   | "team_movement"
   | "communications";
@@ -45,6 +46,15 @@ export interface FounderSignalInput {
   toolsReconnectLabel: string | null;
   /** Org truth conflicts. */
   truthConflictCount: number;
+  /**
+   * Optional founder-visible repeatable-win comparison (2→0 interventions).
+   * Only pass when live learning pattern is confirmed; never invent metrics.
+   */
+  repeatableWin?: {
+    firstRunInterventions: number;
+    secondRunInterventions: number;
+    patternLabel: string;
+  } | null;
 }
 
 /**
@@ -200,6 +210,23 @@ export function buildFounderSignalLanes(
     });
   }
 
+  const learning: FounderSignalItem[] = [];
+  const rw = input.repeatableWin;
+  if (
+    rw &&
+    rw.secondRunInterventions < rw.firstRunInterventions &&
+    rw.firstRunInterventions >= 0
+  ) {
+    learning.push({
+      key: "learning-repeatable-win",
+      title: `First run ${rw.firstRunInterventions} interventions → second run ${rw.secondRunInterventions}`,
+      detail: `Corrected pattern reused: ${rw.patternLabel}. Error not repeated. Authority unchanged.`,
+      to: "/app/corrections",
+      testId: "founder-repeatable-win",
+      lane: "learning_improvement",
+    });
+  }
+
   const lanes: Array<{
     lane: FounderSignalLane;
     label: string;
@@ -214,6 +241,11 @@ export function buildFounderSignalLanes(
       lane: "otzar_handled",
       label: "What Otzar completed",
       items: handled.slice(0, 3),
+    },
+    {
+      lane: "learning_improvement",
+      label: "What improved",
+      items: learning.slice(0, 1),
     },
     {
       lane: "needs_founder",

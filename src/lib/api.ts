@@ -2228,6 +2228,42 @@ export class ApiClient {
         retries: 0,
       }),
 
+    /** POST /api/v1/calendar/events/update — reschedule/rename preserving event_id. */
+    calendarEventUpdate: (body: {
+      event_id: string;
+      calendar_id?: string;
+      title?: string;
+      selected_time?: { start: string; end: string };
+    }): Promise<
+      ApiResult<{
+        ok: true;
+        status: "UPDATED";
+        event_id: string;
+        calendar_id: string;
+        html_link: string | null;
+        start: string | null;
+        end: string | null;
+        title: string | null;
+      }>
+    > =>
+      this.request("/calendar/events/update", {
+        method: "POST",
+        body,
+        retries: 0,
+      }),
+
+    /** POST /api/v1/calendar/events/delete — cancel/delete by event_id. */
+    calendarEventDelete: (body: {
+      event_id: string;
+      calendar_id?: string;
+      title?: string;
+    }): Promise<ApiResult<{ ok: true }>> =>
+      this.request("/calendar/events/delete", {
+        method: "POST",
+        body,
+        retries: 0,
+      }),
+
     /** POST /api/v1/google/docs/create — gated Google Doc create.
      *  Never auto-creates: requires caller_confirmed + doc-write scope.
      *  Returns real document_id + web_view_link on CREATED. */
