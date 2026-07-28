@@ -123,6 +123,17 @@ describe("Phase 1264 — VoicePlaybackController", () => {
     expect(getLastVoicePath()).toBe("muted");
   });
 
+  it("muted blocks all TTS routes (zero voice API cost)", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await speakWithOtzarVoice("hello", vi.fn(), {
+      muted: true,
+      allowDeviceFallback: true,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getLastVoicePath()).toBe("muted");
+  });
+
   it("a superseding prompt cancels the prior utterance's device fallback (no robot voice second)", async () => {
     // Utterance 1's premium fetch is controllable + rejects later.
     let rejectOne: (e: unknown) => void = () => {};

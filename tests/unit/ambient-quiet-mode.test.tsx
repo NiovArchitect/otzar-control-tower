@@ -56,6 +56,7 @@ describe("AmbientOtzarBar — quiet mode (Phase 1235b)", () => {
   it("quiet toggle shows the banner with honest calendar copy and pauses the mic", async () => {
     renderBar();
     await expand();
+    await userEvent.click(screen.getByTestId("ambient-more-menu"));
     await userEvent.click(screen.getByTestId("ambient-quiet-toggle"));
 
     const banner = screen.getByTestId("ambient-quiet-banner");
@@ -77,6 +78,7 @@ describe("AmbientOtzarBar — quiet mode (Phase 1235b)", () => {
   it("collapsing while quiet shows the muted 'Otzar · quiet' pill", async () => {
     renderBar();
     await expand();
+    await userEvent.click(screen.getByTestId("ambient-more-menu"));
     await userEvent.click(screen.getByTestId("ambient-quiet-toggle"));
     await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
 
@@ -88,7 +90,9 @@ describe("AmbientOtzarBar — quiet mode (Phase 1235b)", () => {
   it("leaving quiet mode restores voice affordances", async () => {
     renderBar();
     await expand();
+    await userEvent.click(screen.getByTestId("ambient-more-menu"));
     await userEvent.click(screen.getByTestId("ambient-quiet-toggle"));
+    await userEvent.click(screen.getByTestId("ambient-more-menu"));
     await userEvent.click(screen.getByTestId("ambient-quiet-toggle"));
     expect(screen.queryByTestId("ambient-quiet-banner")).toBeNull();
     expect(screen.getByTestId("ambient-quiet-toggle")).toHaveAttribute(
@@ -100,6 +104,7 @@ describe("AmbientOtzarBar — quiet mode (Phase 1235b)", () => {
   it("quiet copy never uses developer vocabulary", async () => {
     renderBar();
     await expand();
+    await userEvent.click(screen.getByTestId("ambient-more-menu"));
     await userEvent.click(screen.getByTestId("ambient-quiet-toggle"));
     const text = document.body.textContent ?? "";
     for (const banned of [

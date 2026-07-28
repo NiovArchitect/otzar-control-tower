@@ -49,6 +49,8 @@ import {
   ShieldQuestion,
   ShieldCheck,
   ShieldX,
+  MoreHorizontal,
+  Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -934,6 +936,11 @@ export function AmbientOtzarBar(): JSX.Element {
   ): void {
     const text = otzarSpeakText(rawText);
     if (text.length === 0) return;
+    // Founder hard rule: mute means ZERO voice API / TTS cost.
+    if (synthesisRef.current.muted === true) {
+      setActionVoicePath("muted");
+      return;
+    }
     void speakWithOtzarVoice(
       text,
       (t) => synthesis.speak(t, opts),
@@ -947,6 +954,23 @@ export function AmbientOtzarBar(): JSX.Element {
     ).then(() => {
       setActionVoicePath(getLastVoicePath());
     });
+  }
+
+  /** Contextual speaker: Stop while playing; Mute/Unmute when idle. */
+  function handleSpeakerControl(): void {
+    if (premiumSpeaking || synthesis.speaking) {
+      cancelVoicePlayback();
+      synthesis.stop();
+      setPremiumSpeaking(false);
+      return;
+    }
+    const nextMuted = !synthesis.muted;
+    if (nextMuted) {
+      cancelVoicePlayback();
+      synthesis.stop();
+      setPremiumSpeaking(false);
+    }
+    synthesis.setMuted(nextMuted);
   }
 
   // AUTO-SPEAK: voice-first after a mic turn, or when toggle is on.
@@ -963,16 +987,19 @@ export function AmbientOtzarBar(): JSX.Element {
     const shouldSpeak =
       autoSpeak || voiceTurnPendingRef.current === true;
     if (!shouldSpeak) return;
+    // Consume the response key even when muted so unmuting never
+    // auto-plays a past answer (Founder: no old audio after unmute).
+    lastAutoSpokenKeyRef.current = responseKey;
+    voiceTurnPendingRef.current = false;
+    if (synthesis.muted) return;
     const sayable =
       intent.response.speech_ready_text.length > 0
         ? intent.response.speech_ready_text
         : intent.response.response;
-    lastAutoSpokenKeyRef.current = responseKey;
-    voiceTurnPendingRef.current = false;
     if (!autoSpeak) setAutoSpeak(true); // persist voice preference this session
     speakAssistant(sayable, { source: "auto", force: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSpeak, quiet, responseKey]);
+  }, [autoSpeak, quiet, responseKey, synthesis.muted]);
 
   function handleQuietToggle(): void {
     setQuiet((v) => {
@@ -980,7 +1007,9 @@ export function AmbientOtzarBar(): JSX.Element {
       if (next) {
         // Entering quiet mode silences Otzar immediately.
         if (recognition.listening) recognition.stop();
+        cancelVoicePlayback();
         synthesis.stop();
+        setPremiumSpeaking(false);
       } else if (autoQuietReason !== null) {
         // The user deliberately resumed voice while a quiet
         // recommendation is active — honor it for this session.
@@ -1089,6 +1118,10 @@ export function AmbientOtzarBar(): JSX.Element {
   // only; device never silent-substitutes).
   function speakConfirmation(text: string): void {
     if (text.length === 0) return;
+    if (synthesisRef.current.muted === true) {
+      setActionVoicePath("muted");
+      return;
+    }
     void speakWithOtzarVoice(
       text,
       (t) => synthesis.speak(t, { source: "manual", force: true }),
@@ -1406,9 +1439,9 @@ export function AmbientOtzarBar(): JSX.Element {
       // Real work moved: Otzar → teammate. A brief directional flow trace.
       emitFlow("otzar_to_person", `Routed to ${label}`, "working");
       report(
-        `I sent ${label} a message on your behalf and created the governed record. I'll track the response here.`,
+        `Sent to ${label}. I'll show you when they respond.`,
         "success",
-        "Sent · governed",
+        "Waiting for reply",
         sent.data.recipient_entity_id ?? recipient,
       );
       return;
@@ -1497,8 +1530,8 @@ export function AmbientOtzarBar(): JSX.Element {
     let status: string;
     let result: "success" | "blocked";
     if (delivered.length > 0 && failed.length === 0) {
-      msg = `Sent the request to ${formatRecipientList(delivered)} on your behalf. I'll track ${delivered.length > 1 ? "their replies" : "the reply"} here.`;
-      status = "Sent · governed";
+      msg = `Sent to ${formatRecipientList(delivered)}. I'll show you when ${delivered.length > 1 ? "they respond" : "they respond"}.`;
+      status = "Waiting for reply";
       result = "success";
     } else if (delivered.length > 0) {
       msg = `Sent to ${formatRecipientList(delivered)}. I couldn't reach ${formatRecipientList(failed)}. Open Collaboration to route ${failed.length > 1 ? "those" : "that"}.`;
@@ -1886,8 +1919,8 @@ export function AmbientOtzarBar(): JSX.Element {
         ctx !== null && ctx.resolved ? ` for ${contextLabel(ctx)}` : "";
       surfaceOutcome({
         eventKind: "COLLABORATION_SENT",
-        copy: `I sent ${who} a ${kindword}${forCtx} on your behalf and I'll track their response here.`,
-        status: "Sent",
+        copy: `Sent to ${who}${forCtx}. I'll show you when they respond.`,
+        status: "Waiting for reply",
         at,
         heard,
         result: "success",
@@ -2321,8 +2354,8 @@ export function AmbientOtzarBar(): JSX.Element {
       updateActionStatus(a.id, "sent");
       surfaceOutcome({
         eventKind: "COLLABORATION_SENT",
-        copy: `I sent ${who} a follow-up on your behalf and I'll track their response here.`,
-        status: "Sent",
+        copy: `Sent to ${who}. I'll show you when they respond.`,
+        status: "Waiting for reply",
         at,
         heard: a.body,
         result: "success",
@@ -4419,14 +4452,8 @@ export function AmbientOtzarBar(): JSX.Element {
         </Badge>
       </Link>
     ) : null;
-  const correctionBadge =
-    response?.correction_capture_available === true ? (
-      <Link to="/app/corrections">
-        <Badge variant="outline" className="gap-1">
-          <MessageSquare className="h-3 w-3" /> Correct Otzar
-        </Badge>
-      </Link>
-    ) : null;
+  // Correct Otzar lives under More / answer actions — not a permanent primary chip.
+  const correctionBadge = null;
 
   // ────────────────────────────────────────────────────────────
   // COLLAPSED — the Otzar orb (Phase 1251). A presence, not a
@@ -4576,38 +4603,45 @@ export function AmbientOtzarBar(): JSX.Element {
                 : "motion-safe:animate-pulse"
             }`}
           />
-          <span className="text-sm font-semibold text-[#1e1b4b]">Talk to Otzar</span>
-          <span className={`text-xs text-slate-300 truncate ${statusClass}`}>{status}</span>
+          <span className="text-sm font-semibold text-[#1e1b4b]">Otzar</span>
+          <span className={`text-xs text-slate-300 truncate ${statusClass}`}>
+            {premiumSpeaking || synthesis.speaking
+              ? "Speaking…"
+              : synthesis.muted
+                ? "Muted"
+                : status === "Idle · speak or type"
+                  ? ""
+                  : status === "Idle"
+                    ? ""
+                    : status}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <Button
             type="button"
-            variant={quiet ? "secondary" : "ghost"}
-            size="icon"
-            onClick={handleQuietToggle}
-            aria-label={quiet ? "Leave quiet mode" : "Quiet mode"}
-            aria-pressed={quiet}
-            title={
-              quiet
-                ? "Leave quiet mode"
-                : "Quiet mode. Otzar won't speak or listen"
-            }
-            className="h-7 w-7"
-            data-testid="ambient-quiet-toggle"
-          >
-            <MoonStar className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
             variant="ghost"
             size="icon"
-            onClick={() => synthesis.setMuted(!synthesis.muted)}
-            aria-label={synthesis.muted ? "Unmute Otzar" : "Mute Otzar"}
-            disabled={!synthesis.supported}
-            title={synthesis.muted ? "Unmute" : "Mute"}
+            onClick={handleSpeakerControl}
+            aria-label={
+              premiumSpeaking || synthesis.speaking
+                ? "Stop voice"
+                : synthesis.muted
+                  ? "Unmute Otzar"
+                  : "Mute Otzar"
+            }
+            title={
+              premiumSpeaking || synthesis.speaking
+                ? "Stop voice"
+                : synthesis.muted
+                  ? "Unmute Otzar"
+                  : "Mute Otzar"
+            }
             className="h-7 w-7"
+            data-testid="ambient-speaker-control"
           >
-            {synthesis.muted ? (
+            {premiumSpeaking || synthesis.speaking ? (
+              <Square className="h-4 w-4" />
+            ) : synthesis.muted ? (
               <VolumeX className="h-4 w-4" />
             ) : (
               <Volume2 className="h-4 w-4" />
@@ -5013,14 +5047,10 @@ export function AmbientOtzarBar(): JSX.Element {
                   aria-hidden
                 />
                 <span className="text-muted-foreground">
-                  Using current context
                   {surfaceContext.sourceLabel !== undefined &&
-                  surfaceContext.sourceLabel.length > 0 ? (
-                    <span className="opacity-70">
-                      {" "}
-                      · {surfaceContext.sourceLabel.slice(0, 40)}
-                    </span>
-                  ) : null}
+                  surfaceContext.sourceLabel.length > 0
+                    ? surfaceContext.sourceLabel.slice(0, 40)
+                    : "Current context"}
                 </span>
                 <button
                   type="button"
@@ -5039,8 +5069,12 @@ export function AmbientOtzarBar(): JSX.Element {
                 onMouseDown={capturePendingSelection}
                 onClick={handleAddContext}
                 data-testid="surface-context-add"
+                aria-label="Add context"
               >
-                Add current context
+                <span className="inline-flex items-center gap-1">
+                  <Paperclip className="h-3 w-3" aria-hidden />
+                  Add context
+                </span>
               </button>
             )}
           </div>
@@ -5052,27 +5086,8 @@ export function AmbientOtzarBar(): JSX.Element {
           ) : null}
           {/* P0G. Honest post-transcription note + the existing server
               disclosure whenever the server engine is the active path. */}
-          {serverTranscribed ? (
-            <p
-              className="text-xs text-muted-foreground"
-              data-testid="server-stt-note"
-            >
-              {SERVER_STT_TRANSCRIBED_NOTE}
-            </p>
-          ) : null}
-          {useServerStt ? (
-            <p
-              className="text-[10px] text-muted-foreground"
-              data-testid="server-stt-disclosure"
-            >
-              {SERVER_STT_DISCLOSURE}
-            </p>
-          ) : null}
-          {!synthesis.supported ? (
-            <p className="text-xs text-muted-foreground">
-              Speech output unavailable. Showing speech-ready text.
-            </p>
-          ) : null}
+          {/* Server STT / voice-architecture notes intentionally omitted from
+              the employee primary surface (Founder floating Talk cleanup). */}
           {desktopCap.state === "error" && desktopCap.errorCode !== null ? (
             <p
               className="text-xs text-destructive"
@@ -5135,53 +5150,14 @@ export function AmbientOtzarBar(): JSX.Element {
                     <span className="font-medium text-foreground">Heard:</span>{" "}
                     <span className="text-muted-foreground">“{actionHeard}”</span>
                   </div>
-                  {transcriptionProvider !== null ? (
-                    <div data-testid="voice-transcription-provider">
-                      <span className="font-medium text-foreground">
-                        Transcription:
-                      </span>{" "}
-                      <span className="text-muted-foreground">
-                        {transcriptionProvider === "deepgram"
-                          ? "Deepgram"
-                          : transcriptionProvider === "openai-whisper"
-                            ? "OpenAI Whisper"
-                            : transcriptionProvider}
-                      </span>
-                    </div>
-                  ) : null}
-                  {/* Only when the compact line is showing the RESULT. Else the
-                      label is already the compact outcome (avoid duplication). */}
-                  {actionLabel !== null && actionResult !== null ? (
-                    <div>
-                      <span className="font-medium text-foreground">
-                        Action:
-                      </span>{" "}
-                      <span className="text-muted-foreground">{actionLabel}</span>
-                    </div>
-                  ) : null}
-                  {actionStatus !== null ? (
+                  {actionStatus !== null &&
+                  actionStatus !== "Sent · governed" ? (
                     <div data-testid="voice-action-status">
                       <span className="font-medium text-foreground">
                         Status:
                       </span>{" "}
                       <span className="text-muted-foreground">
                         {actionStatus}
-                      </span>
-                    </div>
-                  ) : null}
-                  {actionVoicePath !== null ? (
-                    <div>
-                      <span className="font-medium text-foreground">
-                        Voice:
-                      </span>{" "}
-                      <span className="text-muted-foreground">
-                        {actionVoicePath === "premium_voice"
-                          ? "Premium voice"
-                          : actionVoicePath === "fallback_device_voice"
-                            ? "Device fallback (premium unavailable)"
-                            : actionVoicePath === "muted"
-                              ? "Muted"
-                              : "No audio"}
                       </span>
                     </div>
                   ) : null}
@@ -5454,38 +5430,36 @@ export function AmbientOtzarBar(): JSX.Element {
             <div className="rounded-md border border-border bg-background/70 p-2 text-xs space-y-1">
               <div className="font-medium text-foreground">Otzar</div>
               <div className="text-muted-foreground whitespace-pre-wrap line-clamp-6">
-                {response.speech_ready_text.length > 0
-                  ? response.speech_ready_text
-                  : response.response}
+                {response.response}
               </div>
               <div className="flex flex-wrap items-center gap-1 pt-1">
-                <Badge variant="outline">{response.next_step}</Badge>
+                {/* Operational badges only — never raw ANSWERED lifecycle chips. */}
+                {response.next_step !== "ANSWERED" &&
+                response.next_step !== "CLARIFY" ? (
+                  <Badge variant="outline">{response.next_step}</Badge>
+                ) : null}
                 {approvalBadge}
                 {collabBadge}
-                {correctionBadge}
                 <div className="ml-auto flex gap-1">
-                  {synthesis.speaking ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={synthesis.stop}
-                      className="h-6 w-6"
-                      aria-label="Stop speaking"
-                      title="Stop speaking"
+                  {response.correction_capture_available === true ? (
+                    <Link
+                      to="/app/corrections"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                      aria-label="Correct Otzar"
+                      title="Correct Otzar"
                     >
-                      <Square className="h-3 w-3" />
-                    </Button>
+                      <MessageSquare className="h-3 w-3" />
+                    </Link>
                   ) : null}
-                  {synthesis.supported && !synthesis.muted ? (
+                  {!synthesis.muted && !premiumSpeaking && !synthesis.speaking ? (
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={handleReplay}
                       className="h-6 w-6"
-                      aria-label="Replay"
-                      title="Replay"
+                      aria-label="Hear answer"
+                      title="Hear answer"
                     >
                       <Volume2 className="h-3 w-3" />
                     </Button>
@@ -5495,109 +5469,112 @@ export function AmbientOtzarBar(): JSX.Element {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2 pt-1 flex-wrap">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleTestVoice}
-              disabled={!synthesis.supported || synthesis.muted}
-              className="h-7 px-2 text-xs"
-              aria-label="Test Otzar voice"
-              title={
-                synthesis.supported
-                  ? synthesis.muted
-                    ? "Unmute to test"
-                    : "Speak a test phrase using your device's TTS"
-                  : "Speech output unsupported in this shell"
-              }
-            >
-              <Volume2 className="h-3 w-3 mr-1" />
-              Test Otzar voice
-            </Button>
-            {/* Emergency Stop voice. Always visible so the
-                operator can silence Otzar without hunting. ESC also
-                works (bound at the window level inside the hook). */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={synthesis.stop}
-              disabled={!synthesis.supported}
-              className="h-7 px-2 text-xs"
-              aria-label="Stop voice"
-              title="Stop speaking (or press Escape)"
-            >
-              <Square className="h-3 w-3 mr-1" />
-              Stop voice
-            </Button>
-            {/* Auto-speak toggle. OFF by default per the emergency
-                guard. The label is short + the title carries detail. */}
+          <div className="flex items-center gap-3 pt-1 flex-wrap">
             <label
-              className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer"
-              title="When on, Otzar speaks every new response once through your device's TTS. Each response is deduped. Re-renders never re-speak. Off by default."
+              className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer"
+              title="When on, Otzar speaks new answers automatically. Text always stays visible."
             >
               <input
                 type="checkbox"
-                aria-label="Auto-speak responses"
+                aria-label="Auto-speak"
                 checked={autoSpeak}
                 onChange={(e) => {
                   setAutoSpeak(e.target.checked);
                   if (e.target.checked) synthesis.resetDedupe();
                 }}
-                disabled={!synthesis.supported || synthesis.muted}
+                disabled={synthesis.muted}
               />
               Auto-speak
             </label>
-            {/* P0H. Restore the default bottom-right anchor. Only
-                shown once the orb has actually been moved. */}
-            {orbPos !== null ? (
-              <button
-                type="button"
-                onClick={handleResetOrbPosition}
-                className="text-[11px] text-muted-foreground underline hover:text-foreground"
-                data-testid="orb-position-reset"
-                title="Move Otzar back to the bottom-right corner"
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleSpeakerControl}
+              aria-label={
+                premiumSpeaking || synthesis.speaking
+                  ? "Stop voice"
+                  : synthesis.muted
+                    ? "Unmute Otzar"
+                    : "Mute Otzar"
+              }
+              className="h-7 w-7"
+              data-testid="ambient-speaker-footer"
+            >
+              {premiumSpeaking || synthesis.speaking ? (
+                <Square className="h-3.5 w-3.5" />
+              ) : synthesis.muted ? (
+                <VolumeX className="h-3.5 w-3.5" />
+              ) : (
+                <Volume2 className="h-3.5 w-3.5" />
+              )}
+            </Button>
+            <details className="ml-auto relative">
+              <summary
+                className="list-none cursor-pointer inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="More"
+                data-testid="ambient-more-menu"
               >
-                Reset position
-              </button>
-            ) : null}
+                <MoreHorizontal className="h-4 w-4" />
+              </summary>
+              <div className="absolute right-0 bottom-8 z-20 min-w-[11rem] rounded-md border border-border bg-background p-1 shadow-md text-xs">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-muted"
+                  onPointerDown={capturePendingSelection}
+                  onMouseDown={capturePendingSelection}
+                  onClick={handleAddContext}
+                >
+                  <Paperclip className="h-3 w-3" />
+                  Add context
+                </button>
+                <Link
+                  to="/app/corrections"
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-muted"
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  Correct Otzar
+                </Link>
+                <Link
+                  to="/app/conversations"
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-muted"
+                >
+                  Conversation history
+                </Link>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-muted"
+                  onClick={handleQuietToggle}
+                  data-testid="ambient-quiet-toggle"
+                  aria-pressed={quiet}
+                  aria-label={quiet ? "Leave quiet mode" : "Quiet mode"}
+                >
+                  <MoonStar className="h-3 w-3" />
+                  {quiet ? "Leave quiet mode" : "Quiet mode"}
+                </button>
+                {orbPos !== null ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-muted"
+                    onClick={handleResetOrbPosition}
+                    data-testid="orb-position-reset"
+                  >
+                    Reset floating position
+                  </button>
+                ) : null}
+                <details className="rounded-sm px-2 py-1.5">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                    Voice and privacy
+                  </summary>
+                  <p className="mt-1 text-[10px] text-muted-foreground leading-snug">
+                    The microphone activates only when you start it. Text always
+                    stays available. Organization policy governs voice. Audio
+                    follows your current retention policy.
+                  </p>
+                </details>
+              </div>
+            </details>
           </div>
-
-          <p
-            className="text-[10px] text-muted-foreground"
-            // Phase OTZAR-RETURN-3 — honest capture copy from the shared ambient
-            // model, on hover. Only for the browser/text path: the desktop Tauri
-            // path transcribes via the backend, so the model's "never raw audio"
-            // copy does not describe it (the visible "no raw audio is stored"
-            // line below stays accurate for both).
-            title={
-              useDesktopCapture || useServerStt
-                ? undefined
-                : describeAmbientVoiceMode({
-                    device_mode: "desktop_browser",
-                    capture_mode: recognition.supported ? "browser_stt" : "text_only",
-                    status: recognition.supported ? "ready" : "unsupported",
-                    browserRecognitionSupported: recognition.supported,
-                  })
-            }
-          >
-            Voice input:{" "}
-            {useDesktopCapture
-              ? "desktop mic → transcription"
-              : useServerStt
-                ? "microphone → secure server transcription"
-                : recognition.supported
-                  ? "browser STT"
-                  : "text only"}
-            {" · "}
-            Voice output:{" "}
-            {synthesis.muted
-              ? "muted"
-              : "premium Orion · text shown if premium unavailable"}
-            {" · "}
-            No raw audio is stored.
-          </p>
 
           {/* [OTZAR-LIVE-6] Removed the bottom deep-link row (My Twin / Approvals
               / Collaboration / Corrections / full Voice page). It duplicated the
