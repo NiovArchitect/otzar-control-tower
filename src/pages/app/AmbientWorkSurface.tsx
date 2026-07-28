@@ -27,10 +27,13 @@ import type {
   CollaborationRequestSafeView,
   DgiCoherenceSnapshot,
   MyDaySuggestion,
+  SafeActionView,
   SafeHandoffView,
   WorkLedgerEntryView,
   WorkProjectSafeView,
 } from "@/lib/types/foundation";
+import { selectCollaborationReceipts } from "@/lib/work-os/collaboration-receipt";
+import { CollaborationReceiptCard } from "@/components/otzar/CollaborationReceiptCard";
 import { triagePriority } from "@/lib/work-os/blind-spot-triage";
 import {
   activeTwinWorkItems,
@@ -79,6 +82,15 @@ function greetingFor(hour: number, name: string | null): string {
   const base =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   return name === null ? base : `${base}, ${name.split(" ")[0]}`;
+}
+
+/** Local friendly action type — never raw DUAL_CONTROL or UUIDs on Today. */
+function friendlyActionTypeLocal(action_type: string): string {
+  const t = action_type.replace(/^DUAL_CONTROL:/i, "").replace(/_/g, " ");
+  if (/record.?capsule/i.test(t)) return "Recorded proof capsule";
+  if (/internal.?notification|send.?internal/i.test(t)) return "Internal notification";
+  if (/invoke.?connector/i.test(t)) return "Connector action";
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
 }
 
 function openOrb(): void {
@@ -186,6 +198,12 @@ export function AmbientWorkSurface(): JSX.Element {
   const [toolsReconnectLabel, setToolsReconnectLabel] = useState<string | null>(
     null,
   );
+  // Founder-visible completed loop signals (actions + collab receipts).
+  const [recentSucceeded, setRecentSucceeded] = useState<SafeActionView[]>([]);
+  const [recentFailed, setRecentFailed] = useState<SafeActionView[]>([]);
+  const [completedCollabs, setCompletedCollabs] = useState<
+    CollaborationRequestSafeView[]
+  >([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -366,6 +384,47 @@ export function AmbientWorkSurface(): JSX.Element {
       .then((r) => {
         if (cancelled || !r.ok) return;
         setTeamPeople(r.data.team_work.people ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Completed actions + AI collab receipts for founder Today ("what Otzar completed").
+  useEffect(() => {
+    let cancelled = false;
+    api.actions
+      .list({ page_size: 30 })
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        const items = r.data.items ?? [];
+        setRecentSucceeded(
+          items.filter((a) => a.status === "SUCCEEDED").slice(0, 5),
+        );
+        setRecentFailed(
+          items
+            .filter(
+              (a) =>
+                a.status === "FAILED" ||
+                a.status === "TIMED_OUT" ||
+                a.status === "RUNNING",
+            )
+            .slice(0, 5),
+        );
+      })
+      .catch(() => undefined);
+    Promise.all([
+      api.otzar.collaboration.outbound({ take: 20 }),
+      api.otzar.collaboration.inbound({ take: 20 }),
+    ])
+      .then(([out, inn]) => {
+        if (cancelled) return;
+        const rows: CollaborationRequestSafeView[] = [
+          ...(out.ok ? out.data.collaborations : []),
+          ...(inn.ok ? inn.data.collaborations : []),
+        ];
+        setCompletedCollabs(rows.filter((c) => c.state === "COMPLETED").slice(0, 5));
       })
       .catch(() => undefined);
     return () => {
@@ -738,6 +797,22 @@ export function AmbientWorkSurface(): JSX.Element {
     dgi?.coherence_status !== "BLOCKED" &&
     dgi?.coherence_status !== "UNPAIRED";
 
+  const collabReceipts = selectCollaborationReceipts(completedCollabs, 2);
+  const succeededSample =
+    recentSucceeded[0] !== undefined
+      ? recentSucceeded[0].target_label
+        ? `${friendlyActionTypeLocal(recentSucceeded[0].action_type)} · ${recentSucceeded[0].target_label}`
+        : friendlyActionTypeLocal(recentSucceeded[0].action_type)
+      : null;
+  const failedSample =
+    recentFailed[0] !== undefined
+      ? friendlyActionTypeLocal(recentFailed[0].action_type)
+      : null;
+  const collabSample =
+    completedCollabs[0]?.safe_summary?.trim().slice(0, 80) || null;
+  // Correction sample only when a real team title line is present (no invented copy).
+  const correctionSample: string | null = null;
+
   // B-04 — What changed from real state only (never a fake activity feed).
   const whatChanged = buildWhatChanged({
     openHandoffCount: incomingHandoffs.length,
@@ -753,9 +828,41 @@ export function AmbientWorkSurface(): JSX.Element {
       teamPeople.length > 0
         ? `${teamPeople[0]!.display_name} · ${teamPeople[0]!.open_obligation_count} open`
         : null,
+    completedActionSample: succeededSample,
+    completedCollabSample: collabSample,
+    correctionSample,
+    failedActionSample: failedSample,
   });
 
   // Human Home bands: needs me / changed / handled / waiting / next.
+  const handledItems = [
+    ...recentSucceeded.slice(0, 2).map((a, i) => ({
+      key: `succ-${a.action_id}`,
+      title: succeededSample && i === 0
+        ? `Completed action · ${friendlyActionTypeLocal(a.action_type)}`
+        : `Completed · ${friendlyActionTypeLocal(a.action_type)}`,
+      detail: a.target_label
+        ? `Verified · ${a.target_label}`
+        : "Verified execution with proof on Needs me",
+      to: `/app/action-center?focus=${encodeURIComponent(a.action_id)}`,
+      testId: `home-band-handled-action-${i}`,
+    })),
+    ...collabReceipts.map((r, i) => ({
+      key: `collab-${r.collaboration_id}`,
+      title: r.title,
+      detail: r.why.slice(0, 100),
+      to: r.proof_path,
+      testId: `home-band-handled-collab-${i}`,
+    })),
+    ...twinWorking.slice(0, 2).map((tw, i) => ({
+      key: `handled-${i}-${tw.ledger_entry_id ?? i}`,
+      title: tw.title || "AI Teammate advanced work",
+      detail: twinWorkStateLabel(tw.twin_work?.state ?? "CLAIMED_WORKING"),
+      to: "/app/my-work",
+      testId: `home-band-handled-twin-${i}`,
+    })),
+  ].slice(0, 4);
+
   const homeBands = composeHomeBands({
     needsMe: focusItems.slice(0, 3).map((item) => ({
       key: item.key,
@@ -766,7 +873,7 @@ export function AmbientWorkSurface(): JSX.Element {
     })),
     changed: whatChanged
       .filter((row) => row.testId !== "what-changed-quiet")
-      .slice(0, 3)
+      .slice(0, 4)
       .map((row) => ({
         key: row.testId,
         title: row.title,
@@ -775,20 +882,36 @@ export function AmbientWorkSurface(): JSX.Element {
           : {}),
         testId: row.testId,
       })),
-    handled: twinWorking.slice(0, 3).map((tw, i) => ({
-      key: `handled-${i}-${tw.ledger_entry_id ?? i}`,
-      title: tw.title || "AI Teammate advanced work",
-      detail: twinWorkStateLabel(tw.twin_work?.state ?? "CLAIMED_WORKING"),
-      to: "/app/my-work",
-      testId: `home-band-handled-${i}`,
-    })),
-    waiting: incomingHandoffs.slice(0, 3).map((h, i) => ({
-      key: `wait-${h.handoff_id ?? i}`,
-      title: h.title || "Waiting on a handoff",
-      detail: "Waiting on someone else",
-      to: "/app/action-center",
-      testId: `home-band-waiting-${i}`,
-    })),
+    handled: handledItems,
+    waiting: [
+      ...incomingHandoffs.slice(0, 2).map((h, i) => ({
+        key: `wait-${h.handoff_id ?? i}`,
+        title: h.title || "Waiting on a handoff",
+        detail: "Waiting on someone else",
+        to: "/app/action-center",
+        testId: `home-band-waiting-${i}`,
+      })),
+      ...recentFailed
+        .filter((a) => a.status === "RUNNING")
+        .slice(0, 1)
+        .map((a, i) => ({
+          key: `run-${a.action_id}`,
+          title: "Action still running — not finished",
+          detail: "Otzar will not mark this complete until it finishes or times out",
+          to: `/app/action-center?focus=${encodeURIComponent(a.action_id)}`,
+          testId: `home-band-running-${i}`,
+        })),
+      ...teamPeople.slice(0, 3).map((p, i) => ({
+        key: `team-${i}-${p.display_name}`,
+        title: `${p.display_name}`,
+        detail:
+          p.sample_titles?.[0] !== undefined
+            ? `${p.open_obligation_count} open · ${p.sample_titles[0]}`
+            : `${p.open_obligation_count} open obligation${p.open_obligation_count === 1 ? "" : "s"}`,
+        to: "/app/collaboration",
+        testId: `home-band-team-${i}`,
+      })),
+    ].slice(0, 5),
     // Talk remains a dedicated primary CTA below. Do not invent a "Next" band
     // when the user is caught up (preserves ambient-caught-up calm state).
     next: [],
@@ -931,6 +1054,20 @@ export function AmbientWorkSurface(): JSX.Element {
             <p className="text-[11px] text-rose-700" data-testid="twin-working-verify-error">
               Could not verify. Try again.
             </p>
+          ) : null}
+          {collabReceipts.length > 0 ? (
+            <div className="space-y-1.5" data-testid="today-collab-receipts">
+              <p className="px-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                AI collaboration
+              </p>
+              {collabReceipts.map((r) => (
+                <CollaborationReceiptCard
+                  key={r.collaboration_id}
+                  receipt={r}
+                  compact
+                />
+              ))}
+            </div>
           ) : null}
         </div>
       ) : calmCaughtUp ? (

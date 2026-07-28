@@ -21,7 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
-import { CAPABILITY_FIRST_HEADLINE } from "@/lib/connectors/capability-first-tools";
+import {
+  CAPABILITY_FIRST_DETAIL,
+  CAPABILITY_FIRST_HEADLINE,
+} from "@/lib/connectors/capability-first-tools";
 import { MeetOperationalResidualCard } from "@/components/otzar/MeetOperationalResidualCard";
 
 type ProviderRow = {
@@ -211,7 +214,7 @@ export function ConnectorHealth(): JSX.Element {
         className="text-xs text-muted-foreground"
         data-testid="tools-capability-first-banner"
       >
-        {CAPABILITY_FIRST_HEADLINE}
+        {CAPABILITY_FIRST_HEADLINE} {CAPABILITY_FIRST_DETAIL}
       </p>
 
       {/* N-02 — Meet residual honesty only when reconnect is needed */}

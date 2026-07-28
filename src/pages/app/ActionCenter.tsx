@@ -139,17 +139,20 @@ function friendlyStatus(status: string): string {
     case "APPROVED":
       return "Approved";
     case "SCHEDULED":
-      return "Scheduled";
+      return "Scheduled — waiting to run";
     case "RUNNING":
-      return "Running";
+      // Users must never see a silent indefinite RUNNING as "done".
+      return "Running — not finished yet";
     case "SUCCEEDED":
-      return "Sent";
+      // Not always a send — RECORD_CAPSULE / generic execution succeed too.
+      return "Completed";
     case "FAILED":
-      return "Failed";
+      return "Failed — not completed";
     case "CANCELLED":
       return "Cancelled";
     case "TIMED_OUT":
-      return "Timed out";
+      // Stale RUNNING reconcile lands here — honest, not a fake success.
+      return "Timed out — not completed";
     case "REJECTED":
       // [PROD-UX-APPROVAL-LOOP] A REJECTED action usually means an approver
       // declined it (dual-control verdict now reconciles onto the Action);
@@ -204,7 +207,23 @@ export function ActionCenter(): JSX.Element {
   const [items, setItems] = useState<SafeActionView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("pending");
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "pending";
+    try {
+      const t = new URLSearchParams(window.location.search).get("tab");
+      if (
+        t === "pending" ||
+        t === "approved" ||
+        t === "completed" ||
+        t === "blocked"
+      ) {
+        return t;
+      }
+    } catch {
+      /* ignore */
+    }
+    return "pending";
+  });
   // Phase 1268 — per-action approve/reject busy + error so the
   // Action Center is a real execution control plane.
   const [busyId, setBusyId] = useState<string | null>(null);

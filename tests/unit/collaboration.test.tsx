@@ -91,7 +91,7 @@ describe("Collaboration page", () => {
   it("renders inbound + outbound cards + the ask-for-help composer", async () => {
     emptyLists();
     renderPage();
-    expect(await screen.findByText("People & Collaboration")).toBeInTheDocument();
+    expect(await screen.findByText("People")).toBeInTheDocument();
     expect(screen.getByTestId("create-collaboration-form")).toBeInTheDocument();
     expect(screen.getByTestId("inbound-card")).toBeInTheDocument();
     expect(screen.getByTestId("outbound-card")).toBeInTheDocument();

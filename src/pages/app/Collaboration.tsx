@@ -28,6 +28,7 @@ import { PeopleDirectory } from "@/components/otzar/PeopleDirectory";
 import { PeopleStructureGlance } from "@/components/otzar/PeopleStructureGlance";
 import { AiCollabEnvelopeCard } from "@/components/otzar/AiCollabEnvelopeCard";
 import { AiCollabLoadCard } from "@/components/otzar/AiCollabLoadCard";
+import { CollaborationReceiptCard } from "@/components/otzar/CollaborationReceiptCard";
 import { Sprout } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
@@ -38,6 +39,10 @@ import {
   isAiToAiTarget,
   resolveCollabTarget,
 } from "@/lib/work-os/ai-collab-envelope";
+import {
+  buildCollaborationReceipt,
+  selectCollaborationReceipts,
+} from "@/lib/work-os/collaboration-receipt";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import type {
   AssignmentTarget,
@@ -185,6 +190,23 @@ export function Collaboration() {
     });
   }
 
+  // Founder-visible receipts: COMPLETED (and recent) collaborations, not
+  // doctrine-only envelope copy. Prefer AI Teammate rows when present.
+  const receiptSource: CollaborationRequestSafeView[] = [
+    ...(inbound.data?.ok === true ? inbound.data.data.collaborations : []),
+    ...(outbound.data?.ok === true ? outbound.data.data.collaborations : []),
+  ];
+  const receipts = selectCollaborationReceipts(
+    receiptSource.filter(
+      (c) =>
+        c.state === "COMPLETED" ||
+        c.requested_by_ai ||
+        c.has_target_twin ||
+        c.target_type === "EMPLOYEE_TWIN",
+    ),
+    4,
+  );
+
   return (
     <div className="space-y-6" data-testid="collaboration-page" data-l01-surface="true">
       <PageHeader
@@ -194,6 +216,29 @@ export function Collaboration() {
 
       {/* Optional reporting structure - collapsed by default (founder rejection). */}
       <PeopleStructureGlance />
+
+      {receipts.length > 0 ? (
+        <section
+          className="space-y-3"
+          data-testid="collaboration-receipts-section"
+          aria-label="AI Teammate collaboration receipts"
+        >
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              How AI Teammates collaborated
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Who worked together, why, what was used, and the result — without
+              raw prompts or internal traces.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {receipts.map((r) => (
+              <CollaborationReceiptCard key={r.collaboration_id} receipt={r} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <PeopleDirectory
         onRequestHelp={(id, name) => {
@@ -697,6 +742,14 @@ function CollaborationRow({
         {item.completed_at &&
           ` · completed ${formatRelativeTime(item.completed_at)}`}
       </p>
+      {item.state === "COMPLETED" || aiToAi ? (
+        <div className="mt-3" data-testid="collab-row-receipt">
+          <CollaborationReceiptCard
+            receipt={buildCollaborationReceipt(item)}
+            compact
+          />
+        </div>
+      ) : null}
       {side === "inbound" && isOpen && (
         <div className="mt-2 flex flex-wrap gap-2">
           <Button

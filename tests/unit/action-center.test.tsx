@@ -200,9 +200,10 @@ describe("ActionCenter — friendly labels (Warmwind language pass)", () => {
     );
     await user.click(screen.getByTestId("action-tab-completed"));
     const card = screen.getByTestId("action-center-card");
-    expect(card).toHaveTextContent("Sent");
+    expect(card).toHaveTextContent("Completed");
     expect(card).toHaveTextContent("Low risk");
     expect(card).not.toHaveTextContent("SUCCEEDED");
+    expect(card).not.toHaveTextContent("Sent");
     expect(card).not.toHaveTextContent("LOW");
   });
 

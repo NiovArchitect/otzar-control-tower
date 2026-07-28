@@ -152,8 +152,10 @@ describe("Dandelion — admin growth card (Phase 1237)", () => {
     setAuth(false);
     renderWithProviders(<Collaboration />);
     await waitFor(() =>
-      expect(screen.getByText("People & Collaboration")).toBeInTheDocument(),
+      expect(screen.getByTestId("collaboration-page")).toBeInTheDocument(),
     );
+    // Page title is "People" (ADHD-safe); full phrase lives in nav/docs only.
+    expect(screen.getByText("People")).toBeInTheDocument();
     expect(screen.queryByTestId("dandelion-growth-card")).toBeNull();
   });
 
