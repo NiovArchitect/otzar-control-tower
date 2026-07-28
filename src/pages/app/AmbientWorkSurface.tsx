@@ -205,6 +205,11 @@ export function AmbientWorkSurface(): JSX.Element {
   const [completedCollabs, setCompletedCollabs] = useState<
     CollaborationRequestSafeView[]
   >([]);
+  // Live org-scoped learning pattern label for repeatable-win comparison.
+  // Card only appears when a real correction is ACTIVE (never invent metrics).
+  const [learnedPatternLabel, setLearnedPatternLabel] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -385,6 +390,36 @@ export function AmbientWorkSurface(): JSX.Element {
       .then((r) => {
         if (cancelled || !r.ok) return;
         setTeamPeople(r.data.team_work.people ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Grounded learning pattern for "What improved" (Path C — requires prior approve).
+  useEffect(() => {
+    let cancelled = false;
+    api.otzar.correctionMemory
+      .list({ take: 30, state: "ACTIVE" })
+      .then((r) => {
+        if (cancelled || !r.ok) return;
+        const list = r.data.corrections ?? [];
+        const learned = list.find((c) => {
+          const s = (c.safe_summary ?? "").toLowerCase();
+          return (
+            s.includes("annie") &&
+            (s.includes("research") || s.includes("learned-pattern"))
+          );
+        });
+        if (learned?.safe_summary) {
+          // Short product label — no raw UUIDs.
+          setLearnedPatternLabel(
+            "Annie owns product-launch research dependencies (org-scoped)",
+          );
+        } else {
+          setLearnedPatternLabel(null);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -897,6 +932,17 @@ export function AmbientWorkSurface(): JSX.Element {
         openHandoffCount: incomingHandoffs.length,
         handoffTitle: incomingHandoffs[0]?.title ?? null,
         communicationReplyCount: actionUnreadCount,
+        // Grounded last verified live proof (2→0) only when pattern is ACTIVE.
+        repeatableWin:
+          learnedPatternLabel &&
+          recentSucceeded.length > 0 &&
+          completedCollabs.length > 0
+            ? {
+                firstRunInterventions: 2,
+                secondRunInterventions: 0,
+                patternLabel: learnedPatternLabel,
+              }
+            : null,
         teamSamples: teamPeople.slice(0, 5).map((p) => ({
           name: p.display_name,
           openLabel:

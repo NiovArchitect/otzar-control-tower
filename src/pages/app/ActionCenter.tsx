@@ -63,6 +63,7 @@ import { getActionDetails } from "@/lib/work-os/action-details-store";
 import type { ActionDetails } from "@/lib/work-os/action-details-store";
 import type { SafeActionView, WorkLedgerEntryView } from "@/lib/types/foundation";
 import { isActionablePending, actionClassLabel } from "@/lib/work-os/action-classify";
+import { explainActionException } from "@/lib/work-os/exception-reason";
 import { isStaleOpenWork, staleLabel } from "@/lib/today/stale-truth";
 import { useWorkStateChanged, emitWorkStateChanged } from "@/lib/events/work-state";
 
@@ -348,9 +349,9 @@ export function ActionCenter(): JSX.Element {
       data-c04-host="true"
     >
       <PageHeader
-        eyebrow="Needs you"
+        eyebrow="Exceptions only"
         title="Needs me"
-        description="Decisions, open work, blind spots, handoffs, obligations, and evidence. Act here instead of hunting separate pages."
+        description="Only items that need your judgment or high-stakes approval. Routine work Otzar already handled within policy stays out of this queue — it appears under Completed and Today."
       />
 
       {/* Tab bar */}
@@ -425,6 +426,7 @@ export function ActionCenter(): JSX.Element {
             // Phase 1269 — the human-readable artifact detail the user
             // authored (recipient/channel/body/source), if we have it.
             const details = getActionDetails(a.action_id);
+            const exception = explainActionException(a);
             return (
               <li
                 key={a.action_id}
@@ -435,6 +437,9 @@ export function ActionCenter(): JSX.Element {
                   data-action-id={a.action_id}
                   data-action-status={a.status}
                   data-action-type={a.action_type}
+                  data-exception={exception.is_exception ? "true" : "false"}
+                  data-exception-reason={exception.reason_tag ?? ""}
+                  data-autonomy-path={exception.autonomy_path ?? ""}
                   data-focused={isFocused ? "true" : "false"}
                   className={
                     isFocused ? "ring-2 ring-primary ring-offset-2" : undefined
@@ -455,6 +460,15 @@ export function ActionCenter(): JSX.Element {
                         {buildCardTitle(a, details)}
                       </button>
                       <div className="flex items-center gap-2">
+                        {exception.is_exception && exception.reason_tag !== null ? (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/40 text-amber-700 text-[9px]"
+                            data-testid="exception-reason-tag"
+                          >
+                            {exception.reason_tag}
+                          </Badge>
+                        ) : null}
                         {actionTargetLabel(a, details) === null ? (
                           <Badge
                             variant="outline"
@@ -510,6 +524,15 @@ export function ActionCenter(): JSX.Element {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1 pt-0 text-xs text-muted-foreground">
+                    {exception.is_exception && exception.why_you_are_needed !== null ? (
+                      <div
+                        className="rounded border border-amber-500/30 bg-amber-500/5 p-1.5 text-[11px] text-foreground"
+                        data-testid="exception-why-needed"
+                      >
+                        <span className="font-medium">Why you are needed: </span>
+                        {exception.why_you_are_needed}
+                      </div>
+                    ) : null}
                     {/* BLOCKER 2 — specific, inspectable detail for EVERY
                         action (incl. approved/executed/historical). Recipient
                         prefers the SAFE server label (target_label), then the
