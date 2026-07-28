@@ -361,7 +361,8 @@ function PreferenceRow({
   return (
     <li
       className="rounded-md border border-border bg-card px-4 py-3"
-      data-testid={`pref-row-${correction.correction_id}`}
+      data-testid="pref-row"
+      data-correction-id={correction.correction_id}
     >
       <div className="flex flex-wrap items-center gap-2">
         <Badge>{labelCorrectionType(correction.correction_type)}</Badge>
@@ -378,7 +379,7 @@ function PreferenceRow({
             size="sm"
             disabled={revoke.isPending}
             onClick={() => revoke.mutate()}
-            data-testid={`pref-revoke-${correction.correction_id}`}
+            data-testid="pref-revoke"
           >
             {revoke.isPending ? "Removing…" : "Remove"}
           </Button>

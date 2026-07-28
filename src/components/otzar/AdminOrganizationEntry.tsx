@@ -62,11 +62,13 @@ export function AdminOrganizationEntry(): JSX.Element | null {
   const review = discovery.openSeedCount;
   const peopleN = discovery.activePeopleCount;
 
+  // YC / founder clarity: do not lead Today with a large raw "need review"
+  // volume. Structure work is secondary to the Work OS loop on Today.
   const signalLine = loading
     ? "Loading organization signal…"
     : discovery.available
       ? review > 0
-        ? `${peopleN} people · ${review} need review`
+        ? `${peopleN} people · organization setup available`
         : peopleN > 0
           ? `${peopleN} people · structure calm`
           : "Open Organization to review what Otzar found"

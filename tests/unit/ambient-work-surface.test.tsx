@@ -21,6 +21,14 @@ beforeEach(() => {
     token: "t",
     entity: { email: "vishesh@niovlabs.com" },
     isAuthenticated: true,
+    // Non-admin employee — founder hierarchy is for exec/admin only.
+    capabilities: {
+      can_read_capsules: true,
+      can_write_capsules: true,
+      can_share_capsules: false,
+      can_admin_org: false,
+      can_admin_niov: false,
+    },
   });
   usePresenceStore.getState().reset();
   useCurrentSurfaceContextStore.getState().clear();

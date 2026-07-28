@@ -77,6 +77,7 @@ import {
 import { isRealNextDecision } from "@/lib/today/stale-truth";
 import { buildWhatChanged } from "@/lib/today/what-changed";
 import { composeHomeBands } from "@/lib/today/human-work-state";
+import { buildFounderSignalLanes } from "@/lib/today/founder-signal-hierarchy";
 
 function greetingFor(hour: number, name: string | null): string {
   const base =
@@ -634,7 +635,13 @@ export function AmbientWorkSurface(): JSX.Element {
       actionBusy: false,
     });
   }
-  if (actionUnreadCount > 0 && focusItems.length < 3) {
+  // Org-admin Today uses founder hierarchy (comms demoted). Employees may
+  // still see a single replies Focus card when Focus is otherwise empty.
+  if (
+    !isOrgAdmin(capabilities) &&
+    actionUnreadCount > 0 &&
+    focusItems.length < 3
+  ) {
     focusItems.push({
       ...focusReplies(actionUnreadCount),
       onAction: null,
@@ -863,59 +870,139 @@ export function AmbientWorkSurface(): JSX.Element {
     })),
   ].slice(0, 4);
 
-  const homeBands = composeHomeBands({
-    needsMe: focusItems.slice(0, 3).map((item) => ({
-      key: item.key,
-      title: item.title,
-      detail: item.detail ?? item.why,
-      to: item.to ?? "/app/action-center",
-      testId: item.testId,
-    })),
-    changed: whatChanged
-      .filter((row) => row.testId !== "what-changed-quiet")
-      .slice(0, 4)
-      .map((row) => ({
-        key: row.testId,
-        title: row.title,
-        ...(typeof row.to === "string" && row.to.length > 0
-          ? { to: row.to }
-          : {}),
-        testId: row.testId,
-      })),
-    handled: handledItems,
-    waiting: [
-      ...incomingHandoffs.slice(0, 2).map((h, i) => ({
-        key: `wait-${h.handoff_id ?? i}`,
-        title: h.title || "Waiting on a handoff",
-        detail: "Waiting on someone else",
-        to: "/app/action-center",
-        testId: `home-band-waiting-${i}`,
-      })),
-      ...recentFailed
-        .filter((a) => a.status === "RUNNING")
-        .slice(0, 1)
-        .map((a, i) => ({
-          key: `run-${a.action_id}`,
-          title: "Action still running — not finished",
-          detail: "Otzar will not mark this complete until it finishes or times out",
-          to: `/app/action-center?focus=${encodeURIComponent(a.action_id)}`,
-          testId: `home-band-running-${i}`,
+  // Org admins / Control Tower founders: YC-clear hierarchy — completed work
+  // first, decisions second, team third, communications last (never primary
+  // alone). Employees keep the existing Focus strip.
+  const useFounderHierarchy = isOrgAdmin(capabilities);
+
+  const founderLanes = useFounderHierarchy
+    ? buildFounderSignalLanes({
+        nextDecisionTitle:
+          dgi?.next_best_step && isRealNextDecision(dgi.next_best_step.kind)
+            ? dgi.next_best_step.safe_title
+            : null,
+        nextDecisionReason: dgi?.next_best_step?.reason ?? null,
+        nextDecisionRoute: dgi?.next_best_step?.route_hint ?? null,
+        completedActionTitle: succeededSample,
+        completedActionTo:
+          recentSucceeded[0] !== undefined
+            ? `/app/action-center?focus=${encodeURIComponent(recentSucceeded[0].action_id)}`
+            : "/app/action-center?tab=completed",
+        completedCollabTitle: collabSample,
+        completedCollabTo: "/app/collaboration",
+        failedActionTitle: failedSample,
+        failedActionTo: "/app/action-center?tab=blocked",
+        approvalsCount,
+        blindSpotCount: urgentBlindSpots,
+        openHandoffCount: incomingHandoffs.length,
+        handoffTitle: incomingHandoffs[0]?.title ?? null,
+        communicationReplyCount: actionUnreadCount,
+        teamSamples: teamPeople.slice(0, 5).map((p) => ({
+          name: p.display_name,
+          openLabel:
+            p.sample_titles?.[0] !== undefined
+              ? `${p.open_obligation_count} open · ${p.sample_titles[0]}`
+              : `${p.open_obligation_count} open`,
         })),
-      ...teamPeople.slice(0, 3).map((p, i) => ({
-        key: `team-${i}-${p.display_name}`,
-        title: `${p.display_name}`,
-        detail:
-          p.sample_titles?.[0] !== undefined
-            ? `${p.open_obligation_count} open · ${p.sample_titles[0]}`
-            : `${p.open_obligation_count} open obligation${p.open_obligation_count === 1 ? "" : "s"}`,
-        to: "/app/collaboration",
-        testId: `home-band-team-${i}`,
-      })),
-    ].slice(0, 5),
-    // Talk remains a dedicated primary CTA below. Do not invent a "Next" band
-    // when the user is caught up (preserves ambient-caught-up calm state).
-    next: [],
-  });
+        toolsReconnectLabel,
+        truthConflictCount: dgi?.open_org_truth_conflicts_count ?? 0,
+      })
+    : [];
+
+  const homeBands = useFounderHierarchy
+    ? founderLanes.map((lane) => ({
+        band: (lane.lane === "otzar_handled"
+          ? "otzar_handled"
+          : lane.lane === "needs_founder"
+            ? "needs_me"
+            : lane.lane === "team_movement"
+              ? "waiting"
+              : lane.lane === "communications"
+                ? "next"
+                : "changed") as
+          | "needs_me"
+          | "changed"
+          | "otzar_handled"
+          | "waiting"
+          | "next",
+        label: lane.label,
+        items: lane.items.map((i) => ({
+          key: i.key,
+          title: i.title,
+          detail: i.detail,
+          to: i.to,
+          testId: i.testId,
+          band: (lane.lane === "otzar_handled"
+            ? "otzar_handled"
+            : lane.lane === "needs_founder"
+              ? "needs_me"
+              : lane.lane === "team_movement"
+                ? "waiting"
+                : lane.lane === "communications"
+                  ? "next"
+                  : "changed") as
+            | "needs_me"
+            | "changed"
+            | "otzar_handled"
+            | "waiting"
+            | "next",
+        })),
+      }))
+    : composeHomeBands({
+        needsMe: focusItems.slice(0, 3).map((item) => ({
+          key: item.key,
+          title: item.title,
+          detail: item.detail ?? item.why,
+          to: item.to ?? "/app/action-center",
+          testId: item.testId,
+        })),
+        changed: whatChanged
+          .filter((row) => row.testId !== "what-changed-quiet")
+          .slice(0, 4)
+          .map((row) => ({
+            key: row.testId,
+            title: row.title,
+            ...(typeof row.to === "string" && row.to.length > 0
+              ? { to: row.to }
+              : {}),
+            testId: row.testId,
+          })),
+        handled: handledItems,
+        waiting: [
+          ...incomingHandoffs.slice(0, 2).map((h, i) => ({
+            key: `wait-${h.handoff_id ?? i}`,
+            title: h.title || "Waiting on a handoff",
+            detail: "Waiting on someone else",
+            to: "/app/action-center",
+            testId: `home-band-waiting-${i}`,
+          })),
+          ...teamPeople.slice(0, 3).map((p, i) => ({
+            key: `team-${i}-${p.display_name}`,
+            title: `${p.display_name}`,
+            detail:
+              p.sample_titles?.[0] !== undefined
+                ? `${p.open_obligation_count} open · ${p.sample_titles[0]}`
+                : `${p.open_obligation_count} open obligation${p.open_obligation_count === 1 ? "" : "s"}`,
+            to: "/app/collaboration",
+            testId: `home-band-team-${i}`,
+          })),
+        ].slice(0, 5),
+        next:
+          actionUnreadCount > 0
+            ? [
+                {
+                  key: "comms-secondary",
+                  title:
+                    actionUnreadCount === 1
+                      ? "1 communication reply (secondary)"
+                      : `${actionUnreadCount} communication replies (grouped)`,
+                  detail: "Review in Comms — not the primary operating story.",
+                  to: "/app/comms",
+                  testId: "home-band-comms-secondary",
+                },
+              ]
+            : [],
+      });
 
   return (
     <div

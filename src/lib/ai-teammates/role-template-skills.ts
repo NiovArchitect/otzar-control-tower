@@ -120,6 +120,18 @@ export const ROLE_TEMPLATE_SKILL_INTENTS: Readonly<
     { label: "PR & messaging", match: ["pr", "press", "comms", "brand"] },
     { label: "External drafts", match: ["writing", "draft", "content"] },
   ],
+  // Media / content production (Media Lead — not general marketing-manager)
+  "media-lead": [
+    { label: "Video & media production", match: ["video", "media", "production", "film"] },
+    { label: "Script & creative review", match: ["script", "creative", "content", "edit"] },
+    { label: "Asset approvals & brand", match: ["approval", "brand", "asset", "publish"] },
+    { label: "Production schedule", match: ["schedule", "timeline", "production", "handoff"] },
+  ],
+  "content-producer": [
+    { label: "Video & media production", match: ["video", "media", "production"] },
+    { label: "Script & creative review", match: ["script", "creative", "content"] },
+    { label: "Publishing readiness", match: ["publish", "brand", "asset"] },
+  ],
   // General
   employee: [
     { label: "Daily work support", match: ["productivity", "work", "general", "assistant"] },
