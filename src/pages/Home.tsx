@@ -113,7 +113,7 @@ export function HomePage() {
     <div className="space-y-6">
       <PageHeader
         title="Command Center"
-        description="Run and govern your organization from one place — what needs attention, what blocks go-live, and what to do next. Ask Otzar (⌘K) to go anywhere."
+        description="Material exceptions and organization health — not a raw review inbox. Routine work is handled in product; you join when judgment is required."
       />
 
       {/* Founder-visible discovery — same "Otzar found" as Organization /setup. */}
@@ -126,11 +126,14 @@ export function HomePage() {
       {/* [GAP-U SLICE-1] one calm pointer to the guided setup journey —
           reduces page-hunting for admins still standing the org up. */}
       <p className="text-xs text-muted-foreground" data-testid="home-setup-pointer">
-        Full activation path:{" "}
+        Setup and structure:{" "}
         <Link to="/setup" className="font-medium text-foreground underline underline-offset-2">
-          Organization
-        </Link>{" "}
-        — what Otzar found, what needs confirmation, what is missing.
+          Organization setup
+        </Link>
+        {" · "}
+        <Link to="/app" className="font-medium text-foreground underline underline-offset-2">
+          Open Otzar
+        </Link>
       </p>
 
       {/* ── Phase 1255 slice 2 — Command Center panel ──────────── */}

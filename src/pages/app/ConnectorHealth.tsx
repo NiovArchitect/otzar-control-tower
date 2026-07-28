@@ -223,12 +223,14 @@ export function ConnectorHealth(): JSX.Element {
           <p className="font-medium text-foreground">Google Calendar — proven levels</p>
           <p>
             When connected, Otzar can <strong className="text-foreground">View</strong>{" "}
-            authorized events and <strong className="text-foreground">Understand</strong>{" "}
-            them for commitments. Create and execute are not enabled unless
-            separately proven and approved.
+            authorized events, <strong className="text-foreground">Understand</strong>{" "}
+            them for commitments, and{" "}
+            <strong className="text-foreground">Create / update / cancel</strong> under
+            policy and confirmation. Bulk external invite spam is never automatic.
           </p>
           <p data-testid="calendar-capability-levels">
-            Available: View · Understand · Not enabled: Create · Execute
+            Available: View · Understand · Create · Update · Cancel · Not automatic:
+            ungoverned mass invites
           </p>
           <p className="text-[11px]">
             Documents remain not proven for write/execute until a live authorized

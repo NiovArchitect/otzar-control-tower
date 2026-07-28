@@ -373,13 +373,19 @@ export function deriveOrgDiscovery(input: {
     });
   }
 
+  // Material-exception framing: never present raw volume as the product win.
+  // Cap the CTA number language — admin still opens the full list.
+  const materialExceptionCount = Math.min(
+    openSeedCount,
+    reviewCategories.filter((c) => c.count > 0).length || openSeedCount,
+  );
   const reviewCta =
     openSeedCount > 0
       ? {
           label:
-            openSeedCount === 1
-              ? "Review 1 item"
-              : `Review ${openSeedCount} items`,
+            materialExceptionCount === 1
+              ? "1 material exception needs you"
+              : `${materialExceptionCount} material exception types need you`,
           to: "/organization-seeding",
           openCount: openSeedCount,
         }

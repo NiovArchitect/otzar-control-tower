@@ -87,14 +87,14 @@ export function EmployeeLayout() {
             <NotificationBell />
             {isOrgAdmin(capabilities) ? (
               <Link
-                to="/setup"
-                aria-label="Open Control Tower · Organization"
-                title="Control Tower · Organization"
+                to="/"
+                aria-label="Open Control Tower"
+                title="Open Control Tower"
                 data-testid="header-open-control-tower"
                 className="otzar-cta-ghost inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold"
               >
                 <PanelsTopLeft className="h-3.5 w-3.5 text-[#B124E8]" aria-hidden />
-                <span className="hidden sm:inline">Organization</span>
+                <span className="hidden sm:inline">Control Tower</span>
               </Link>
             ) : null}
             <button
