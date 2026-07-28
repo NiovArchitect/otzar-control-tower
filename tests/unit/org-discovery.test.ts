@@ -91,7 +91,7 @@ describe("deriveOrgDiscovery", () => {
     expect(d.available).toBe(true);
     expect(d.activePeopleCount).toBe(2);
     expect(d.openSeedCount).toBe(2);
-    expect(d.reviewCta?.label).toMatch(/Review 2 items/);
+    expect(d.reviewCta?.label).toMatch(/2 material exception types need you/);
     expect(d.reviewCta?.to).toBe("/organization-seeding");
     expect(d.findings.some((f) => /people/i.test(f.label))).toBe(true);
     expect(d.findings.some((f) => f.kind === "review")).toBe(true);

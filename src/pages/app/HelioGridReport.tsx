@@ -223,17 +223,57 @@ export function HelioGridReport(): JSX.Element {
             value={board.proofCoverage}
             testId="heliogrid-proof"
           />
+          <div
+            className="grid gap-3 sm:grid-cols-2"
+            data-testid="heliogrid-governance-split"
+          >
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Human judgment
+              </p>
+              <p
+                className="mt-1 font-medium text-foreground"
+                data-testid="heliogrid-human-judgment"
+              >
+                {board.loading
+                  ? "…"
+                  : board.recommendation === "Conditional interview"
+                    ? "Advance to interview with conditions"
+                    : board.recommendation === "Decision needed"
+                      ? "Partner decision still required"
+                      : board.recommendation}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Authority sits with the product partner. Otzar does not
+                independently select applications.
+              </p>
+            </div>
+            <div className="rounded-md border border-sky-500/30 bg-sky-500/5 p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                What Otzar handled
+              </p>
+              <ul
+                className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-muted-foreground"
+                data-testid="heliogrid-otzar-handled"
+              >
+                <li>Recorded the accepted decision under policy</li>
+                <li>Updated application review work and proof</li>
+                <li>Coordinated AI Teammate evidence requests</li>
+                <li>Refreshed this management board</li>
+              </ul>
+            </div>
+          </div>
           {board.finalAgreement ? (
             <div
               className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3"
               data-testid="heliogrid-final-agreement"
             >
               <p className="font-medium text-foreground">
-                Current governed agreement
+                Current governed agreement (recorded)
               </p>
               <p className="mt-1 text-muted-foreground">{board.finalAgreement}</p>
               <Badge variant="outline" className="mt-2">
-                Prior positions remain historical in audit and prior capsules
+                Prior positions remain historical — not deleted
               </Badge>
             </div>
           ) : (

@@ -124,14 +124,16 @@ beforeEach(() => {
 });
 
 describe("MyMemory — page title + user-facing label discipline", () => {
-  it("renders 'My Digital Work Wallet' (NOT 'DMW' / 'COSMP')", async () => {
+  it("renders learned-memory page title (NOT 'DMW' / 'COSMP')", async () => {
     mockCtx(ctx());
     renderPage();
     await waitFor(() =>
       expect(screen.getByTestId("my-memory-page")).toBeInTheDocument(),
     );
     const html = screen.getByTestId("my-memory-page").outerHTML;
-    expect(html).toContain("Digital Work Wallet");
+    // Primary title is human learning language (not internal wallet jargon).
+    expect(html).toContain("What Otzar has learned");
+    expect(html).toContain("Personal wallet. Yours, not the company's");
     // Internal terms forbidden in primary copy (per UI Language Map).
     expect(html).not.toMatch(/\bDMW\b/);
     expect(html).not.toMatch(/COSMP/);
@@ -271,18 +273,18 @@ describe("MyMemory — revocable links", () => {
   });
 });
 
-describe("MyMemory — sovereignty reassurance footer", () => {
-  it("renders the 'Your sovereignty' badge + reassurance copy", async () => {
+describe("MyMemory — sovereignty / ownership boundary", () => {
+  it("renders personal vs company ownership boundary (no raw internals)", async () => {
     mockCtx(ctx());
     renderPage();
     await waitFor(() =>
       expect(screen.getByTestId("my-memory-page")).toBeInTheDocument(),
     );
     const html = screen.getByTestId("my-memory-page").outerHTML;
-    expect(html).toContain("Your sovereignty");
-    expect(html).toMatch(/memory and permissions are yours/i);
-    expect(html).toMatch(/every grant is revocable/i);
-    expect(html).toMatch(/every action is recorded/i);
+    expect(html).toContain("Personal wallet. Yours, not the company's");
+    expect(html).toMatch(/Your personal work memory/i);
+    expect(html).toMatch(/Company-owned work data/i);
+    expect(html).toMatch(/yours, not the company/i);
   });
 });
 
