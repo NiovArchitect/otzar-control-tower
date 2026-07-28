@@ -217,7 +217,9 @@ export function buildFounderSignalLanes(
     },
     {
       lane: "needs_founder",
-      label: "What needs a decision",
+      // Exception-based: only when human judgment is uniquely required
+      // (not every extracted signal — see OTZAR_AUTONOMY_DECISION_MODEL).
+      label: "What needs you (exceptions)",
       items: needs.slice(0, 3),
     },
     {
