@@ -4,7 +4,7 @@
 //          (or /tmp/tenant_iso_admin_email + /tmp/tenant_iso_admin_pw).
 // SAFETY: Never logs credentials. Screenshots only.
 
-import { test, expect, type Browser, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { liveUiLogin, ensureLoggedOut } from "./live-login";
