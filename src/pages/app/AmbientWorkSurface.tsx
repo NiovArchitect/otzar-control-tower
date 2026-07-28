@@ -21,7 +21,6 @@ import { usePresenceStore } from "@/lib/stores/presence";
 import { useCurrentSurfaceContextStore } from "@/lib/stores/current-surface-context";
 import { GlassPanel } from "@/components/ambient/GlassPanel";
 import { OtzarBrandLogo } from "@/components/ambient/OtzarBrandLogo";
-import { GLASS_CTA } from "@/lib/ambient/glass";
 import { nameFromEmail } from "@/lib/identity/person-name";
 import type {
   CollaborationRequestSafeView,
@@ -1360,24 +1359,17 @@ export function AmbientWorkSurface(): JSX.Element {
         </section>
       ) : null}
 
-      {/* Single primary invitation — Talk is the engine. */}
+      {/* One Talk entry only — floating AmbientOtzarBar is the everyday surface.
+          Keep a compact mobile open control; no repeated "talk to me" marketing. */}
       <button
         type="button"
         onClick={openOrb}
         data-testid="ambient-talk"
-        className={`${GLASS_CTA} flex w-full items-center gap-3 px-3.5 py-3 text-left transition-transform active:scale-[0.99]`}
+        aria-label="Open Talk"
+        className="flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-2 text-xs font-medium text-slate-200 transition hover:bg-white/[0.1] sm:hidden"
       >
-        <span className="otzar-cta-fill flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-          <Mic className="h-4 w-4 text-white" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-50">
-            Talk to Otzar
-          </span>
-          <span className="block text-[11px] text-slate-300">
-            What matters · what needs me · open work
-          </span>
-        </span>
+        <Mic className="h-3.5 w-3.5" aria-hidden />
+        Open Talk
       </button>
 
       {/* Power-user detail only — not the default scroll path. */}

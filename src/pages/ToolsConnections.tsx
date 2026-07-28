@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { ConnectorsAdminPage } from "@/pages/ConnectorsAdmin";
 import ConnectorRailsAdmin from "@/pages/ConnectorRailsAdmin";
 import { api } from "@/lib/api";
+// AI Voice / STT / TTS organization policy lives in Control Tower (this page +
+// Voice providers), never on the regular-employee Connections surface.
 import {
   CAPABILITY_FIRST_DETAIL,
   CAPABILITY_FIRST_HEADLINE,
@@ -590,8 +592,8 @@ export function ToolsConnectionsPage(): JSX.Element {
       data-plug-and-play="true"
     >
       <PageHeader
-        title="Connections"
-        description="Find a tool → Connect → it works under your permissions. Employees connect from Work OS when work needs a tool. You approve requests and can revoke anytime."
+        title="Organization connections"
+        description="Organization tools, scopes, health, and revoke. AI Voice providers and org-level voice policy live here in Control Tower — not on the employee Connections page. Employees only reconnect personal access when work requires it."
       />
 
       {/* Plug-and-play path — human steps, no protocol jargon. */}

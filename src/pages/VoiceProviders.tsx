@@ -87,6 +87,8 @@ function rowsFromAdapters(adapters: ConnectorAdapterRow[]): VoiceRow[] {
 }
 
 export default function VoiceProviders(): JSX.Element {
+  // Organization-level AI Voice / STT / TTS — Control Tower only.
+  // Regular employees never change org voice availability from Connections.
   const synthesis = useSpeechSynthesis();
   // Phase 1259 — what the listener ACTUALLY heard, labeled honestly.
   const [lastVoice, setLastVoice] = useState<

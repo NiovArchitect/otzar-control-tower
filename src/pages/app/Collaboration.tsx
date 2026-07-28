@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -190,8 +191,10 @@ export function Collaboration() {
     });
   }
 
-  // Founder-visible receipts: COMPLETED (and recent) collaborations, not
-  // doctrine-only envelope copy. Prefer AI Teammate rows when present.
+  const [searchParams] = useSearchParams();
+  const focusId = searchParams.get("focus") ?? "";
+
+  // Receipts: COMPLETED AI collaboration — not a feed that dominates People.
   const receiptSource: CollaborationRequestSafeView[] = [
     ...(inbound.data?.ok === true ? inbound.data.data.collaborations : []),
     ...(outbound.data?.ok === true ? outbound.data.data.collaborations : []),
@@ -204,53 +207,90 @@ export function Collaboration() {
         c.has_target_twin ||
         c.target_type === "EMPLOYEE_TWIN",
     ),
-    4,
+    3,
   );
+
+  // Deep-link: /app/collaboration?focus=<id> scrolls to a visible record.
+  useEffect(() => {
+    if (!focusId) return;
+    const el = document.querySelector(
+      `[data-collaboration-id="${CSS.escape(focusId)}"]`,
+    );
+    if (el instanceof HTMLElement) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.setAttribute("data-focused", "true");
+      el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+    }
+  }, [focusId, receipts, inbound.data, outbound.data]);
+
+  const focusedReceipt =
+    focusId.length > 0
+      ? receipts.find((r) => r.collaboration_id === focusId) ??
+        (() => {
+          const raw = receiptSource.find((c) => c.collaboration_id === focusId);
+          return raw ? buildCollaborationReceipt(raw) : null;
+        })()
+      : null;
 
   return (
     <div className="space-y-6" data-testid="collaboration-page" data-l01-surface="true">
       <PageHeader
         title="People"
-        description="Your teammates and how to work with them. Reporting structure is optional - open it only when you need it."
+        description="Who is here, what they own, and how work is flowing. Collaboration details open only when you need them."
       />
 
       {/* Optional reporting structure - collapsed by default (founder rejection). */}
       <PeopleStructureGlance />
 
-      {receipts.length > 0 ? (
+      {/* Focused collaboration record from deep link — must render visibly. */}
+      {focusedReceipt !== null ? (
         <section
-          className="space-y-3"
-          data-testid="collaboration-receipts-section"
-          aria-label="AI Teammate collaboration receipts"
+          className="space-y-2"
+          data-testid="collaboration-record-focus"
+          aria-label="Collaboration record"
         >
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
-              How AI Teammates collaborated
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Who worked together, why, what was used, and the result — without
-              raw prompts or internal traces.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {receipts.map((r) => (
-              <CollaborationReceiptCard key={r.collaboration_id} receipt={r} />
-            ))}
-          </div>
+          <h2 className="text-base font-semibold text-foreground">
+            Collaboration record
+          </h2>
+          <CollaborationReceiptCard receipt={focusedReceipt} />
         </section>
       ) : null}
 
       <PeopleDirectory
         onRequestHelp={(id, name) => {
           setPrefill({ id, name });
-          document.getElementById("collab-summary")?.scrollIntoView({ behavior: "smooth" });
+          document
+            .getElementById("collab-request-form")
+            ?.scrollIntoView({ behavior: "smooth" });
         }}
       />
 
-      <CreateCollaborationForm
-        onCreated={invalidateAll}
-        {...(prefill !== null ? { prefill } : {})}
-      />
+      {/* AI collaboration receipts: collapsed detail path — not a primary feed. */}
+      {receipts.length > 0 && focusedReceipt === null ? (
+        <details
+          className="rounded-lg border border-border/60 px-3 py-2"
+          data-testid="collaboration-receipts-section"
+        >
+          <summary className="cursor-pointer text-sm font-medium text-foreground">
+            Recent AI Teammate collaboration ({receipts.length})
+          </summary>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Who worked together, why, and the result — without raw prompts.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {receipts.map((r) => (
+              <CollaborationReceiptCard key={r.collaboration_id} receipt={r} />
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      <div id="collab-request-form">
+        <CreateCollaborationForm
+          onCreated={invalidateAll}
+          {...(prefill !== null ? { prefill } : {})}
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card data-testid="inbound-card">
@@ -448,7 +488,11 @@ function CreateCollaborationForm({
   return (
     <Card data-testid="create-collaboration-form">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Ask for help</CardTitle>
+        <CardTitle className="text-lg">Request collaboration</CardTitle>
+        <p className="text-xs text-muted-foreground font-normal">
+          Route a specific need to a person or AI Teammate. Everyday questions
+          use floating Talk — this form is for durable handoffs.
+        </p>
       </CardHeader>
       <CardContent>
         <form
@@ -603,13 +647,11 @@ function CreateCollaborationForm({
             </p>
           )}
           <Button type="submit" disabled={pending} data-testid="collab-submit">
-            {pending ? "Asking Otzar…" : "Ask Otzar"}
+            {pending ? "Sending…" : "Send request"}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Otzar will find the right person when it can. If it needs one
-            detail, it will ask. Same-team work usually moves without ceremony;
-            cross-team or sensitive work asks for approval at the right
-            boundary.
+            Same-team work usually routes without ceremony. Cross-team or
+            sensitive work asks for approval at the right boundary.
           </p>
         </form>
       </CardContent>

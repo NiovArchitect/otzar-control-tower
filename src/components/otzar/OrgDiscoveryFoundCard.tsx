@@ -120,8 +120,10 @@ export function OrgDiscoveryFoundCard({
               <div data-testid="org-discovery-categories">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-300/80">
                   {reviewCount > 0
-                    ? `${reviewCount} items need review`
-                    : "Review by type"}
+                    ? `${discovery.reviewCategories.length} material exception ${
+                        discovery.reviewCategories.length === 1 ? "type" : "types"
+                      } (not raw volume)`
+                    : "Exception types"}
                 </p>
                 <ul className="space-y-1.5">
                   {discovery.reviewCategories.map((cat) => (

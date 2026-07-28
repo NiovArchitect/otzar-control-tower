@@ -128,9 +128,9 @@ export function MyMemory(): JSX.Element {
       data-testid="my-memory-page"
     >
       <PageHeader
-        eyebrow="Portability"
-        title="My Digital Work Wallet"
-        description="How you work, what your AI Teammate has learned, and what moves with you. Your methods, skills, and preferences are YOURS. Your organization's records stay with the organization."
+        eyebrow="Learning"
+        title="What Otzar has learned"
+        description="What helps you, what changed, what needs your decision, and what never leaves with you. Details stay collapsed."
       />
 
       {/* [GAP-S S-1] The ownership boundary, rendered where the wallet
@@ -286,31 +286,30 @@ export function MyMemory(): JSX.Element {
         </CardContent>
       </Card>
 
-      {/* CX-SLICE-5 — the consent/trust layer for future workflow
-          observation. Lives here because it is about YOUR portable work
-          identity and how your Twin learns you. It captures NOTHING today. */}
-      <ObservationConsentCard />
-      {/* I-01 / H-02 — portable personal core vs org-bound; multi-user isolation surface */}
-      <PortableCoreCard />
-      {/* I-02 — multi-org memory isolation (org-bound never blends; portable not silent) */}
-      <MultiOrgMemoryIsolationCard />
-      {/* Q-01 / Q-02 — cross-tenant / cross-user / Twin zero leak + deep-link isolation */}
-      <CrossTenantIsolationCard variant="employee" />
-      {/* H-02 residual — redaction stress corpus + live portable scan */}
-      <MemoryRedactionCard />
-      {/* H-03 LearningAppliesCard is also nested under Teach Otzar for in-flow
-          feedback; Portable core is the later-work inventory surface. */}
-      {/* D-04 — selected-window share: explicit browser permission + live indicator */}
-      <WindowContextShare />
+      {/* Progressive disclosure — learning engine detail is not the primary job. */}
+      <details
+        className="rounded-lg border border-border/60 px-3 py-2"
+        data-testid="my-memory-more-detail"
+      >
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          More detail (optional)
+        </summary>
+        <div className="mt-3 space-y-4">
+          <ObservationConsentCard />
+          <PortableCoreCard />
+          <MultiOrgMemoryIsolationCard />
+          <CrossTenantIsolationCard variant="employee" />
+          <MemoryRedactionCard />
+          <WindowContextShare />
+        </div>
+      </details>
 
-      {/* Reassurance */}
       <p className="text-xs text-muted-foreground">
         <Badge variant="outline" className="mr-2 text-[10px]">
-          Your sovereignty
+          Boundaries
         </Badge>
-        Your memory and permissions are yours. Every grant is revocable; every
-        action is recorded; nothing leaves your organization without your
-        approval. This page is your control surface. Otzar follows it.
+        What you teach stays yours. Company records stay with the company.
+        Correct or revoke anytime. You do not need to manage the engine.
       </p>
     </div>
   );
