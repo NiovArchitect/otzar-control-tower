@@ -162,22 +162,16 @@ const ACTION_DESTINATIONS: ReadonlyArray<{
   // ── Work OS cockpits (Phase 1279 durable Work Ledger) ─────────
   { keywords: ["my work", "what do i owe", "what i owe", "what is waiting on me", "what's waiting on me", "what do i need to do"], route: "/app/my-work", label: "My Work", admin_only: false },
   {
+    // Explicit navigation destinations only — status questions are answer-mode
+    // via WORK_OS_QUERIES (Founder P0: answer before navigating).
     keywords: [
       "team work",
       "team's work",
-      "what does my team owe",
-      "who is waiting on whom",
-      "what is my team up to",
-      "what's my team up to",
-      "what is my team working on",
-      "what's my team working on",
-      "what is the team working on",
+      "teamwork",
       "team status",
-      "team momentum",
-      "how is my team doing",
     ],
     route: "/app/team-work",
-    label: "Team Work",
+    label: "Team status",
     admin_only: false,
   },
   { keywords: ["blind spots", "blind spot", "what am i missing", "what's blocked", "what is blocked", "what is slipping", "what's slipping"], route: "/app/blind-spots", label: "Blind Spots", admin_only: false },
@@ -486,16 +480,24 @@ const COLLABORATION_ROUTE = "/app/collaboration";
 //       navigation verb. Hoisted to module scope + exported (Phase 1285-R) so
 //       the Ask-your-Twin classifier reuses the SAME deterministic patterns
 //       instead of duplicating them.
+//
+//       mode:
+//         "navigate" — open the durable surface (explicit open/show or list cockpit)
+//         "answer"   — answer in Talk first (Founder P0: no false "Opened" claims)
+export type WorkOsQueryMode = "navigate" | "answer";
+
 export const WORK_OS_QUERIES: ReadonlyArray<{
   patterns: RegExp;
   route: string;
   label: string;
+  mode: WorkOsQueryMode;
 }> = [
   {
     patterns:
       /\b(my work|what do i owe|what i owe|what(?:'s| is| are)? waiting on me|what do i need to do)\b/,
     route: "/app/my-work",
     label: "My Work",
+    mode: "navigate",
   },
   {
     // Phase 1285-P — blind-spot / risk questions route to the real watcher
@@ -504,14 +506,25 @@ export const WORK_OS_QUERIES: ReadonlyArray<{
       /\b(blind spots?|what am i missing|what(?:'s| is) blocked|what(?:'s| is) slipping|what(?:'s| is) overdue|what(?:'s| is) at risk|what(?:'s| is) stale|what should i follow up on|what is quietly slipping|unresolved blockers?)\b/,
     route: "/app/blind-spots",
     label: "Blind Spots",
+    mode: "navigate",
   },
   {
-    // RC2 grounded Twin: team-status questions open durable Team Work
-    // (open obligations/handoffs), never a blank LLM "nothing found".
+    // Explicit open/show of the durable team surface — must be matched
+    // BEFORE bare "team status" answer-mode (Founder P0 order).
     patterns:
-      /\b(team work|what does my team owe|who is waiting on whom|what(?:'s| is) my team (up to|working on)|what(?:'s| is) the team working on|team status|team momentum|how is my team doing|what is (?:everyone|the team) (?:doing|working on))\b/,
+      /\b((?:open|show|go to|take me to)\s+(?:the\s+)?(?:team work|team status|teamwork)|(?:open|show)\s+team)\b/,
     route: "/app/team-work",
-    label: "Team Work",
+    label: "Team status",
+    mode: "navigate",
+  },
+  {
+    // Founder P0: status questions ANSWER in Talk first. Navigation is
+    // optional only after an answer (or explicit "open/show team …").
+    patterns:
+      /\b(what does my team owe|who is waiting on whom|what(?:'s| is) my team (up to|working on)|what(?:'s| is) the team working on|team status|team momentum|how is my team doing|how(?:'s| is) (?:it going today[, ]+)?(?:and )?(?:how is )?my team|what is (?:everyone|the team) (?:doing|working on))\b/,
+    route: "/app/team-work",
+    label: "Team status",
+    mode: "answer",
   },
   {
     // "What needs my approval" → Action Center (Needs me), not generic chat.
@@ -519,6 +532,7 @@ export const WORK_OS_QUERIES: ReadonlyArray<{
       /\b(what needs my approval|what(?:'s| is) waiting (?:for|on) (?:my )?approval|approvals? (?:for me|waiting)|what do i need to approve)\b/,
     route: "/app/action-center",
     label: "Needs me",
+    mode: "navigate",
   },
   {
     // "What changed" → Today (real state bands), not a fake feed prompt.
@@ -526,20 +540,22 @@ export const WORK_OS_QUERIES: ReadonlyArray<{
       /\b(what changed( since (i was )?last here)?|what(?:'s| is) new( today)?|what happened (while i was away|since last time))\b/,
     route: "/app",
     label: "Today",
+    mode: "navigate",
   },
 ];
 
 // WHAT: match a question against the deterministic Work OS queries.
 // INPUT: raw question text (any case).
-// OUTPUT: { route, label } when it's a known Work OS question, else null.
-// WHY: shared by voice routing AND the Ask-your-Twin box so a known Work OS
-//      question ALWAYS goes to its durable surface, never the LLM.
+// OUTPUT: { route, label, mode } when matched, else null.
+// WHY: shared by voice routing AND Ask-your-Twin. Answer-mode questions
+//      must not claim false navigation (Founder live rejection).
 export function matchWorkOsQuery(
   text: string,
-): { route: string; label: string } | null {
+): { route: string; label: string; mode: WorkOsQueryMode } | null {
   const lower = text.toLowerCase();
   for (const q of WORK_OS_QUERIES) {
-    if (q.patterns.test(lower)) return { route: q.route, label: q.label };
+    if (q.patterns.test(lower))
+      return { route: q.route, label: q.label, mode: q.mode };
   }
   return null;
 }
@@ -694,16 +710,28 @@ export function classifyVoiceAction(
     };
   }
 
-  // 2.5) Work OS cockpit QUERIES (Phase 1279) — first-class Work OS questions,
-  //      not chat. They route to the durable cockpits even WITHOUT a nav verb
-  //      ("what am I missing", "what is blocked", "what is waiting on me").
-  //      Shared matcher (Phase 1285-R) so the Ask-your-Twin box reuses it.
+  // 2.5) Work OS cockpit QUERIES (Phase 1279) — first-class Work OS questions.
+  //      Shared matcher (Phase 1285-R). Founder P0: status questions ANSWER
+  //      in Talk first; only explicit navigate-mode opens a surface, and we
+  //      never claim "Opened X" unless the user asked to open it.
   const workOsQuery = matchWorkOsQuery(lower);
   if (workOsQuery !== null) {
+    if (workOsQuery.mode === "answer") {
+      return {
+        kind: "GOVERNED_CHAT",
+        heard,
+        actionLabel: workOsQuery.label,
+        spoken: "",
+        transcript: heard,
+        // Optional secondary destination after the answer — never auto-claim open.
+        route: workOsQuery.route,
+        isReadOnly: true,
+      };
+    }
     return {
       kind: "INTERNAL_NAVIGATION",
       heard,
-      actionLabel: `Internal navigation → ${workOsQuery.label}`,
+      actionLabel: workOsQuery.label,
       spoken: `Opening ${workOsQuery.label}.`,
       route: workOsQuery.route,
     };

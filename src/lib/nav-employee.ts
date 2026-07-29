@@ -83,10 +83,10 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "primary",
   },
   {
-    label: "Team",
+    label: "Team status",
     to: "/app/team-work",
     icon: Network,
-    description: "Who is waiting on whom across your team.",
+    description: "Owners, blockers, and what the team is moving.",
     group: "primary",
     adminOnly: true,
   },

@@ -3835,18 +3835,39 @@ export function AmbientOtzarBar(): JSX.Element {
     switch (action.kind) {
       case "INTERNAL_NAVIGATION":
       case "CONNECTOR_STATUS_NAVIGATION": {
+        // Founder P0: never claim "Opened X" unless we actually navigated.
+        // Prefer present continuous; destination authenticity is the route.
         const dest = action.actionLabel.replace(/^.*→\s*/, "");
-        setActionResult(`Opened ${dest}.`);
-        logAction(`Opened ${dest}.`, "Navigated");
-        speakConfirmation(action.spoken);
+        if (action.route === undefined || action.route.length === 0) {
+          setActionResult(
+            `I can't open ${dest} — that destination isn't available.`,
+          );
+          logAction(`Can't open ${dest}.`, "Blocked");
+          speakConfirmation(
+            `I can't open ${dest}. That screen isn't available.`,
+          );
+          recordVoiceAction({
+            at,
+            transcript: text,
+            actionType: action.kind,
+            target: null,
+            result: "blocked",
+          });
+          return;
+        }
+        navigate(action.route);
+        setActionResult(`Opening ${dest}…`);
+        logAction(`Opening ${dest}…`, "Navigating");
+        speakConfirmation(
+          action.spoken.length > 0 ? action.spoken : `Opening ${dest}.`,
+        );
         recordVoiceAction({
           at,
           transcript: text,
           actionType: action.kind,
-          target: action.route ?? null,
+          target: action.route,
           result: "success",
         });
-        if (action.route !== undefined) navigate(action.route);
         return;
       }
       case "EXTERNAL_URL_OPEN": {
@@ -4285,7 +4306,7 @@ export function AmbientOtzarBar(): JSX.Element {
           at,
           transcript: text,
           actionType: "GOVERNED_CHAT",
-          target: null,
+          target: action.route ?? null,
           result: "success",
         });
         // Same governed path as typed input; auto-speak effect voices
@@ -4301,6 +4322,16 @@ export function AmbientOtzarBar(): JSX.Element {
             text: answer,
             at: new Date().toISOString(),
           });
+          // Optional secondary: only offer "View team status" after a real
+          // answer — never claim it was opened (Founder P0).
+          if (
+            action.route === "/app/team-work" &&
+            action.actionLabel === "Team status"
+          ) {
+            setActionLabel("Team status");
+            setActionResult("View team status");
+            setActionStatus("Optional");
+          }
         } else if (intent.error !== null) {
           appendConversationEntry({
             role: "error",
@@ -5104,7 +5135,18 @@ export function AmbientOtzarBar(): JSX.Element {
               data-testid="voice-action-panel"
             >
               <div className="text-foreground" data-testid="voice-action-outcome">
-                {actionResult ?? actionLabel ?? `“${actionHeard}”`}
+                {actionResult === "View team status" ? (
+                  <button
+                    type="button"
+                    className="text-primary underline underline-offset-2"
+                    data-testid="voice-action-open-team-status"
+                    onClick={() => navigate("/app/team-work")}
+                  >
+                    View team status
+                  </button>
+                ) : (
+                  (actionResult ?? actionLabel ?? `“${actionHeard}”`)
+                )}
               </div>
               {externalLinkPending !== null ? (
                 <div className="mt-1">
