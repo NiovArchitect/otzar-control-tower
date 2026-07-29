@@ -74,6 +74,7 @@ import {
   requestNativeMicAccess,
   type NativeMicStatus,
 } from "@/lib/voice/native-mic";
+import { detectTalkPreference } from "@/lib/voice/talk-preference-learning";
 import {
   speakWithOtzarVoice,
   cancelVoicePlayback,
@@ -3323,6 +3324,42 @@ export function AmbientOtzarBar(): JSX.Element {
       appendConversationEntry({ role: "user", text, at: at0 });
       await confirmArtifact(pendingArtifact.body);
       return;
+    }
+
+    // Slice 4 — clear personal preference teaching through Talk.
+    // Apply immediately when safe; ask once when personal vs org is unclear.
+    // No long preference form when the instruction is unambiguous.
+    {
+      const pref = detectTalkPreference(text);
+      if (pref !== null) {
+        const at0 = new Date().toISOString();
+        setDraft("");
+        setActionHeard(text);
+        setActionLabel("Learning");
+        appendConversationEntry({ role: "user", text, at: at0 });
+        if (pref.apply_immediately && pref.scope === "personal") {
+          const r = await api.otzar.correction({
+            incorrect_description: pref.incorrect_description,
+            correct_behavior: pref.correct_behavior,
+          });
+          const reply = r.ok
+            ? pref.confirmation
+            : "I heard that preference, but couldn't save it right now. Try again in a moment.";
+          setActionResult(reply);
+          appendConversationEntry({ role: "otzar", text: reply, at: at0 });
+          speakConfirmation(reply);
+          return;
+        }
+        // Organizational / unclear — concise question, no form maze.
+        setActionResult(pref.confirmation);
+        appendConversationEntry({
+          role: "otzar",
+          text: pref.confirmation,
+          at: at0,
+        });
+        speakConfirmation(pref.confirmation);
+        return;
+      }
     }
 
     // Phase 1285 slice 1 — thread-aware answers. "Did I receive a message

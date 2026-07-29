@@ -1,32 +1,10 @@
 // FILE: MyMemory.tsx
-// PURPOSE: Phase 1219 — "My Digital Work Wallet" + "My Twin Memory"
-//          + "My permissions" page. Per the Founder directive
-//          [DMW / COSMP user-facing clarity]: keep Foundation
-//          internals (DMW, COSMP, MemoryCapsule, etc.) hidden
-//          behind plain-language framing. The employee sees:
-//          - what Otzar knows about their work (counts only)
-//          - what categories of memory exist
-//          - what Otzar can do with it (the authority surface from
-//            Phase 1217 reused here for one-stop clarity)
-//          - what they can revoke (links into Authority + Preferences)
-//
-//          DMW is renamed for the user as "My Digital Work Wallet."
-//          COSMP is shown to the user as "Memory record" only;
-//          the COSMP name lives in admin / governance docs (per the
-//          UI language map directive).
-//
-// CONNECTS TO:
-//   - src/lib/api.ts (api.otzar.contextHealth)
-//   - /app/authority-grants (Phase EDX-4 substrate)
-//   - /app/preferences (existing)
-//   - /app/my-twin (existing)
-//
-// PRIVACY INVARIANT:
-//   - Reads only the closed-vocab /context-health projection.
-//   - Counts only. The page never surfaces raw memory bodies,
-//     transcripts, embeddings, or vectors.
+// PURPOSE: Slice 4 — useful Memory: how Otzar works better for you.
+//          Helping you now / Recently learned / Needs your decision /
+//          portable profile. Storage counts are secondary only.
+// CONNECTS TO: contextHealth, workStyle, correction revoke, portable-core.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -35,6 +13,7 @@ import {
   KeyRound,
   PencilLine,
   ShieldCheck,
+  Sparkles,
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -57,6 +36,18 @@ import {
   classifyPreferenceSummary,
   ownershipLabel,
 } from "@/lib/work-os/portable-core";
+import {
+  PORTABLE_CAN_MOVE,
+  PORTABLE_STAYS_WITH_ORG,
+  buildActivePatterns,
+  buildDecisionCards,
+  buildRecentLearning,
+  loadPortableRequest,
+  portableStatusLabel,
+  savePortableRequest,
+  type PortableRequestRecord,
+  type PreferenceRow,
+} from "@/lib/work-os/useful-memory";
 import { PortableCoreCard } from "@/components/otzar/PortableCoreCard";
 import { MultiOrgMemoryIsolationCard } from "@/components/otzar/MultiOrgMemoryIsolationCard";
 import { CrossTenantIsolationCard } from "@/components/otzar/CrossTenantIsolationCard";
@@ -68,35 +59,121 @@ export function MyMemory(): JSX.Element {
   const [data, setData] = useState<ContextHealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [prefs, setPrefs] = useState<PreferenceRow[]>([]);
+  const [candidates, setCandidates] = useState<
+    Array<{ candidate_id: string; plain_language: string }>
+  >([]);
+  const [portable, setPortable] = useState<PortableRequestRecord | null>(null);
+  const [portableOpen, setPortableOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const load = useCallback(async (): Promise<void> => {
+    const [health, prefRes, candRes] = await Promise.all([
+      api.otzar.contextHealth(),
+      api.otzar.workStyle.preferences(),
+      api.otzar.workStyle.candidates(),
+    ]);
+    if (health.ok) {
+      setData(health.data);
+      setError(null);
+    } else {
+      setError(health.code);
+      setData(null);
+    }
+    if (prefRes.ok) {
+      setPrefs((prefRes.data.preferences ?? []) as PreferenceRow[]);
+    }
+    if (candRes.ok) {
+      setCandidates(
+        (candRes.data.candidates ?? []).map((c) => ({
+          candidate_id: c.candidate_id,
+          plain_language: c.plain_language,
+        })),
+      );
+    }
+    setPortable(loadPortableRequest());
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    api.otzar.contextHealth().then((r) => {
-      if (cancelled) return;
-      if (r.ok) {
-        setData(r.data);
-        setError(null);
-      } else {
-        setError(r.code);
-      }
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
+    void load();
+  }, [load]);
+
+  const active = useMemo(() => buildActivePatterns(prefs), [prefs]);
+  const recent = useMemo(() => buildRecentLearning(prefs), [prefs]);
+  const decisions = useMemo(
+    () => buildDecisionCards(candidates),
+    [candidates],
+  );
+
+  async function stopPreference(id: string): Promise<void> {
+    setBusyId(id);
+    setNotice(null);
+    const r = await api.otzar.correctionMemory.revoke(id);
+    setBusyId(null);
+    if (r.ok) {
+      setNotice("Stopped using that preference.");
+      void load();
+    } else {
+      setNotice("Couldn't stop that preference right now.");
+    }
+  }
+
+  async function decideCandidate(
+    id: string,
+    action: "approve" | "reject",
+  ): Promise<void> {
+    setBusyId(id);
+    setNotice(null);
+    const r =
+      action === "approve"
+        ? await api.otzar.workStyle.approve(id)
+        : await api.otzar.workStyle.reject(id);
+    setBusyId(null);
+    if (r.ok) {
+      setNotice(
+        action === "approve"
+          ? "Pattern saved for you."
+          : "Got it — that pattern will not be used.",
+      );
+      void load();
+    } else {
+      setNotice("Couldn't update that decision right now.");
+    }
+  }
+
+  function requestPortableProfile(): void {
+    const rec: PortableRequestRecord = {
+      status: "requested",
+      requested_at: new Date().toISOString(),
+      note: "Requested review of portable personal capability. Export is not ready until review completes.",
     };
-  }, []);
+    savePortableRequest(rec);
+    setPortable(rec);
+    setPortableOpen(false);
+    setNotice(
+      "Portable profile requested. Status: Requested — under review. Export is not available until Ready.",
+    );
+    // Durable signal via correction (no fake Ready / no company export).
+    void api.otzar.correction({
+      incorrect_description: "No portable profile request on file",
+      correct_behavior:
+        "[portable] [PORTABLE_PROFILE_REQUEST] status=REQUESTED — personal methods only; company data stays",
+    });
+  }
 
   if (loading) {
     return (
       <div className="space-y-6" data-testid="my-memory-loading">
         <PageHeader
-          eyebrow="Portability"
-          title="My Digital Work Wallet"
-          description="How you work, what your AI Teammate has learned, and what moves with you: your portable work identity."
+          eyebrow="Learning"
+          title="How Otzar works better for you"
+          description="Loading what your AI Teammate is using…"
         />
         <Card>
           <CardContent className="py-4 text-sm text-muted-foreground">
-            Loading your wallet…
+            Loading…
           </CardContent>
         </Card>
       </div>
@@ -107,13 +184,13 @@ export function MyMemory(): JSX.Element {
     return (
       <div className="space-y-6" data-testid="my-memory-error">
         <PageHeader
-          eyebrow="Portability"
-          title="My Digital Work Wallet"
-          description="How you work, what your AI Teammate has learned, and what moves with you: your portable work identity."
+          eyebrow="Learning"
+          title="How Otzar works better for you"
+          description="See useful preferences and work methods your AI Teammate is using."
         />
         <Card className="border-rose-400/40 bg-rose-500/5">
           <CardContent className="py-4 text-sm">
-            Couldn't load your wallet. ({error ?? "Unknown error"})
+            Couldn&apos;t load Memory. ({error ?? "Unknown error"})
           </CardContent>
         </Card>
       </div>
@@ -126,167 +203,324 @@ export function MyMemory(): JSX.Element {
     <div
       className="mx-auto w-full max-w-3xl space-y-6 pb-24"
       data-testid="my-memory-page"
+      data-slice4-memory="true"
     >
       <PageHeader
         eyebrow="Learning"
-        title="What Otzar has learned"
-        description="What helps you, what changed, what needs your decision, and what never leaves with you. Details stay collapsed."
+        title="How Otzar works better for you"
+        description="See the useful preferences and work methods your AI Teammate is using. Correct, stop, or carry approved personal capability with you without taking company information."
       />
 
-      {/* [GAP-S S-1] The ownership boundary, rendered where the wallet
-          already appears. Existing truth only: this wallet IS the personal
-          wallet; company data lives in the organization's enterprise wallet.
-          No export exists. Future language is marked as future. */}
+      {notice !== null ? (
+        <p className="text-sm text-foreground" role="status" data-testid="my-memory-notice">
+          {notice}
+        </p>
+      ) : null}
+
       <div className="space-y-2" data-testid="my-memory-boundary">
         <WalletProvenanceBadge walletType="PERSONAL" entityType="PERSON" />
         <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
           <div className="rounded-md border border-border/60 p-2">
             <p className="font-medium text-foreground">Your personal work memory</p>
             <p>
-              Your work style, preferences, personal learning, and reusable
-              methods live here. They are yours, not the company&apos;s.
+              Preferences, reusable methods, and personal learning live here.
+              They are yours, not the company&apos;s.
             </p>
           </div>
           <div className="rounded-md border border-border/60 p-2">
             <p className="font-medium text-foreground">Company-owned work data</p>
             <p>
-              Company sources, meeting records, decisions, approvals, and
-              audit history stay with the company. They are never part of
-              this wallet.
+              Sources, meetings, decisions, approvals, and audit history stay
+              with the company. They never leave in a portable profile.
             </p>
           </div>
         </div>
       </div>
 
-      {/* What Otzar knows about my work */}
-      <Card data-testid="my-memory-knows">
+      {/* 1. Helping you now */}
+      <Card data-testid="my-memory-helping-now">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <Brain className="h-4 w-4" aria-hidden /> What Otzar knows about
-            your work
+            <Sparkles className="h-4 w-4" aria-hidden /> Helping you now
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Counts only. Otzar never shows raw memory bodies, transcripts, or
-            internal storage details on this page.
-          </p>
-          <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-            <Stat
-              label="Memory records"
-              value={i.context_signals.memory_capsules_count}
-              hint="Things Otzar has saved as scoped working memory."
-            />
-            <Stat
-              label="Conversation summaries"
-              value={i.context_signals.transcript_summaries_count}
-              hint="Safe summaries of meetings and conversations. Never raw transcripts by default."
-            />
-            <Stat
-              label="Collaborations inbound"
-              value={i.context_signals.collaboration_inbound_count}
-              hint="Times another teammate asked you or your AI Teammate for something."
-            />
-            <Stat
-              label="Collaborations outbound"
-              value={i.context_signals.collaboration_outbound_count}
-              hint="Times you or your AI Teammate asked someone else for something."
-            />
-          </div>
+          {active.length === 0 ? (
+            <p className="text-xs text-muted-foreground" data-testid="helping-now-empty">
+              No personal patterns yet. Teach Otzar in Talk — for example,
+              &ldquo;Keep my answers concise.&rdquo;
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {active.map((p) => (
+                <li
+                  key={p.id}
+                  className="rounded-md border border-border/60 bg-card p-3"
+                  data-testid="active-pattern-card"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{p.title}</p>
+                      <p className="text-xs text-muted-foreground">{p.description}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {p.last_used_label}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === p.id}
+                      onClick={() => void stopPreference(p.id)}
+                      data-testid="active-pattern-stop"
+                    >
+                      Stop using
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
-      {/* What Otzar can use it for */}
-      <Card data-testid="my-memory-authority">
+      {/* 2. Recently learned */}
+      <Card data-testid="my-memory-recently-learned">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <ShieldCheck className="h-4 w-4" aria-hidden /> What Otzar can do
-            with it
+            <Brain className="h-4 w-4" aria-hidden /> Recently learned
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ul className="space-y-1 text-xs">
-            <AuthRow
-              label="Read your memory and context"
-              allowed={i.authority.can_read_capsules}
-              extra={undefined}
-              testid="my-mem-auth-read"
-            />
-            <AuthRow
-              label="Write new memory entries on your behalf"
-              allowed={i.authority.can_write_capsules}
-              extra={undefined}
-              testid="my-mem-auth-write"
-            />
-            <AuthRow
-              label="Share scoped context with teammates"
-              allowed={i.authority.can_share_capsules}
-              extra={undefined}
-              testid="my-mem-auth-share"
-            />
-            <AuthRow
-              label="Make external API calls"
-              allowed={i.authority.can_access_external_api}
-              extra={
-                i.authority.external_write_policy === "APPROVAL_REQUIRED"
-                  ? "Approval required"
-                  : undefined
-              }
-              testid="my-mem-auth-external"
-            />
-          </ul>
-          <p className="mt-3 text-[10px] text-muted-foreground">
-            Otzar follows your organization's policy. Every action against your
-            wallet is recorded in the audit trail.
-          </p>
+        <CardContent className="space-y-2">
+          {recent.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Corrections and preferences you teach in Talk show up here.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {recent.map((r) => (
+                <li
+                  key={r.id}
+                  className="rounded-md border border-border/50 px-3 py-2 text-xs"
+                  data-testid="recent-learning-card"
+                >
+                  <p className="font-medium text-foreground">{r.what_changed}</p>
+                  <p className="text-muted-foreground">Applies to: {r.where_applies}</p>
+                  <Badge variant="outline" className="mt-1 text-[10px]">
+                    {r.active ? "Active" : "Inactive"}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
-      {/* What can be revoked */}
+      {/* 3. Needs your decision */}
+      <Card data-testid="my-memory-needs-decision">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Needs your decision</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {decisions.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Nothing needs a decision right now. Clear instructions in Talk
+              apply immediately with a short confirmation.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {decisions.map((d) => (
+                <li
+                  key={d.id}
+                  className="rounded-md border border-amber-300/50 bg-amber-50/40 p-3 text-xs"
+                  data-testid="decision-card"
+                >
+                  <p className="text-foreground">{d.question}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busyId === d.id}
+                      onClick={() => void decideCandidate(d.id, "approve")}
+                    >
+                      Use this pattern
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === d.id}
+                      onClick={() => void decideCandidate(d.id, "reject")}
+                    >
+                      Not now
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 4. Portable profile */}
+      <Card data-testid="my-memory-portable-profile">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Wallet className="h-4 w-4" aria-hidden /> Take your AI Teammate&apos;s
+            skills with you
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-xs text-muted-foreground">
+          <p>
+            If you leave this organization, you may request the reusable work
+            preferences, methods, and personal workflows you taught your AI
+            Teammate. Company information stays here.
+          </p>
+          {portable !== null && portable.status !== "none" ? (
+            <p data-testid="portable-request-status">
+              Status:{" "}
+              <span className="font-medium text-foreground">
+                {portableStatusLabel(portable.status)}
+              </span>
+              {portable.note ? ` — ${portable.note}` : ""}
+            </p>
+          ) : null}
+          {!portableOpen ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setPortableOpen(true)}
+              data-testid="portable-profile-open"
+            >
+              Request a portable profile
+            </Button>
+          ) : (
+            <div
+              className="space-y-3 rounded-md border border-border/60 p-3"
+              data-testid="portable-profile-review"
+            >
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <p className="font-medium text-foreground">Can move with you</p>
+                  <ul className="mt-1 list-inside list-disc">
+                    {PORTABLE_CAN_MOVE.map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">
+                    Stays with the organization
+                  </p>
+                  <ul className="mt-1 list-inside list-disc">
+                    {PORTABLE_STAYS_WITH_ORG.map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <p>
+                Your AI Teammate can remain useful without carrying confidential
+                company information. Export is not complete until review finishes
+                — this only files a request.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => requestPortableProfile()}
+                  data-testid="portable-profile-request"
+                >
+                  Request review
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPortableOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card data-testid="my-memory-revocable">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <KeyRound className="h-4 w-4" aria-hidden /> Yours to shape
+            <KeyRound className="h-4 w-4" aria-hidden /> Correct or revoke
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-xs">
-          {/* PROD-MODEL-P4 §7/§24 — twin AUTHORITY is governed by your
-              organization's admins and policies, not toggled here. Memory
-              stays insight + teaching, never a permission console. */}
-          <div
-            className="flex items-start gap-2 rounded-md border border-border/60 p-2"
-            data-testid="my-mem-authority-governed"
-          >
-            <KeyRound className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
-            <div>
-              <p className="font-medium text-foreground">What your AI Teammate may do</p>
-              <p className="text-muted-foreground">
-                Set by your organization's role and access policies. Teach and
-                correct your AI Teammate any time. Granting or removing authority is
-                an admin decision, recorded in the audit trail.
-              </p>
-            </div>
-          </div>
+          <p className="text-muted-foreground">
+            Teach Otzar in Talk (&ldquo;Keep my answers concise&rdquo;). Use Stop
+            using on active patterns above. Preferences and identity live here:
+          </p>
           <RevocableRow
             icon={<PencilLine className="h-3 w-3" aria-hidden />}
-            label="Preferences and corrections"
-            description="Teach your AI Teammate how you work. Edit or remove what it learned."
+            label="Preferences"
+            description="Longer preference editor if you need it."
             to="/app/preferences"
             cta="Open preferences"
             testid="my-mem-revoke-preferences"
           />
           <RevocableRow
             icon={<Wallet className="h-3 w-3" aria-hidden />}
-            label="Your AI Teammate (identity + briefing)"
-            description="See your AI Teammate's current configuration and adjust as needed."
+            label="Your AI Teammate"
+            description="Identity and briefing."
             to="/app/my-twin"
             cta="Open My AI Teammate"
             testid="my-mem-revoke-twin"
           />
+          <Button asChild size="sm" variant="outline">
+            <Link to="/app/conversations" data-testid="my-mem-open-history">
+              Conversation history
+              <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Progressive disclosure — learning engine detail is not the primary job. */}
+      {/* Secondary: storage counts + authority — not the primary story */}
+      <details
+        className="rounded-lg border border-border/60 px-3 py-2"
+        data-testid="my-memory-knows"
+      >
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          Storage details (secondary)
+        </summary>
+        <div className="mt-3 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Counts only. Otzar never shows raw memory bodies, transcripts, or
+            internal storage details as the main story.
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            <Stat
+              label="Memory records"
+              value={i.context_signals.memory_capsules_count}
+              hint="Scoped working memory entries."
+            />
+            <Stat
+              label="Conversation summaries"
+              value={i.context_signals.transcript_summaries_count}
+              hint="Talk and meeting summaries — never raw transcripts by default."
+            />
+            <Stat
+              label="Collaborations inbound"
+              value={i.context_signals.collaboration_inbound_count}
+              hint="Secondary detail — not the primary value of Memory."
+            />
+            <Stat
+              label="Collaborations outbound"
+              value={i.context_signals.collaboration_outbound_count}
+              hint="Secondary detail — not the primary value of Memory."
+            />
+          </div>
+        </div>
+      </details>
+
       <details
         className="rounded-lg border border-border/60 px-3 py-2"
         data-testid="my-memory-more-detail"
@@ -309,7 +543,7 @@ export function MyMemory(): JSX.Element {
           Boundaries
         </Badge>
         What you teach stays yours. Company records stay with the company.
-        Correct or revoke anytime. You do not need to manage the engine.
+        Correct or revoke anytime.
       </p>
     </div>
   );
@@ -330,41 +564,6 @@ function Stat({
       <p className="text-muted-foreground">{label}</p>
       <p className="mt-1 text-[10px] text-muted-foreground/80">{hint}</p>
     </div>
-  );
-}
-
-function AuthRow({
-  label,
-  allowed,
-  extra,
-  testid,
-}: {
-  label: string;
-  allowed: boolean;
-  extra: string | undefined;
-  testid: string;
-}): JSX.Element {
-  return (
-    <li
-      className="flex items-center justify-between gap-2 rounded border bg-card px-2 py-1.5"
-      data-testid={testid}
-      data-allowed={allowed ? "true" : "false"}
-    >
-      <span>{label}</span>
-      <div className="flex items-center gap-1">
-        {extra !== undefined ? (
-          <Badge variant="outline" className="text-[10px]">
-            {extra}
-          </Badge>
-        ) : null}
-        <Badge
-          variant={allowed ? "outline" : "destructive"}
-          className="text-[10px]"
-        >
-          {allowed ? "Yes" : "Not yet"}
-        </Badge>
-      </div>
-    </li>
   );
 }
 
