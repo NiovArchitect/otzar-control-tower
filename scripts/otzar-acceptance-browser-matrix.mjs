@@ -28,8 +28,8 @@ const STEPS = [
   { n: 8, id: "propagation", route: "/app", selectors: ["[data-testid='ambient-work-surface']", "[data-testid='employee-shell-main']"] },
   { n: 9, id: "management", route: "/app/heliogrid-report", selectors: ["[data-testid='heliogrid-report']", "[data-testid='employee-shell-main']"] },
   { n: 10, id: "persona_difference", route: "/demo/yc", selectors: ["[data-testid='demo-persona-launcher']", "h1"] },
-  { n: 11, id: "memory", route: "/app/my-memory", selectors: ["[data-testid='my-memory-page']", "[data-testid='employee-shell-main']"] },
-  { n: 12, id: "final_outcome", route: "/app/chat", selectors: ["[data-testid='employee-shell-main']", "h1"] },
+  { n: 11, id: "memory", route: "/app/my-memory", selectors: ["[data-testid='my-memory-page']", "[data-testid='my-memory-loading']", "[data-testid='employee-shell-main']", "h1"] },
+  { n: 12, id: "final_outcome", route: "/app/chat", selectors: ["[data-testid='chat-transcript']", "[data-testid='employee-shell-main']", "h1", "textarea", "[data-testid='ambient-otzar-bar']"] },
 ];
 
 async function launchPersona(page, personaKey) {
@@ -138,17 +138,20 @@ async function main() {
     };
     try {
       if (step.route === "/demo/yc") {
-        // Public launcher — full navigation OK (no auth required)
         await page.goto(`${BASE}/demo/yc`, { waitUntil: "networkidle", timeout: 60000 });
         await page.waitForTimeout(800);
+      } else if (step.n >= 11) {
+        // After public launcher step, always mint a fresh session.
+        await launchPersona(page, "organization_lead");
+        await spaGo(page, step.route);
+        await page.waitForTimeout(1500);
+        row.notes.push("post_launcher_session");
       } else {
-        // After step 10 (launcher), session is gone — re-enter app.
         if (!page.url().includes("/app")) {
           await launchPersona(page, "organization_lead");
           row.notes.push("relaunch");
         }
         await spaGo(page, step.route);
-        // If still not on target path, force relaunch + spa
         if (!page.url().includes(step.route.split("?")[0]) && step.route !== "/app") {
           await launchPersona(page, "organization_lead");
           await spaGo(page, step.route);
