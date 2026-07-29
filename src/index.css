@@ -321,6 +321,22 @@
     overflow-x: clip;
   }
 
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /* Mobile: keep floating Talk and bottom nav within the viewport. */
+  @media (max-width: 480px) {
+    [data-testid="ambient-otzar-bar"],
+    [data-testid="ambient-otzar-dock"],
+    [data-testid="first-use-reveal"] {
+      max-width: calc(100vw - 1rem) !important;
+    }
+  }
+
   /* Premium pearl field for shells */
   .otzar-enterprise-field {
     background-color: #f7f6fc;
