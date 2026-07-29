@@ -329,16 +329,19 @@ export function ActionCenter(): JSX.Element {
   // Phase 1285-S — the "Needs decision" tab leads with truly actionable items
   // (a real approve/reject); non-actionable proposals (routing/stuck) sort
   // below and are labeled, but never inflate the actionable count.
+  // Primary "Needs decision" list is ONLY approve/reject decisions.
+  // Non-actionable PROPOSED rows (stuck grants, no person) stay out of the
+  // hero list so the page has one clear next action.
+  const actionablePending = grouped.pending.filter(isActionablePending);
+  const nonActionablePending = grouped.pending.filter((a) => !isActionablePending(a));
   const current =
     tab === "pending"
-      ? [...grouped.pending].sort(
-          (x, y) => Number(isActionablePending(y)) - Number(isActionablePending(x)),
-        )
+      ? actionablePending
       : grouped[tab];
   // The pending badge counts ONLY actionable items.
   const tabCount = (t: Tab): number =>
     t === "pending"
-      ? grouped.pending.filter(isActionablePending).length
+      ? actionablePending.length
       : grouped[t].length;
 
   return (
@@ -353,9 +356,7 @@ export function ActionCenter(): JSX.Element {
         title="Needs me"
         description="Only items that need your judgment or high-stakes approval. Routine work Otzar already handled within policy stays out of this queue — it appears under Completed and Today."
       />
-      {tab === "pending" &&
-      grouped.pending.filter(isActionablePending).length === 0 &&
-      !loading ? (
+      {tab === "pending" && actionablePending.length === 0 && !loading ? (
         <Card data-testid="needs-me-primary-signal" className="border-primary/20 bg-primary/5">
           <CardContent className="space-y-2 py-4 text-sm">
             <p className="font-medium text-foreground">
@@ -371,6 +372,14 @@ export function ActionCenter(): JSX.Element {
             <Button size="sm" variant="outline" asChild>
               <Link to="/app/my-work">Open My Work</Link>
             </Button>
+            {nonActionablePending.length > 0 ? (
+              <p className="text-[11px] text-muted-foreground" data-testid="needs-me-non-actionable-note">
+                {nonActionablePending.length} other record
+                {nonActionablePending.length === 1 ? "" : "s"} need cleanup later
+                (for example a permission grant without a person) and do not block
+                you now.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
