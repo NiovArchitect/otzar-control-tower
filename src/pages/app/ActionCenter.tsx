@@ -329,11 +329,21 @@ export function ActionCenter(): JSX.Element {
   // Phase 1285-S — the "Needs decision" tab leads with truly actionable items
   // (a real approve/reject); non-actionable proposals (routing/stuck) sort
   // below and are labeled, but never inflate the actionable count.
-  // Primary "Needs decision" list is ONLY approve/reject decisions.
-  // Non-actionable PROPOSED rows (stuck grants, no person) stay out of the
-  // hero list so the page has one clear next action.
-  const actionablePending = grouped.pending.filter(isActionablePending);
-  const nonActionablePending = grouped.pending.filter((a) => !isActionablePending(a));
+  // Primary "Needs decision" list is ONLY executable approve/reject decisions.
+  // Stuck grants without a person (or other non-executable PROPOSED rows) stay
+  // out of the hero list so the page has one clear next action.
+  const actionablePending = grouped.pending.filter((a) => {
+    if (!isActionablePending(a)) return false;
+    if (/PERMISSION_GRANT/i.test(a.action_type)) {
+      const details = getActionDetails(a.action_id);
+      if (actionTargetLabel(a, details) === null) return false;
+    }
+    const exec = actionExecutability(a, getActionDetails(a.action_id));
+    return exec.executable === true;
+  });
+  const nonActionablePending = grouped.pending.filter(
+    (a) => !actionablePending.some((x) => x.action_id === a.action_id),
+  );
   const current =
     tab === "pending"
       ? actionablePending
