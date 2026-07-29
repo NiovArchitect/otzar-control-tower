@@ -1,193 +1,227 @@
 // FILE: CommandCenterPanel.tsx
-// PURPOSE: Phase 1255 slice 2 — the Command Center's guidance layer:
-//          go-live blockers + organization context + next best
-//          actions, derived LIVE from the readiness aggregate. Every
-//          card routes somewhere meaningful; informational lines are
-//          visually plain. Honest statuses only — schema-pending and
-//          credential-blocked items say so.
-// CONNECTS TO: api.otzar.productionReadiness, Home (Command Center),
-//          Reports, Retention, Data & Knowledge, Integrations & MCP,
-//          tests/unit/admin-command-center-panel.test.tsx.
+// PURPOSE: Slice 5 — Admin Home three-second contract: organization
+//          status, what is working, ≤3 priorities, outcome KPIs.
+//          No demo mode badge, no “6 of 11 setup steps” theater.
+// CONNECTS TO: org-admin-home, Home, productionReadiness (tools only).
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Building2, Compass, OctagonAlert } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  AlertTriangle,
+  BarChart3,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth";
-import { humanizeStatus } from "@/lib/labels/humanize";
-import type { HandoffReadinessResponse } from "@/lib/types/foundation";
+import {
+  buildOrgAdminHome,
+  type OrgAdminHomeInputs,
+  type WorkingAreaState,
+} from "@/lib/admin/org-admin-home";
 
-type Readiness = HandoffReadinessResponse["readiness"];
-
-interface NextAction {
-  label: string;
-  to: string;
+function stateBadge(state: WorkingAreaState): JSX.Element {
+  if (state === "working") {
+    return (
+      <Badge
+        variant="outline"
+        className="text-[10px] text-emerald-700 border-emerald-300/50"
+      >
+        Working
+      </Badge>
+    );
+  }
+  if (state === "limited") {
+    return (
+      <Badge variant="outline" className="text-[10px] text-amber-800 border-amber-300/50">
+        Limited
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="text-[10px] text-amber-900 border-amber-400/60">
+      Needs attention
+    </Badge>
+  );
 }
 
 export function CommandCenterPanel({
   pendingApprovals,
+  homeInputs,
 }: {
   pendingApprovals: number | null;
+  /** When provided, drives the three-second readiness view. */
+  homeInputs?: Partial<OrgAdminHomeInputs> | null;
 }): JSX.Element {
   const entity = useAuthStore((s) => s.entity);
-  const [readiness, setReadiness] = useState<Readiness | null>(null);
+  const [credentialBlocked, setCredentialBlocked] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     api.otzar
       .productionReadiness()
       .then((r) => {
-        if (!cancelled && r.ok) setReadiness(r.data.readiness);
+        if (cancelled || !r.ok) return;
+        const n = r.data.readiness.capabilities.filter(
+          (c) =>
+            c.classification === "BLOCKED_BY_CREDENTIALS" ||
+            c.classification === "BLOCKED_BY_APP_REVIEW",
+        ).length;
+        setCredentialBlocked(n);
       })
       .catch(() => {
-        /* the panel stays honest-empty on failure */
+        /* keep zero */
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const blockers: Array<{ label: string; to: string }> = [];
-  const actions: NextAction[] = [];
-  if (readiness !== null) {
-    if (readiness.schema.pending_push) {
-      blockers.push({
-        label:
-          "Platform update awaiting Founder approval (after credential rotation)",
-        to: "/onboarding",
-      });
-      actions.push({
-        label: "Review the platform update approval step",
-        to: "/onboarding",
-      });
-    }
-    const credentialBlocked = readiness.capabilities.filter(
-      (c) =>
-        c.classification === "BLOCKED_BY_CREDENTIALS" ||
-        c.classification === "BLOCKED_BY_APP_REVIEW",
-    );
-    if (credentialBlocked.length > 0) {
-      blockers.push({
-        label: `${credentialBlocked.length} capabilities waiting on credentials or app review`,
-        to: "/tools-connections",
-      });
-      actions.push({
-        label: "Connect provider credentials",
-        to: "/tools-connections",
-      });
-    }
-  }
-  if (pendingApprovals !== null && pendingApprovals > 0) {
-    actions.unshift({
-      label: `Review ${pendingApprovals} pending approval${pendingApprovals === 1 ? "" : "s"}`,
-      to: "/approvals",
-    });
-  }
-  actions.push(
-    { label: "Check how your data flows", to: "/data-knowledge" },
-    { label: "Review retention & proof", to: "/retention" },
-  );
+  const view = useMemo(() => {
+    const base: OrgAdminHomeInputs = {
+      orgName: homeInputs?.orgName ?? null,
+      peopleCount: homeInputs?.peopleCount ?? 0,
+      activePeopleCount: homeInputs?.activePeopleCount ?? 0,
+      managerLineCount: homeInputs?.managerLineCount ?? 0,
+      peopleWithoutManager: homeInputs?.peopleWithoutManager ?? 0,
+      twinsReadyCount: homeInputs?.twinsReadyCount ?? 0,
+      twinsTotalCount: homeInputs?.twinsTotalCount ?? 0,
+      toolsConnectedCount: homeInputs?.toolsConnectedCount ?? 0,
+      toolsReadyCount: homeInputs?.toolsReadyCount ?? 0,
+      openReviewCount: homeInputs?.openReviewCount ?? 0,
+      pendingApprovals,
+      governanceHumanApproval: homeInputs?.governanceHumanApproval ?? true,
+      credentialBlockedCount:
+        homeInputs?.credentialBlockedCount ?? credentialBlocked,
+    };
+    return buildOrgAdminHome(base);
+  }, [homeInputs, pendingApprovals, credentialBlocked]);
 
   return (
-    <div
-      className="grid grid-cols-1 gap-4 lg:grid-cols-3"
-      data-testid="command-center-panel"
-    >
-      <Card data-testid="command-center-blockers">
+    <div className="space-y-4" data-testid="command-center-panel" data-slice5-admin-home="true">
+      {/* Organization status */}
+      <Card data-testid="admin-org-status">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <OctagonAlert className="h-4 w-4 text-amber-500" aria-hidden />
-            Go-live blockers
+            <Building2 className="h-4 w-4" aria-hidden /> Organization status
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-xs">
-          {readiness === null ? (
-            <p className="text-muted-foreground">
-              Readiness loads here (admin access required).
-            </p>
-          ) : blockers.length === 0 ? (
-            <p className="text-muted-foreground">
-              Nothing is blocking go-live right now.
-            </p>
-          ) : (
-            blockers.map((b) => (
-              <Link
-                key={b.label}
-                to={b.to}
-                className="flex items-center justify-between rounded-xl border border-border/70 p-2.5 hover:border-primary/40"
-                data-testid="command-center-blocker"
-              >
-                <span className="text-foreground">{b.label}</span>
-                <ArrowRight
-                  className="h-4 w-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-              </Link>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      <Card data-testid="command-center-org">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Building2 className="h-4 w-4" aria-hidden /> Your organization
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-xs">
-          <p className="text-foreground">
+        <CardContent className="space-y-2 text-sm">
+          <p
+            className="font-medium text-foreground"
+            data-testid="admin-status-line"
+          >
+            {view.status_line}
+          </p>
+          <p className="text-xs text-muted-foreground">
             Signed in as{" "}
-            <span className="font-medium">{entity?.email ?? "—"}</span> ·
-            organization admin
+            <span className="font-medium text-foreground">
+              {entity?.email ?? "—"}
+            </span>
+            . Everything here is scoped to your organization only.
           </p>
-          <p className="text-muted-foreground">
-            Everything here is scoped to your organization only — its data,
-            credentials, policies, reports, and retention. No other
-            organization can see them.
-          </p>
-          {readiness !== null ? (
-            <p
-              className="text-muted-foreground"
-              data-testid="command-center-org-mode"
-            >
-              Mode:{" "}
-              <Badge variant="outline" className="text-[9px]">
-                {humanizeStatus(readiness.demo_prod_separation.mode)}
-              </Badge>{" "}
-              · {readiness.org.checklist_steps_ready}/
-              {readiness.org.checklist_steps_total} setup steps ready
-            </p>
-          ) : null}
+          {/* Explicitly never show demo mode / N of M setup fraction. */}
         </CardContent>
       </Card>
 
-      <Card data-testid="command-center-actions">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* What is working */}
+        <Card data-testid="admin-what-working">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />
+              What is working
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ul className="space-y-2">
+              {view.working.map((w) => (
+                <li
+                  key={w.id}
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border/60 px-2.5 py-2 text-xs"
+                  data-testid="admin-working-area"
+                  data-area={w.id}
+                  data-state={w.state}
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">{w.label}</p>
+                    <p className="text-muted-foreground">{w.detail}</p>
+                  </div>
+                  {stateBadge(w.state)}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* What needs attention — max 3 */}
+        <Card data-testid="admin-needs-attention">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-600" aria-hidden />
+              What needs attention
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+            {view.priorities.length === 0 ? (
+              <p className="text-muted-foreground" data-testid="admin-no-priorities">
+                No material setup gaps right now. Use Action Center when
+                judgment is required.
+              </p>
+            ) : (
+              view.priorities.map((p) => (
+                <div
+                  key={p.id}
+                  className="rounded-lg border border-amber-300/50 bg-amber-50/40 p-2.5"
+                  data-testid="admin-priority"
+                >
+                  <p className="font-medium text-foreground">{p.what}</p>
+                  <p className="mt-0.5 text-muted-foreground">{p.why}</p>
+                  <Link
+                    to={p.to}
+                    className="mt-2 inline-flex items-center gap-1 text-foreground underline-offset-2 hover:underline"
+                    data-testid="admin-priority-action"
+                  >
+                    {p.actionLabel}
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  </Link>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Outcome KPIs with lineage */}
+      <Card data-testid="admin-outcome-kpis">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <Compass className="h-4 w-4" aria-hidden /> Next best actions
+            <BarChart3 className="h-4 w-4" aria-hidden /> Organization signal
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-xs">
-          {actions.slice(0, 4).map((a) => (
-            <Link
-              key={a.label}
-              to={a.to}
-              className="flex items-center justify-between rounded-xl border border-border/70 p-2.5 hover:border-primary/40"
-              data-testid="command-center-action"
-            >
-              <span className="text-foreground">{a.label}</span>
-              <ArrowRight
-                className="h-4 w-4 shrink-0 text-muted-foreground"
-                aria-hidden
-              />
-            </Link>
-          ))}
-          <p className="text-muted-foreground">
-            Or just ask — press <kbd className="rounded border px-1">⌘K</kbd>{" "}
-            and type "what is blocking production?"
-          </p>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {view.kpis.map((k) => (
+              <div
+                key={k.id}
+                className="rounded-md border border-border/60 px-2 py-2"
+                data-testid="admin-kpi"
+                data-kpi={k.id}
+                title={k.source}
+              >
+                <p className="text-lg font-semibold tabular-nums text-foreground">
+                  {k.value}
+                </p>
+                <p className="text-[11px] text-muted-foreground">{k.label}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+                  Source: {k.source}
+                </p>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -799,7 +799,7 @@ function OrgMapCard({
             className="shrink-0 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-800"
             data-testid="org-map-needs-setup"
           >
-            Needs hierarchy setup
+            Reporting lines incomplete — use Reporting structure below
           </span>
         ) : null}
       </div>

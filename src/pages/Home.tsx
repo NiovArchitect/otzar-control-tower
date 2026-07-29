@@ -19,7 +19,7 @@
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowRight, BarChart3, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommandCenterPanel } from "@/components/CommandCenterPanel";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -112,71 +112,76 @@ export function HomePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Command Center"
-        description="Material exceptions and organization health — not a raw review inbox. Routine work is handled in product; you join when judgment is required."
+        title="Organization"
+        description="Who is ready, what needs judgment, and what results the organization is producing — not a raw review inbox."
       />
 
-      {/* Founder-visible discovery — same "Otzar found" as Organization /setup. */}
-      <OrgDiscoveryFoundCard
-        discovery={discovery}
-        onRefreshSignals={() => void refreshStructureSignals()}
-        refreshBusy={syncBusy}
-      />
-
-      {/* [GAP-U SLICE-1] one calm pointer to the guided setup journey —
-          reduces page-hunting for admins still standing the org up. */}
       <p className="text-xs text-muted-foreground" data-testid="home-setup-pointer">
-        Setup and structure:{" "}
+        Guided setup:{" "}
         <Link to="/setup" className="font-medium text-foreground underline underline-offset-2">
           Organization setup
         </Link>
         {" · "}
         <Link to="/app" className="font-medium text-foreground underline underline-offset-2">
-          Open Otzar
+          Open employee Otzar
+        </Link>
+        {" · "}
+        <Link to="/users" className="font-medium text-foreground underline underline-offset-2">
+          People &amp; hierarchy
         </Link>
       </p>
 
-      {/* ── Phase 1255 slice 2 — Command Center panel ──────────── */}
-      {/* [GAP-F] Approvals numbers come from the SAME query the Pending
-          Approvals queue renders — one truth, every surface agrees. */}
+      {/* Slice 5 — three-second admin home (status / working / priorities / KPIs). */}
       <CommandCenterPanel
         pendingApprovals={typeof queueCount === "number" ? queueCount : null}
+        homeInputs={{
+          orgName: discovery.available
+            ? hierarchy.data?.org_entity_id
+              ? "Your organization"
+              : null
+            : null,
+          peopleCount: discovery.peopleCount,
+          activePeopleCount: discovery.activePeopleCount,
+          managerLineCount: discovery.managerLineCount,
+          peopleWithoutManager: discovery.peopleWithoutManager,
+          twinsReadyCount: value?.active_twins ?? 0,
+          twinsTotalCount: value?.active_twins ?? 0,
+          toolsConnectedCount: 0,
+          toolsReadyCount: 0,
+          openReviewCount: discovery.openSeedCount,
+          governanceHumanApproval: true,
+        }}
       />
 
-      {/* ── KPI cards (12A) ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Pending approvals" loading={queueCountLoading}>
-          {renderNumber(typeof queueCount === "number" ? queueCount : undefined)}
-        </KpiCard>
-        <KpiCard label="Active AI teammates" loading={analytics.isLoading}>
-          {renderNumber(value?.active_twins)}
-        </KpiCard>
-        <KpiCard label="Compound score" loading={analytics.isLoading}>
-          {renderNumber(value?.compound_score)}
-        </KpiCard>
-        <KpiCard label="Knowledge items" loading={analytics.isLoading}>
-          {renderNumber(value?.capsule_count)}
-        </KpiCard>
-      </div>
+      {/* Structure findings — only when there is real review work (not vanity counts). */}
+      {discovery.openSeedCount > 0 && discovery.openSeedCount <= 25 ? (
+        <OrgDiscoveryFoundCard
+          discovery={discovery}
+          onRefreshSignals={() => void refreshStructureSignals()}
+          refreshBusy={syncBusy}
+        />
+      ) : null}
 
-      {/* ── Intelligence Summary (12B.2) ───────────────────────── */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" aria-hidden />
-          <h2 className="text-base font-semibold">Intelligence summary</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <KpiCard label="Compound score" loading={analytics.isLoading}>
-            {renderNumber(value?.compound_score)}
+      {/* Secondary detail — not vanity compound/vocab scores as primary story */}
+      <details className="rounded-lg border border-border/60 px-3 py-2" data-testid="home-secondary-metrics">
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          Secondary metrics (optional)
+        </summary>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Pending approvals" loading={queueCountLoading}>
+            {renderNumber(typeof queueCount === "number" ? queueCount : undefined)}
           </KpiCard>
-          <KpiCard label="Active patterns" loading={analytics.isLoading}>
+          <KpiCard label="Active AI teammates" loading={analytics.isLoading}>
+            {renderNumber(value?.active_twins)}
+          </KpiCard>
+          <KpiCard label="Patterns in use" loading={analytics.isLoading}>
             {renderNumber(value?.pattern_count)}
           </KpiCard>
-          <KpiCard label="Vocabulary growth" loading={analytics.isLoading}>
-            {renderNumber(value?.vocab_count)}
+          <KpiCard label="Knowledge items" loading={analytics.isLoading}>
+            {renderNumber(value?.capsule_count)}
           </KpiCard>
         </div>
-      </section>
+      </details>
 
       {/* ── Recent Activity + Pending Approvals (12B.2) ────────── */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">

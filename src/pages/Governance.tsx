@@ -81,8 +81,49 @@ export function GovernancePage(): JSX.Element {
       <PageHeader
         eyebrow="Governance"
         title="How Otzar is allowed to work"
-        description="Access, policies, and retention in one place — plain language for admins, full control underneath."
+        description="What AI may handle, what needs a person, what is prohibited, who may access what, how long information is kept, and what happens when someone leaves."
       />
+
+      {tab === "overview" ? (
+        <div
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          data-testid="governance-business-model"
+        >
+          {[
+            {
+              t: "What AI may handle automatically",
+              b: "Organize communication, update routine work, request authorized clarification, draft internal summaries, and create low-risk proof under policy.",
+            },
+            {
+              t: "What requires a person",
+              b: "Final selection decisions, sensitive external messages, access grants, high-impact policy change, financial commitments, irreversible actions.",
+            },
+            {
+              t: "What is not allowed",
+              b: "Cross-tenant disclosure, hidden recording, unauthorized external send, silent authority expansion, exporting company data via a personal profile.",
+            },
+            {
+              t: "Who may access what",
+              b: "Role, project, and relationship type control visibility. Title never grants authority alone.",
+            },
+            {
+              t: "How information is retained",
+              b: "Audit proof is retained; governed memory can be revoked; transcripts follow org policy with legal hold.",
+            },
+            {
+              t: "When someone leaves",
+              b: "Access ends, tools disconnect, organization data stays, personal portable capability can be requested separately.",
+            },
+          ].map((x) => (
+            <Card key={x.t}>
+              <CardHeader className="pb-1">
+                <CardTitle className="text-sm">{x.t}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground">{x.b}</CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList
