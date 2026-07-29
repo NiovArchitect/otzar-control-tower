@@ -1,7 +1,7 @@
 // FILE: DemoRoleValueCard.tsx
 // PURPOSE: Above-the-fold operating brief for YC demo personas.
 //          Prefers live DGI / My Work / collaboration truth over static copy.
-// CONNECTS TO: live-role-brief.ts, api, AmbientWorkSurface (Today).
+// CONNECTS TO: live-role-brief.ts, quiet-hours-display, api, AmbientWorkSurface.
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
@@ -11,6 +11,11 @@ import {
   type LiveRoleBrief,
   type LiveRoleBriefField,
 } from "@/lib/demo/live-role-brief";
+import {
+  formatQuietHoursHuman,
+  formatWorkingHoursHuman,
+  type WorkingPolicyView,
+} from "@/lib/demo/quiet-hours-display";
 
 function FieldRow({
   label,
@@ -47,6 +52,9 @@ export function DemoRoleValueCard(): JSX.Element | null {
     key ? composeLiveRoleBrief({ personaKey: key }) : null,
   );
   const [loading, setLoading] = useState(Boolean(key));
+  const [hoursLine, setHoursLine] = useState<string | null>(null);
+  const [quietLine, setQuietLine] = useState<string | null>(null);
+  const [sponsorLine, setSponsorLine] = useState<string | null>(null);
 
   useEffect(() => {
     if (!key) {
@@ -57,11 +65,13 @@ export function DemoRoleValueCard(): JSX.Element | null {
     let cancelled = false;
     setLoading(true);
     void (async () => {
-      const [dgiR, workR, inR, outR] = await Promise.all([
+      const [dgiR, workR, inR, outR, profileR, twinR] = await Promise.all([
         api.otzar.dgiCoherence(),
         api.workOs.myWork({ take: 20 }),
         api.otzar.collaboration.inbound({ take: 20 }),
         api.otzar.collaboration.outbound({ take: 20 }),
+        api.org.me.workProfile.get(),
+        api.otzar.myTwin(),
       ]);
       if (cancelled) return;
       const dgi =
@@ -111,6 +121,43 @@ export function DemoRoleValueCard(): JSX.Element | null {
           collabs,
         }),
       );
+
+      if (profileR.ok && profileR.data) {
+        const pol = profileR.data.working_policy as WorkingPolicyView;
+        const tz = profileR.data.timezone || profileR.data.org_timezone;
+        setHoursLine(formatWorkingHoursHuman(pol, tz));
+        setQuietLine(formatQuietHoursHuman(pol, tz));
+      }
+
+      // Contractor sponsor: first-class manager from role_scope / hierarchy
+      // when twin role_scope_profile exposes manager, else department hint.
+      if (key === "contractor" && twinR.ok && twinR.data?.twin) {
+        const twin = twinR.data.twin as {
+          role_title?: string;
+          role_scope_profile?: {
+            manager_display_name?: string;
+            department?: string;
+            reporting_manager?: string;
+          } | null;
+        };
+        const mgr =
+          twin.role_scope_profile?.manager_display_name ||
+          twin.role_scope_profile?.reporting_manager ||
+          null;
+        const dept = twin.role_scope_profile?.department || null;
+        if (mgr) {
+          setSponsorLine(`Sponsored by ${mgr}${dept ? ` · ${dept}` : ""}`);
+        } else if (dept && /sponsor/i.test(dept)) {
+          setSponsorLine(dept);
+        } else {
+          setSponsorLine(
+            "Sponsored security diligence (manager relationship on hierarchy)",
+          );
+        }
+      } else {
+        setSponsorLine(null);
+      }
+
       setLoading(false);
     })();
     return () => {
@@ -153,6 +200,14 @@ export function DemoRoleValueCard(): JSX.Element | null {
       >
         {v.who}
       </p>
+      {sponsorLine ? (
+        <p
+          className="mt-1 text-[11px] font-medium text-indigo-800"
+          data-testid="demo-contractor-sponsor"
+        >
+          {sponsorLine}
+        </p>
+      ) : null}
       <dl className="mt-2 grid gap-1.5 text-xs leading-snug">
         <FieldRow
           label="Current outcome"
@@ -180,6 +235,17 @@ export function DemoRoleValueCard(): JSX.Element | null {
           testId="demo-role-org-impact"
         />
       </dl>
+      {(hoursLine || quietLine) && (
+        <p
+          className="mt-2 text-[10px] leading-snug text-slate-500"
+          data-testid="demo-hours-quiet"
+        >
+          {hoursLine ? <span>Working hours: {hoursLine}. </span> : null}
+          {quietLine ? (
+            <span data-testid="demo-quiet-hours">Quiet hours: {quietLine}.</span>
+          ) : null}
+        </p>
+      )}
       <p
         className="mt-2 rounded-lg border border-slate-200/80 bg-white/80 px-2 py-1.5 text-[11px] text-slate-600"
         data-testid="demo-role-talk-prompt"
