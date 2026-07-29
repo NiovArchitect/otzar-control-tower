@@ -47,6 +47,23 @@ export interface DecisionCard {
   plain: string;
 }
 
+/**
+ * WHAT: Detect internal / non-user preference noise that must never surface.
+ * INPUT: raw safe_summary string.
+ * OUTPUT: true when this is coach/storage machinery, not a taught preference.
+ * WHY: Three-second comprehension fails when keys like
+ *      otzar_first_use_walkthrough:v4:step:6 appear as "Recently learned".
+ */
+export function isInternalMemoryNoise(raw: string): boolean {
+  const t = raw.trim().toLowerCase();
+  if (t.length === 0) return true;
+  if (t.startsWith("otzar_first_use_walkthrough")) return true;
+  if (t.includes("walkthrough:") && t.includes(":step:")) return true;
+  if (/^otzar_[a-z0-9_]+:/.test(t)) return true;
+  if (/localstorage|sessionstorage|uuid:|entity_id=/.test(t)) return true;
+  return false;
+}
+
 /** Map a preference summary into a short title + description. */
 export function humanizePreference(raw: string): {
   title: string;
@@ -56,6 +73,14 @@ export function humanizePreference(raw: string): {
   const { plain, ownership } = classifyPreferenceSummary(raw);
   const p = plain.trim();
   const lower = p.toLowerCase();
+
+  if (isInternalMemoryNoise(p)) {
+    return {
+      title: "Personal learning",
+      description: "A stored preference is being refined.",
+      ownership,
+    };
+  }
 
   if (/concise|short|brief|answer first/.test(lower)) {
     return {
@@ -108,11 +133,12 @@ export function buildActivePatterns(
   prefs: ReadonlyArray<PreferenceRow>,
   max = 5,
 ): ActivePatternCard[] {
-  const portable = prefs.filter((p) => {
+  const cleaned = prefs.filter((p) => !isInternalMemoryNoise(p.safe_summary));
+  const portable = cleaned.filter((p) => {
     const { ownership } = classifyPreferenceSummary(p.safe_summary);
     return ownership === "portable" || ownership === "unknown";
   });
-  const source = portable.length > 0 ? portable : prefs;
+  const source = portable.length > 0 ? portable : cleaned;
   return source.slice(0, max).map((p) => {
     const h = humanizePreference(p.safe_summary);
     return {
@@ -133,7 +159,8 @@ export function buildRecentLearning(
   prefs: ReadonlyArray<PreferenceRow>,
   max = 5,
 ): RecentLearningCard[] {
-  const sorted = [...prefs].sort((a, b) => {
+  const cleaned = prefs.filter((p) => !isInternalMemoryNoise(p.safe_summary));
+  const sorted = [...cleaned].sort((a, b) => {
     const ta = a.created_at ? Date.parse(a.created_at) : 0;
     const tb = b.created_at ? Date.parse(b.created_at) : 0;
     return tb - ta;

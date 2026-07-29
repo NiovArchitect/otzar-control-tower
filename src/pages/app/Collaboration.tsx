@@ -235,7 +235,7 @@ export function Collaboration() {
   return (
     <div className="space-y-6" data-testid="collaboration-page" data-l01-surface="true">
       <PageHeader
-        title="People"
+        title="People & how the team moved"
         description="Who is here, what they own, and how the team moved work forward — without status-meeting theater."
       />
 

@@ -97,7 +97,7 @@ function friendlyActionType(action_type: string): string {
 
 // WHAT: a specific, human-readable card title — "Approve internal note to David
 //        Odie" / "Second approval needed: internal note to Samiksha" /
-//        "Historical internal note approval, recipient unavailable" — built
+//        "Internal note needs a person" — built
 //        from the action's executable state + the SAFE recipient label.
 // WHY: BLOCKER 2 — a governed decision cockpit, not a pile of "Internal note"
 //        cards. Never a raw DUAL_CONTROL string; never a raw UUID.
@@ -108,7 +108,7 @@ function buildCardTitle(a: SafeActionView, details: ActionDetails | null): strin
   // Lower-cased first letter for mid-sentence use ("Approve internal note …").
   const midKind = kind.charAt(0).toLowerCase() + kind.slice(1);
   const target = actionTargetLabel(a, details);
-  const to = target !== null ? ` to ${target}` : ", recipient unavailable";
+  const to = target !== null ? ` to ${target}` : " (person not listed)";
   const exec = actionExecutability(a);
 
   if (TERMINAL_STATUSES.has(a.status)) {
@@ -475,7 +475,7 @@ export function ActionCenter(): JSX.Element {
                             className="border-amber-500/50 text-amber-600 text-[9px]"
                             data-testid="action-recipient-unavailable"
                           >
-                            recipient unavailable
+                            person not listed
                           </Badge>
                         ) : null}
                         {/* Phase 1285-S — honest class label so historical /
@@ -553,7 +553,7 @@ export function ActionCenter(): JSX.Element {
                                 {details?.channel !== undefined ? ` · ${details.channel}` : ""}
                               </>
                             ) : (
-                              <span className="italic">recipient unavailable</span>
+                              <span className="italic">person not listed</span>
                             )}
                           </div>
                           {a.requester_label != null && a.requester_label.length > 0 ? (
