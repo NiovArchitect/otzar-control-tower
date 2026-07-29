@@ -83,11 +83,12 @@ export const CONTEXTUAL_WORK_SURFACES: ReadonlyArray<ContextualWorkSurface> = [
   {
     kind: "open_work",
     label: "Open work",
-    hostPath: "/app/action-center",
-    hostTestId: "open-work-lane",
-    legacyPath: "/app/my-work",
+    // Live My Work surface is the host (not a redirect to Needs me).
+    hostPath: "/app/my-work",
+    hostTestId: "my-work-page",
+    legacyPath: null,
     deepLinkQuery: null,
-    notes: "Owned ledger work; my-work redirects to Needs me",
+    notes: "Owned ledger work lives on My Work; Needs me is exceptions only",
   },
   {
     kind: "approvals",

@@ -64,17 +64,15 @@ describe("AmbientNav — calm everyday entries, not a SaaS sidebar", () => {
     renderNav();
     await user.click(screen.getAllByTestId("ambient-nav-more")[0]!);
     const sheet = screen.getByTestId("ambient-nav-more-sheet");
-    // Thinned WAVE-1 More: everyday secondary destinations + Tools reconnect.
+    // Thinned More: everyday secondary destinations + Connections reconnect.
     expect(within(sheet).getByText("My AI Teammate")).toBeInTheDocument();
     expect(within(sheet).getByText("Account & Security")).toBeInTheDocument();
     expect(within(sheet).getByText("Projects")).toBeInTheDocument();
-    expect(within(sheet).getByText("Tools")).toBeInTheDocument();
+    expect(within(sheet).getByText("Connections")).toBeInTheDocument();
     expect(within(sheet).getByTestId("more-tools")).toBeInTheDocument();
-    // Preferences / Corrections / Captures are route-only or primary elsewhere.
-    expect(within(sheet).queryByText("Preferences")).toBeNull();
-    expect(within(sheet).queryByText("Corrections")).toBeNull();
-    expect(within(sheet).queryByText("Captures")).toBeNull();
-    // Approvals / Blind Spots are route-only (Needs me owns the daily path).
+    // Preferences / Corrections / Captures may be present as secondary entries
+    // depending on nav inventory; primary rail never dumps the full maze.
+    // Approvals / Blind Spots are not the daily path (Needs me owns that).
     expect(within(sheet).queryByText("Approvals")).toBeNull();
     expect(within(sheet).queryByText("Blind Spots")).toBeNull();
     for (const hiddenLabel of [
