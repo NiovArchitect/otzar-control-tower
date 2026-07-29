@@ -12,6 +12,7 @@ import { WorkLedgerItem } from "@/components/work-os/WorkLedgerItem";
 import {
   bucketFor,
   BUCKET_ORDER,
+  bucketSubtitle,
   COLLAPSED_BY_DEFAULT,
 } from "@/lib/work-os/work-buckets";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
@@ -110,7 +111,7 @@ export function MyWork(): JSX.Element {
       <PageHeader
         eyebrow="Your work"
         title="My Work"
-        description="What you own, what Otzar is handling, what is waiting, and what is done."
+        description="Do now, what is waiting, what Otzar is handling, and suggested work — never raw machinery."
       />
 
       {failed && items !== null && items.length === 0 ? (
@@ -187,6 +188,7 @@ export function MyWork(): JSX.Element {
                 count={group.length}
                 defaultOpen={!COLLAPSED_BY_DEFAULT.has(bucket)}
                 testId="my-work-section"
+                description={bucketSubtitle(bucket)}
               >
                 <div className="space-y-2">
                   {group.map((e) => (

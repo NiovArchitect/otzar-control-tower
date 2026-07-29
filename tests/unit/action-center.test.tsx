@@ -408,13 +408,33 @@ describe("ActionCenter — specific cards + executable state (Phase 1285-N BLOCK
     expect(card).toHaveTextContent(/Second approval needed: internal note to Samiksha Sharma/);
   });
 
-  it("executable action (pending + escalation) shows working Approve/Reject", async () => {
-    mockList([action({ action_id: "ex-1", status: "PROPOSED", escalation_id: "esc-ex" })]);
+  it("executable action needs recipient + escalation for Approve/Reject", async () => {
+    mockList([
+      action({
+        action_id: "ex-1",
+        status: "PROPOSED",
+        escalation_id: "esc-ex",
+        target_label: "David Odie",
+        action_type: "RECORD_CAPSULE",
+      }),
+    ]);
     renderPage();
     await screen.findByTestId("action-center-card");
     expect(screen.getByTestId("action-approve")).toBeInTheDocument();
     expect(screen.getByTestId("action-reject")).toBeInTheDocument();
     expect(screen.queryByTestId("action-not-executable")).toBeNull();
+  });
+
+  it("blocks Approve when recipient is unavailable (zero blind approvals)", async () => {
+    mockList([
+      action({ action_id: "ex-blind", status: "PROPOSED", escalation_id: "esc-blind" }),
+    ]);
+    renderPage();
+    await screen.findByTestId("action-center-card");
+    expect(screen.queryByTestId("action-approve")).toBeNull();
+    expect(screen.getByTestId("action-not-executable")).toHaveTextContent(
+      /Cannot review yet|recipient is missing/i,
+    );
   });
 
   it("non-executable historical action explains itself and shows NO dead buttons", async () => {

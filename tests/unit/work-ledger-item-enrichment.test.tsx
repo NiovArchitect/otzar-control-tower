@@ -1,8 +1,6 @@
 // FILE: work-ledger-item-enrichment.test.tsx
-// PURPOSE: Phase 1282 — the WorkLedgerItem View/Why drawer surfaces the
-//          advisory Python enrichment truth honestly: signals when present,
-//          an explicit "not used" degrade line otherwise, and the
-//          "Otzar decides" advisory framing. Never claims execution.
+// PURPOSE: Slice 2 — enrichment is employee-safe: show refined context only
+//          when it succeeded; never "Python failed / not configured" in UI.
 // CONNECTS TO: src/components/work-os/WorkLedgerItem.tsx
 
 import { describe, expect, it } from "vitest";
@@ -28,19 +26,27 @@ function entry(over: Partial<WorkLedgerEntryView> = {}): WorkLedgerEntryView {
     due_at: null,
     created_at: "2026-06-13T18:00:00.000Z",
     ...over,
-  };
+  } as WorkLedgerEntryView;
 }
 
-describe("WorkLedgerItem Python enrichment surfacing", () => {
-  it("shows enriched signals + advisory framing when Python contributed", () => {
+describe("WorkLedgerItem enrichment surfacing (employee-safe)", () => {
+  it("shows context refined when enrichment succeeded with signals", () => {
     render(
       <WorkLedgerItem
         entry={entry({
           python_enrichment: {
             status: "PYTHON_ENRICHED",
             signals: [
-              { signal_type: "FOLLOW_UP", confidence: "MEDIUM", evidence_phrase: "follow up" },
-              { signal_type: "DELEGATION", confidence: "HIGH", evidence_phrase: "please" },
+              {
+                signal_type: "FOLLOW_UP",
+                confidence: "MEDIUM",
+                evidence_phrase: "follow up",
+              },
+              {
+                signal_type: "DELEGATION",
+                confidence: "HIGH",
+                evidence_phrase: "please",
+              },
             ],
             primary_signal: "DELEGATION",
             multi_intent: true,
@@ -50,14 +56,12 @@ describe("WorkLedgerItem Python enrichment surfacing", () => {
     );
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
     const block = screen.getByTestId("work-ledger-item-enrichment");
-    expect(block.textContent).toContain("advisory");
-    expect(block.textContent).toContain("2 signals");
-    expect(block.textContent).toContain("multi-intent");
-    expect(block.textContent?.toLowerCase()).toContain("delegation");
-    expect(block.textContent).toContain("Otzar decides ownership and policy");
+    expect(block.textContent).toMatch(/Context refined/i);
+    expect(block.textContent).toContain("2 signal");
+    expect(block.textContent?.toLowerCase()).not.toContain("python");
   });
 
-  it("shows an honest 'not used' line when Python was not used", () => {
+  it("hides enrichment block when Python was not configured (no employee noise)", () => {
     render(
       <WorkLedgerItem
         entry={entry({
@@ -72,13 +76,18 @@ describe("WorkLedgerItem Python enrichment surfacing", () => {
       />,
     );
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
-    const block = screen.getByTestId("work-ledger-item-enrichment");
-    expect(block.textContent).toContain("not used");
-    expect(block.textContent?.toLowerCase()).toContain("python not configured");
+    expect(screen.queryByTestId("work-ledger-item-enrichment")).toBeNull();
+    expect(document.body.textContent?.toLowerCase() ?? "").not.toContain(
+      "python",
+    );
   });
 
   it("renders no enrichment block when enrichment never ran", () => {
-    render(<WorkLedgerItem entry={entry({ extraction_source: "TYPESCRIPT_DETERMINISTIC" })} />);
+    render(
+      <WorkLedgerItem
+        entry={entry({ extraction_source: "TYPESCRIPT_DETERMINISTIC" })}
+      />,
+    );
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
     expect(screen.queryByTestId("work-ledger-item-enrichment")).toBeNull();
   });

@@ -15,6 +15,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 export function CollapsibleSection({
   title,
   count,
+  description,
   defaultOpen = true,
   testId,
   children,
@@ -22,6 +23,8 @@ export function CollapsibleSection({
   title: string;
   /** Optional item count shown next to the title. */
   count?: number;
+  /** One-line human subtitle for the lane (employee signal). */
+  description?: string;
   /** Urgent/active groups pass true; history/low-priority pass false. */
   defaultOpen?: boolean;
   testId?: string;
@@ -38,9 +41,16 @@ export function CollapsibleSection({
         onClick={() => setOpen((v) => !v)}
       >
         {open ? <ChevronDown className="h-3 w-3" aria-hidden /> : <ChevronRight className="h-3 w-3" aria-hidden />}
-        <span>
-          {title}
-          {count !== undefined ? ` (${count})` : ""}
+        <span className="text-left">
+          <span>
+            {title}
+            {count !== undefined ? ` (${count})` : ""}
+          </span>
+          {description !== undefined && description.length > 0 ? (
+            <span className="mt-0.5 block text-[10px] font-normal opacity-80">
+              {description}
+            </span>
+          ) : null}
         </span>
       </button>
       {open ? (

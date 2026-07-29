@@ -269,11 +269,41 @@ export interface ActionExecutability {
 // WHY: A pending action with a linked escalation is the only executable case;
 //      terminal actions are historical; a pending action without an escalation
 //      is routing through policy (no human decision available here).
-export function actionExecutability(a: SafeActionView): ActionExecutability {
+export function actionExecutability(
+  a: SafeActionView,
+  details?: ActionDetails | null,
+): ActionExecutability {
   if (TERMINAL_ACTION_STATUSES.has(a.status)) {
     return { executable: false, reason: "This approval is historical or no longer executable." };
   }
   if (a.status === "PROPOSED" && a.escalation_id != null && a.escalation_id.length > 0) {
+    // Founder P0: zero blind approvals — recipient required.
+    const target = actionTargetLabel(a, details);
+    if (target === null) {
+      return {
+        executable: false,
+        reason:
+          "Cannot review yet — recipient is missing. Repair the request or dismiss this invalid item.",
+      };
+    }
+    // Message-class actions: when a local draft details record exists, it
+    // must include a body preview. Server SafeActionView never carries body
+    // (ADR-0057) — so absent details means recipient-only gate (still no
+    // blind approve without recipient).
+    const messageLike = /SEND|MESSAGE|NOTIFICATION|EMAIL|NOTE|SLACK|COMM/i.test(
+      a.action_type,
+    );
+    if (
+      messageLike &&
+      details != null &&
+      (details.body == null || details.body.trim().length === 0)
+    ) {
+      return {
+        executable: false,
+        reason:
+          "Cannot review yet — message preview is unavailable. Open the source or dismiss this invalid request.",
+      };
+    }
     return { executable: true, reason: "Awaiting your approval." };
   }
   if (a.status === "PROPOSED") {
@@ -319,8 +349,7 @@ export function viewWhyFromAction(
     { label: "Channel", value: details?.channel ?? null },
     { label: "Message", value: bodyValue },
     { label: "Policy reason", value: a.decision_reason != null ? titleCase(a.decision_reason) : null },
-    { label: "Approval id", value: a.escalation_id ?? null },
-    { label: "Action id", value: a.action_id },
+    // Never surface raw ledger / action UUIDs on the employee approval card.
     { label: "Created", value: a.created_at },
     { label: "Updated", value: a.updated_at },
   ];
