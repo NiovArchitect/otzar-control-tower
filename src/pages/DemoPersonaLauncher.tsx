@@ -165,12 +165,15 @@ export function DemoPersonaLauncherPage(): JSX.Element {
     }
   }
 
-  const orientation =
-    data?.orientation_notice ||
-    (data?.fictional_notice
-      ? sanitizeDemoFacingCopy(data.fictional_notice)
-      : null) ||
+  // Prefer Foundation orientation_notice. Never surface legacy fictional_notice
+  // (even sanitized) — it leaves awkward residual demo-framing copy.
+  const DEFAULT_ORIENTATION =
     "See how Otzar turns an application-review conversation into coordinated work, AI-Teammate collaboration, human judgment, and a management result.";
+  const orientationRaw = data?.orientation_notice?.trim() || "";
+  const orientation =
+    orientationRaw.length > 0 && !/\bfictional\b/i.test(orientationRaw)
+      ? sanitizeDemoFacingCopy(orientationRaw)
+      : DEFAULT_ORIENTATION;
 
   return (
     <div
