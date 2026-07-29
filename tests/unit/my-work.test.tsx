@@ -1,6 +1,6 @@
 // FILE: tests/unit/my-work.test.tsx
-// PURPOSE: My Work human buckets: Needs review / To do / …; Meetings+Done
-//          collapse by default; urgent work stays expanded.
+// PURPOSE: My Work human lanes: Do now / Waiting / Otzar is handling /
+//          Suggested work / Done; Meetings collapse by default.
 // CONNECTS TO: src/pages/app/MyWork.tsx + CollapsibleSection.
 
 import { describe, expect, it, beforeEach } from "vitest";
@@ -48,9 +48,13 @@ function renderPage(): void {
 beforeEach(() => setAuth());
 
 describe("MyWork — ambient collapsible sections", () => {
-  it("leads with high-priority buckets expanded and collapses meetings by default", async () => {
+  it("leads with Do now expanded and collapses meetings by default", async () => {
     mockMyWork([
-      entry({ ledger_entry_id: "need", status: "NEEDS_OWNER", title: "Needs an owner" }), // Needs review
+      entry({
+        ledger_entry_id: "need",
+        status: "NEEDS_REVIEW",
+        title: "Complete security checklist before interview",
+      }), // Do now
       entry({
         ledger_entry_id: "meet",
         ledger_type: "MEETING",
@@ -62,12 +66,16 @@ describe("MyWork — ambient collapsible sections", () => {
     const needsSection = (await waitFor(() => {
       const s = screen
         .getByTestId("my-work-page")
-        .querySelector('[data-bucket="Needs review"]');
+        .querySelector('[data-bucket="Do now"]');
       expect(s).not.toBeNull();
       return s;
     })) as HTMLElement;
-    expect(needsSection.getAttribute("data-bucket")).toBe("Needs review");
-    expect(within(needsSection as HTMLElement).getByText("Needs an owner")).toBeInTheDocument();
+    expect(needsSection.getAttribute("data-bucket")).toBe("Do now");
+    expect(
+      within(needsSection as HTMLElement).getByText(
+        "Complete security checklist before interview",
+      ),
+    ).toBeInTheDocument();
     expect(needsSection.querySelector('[data-testid="my-work-section"]')!.getAttribute("data-open")).toBe("true");
 
     const meetSection = screen.getByTestId("my-work-page").querySelector('[data-bucket="Meetings"]')!;

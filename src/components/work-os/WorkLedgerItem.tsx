@@ -37,29 +37,51 @@ import {
   twinWorkNeedsVerification,
   twinWorkStateLabel,
 } from "@/lib/work-os/twin-work";
-
-// WHAT: client-side mirror of the backend proof taxonomy (kept in sync with
-//        summarizeExecutionProof) so the badge + section agree.
-type ProofStatus = "VERIFIED" | "PARTIAL" | "FAILED" | "MISSING";
-function proofStatusOf(attempts: ExecutionAttemptView[]): ProofStatus {
-  if (attempts.length === 0) return "MISSING";
-  const hasCreate = attempts.some(
-    (a) => a.attempt_type === "WORK_LEDGER_CREATE" && a.status === "VERIFIED",
-  );
-  const failed = attempts.filter((a) => a.status === "FAILED").length;
-  const pending = attempts.filter((a) => a.status === "PENDING" || a.status === "UNVERIFIED").length;
-  if (failed > 0) return hasCreate ? "PARTIAL" : "FAILED";
-  if (pending > 0) return "PARTIAL";
-  return hasCreate ? "VERIFIED" : "PARTIAL";
-}
+import {
+  canMarkCompleteSafely,
+  humanWorkTitle,
+  isVagueWorkTitle,
+  workClarityState,
+} from "@/lib/work-os/human-work-title";
 
 function attemptLabel(t: string): string {
   switch (t) {
-    case "WORK_LEDGER_CREATE": return "Ledger create";
-    case "PYTHON_ENRICHMENT": return "Python enrichment";
-    case "BEAM_FANOUT": return "BEAM fanout";
+    case "WORK_LEDGER_CREATE": return "Work recorded";
+    case "PYTHON_ENRICHMENT": return "Context refinement";
+    case "BEAM_FANOUT": return "Coordination";
     case "CONNECTOR_EXECUTION": return "External action";
     default: return t.replace(/_/g, " ").toLowerCase();
+  }
+}
+
+function humanStatusLabel(status: string): string {
+  const clarity = status; // raw status mapped for chip only
+  switch (clarity) {
+    case "PROPOSED":
+      return "Suggested";
+    case "NEEDS_APPROVAL":
+    case "AWAITING_APPROVAL":
+      return "Needs decision";
+    case "EXECUTING":
+    case "IN_PROGRESS":
+    case "ACTIVE":
+    case "RUNNING":
+      return "In progress";
+    case "BLOCKED":
+    case "WAITING":
+    case "PENDING_EXTERNAL":
+    case "NEEDS_INPUT":
+      return "Waiting";
+    case "EXECUTED":
+    case "COMPLETED":
+    case "SUCCEEDED":
+    case "DONE":
+    case "CLOSED":
+      return "Done";
+    case "CANCELLED":
+      return "Cancelled";
+    default:
+      return status.replace(/_/g, " ").toLowerCase();
   }
 }
 
@@ -330,8 +352,6 @@ export function WorkLedgerItem({
       ? twinAccuracyLabel(entry.twin_work.accuracy_class)
       : null;
 
-  const activeWatchers = (entry.watchers ?? []).filter((w) => w.status === "ACTIVE");
-
   return (
     <div
       // PROD-MODEL-P5 §19 — frosted card with a stateful left edge driven by
@@ -343,9 +363,20 @@ export function WorkLedgerItem({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="font-medium text-foreground">{entry.title}</div>
+          <div className="font-medium text-foreground" data-testid="work-ledger-item-title">
+            {humanWorkTitle(entry.title, null)}
+          </div>
+          {isVagueWorkTitle(entry.title) ? (
+            <div
+              className="mt-0.5 text-[10px] text-amber-700"
+              data-testid="work-ledger-item-suggested-hint"
+            >
+              Suggested work — clarify before treating as active.
+            </div>
+          ) : null}
           <div className="text-[10px] text-muted-foreground">
-            {entry.ledger_type}
+            {/* Employee-facing type, never raw enum theater */}
+            {workClarityState(entry)}
             {/* PROD-UX-VIS-C — who owns it, on the card face (pronoun-guarded). */}
             {typeof entry.owner_display_name === "string" &&
             entry.owner_display_name.length > 0 ? (
@@ -354,7 +385,18 @@ export function WorkLedgerItem({
                 {formatOwnedByLine(entry.owner_display_name)}
               </span>
             ) : null}
-            {entry.next_action !== null ? ` · Next: ${entry.next_action}` : ""}
+            {entry.next_action !== null && !isVagueWorkTitle(entry.title)
+              ? ` · Next: ${entry.next_action}`
+              : ""}
+            {typeof entry.due_at === "string" && entry.due_at.length > 0 ? (
+              <span data-testid="work-ledger-item-due">
+                {" · Due "}
+                {new Date(entry.due_at).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            ) : null}
             {/* [GAP-J] calm source origin — one muted fragment, only when the
                 source is a known system (unknown = silence, not clutter). */}
             {sourceLabel !== null ? (
@@ -456,10 +498,8 @@ export function WorkLedgerItem({
               Needs verify
             </Badge>
           ) : null}
-          <Badge variant="outline" className="text-[9px]">
-            {/* PROD-MODEL-P5 — status in words, not a shouting enum; the lane
-                chip beside it already carries the human state. */}
-            {entry.status.replace(/_/g, " ").toLowerCase()}
+          <Badge variant="outline" className="text-[9px]" data-testid="work-ledger-item-status">
+            {humanStatusLabel(entry.status)}
           </Badge>
           {exec.actions.includes("ask_otzar") ? (
             <button
@@ -513,7 +553,7 @@ export function WorkLedgerItem({
               {receiptOpen ? "Hide receipt" : "Receipt"}
             </button>
           ) : null}
-          {entry.can_complete === true ? (
+          {canMarkCompleteSafely(entry) ? (
             <button
               type="button"
               className="rounded border border-emerald-500/50 px-1 text-[10px] text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50"
@@ -724,88 +764,73 @@ export function WorkLedgerItem({
             </div>
           ) : null}
 
-          {/* Python enrichment truth */}
-          {entry.python_enrichment !== undefined ? (
+          {/* Context refinement — only when it succeeded with signals.
+              Never show "Python enrichment failed / not configured" to employees. */}
+          {entry.python_enrichment !== undefined &&
+          entry.python_enrichment.status === "PYTHON_ENRICHED" &&
+          entry.python_enrichment.signals.length > 0 ? (
             <div className="mt-1 border-t border-border/50 pt-1" data-testid="work-ledger-item-enrichment">
               <div>
-                <span className="text-muted-foreground">Python enrichment:</span>{" "}
-                {entry.python_enrichment.status === "PYTHON_ENRICHED"
-                  ? `advisory · ${entry.python_enrichment.signals.length} signal${
-                      entry.python_enrichment.signals.length === 1 ? "" : "s"
-                    }${entry.python_enrichment.multi_intent ? " · multi-intent" : ""}`
-                  : `not used (${entry.python_enrichment.status.replace(/_/g, " ").toLowerCase()})`}
+                <span className="text-muted-foreground">Context refined:</span>{" "}
+                {entry.python_enrichment.signals.length} signal
+                {entry.python_enrichment.signals.length === 1 ? "" : "s"}
               </div>
-              {entry.python_enrichment.signals.length > 0 ? (
-                <div className="flex flex-wrap gap-1 pt-0.5">
-                  {entry.python_enrichment.signals.map((s) => (
-                    <Badge key={`${s.signal_type}-${s.evidence_phrase}`} variant="outline" className="text-[9px]">
-                      {s.signal_type.replace(/_/g, " ").toLowerCase()} · {s.confidence.toLowerCase()}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-              <div className="text-[10px] italic">Advisory only. Otzar decides ownership and policy.</div>
             </div>
           ) : null}
 
-          {/* Persisted coordination + internal watchers */}
-          {entry.coordination !== undefined ? (
+          {/* Coordination — employee language only (no BEAM vocabulary). */}
+          {entry.coordination !== undefined &&
+          entry.coordination.runtime === "BEAM_DISPATCHED" ? (
             <div className="mt-1 border-t border-border/50 pt-1" data-testid="work-ledger-item-coordination">
               <div>
                 <span className="text-muted-foreground">Coordination:</span>{" "}
-                {entry.coordination.runtime === "BEAM_DISPATCHED"
-                  ? `BEAM dispatched${entry.coordination.watcher ? ` · watcher: ${entry.coordination.watcher}` : ""}`
-                  : entry.coordination.runtime.replace(/_/g, " ").toLowerCase()}
+                Otzar is tracking related owners and updates.
               </div>
-              {activeWatchers.length > 0 ? (
-                <div className="flex flex-wrap gap-1 pt-0.5" data-testid="work-ledger-item-watchers">
-                  {activeWatchers.map((w) => (
-                    <Badge key={w.watcher_id} variant="outline" className="text-[9px]">
-                      watching: {w.watcher_type.replace(/_/g, " ").toLowerCase()}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
             </div>
           ) : null}
 
-          {/* Execution proof trail (lazy) */}
+          {/* Execution trail (lazy) — filter optional-failed refinement noise. */}
           <div className="mt-1 border-t border-border/50 pt-1" data-testid="work-ledger-item-proof">
-            <div className="font-medium text-foreground/80">Execution proof</div>
-            {proofState === "loading" ? <div>Loading proof…</div> : null}
-            {proofState === "error" ? <div>Execution proof unavailable.</div> : null}
+            <div className="font-medium text-foreground/80">What Otzar recorded</div>
+            {proofState === "loading" ? <div>Loading…</div> : null}
+            {proofState === "error" ? <div>Details unavailable right now.</div> : null}
             {proofState === "loaded" && attempts !== null ? (
-              attempts.length === 0 ? (
-                <div>No execution attempts recorded.</div>
-              ) : (
-                <>
-                  <div className="pb-0.5">
-                    Proof: <span className="font-medium">{proofStatusOf(attempts).toLowerCase()}</span>
-                  </div>
-                  {attempts.map((a) => (
-                    <div key={a.attempt_id} className="flex items-center gap-1">
-                      <span
-                        className={
-                          a.status === "VERIFIED"
-                            ? "text-emerald-600"
-                            : a.status === "FAILED"
-                              ? "text-amber-600"
-                              : "text-muted-foreground"
-                        }
-                        data-testid={`attempt-${a.attempt_type}`}
-                      >
-                        {a.status === "VERIFIED" ? "✓" : a.status === "FAILED" ? "⚠" : "•"} {attemptLabel(a.attempt_type)}: {statusWord(a.status)}
-                      </span>
-                      {a.status === "FAILED" && a.error_code !== null ? (
-                        <span className="text-[10px] text-muted-foreground">({a.error_code})</span>
-                      ) : null}
-                    </div>
-                  ))}
-                  {!attempts.some((a) => a.attempt_type === "CONNECTOR_EXECUTION") ? (
-                    <div className="text-[10px] italic">No external action attempted.</div>
-                  ) : null}
-                </>
-              )
+              (() => {
+                const visible = attempts.filter(
+                  (a) =>
+                    !(
+                      a.attempt_type === "PYTHON_ENRICHMENT" &&
+                      a.status === "FAILED"
+                    ),
+                );
+                if (visible.length === 0) {
+                  return <div>Work was recorded. No external action yet.</div>;
+                }
+                return (
+                  <>
+                    {visible.map((a) => (
+                      <div key={a.attempt_id} className="flex items-center gap-1">
+                        <span
+                          className={
+                            a.status === "VERIFIED"
+                              ? "text-emerald-600"
+                              : a.status === "FAILED"
+                                ? "text-amber-600"
+                                : "text-muted-foreground"
+                          }
+                          data-testid={`attempt-${a.attempt_type}`}
+                        >
+                          {a.status === "VERIFIED" ? "✓" : a.status === "FAILED" ? "⚠" : "•"}{" "}
+                          {attemptLabel(a.attempt_type)}: {statusWord(a.status)}
+                        </span>
+                      </div>
+                    ))}
+                    {!visible.some((a) => a.attempt_type === "CONNECTOR_EXECUTION") ? (
+                      <div className="text-[10px] italic">No external send attempted.</div>
+                    ) : null}
+                  </>
+                );
+              })()
             ) : null}
           </div>
 

@@ -658,7 +658,9 @@ export function ActionCenter(): JSX.Element {
                         linked escalation) shows Approve/Reject; otherwise an
                         honest non-executable explanation. */}
                     {(() => {
-                      const exec = actionExecutability(a);
+                      // Founder P0: pass local details so recipient + preview
+                      // gates apply — never Approve without both when required.
+                      const exec = actionExecutability(a, details);
                       if (exec.executable && a.escalation_id != null) {
                         const esc = a.escalation_id;
                         return (
@@ -689,12 +691,17 @@ export function ActionCenter(): JSX.Element {
                         );
                       }
                       return (
-                        <p
-                          className="pt-1 text-[11px] italic"
+                        <div
+                          className="space-y-0.5 pt-1 text-[11px]"
                           data-testid="action-not-executable"
                         >
-                          {exec.reason}
-                        </p>
+                          <p className="font-medium text-foreground">
+                            Cannot review yet
+                          </p>
+                          <p className="italic text-muted-foreground">
+                            {exec.reason}
+                          </p>
+                        </div>
                       );
                     })()}
                     {isFocused && decisionError !== null ? (
