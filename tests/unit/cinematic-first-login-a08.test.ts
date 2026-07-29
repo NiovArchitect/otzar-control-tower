@@ -1,5 +1,6 @@
 // FILE: tests/unit/cinematic-first-login-a08.test.ts
 // PURPOSE: A-08 — every role journey has org state, AI action, provider honesty.
+//          v5 ships the full 12-step founder acceptance journey.
 
 import { describe, expect, it } from "vitest";
 import {
@@ -15,23 +16,26 @@ import {
 } from "@/lib/first-use/walkthrough";
 
 describe("A-08 cinematic first-login", () => {
-  it("states doctrine and uses v3 walkthrough", () => {
+  it("states doctrine and uses v5 walkthrough", () => {
     expect(A08_DOCTRINE).toMatch(/cinematic|role-specific|provider honesty/i);
-    expect(WALKTHROUGH_VERSION).toBe("v3");
+    expect(WALKTHROUGH_VERSION).toBe("v5");
   });
 
   it.each([...A08_ROLES])(
-    "%s journey includes org + AI + provider (≤3 steps)",
+    "%s journey includes org + AI + provider across 12 steps",
     (role) => {
       const j = inventoryA08Journey(role);
-      expect(j.steps).toBeLessThanOrEqual(3);
+      expect(j.steps).toBe(12);
       expect(j.has_org_state).toBe(true);
       expect(j.has_ai_action).toBe(true);
       expect(j.has_provider_honesty).toBe(true);
       expect(a08JourneyOk(j)).toBe(true);
       const steps = walkthroughStepsFor(role);
-      expect(steps.some((s) => s.ctaTo.includes("voice"))).toBe(true);
-      expect(steps.some((s) => s.ctaTo.includes("connector"))).toBe(true);
+      expect(steps.some((s) => s.facets?.includes("org_state"))).toBe(true);
+      expect(steps.some((s) => s.facets?.includes("ai_action"))).toBe(true);
+      expect(steps.some((s) => s.facets?.includes("provider_honesty"))).toBe(
+        true,
+      );
     },
   );
 

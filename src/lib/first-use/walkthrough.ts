@@ -42,7 +42,7 @@ export function resolveWalkthroughRole(input: {
   return "employee";
 }
 
-/** 1 — The communication problem */
+/** 1  - The communication problem */
 const STEP_PROBLEM: WalkthroughStep = {
   id: "problem",
   title: "See the communication problem",
@@ -58,7 +58,7 @@ const STEP_PROBLEM: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 2 — Bring in communication */
+/** 2  - Bring in communication */
 const STEP_INGEST: WalkthroughStep = {
   id: "ingest",
   title: "Bring in the review conversation",
@@ -74,7 +74,7 @@ const STEP_INGEST: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 3 — What Otzar understood */
+/** 3  - What Otzar understood */
 const STEP_UNDERSTAND: WalkthroughStep = {
   id: "understand",
   title: "See what Otzar understood",
@@ -88,11 +88,11 @@ const STEP_UNDERSTAND: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 4 — Automatic clarification */
+/** 4  - Automatic clarification */
 const STEP_CLARIFY: WalkthroughStep = {
   id: "auto_clarify",
   title: "See automatic clarification",
-  body: "Vague follow-ups become specific work — Otzar clarifies routine ambiguity without a human chase.",
+  body: "Vague follow-ups become specific work  - Otzar clarifies routine ambiguity without a human chase.",
   why: "Clarity is product work, not user labor.",
   doNext: "Open My Work and find specific titles, not generic follow-ups.",
   ctaLabel: "Open My Work",
@@ -102,7 +102,7 @@ const STEP_CLARIFY: WalkthroughStep = {
   facets: ["ai_action"],
 };
 
-/** 5 — AI collaboration */
+/** 5  - AI collaboration */
 const STEP_COLLAB: WalkthroughStep = {
   id: "ai_collab",
   title: "AI Teammates close evidence gaps",
@@ -118,11 +118,11 @@ const STEP_COLLAB: WalkthroughStep = {
   facets: ["ai_action"],
 };
 
-/** 6 — Updated work */
+/** 6  - Updated work */
 const STEP_WORK: WalkthroughStep = {
   id: "updated_work",
   title: "See work update after collaboration",
-  body: "Collaboration results land as concrete work titles — owners and next actions stay clear.",
+  body: "Collaboration results land as concrete work titles  - owners and next actions stay clear.",
   why: "Collaboration without work change is theater.",
   doNext: "Open My Work and confirm collaboration-updated titles.",
   ctaLabel: "Open My Work",
@@ -132,7 +132,7 @@ const STEP_WORK: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 7 — Human exception */
+/** 7  - Human exception */
 const STEP_EXCEPTION: WalkthroughStep = {
   id: "exception",
   title: "Only material judgment enters Needs me",
@@ -146,11 +146,11 @@ const STEP_EXCEPTION: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 8 — Result propagation */
+/** 8  - Result propagation */
 const STEP_PROPAGATE: WalkthroughStep = {
   id: "propagation",
   title: "See the result propagate",
-  body: "When conditions change, the same current truth appears in work, Talk, and reports — not conflicting screens.",
+  body: "When conditions change, the same current truth appears in work, Talk, and reports  - not conflicting screens.",
   why: "One truth, many projections.",
   doNext: "Open Today and confirm the current recommendation signal.",
   ctaLabel: "Open Today",
@@ -162,7 +162,7 @@ const STEP_PROPAGATE: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 9 — Management signal */
+/** 9  - Management signal */
 const STEP_MANAGEMENT: WalkthroughStep = {
   id: "management",
   title: "See the management result",
@@ -176,11 +176,11 @@ const STEP_MANAGEMENT: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 10 — Persona difference */
+/** 10  - Persona difference */
 const STEP_PERSONA: WalkthroughStep = {
   id: "persona_difference",
   title: "See how the view changes by role",
-  body: "The same review looks different as organization lead, security lead, or contractor — authority shapes projection.",
+  body: "The same review looks different as organization lead, security lead, or contractor  - authority shapes projection.",
   why: "Persona-specific truth is the product.",
   doNext: "Open the demo persona launcher and switch role.",
   ctaLabel: "Switch role",
@@ -190,7 +190,7 @@ const STEP_PERSONA: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 11 — Memory and portability */
+/** 11  - Memory and portability */
 const STEP_MEMORY: WalkthroughStep = {
   id: "memory",
   title: "See Memory and personal learning",
@@ -206,11 +206,11 @@ const STEP_MEMORY: WalkthroughStep = {
   facets: ["org_state"],
 };
 
-/** 12 — Final coordinated outcome */
+/** 12  - Final coordinated outcome */
 const STEP_OUTCOME: WalkthroughStep = {
   id: "final_outcome",
   title: "See the coordinated outcome",
-  body: "Ask Talk what was decided — conditional interview for fictional HelioGrid with remaining security condition.",
+  body: "Ask Talk what was decided  - conditional interview for fictional HelioGrid with remaining security condition.",
   why: "The loop closes in language and screens together.",
   doNext: "Open Talk and ask what was decided.",
   ctaLabel: "Open Talk",

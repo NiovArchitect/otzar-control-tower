@@ -61,6 +61,8 @@ import { OnboardingReadiness } from "@/pages/app/OnboardingReadiness";
 import { VoiceCaptures } from "@/pages/app/VoiceCaptures";
 import { WorkProjects } from "@/pages/app/WorkProjects";
 import { MyWork } from "@/pages/app/MyWork";
+import { TeamWork } from "@/pages/app/TeamWork";
+import { Conversations as EmployeeConversations } from "@/pages/app/Conversations";
 import { InboxThread } from "@/pages/app/InboxThread";
 import { Voice } from "@/pages/app/Voice";
 
@@ -176,10 +178,7 @@ const router = createBrowserRouter(
               <Route path="work-projects" element={<WorkProjects />} />
               {/* Human work buckets (To do / Waiting / Needs review / Done). */}
               <Route path="my-work" element={<MyWork />} />
-              <Route
-                path="team-work"
-                element={<Navigate to="/app" replace />}
-              />
+              <Route path="team-work" element={<TeamWork />} />
               <Route path="inbox/:id" element={<InboxThread />} />
               <Route
                 path="blind-spots"
@@ -191,10 +190,7 @@ const router = createBrowserRouter(
               />
               <Route path="voice-ready" element={<Navigate to="/app/voice" replace />} />
               <Route path="voice" element={<Voice />} />
-              <Route
-                path="conversations"
-                element={<Navigate to="/app/comms" replace />}
-              />
+              <Route path="conversations" element={<EmployeeConversations />} />
               {/* Keep MyDay component reachable only if imported elsewhere;
                   route consolidates to ambient Today. */}
               <Route path="*" element={<Navigate to="/app" replace />} />

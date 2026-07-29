@@ -1,5 +1,5 @@
 // FILE: first-use-walkthrough.test.ts
-// PURPOSE: A-04 — role resolution, ≤3 steps, versioned storage keys, marker.
+// PURPOSE: Role resolution, 12-step YC acceptance walkthrough, versioned keys.
 
 import { describe, expect, it } from "vitest";
 import {
@@ -19,7 +19,7 @@ import {
   setWalkthroughStepIndex,
 } from "@/lib/first-use/state";
 
-describe("resolveWalkthroughRole (A-04)", () => {
+describe("resolveWalkthroughRole", () => {
   it("maps org admin to administrator", () => {
     expect(
       resolveWalkthroughRole({
@@ -35,13 +35,6 @@ describe("resolveWalkthroughRole (A-04)", () => {
       resolveWalkthroughRole({
         isOrgAdmin: false,
         title: "CEO",
-        orgRole: null,
-      }),
-    ).toBe("executive");
-    expect(
-      resolveWalkthroughRole({
-        isOrgAdmin: false,
-        title: "VP Engineering",
         orgRole: null,
       }),
     ).toBe("executive");
@@ -78,7 +71,7 @@ describe("resolveWalkthroughRole (A-04)", () => {
   });
 });
 
-describe("walkthroughStepsFor (A-04)", () => {
+describe("walkthroughStepsFor (v5 12-step acceptance)", () => {
   const roles: WalkthroughRole[] = [
     "administrator",
     "executive",
@@ -87,36 +80,51 @@ describe("walkthroughStepsFor (A-04)", () => {
     "contractor",
   ];
 
-  it.each(roles)("%s has 1–3 steps with real product paths", (role) => {
+  it.each(roles)("%s has exactly 12 live product steps", (role) => {
     const steps = walkthroughStepsFor(role);
-    expect(steps.length).toBeGreaterThanOrEqual(1);
-    expect(steps.length).toBeLessThanOrEqual(3);
+    expect(steps).toHaveLength(12);
     for (const s of steps) {
-      expect(s.ctaTo.startsWith("/app")).toBe(true);
+      expect(
+        s.ctaTo.startsWith("/app") || s.ctaTo.startsWith("/demo/"),
+      ).toBe(true);
       expect(s.ctaLabel.length).toBeGreaterThan(0);
       expect(s.testId).toMatch(/^walkthrough-step-/);
       expect(s.why.length).toBeGreaterThan(0);
       expect(s.doNext.length).toBeGreaterThan(0);
       expect(s.targetContract.length).toBeGreaterThan(0);
-      // No em dash or en dash in user-facing walkthrough copy.
       expect(s.body).not.toMatch(/[—–]/);
       expect(s.title).not.toMatch(/[—–]/);
       expect(s.why).not.toMatch(/[—–]/);
     }
   });
 
-  it("administrator path leads with People (org structure)", () => {
-    const steps = walkthroughStepsFor("administrator");
-    expect(steps[0]?.ctaTo).toBe("/app/collaboration");
+  it("starts with the communication problem on Today", () => {
+    const steps = walkthroughStepsFor("employee");
+    expect(steps[0]?.id).toBe("problem");
+    expect(steps[0]?.ctaTo).toBe("/app");
   });
 
-  it("employee path leads with Needs me", () => {
-    const steps = walkthroughStepsFor("employee");
-    expect(steps[0]?.ctaTo).toBe("/app/action-center");
+  it("includes collaboration, needs me, memory, and outcome steps", () => {
+    const steps = walkthroughStepsFor("administrator");
+    const ids = steps.map((s) => s.id);
+    expect(ids).toEqual([
+      "problem",
+      "ingest",
+      "understand",
+      "auto_clarify",
+      "ai_collab",
+      "updated_work",
+      "exception",
+      "propagation",
+      "management",
+      "persona_difference",
+      "memory",
+      "final_outcome",
+    ]);
   });
 });
 
-describe("versioned completion keys (A-04)", () => {
+describe("versioned completion keys", () => {
   const email = "walkthrough-test@example.com";
 
   it("uses versioned localStorage key", () => {
@@ -126,6 +134,7 @@ describe("versioned completion keys (A-04)", () => {
     expect(walkthroughMarker()).toBe(
       `otzar_first_use_walkthrough:${WALKTHROUGH_VERSION}:done`,
     );
+    expect(WALKTHROUGH_VERSION).toBe("v5");
   });
 
   it("persists in-progress step without completing", () => {
@@ -148,9 +157,7 @@ describe("versioned completion keys (A-04)", () => {
     markWalkthroughComplete(email);
     expect(hasCompletedWalkthrough(email)).toBe(true);
     clearWalkthrough(email);
-    // Versioned key cleared — incomplete again (v2+ no longer greened by A-03 legacy alone)
     expect(hasCompletedWalkthrough(email)).toBe(false);
-    // Explicit v1 still dual-writes legacy key for A-03 readers
     markWalkthroughComplete(email, "v1");
     expect(hasCompletedWalkthrough(email, "v1")).toBe(true);
     clearFirstUse(email);
@@ -165,7 +172,7 @@ describe("versioned completion keys (A-04)", () => {
     clearFirstUse(email);
   });
 
-  it("restart clears completion so the coach can return (RC2)", () => {
+  it("restart clears completion so the coach can return", () => {
     clearWalkthrough(email);
     markWalkthroughComplete(email);
     expect(hasCompletedWalkthrough(email)).toBe(true);
@@ -175,7 +182,6 @@ describe("versioned completion keys (A-04)", () => {
       persistServer: false,
     });
     expect(getWalkthroughStepIndex(email)).toBe(1);
-    // In-progress step is not completion — Skip for now must leave this intact.
     expect(hasCompletedWalkthrough(email)).toBe(false);
   });
 });

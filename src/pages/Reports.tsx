@@ -75,7 +75,7 @@ const REPORT_TYPES: Array<{
     id: "judgment",
     title: "Needs human judgment",
     body: "Sensitive actions and approvals waiting on a person.",
-    to: "/action-center",
+    to: "/app/action-center",
     status: "live_surface",
     source: "Action Center / approvals queue",
   },
