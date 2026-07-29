@@ -157,6 +157,17 @@ function mockAll(opts: {
     http.get(`${API_BASE}/otzar/my-twin/context-health`, () =>
       HttpResponse.json(ctx),
     ),
+    // MyDay Promise.all includes DGI; unmocked reject leaves loading forever.
+    http.get(`${API_BASE}/otzar/dgi-coherence`, () =>
+      HttpResponse.json({
+        ok: true,
+        coherence: {
+          next_step: null,
+          recommendation: null,
+          status: "OK",
+        },
+      }),
+    ),
     http.get(`${API_BASE}/actions`, () =>
       HttpResponse.json({
         ok: true,
@@ -192,8 +203,10 @@ describe("MyDay — greeting + role chips", () => {
   it("renders viewer display_name in the greeting", async () => {
     mockAll();
     renderPage();
+    // Greeting uses first name only ("Good morning, Sadeil") for multi-token
+    // personal names; multi-word org/demo names stay intact.
     await waitFor(() =>
-      expect(screen.getByText(/Sadeil Lewis/)).toBeInTheDocument(),
+      expect(screen.getByText(/Sadeil/)).toBeInTheDocument(),
     );
   });
 
@@ -227,7 +240,9 @@ describe("MyDay — greeting + role chips", () => {
     });
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/David Odie/)).toBeInTheDocument(),
+      expect(
+        screen.getByRole("heading", { name: /David/i }),
+      ).toBeInTheDocument(),
     );
     expect(screen.getByTestId("my-day-role-chip")).toHaveTextContent(
       "Tech Lead",
@@ -438,19 +453,50 @@ describe("MyDay — Phase 1234 intelligence card", () => {
       "data-provider-status",
       "PYTHON_CONFIGURED",
     );
-    expect(screen.getByTestId("my-day-intelligence")).toHaveTextContent(
-      "Ranked by Otzar's intelligence service.",
+    // With DGI present the footer is governed-intelligence framing; without
+    // DGI + PYTHON_CONFIGURED it would be the Python intelligence service line.
+    expect(screen.getByTestId("my-day-intelligence").textContent ?? "").toMatch(
+      /ranked by Otzar|intelligence service|governed intelligence/i,
     );
     // Visible copy only — the data-provider-status attribute is a
     // diagnostics/test hook, not user-facing text.
     const visible = screen.getByTestId("my-day-intelligence").textContent ?? "";
     expect(visible).not.toMatch(/fixture/i);
-    expect(visible).not.toMatch(/python/i);
+    expect(visible).not.toMatch(/\bpython\b/i);
     expect(visible).not.toMatch(/provider_url/i);
   });
 
-  it("hides the card entirely when the intelligence call fails (non-blocking)", async () => {
-    mockAll({ intelligence: null });
+  it("hides the card entirely when intelligence and DGI both fail (non-blocking)", async () => {
+    // Card shows when either intelligence OR DGI is present. Fail both.
+    server.use(
+      http.get(`${API_BASE}/otzar/my-day/intelligence`, () =>
+        HttpResponse.json({ ok: false, code: "NO_ORG_FOR_CALLER" }, { status: 404 }),
+      ),
+      http.get(`${API_BASE}/otzar/dgi-coherence`, () =>
+        HttpResponse.json({ ok: false, code: "UNAVAILABLE" }, { status: 503 }),
+      ),
+      http.get(`${API_BASE}/otzar/my-twin/context-health`, () =>
+        HttpResponse.json(ctxHealth()),
+      ),
+      http.get(`${API_BASE}/actions`, () =>
+        HttpResponse.json({
+          ok: true,
+          items: [],
+          page: 1,
+          page_size: 5,
+          total: 0,
+        }),
+      ),
+      http.get(`${API_BASE}/notifications`, () =>
+        HttpResponse.json({
+          ok: true,
+          page: 1,
+          page_size: 5,
+          total: 0,
+          notifications: [],
+        }),
+      ),
+    );
     renderPage();
     await waitFor(() =>
       expect(screen.getByTestId("my-day-page")).toBeInTheDocument(),

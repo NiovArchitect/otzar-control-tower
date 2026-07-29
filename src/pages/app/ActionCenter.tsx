@@ -370,7 +370,7 @@ export function ActionCenter(): JSX.Element {
         <Card data-testid="needs-me-primary-signal" className="border-primary/20 bg-primary/5">
           <CardContent className="space-y-2 py-4 text-sm">
             <p className="font-medium text-foreground">
-              No high-stakes decision is waiting on you right now.
+              No high-stakes decision needs you right now.
             </p>
             <p className="text-muted-foreground">
               Open work and security gates still live on{" "}
@@ -379,7 +379,7 @@ export function ActionCenter(): JSX.Element {
               </Link>
               . This queue is for approvals only — not every assigned task.
             </p>
-            <Button size="sm" variant="outline" asChild>
+            <Button size="sm" variant="outline" asChild data-testid="needs-me-open-my-work">
               <Link to="/app/my-work">Open My Work</Link>
             </Button>
             {nonActionablePending.length > 0 ? (

@@ -60,10 +60,13 @@ describe("WorkLedgerItem — governed execution actions (P0A)", () => {
     expect(chip).toHaveAttribute("data-exec-state", "blocked_setup");
     expect(chip).toHaveTextContent(/Slack/);
     expect(screen.queryByTestId("work-ledger-item-ask-otzar")).toBeNull();
-    // PROD-UX — setup_required deep-links to the setup surface (the wire
-    // the smoke matrix flagged as missing).
+    // Employee setup deep-links to personal OAuth ConnectorHealth (not the
+    // admin Organization Connections engineering console).
     const setup = screen.getByTestId("work-ledger-item-request-setup");
-    expect(setup).toHaveAttribute("href", "/tools-connections");
+    expect(setup.getAttribute("href") ?? "").toMatch(
+      /^\/app\/connector-health\?tool=slack/,
+    );
+    expect(setup.getAttribute("href") ?? "").toMatch(/return=%2Fapp%2Fmy-work/);
     expect(setup).toHaveTextContent(/Connect Slack/);
   });
 

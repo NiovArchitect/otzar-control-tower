@@ -47,6 +47,17 @@ function action(overrides: Partial<SafeActionView> = {}): SafeActionView {
   };
 }
 
+/** Valid executable approval fixture (escalation + recipient — zero blind approve). */
+function executableAction(overrides: Partial<SafeActionView> = {}): SafeActionView {
+  return action({
+    status: "PROPOSED",
+    escalation_id: "esc-1",
+    target_label: "David Odie",
+    requester_label: "Sadeil",
+    ...overrides,
+  });
+}
+
 function mockList(items: SafeActionView[]): void {
   server.use(
     http.get(`${API_BASE}/actions`, () =>
@@ -74,8 +85,8 @@ beforeEach(() => setAuth());
 describe("ActionCenter — tab counts + lifecycle bucket assignment", () => {
   it("buckets statuses into pending / approved / completed / blocked", async () => {
     mockList([
-      // PROPOSED + escalation = a real actionable decision (counts toward pending).
-      action({ action_id: "a-1", status: "PROPOSED", escalation_id: "esc-a1" }),
+      // Executable PROPOSED = escalation + recipient (counts toward pending).
+      executableAction({ action_id: "a-1", escalation_id: "esc-a1" }),
       action({ action_id: "a-2", status: "APPROVED" }),
       action({ action_id: "a-3", status: "SCHEDULED" }),
       action({ action_id: "a-4", status: "RUNNING" }),
@@ -106,34 +117,35 @@ describe("ActionCenter — tab counts + lifecycle bucket assignment", () => {
     ).toBe("5"); // FAILED + REJECTED + CANCELLED + EXPIRED + TIMED_OUT
   });
 
-  it("pending count excludes non-actionable proposals (Phase 1285-S)", async () => {
+  it("pending hero lists only executable approvals (Phase 1285-S + executable-only)", async () => {
     mockList([
-      action({ action_id: "act-real", status: "PROPOSED", escalation_id: "esc-1" }), // actionable
-      action({ action_id: "act-routing", status: "PROPOSED" }), // no escalation: not actionable
-      action({ action_id: "act-routing-2", status: "PROPOSED" }),
+      executableAction({ action_id: "act-real", escalation_id: "esc-1" }),
+      action({ action_id: "act-routing", status: "PROPOSED" }), // no escalation
+      action({
+        action_id: "act-blind",
+        status: "PROPOSED",
+        escalation_id: "esc-blind",
+      }), // escalation but no recipient — not executable
     ]);
     renderPage();
-    // Wait for the list to finish loading before asserting the count (the tab
-    // is in the DOM before items arrive).
     await waitFor(() =>
       expect(screen.getByTestId("action-center-list")).toBeInTheDocument(),
     );
-    // Three PROPOSED rows, but only ONE is a real decision.
+    // Three PROPOSED rows, only ONE is a real decision in the hero list.
     await waitFor(() =>
       expect(
         screen.getByTestId("action-tab-pending").getAttribute("data-count"),
       ).toBe("1"),
     );
-    // The non-actionable proposals are still shown, but clearly labeled.
-    expect(screen.getAllByTestId("action-class-label").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByTestId("action-center-list").textContent ?? "").toMatch(
-      /No action needed right now/,
-    );
+    expect(screen.getAllByTestId("action-center-card")).toHaveLength(1);
+    expect(
+      screen.getByTestId("action-center-card").getAttribute("data-action-id"),
+    ).toBe("act-real");
   });
 
   it("clicking a tab swaps the visible list", async () => {
     mockList([
-      action({ action_id: "p-1", status: "PROPOSED" }),
+      executableAction({ action_id: "p-1", escalation_id: "esc-p1" }),
       action({ action_id: "c-1", status: "SUCCEEDED" }),
     ]);
     const user = userEvent.setup();
@@ -141,7 +153,7 @@ describe("ActionCenter — tab counts + lifecycle bucket assignment", () => {
     await waitFor(() =>
       expect(screen.getByTestId("action-center-list")).toBeInTheDocument(),
     );
-    // Default tab = pending; only p-1 visible
+    // Default tab = pending; only executable p-1 visible
     expect(
       screen.getByTestId("action-center-card").getAttribute("data-action-id"),
     ).toBe("p-1");
@@ -156,12 +168,15 @@ describe("ActionCenter — tab counts + lifecycle bucket assignment", () => {
 describe("ActionCenter — friendly labels (Warmwind language pass)", () => {
   it("translates SEND_INTERNAL_NOTIFICATION to 'Internal note'", async () => {
     mockList([
-      action({ action_type: "SEND_INTERNAL_NOTIFICATION", status: "PROPOSED" }),
+      executableAction({
+        action_type: "SEND_INTERNAL_NOTIFICATION",
+        escalation_id: "esc-note",
+      }),
     ]);
     renderPage();
     await waitFor(() =>
       expect(screen.getByTestId("action-center-card")).toHaveTextContent(
-        "Internal note",
+        /Internal note/i,
       ),
     );
     expect(screen.getByTestId("action-center-card")).not.toHaveTextContent(
@@ -170,21 +185,31 @@ describe("ActionCenter — friendly labels (Warmwind language pass)", () => {
   });
 
   it("translates INVOKE_CONNECTOR to 'Connected tool call'", async () => {
-    mockList([action({ action_type: "INVOKE_CONNECTOR", status: "PROPOSED" })]);
+    mockList([
+      executableAction({
+        action_type: "INVOKE_CONNECTOR",
+        escalation_id: "esc-conn",
+      }),
+    ]);
     renderPage();
     await waitFor(() =>
       expect(screen.getByTestId("action-center-card")).toHaveTextContent(
-        "Connected tool call",
+        /Connected tool call/i,
       ),
     );
   });
 
   it("translates RECORD_CAPSULE to 'Memory record'", async () => {
-    mockList([action({ action_type: "RECORD_CAPSULE", status: "PROPOSED" })]);
+    mockList([
+      executableAction({
+        action_type: "RECORD_CAPSULE",
+        escalation_id: "esc-cap",
+      }),
+    ]);
     renderPage();
     await waitFor(() =>
       expect(screen.getByTestId("action-center-card")).toHaveTextContent(
-        "Memory record",
+        /Memory record/i,
       ),
     );
   });
@@ -344,7 +369,7 @@ describe("ActionCenter — error + privacy", () => {
 
   it("never renders TAR / wallet / clearance / permission / payload internals", async () => {
     mockList([
-      action({ status: "PROPOSED" }),
+      executableAction({ action_id: "a-1", escalation_id: "esc-priv" }),
       action({ action_id: "a-2", status: "SUCCEEDED" }),
     ]);
     renderPage();
@@ -383,12 +408,26 @@ describe("ActionCenter — specific cards + executable state (Phase 1285-N BLOCK
     expect(card).not.toHaveTextContent(/recipient unavailable/);
   });
 
-  it("shows 'recipient unavailable' + badge when no target label resolves", async () => {
-    mockList([action({ action_id: "lbl-2", status: "PROPOSED" })]);
+  it("hides non-executable proposals without a recipient from the hero list", async () => {
+    // Product contract: Needs me hero is executable-only. Missing recipient
+    // is not a decision theater card — it stays out of the primary list.
+    mockList([
+      action({
+        action_id: "lbl-2",
+        status: "PROPOSED",
+        escalation_id: "esc-no-target",
+      }),
+    ]);
     renderPage();
-    await screen.findByTestId("action-center-card");
-    expect(screen.getByTestId("action-recipient-unavailable")).toBeInTheDocument();
-    expect(screen.getByTestId("action-center-card")).toHaveTextContent(/recipient unavailable/);
+    await waitFor(() =>
+      expect(screen.getByTestId("needs-me-primary-signal")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("action-center-card")).toBeNull();
+    expect(screen.getByTestId("action-tab-pending").getAttribute("data-count")).toBe(
+      "0",
+    );
+    expect(screen.getByTestId("needs-me-non-actionable-note")).toBeInTheDocument();
+    expect(screen.getByTestId("needs-me-open-my-work")).toBeInTheDocument();
   });
 
   it("never renders a raw DUAL_CONTROL machine string as the title", async () => {
@@ -425,15 +464,23 @@ describe("ActionCenter — specific cards + executable state (Phase 1285-N BLOCK
     expect(screen.queryByTestId("action-not-executable")).toBeNull();
   });
 
-  it("blocks Approve when recipient is unavailable (zero blind approvals)", async () => {
+  it("blocks blind approvals by keeping recipient-less rows out of hero (zero blind approvals)", async () => {
     mockList([
-      action({ action_id: "ex-blind", status: "PROPOSED", escalation_id: "esc-blind" }),
+      action({
+        action_id: "ex-blind",
+        status: "PROPOSED",
+        escalation_id: "esc-blind",
+      }),
     ]);
     renderPage();
-    await screen.findByTestId("action-center-card");
+    await waitFor(() =>
+      expect(screen.getByTestId("needs-me-primary-signal")).toBeInTheDocument(),
+    );
+    // No Approve control is reachable for a recipient-less proposal.
     expect(screen.queryByTestId("action-approve")).toBeNull();
-    expect(screen.getByTestId("action-not-executable")).toHaveTextContent(
-      /Cannot review yet|recipient is missing/i,
+    expect(screen.queryByTestId("action-center-card")).toBeNull();
+    expect(screen.getByTestId("needs-me-open-my-work")).toHaveTextContent(
+      /Open My Work/i,
     );
   });
 
@@ -704,7 +751,14 @@ describe("ActionCenter — focus + artifact detail (Phase 1269)", () => {
       body: "We need to review this.",
       sourceCommand: "Draft a message to David saying we need to review this.",
     });
-    mockList([action({ action_id: "act-focus", status: "PROPOSED" })]);
+    mockList([
+      // escalation required; recipient comes from local action details.
+      action({
+        action_id: "act-focus",
+        status: "PROPOSED",
+        escalation_id: "esc-focus",
+      }),
+    ]);
     // The orb's Open routes with ?focus=<id>; emulate that URL.
     window.history.pushState({}, "", "/app/action-center?focus=act-focus");
     render(

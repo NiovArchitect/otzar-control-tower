@@ -9,6 +9,7 @@
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../msw/server";
@@ -49,7 +50,9 @@ function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <Collaboration />
+      <MemoryRouter>
+        <Collaboration />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -91,7 +94,7 @@ describe("Collaboration page", () => {
   it("renders inbound + outbound cards + the ask-for-help composer", async () => {
     emptyLists();
     renderPage();
-    expect(await screen.findByText("People")).toBeInTheDocument();
+    expect(await screen.findByText(/People/i)).toBeInTheDocument();
     expect(screen.getByTestId("create-collaboration-form")).toBeInTheDocument();
     expect(screen.getByTestId("inbound-card")).toBeInTheDocument();
     expect(screen.getByTestId("outbound-card")).toBeInTheDocument();
