@@ -42,7 +42,7 @@ const LIFECYCLE_ROWS: Array<{ kind: string; rule: string }> = [
   },
   {
     kind: "Work Comms messages",
-    rule: "Will follow per-organization retention once Work Comms launches (design complete, schema pending).",
+    rule: "Follow organization retention when stored as governed work records. No silent forever-store; legal hold can block deletion.",
   },
   // [RETENTION] the seeded-context lifecycle categories.
   {

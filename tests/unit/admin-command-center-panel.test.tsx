@@ -88,34 +88,45 @@ describe("Production Admin Center IA — jobs-model admin navigation", () => {
   });
 });
 
-describe("Phase 1255 slice 2 — Command Center panel", () => {
-  it("renders blockers, org context, and next-best-actions with real routes", async () => {
+describe("Slice 5 — Command Center admin home", () => {
+  it("shows status, working areas, priorities, and KPIs without setup theater", async () => {
     render(
       <MemoryRouter>
-        <CommandCenterPanel pendingApprovals={2} />
+        <CommandCenterPanel
+          pendingApprovals={2}
+          homeInputs={{
+            orgName: "Y Combinator Labs Demo",
+            peopleCount: 8,
+            activePeopleCount: 8,
+            managerLineCount: 5,
+            peopleWithoutManager: 1,
+            twinsReadyCount: 6,
+            twinsTotalCount: 8,
+            toolsConnectedCount: 1,
+            openReviewCount: 0,
+            governanceHumanApproval: true,
+            credentialBlockedCount: 0,
+          }}
+        />
       </MemoryRouter>,
     );
     await waitFor(() => {
       expect(screen.getByTestId("command-center-panel")).toBeInTheDocument();
     });
-    // MSW serves the readiness fixture (schema pending + blocked
-    // capabilities) → blockers render and route somewhere real.
-    await waitFor(() => {
-      expect(
-        screen.getAllByTestId("command-center-blocker").length,
-      ).toBeGreaterThanOrEqual(1);
-    });
-    for (const blocker of screen.getAllByTestId("command-center-blocker")) {
-      expect(blocker.getAttribute("href")).toBeTruthy();
-    }
-    // Org context is plain and scoped.
-    const org = screen.getByTestId("command-center-org").textContent ?? "";
-    expect(org).toContain("scoped to your organization only");
-    // Next best actions include the approvals review and route.
-    const actions = screen.getAllByTestId("command-center-action");
-    expect(actions.length).toBeGreaterThanOrEqual(3);
-    expect(actions[0]?.textContent).toContain("2 pending approvals");
+    expect(screen.getByTestId("admin-status-line")).toHaveTextContent(
+      /Y Combinator Labs Demo|needs attention/i,
+    );
+    expect(screen.getByTestId("admin-what-working")).toBeInTheDocument();
+    expect(screen.getAllByTestId("admin-working-area").length).toBe(5);
+    // ≤3 priorities
+    const priorities = screen.getAllByTestId("admin-priority");
+    expect(priorities.length).toBeGreaterThanOrEqual(1);
+    expect(priorities.length).toBeLessThanOrEqual(3);
+    // No setup fraction theater
     const text = screen.getByTestId("command-center-panel").textContent ?? "";
+    expect(text).not.toMatch(/\d+\s*\/\s*\d+\s*setup steps/i);
+    expect(text).not.toMatch(/Mode:\s*demo/i);
+    expect(screen.getAllByTestId("admin-kpi").length).toBe(4);
     for (const banned of BANNED) {
       expect(text, `command center leaked "${banned}"`).not.toContain(banned);
     }

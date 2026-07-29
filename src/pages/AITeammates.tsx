@@ -318,7 +318,7 @@ export function AITeammatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="AI Teammates"
-        description="AI agents working alongside your team -- who owns each one, how autonomously it may act, and its recent activity. Each Member can have one AI Teammate."
+        description="Who has an AI Teammate, whether it is ready, which role template applies, what it may do automatically, and what needs a person. No prompts, models, or token counts."
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             Create AI Teammate
@@ -327,6 +327,18 @@ export function AITeammatesPage() {
       />
 
       <DataSovereigntyInline />
+
+      <div
+        className="rounded-lg border border-border/60 bg-card px-3 py-2 text-xs text-muted-foreground"
+        data-testid="ai-teammates-status-legend"
+      >
+        <p className="font-medium text-foreground">Readiness at a glance</p>
+        <p className="mt-1">
+          Ready · Needs a tool · Needs a role · Limited by policy · Paused ·
+          Offboarding — driven by role templates and live tool status, never by
+          guessing from a job title alone.
+        </p>
+      </div>
 
       {/* G-02 — authority is Foundation-enforced; templates recommend only. */}
       <TwinAuthorityBindingCard
