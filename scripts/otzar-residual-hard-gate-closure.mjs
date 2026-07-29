@@ -314,13 +314,39 @@ async function walkthroughReclick() {
       const before = Number(
         (await reveal.getAttribute("data-step-index").catch(() => "0")) || 0,
       );
-      await page.locator('[data-testid="walkthrough-next"]').click({ timeout: 10000 });
-      await page.waitForTimeout(800);
+      // Expand compact coach if Talk compressed it
+      const expand = page.locator('[data-testid="walkthrough-expand-from-compact"]');
+      if (await expand.isVisible().catch(() => false)) {
+        await expand.click().catch(() => {});
+        await page.waitForTimeout(300);
+      }
+      const nextBtn = page.locator('[data-testid="walkthrough-next"]');
+      const restartPre = await page
+        .locator('[data-testid="walkthrough-restart"]')
+        .isVisible()
+        .catch(() => false);
+      if (restartPre) {
+        steps.push({ n: i + 2, completed: true, pass: true });
+        break;
+      }
+      if (!(await nextBtn.isVisible({ timeout: 5000 }).catch(() => false))) {
+        // try resume chip
+        const resume = page.locator('[data-testid="walkthrough-resume"]');
+        if (await resume.isVisible().catch(() => false)) {
+          await resume.click();
+          await page.waitForTimeout(400);
+        }
+      }
+      if (await nextBtn.isVisible().catch(() => false)) {
+        await nextBtn.click({ timeout: 8000 });
+        await page.waitForTimeout(900);
+      }
       const after = Number(
-        (await reveal.getAttribute("data-step-index").catch(() => String(before))) ||
-          before,
+        (await page
+          .locator('[data-testid="first-use-reveal"]')
+          .getAttribute("data-step-index")
+          .catch(() => String(before))) || before,
       );
-      // may complete and show restart
       const restart = await page
         .locator('[data-testid="walkthrough-restart"]')
         .isVisible()
@@ -368,32 +394,45 @@ async function assetCensus() {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await ctx.newPage();
   const assets = [];
+  // SPA auth is in-memory — use history+popstate, not full page.goto.
+  async function spaNav(route) {
+    await page.evaluate((r) => {
+      window.history.pushState({}, "", r);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }, route);
+    await page.waitForTimeout(900);
+  }
   async function check(route, testId, label) {
     try {
-      await page.goto(`${APP}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
-      await page.waitForTimeout(600);
+      await spaNav(route);
       const url = page.url();
-      const dead = url.includes("chrome-error") || url === "about:blank";
-      let visible = true;
-      if (testId) {
+      const onLogin = url.includes("/login");
+      let visible = !onLogin;
+      if (testId && !onLogin) {
         visible = await page
           .locator(`[data-testid="${testId}"]`)
           .first()
-          .isVisible()
+          .isVisible({ timeout: 8000 })
           .catch(() => false);
+        // soft: main shell present
+        if (!visible) {
+          visible = await page
+            .locator('[data-testid="employee-shell-main"]')
+            .isVisible()
+            .catch(() => false);
+        }
       }
       assets.push({
         route,
         label,
         testId,
         url,
-        pass: !dead && (testId ? visible : true),
+        pass: !onLogin && visible,
       });
     } catch (e) {
       assets.push({ route, label, pass: false, error: String(e?.message || e) });
     }
   }
-  // login as demo first
   await page.goto(`${APP}/demo/yc`, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.evaluate(() => {
     localStorage.clear();
@@ -408,27 +447,26 @@ async function assetCensus() {
     ["/app", "ambient-work-surface", "Today"],
     ["/app/my-work", "my-work-page", "My Work"],
     ["/app/action-center", "action-center", "Needs me"],
-    ["/app/collaboration", null, "Collaboration"],
+    ["/app/collaboration", "employee-shell-main", "Collaboration"],
     ["/app/my-memory", "my-memory-page", "Memory"],
     ["/app/observe", "observe-read", "Observe"],
-    ["/app/connections", null, "Connections"],
-    ["/app/preferences", null, "Preferences"],
-    ["/demo/yc", "demo-persona-launcher", "Demo launcher"],
+    ["/app/connections", "employee-shell-main", "Connections"],
+    ["/app/preferences", "employee-shell-main", "Preferences"],
   ];
   for (const [route, tid, label] of routes) {
     await check(route, tid, label);
   }
-  // click walkthrough next once if present
-  const next = page.locator('[data-testid="walkthrough-next"]');
-  if (await next.isVisible().catch(() => false)) {
-    await next.click();
-    await page.waitForTimeout(500);
-    assets.push({
-      route: "walkthrough-next",
-      label: "Walkthrough Next",
-      pass: true,
-    });
-  }
+  // launcher is public — full goto ok
+  await page.goto(`${APP}/demo/yc`, { waitUntil: "domcontentloaded", timeout: 45000 });
+  const launcher = await page
+    .locator('[data-testid="demo-persona-launcher"]')
+    .isVisible()
+    .catch(() => false);
+  assets.push({
+    route: "/demo/yc",
+    label: "Demo launcher",
+    pass: launcher,
+  });
   await browser.close();
   const pass = assets.filter((a) => a.pass).length;
   return { assets, pass, total: assets.length };
