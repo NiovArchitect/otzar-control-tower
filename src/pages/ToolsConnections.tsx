@@ -1,8 +1,8 @@
 // FILE: ToolsConnections.tsx
-// PURPOSE: Admin Tools & Connections — inventory KPIs, per-person tool
-//          footprint, in-place approve/deny requests, force-revoke OAuth
-//          (Phase E.1 + E.2). O-01: capability-first primary; MCP advanced-only.
-//          O-02: org/team/user coverage, enterprise admin consent, SCIM honesty.
+// PURPOSE: Admin organization tool launcher — OAuth-first Connections primary;
+//          Access governance (approve/revoke); Advanced engineering (MCP,
+//          rails, secret_ref) last. Employee personal reconnect stays on
+//          ConnectorHealth. O-01/O-02 capability-first + coverage honesty.
 // CONNECTS TO: api.otzar.enterpriseTools.*, ConnectorsAdmin, ConnectorRailsAdmin.
 
 import { useCallback, useEffect, useState } from "react";
@@ -17,12 +17,7 @@ import ConnectorRailsAdmin from "@/pages/ConnectorRailsAdmin";
 import { api } from "@/lib/api";
 // AI Voice / STT / TTS organization policy lives in Control Tower (this page +
 // Voice providers), never on the regular-employee Connections surface.
-import {
-  CAPABILITY_FIRST_DETAIL,
-  CAPABILITY_FIRST_HEADLINE,
-  MCP_ADVANCED_ONLY_COPY,
-  MCP_TAB_LABEL,
-} from "@/lib/connectors/capability-first-tools";
+import { MCP_ADVANCED_ONLY_COPY } from "@/lib/connectors/capability-first-tools";
 import {
   coverageKpisFromInventory,
   labelConnectionScope,
@@ -582,106 +577,337 @@ function InventoryPanel(): JSX.Element {
   );
 }
 
+/** Human primary tools — OAuth-first org launcher (founder rejection of engineering console). */
+const ORG_PRIMARY_TOOLS: Array<{
+  id: string;
+  name: string;
+  why: string;
+  oauth_slug: string | null;
+  provider_match: RegExp;
+}> = [
+  {
+    id: "GOOGLE_WORKSPACE",
+    name: "Google Workspace",
+    why: "Connect Gmail, Calendar, Drive, and Docs so Otzar can understand authorized work and help your team coordinate.",
+    oauth_slug: "google",
+    provider_match: /google/i,
+  },
+  {
+    id: "MICROSOFT_365",
+    name: "Microsoft 365",
+    why: "Connect Outlook, Calendar, OneDrive, and Teams context Otzar is allowed to use.",
+    oauth_slug: "microsoft",
+    provider_match: /microsoft|m365|azure/i,
+  },
+  {
+    id: "SLACK",
+    name: "Slack",
+    why: "Connect Slack so Otzar can understand authorized channels and draft or send messages within organization policy.",
+    oauth_slug: "slack",
+    provider_match: /slack/i,
+  },
+  {
+    id: "GITHUB",
+    name: "GitHub",
+    why: "Connect GitHub so Otzar can understand authorized repositories, pull requests, and issues.",
+    oauth_slug: null,
+    provider_match: /github/i,
+  },
+  {
+    id: "JIRA",
+    name: "Jira",
+    why: "Connect Jira so Otzar can understand authorized project work and issue status.",
+    oauth_slug: null,
+    provider_match: /jira/i,
+  },
+  {
+    id: "LINEAR",
+    name: "Linear",
+    why: "Connect Linear so Otzar can understand authorized issues and delivery status.",
+    oauth_slug: null,
+    provider_match: /linear/i,
+  },
+];
+
+function OrgToolLauncher(): JSX.Element {
+  const [inv, setInv] = useState<Inventory | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const load = useCallback(async (): Promise<void> => {
+    const r = await api.otzar.enterpriseTools.inventory();
+    if (r.ok) {
+      setInv(r.data.inventory);
+      setError(null);
+    } else {
+      setError(r.code);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function connectTool(
+    tool: (typeof ORG_PRIMARY_TOOLS)[number],
+  ): Promise<void> {
+    if (tool.oauth_slug === null) {
+      setNotice(
+        `${tool.name} is available for organization setup. Open Advanced for enterprise configuration, or ask your deployment team.`,
+      );
+      return;
+    }
+    setBusy(tool.id);
+    setNotice(null);
+    const r = await api.otzar.enterpriseTools.oauthStart(tool.oauth_slug);
+    setBusy(null);
+    if (r.ok && r.data.authorize_url) {
+      window.location.assign(r.data.authorize_url);
+      return;
+    }
+    setNotice(
+      !r.ok && r.code === "APP_CREDENTIALS_MISSING"
+        ? "Administrator setup is still required for this tool in your deployment. Open Advanced only if you own provider setup."
+        : "Couldn't open the official sign-in flow. Try again shortly.",
+    );
+  }
+
+  if (error !== null) {
+    return (
+      <p className="text-sm text-muted-foreground" data-testid="org-tool-launcher-error">
+        Couldn&apos;t load connections ({error}).
+      </p>
+    );
+  }
+  if (inv === null) {
+    return (
+      <p className="text-sm text-muted-foreground" data-testid="org-tool-launcher-loading">
+        Loading tools…
+      </p>
+    );
+  }
+
+  const tools = inv.tools ?? [];
+  function statusFor(tool: (typeof ORG_PRIMARY_TOOLS)[number]): {
+    status: "connected" | "needs_attention" | "available";
+    label: string;
+    identity: string | null;
+  } {
+    const row = tools.find((t) => tool.provider_match.test(t.provider));
+    if (row === undefined) {
+      return { status: "available", label: "Not connected", identity: null };
+    }
+    const oauth = (row.oauth_status ?? row.adapter_status ?? "").toLowerCase();
+    if (/connected|verified|ok|healthy/.test(oauth)) {
+      return {
+        status: "connected",
+        label: "Connected",
+        identity: row.account_label,
+      };
+    }
+    if (/error|reconnect|expired|revoked|fail/.test(oauth)) {
+      return {
+        status: "needs_attention",
+        label: "Needs attention",
+        identity: row.account_label,
+      };
+    }
+    return {
+      status: "available",
+      label: "Not connected",
+      identity: row.account_label,
+    };
+  }
+
+  const connected = ORG_PRIMARY_TOOLS.filter(
+    (t) => statusFor(t).status === "connected",
+  );
+  const attention = ORG_PRIMARY_TOOLS.filter(
+    (t) => statusFor(t).status === "needs_attention",
+  );
+  const available = ORG_PRIMARY_TOOLS.filter(
+    (t) => statusFor(t).status === "available",
+  );
+
+  function ToolCard(tool: (typeof ORG_PRIMARY_TOOLS)[number]): JSX.Element {
+    const s = statusFor(tool);
+    return (
+      <Card
+        key={tool.id}
+        data-testid={`org-tool-card-${tool.id}`}
+        data-tool-status={s.status}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-base">{tool.name}</CardTitle>
+            <Badge
+              variant="outline"
+              className={
+                s.status === "connected"
+                  ? "border-emerald-300/50 text-emerald-700 text-[10px]"
+                  : s.status === "needs_attention"
+                    ? "border-amber-300/50 text-amber-700 text-[10px]"
+                    : "text-[10px] text-muted-foreground"
+              }
+            >
+              {s.label}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">{tool.why}</p>
+          {s.identity !== null && s.identity.length > 0 ? (
+            <p className="text-xs text-foreground" data-testid="org-tool-identity">
+              Connected as {s.identity}
+            </p>
+          ) : null}
+          {s.status === "connected" ? (
+            <p className="text-xs text-muted-foreground">
+              View and understand enabled. Writes stay gated by organization policy.
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            className="w-full"
+            disabled={busy !== null}
+            onClick={() => void connectTool(tool)}
+            data-testid={`org-tool-connect-${tool.id}`}
+          >
+            {busy === tool.id
+              ? "Opening…"
+              : s.status === "connected"
+                ? "Reconnect"
+                : s.status === "needs_attention"
+                  ? "Fix connection"
+                  : tool.oauth_slug
+                    ? `Connect ${tool.name}`
+                    : "Set up"}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6" data-testid="org-tool-launcher">
+      {notice !== null ? (
+        <p
+          className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm"
+          data-testid="org-tool-launcher-notice"
+        >
+          {notice}
+        </p>
+      ) : null}
+
+      {attention.length > 0 ? (
+        <section className="space-y-3" data-testid="org-tools-needs-attention">
+          <h2 className="text-sm font-semibold text-foreground">Needs attention</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {attention.map((t) => ToolCard(t))}
+          </div>
+        </section>
+      ) : null}
+
+      {connected.length > 0 ? (
+        <section className="space-y-3" data-testid="org-tools-connected">
+          <h2 className="text-sm font-semibold text-foreground">Connected</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {connected.map((t) => ToolCard(t))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-3" data-testid="org-tools-available">
+        <h2 className="text-sm font-semibold text-foreground">Available</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {available.map((t) => ToolCard(t))}
+        </div>
+      </section>
+
+      <p className="text-xs text-muted-foreground">
+        Employees reconnect personal access from{" "}
+        <Link
+          to="/app/connector-health"
+          className="font-medium underline-offset-2 hover:underline"
+        >
+          Connect your work tools
+        </Link>
+        . Official provider sign-in is the default path — no tokens to paste.
+      </p>
+    </div>
+  );
+}
+
 export function ToolsConnectionsPage(): JSX.Element {
   return (
     <div
       className="space-y-6"
       data-testid="tools-connections-page"
       data-capability-first="true"
+      data-oauth-first="true"
       data-mcp-advanced-only="true"
       data-plug-and-play="true"
     >
       <PageHeader
-        title="Organization connections"
-        description="Organization tools, scopes, health, and revoke. AI Voice providers and org-level voice policy live here in Control Tower — not on the employee Connections page. Employees only reconnect personal access when work requires it."
+        title="Connect your organization’s tools"
+        description="Choose the tools your team already uses. Sign in through the provider, keep access under organization policy, and start with read-only understanding."
       />
 
-      {/* Plug-and-play path — human steps, no protocol jargon. */}
-      <Card data-testid="connections-plug-play-path" className="otzar-atari-frame">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-slate-50">How connection works</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol
-            className="grid gap-2 sm:grid-cols-3"
-            data-testid="connections-plug-play-steps"
-          >
-            {[
-              {
-                n: "1",
-                title: "Find the tool",
-                detail: "Calendar, documents, Meet, chat — by capability, not protocol.",
-              },
-              {
-                n: "2",
-                title: "Connect once",
-                detail: "Org or employee OAuth under your rules. Nothing posts by default.",
-              },
-              {
-                n: "3",
-                title: "Works under permissions",
-                detail: "Writes stay gated. You can revoke. Audit keeps the trail.",
-              },
-            ].map((s) => (
-              <li
-                key={s.n}
-                className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5"
-                data-testid={`connections-step-${s.n}`}
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#a855f7]">
-                  {s.n}. {s.title}
-                </p>
-                <p className="mt-1 text-xs text-slate-300">{s.detail}</p>
-              </li>
-            ))}
-          </ol>
-          <p
-            className="mt-3 text-sm text-slate-300"
-            data-testid="tools-capability-first-banner"
-          >
-            <span className="font-medium text-slate-50">
-              {CAPABILITY_FIRST_HEADLINE}
-            </span>{" "}
-            {CAPABILITY_FIRST_DETAIL}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* O-01 — default inventory; MCP/protocol only under Advanced (last). */}
-      <Tabs defaultValue="connected" className="space-y-4">
-        <TabsList data-testid="tools-admin-tablist" data-tab-order="connected>inventory>advanced">
-          <TabsTrigger value="connected" data-testid="tab-connected-tools">
-            Connect tools
+      <Tabs defaultValue="connections" className="space-y-4">
+        <TabsList
+          data-testid="tools-admin-tablist"
+          data-tab-order="connections>access>advanced"
+        >
+          <TabsTrigger value="connections" data-testid="tab-connected-tools">
+            Connections
           </TabsTrigger>
-          <TabsTrigger value="inventory" data-testid="tab-tools-inventory">
-            Inventory &amp; requests
+          <TabsTrigger value="access" data-testid="tab-tools-access">
+            Access
           </TabsTrigger>
           <TabsTrigger
             value="advanced"
             data-testid="tab-integrations-advanced"
             data-mcp-advanced="true"
           >
-            {MCP_TAB_LABEL}
+            Advanced
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="connected" data-testid="panel-connected-tools" data-capability-primary="true">
-          <ConnectorsAdminPage />
+
+        <TabsContent
+          value="connections"
+          data-testid="panel-connected-tools"
+          data-capability-primary="true"
+        >
+          <OrgToolLauncher />
         </TabsContent>
-        <TabsContent value="inventory" data-testid="panel-tools-inventory" data-capability-primary="true">
+
+        <TabsContent value="access" data-testid="panel-tools-access">
+          <p className="mb-3 text-sm text-muted-foreground">
+            Approve who may use organization tools and revoke access when needed.
+            Technical inventory stays under Advanced.
+          </p>
           <InventoryPanel />
         </TabsContent>
+
         <TabsContent
           value="advanced"
           data-testid="panel-integrations-advanced"
           data-mcp-advanced-only="true"
         >
           <p
-            className="mb-3 text-sm text-slate-300"
+            className="mb-3 text-sm text-muted-foreground"
             data-testid="tools-mcp-advanced-copy"
           >
+            Advanced integrations are for deployment and enterprise setup only —
+            service accounts, MCP, rails, and credential references. Everyday
+            connections use official provider sign-in on the Connections tab.{" "}
             {MCP_ADVANCED_ONLY_COPY}
           </p>
-          <ConnectorRailsAdmin />
+          <div className="space-y-6">
+            <ConnectorsAdminPage />
+            <ConnectorRailsAdmin />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

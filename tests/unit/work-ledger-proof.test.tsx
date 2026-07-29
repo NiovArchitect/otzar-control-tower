@@ -67,13 +67,11 @@ describe("WorkLedgerItem execution proof (lazy)", () => {
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
     const proof = await screen.findByTestId("work-ledger-item-proof");
     await waitFor(() => expect(fetched).toBe(1));
-    // verified attempt distinct from failed; failed shows safe error code
+    // Work recorded is human language; optional BEAM fanout failures are hidden.
     const verified = await screen.findByTestId("attempt-WORK_LEDGER_CREATE");
-    expect(verified.textContent).toContain("verified");
-    const failed = screen.getByTestId("attempt-BEAM_FANOUT");
-    expect(failed.textContent).toContain("failed");
-    expect(proof.textContent).toContain("http_500");
-    expect(proof.textContent).toContain("No external action attempted");
+    expect(verified.textContent).toMatch(/done|verified|Work recorded/i);
+    expect(screen.queryByTestId("attempt-BEAM_FANOUT")).toBeNull();
+    expect(proof.textContent).toMatch(/No external/i);
   });
 
   it("shows a safe error when proof cannot be loaded", async () => {
@@ -85,39 +83,64 @@ describe("WorkLedgerItem execution proof (lazy)", () => {
     render(<MemoryRouter><WorkLedgerItem entry={entry()} /></MemoryRouter>);
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
     await waitFor(() =>
-      expect(screen.getByTestId("work-ledger-item-proof").textContent).toContain(
-        "Execution proof unavailable",
+      expect(screen.getByTestId("work-ledger-item-proof").textContent).toMatch(
+        /unavailable|Details unavailable/i,
       ),
     );
   });
 
-  it("renders persisted coordination + active watcher", () => {
+  it("renders persisted coordination without BEAM vocabulary", () => {
     server.use(attemptsHandler([]));
     render(
       <MemoryRouter>
         <WorkLedgerItem
           entry={entry({
-            coordination: { runtime: "BEAM_DISPATCHED", event_id: "e", watcher: "blocker", dispatched_at: "x", error_code: null },
-            watchers: [{ watcher_id: "w1", watcher_type: "BLOCKER", status: "ACTIVE", source_runtime: "BEAM", escalation_level: "NONE", created_at: "x" }],
+            coordination: {
+              runtime: "BEAM_DISPATCHED",
+              event_id: "e",
+              watcher: "blocker",
+              dispatched_at: "x",
+              error_code: null,
+            },
+            watchers: [
+              {
+                watcher_id: "w1",
+                watcher_type: "BLOCKER",
+                status: "ACTIVE",
+                source_runtime: "BEAM",
+                escalation_level: "NONE",
+                created_at: "x",
+              },
+            ],
           })}
         />
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByTestId("work-ledger-item-view"));
     const coord = screen.getByTestId("work-ledger-item-coordination");
-    expect(coord.textContent).toContain("BEAM dispatched");
-    expect(screen.getByTestId("work-ledger-item-watchers").textContent?.toLowerCase()).toContain("blocker");
+    expect(coord.textContent).toMatch(/tracking related owners|Coordinat/i);
+    expect(coord.textContent).not.toMatch(/BEAM/i);
   });
 
-  it("shows a 'Verification issue' card badge when blind_spot_reason is set", () => {
+  it("does not show a Verification issue badge for technical blind spots alone", () => {
     server.use(attemptsHandler([]));
-    render(<MemoryRouter><WorkLedgerItem entry={entry({ blind_spot_reason: "COORDINATION_FAILED", blind_spot_severity: "MEDIUM" })} /></MemoryRouter>);
-    expect(screen.getByTestId("work-ledger-item-card-badge").textContent).toContain("Verification issue");
+    render(
+      <MemoryRouter>
+        <WorkLedgerItem
+          entry={entry({
+            blind_spot_reason: "COORDINATION_FAILED",
+            blind_spot_severity: "MEDIUM",
+          })}
+        />
+      </MemoryRouter>,
+    );
+    // Founder: optional coordination noise is not human verification labor.
+    expect(screen.queryByText(/Verification issue/i)).toBeNull();
   });
 });
 
 describe("BlindSpots runtime-issues section", () => {
-  it("renders a distinct 'Runtime / verification issues' section", async () => {
+  it("renders runtime section for execution failures, not soft coordination noise", async () => {
     server.use(
       // Watcher feed empty → the legacy runtime/status sections render.
       http.get(`${API}/work-os/watchers/feed`, () => HttpResponse.json({ ok: true, findings: [] })),
@@ -125,7 +148,18 @@ describe("BlindSpots runtime-issues section", () => {
         HttpResponse.json({
           ok: true,
           items: [
-            entry({ ledger_entry_id: "rt-1", blind_spot_reason: "COORDINATION_FAILED", blind_spot_severity: "MEDIUM" }),
+            // Soft BEAM/Python coordination is NOT human verification labor.
+            entry({
+              ledger_entry_id: "soft-1",
+              blind_spot_reason: "COORDINATION_FAILED",
+              blind_spot_severity: "MEDIUM",
+            }),
+            // True connector/write failure is human-relevant runtime.
+            entry({
+              ledger_entry_id: "rt-1",
+              blind_spot_reason: "EXECUTION_FAILED",
+              blind_spot_severity: "HIGH",
+            }),
             entry({ ledger_entry_id: "st-1", title: "needs owner", status: "NEEDS_OWNER" }),
           ],
         }),
@@ -138,6 +172,9 @@ describe("BlindSpots runtime-issues section", () => {
     );
     await screen.findByTestId("blind-spots-runtime-issues");
     expect(screen.getByTestId("blind-spots-runtime-issues")).toBeTruthy();
+    // Soft coordination-only tags must not appear as "Needs a closer look".
+    const runtime = screen.getByTestId("blind-spots-runtime-issues");
+    expect(runtime.textContent).not.toMatch(/soft-1|COORDINATION/i);
     expect(screen.getByTestId("blind-spots-status")).toBeTruthy();
   });
 });

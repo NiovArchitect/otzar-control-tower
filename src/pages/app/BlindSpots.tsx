@@ -28,7 +28,18 @@ import { emitWorkStateChanged, useWorkStateChanged } from "@/lib/events/work-sta
 import { triageBlindSpots, TRIAGE_INITIAL_COUNT } from "@/lib/work-os/blind-spot-triage";
 
 function isRuntimeIssue(e: WorkLedgerEntryView): boolean {
-  return e.blind_spot_reason !== undefined;
+  if (e.blind_spot_reason === undefined) return false;
+  // Founder recovery: optional BEAM / Python / coordination soft-fails are
+  // not employee "Needs a closer look" verification labor. Only true
+  // execution/connector failures surface in the runtime section.
+  if (
+    /COORDINATION|ENRICH|BEAM|PYTHON|RUNTIME|VERIFICATION_MISSING/i.test(
+      e.blind_spot_reason,
+    )
+  ) {
+    return false;
+  }
+  return true;
 }
 
 const SEVERITY_CLASS: Record<string, string> = {
