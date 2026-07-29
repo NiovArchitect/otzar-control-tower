@@ -253,19 +253,43 @@ export function composeLiveRoleBrief(input: LiveBriefInputs): LiveRoleBrief {
           };
 
   const handledPick = pickOtzarHandled(collabs, workItems, titles);
-  const otzarHandled: LiveRoleBriefField = handledPick
-    ? {
-        text: handledPick.text,
-        source: handledPick.evidence.startsWith("collab")
-          ? "live_collab"
-          : "live_work",
-        evidence: handledPick.evidence,
-      }
-    : {
+  let otzarHandled: LiveRoleBriefField;
+  if (handledPick) {
+    otzarHandled = {
+      text: handledPick.text,
+      source: handledPick.evidence.startsWith("collab")
+        ? "live_collab"
+        : "live_work",
+      evidence: handledPick.evidence,
+    };
+  } else {
+    // Prefer executed ledger rows (notifications/notes Otzar already delivered)
+    // over static persona prose when no collab proof exists yet.
+    const executed = workItems.find(
+      (i) =>
+        /EXECUTED|COMPLETED/i.test(i.status || i.state || "") &&
+        titleOf(i).length > 0,
+    );
+    if (executed) {
+      otzarHandled = {
+        text: titleOf(executed),
+        source: "live_work",
+        evidence: "work:executed",
+      };
+    } else if (titles.length > 0 || workItems.length > 0) {
+      otzarHandled = {
+        text: "No completed collaboration receipt yet — open work is assigned and tracked live.",
+        source: "honest_idle",
+        evidence: "no_completed_collab",
+      };
+    } else {
+      otzarHandled = {
         text: base.otzarHandled,
         source: "static_fallback",
         evidence: "persona_map",
       };
+    }
+  }
 
   const needsPick = pickNeedsYou(workItems, base.key);
   // For org lead prefer recommendation decision language if employee tasks dominate
