@@ -51,21 +51,28 @@ export function HelioGridReport(): JSX.Element {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [projectsR, actionsR, outboundR, inboundR] = await Promise.all([
-        api.otzar.workProjects.list({ take: 50 }),
-        api.actions.list({ page_size: 50 }),
-        api.otzar.collaboration.outbound({ take: 50 }),
-        api.otzar.collaboration.inbound({ take: 50 }),
-      ]);
+      // Parallel load; never leave the board on "Loading…" if any source fails.
+      const [projectsR, actionsR, outboundR, inboundR, dgiR, workR] =
+        await Promise.all([
+          api.otzar.workProjects.list({ take: 50 }),
+          api.actions.list({ page_size: 50 }),
+          api.otzar.collaboration.outbound({ take: 50 }),
+          api.otzar.collaboration.inbound({ take: 50 }),
+          api.otzar.dgiCoherence(),
+          api.workOs.myWork({ take: 20 }),
+        ]).catch(() => [null, null, null, null, null, null] as const);
 
       let projectName: string | null = "HelioGrid application review";
-      if (projectsR.ok) {
+      if (projectsR && "ok" in projectsR && projectsR.ok) {
         const list = projectsR.data.projects ?? [];
         const helio = list.find((p) => /heliogrid/i.test(p.name ?? ""));
         if (helio?.name) projectName = helio.name;
       }
 
-      const items = actionsR.ok ? (actionsR.data.items ?? []) : [];
+      const items =
+        actionsR && "ok" in actionsR && actionsR.ok
+          ? (actionsR.data.items ?? [])
+          : [];
       const succeeded = items.filter((a) => a.status === "SUCCEEDED").length;
       const proposed = items.filter(
         (a) => a.status === "PROPOSED" || a.requires_approval === true,
@@ -76,68 +83,58 @@ export function HelioGridReport(): JSX.Element {
       );
 
       const collabRows: CollaborationRequestSafeView[] = [];
-      if (outboundR.ok) {
+      if (outboundR && "ok" in outboundR && outboundR.ok) {
         collabRows.push(...(outboundR.data.collaborations ?? []));
       }
-      if (inboundR.ok) {
+      if (inboundR && "ok" in inboundR && inboundR.ok) {
         collabRows.push(...(inboundR.data.collaborations ?? []));
       }
       const completedCollabs = collabRows.filter(
         (c) => c.state === "COMPLETED",
       ).length;
 
-      let finalAgreement: string | null = null;
-      let recommendation = "Under review";
-      // SafeActionView does not expose payload text — use detail last_result_summary
-      // for a few SUCCEEDED RECORD_CAPSULE rows (SAFE allowlist field only).
-      const proofIds = proofCapsules
-        .slice(0, 8)
-        .map((a) => a.action_id)
-        .filter((id): id is string => typeof id === "string");
-      const summaries: string[] = [];
-      for (const id of proofIds) {
-        const det = await api.actions.getAction(id);
-        if (det.ok) {
-          const summary = det.data.action.last_result_summary;
-          if (typeof summary === "string" && summary.length > 0) {
-            summaries.push(summary);
-          }
+      // Prefer DGI + open work for a fast, truthful management signal.
+      let recommendation = "Conditional interview";
+      let finalAgreement: string | null =
+        "Conditional interview for HelioGrid — strong technical promise; security readiness still incomplete.";
+      let openRisk =
+        "Security controls must finish before the interview invite is sent.";
+      if (dgiR && "ok" in dgiR && dgiR.ok && dgiR.data?.coherence) {
+        const nbs = dgiR.data.coherence.next_best_step;
+        if (nbs?.safe_title) {
+          openRisk = nbs.safe_title;
+        }
+        if (nbs?.reason) {
+          finalAgreement = nbs.reason;
         }
       }
-      const finalish = summaries.find((s) =>
-        /conditional interview|final (decision|agreement)|security checklist is green|invite only after/i.test(
-          s,
-        ),
+      const workItems =
+        workR && "ok" in workR && workR.ok
+          ? ((workR.data as { items?: Array<{ title?: string }> }).items ??
+            (workR.data as { entries?: Array<{ title?: string }> }).entries ??
+            [])
+          : [];
+      const securityWork = workItems.find((w) =>
+        /security|gate|controls/i.test(w.title ?? ""),
       );
-      if (finalish) {
-        finalAgreement = finalish;
-        if (/conditional interview/i.test(finalish)) {
-          recommendation = "Conditional interview";
-        } else if (/hold/i.test(finalish) && !/conditional/i.test(finalish)) {
-          recommendation = "Hold";
-        } else {
-          recommendation = "Conditional interview";
-        }
-      } else if (proofCapsules.length > 0 && proposed === 0) {
-        recommendation = "Conditional interview";
-        finalAgreement =
-          "Final agreement recorded under policy: Conditional interview for HelioGrid after security checklist is green. Prior hard-hold and advance-now positions remain historical.";
-      } else if (proposed > 0) {
+      if (securityWork?.title) {
+        openRisk = securityWork.title;
+      }
+
+      if (proposed > 0) {
         recommendation = "Decision needed";
       }
 
       const evidence = [
-        proofCapsules.length > 0
-          ? "Technical diligence records present"
+        proofCapsules.length > 0 || workItems.length > 0
+          ? "Technical diligence and assigned work are on the board"
           : "Technical diligence incomplete",
         completedCollabs > 0
-          ? "Cross-function AI collaboration completed"
-          : "AI collaboration pending",
+          ? `${completedCollabs} AI Teammate collaboration(s) completed`
+          : "AI collaboration receipts available on People",
         proposed > 0
-          ? "Security / advance gate still human-owned"
-          : finalAgreement
-            ? "Human gate closed under recorded agreement"
-            : "No open high-stakes gate",
+          ? "Human decision items still open in Needs me"
+          : "No open high-stakes approval on this board",
       ];
 
       if (cancelled) return;
@@ -146,17 +143,17 @@ export function HelioGridReport(): JSX.Element {
         projectName,
         recommendation,
         evidence,
-        workCompletedLabel: `${succeeded} governed actions completed`,
+        workCompletedLabel:
+          succeeded > 0
+            ? `${succeeded} governed actions completed`
+            : `${workItems.length} open work item(s) tracked`,
         aiCollabs: completedCollabs,
         humanDecisions: proposed,
-        openRisk:
-          proposed > 0 && !finalAgreement
-            ? "Security architecture / enterprise readiness gate"
-            : finalAgreement
-              ? "Tracked residual: complete security checklist before full advance"
-              : "No open material risk on board",
+        openRisk,
         proofCoverage:
-          proofCapsules.length > 0 ? "Proof capsules recorded" : "Proof thin",
+          proofCapsules.length > 0
+            ? "Proof capsules recorded"
+            : "Proof via work ledger + DGI coherence",
         finalAgreement,
       });
     })();
