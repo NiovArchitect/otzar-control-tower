@@ -71,6 +71,24 @@ export function EmployeeLayout() {
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <OrgContextBadge />
+            {typeof sessionStorage !== "undefined" &&
+              sessionStorage.getItem("otzar_demo_banner") && (
+                <div
+                  className="hidden max-w-[14rem] items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-900 sm:flex"
+                  data-testid="demo-role-banner"
+                >
+                  <span className="truncate">
+                    {sessionStorage.getItem("otzar_demo_banner")}
+                  </span>
+                  <Link
+                    to="/demo/yc"
+                    className="shrink-0 font-semibold underline"
+                    data-testid="demo-switch-role"
+                  >
+                    Switch role
+                  </Link>
+                </div>
+              )}
             <button
               type="button"
               onClick={() => {
