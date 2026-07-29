@@ -29,30 +29,36 @@ describe("C-04 contextual work surfaces", () => {
     expect(assertAllKindsContextual()).toEqual([]);
   });
 
-  it("hosts all kinds under Needs me", () => {
+  it("hosts exception kinds under Needs me; open work under My Work", () => {
     for (const s of CONTEXTUAL_WORK_SURFACES) {
-      expect(s.hostPath).toBe("/app/action-center");
+      if (s.kind === "open_work") {
+        expect(s.hostPath).toBe("/app/my-work");
+      } else {
+        expect(s.hostPath).toBe("/app/action-center");
+      }
       expect(s.hostTestId.length).toBeGreaterThan(0);
     }
     expect(hostPathForKind("blind_spots")).toBe("/app/action-center");
+    expect(hostPathForKind("open_work")).toBe("/app/my-work");
     expect(surfaceForKind("handoffs")?.hostTestId).toBe(
       "incoming-handoffs-lane",
     );
   });
 
-  it("legacy blind-spots / my-work / approvals redirect to Needs me", () => {
+  it("legacy blind-spots / approvals redirect to Needs me; my-work stays live", () => {
     expect(isLegacyContextualPath("/app/blind-spots")).toBe(true);
     expect(legacyRedirectTarget("/app/blind-spots")).toBe(
       "/app/action-center",
     );
+    // /app/my-work is a live My Work surface (not a Needs me redirect).
     expect(C04_LEGACY_REDIRECTS.some((r) => r.path === "/app/my-work")).toBe(
-      true,
+      false,
     );
-    // Inventory redirects include C-04 aliases
+    // Inventory redirects include C-04 aliases for blind spots / approvals.
     const paths = EMPLOYEE_REDIRECTS.map((r) => r.path);
     expect(paths).toContain("/app/blind-spots");
     expect(paths).toContain("/app/approvals");
-    expect(paths).toContain("/app/my-work");
+    expect(paths).not.toContain("/app/my-work");
   });
 
   it("fingerprint is stable", () => {

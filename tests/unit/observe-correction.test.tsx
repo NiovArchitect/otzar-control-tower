@@ -8,10 +8,19 @@
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { Observe } from "@/pages/app/Observe";
 import { Corrections } from "@/pages/app/Corrections";
 import { useAuthStore } from "@/lib/stores/auth";
+
+function renderObserve(): void {
+  render(
+    <MemoryRouter>
+      <Observe />
+    </MemoryRouter>,
+  );
+}
 
 function setWrite(write: boolean) {
   useAuthStore.setState({
@@ -33,7 +42,7 @@ beforeEach(() => setWrite(true));
 describe("Observe", () => {
   it("submits content and renders the extracted summary counts", async () => {
     const user = userEvent.setup();
-    render(<Observe />);
+    renderObserve();
 
     await user.type(
       screen.getByLabelText("Content"),
@@ -48,7 +57,7 @@ describe("Observe", () => {
 
   it("renders the duplicate/skipped state", async () => {
     const user = userEvent.setup();
-    render(<Observe />);
+    renderObserve();
 
     await user.type(
       screen.getByLabelText("Content"),
@@ -61,7 +70,7 @@ describe("Observe", () => {
 
   it("shows a not-permitted state without can_write_capsules", () => {
     setWrite(false);
-    render(<Observe />);
+    renderObserve();
     expect(
       screen.getByText(/capability required to submit observations/i),
     ).toBeInTheDocument();

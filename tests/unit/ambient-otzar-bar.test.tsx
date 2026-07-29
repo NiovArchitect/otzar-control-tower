@@ -1348,14 +1348,17 @@ describe("AmbientOtzarBar — Work OS commands", () => {
   expect(
    screen.getByTestId("work-artifact-ledger-saved").textContent,
   ).toMatch(/Saved/i);
-  // Phase 1281 — View/Why shows the governed BEAM coordination result.
+  // Phase 1281 — View/Why shows coordination without BEAM vocabulary.
   await userEvent.setup().click(screen.getByTestId("work-artifact-open"));
   await waitFor(() =>
    expect(screen.getByTestId("work-artifact-coordination")).toBeInTheDocument(),
   );
   expect(
    screen.getByTestId("work-artifact-coordination").textContent,
-  ).toMatch(/BEAM dispatched/i);
+  ).toMatch(/tracking related owners|Coordinat/i);
+  expect(
+   screen.getByTestId("work-artifact-coordination").textContent,
+  ).not.toMatch(/BEAM/i);
  });
 
  it("Failed ledger persistence shows a safe error — never fakes saved (Phase 1279)", async () => {
