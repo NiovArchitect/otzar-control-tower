@@ -246,16 +246,34 @@ async function main() {
         ? "PASS"
         : "FAIL";
 
-    // Returning user: set step mid-walk, reload, expect resume choice (not silent step 8)
+    // Returning user (same SPA session): mid-walk local step + remount coach
+    // without demo launch reset. Full page.goto wipes in-memory auth; use
+    // history + popstate so React Router remounts EmployeeLayout while
+    // Zustand keeps the demo token.
     await page.evaluate(() => {
       const keys = Object.keys(localStorage).filter((k) =>
         k.includes("walkthrough_step"),
       );
-      for (const k of keys) localStorage.setItem(k, "7");
+      if (keys.length === 0) {
+        localStorage.setItem(
+          "otzar_first_use_walkthrough_step:yc-demo-v6:organization_lead@demo.local",
+          "7",
+        );
+      } else {
+        for (const k of keys) localStorage.setItem(k, "7");
+      }
       sessionStorage.removeItem("otzar_walkthrough_force_start");
     });
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      window.history.pushState({}, "", "/demo/yc");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await page.waitForTimeout(500);
+    await page.evaluate(() => {
+      window.history.pushState({}, "", "/app");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await page.waitForTimeout(1800);
     const returning = await readCoach(page);
     report.steps.push({ phase: "returning_mid", coach: returning });
     report.gates.RETURNING_SHOWS_CHOICE =
