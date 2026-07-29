@@ -353,6 +353,27 @@ export function ActionCenter(): JSX.Element {
         title="Needs me"
         description="Only items that need your judgment or high-stakes approval. Routine work Otzar already handled within policy stays out of this queue — it appears under Completed and Today."
       />
+      {tab === "pending" &&
+      grouped.pending.filter(isActionablePending).length === 0 &&
+      !loading ? (
+        <Card data-testid="needs-me-primary-signal" className="border-primary/20 bg-primary/5">
+          <CardContent className="space-y-2 py-4 text-sm">
+            <p className="font-medium text-foreground">
+              No high-stakes decision is waiting on you right now.
+            </p>
+            <p className="text-muted-foreground">
+              Open work and security gates still live on{" "}
+              <Link className="font-medium text-foreground underline" to="/app/my-work">
+                My Work
+              </Link>
+              . This queue is for approvals only — not every assigned task.
+            </p>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/app/my-work">Open My Work</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Tab bar */}
       <div
