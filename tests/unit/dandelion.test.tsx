@@ -150,12 +150,22 @@ describe("Dandelion — admin growth card (Phase 1237)", () => {
 
   it("non-admins never see the growth card", async () => {
     setAuth(false);
+    server.use(
+      http.get(`${API_BASE}/otzar/my-twin/collaboration-requests/inbound`, () =>
+        HttpResponse.json({ ok: true, collaborations: [] }),
+      ),
+      http.get(`${API_BASE}/otzar/my-twin/collaboration-requests/outbound`, () =>
+        HttpResponse.json({ ok: true, collaborations: [] }),
+      ),
+    );
     renderWithProviders(<Collaboration />);
     await waitFor(() =>
       expect(screen.getByTestId("collaboration-page")).toBeInTheDocument(),
     );
-    // Page title is "People" (ADHD-safe); full phrase lives in nav/docs only.
-    expect(screen.getByText("People")).toBeInTheDocument();
+    // Collaboration surface title includes People (ADHD-safe naming).
+    expect(screen.getByTestId("collaboration-page").textContent ?? "").toMatch(
+      /People/i,
+    );
     expect(screen.queryByTestId("dandelion-growth-card")).toBeNull();
   });
 

@@ -35,7 +35,9 @@ function entry(over: Record<string, unknown> = {}) {
     ledger_entry_id: "led-1", ledger_type: "FOLLOW_UP", source_type: "VOICE_COMMAND",
     source_command: "I told Vishesh I would follow up", work_plan_id: null,
     requester_entity_id: "me", owner_entity_id: "me", target_entity_id: "ent-vishesh",
-    title: "Follow up with Vishesh", status: "DRAFT", priority: "ROUTINE",
+    // OPEN + specific title so items land in expanded Do now (vague
+    // "Follow up with X" titles are Suggested work, collapsed by default).
+    title: "Send Vishesh the security evidence checklist", status: "OPEN", priority: "ROUTINE",
     extraction_source: "TYPESCRIPT_DETERMINISTIC", next_action: "Send the note",
     due_at: null, created_at: "2026-06-13T18:00:00.000Z", ...over,
   };
@@ -49,14 +51,27 @@ describe("My Work cockpit", () => {
   it("renders real ledger entries grouped", async () => {
     server.use(
       http.get(`${API_BASE}/work-os/my-work`, () =>
-        HttpResponse.json({ ok: true, items: [entry(), entry({ ledger_entry_id: "led-2", ledger_type: "TASK", status: "PROPOSED", title: "Review AI UI" })] }),
+        HttpResponse.json({
+          ok: true,
+          items: [
+            entry(),
+            entry({
+              ledger_entry_id: "led-2",
+              ledger_type: "TASK",
+              status: "IN_PROGRESS",
+              title: "Review AI UI",
+            }),
+          ],
+        }),
       ),
     );
     renderPage(<MyWork />);
     await waitFor(() =>
       expect(screen.getAllByTestId("work-ledger-item").length).toBe(2),
     );
-    expect(screen.getByTestId("my-work-page").textContent).toMatch(/Follow up with Vishesh/i);
+    expect(screen.getByTestId("my-work-page").textContent).toMatch(
+      /security evidence checklist/i,
+    );
     expect(screen.getByTestId("my-work-page").textContent).toMatch(/Review AI UI/i);
   });
 

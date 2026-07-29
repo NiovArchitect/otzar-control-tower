@@ -8,6 +8,7 @@
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { mkRecipientGovernance, mkAutonomy, emptyResponsibilityGraph } from "../fixtures/comms-governance";
 import { http, HttpResponse } from "msw";
@@ -15,6 +16,14 @@ import { server } from "../msw/server";
 import { Observe } from "@/pages/app/Observe";
 import { useAuthStore } from "@/lib/stores/auth";
 import type { ObserveCaptureView } from "@/lib/types/foundation";
+
+function renderObserve(): void {
+  render(
+    <MemoryRouter>
+      <Observe />
+    </MemoryRouter>,
+  );
+}
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -80,7 +89,7 @@ function capture(
 
 describe("Observe — Let Otzar read this (Phase 1227)", () => {
   it("renders provider chips with friendly status labels", async () => {
-    render(<Observe />);
+    renderObserve();
     await waitFor(() =>
       expect(
         screen.getAllByTestId("observe-provider-chip").length,
@@ -104,7 +113,7 @@ describe("Observe — Let Otzar read this (Phase 1227)", () => {
         HttpResponse.json({ ok: true, capture: capture() }, { status: 201 }),
       ),
     );
-    render(<Observe />);
+    renderObserve();
     await userEvent.click(await screen.findByTestId("observe-read-sample"));
     await waitFor(() =>
       expect(screen.getByTestId("observe-read-result")).toBeInTheDocument(),
@@ -135,9 +144,9 @@ describe("Observe — Let Otzar read this (Phase 1227)", () => {
         );
       }),
     );
-    render(<Observe />);
+    renderObserve();
     await userEvent.type(
-      screen.getByLabelText("Paste text from any document"),
+      screen.getByTestId("observe-read-text"),
       "We decided to renew the vendor contract.",
     );
     await userEvent.click(screen.getByTestId("observe-read-submit"));
@@ -148,8 +157,7 @@ describe("Observe — Let Otzar read this (Phase 1227)", () => {
     expect(sentBodies[0]?.provider).toBe("PLAIN_TEXT");
     expect(sentBodies[0]?.source_type).toBe("PLAIN_TEXT_SOURCE");
     expect(
-      (screen.getByLabelText("Paste text from any document") as HTMLTextAreaElement)
-        .value,
+      (screen.getByTestId("observe-read-text") as HTMLTextAreaElement).value,
     ).toBe("");
   });
 
@@ -189,7 +197,7 @@ describe("Observe — Let Otzar read this (Phase 1227)", () => {
         }),
       ),
     );
-    render(<Observe />);
+    renderObserve();
     await userEvent.click(await screen.findByTestId("observe-read-sample"));
     await waitFor(() =>
       expect(screen.getByTestId("observe-read-result")).toBeInTheDocument(),
@@ -221,7 +229,7 @@ describe("Observe — Let Otzar read this (Phase 1227)", () => {
         ),
       ),
     );
-    render(<Observe />);
+    renderObserve();
     await userEvent.click(await screen.findByTestId("observe-read-sample"));
     await waitFor(() =>
       expect(screen.getByRole("alert")).toBeInTheDocument(),
@@ -237,7 +245,7 @@ describe("Observe — Let Otzar read this (Phase 1227)", () => {
         HttpResponse.json({ ok: true, capture: capture() }, { status: 201 }),
       ),
     );
-    render(<Observe />);
+    renderObserve();
     await userEvent.click(await screen.findByTestId("observe-read-sample"));
     await waitFor(() =>
       expect(screen.getByTestId("observe-read-result")).toBeInTheDocument(),
