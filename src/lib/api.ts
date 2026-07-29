@@ -1318,6 +1318,48 @@ export class ApiClient {
     dgiCoherence: (): Promise<ApiResult<DgiCoherenceResponse>> =>
       this.request<DgiCoherenceResponse>("/otzar/dgi-coherence"),
 
+    /** Daily executive brief — create schedule (idempotent). Inside Otzar only. */
+    createExecutiveBriefSchedule: (): Promise<
+      ApiResult<{ ok: true; schedule: Record<string, unknown> }>
+    > =>
+      this.request<{ ok: true; schedule: Record<string, unknown> }>(
+        "/otzar/reports/executive-brief/schedule",
+        { method: "POST", body: {} },
+      ),
+
+    listExecutiveBriefSchedules: (): Promise<
+      ApiResult<{ ok: true; schedules: Array<Record<string, unknown>> }>
+    > =>
+      this.request<{ ok: true; schedules: Array<Record<string, unknown>> }>(
+        "/otzar/reports/executive-brief/schedules",
+      ),
+
+    runExecutiveBriefNow: (input: {
+      schedule_id: string;
+      force_retry?: boolean;
+    }): Promise<
+      ApiResult<{
+        ok: true;
+        brief: Record<string, unknown>;
+        delivery: Record<string, unknown>;
+      }>
+    > =>
+      this.request<{
+        ok: true;
+        brief: Record<string, unknown>;
+        delivery: Record<string, unknown>;
+      }>("/otzar/reports/executive-brief/run-now", {
+        method: "POST",
+        body: input,
+      }),
+
+    listExecutiveBriefDeliveries: (): Promise<
+      ApiResult<{ ok: true; deliveries: Array<Record<string, unknown>> }>
+    > =>
+      this.request<{ ok: true; deliveries: Array<Record<string, unknown>> }>(
+        "/otzar/reports/executive-brief/deliveries",
+      ),
+
     /** [C.3b] POST /otzar/twin-work/detect-edits-batch — Drive modifiedTime
      *  after Twin claim (max 10 ledger ids). Honest codes when no document. */
     twinWorkDetectEditsBatch: (
