@@ -56,7 +56,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "Needs me",
       "People",
       "Memory",
-      "Team",
+      "Team status",
     ]);
     expect(labels).not.toContain("Talk");
   });
@@ -70,7 +70,7 @@ describe("nav-employee.ts — primary / more groupings", () => {
     expect(visible).toContain("Projects");
     expect(visible).toContain("My AI Teammate");
     expect(visible).toContain("Account & Security");
-    expect(visible).toContain("Tools"); // reconnect path must be findable
+    expect(visible).toContain("Connections"); // reconnect path must be findable
     // Preferences/Schedule thinned to route-only under nav pressure.
     expect(visible).not.toContain("Preferences");
     // No admin/diagnostic labels.
@@ -78,12 +78,18 @@ describe("nav-employee.ts — primary / more groupings", () => {
     expect(visible).not.toContain("Organization Seeding");
   });
 
+  it("Conversation history points at sessions, not the Talk workspace", () => {
+    const hist = EMPLOYEE_NAV.find((i) => i.label === "Conversation history");
+    expect(hist?.to).toBe("/app/conversations");
+    expect(hist?.hidden).not.toBe(true);
+  });
+
   it("keeps redundant/niche surfaces route-only (hidden from nav, reachable by URL)", () => {
     const hiddenRoutes = EMPLOYEE_NAV.filter((i) => i.hidden === true).map(
       (i) => i.to,
     );
     // Must include the core legacy/redirect surfaces (list may grow as IA thins).
-    // Tools (/app/connector-health) is visible in More — not route-only.
+    // Connections (/app/connector-health) + Conversation history are visible.
     for (const r of [
       "/app/my-day",
       "/app/my-work",
@@ -99,13 +105,13 @@ describe("nav-employee.ts — primary / more groupings", () => {
       "/app/welcome",
       "/app/observe",
       "/app/voice-captures",
-      "/app/conversations",
       "/app/onboarding-readiness",
       "/app/preferences",
     ]) {
       expect(hiddenRoutes).toContain(r);
     }
     expect(hiddenRoutes).not.toContain("/app/connector-health");
+    expect(hiddenRoutes).not.toContain("/app/conversations");
     const visibleRoutes = [
       ...PRIMARY_EMPLOYEE_NAV,
       ...MORE_EMPLOYEE_NAV.filter((i) => i.hidden !== true),
@@ -184,27 +190,27 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
     await openMore();
     // Launch readiness is route-only (hidden) for everyone — not in More.
     expect(screen.queryByText("Launch readiness")).toBeNull();
-    expect(screen.queryByText("Team")).toBeNull();
+    expect(screen.queryByText("Team status")).toBeNull();
 
     cleanup();
     setAuth(true);
     renderNav();
-    // Team is primary + adminOnly — visible to org admins without opening More.
-    expect(screen.getByText("Team")).toBeInTheDocument();
+    // Team status is primary + adminOnly — visible to org admins without opening More.
+    expect(screen.getByText("Team status")).toBeInTheDocument();
     await openMore();
     expect(screen.queryByText("Launch readiness")).toBeNull();
   });
 
-  it("Needs me is visible to every user; Team is visible only to managers/admins", async () => {
+  it("Needs me is visible to every user; Team status is visible only to managers/admins", async () => {
     renderNav();
     expect(screen.getByText("Needs me")).toBeInTheDocument();
-    expect(screen.queryByText("Team")).toBeNull();
+    expect(screen.queryByText("Team status")).toBeNull();
 
     cleanup();
     setAuth(true);
     renderNav();
     expect(screen.getByText("Needs me")).toBeInTheDocument();
-    const team = screen.getByText("Team");
+    const team = screen.getByText("Team status");
     expect(team).toBeInTheDocument();
     const link = team.closest('[data-testid="employee-nav-link"]');
     expect(link?.getAttribute("data-nav-group")).toBe("primary");
@@ -219,9 +225,9 @@ describe("EmployeeNav renderer — visually separates the two groups", () => {
     expect(PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Blind Spots")).toBeUndefined();
   });
 
-  it("Needs me + Team route to action-center and team-work", () => {
+  it("Needs me + Team status route to action-center and team-work", () => {
     const needsMe = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Needs me");
-    const team = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Team");
+    const team = PRIMARY_EMPLOYEE_NAV.find((i) => i.label === "Team status");
     expect(needsMe?.to).toBe("/app/action-center");
     expect(needsMe?.adminOnly).toBeUndefined();
     expect(team?.to).toBe("/app/team-work");

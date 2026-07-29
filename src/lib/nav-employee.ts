@@ -25,7 +25,6 @@ import {
   Mic,
   Network,
   MessageSquare,
-  MessagesSquare,
   PencilLine,
   ShieldCheck,
   Sparkles,
@@ -94,10 +93,10 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
   // ── More — rare, not the daily path ───────────────────────────
   {
     label: "Conversation history",
-    to: "/app/voice",
+    to: "/app/conversations",
     icon: Mic,
     description:
-      "Longer Talk history and voice tools. Day to day: use the floating Talk button.",
+      "Past Talk sessions with Otzar for continuity. Full transcripts are not shown here.",
     group: "more",
   },
   {
@@ -292,14 +291,8 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     group: "more",
     hidden: true,
   },
-  {
-    label: "Conversations",
-    to: "/app/conversations",
-    icon: MessagesSquare,
-    description: "Conversation list.",
-    group: "more",
-    hidden: true,
-  },
+  // Slice 4 — Conversation history (visible More item) is the canonical
+  // sessions list at /app/conversations. Do not re-add a hidden duplicate.
 ];
 
 export const PRIMARY_EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> =

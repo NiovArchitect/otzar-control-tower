@@ -18,12 +18,13 @@ export const VOICE_WORK_PATH_COPY =
   "Voice and text share the same governed work path - actions, Needs me, and approvals. No raw audio is stored.";
 
 /**
- * /app/voice is the secondary Conversation history workspace.
+ * /app/voice is the Talk workspace (mic + type). Session metadata history
+ * lives at /app/conversations under nav "Conversation history" (Slice 4).
  * Day-to-day Talk is the floating control (AmbientOtzarBar).
  */
-export const VOICE_PAGE_TITLE = "Conversation history";
+export const VOICE_PAGE_TITLE = "Talk workspace";
 export const VOICE_PAGE_DESCRIPTION =
-  "Review longer Talk history, sources, and voice tools here. For everyday questions, use the floating Talk button - it is the same conversation and the same governed path.";
+  "Speak or type on the same governed work path. For past session history, open Conversation history. Everyday questions also work from the floating Talk button.";
 
 /** Text-input affordance when voice is primary. */
 export const TEXT_SECONDARY_PLACEHOLDER = "Or type…";

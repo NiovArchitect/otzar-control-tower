@@ -18,14 +18,14 @@ import {
 import type { VoiceActionKind } from "../../src/lib/voice/voice-action-runtime";
 
 describe("D-02 voice-work-first contract", () => {
-  it("frames floating Talk as primary; /app/voice as history workspace", () => {
+  it("frames floating Talk as primary; /app/voice as Talk workspace", () => {
     expect(VOICE_FIRST_HEADLINE.toLowerCase()).toMatch(/speak|voice/);
     expect(VOICE_FIRST_HEADLINE.toLowerCase()).toMatch(/work|type/);
     expect(VOICE_WORK_PATH_COPY.toLowerCase()).toMatch(/same governed work path|actions|needs me|approval/);
     expect(VOICE_PAGE_DESCRIPTION.toLowerCase()).toMatch(
-      /floating talk|conversation|history|governed path/,
+      /floating talk|conversation history|governed|speak|type/,
     );
-    expect(VOICE_PAGE_TITLE).toMatch(/Conversation history/i);
+    expect(VOICE_PAGE_TITLE).toMatch(/Talk workspace/i);
     expect(TEXT_SECONDARY_LABEL.toLowerCase()).toMatch(/type|secondary/);
     expect(TEXT_SECONDARY_PLACEHOLDER.toLowerCase()).toMatch(/type/);
   });
