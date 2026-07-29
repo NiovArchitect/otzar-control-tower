@@ -86,10 +86,10 @@ export function assertWalkthroughCtAsLive(): string[] {
   const bad: string[] = [];
   for (const role of roles) {
     for (const step of walkthroughStepsFor(role)) {
-      if (isDeadPrimaryPath(step.ctaTo) && step.ctaTo !== "/app") {
-        // /app is home — allowed
-      }
-      if (!step.ctaTo.startsWith("/app")) {
+      // Live product surfaces: employee /app/* plus public demo launcher.
+      const live =
+        step.ctaTo.startsWith("/app") || step.ctaTo.startsWith("/demo/");
+      if (!live) {
         bad.push(`${role}/${step.id} cta ${step.ctaTo}`);
       }
       if (REDIRECT_PATHS.has(step.ctaTo)) {

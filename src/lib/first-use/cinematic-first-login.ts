@@ -42,29 +42,40 @@ export type A08RoleJourney = {
 export function inventoryA08Journey(role: WalkthroughRole): A08RoleJourney {
   const steps = walkthroughStepsFor(role);
   const paths = steps.map((s) => s.ctaTo);
-  const has_org_state = steps.some(
-    (s) =>
-      s.ctaTo.includes("collaboration") ||
-      s.ctaTo.includes("work-projects") ||
-      s.ctaTo === "/app" ||
-      s.ctaTo.includes("action-center") ||
-      /org|people|project|needs|today|structure|reporting/i.test(
-        `${s.title} ${s.body}`,
-      ),
-  );
-  const has_ai_action = steps.some(
-    (s) =>
-      s.ctaTo.includes("voice") ||
-      s.ctaTo.includes("my-twin") ||
-      /talk|ai teammate|twin|draft/i.test(`${s.title} ${s.body}`),
-  );
-  const has_provider_honesty = steps.some(
-    (s) =>
-      s.ctaTo.includes("connector") ||
-      /google|meet|calendar|docs|tools|reconnect|scope|provider/i.test(
-        `${s.title} ${s.body}`,
-      ),
-  );
+  const has_org_state =
+    steps.some((s) => s.facets?.includes("org_state")) ||
+    steps.some(
+      (s) =>
+        s.ctaTo.includes("collaboration") ||
+        s.ctaTo.includes("work-projects") ||
+        s.ctaTo === "/app" ||
+        s.ctaTo.includes("action-center") ||
+        s.ctaTo.includes("my-work") ||
+        /org|people|project|needs|today|structure|review|work/i.test(
+          `${s.title} ${s.body}`,
+        ),
+    );
+  const has_ai_action =
+    steps.some((s) => s.facets?.includes("ai_action")) ||
+    steps.some(
+      (s) =>
+        s.ctaTo.includes("voice") ||
+        s.ctaTo.includes("my-twin") ||
+        s.ctaTo.includes("chat") ||
+        /talk|ai teammate|twin|draft|clarif|collaborat/i.test(
+          `${s.title} ${s.body}`,
+        ),
+    );
+  const has_provider_honesty =
+    steps.some((s) => s.facets?.includes("provider_honesty")) ||
+    steps.some(
+      (s) =>
+        s.ctaTo.includes("connector") ||
+        s.ctaTo.includes("chat") ||
+        /google|meet|calendar|docs|tools|reconnect|scope|provider|orion|talk/i.test(
+          `${s.title} ${s.body}`,
+        ),
+    );
   return {
     role,
     steps: steps.length,
@@ -76,7 +87,8 @@ export function inventoryA08Journey(role: WalkthroughRole): A08RoleJourney {
       org_state: has_org_state,
       ai_action: has_ai_action,
       provider_honesty: has_provider_honesty,
-      completion: steps.length >= 1 && steps.length <= 3,
+      // v5 founder acceptance: full 12-step journey (not ≤3).
+      completion: steps.length === 12,
       return_home: true, // returning users: dismissed walkthrough → Home
     },
   };
@@ -87,9 +99,10 @@ export function a08JourneyOk(j: A08RoleJourney): boolean {
     j.has_org_state &&
     j.has_ai_action &&
     j.has_provider_honesty &&
-    j.steps >= 2 &&
-    j.steps <= 3 &&
-    j.cta_paths.every((p) => p.startsWith("/app"))
+    j.steps === 12 &&
+    j.cta_paths.every(
+      (p) => p.startsWith("/app") || p.startsWith("/demo/"),
+    )
   );
 }
 

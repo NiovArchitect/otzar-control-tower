@@ -36,7 +36,7 @@ export const EMPLOYEE_REDIRECTS: ReadonlyArray<{
   // C-04 — contextual work surfaces on Needs me
   { path: "/app/blind-spots", target: "/app/action-center" },
   { path: "/app/approvals", target: "/app/action-center" },
-  { path: "/app/my-work", target: "/app/action-center" },
+  // /app/my-work is a live My Work surface (not a redirect).
 ];
 
 /**
