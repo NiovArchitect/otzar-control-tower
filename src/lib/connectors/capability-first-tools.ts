@@ -21,16 +21,17 @@ export type AdminToolsTab = (typeof ADMIN_TOOLS_TAB_ORDER)[number];
 /** Default lands on Connect tools (plug-and-play), not inventory KPIs. */
 export const DEFAULT_ADMIN_TOOLS_TAB: AdminToolsTab = "connected";
 
+/** Slice 3 — employee primary copy (no MCP / protocol jargon). */
 export const CAPABILITY_FIRST_HEADLINE =
-  "Connect by capability — calendar, documents, Meet, chat.";
+  "Connect your work tools — calendar, email, documents, chat.";
 
 export const CAPABILITY_FIRST_DETAIL =
-  "Pick what work needs. Otzar does not ask you to configure MCP protocols for daily use.";
+  "Choose a tool, sign in through its official provider, and see what Otzar may do within your permissions.";
 
 export const MCP_ADVANCED_ONLY_COPY =
-  "Protocol rails live here for technical administrators only. Ordinary org setup does not require this tab.";
+  "Advanced integrations for technical administrators only. Ordinary employees connect Google Workspace, Microsoft 365, Slack, or GitHub from Connect your work tools — they never need this tab.";
 
-export const MCP_TAB_LABEL = "Advanced (developers only)";
+export const MCP_TAB_LABEL = "Advanced connections";
 
 /** True when a path is the employee capability-first surface. */
 export function isEmployeeCapabilityFirstPath(pathname: string): boolean {
