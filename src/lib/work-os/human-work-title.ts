@@ -74,11 +74,12 @@ export function workClarityState(entry: WorkLedgerEntryView): WorkClarityState {
   if (st === "PROPOSED" || isVagueWorkTitle(entry.title)) {
     return "Suggested work";
   }
+  // Founder rule: "Needs your decision" is ONLY for true judgment/approval
+  // gates — never for blind-spot tags, optional proof gaps, or BEAM noise.
   if (
     st === "NEEDS_APPROVAL" ||
     st === "AWAITING_APPROVAL" ||
-    st === "NEEDS_REVIEW" ||
-    entry.blind_spot_reason !== undefined
+    st === "NEEDS_REVIEW"
   ) {
     return "Needs your decision";
   }
@@ -91,6 +92,22 @@ export function workClarityState(entry: WorkLedgerEntryView): WorkClarityState {
     entry.coordination?.runtime === "BEAM_DISPATCHED"
   ) {
     return "Otzar is handling";
+  }
+  // Optional technical blind spots (missing connector, runtime soft-fail)
+  // are waiting/handling — not human decision theater.
+  if (
+    entry.blind_spot_reason !== undefined &&
+    st !== "NEEDS_APPROVAL" &&
+    st !== "AWAITING_APPROVAL"
+  ) {
+    if (
+      /CONNECTOR|RUNTIME|BEAM|COORDINATION|ENRICH/i.test(
+        entry.blind_spot_reason,
+      )
+    ) {
+      return "Otzar is handling";
+    }
+    return "Waiting on someone";
   }
   if (
     st === "BLOCKED" ||

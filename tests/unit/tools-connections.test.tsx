@@ -134,20 +134,24 @@ beforeEach(() => {
 async function openInventoryTab(
   user: ReturnType<typeof userEvent.setup>,
 ): Promise<void> {
-  await user.click(await screen.findByTestId("tab-tools-inventory"));
+  await user.click(await screen.findByTestId("tab-tools-access"));
   await screen.findByTestId("tools-inventory-panel");
 }
 
 describe("Tools & Connections — Phase E.2 inventory actions", () => {
-  it("defaults to plug-and-play Connect tools path", async () => {
+  it("defaults to OAuth-first Connections launcher", async () => {
     renderPage();
-    expect(await screen.findByTestId("connections-plug-play-path")).toBeInTheDocument();
+    expect(await screen.findByTestId("org-tool-launcher")).toBeInTheDocument();
     expect(screen.getByTestId("tools-connections-page")).toHaveAttribute(
       "data-plug-and-play",
       "true",
     );
+    expect(screen.getByTestId("tools-connections-page")).toHaveAttribute(
+      "data-oauth-first",
+      "true",
+    );
     const tabs = screen.getByTestId("tools-admin-tablist");
-    expect(tabs).toHaveAttribute("data-tab-order", "connected>inventory>advanced");
+    expect(tabs).toHaveAttribute("data-tab-order", "connections>access>advanced");
     expect(screen.getByTestId("tab-connected-tools")).toHaveAttribute(
       "data-state",
       "active",

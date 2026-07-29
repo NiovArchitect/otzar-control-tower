@@ -9,17 +9,17 @@ export const EMPLOYEE_TOOLS_PATH = "/app/connector-health";
 /** Admin inventory path — capability inventory before MCP advanced. */
 export const ADMIN_TOOLS_PATH = "/tools-connections";
 
-/** Ordered admin tabs: connect first (plug-and-play) → inventory → advanced last. */
+/** Ordered admin tabs: OAuth Connections → Access governance → Advanced last. */
 export const ADMIN_TOOLS_TAB_ORDER = [
-  "connected",
-  "inventory",
+  "connections",
+  "access",
   "advanced",
 ] as const;
 
 export type AdminToolsTab = (typeof ADMIN_TOOLS_TAB_ORDER)[number];
 
-/** Default lands on Connect tools (plug-and-play), not inventory KPIs. */
-export const DEFAULT_ADMIN_TOOLS_TAB: AdminToolsTab = "connected";
+/** Default lands on human OAuth Connections launcher, not engineering console. */
+export const DEFAULT_ADMIN_TOOLS_TAB: AdminToolsTab = "connections";
 
 /** Slice 3 — employee primary copy (no MCP / protocol jargon). */
 export const CAPABILITY_FIRST_HEADLINE =
@@ -74,8 +74,8 @@ export function adminToolsTabFingerprint(
 
 export function isValidAdminTabOrder(tabs: ReadonlyArray<string>): boolean {
   if (tabs.length < 3) return false;
-  const connected = tabs.indexOf("connected");
+  const connections = tabs.indexOf("connections");
   const adv = tabs.indexOf("advanced");
-  // Connect tools first; advanced always last.
-  return connected === 0 && adv === tabs.length - 1;
+  // OAuth Connections first; advanced always last.
+  return connections === 0 && adv === tabs.length - 1;
 }

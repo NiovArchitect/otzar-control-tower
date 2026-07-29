@@ -99,4 +99,16 @@ describe("human-work-title", () => {
       workClarityState(entry({ title: "Anything", status: "PROPOSED" })),
     ).toBe("Suggested work");
   });
+
+  it("does not map technical blind spots to Needs your decision", () => {
+    expect(
+      workClarityState(
+        entry({
+          title: "Send invite after security green",
+          status: "OPEN",
+          blind_spot_reason: "COORDINATION_FAILED",
+        }),
+      ),
+    ).not.toBe("Needs your decision");
+  });
 });

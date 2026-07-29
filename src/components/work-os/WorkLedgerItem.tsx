@@ -85,11 +85,20 @@ function humanStatusLabel(status: string): string {
   }
 }
 
-function statusWord(s: string): string {
-  if (s === "VERIFIED") return "verified";
-  if (s === "FAILED") return "failed";
-  if (s === "PENDING" || s === "UNVERIFIED") return "pending";
-  return s.toLowerCase();
+function statusWord(s: string, attemptType?: string): string {
+  if (s === "VERIFIED") return "done";
+  if (s === "FAILED") {
+    // Never show "Coordination failed" / technical failure theater to employees.
+    if (attemptType === "BEAM_FANOUT" || attemptType === "PYTHON_ENRICHMENT") {
+      return "optional step skipped";
+    }
+    if (attemptType === "CONNECTOR_EXECUTION") {
+      return "needs a connected tool";
+    }
+    return "not finished";
+  }
+  if (s === "PENDING" || s === "UNVERIFIED") return "in progress";
+  return s.toLowerCase().replace(/_/g, " ");
 }
 
 export function WorkLedgerItem({
@@ -336,13 +345,18 @@ export function WorkLedgerItem({
     }
   }
 
-  // Cheap main-card badge derived from the entry alone (no fetch).
+  // Cheap main-card badge — never label optional technical noise as a
+  // "Verification issue" storm. Only true approval gates and successful
+  // coordination get face badges.
+  const workClarity = workClarityState(entry);
   const cardBadge: { text: string; cls: string } | null =
-    entry.blind_spot_reason !== undefined
-      ? { text: "Verification issue", cls: "border-amber-500/60 text-amber-600" }
+    workClarity === "Needs your decision"
+      ? { text: "Needs decision", cls: "border-amber-500/60 text-amber-700" }
       : entry.coordination?.runtime === "BEAM_DISPATCHED"
         ? { text: "Coordinated", cls: "border-emerald-500/50 text-emerald-600" }
-        : null;
+        : workClarity === "Suggested work"
+          ? { text: "Suggested", cls: "border-border text-muted-foreground" }
+          : null;
 
   const twinActive = isActiveTwinWork(entry.twin_work);
   const twinEdited = twinWorkEditDetected(entry.twin_work);
@@ -825,13 +839,18 @@ export function WorkLedgerItem({
             {proofState === "error" ? <div>Details unavailable right now.</div> : null}
             {proofState === "loaded" && attempts !== null ? (
               (() => {
-                const visible = attempts.filter(
-                  (a) =>
-                    !(
-                      a.attempt_type === "PYTHON_ENRICHMENT" &&
-                      a.status === "FAILED"
-                    ),
-                );
+                // Hide optional infrastructure failures (BEAM fanout, Python
+                // enrichment) — they are not human verification labor.
+                const visible = attempts.filter((a) => {
+                  if (
+                    (a.attempt_type === "PYTHON_ENRICHMENT" ||
+                      a.attempt_type === "BEAM_FANOUT") &&
+                    a.status === "FAILED"
+                  ) {
+                    return false;
+                  }
+                  return true;
+                });
                 if (visible.length === 0) {
                   return <div>Work was recorded. No external action yet.</div>;
                 }
@@ -844,13 +863,14 @@ export function WorkLedgerItem({
                             a.status === "VERIFIED"
                               ? "text-emerald-600"
                               : a.status === "FAILED"
-                                ? "text-amber-600"
+                                ? "text-muted-foreground"
                                 : "text-muted-foreground"
                           }
                           data-testid={`attempt-${a.attempt_type}`}
                         >
-                          {a.status === "VERIFIED" ? "✓" : a.status === "FAILED" ? "⚠" : "•"}{" "}
-                          {attemptLabel(a.attempt_type)}: {statusWord(a.status)}
+                          {a.status === "VERIFIED" ? "✓" : "•"}{" "}
+                          {attemptLabel(a.attempt_type)}:{" "}
+                          {statusWord(a.status, a.attempt_type)}
                         </span>
                       </div>
                     ))}

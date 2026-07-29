@@ -403,16 +403,9 @@ export function WorkArtifactCard({
               Extraction: {artifact.extractionSource}
             </div>
           ) : null}
-          {artifact.coordinationRuntime !== undefined ? (
+          {artifact.coordinationRuntime === "BEAM_DISPATCHED" ? (
             <div data-testid="work-artifact-coordination">
-              Coordination:{" "}
-              {artifact.coordinationRuntime === "BEAM_DISPATCHED"
-                ? "BEAM dispatched"
-                : artifact.coordinationRuntime === "BEAM_UNAVAILABLE"
-                  ? "TypeScript fallback (BEAM unavailable)"
-                  : artifact.coordinationRuntime === "BEAM_FAILED"
-                    ? "TypeScript fallback (BEAM dispatch failed)"
-                    : "TypeScript only"}
+              Coordination: Otzar is tracking related owners and updates.
             </div>
           ) : null}
           {artifact.evidence !== undefined && artifact.evidence.length > 0 ? (
