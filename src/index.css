@@ -291,6 +291,36 @@
     }
   }
 
+  /* Acceptance: reduced motion — kill non-essential motion globally. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Acceptance: 200% zoom density — keep header/actions reachable. */
+  @media (max-width: 900px), (max-height: 700px) {
+    [data-testid="employee-shell-header"] {
+      min-height: 2.75rem;
+      row-gap: 0.25rem;
+    }
+    [data-testid="first-use-reveal"] {
+      max-width: min(20rem, calc(100vw - 1rem));
+    }
+  }
+
+  /* Prevent primary horizontal overflow at high zoom / narrow shells. */
+  [data-testid="employee-shell"],
+  [data-testid="employee-shell-main"] {
+    max-width: 100vw;
+    overflow-x: clip;
+  }
+
   /* Premium pearl field for shells */
   .otzar-enterprise-field {
     background-color: #f7f6fc;

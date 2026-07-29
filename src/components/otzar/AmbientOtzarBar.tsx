@@ -4572,7 +4572,7 @@ export function AmbientOtzarBar(): JSX.Element {
           onPointerMove={handleOrbPointerMove}
           onPointerUp={handleOrbPointerUp}
           onPointerCancel={handleOrbPointerCancel}
-          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-[#1e1b4b]/08 bg-white/95 supports-[backdrop-filter]:bg-white/90 ${ring.glow} px-5 py-3.5 text-sm font-semibold text-[#1e1b4b] shadow-[0_8px_28px_-10px_rgba(30,27,75,0.14),0_4px_12px_-4px_rgba(177,36,232,0.12)] backdrop-blur-xl transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#B124E8]/35 ${
+          className={`relative flex touch-none items-center gap-2 overflow-hidden rounded-full border border-[#1e1b4b]/08 bg-white/95 supports-[backdrop-filter]:bg-white/90 ${ring.glow} px-5 py-3.5 text-sm font-semibold text-[#1e1b4b] shadow-[0_8px_28px_-10px_rgba(30,27,75,0.14),0_4px_12px_-4px_rgba(177,36,232,0.12)] backdrop-blur-xl transition-[box-shadow,transform] duration-200 motion-safe:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#B124E8]/35 ${
             quiet ? "px-4 py-2 text-xs text-[#5c5a78]" : ""
           }`}
         >
