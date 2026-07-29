@@ -1,8 +1,14 @@
 // FILE: demo-persona-value.test.ts
-// PURPOSE: Eight YC demo personas have distinct above-the-fold value copy.
+// PURPOSE: Eight YC demo personas - distinct value, no banned immersive words.
 
 import { describe, expect, it } from "vitest";
-import { demoPersonaValueFor } from "@/lib/demo/demo-persona-value";
+import {
+  DEMO_PERSONA_STORY_ORDER,
+  demoPersonaValueFor,
+  demoRoleBanner,
+  orderPersonasForStory,
+  sanitizeDemoFacingCopy,
+} from "@/lib/demo/demo-persona-value";
 
 const KEYS = [
   "organization_lead",
@@ -15,6 +21,9 @@ const KEYS = [
   "contractor",
 ] as const;
 
+const BANNED =
+  /\b(fictional|fake|pretend|mock|synthetic|dummy|seeded data|test data)\b/i;
+
 describe("demoPersonaValueFor", () => {
   it("covers all eight demo personas with unique outcomes", () => {
     const outcomes = new Set<string>();
@@ -26,9 +35,22 @@ describe("demoPersonaValueFor", () => {
       expect(v.outcome.length).toBeGreaterThan(10);
       expect(v.otzarHandled.length).toBeGreaterThan(10);
       expect(v.needsHuman.length).toBeGreaterThan(10);
+      expect(v.aiTeammateNow.length).toBeGreaterThan(10);
       expect(v.orgImpact.length).toBeGreaterThan(10);
+      expect(v.launcherBenefit.length).toBeGreaterThan(10);
       expect(v.talkPrompt.length).toBeGreaterThan(5);
       outcomes.add(v.outcome);
+      for (const field of [
+        v.who,
+        v.outcome,
+        v.otzarHandled,
+        v.needsHuman,
+        v.aiTeammateNow,
+        v.orgImpact,
+        v.launcherBenefit,
+      ]) {
+        expect(field).not.toMatch(BANNED);
+      }
     }
     expect(outcomes.size).toBe(KEYS.length);
   });
@@ -46,12 +68,43 @@ describe("demoPersonaValueFor", () => {
   it("Quinn contractor is bounded", () => {
     const q = demoPersonaValueFor("contractor");
     expect(q.who.toLowerCase()).toMatch(/bounded|limited|contractor/);
-    expect(q.needsHuman.toLowerCase()).toMatch(/never|bounds|not|never organization/);
+    expect(q.needsHuman.toLowerCase()).toMatch(
+      /never|bounds|not|never organization/,
+    );
   });
 
   it("falls back safely for unknown keys", () => {
     const v = demoPersonaValueFor("not_a_real_persona");
     expect(v.roleLabel).toBeTruthy();
     expect(v.outcome).toBeTruthy();
+    expect(v.aiTeammateNow).toBeTruthy();
+  });
+
+  it("story order puts program coordinator before regular reviewer", () => {
+    expect(DEMO_PERSONA_STORY_ORDER.indexOf("program_coordinator")).toBeLessThan(
+      DEMO_PERSONA_STORY_ORDER.indexOf("regular_reviewer"),
+    );
+    const ordered = orderPersonasForStory([
+      { key: "contractor" },
+      { key: "organization_lead" },
+      { key: "regular_reviewer" },
+      { key: "program_coordinator" },
+    ]);
+    expect(ordered.map((p) => p.key)).toEqual([
+      "organization_lead",
+      "program_coordinator",
+      "regular_reviewer",
+      "contractor",
+    ]);
+  });
+
+  it("banner and sanitize never expose fictional", () => {
+    expect(demoRoleBanner("Security lead")).not.toMatch(BANNED);
+    expect(demoRoleBanner("Security lead")).toMatch(/Y Combinator Labs/);
+    expect(
+      sanitizeDemoFacingCopy(
+        "Fictional Y Combinator Labs demo · HelioGrid is a fictional startup",
+      ),
+    ).not.toMatch(/fictional/i);
   });
 });

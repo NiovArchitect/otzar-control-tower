@@ -63,7 +63,7 @@ const STEP_PROBLEM: WalkthroughStep = {
 const STEP_INGEST: WalkthroughStep = {
   id: "ingest",
   title: "Bring in a real work conversation",
-  body: "Paste or open a fictional startup-review transcript. Otzar identifies people, decisions, commitments, risks, and missing context.",
+  body: "Paste or open a sample review conversation. Otzar identifies people, decisions, commitments, risks, and missing context.",
   why: "Show what data Otzar begins with - not a blank dashboard.",
   doNext: "Open Bring in a transcript.",
   ctaLabel: "Bring in a transcript",
@@ -215,7 +215,7 @@ const STEP_MEMORY: WalkthroughStep = {
 const STEP_OUTCOME: WalkthroughStep = {
   id: "final_outcome",
   title: "Ask Talk what was decided",
-  body: "Conditional interview for fictional HelioGrid with remaining security condition - language and screens agree.",
+  body: "Conditional interview for HelioGrid with remaining security condition - language and screens agree.",
   why: "The loop closes without founder narration.",
   doNext: "Open Talk and ask what was decided.",
   ctaLabel: "Open Talk",

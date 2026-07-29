@@ -1,5 +1,5 @@
 // FILE: DemoRoleValueCard.tsx
-// PURPOSE: Above-the-fold five-second role value for YC demo personas.
+// PURPOSE: Above-the-fold six-line operating brief for YC demo personas.
 //          Shows only when a demo persona session is active.
 // CONNECTS TO: demo-persona-value.ts, AmbientWorkSurface (Today).
 
@@ -26,7 +26,7 @@ export function DemoRoleValueCard(): JSX.Element | null {
       data-role-label={v.roleLabel}
     >
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-600">
-        Your role · {v.roleLabel}
+        {v.roleLabel}
       </p>
       <p
         className="mt-1 text-sm font-semibold leading-snug text-slate-900"
@@ -34,27 +34,33 @@ export function DemoRoleValueCard(): JSX.Element | null {
       >
         {v.who}
       </p>
-      <dl className="mt-2 space-y-1.5 text-xs leading-snug">
-        <div>
-          <dt className="font-semibold text-slate-700">Current result</dt>
+      <dl className="mt-2 grid gap-1.5 text-xs leading-snug">
+        <div className="grid grid-cols-[7.5rem_1fr] gap-x-2">
+          <dt className="font-semibold text-slate-700">Current outcome</dt>
           <dd className="text-slate-600" data-testid="demo-role-outcome">
             {v.outcome}
           </dd>
         </div>
-        <div>
+        <div className="grid grid-cols-[7.5rem_1fr] gap-x-2">
           <dt className="font-semibold text-slate-700">Otzar handled</dt>
           <dd className="text-slate-600" data-testid="demo-role-otzar-handled">
             {v.otzarHandled}
           </dd>
         </div>
-        <div>
+        <div className="grid grid-cols-[7.5rem_1fr] gap-x-2">
           <dt className="font-semibold text-slate-700">Needs you</dt>
           <dd className="text-slate-600" data-testid="demo-role-needs-human">
             {v.needsHuman}
           </dd>
         </div>
-        <div>
-          <dt className="font-semibold text-slate-700">Organization impact</dt>
+        <div className="grid grid-cols-[7.5rem_1fr] gap-x-2">
+          <dt className="font-semibold text-slate-700">AI Teammate now</dt>
+          <dd className="text-slate-600" data-testid="demo-role-ai-teammate">
+            {v.aiTeammateNow}
+          </dd>
+        </div>
+        <div className="grid grid-cols-[7.5rem_1fr] gap-x-2">
+          <dt className="font-semibold text-slate-700">Org impact</dt>
           <dd className="text-slate-600" data-testid="demo-role-org-impact">
             {v.orgImpact}
           </dd>
