@@ -22,7 +22,7 @@ export function AiCollabEnvelopeCard(): JSX.Element {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Bot className="h-4 w-4" aria-hidden />
-          AI Teammate collaboration envelope
+          How AI Teammates collaborate
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-xs text-muted-foreground">

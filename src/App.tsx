@@ -27,6 +27,7 @@ import { SeedHistoryPage } from "@/pages/SeedHistory";
 import { SeedCorpusPage } from "@/pages/SeedCorpus";
 import { ContextBoundariesPage } from "@/pages/ContextBoundaries";
 import { ForgotPasswordPage } from "@/pages/ForgotPassword";
+import { DemoPersonaLauncherPage } from "@/pages/DemoPersonaLauncher";
 import { CompanyProfilePage } from "@/pages/CompanyProfile";
 import { WorkSchedulePage } from "@/pages/app/WorkSchedule";
 import { AccountSecurityPage } from "@/pages/app/AccountSecurity";
@@ -112,6 +113,8 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       <Route path="/login" element={<LoginPage />} />
+            {/* YC Labs demo persona launcher — public; passwordless server sessions. */}
+            <Route path="/demo/yc" element={<DemoPersonaLauncherPage />} />
             {/* [P0-ONBOARD] public activation / reset page — outside every
                 auth guard (the invitee has no session yet). */}
             <Route path="/activate" element={<ActivatePage />} />

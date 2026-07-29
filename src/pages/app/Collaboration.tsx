@@ -236,25 +236,45 @@ export function Collaboration() {
     <div className="space-y-6" data-testid="collaboration-page" data-l01-surface="true">
       <PageHeader
         title="People"
-        description="Who is here, what they own, and how work is flowing. Collaboration details open only when you need them."
+        description="Who is here, what they own, and how the team moved work forward — without status-meeting theater."
       />
 
       {/* Optional reporting structure - collapsed by default (founder rejection). */}
       <PeopleStructureGlance />
 
-      {/* Focused collaboration record from deep link — must render visibly. */}
-      {focusedReceipt !== null ? (
-        <section
-          className="space-y-2"
-          data-testid="collaboration-record-focus"
-          aria-label="Collaboration record"
-        >
-          <h2 className="text-base font-semibold text-foreground">
-            Collaboration record
+      {/* Primary value projection: How the team moved (not Inbound/Outbound counts). */}
+      <section
+        className="space-y-3"
+        data-testid="how-the-team-moved"
+        aria-label="How the team moved"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            How the team moved
           </h2>
+          <p className="text-sm text-muted-foreground">
+            Work gap, AI Teammates involved, source used, result, and whether a
+            human had to step in — plain language only.
+          </p>
+        </div>
+        {focusedReceipt !== null ? (
           <CollaborationReceiptCard receipt={focusedReceipt} />
-        </section>
-      ) : null}
+        ) : null}
+        {receipts.length > 0 ? (
+          <div
+            className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+            data-testid="collaboration-receipts-section"
+          >
+            {receipts.map((r) => (
+              <CollaborationReceiptCard key={r.collaboration_id} receipt={r} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No completed AI Teammate collaborations yet for your view.
+          </p>
+        )}
+      </section>
 
       <PeopleDirectory
         onRequestHelp={(id, name) => {
@@ -265,26 +285,6 @@ export function Collaboration() {
         }}
       />
 
-      {/* AI collaboration receipts: collapsed detail path — not a primary feed. */}
-      {receipts.length > 0 && focusedReceipt === null ? (
-        <details
-          className="rounded-lg border border-border/60 px-3 py-2"
-          data-testid="collaboration-receipts-section"
-        >
-          <summary className="cursor-pointer text-sm font-medium text-foreground">
-            Recent AI Teammate collaboration ({receipts.length})
-          </summary>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Who worked together, why, and the result — without raw prompts.
-          </p>
-          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {receipts.map((r) => (
-              <CollaborationReceiptCard key={r.collaboration_id} receipt={r} />
-            ))}
-          </div>
-        </details>
-      ) : null}
-
       <div id="collab-request-form">
         <CreateCollaborationForm
           onCreated={invalidateAll}
@@ -292,10 +292,14 @@ export function Collaboration() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <details className="rounded-lg border border-border/50 px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+          Detailed request queues (secondary)
+        </summary>
+      <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card data-testid="inbound-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Inbound — for you</CardTitle>
+            <CardTitle className="text-lg">Waiting on you</CardTitle>
           </CardHeader>
           <CardContent>
             {inbound.isLoading && <Skeleton className="h-24 w-full" />}
@@ -310,7 +314,7 @@ export function Collaboration() {
         </Card>
         <Card data-testid="outbound-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Outbound — from you</CardTitle>
+            <CardTitle className="text-lg">You asked for</CardTitle>
           </CardHeader>
           <CardContent>
             {outbound.isLoading && <Skeleton className="h-24 w-full" />}
@@ -324,6 +328,7 @@ export function Collaboration() {
           </CardContent>
         </Card>
       </div>
+      </details>
 
       {/* Advanced AI-collab diagnostics — below the fold (not first paint). */}
       <details className="rounded-lg border border-border bg-card/40 p-3" data-testid="people-ai-collab-details">
