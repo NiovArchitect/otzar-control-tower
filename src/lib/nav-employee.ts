@@ -234,11 +234,11 @@ export const EMPLOYEE_NAV: ReadonlyArray<EmployeeNavItem> = [
     hidden: true,
   },
   {
-    label: "Tools",
+    label: "Connections",
     to: "/app/connector-health",
     icon: Cable,
     description:
-      "Connect or reconnect Google, Slack, and other tools Otzar uses for calendar and docs.",
+      "Connect your work tools so your AI Teammate can help within your permissions.",
     group: "more",
     // First-use: reconnect must be findable without hunting hidden routes.
     // Today also surfaces a reconnect chip when OAuth needs reauth.

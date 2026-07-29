@@ -37,15 +37,17 @@ describe("O-01 capability-first tools contract", () => {
   });
 
   it("MCP copy is advanced-only framing", () => {
-    expect(MCP_TAB_LABEL.toLowerCase()).toMatch(/advanced|mcp|developer/);
+    expect(MCP_TAB_LABEL.toLowerCase()).toMatch(/advanced/);
     expect(MCP_ADVANCED_ONLY_COPY.toLowerCase()).toMatch(
-      /technical|administrators|ordinary|not require/,
+      /technical|administrators|ordinary|advanced/,
     );
   });
 
   it("capability-first copy rejects MCP-leading primary copy", () => {
     expect(
-      isCapabilityFirstCopy("Connect by capability — calendar, documents, Meet"),
+      isCapabilityFirstCopy(
+        "Connect your work tools — calendar, email, documents, chat",
+      ),
     ).toBe(true);
     expect(isCapabilityFirstCopy("MCP protocol rails for everyone")).toBe(false);
     expect(

@@ -518,7 +518,36 @@ export function WorkLedgerItem({
               the same link (the page itself explains who can connect). */}
           {exec.actions.includes("request_setup") ? (
             <Link
-              to="/tools-connections"
+              to={(() => {
+                // Slice 3 — employee Connections with return-to-work context,
+                // never the admin developer inventory as the primary CTA.
+                const params = new URLSearchParams();
+                const label = (exec.connectorLabel ?? "").toLowerCase();
+                if (label.includes("google") || label.includes("gmail")) {
+                  params.set("tool", "google");
+                } else if (
+                  label.includes("microsoft") ||
+                  label.includes("outlook")
+                ) {
+                  params.set("tool", "microsoft");
+                } else if (label.includes("slack")) {
+                  params.set("tool", "slack");
+                }
+                params.set("return", "/app/my-work");
+                const title =
+                  typeof entry.title === "string" && entry.title.trim().length > 0
+                    ? entry.title.trim().slice(0, 160)
+                    : null;
+                if (title !== null) {
+                  params.set(
+                    "why",
+                    exec.connectorLabel !== null
+                      ? `${exec.connectorLabel} is needed to continue: ${title}`
+                      : `A connected tool is needed to continue: ${title}`,
+                  );
+                }
+                return `/app/connector-health?${params.toString()}`;
+              })()}
               className="rounded border border-amber-500/50 px-1 text-[10px] text-amber-600 hover:bg-amber-500/10"
               data-testid="work-ledger-item-request-setup"
               title={
@@ -529,7 +558,7 @@ export function WorkLedgerItem({
             >
               {exec.connectorLabel !== null
                 ? `Connect ${exec.connectorLabel}`
-                : "Open setup"}
+                : "Open Connections"}
             </Link>
           ) : null}
           {exec.actions.includes("reconcile") ? (

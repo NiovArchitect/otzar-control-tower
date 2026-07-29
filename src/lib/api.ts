@@ -1654,6 +1654,8 @@ export class ApiClient {
                 status: string;
                 status_label: string;
                 connect_action: string;
+                /** Connected identity when known; never tokens. */
+                account_label?: string | null;
               }>;
             }>;
             generated_at: string;
