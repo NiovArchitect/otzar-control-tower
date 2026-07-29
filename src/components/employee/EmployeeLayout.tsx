@@ -55,14 +55,14 @@ export function EmployeeLayout() {
 
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header
-          className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-[#1e1b4b]/08 bg-white/90 px-4 shadow-[0_4px_16px_-10px_rgba(30,27,75,0.08)] backdrop-blur-xl sm:h-16 sm:px-6"
+          className="relative z-40 flex min-h-12 shrink-0 flex-wrap items-center justify-between gap-y-1 border-b border-[#1e1b4b]/08 bg-white/90 px-3 py-1.5 shadow-[0_4px_16px_-10px_rgba(30,27,75,0.08)] backdrop-blur-xl sm:min-h-14 sm:px-6 sm:py-0"
           data-testid="employee-shell-header"
         >
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 max-w-full items-center gap-1.5 sm:gap-2.5">
             <AppBackButton fallback="/app" />
             <Link
               to="/app"
-              className="group flex min-w-0 items-center gap-2.5 rounded-full py-1 pr-2 transition-opacity hover:opacity-90"
+              className="group flex min-w-0 items-center gap-2 rounded-full py-1 pr-1 transition-opacity hover:opacity-90 sm:gap-2.5 sm:pr-2"
               aria-label="Otzar home"
             >
               <OtzarBrandLogo size="md" tone="brand" polish />
@@ -76,7 +76,7 @@ export function EmployeeLayout() {
               </div>
             </Link>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1 sm:gap-2">
             <OrgContextBadge />
             {typeof sessionStorage !== "undefined" &&
               sessionStorage.getItem("otzar_demo_banner") && (
