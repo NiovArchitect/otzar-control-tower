@@ -31,14 +31,9 @@ describe("classifyAskTwin — Work OS questions route deterministically", () => 
     if (r.kind === "WORK_OS_ROUTE") expect(r.route).toBe("/app/my-work");
   });
 
-  it("routes team-work questions to /app/team-work", () => {
-    const r = classifyAskTwin("who is waiting on whom?");
-    expect(r.kind).toBe("WORK_OS_ROUTE");
-    if (r.kind === "WORK_OS_ROUTE") expect(r.route).toBe("/app/team-work");
-  });
-
-  it("routes natural team-status phrasings to /app/team-work (RC2 grounded Twin)", () => {
+  it("answer-mode team-status questions stay SELF_ASK (answer first, no fake open)", () => {
     for (const q of [
+      "who is waiting on whom?",
       "What is my team up to?",
       "what's my team working on?",
       "how is my team doing",
@@ -46,8 +41,16 @@ describe("classifyAskTwin — Work OS questions route deterministically", () => 
       "what is everyone working on?",
     ]) {
       const r = classifyAskTwin(q);
-      expect(r.kind, q).toBe("WORK_OS_ROUTE");
-      if (r.kind === "WORK_OS_ROUTE") expect(r.route).toBe("/app/team-work");
+      expect(r.kind, q).toBe("SELF_ASK");
+    }
+  });
+
+  it("explicit open team status still routes to the durable surface", () => {
+    const r = classifyAskTwin("open team status");
+    expect(r.kind).toBe("WORK_OS_ROUTE");
+    if (r.kind === "WORK_OS_ROUTE") {
+      expect(r.route).toBe("/app/team-work");
+      expect(r.label).toBe("Team status");
     }
   });
 

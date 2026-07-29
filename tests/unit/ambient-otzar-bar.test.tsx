@@ -255,7 +255,7 @@ describe("AmbientOtzarBar — send flow", () => {
   });
   // Employee surface shows the human outcome; internal action labels stay optional.
   expect(
-   screen.getAllByText(/Opened Onboarding\./i).length,
+   screen.getAllByText(/Opening Onboarding|Opened Onboarding/i).length,
   ).toBeGreaterThan(0);
   // The governed chat / Twin endpoint was NEVER called for navigation.
   expect(recordedBodies.length).toBe(0);

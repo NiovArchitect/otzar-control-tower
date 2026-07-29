@@ -81,9 +81,11 @@ export function classifyAskTwin(text: string): AskTwinClassification {
   const trimmed = text.trim();
   const lower = trimmed.toLowerCase();
 
-  // 1) Known Work OS question → deterministic route (never the LLM).
+  // 1) Known Work OS question.
+  //    navigate-mode → durable surface (never a blank LLM).
+  //    answer-mode  → SELF_ASK so Otzar answers first (Founder P0 team status).
   const workOs = matchWorkOsQuery(lower);
-  if (workOs !== null) {
+  if (workOs !== null && workOs.mode === "navigate") {
     return { kind: "WORK_OS_ROUTE", route: workOs.route, label: workOs.label };
   }
 

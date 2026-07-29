@@ -149,10 +149,10 @@ export function TeamWork(): JSX.Element {
   return (
     <div className="space-y-4" data-testid="team-work-page">
       <div>
-        <h1 className="text-lg font-semibold">Team Work</h1>
+        <h1 className="text-lg font-semibold">Team status</h1>
         <p className="text-xs text-muted-foreground">
-          Durable work across your team — who is waiting on whom, what's
-          pending, what's stale, and what needs attention.
+          What the team is moving, who owns it, what is blocked, and what
+          needs attention — not empty counts or developer machinery.
         </p>
       </div>
 

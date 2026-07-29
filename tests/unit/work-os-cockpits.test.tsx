@@ -331,5 +331,19 @@ describe("Voice routing to cockpits (not chat)", () => {
   });
   it("routes 'show team work' to /app/team-work", () => {
     expect(classifyVoiceAction("Show team work.", ADMIN).route).toBe("/app/team-work");
+    expect(classifyVoiceAction("Show team work.", ADMIN).kind).toBe(
+      "INTERNAL_NAVIGATION",
+    );
+  });
+
+  it("answers 'how is my team doing' in Talk — never false Opened navigation", () => {
+    const a = classifyVoiceAction(
+      "How's it going today, and how is my team doing?",
+      ADMIN,
+    );
+    expect(a.kind).toBe("GOVERNED_CHAT");
+    expect(a.route).toBe("/app/team-work");
+    expect(a.spoken).not.toMatch(/opened/i);
+    expect(a.actionLabel).toBe("Team status");
   });
 });
