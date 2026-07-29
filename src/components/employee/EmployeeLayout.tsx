@@ -38,6 +38,13 @@ export function EmployeeLayout() {
       className={`fixed inset-0 flex h-[100dvh] max-h-[100dvh] w-full overflow-hidden pt-[env(safe-area-inset-top,0px)] ${AMBIENT_FIELD}`}
       data-testid="employee-shell"
     >
+      <a
+        href="#employee-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-md"
+        data-testid="skip-to-main"
+      >
+        Skip to main content
+      </a>
       {/* Soft brand atmosphere on pearl field */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="otzar-brand-ribbons" />
@@ -128,8 +135,10 @@ export function EmployeeLayout() {
         </header>
 
         <main
+          id="employee-main"
           className="relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5 pb-24 sm:px-8 sm:py-7 sm:pb-8"
           data-testid="employee-shell-main"
+          tabIndex={-1}
         >
           <div className="otzar-page">
             <Outlet />
