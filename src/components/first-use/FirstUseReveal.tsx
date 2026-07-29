@@ -159,6 +159,26 @@ export function FirstUseReveal(): JSX.Element | null {
     location.pathname === step.ctaTo ||
     (step.ctaTo !== "/app" && location.pathname.startsWith(step.ctaTo));
 
+  // When the user lands on a later step's route (CTA or manual nav), advance
+  // the coach so popup copy matches the screen (3s comprehension + acceptance).
+  useEffect(() => {
+    if (dismissed || hydrating || paused || email === null) return;
+    const path = location.pathname;
+    // Prefer the highest matching step so My Work maps to updated_work after
+    // earlier my-work steps, not only the first my-work CTA.
+    let match = -1;
+    for (let i = 0; i < steps.length; i += 1) {
+      const cta = steps[i]!.ctaTo;
+      if (path === cta || (cta !== "/app" && path.startsWith(cta))) {
+        match = i;
+      }
+    }
+    if (match >= 0 && match !== stepIndex) {
+      setStepIndex(match);
+      setWalkthroughStepIndex(email, match);
+    }
+  }, [dismissed, hydrating, paused, email, location.pathname, steps, stepIndex]);
+
   if (hydrating) return null;
 
   // Completed: keep a calm "Show guide again" affordance (RC2 restart).
