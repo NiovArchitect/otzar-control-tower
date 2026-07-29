@@ -1,13 +1,11 @@
 // FILE: FirstUseReveal.tsx
-// PURPOSE: Persistent, route-aware first-use walkthrough.
-//          CTA navigation does NOT dismiss the walkthrough.
-//          Progress is stored (local + server) and resumes after refresh.
-//          Coach walks BESIDE the product: never steals Talk clicks.
+// PURPOSE: Explicit step-index walkthrough coach (yc-demo-v6).
+//          Step advances ONLY on Next/Back/Start over — never from route match.
+//          Founder rejection fix: highest-matching ctaTo on /app jumped to step 8/11.
 // LAYERS: content < coach z-45 < Talk z-70 < modals.
-// CONNECTS TO: EmployeeLayout (global mount), first-use/state, walkthrough.ts,
-//              AmbientOtzarBar (otzar:open / otzar:close).
+// CONNECTS TO: EmployeeLayout, first-use/state, walkthrough.ts.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Pause, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -26,6 +24,7 @@ import {
   clampWalkthroughStep,
   prefersReducedMotion,
   resolveWalkthroughRole,
+  walkthroughPathname,
   walkthroughStepsFor,
   WALKTHROUGH_VERSION,
 } from "@/lib/first-use/walkthrough";
@@ -45,10 +44,23 @@ function openOrb(): void {
   }
 }
 
+function consumeForceStartFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const v = window.sessionStorage.getItem("otzar_walkthrough_force_start");
+    if (v === WALKTHROUGH_VERSION || v === "1") {
+      window.sessionStorage.removeItem("otzar_walkthrough_force_start");
+      return true;
+    }
+  } catch {
+    /* private mode */
+  }
+  return false;
+}
+
 /**
  * Floating guided strip. Survives route changes when mounted in the shell.
- * Clicking a CTA navigates and keeps the current step active.
- * Talk expanded → compact coaching so the work surface stays clickable.
+ * Step index is the sole source of truth — route never rewrites the step.
  */
 export function FirstUseReveal(): JSX.Element | null {
   const entity = useAuthStore((s) => s.entity);
@@ -64,14 +76,16 @@ export function FirstUseReveal(): JSX.Element | null {
   const [hydrating, setHydrating] = useState(true);
   const [ctx, setCtx] = useState<ContextHealthResponse | null>(null);
   const [signal, setSignal] = useState<string | null>(null);
-  const [stepIndex, setStepIndex] = useState(() =>
-    getWalkthroughStepIndex(email),
-  );
-  /** Talk dock open → compact coach (RC2 F1–F5). */
+  const [stepIndex, setStepIndex] = useState(0);
+  /** Returning user with mid-walk local step — must choose, never silent resume. */
+  const [resumeChoice, setResumeChoice] = useState(false);
+  /** Corrupt / invalid stored step recovery banner. */
+  const [corruptRecovery, setCorruptRecovery] = useState(false);
   const [talkOpen, setTalkOpen] = useState(false);
-  /** User pinned the full coach while Talk stays open (top-left only). */
   const [pinFullWhileTalk, setPinFullWhileTalk] = useState(false);
   const [confirmNote, setConfirmNote] = useState<string | null>(null);
+  const [navBusy, setNavBusy] = useState(false);
+  const advancingRef = useRef(false);
   const reduceMotion = prefersReducedMotion();
 
   useEffect(() => {
@@ -98,9 +112,38 @@ export function FirstUseReveal(): JSX.Element | null {
       if (cancelled) return;
       if (serverDone || hasCompletedWalkthrough(email)) {
         setDismissed(true);
-      } else {
-        setStepIndex(getWalkthroughStepIndex(email));
+        setHydrating(false);
+        return;
       }
+
+      const forceStart = consumeForceStartFlag();
+      if (forceStart) {
+        clearWalkthrough(email);
+        setStepIndex(0);
+        setWalkthroughStepIndex(email, 0);
+        setResumeChoice(false);
+        setCorruptRecovery(false);
+        setDismissed(false);
+        setHydrating(false);
+        return;
+      }
+
+      const stored = getWalkthroughStepIndex(email);
+      if (!Number.isFinite(stored) || stored < 0) {
+        setCorruptRecovery(true);
+        setStepIndex(0);
+        setHydrating(false);
+        return;
+      }
+      if (stored > 0) {
+        // Never silently resume mid-walk (founder rejection: step 8/11).
+        setStepIndex(stored);
+        setResumeChoice(true);
+      } else {
+        setStepIndex(0);
+        setResumeChoice(false);
+      }
+      setDismissed(false);
       setHydrating(false);
     })();
     return () => {
@@ -109,7 +152,9 @@ export function FirstUseReveal(): JSX.Element | null {
   }, [email]);
 
   useEffect(() => {
-    if (dismissed || hydrating || paused) return;
+    if (dismissed || hydrating || paused || resumeChoice || corruptRecovery) {
+      return;
+    }
     let cancelled = false;
     void (async () => {
       const [health, dgi] = await Promise.all([
@@ -128,7 +173,10 @@ export function FirstUseReveal(): JSX.Element | null {
           setSignal(
             `${c.open_incoming_handoffs_count} handoff${c.open_incoming_handoffs_count === 1 ? "" : "s"} waiting`,
           );
-        } else if (c.next_best_step && c.next_best_step.kind !== "IDLE_HEALTHY") {
+        } else if (
+          c.next_best_step &&
+          c.next_best_step.kind !== "IDLE_HEALTHY"
+        ) {
           setSignal(c.next_best_step.safe_title);
         }
       }
@@ -136,7 +184,7 @@ export function FirstUseReveal(): JSX.Element | null {
     return () => {
       cancelled = true;
     };
-  }, [dismissed, hydrating, paused]);
+  }, [dismissed, hydrating, paused, resumeChoice, corruptRecovery]);
 
   const identity = ctx?.identity;
   const roleTitle =
@@ -155,34 +203,48 @@ export function FirstUseReveal(): JSX.Element | null {
   const step = steps[safeIndex]!;
   const a08 = useMemo(() => inventoryA08Journey(walkRole), [walkRole]);
   const a08Ok = a08JourneyOk(a08);
+  const stepPath = walkthroughPathname(step.ctaTo);
   const onTargetRoute =
-    location.pathname === step.ctaTo ||
-    (step.ctaTo !== "/app" && location.pathname.startsWith(step.ctaTo));
+    location.pathname === stepPath ||
+    (stepPath !== "/app" && location.pathname.startsWith(stepPath));
 
-  // When the user lands on a later step's route (CTA or manual nav), advance
-  // the coach so popup copy matches the screen (3s comprehension + acceptance).
+  // Guard: if step index exceeds plan after version change, recover.
   useEffect(() => {
-    if (dismissed || hydrating || paused || email === null) return;
-    const path = location.pathname;
-    // Prefer the highest matching step so My Work maps to updated_work after
-    // earlier my-work steps, not only the first my-work CTA.
-    let match = -1;
-    for (let i = 0; i < steps.length; i += 1) {
-      const cta = steps[i]!.ctaTo;
-      if (path === cta || (cta !== "/app" && path.startsWith(cta))) {
-        match = i;
-      }
+    if (hydrating || dismissed) return;
+    if (stepIndex >= steps.length) {
+      setCorruptRecovery(true);
     }
-    if (match >= 0 && match !== stepIndex) {
-      setStepIndex(match);
-      setWalkthroughStepIndex(email, match);
-    }
-  }, [dismissed, hydrating, paused, email, location.pathname, steps, stepIndex]);
+  }, [hydrating, dismissed, stepIndex, steps.length]);
 
   if (hydrating) return null;
 
-  // Completed: keep a calm "Show guide again" affordance (RC2 restart).
-  // Does not auto-restart; never covers Talk (bottom-left chip).
+  function startOver(): void {
+    clearWalkthrough(email);
+    setStepIndex(0);
+    setWalkthroughStepIndex(email, 0);
+    setResumeChoice(false);
+    setCorruptRecovery(false);
+    setPaused(false);
+    setDismissed(false);
+    setConfirmNote(null);
+    advancingRef.current = false;
+    setNavBusy(false);
+    navigate("/app");
+  }
+
+  function continueFromSaved(): void {
+    setResumeChoice(false);
+    setCorruptRecovery(false);
+    const idx = clampWalkthroughStep(stepIndex, steps.length);
+    setStepIndex(idx);
+    setWalkthroughStepIndex(email, idx);
+    const target = walkthroughPathname(steps[idx]!.ctaTo);
+    if (location.pathname !== target) {
+      navigate(target);
+    }
+  }
+
+  // Completed: calm restart chip (bottom-left; never covers Talk).
   if (dismissed) {
     return (
       <div
@@ -194,20 +256,78 @@ export function FirstUseReveal(): JSX.Element | null {
           type="button"
           className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-md backdrop-blur hover:border-indigo-200 hover:text-indigo-700"
           data-testid="walkthrough-restart"
-          onClick={() => {
-            clearWalkthrough(email);
-            setStepIndex(0);
-            setWalkthroughStepIndex(email, 0, undefined, {
-              persistServer: false,
-            });
-            setPaused(false);
-            setDismissed(false);
-            setConfirmNote(null);
-          }}
+          onClick={() => startOver()}
         >
           <Sparkles className="h-3.5 w-3.5" aria-hidden />
           Restart walkthrough
         </button>
+      </div>
+    );
+  }
+
+  // Corrupt state recovery — never jump to an arbitrary mid step.
+  if (corruptRecovery) {
+    return (
+      <div
+        className="pointer-events-none fixed bottom-3 left-3 z-[45] w-[min(22rem,calc(100vw-1.5rem))] sm:bottom-6 sm:left-6"
+        data-testid="first-use-reveal-corrupt"
+        data-coach-mode="recovery"
+      >
+        <div className="pointer-events-auto rounded-2xl border border-amber-200/80 bg-white/95 px-3.5 py-3 shadow-lg backdrop-blur">
+          <p className="text-sm font-medium text-slate-900">
+            Let&apos;s restart the walkthrough so every step matches the current
+            demo.
+          </p>
+          <button
+            type="button"
+            className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white"
+            data-testid="walkthrough-corrupt-restart"
+            onClick={() => startOver()}
+          >
+            Restart at step 1
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Returning user choice — never silent mid-walk resume.
+  if (resumeChoice) {
+    return (
+      <div
+        className="pointer-events-none fixed bottom-3 left-3 z-[45] w-[min(22rem,calc(100vw-1.5rem))] sm:bottom-6 sm:left-6"
+        data-testid="first-use-reveal-resume-choice"
+        data-coach-mode="resume-choice"
+        data-saved-step={stepIndex}
+      >
+        <div className="pointer-events-auto rounded-2xl border border-indigo-200/70 bg-white/95 px-3.5 py-3 shadow-lg backdrop-blur">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
+            Walkthrough · saved progress
+          </p>
+          <p className="mt-1 text-sm text-slate-800">
+            You left mid-guide (step {Math.min(stepIndex + 1, steps.length)} of{" "}
+            {steps.length}). Continue where you left off, or start over at step
+            1.
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white"
+              data-testid="walkthrough-continue-saved"
+              onClick={() => continueFromSaved()}
+            >
+              Continue walkthrough
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700"
+              data-testid="walkthrough-start-over"
+              onClick={() => startOver()}
+            >
+              Start over
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -219,7 +339,6 @@ export function FirstUseReveal(): JSX.Element | null {
         ? "confirmation"
         : "anchored";
 
-  // Paused / Skip for now: bottom-LEFT so it never covers default Talk (bottom-right).
   if (paused) {
     return (
       <div
@@ -227,20 +346,29 @@ export function FirstUseReveal(): JSX.Element | null {
         data-testid="first-use-reveal-paused"
         data-coach-mode="paused"
       >
-        <button
-          type="button"
-          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-lg backdrop-blur"
-          data-testid="walkthrough-resume"
-          onClick={() => setPaused(false)}
-        >
-          <Sparkles className="h-3.5 w-3.5" aria-hidden />
-          Continue walkthrough
-        </button>
+        <div className="pointer-events-auto flex flex-col gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-lg backdrop-blur"
+            data-testid="walkthrough-resume"
+            onClick={() => setPaused(false)}
+          >
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Continue walkthrough
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-md"
+            data-testid="walkthrough-start-over"
+            onClick={() => startOver()}
+          >
+            Start over
+          </button>
+        </div>
       </div>
     );
   }
 
-  // Compact: Talk is active work. Stay available without covering the dock.
   if (coachMode === "compact") {
     return (
       <div
@@ -260,7 +388,10 @@ export function FirstUseReveal(): JSX.Element | null {
         aria-live="polite"
       >
         <div className="pointer-events-auto flex max-w-[min(18rem,calc(100vw-1.5rem))] items-center gap-2 rounded-full border border-indigo-200/70 bg-white/95 px-3 py-1.5 shadow-md backdrop-blur">
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-indigo-600" aria-hidden />
+          <Sparkles
+            className="h-3.5 w-3.5 shrink-0 text-indigo-600"
+            aria-hidden
+          />
           <span className="min-w-0 truncate text-[11px] font-medium text-slate-800">
             Guide · {safeIndex + 1}/{steps.length}: {step.title}
           </span>
@@ -296,14 +427,32 @@ export function FirstUseReveal(): JSX.Element | null {
     setDismissed(true);
   }
 
+  /**
+   * WHAT: Move to a step by index, navigate to its route, persist after set.
+   * WHY: Next/Back must change both popup and route; never browser-history alone.
+   */
   function goToStep(nextIdx: number): void {
+    if (advancingRef.current) return;
     const clamped = clampWalkthroughStep(nextIdx, steps.length);
+    const target = walkthroughPathname(steps[clamped]!.ctaTo);
+    advancingRef.current = true;
+    setNavBusy(true);
     setStepIndex(clamped);
-    setWalkthroughStepIndex(email, clamped);
     setConfirmNote(null);
+    // Persist only after we commit the index (target readiness is best-effort).
+    setWalkthroughStepIndex(email, clamped);
+    if (location.pathname !== target) {
+      navigate(target);
+    }
+    // Unlock after a short tick so double-clicks cannot double-advance.
+    window.setTimeout(() => {
+      advancingRef.current = false;
+      setNavBusy(false);
+    }, 400);
   }
 
   function next(): void {
+    if (advancingRef.current || navBusy) return;
     if (safeIndex + 1 >= steps.length) {
       complete();
       return;
@@ -312,15 +461,14 @@ export function FirstUseReveal(): JSX.Element | null {
   }
 
   function back(): void {
+    if (advancingRef.current || navBusy) return;
     if (safeIndex <= 0) return;
     goToStep(safeIndex - 1);
   }
 
-  /** Navigate to the step target without ending the walkthrough. */
   function followCta(): void {
-    // Keep current step active while user explores the target surface.
     setWalkthroughStepIndex(email, safeIndex);
-    if (location.pathname !== step.ctaTo) {
+    if (location.pathname !== stepPath) {
       navigate(step.ctaTo);
     }
   }
@@ -329,9 +477,6 @@ export function FirstUseReveal(): JSX.Element | null {
     ? "shadow-md"
     : "shadow-[0_12px_40px_rgba(79,70,229,0.14)] ring-1 ring-indigo-100/70";
 
-  // Anchored coach: LEFT only (not full-width, not bottom-right). When Talk
-  // is open and user pins full coach, sit top-left so the dock stays free.
-  // Wrapper is pointer-events-none; card is auto. Talk is z-70.
   const anchoredPos =
     talkOpen && pinFullWhileTalk
       ? "left-3 top-[max(0.75rem,env(safe-area-inset-top))] sm:left-4 sm:top-4"
@@ -342,7 +487,9 @@ export function FirstUseReveal(): JSX.Element | null {
         reduceMotion ? "" : "transition-all duration-300"
       }`}
       data-testid="first-use-reveal"
-      data-coach-mode={talkOpen && pinFullWhileTalk ? "confirmation" : "anchored"}
+      data-coach-mode={
+        talkOpen && pinFullWhileTalk ? "confirmation" : "anchored"
+      }
       data-a08="true"
       data-a08-ok={a08Ok ? "true" : "false"}
       data-role={walkRole}
@@ -373,7 +520,10 @@ export function FirstUseReveal(): JSX.Element | null {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600/90">
+              <p
+                className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600/90"
+                data-testid="walkthrough-progress"
+              >
                 Getting started · {safeIndex + 1}/{steps.length}
               </p>
               <div className="flex items-center gap-1">
@@ -394,8 +544,6 @@ export function FirstUseReveal(): JSX.Element | null {
                   data-testid="first-use-review-work"
                   data-skip-for-now="true"
                   onClick={() => {
-                    // RC2: Skip does NOT complete. Pause keeps progress;
-                    // Continue walkthrough chip restores the coach.
                     setWalkthroughStepIndex(email, safeIndex);
                     setPaused(true);
                   }}
@@ -409,13 +557,13 @@ export function FirstUseReveal(): JSX.Element | null {
               data-testid="first-use-recognition"
             >
               <span className="font-semibold">Welcome, {firstName}.</span>{" "}
-              <span className="text-slate-300">
+              <span className="text-slate-500">
                 {orgName}
                 {roleTitle ? ` · ${roleTitle}` : ""}
               </span>
             </p>
             <p
-              className="mt-1.5 text-sm font-medium text-slate-50"
+              className="mt-1.5 text-sm font-medium text-slate-900"
               data-testid="walkthrough-step-title"
             >
               {step.title}
@@ -426,15 +574,23 @@ export function FirstUseReveal(): JSX.Element | null {
             >
               {step.body}
             </p>
-            <p className="mt-1 text-[11px] text-slate-300" data-testid="walkthrough-why">
+            <p
+              className="mt-1 text-[11px] text-slate-500"
+              data-testid="walkthrough-why"
+            >
               Why it matters: {step.why}
             </p>
-            <p className="text-[11px] font-medium text-indigo-700" data-testid="walkthrough-do-next">
-              {onTargetRoute ? "You are here. Explore, then continue." : step.doNext}
+            <p
+              className="text-[11px] font-medium text-indigo-700"
+              data-testid="walkthrough-do-next"
+            >
+              {onTargetRoute
+                ? "You are here. Explore, then continue."
+                : step.doNext}
             </p>
             {signal && safeIndex === 0 ? (
               <span
-                className="mt-1 block text-xs text-slate-300"
+                className="mt-1 block text-xs text-slate-500"
                 data-testid="first-use-org"
               >
                 Live now: {signal}
@@ -450,7 +606,6 @@ export function FirstUseReveal(): JSX.Element | null {
                 {onTargetRoute ? "Open again" : step.ctaLabel}
                 <ArrowRight className="h-3 w-3" aria-hidden />
               </button>
-              {/* Keep Link for e2e deep targets without completing */}
               <Link
                 to={step.ctaTo}
                 className="sr-only"
@@ -462,37 +617,12 @@ export function FirstUseReveal(): JSX.Element | null {
               >
                 {step.ctaLabel}
               </Link>
-              {walkRole === "administrator" && safeIndex === 0 ? (
-                <Link
-                  to="/app/collaboration"
-                  className="sr-only"
-                  data-testid="first-use-see-org"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    followCta();
-                  }}
-                >
-                  See my org
-                </Link>
-              ) : null}
-              {walkRole === "employee" || walkRole === "contractor" ? (
-                <Link
-                  to="/app/action-center"
-                  className="sr-only"
-                  data-testid="first-use-needs-me"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    followCta();
-                  }}
-                >
-                  What needs me
-                </Link>
-              ) : null}
               {safeIndex > 0 ? (
                 <button
                   type="button"
-                  className="inline-flex items-center rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white"
+                  className="inline-flex items-center rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white disabled:opacity-50"
                   data-testid="walkthrough-back"
+                  disabled={navBusy}
                   onClick={() => back()}
                 >
                   Back
@@ -500,8 +630,9 @@ export function FirstUseReveal(): JSX.Element | null {
               ) : null}
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white"
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white disabled:opacity-50"
                 data-testid="walkthrough-next"
+                disabled={navBusy}
                 onClick={() => next()}
               >
                 {safeIndex + 1 >= steps.length ? "Finish" : "Next"}
@@ -520,6 +651,14 @@ export function FirstUseReveal(): JSX.Element | null {
               <button
                 type="button"
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white"
+                data-testid="walkthrough-start-over"
+                onClick={() => startOver()}
+              >
+                Start over
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white"
                 data-testid="first-use-start-day"
                 onClick={() => complete()}
               >
@@ -530,11 +669,9 @@ export function FirstUseReveal(): JSX.Element | null {
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-white"
                 data-testid="first-use-talk"
                 onClick={() => {
-                  // Open Talk without completing the guide; compact mode
-                  // engages via otzar:open so the dock stays clickable.
                   setTalkOpen(true);
                   openOrb();
-                  if (step.id === "ai_action") {
+                  if (step.id === "final_outcome" || step.id === "ai_action") {
                     followCta();
                   }
                 }}

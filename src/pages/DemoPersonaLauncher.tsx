@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { deriveCapabilities, useAuthStore } from "@/lib/stores/auth";
 import { conversationScopeId } from "@/lib/auth/org-switch";
 import { bindConversationScope } from "@/lib/work-os/conversation-store";
+import { resetWalkthroughForDemoLaunch } from "@/lib/first-use/state";
+import { demoPersonaValueFor } from "@/lib/demo/demo-persona-value";
 
 const API_BASE =
   (import.meta.env.VITE_FOUNDATION_URL as string | undefined)?.replace(
@@ -99,18 +101,22 @@ export function DemoPersonaLauncherPage(): JSX.Element {
         return;
       }
       const persona = json.persona;
+      const demoEmail = persona?.key
+        ? `${persona.key}@demo.local`
+        : "demo@local";
       sessionStorage.setItem(
         "otzar_demo_banner",
         json.banner ||
           `Fictional Y Combinator Labs demo · Viewing as ${persona?.role_title ?? "demo"}`,
       );
       sessionStorage.setItem("otzar_demo_persona_key", personaKey);
+      // Demo launch always starts walkthrough at step 1 (yc-demo-v6).
+      // Prevents silent resume at step 8/11 from prior browser progress.
+      resetWalkthroughForDemoLaunch(demoEmail);
       useAuthStore.setState({
         token: json.token,
         entity: {
-          email: persona?.display_name
-            ? `${persona.key}@demo.local`
-            : "demo@local",
+          email: demoEmail,
           org_entity_id: null,
           org_name: "Y Combinator Labs",
         },
@@ -168,25 +174,37 @@ export function DemoPersonaLauncherPage(): JSX.Element {
         )}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {(data?.personas ?? []).map((p) => (
-            <Card key={p.key} data-testid={`demo-persona-card-${p.key}`}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{p.role_title}</CardTitle>
-                <p className="text-xs text-muted-foreground">{p.display_name}</p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">{p.card_blurb}</p>
-                <Button
-                  className="w-full"
-                  disabled={launching !== null}
-                  onClick={() => void launch(p.key)}
-                  data-testid={`demo-launch-${p.key}`}
-                >
-                  {launching === p.key ? "Starting…" : "View as this role"}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {(data?.personas ?? []).map((p) => {
+            const value = demoPersonaValueFor(p.key);
+            return (
+              <Card key={p.key} data-testid={`demo-persona-card-${p.key}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">{p.role_title}</CardTitle>
+                  <p className="text-xs text-muted-foreground">{p.display_name}</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">{p.card_blurb}</p>
+                  <p
+                    className="rounded-md border border-indigo-100 bg-indigo-50/50 px-2 py-1.5 text-[11px] leading-snug text-slate-700"
+                    data-testid={`demo-persona-value-preview-${p.key}`}
+                  >
+                    <span className="font-semibold text-indigo-800">
+                      What you will see:{" "}
+                    </span>
+                    {value.outcome}
+                  </p>
+                  <Button
+                    className="w-full"
+                    disabled={launching !== null}
+                    onClick={() => void launch(p.key)}
+                    data-testid={`demo-launch-${p.key}`}
+                  >
+                    {launching === p.key ? "Starting…" : "View as this role"}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <p className="text-center text-[11px] text-muted-foreground">

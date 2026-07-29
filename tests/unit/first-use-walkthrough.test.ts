@@ -71,7 +71,7 @@ describe("resolveWalkthroughRole", () => {
   });
 });
 
-describe("walkthroughStepsFor (v5 12-step acceptance)", () => {
+describe("walkthroughStepsFor (yc-demo-v6 12-step acceptance)", () => {
   const roles: WalkthroughRole[] = [
     "administrator",
     "executive",
@@ -134,7 +134,7 @@ describe("versioned completion keys", () => {
     expect(walkthroughMarker()).toBe(
       `otzar_first_use_walkthrough:${WALKTHROUGH_VERSION}:done`,
     );
-    expect(WALKTHROUGH_VERSION).toBe("v5");
+    expect(WALKTHROUGH_VERSION).toBe("yc-demo-v6");
   });
 
   it("persists in-progress step without completing", () => {

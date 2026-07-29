@@ -1,6 +1,6 @@
 // FILE: tests/unit/cinematic-first-login-a08.test.ts
 // PURPOSE: A-08 — every role journey has org state, AI action, provider honesty.
-//          v5 ships the full 12-step founder acceptance journey.
+//          yc-demo-v6 ships the full 12-step founder acceptance journey.
 
 import { describe, expect, it } from "vitest";
 import {
@@ -16,9 +16,9 @@ import {
 } from "@/lib/first-use/walkthrough";
 
 describe("A-08 cinematic first-login", () => {
-  it("states doctrine and uses v5 walkthrough", () => {
+  it("states doctrine and uses yc-demo-v6 walkthrough", () => {
     expect(A08_DOCTRINE).toMatch(/cinematic|role-specific|provider honesty/i);
-    expect(WALKTHROUGH_VERSION).toBe("v5");
+    expect(WALKTHROUGH_VERSION).toBe("yc-demo-v6");
   });
 
   it.each([...A08_ROLES])(

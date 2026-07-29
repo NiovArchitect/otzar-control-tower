@@ -1,7 +1,8 @@
 // FILE: first-use/state.ts
-// PURPOSE: First-use walkthrough completion AND in-progress step.
-//          Dual write: versioned localStorage + best-effort server marker.
-//          Progress survives route changes, refresh, and return visits.
+// PURPOSE: Versioned first-use walkthrough completion + in-progress step.
+//          Local storage is the in-session source of truth for step index.
+//          Server only stores "done" (not mid-walk resume) after founder
+//          rejection of silent resume-at-step-8/11 from accumulated markers.
 // CONNECTS TO: walkthrough.ts, FirstUseReveal, correctionMemory API.
 
 import { api } from "@/lib/api";
@@ -13,6 +14,11 @@ import {
 const PREFIX = "otzar_first_use_walkthrough:";
 const STEP_PREFIX = "otzar_first_use_walkthrough_step:";
 
+/**
+ * WHAT: Stable localStorage key for completion.
+ * INPUT: email (demo uses persona@demo.local) + version.
+ * OUTPUT: namespaced key so version bumps invalidate stale progress.
+ */
 export function firstUseStorageKey(
   email: string | null | undefined,
   version: string = WALKTHROUGH_VERSION,
@@ -43,10 +49,6 @@ export function hasCompletedWalkthrough(
     if (window.localStorage.getItem(firstUseStorageKey(email, version)) === "done") {
       return true;
     }
-    if (version === "v1") {
-      const legacy = `otzar_first_use_v1:${(email ?? "anonymous").trim().toLowerCase()}`;
-      return window.localStorage.getItem(legacy) === "done";
-    }
     return false;
   } catch {
     return true;
@@ -70,12 +72,16 @@ export function getWalkthroughStepIndex(
   }
 }
 
-/** Persist in-progress step. Does not complete the walkthrough. */
+/**
+ * WHAT: Persist in-progress step locally only.
+ * WHY: Server step markers caused silent resume at step 8/11 after smoke tests.
+ *      Founder rejection: never accumulate mid-walk progress as cross-session truth.
+ */
 export function setWalkthroughStepIndex(
   email: string | null | undefined,
   index: number,
   version: string = WALKTHROUGH_VERSION,
-  options?: { persistServer?: boolean },
+  _options?: { persistServer?: boolean },
 ): void {
   if (typeof window === "undefined") return;
   const next = Math.max(0, Math.floor(index));
@@ -84,9 +90,7 @@ export function setWalkthroughStepIndex(
   } catch {
     /* private mode */
   }
-  if (options?.persistServer !== false) {
-    void persistServerWalkthroughProgress(version, next);
-  }
+  // Intentionally do NOT write mid-walk step markers to the server.
 }
 
 export function markFirstUseComplete(email: string | null | undefined): void {
@@ -101,10 +105,6 @@ export function markWalkthroughComplete(
   try {
     window.localStorage.setItem(firstUseStorageKey(email, version), "done");
     window.localStorage.removeItem(stepStorageKey(email, version));
-    if (version === "v1") {
-      const legacy = `otzar_first_use_v1:${(email ?? "anonymous").trim().toLowerCase()}`;
-      window.localStorage.setItem(legacy, "done");
-    }
   } catch {
     /* private mode */
   }
@@ -135,23 +135,11 @@ async function persistServerWalkthroughDone(version: string): Promise<void> {
   }
 }
 
-async function persistServerWalkthroughProgress(
-  version: string,
-  index: number,
-): Promise<void> {
-  try {
-    const marker = `otzar_first_use_walkthrough:${version}:step:${index}`;
-    await api.otzar.correctionMemory.create({
-      scope_type: "PERSONAL",
-      correction_type: "PREFERENCE",
-      safe_summary: marker,
-    });
-  } catch {
-    /* best-effort; local step is source of truth while in progress */
-  }
-}
-
-/** Load server completion into localStorage when present (cross-device). */
+/**
+ * WHAT: Hydrate ONLY completion from server — never mid-walk step index.
+ * WHY: Prior hydrateWalkthroughFromServer resumed highest step:N marker
+ *      written by every Next click, so clean browsers still opened at 8/12.
+ */
 export async function hydrateWalkthroughFromServer(
   email: string | null | undefined,
   version: string = WALKTHROUGH_VERSION,
@@ -172,23 +160,7 @@ export async function hydrateWalkthroughFromServer(
       markWalkthroughComplete(email, version);
       return true;
     }
-    // Resume highest step marker if present
-    let maxStep = -1;
-    for (const c of listed.data.corrections ?? []) {
-      const s = c.safe_summary ?? "";
-      const m = s.match(
-        new RegExp(
-          `otzar_first_use_walkthrough:${version}:step:(\\d+)`,
-        ),
-      );
-      if (m?.[1] !== undefined) {
-        const n = Number.parseInt(m[1], 10);
-        if (Number.isFinite(n) && n > maxStep) maxStep = n;
-      }
-    }
-    if (maxStep >= 0) {
-      setWalkthroughStepIndex(email, maxStep, version, { persistServer: false });
-    }
+    // Explicitly ignore otzar_first_use_walkthrough:*:step:* markers.
   } catch {
     return false;
   }
@@ -196,18 +168,14 @@ export async function hydrateWalkthroughFromServer(
 }
 
 export function clearFirstUse(email: string | null | undefined): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(firstUseStorageKey(email));
-    window.localStorage.removeItem(stepStorageKey(email));
-    window.localStorage.removeItem(
-      `otzar_first_use_v1:${(email ?? "anonymous").trim().toLowerCase()}`,
-    );
-  } catch {
-    /* ignore */
-  }
+  clearWalkthrough(email);
 }
 
+/**
+ * WHAT: Full local reset for Start over / demo re-launch.
+ * INPUT: email + version
+ * OUTPUT: no local done/step for this version key
+ */
 export function clearWalkthrough(
   email: string | null | undefined,
   version: string = WALKTHROUGH_VERSION,
@@ -216,6 +184,34 @@ export function clearWalkthrough(
   try {
     window.localStorage.removeItem(firstUseStorageKey(email, version));
     window.localStorage.removeItem(stepStorageKey(email, version));
+    // Also clear previous major versions that may linger in the same browser.
+    for (const v of ["v1", "v2", "v3", "v4", "v5", "yc-demo-v5"]) {
+      window.localStorage.removeItem(firstUseStorageKey(email, v));
+      window.localStorage.removeItem(stepStorageKey(email, v));
+    }
+    window.localStorage.removeItem(
+      `otzar_first_use_v1:${(email ?? "anonymous").trim().toLowerCase()}`,
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * WHAT: Demo persona launch must start at step 1 unless user chose Continue.
+ * INPUT: email for the demo persona
+ * OUTPUT: clears local progress for a clean first-time start
+ */
+export function resetWalkthroughForDemoLaunch(
+  email: string | null | undefined,
+): void {
+  clearWalkthrough(email, WALKTHROUGH_VERSION);
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      "otzar_walkthrough_force_start",
+      WALKTHROUGH_VERSION,
+    );
   } catch {
     /* ignore */
   }

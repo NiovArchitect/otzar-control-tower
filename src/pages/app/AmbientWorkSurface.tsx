@@ -46,6 +46,7 @@ import {
 } from "@/components/ambient/SpatialPresenceLayer";
 import { isOrgAdmin } from "@/lib/auth/capabilities";
 import { AdminOrganizationEntry } from "@/components/otzar/AdminOrganizationEntry";
+import { DemoRoleValueCard } from "@/components/demo/DemoRoleValueCard";
 import {
   focusApprovals,
   focusBlindSpots,
@@ -1077,6 +1078,9 @@ export function AmbientWorkSurface(): JSX.Element {
     >
       {/* Org admins: login lands here — surface "Otzar found" without hunting Control Tower. */}
       {isOrgAdmin(capabilities) ? <AdminOrganizationEntry /> : null}
+
+      {/* YC demo: five-second role value above the fold (no scroll required). */}
+      <DemoRoleValueCard />
 
       {/* One-shot hero — presence + optional first-use strip (not a second page). */}
       <section
