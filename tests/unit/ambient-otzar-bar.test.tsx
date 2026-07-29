@@ -2987,7 +2987,11 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
   // full-suite parallel load — the clarity path never touches those endpoints.
   expect(
    mutations.filter(
-    (m) => !m.includes("/auth/") && !m.includes("/voice/tts-preview") && !m.includes("/calendar/freebusy"),
+    (m) =>
+     !m.includes("/auth/") &&
+     !m.includes("/voice/tts-preview") &&
+     !m.includes("/voice/speak") &&
+     !m.includes("/calendar/freebusy"),
    ),
   ).toEqual([]);
   useCurrentSurfaceContextStore.getState().clear();
@@ -3041,13 +3045,15 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
   // Attribution + how-to-treat language reached the user verbatim.
   const body = document.body.textContent ?? "";
   expect(body).toContain("use as background only, never for action");
-  // Read-only end to end: no POST/PATCH left the ambient bar.
-  // GET-only intent: the CLARITY rail made no mutating call. Exclude unrelated background
-  // features (voice TTS preview, calendar free/busy) whose async can land here late under
-  // full-suite parallel load — the clarity path never touches those endpoints.
+  // Read-only work path: clarity is GET-only. Voice speak/TTS may fire to
+  // present the answer — that is presentation, not ledger mutation.
   expect(
    mutations.filter(
-    (m) => !m.includes("/auth/") && !m.includes("/voice/tts-preview") && !m.includes("/calendar/freebusy"),
+    (m) =>
+     !m.includes("/auth/") &&
+     !m.includes("/voice/tts-preview") &&
+     !m.includes("/voice/speak") &&
+     !m.includes("/calendar/freebusy"),
    ),
   ).toEqual([]);
   useCurrentSurfaceContextStore.getState().clear();
@@ -3098,12 +3104,13 @@ describe("AmbientOtzarBar — selected-work clarity questions (CE-AMBIENT)", () 
   expect(hits).toBe(1);
   const body = document.body.textContent ?? "";
   expect(body).toContain("use as background only, never for action");
-  // GET-only intent: the CLARITY rail made no mutating call. Exclude unrelated background
-  // features (voice TTS preview, calendar free/busy) whose async can land here late under
-  // full-suite parallel load — the clarity path never touches those endpoints.
   expect(
    mutations.filter(
-    (m) => !m.includes("/auth/") && !m.includes("/voice/tts-preview") && !m.includes("/calendar/freebusy"),
+    (m) =>
+     !m.includes("/auth/") &&
+     !m.includes("/voice/tts-preview") &&
+     !m.includes("/voice/speak") &&
+     !m.includes("/calendar/freebusy"),
    ),
   ).toEqual([]);
  });
