@@ -730,14 +730,22 @@ export function Voice() {
         </CardContent>
       </Card>
 
+      {/* Slice 4 — Talk workspace leads with work, not device roadmap.
+          Hardware / capture-model diagnostics stay collapsed (never primary). */}
       <Card data-testid="ambient-capture-card">
         <CardHeader>
-          <CardTitle className="text-base">Ambient capture readiness</CardTitle>
+          <CardTitle className="text-base">Talk status</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="ambient-capture-copy"
+          >
+            {ambientCaptureCopy}
+          </p>
           <div className="space-y-1" data-testid="ptt-capture-model">
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Capture model:</span>
+              <span className="text-muted-foreground">Mic mode:</span>
               <Badge variant="outline">Push-to-talk</Badge>
               <Badge
                 variant={pttState === "listening" ? "default" : "secondary"}
@@ -754,13 +762,6 @@ export function Voice() {
               {describePushToTalkState(pttState)}
             </p>
           </div>
-
-          <p
-            className="text-sm text-muted-foreground"
-            data-testid="ambient-capture-copy"
-          >
-            {ambientCaptureCopy}
-          </p>
 
           {routeHint !== null ? (
             <div
@@ -1121,31 +1122,41 @@ export function Voice() {
             </div>
           ) : null}
 
-          <div className="space-y-1" data-testid="ambient-device-readiness">
-            <div className="text-xs font-medium text-foreground/80">
-              Device readiness
-            </div>
-            <ul className="space-y-1">
-              {deviceOptions.map((d) => (
-                <li
-                  key={d.mode}
-                  className="flex items-start gap-2 text-xs"
-                  data-testid={`ambient-device-${d.mode}`}
-                >
-                  <Badge
-                    variant={d.availability === "current" ? "default" : "secondary"}
-                    className="shrink-0"
+          <details
+            className="rounded-md border border-border/50 px-2 py-1.5"
+            data-testid="ambient-device-advanced"
+          >
+            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+              Advanced device notes (optional)
+            </summary>
+            <div className="mt-2 space-y-1" data-testid="ambient-device-readiness">
+              <ul className="space-y-1">
+                {deviceOptions.map((d) => (
+                  <li
+                    key={d.mode}
+                    className="flex items-start gap-2 text-xs"
+                    data-testid={`ambient-device-${d.mode}`}
                   >
-                    {d.availability === "current" ? "Available" : "Planned"}
-                  </Badge>
-                  <span>
-                    <span className="font-medium text-foreground">{d.label}</span>
-                    <span className="text-muted-foreground"> — {d.honest_status}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+                    <Badge
+                      variant={
+                        d.availability === "current" ? "default" : "secondary"
+                      }
+                      className="shrink-0"
+                    >
+                      {d.availability === "current" ? "Available" : "Planned"}
+                    </Badge>
+                    <span>
+                      <span className="font-medium text-foreground">{d.label}</span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        — {d.honest_status}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
         </CardContent>
       </Card>
 

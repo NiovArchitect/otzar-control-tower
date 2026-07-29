@@ -2260,6 +2260,10 @@ export interface ConversationListItem {
   message_count: number;
   started_at: string;
   closed_at: string | null;
+  /** Slice 4 — optional human title / summary preview. */
+  title?: string | null;
+  summary_preview?: string | null;
+  summary_available?: boolean;
 }
 
 // WHAT: GET /api/v1/otzar/conversations success response (paginated).

@@ -46,7 +46,7 @@ function renderConversations() {
 beforeEach(() => setAuth());
 
 describe("Conversations (employee Otzar)", () => {
-  it("renders session metadata with Active and Closed labels", async () => {
+  it("renders Conversation history with titles and summaries", async () => {
     // Explicit list fixture — do not rely on shared MSW order under parallel load.
     server.use(
       http.get(`${API_BASE}/otzar/conversations`, () =>
@@ -61,6 +61,9 @@ describe("Conversations (employee Otzar)", () => {
               message_count: 4,
               started_at: new Date(Date.now() - 3_600_000).toISOString(),
               closed_at: null,
+              title: "How is the team doing",
+              summary_preview: "You asked how the team was doing.",
+              summary_available: false,
             },
             {
               conversation_id: "conv-closed-0001",
@@ -70,6 +73,9 @@ describe("Conversations (employee Otzar)", () => {
               message_count: 9,
               started_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
               closed_at: new Date(Date.now() - 2 * 86_400_000 + 1_800_000).toISOString(),
+              title: "Security checklist follow-up",
+              summary_preview: "You discussed the security checklist.",
+              summary_available: true,
             },
           ],
           total: 2,
@@ -78,16 +84,23 @@ describe("Conversations (employee Otzar)", () => {
       ),
     );
     renderConversations();
+    expect(
+      await screen.findByRole("heading", { name: /Conversation history/i }),
+    ).toBeInTheDocument();
     const list = await screen.findByTestId("conversations-list", {}, { timeout: 15_000 });
     expect(within(list).getByText("Active")).toBeInTheDocument();
     expect(within(list).getByText("Closed")).toBeInTheDocument();
-    expect(list).toHaveTextContent(/Chat console/);
+    expect(list).toHaveTextContent(/How is the team doing|Security checklist/i);
+    // No hardware roadmap on Conversation History.
+    expect(document.body.textContent ?? "").not.toMatch(
+      /glasses planned|earphones planned|goggles planned|ambient capture readiness/i,
+    );
   });
 
   it("shows the persistent transcript-not-active notice", async () => {
     renderConversations();
     expect(await screen.findByTestId("transcript-notice")).toHaveTextContent(
-      /session history only|Full message transcripts are not available/i,
+      /Session history|summaries|transcripts are not shown/i,
     );
   });
 
