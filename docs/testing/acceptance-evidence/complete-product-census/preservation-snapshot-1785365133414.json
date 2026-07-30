@@ -1,0 +1,67 @@
+{
+  "captured_at": "2026-07-29T22:45:33.413Z",
+  "demo_reset": "NOT_PERFORMED",
+  "review_url": "https://app.otzar.ai/demo/yc",
+  "foundation_live_sha": "1d15865598e8b4c80b690abb69c457c1acbe8ed7",
+  "foundation_api": "https://api.otzar.ai",
+  "control_tower_bundle": "assets/index-JjjiyPF4.js",
+  "control_tower_main_sha": "bc525922895e89c9e1aa8e753f95724e5acf04bc",
+  "personas_mintable": {
+    "organization_lead": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    },
+    "application_review_lead": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    },
+    "technical_diligence_lead": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    },
+    "security_lead": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    },
+    "market_review_lead": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    },
+    "program_coordinator": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    },
+    "regular_reviewer": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    },
+    "contractor": {
+      "ok": true,
+      "has_token": true,
+      "entity_name": null
+    }
+  },
+  "org_lead_work_status_histogram": {
+    "EXECUTED": 16,
+    "DETECTED": 5,
+    "PROPOSED": 3,
+    "BLOCKED": 1,
+    "VERIFIED": 2
+  },
+  "org_lead_open_active_work_count": 9,
+  "open_titles_sample": [
+    "Quinn: research NovaGuard vendor control gaps for Casey",
+    "Current recommendation: conditional interview for HelioGrid",
+    "Ava: send interview invitation only after security gate is green",
+    "Riley: verify Northline Ops customer evidence reference",
+    "Jordan: attach architecture evidence pack for HelioGrid review"
+  ],
+  "note": "No tokens, passwords, or raw memory content stored. Preservation snapshot only."
+}
