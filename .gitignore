@@ -48,3 +48,8 @@ tmp/
 
 # YC Meridian demo private state (never commit passwords)
 .meridian-demo-state/
+
+# Environment files - never commit real secrets
+.env
+.env.*
+!.env.example
